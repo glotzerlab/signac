@@ -1,0 +1,6 @@
+{
+	"author_id": "csadorf",
+	"project_dir": "/nobackup/csadorf/example_project", 
+	"filestorage": "/nfs/glotzer/compmatdb/storage/",
+	"database": {"host": "localhost"}
+}
