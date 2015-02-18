@@ -11,7 +11,7 @@ class JobTest(unittest.TestCase):
 
     def test_open_and_close(self):
         import compdb.contrib.job
-        with compdb.contrib.job.Job('testjob') as job:
+        with compdb.contrib.job.Job({'name': 'testjob'}) as job:
             pass
 
     def test_open_job_method(self):
@@ -24,18 +24,21 @@ class JobTest(unittest.TestCase):
         from compdb.contrib import job
         with open_job('testjob') as test_job:
             jobs_collection = job.get_jobs_collection()
-            job_doc = jobs_collection.find_one(test_job._spec())
-            assert job_doc is not None
+            self.assertEqual(test_job.spec, test_job._spec)
+            print(test_job.spec)
+            job_doc = jobs_collection.find_one(test_job.spec)
+            self.assertIsNotNone(job_doc)
 
     def test_job_status(self):
         from compdb.contrib import open_job
         from compdb.contrib import job
         with open_job('testjob') as test_job:
             jobs_collection = job.get_jobs_collection()
-            job_doc = jobs_collection.find_one(test_job._spec())
-            assert job_doc[job.JOB_STATUS_KEY] == 'open'
-        job_doc = jobs_collection.find_one(test_job._spec())
-        assert job_doc[job.JOB_STATUS_KEY] == 'closed'
+            job_doc = jobs_collection.find_one(test_job.spec)
+            self.assertIsNotNone(job_doc)
+            self.assertEqual(job_doc[job.JOB_STATUS_KEY], 'open')
+        job_doc = jobs_collection.find_one(test_job.spec)
+        self.assertEqual(job_doc[job.JOB_STATUS_KEY], 'closed')
 
     def test_job_failure_status(self):
         from compdb.contrib import open_job
@@ -43,14 +46,28 @@ class JobTest(unittest.TestCase):
         try:
             with open_job('testjob') as test_job:
                 jobs_collection = job.get_jobs_collection()
-                job_doc = jobs_collection.find_one(test_job._spec())
-                assert job_doc[job.JOB_STATUS_KEY] == 'open'
+                job_doc = jobs_collection.find_one(test_job.spec)
+                self.assertIsNotNone(job_doc)
+                self.assertEqual(job_doc[job.JOB_STATUS_KEY], 'open')
                 raise ValueError('expected')
         except ValueError:
             pass
-        job_doc = jobs_collection.find_one(test_job._spec())
-        assert job_doc[job.JOB_STATUS_KEY] == 'closed'
-        assert job_doc[job.JOB_ERROR_KEY] is not None
+        job_doc = jobs_collection.find_one(test_job.spec)
+        self.assertEqual(job_doc[job.JOB_STATUS_KEY], 'closed')
+        self.assertIsNotNone(job_doc[job.JOB_ERROR_KEY])
+
+    def test_store_and_retrieve_value_in_job_collection(self):
+        import compdb.contrib
+        from compdb.contrib import open_job
+        import uuid
+        doc = {'a': uuid.uuid4()}
+        job_name = uuid.uuid4()
+        with open_job(job_name) as job:
+            job.collection.insert(doc)
+
+        jobs = compdb.contrib.find_jobs(name = job_name)
+        for job in jobs:
+            self.assertIsNotNone(job.collection.find_one(doc))
 
 if __name__ == '__main__':
     unittest.main()
