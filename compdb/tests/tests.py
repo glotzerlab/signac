@@ -11,7 +11,7 @@ class ConfigTest(unittest.TestCase):
     def test_config_verification(self):
         import compdb
 
-class JobTest(unittest.TestCase):
+class JobOpenAndClosingTest(unittest.TestCase):
 
     def test_open_and_close(self):
         import compdb.contrib.job
@@ -25,6 +25,16 @@ class JobTest(unittest.TestCase):
             pass
         job.remove()
 
+    def test_reopen_job(self):
+        from compdb.contrib import open_job
+        job_name = 'test_reopen_job'
+        with open_job(job_name, test_token) as job:
+            job_id = job.get_id()
+
+        with open_job(job_name, test_token) as job:
+            self.assertEqual(job.get_id(), job_id)
+        job.remove()
+
     def test_job_doc_retrieval(self):
         from compdb.contrib import open_job
         from compdb.contrib import job
@@ -35,23 +45,22 @@ class JobTest(unittest.TestCase):
             self.assertIsNotNone(job_doc)
         test_job.remove()
 
-    #def test_job_status(self):
-    #    from compdb.contrib import open_job
-    #    with open_job('testjob', test_token) as job:
-    #        self.assertEqual(job._get_status(), 'open')
-    #    self.assertEqual(job._get_status(), 'closed')
-    #    job.remove()
+class JobStorageTest(unittest.TestCase):
+    
+    def test_store_and_get(self):
+        import uuid
+        from compdb.contrib import open_job
+        key = 'my_test_key'
+        value = uuid.uuid4()
+        with open_job('testjob', test_token) as test_job:
+            test_job.store(key, value)
+            self.assertIsNotNone(test_job.get(key))
+            self.assertEqual(test_job.get(key), value)
 
-    #def test_job_failure_status(self):
-    #    from compdb.contrib import open_job
-    #    try:
-    #        with open_job('testjob', test_token) as job:
-    #            self.assertEqual(job._get_status(), 'open')
-    #            raise ValueError('expected')
-    #    except ValueError:
-    #        pass
-    #    self.assertEqual(job._get_status(), 'error')
-    #    job.remove()
+        with open_job('testjob', test_token) as test_job:
+            self.assertIsNotNone(test_job.get(key))
+            self.assertEqual(test_job.get(key), value)
+        test_job.remove()
 
     def test_store_and_retrieve_value_in_job_collection(self):
         import compdb.contrib
@@ -66,16 +75,6 @@ class JobTest(unittest.TestCase):
         for job in jobs:
             self.assertIsNotNone(job.collection.find_one(doc))
         test_job.remove()
-
-    def test_reopen_job(self):
-        from compdb.contrib import open_job
-        job_name = 'test_reopen_job'
-        with open_job(job_name, test_token) as job:
-            job_id = job.get_id()
-
-        with open_job(job_name, test_token) as job:
-            self.assertEqual(job.get_id(), job_id)
-        job.remove()
 
     def test_reopen_job_and_reretrieve_doc(self):
         from compdb.contrib import open_job
@@ -133,7 +132,7 @@ class JobTest(unittest.TestCase):
 def open_and_lock_and_release_job(jobname, token):
     from compdb.contrib import open_job
     with open_job(jobname, test_token) as job:
-        with job.lock():
+        with job.lock(timeout = 1):
             pass
     return True
 
@@ -170,22 +169,25 @@ class JobConcurrencyTest(unittest.TestCase):
         jobname = 'test_process_concurrency'
         num_processes = 10
         num_locks = 10
-        with Pool(processes = num_processes) as pool:
-            result = pool.starmap_async(
-                open_and_lock_and_release_job,
-                [(jobname, test_token) for i in range(num_locks)])
+        try:
+            with Pool(processes = num_processes) as pool:
+                result = pool.starmap_async(
+                    open_and_lock_and_release_job,
+                    [(jobname, test_token) for i in range(num_locks)])
 
-            #result = pool.starmap_async(
-            #    self.test_acquire_and_release,
-            #    acquire_and_release,
-            #    [(doc_id, 0.01) for i in range(num_locks)])
-            result = result.get(timeout = 5)
-            self.assertEqual(result, [True] * num_locks)
-
-        # clean up
-        with open_job(jobname, test_token) as job:
-            pass
-        job.remove()
+                #result = pool.starmap_async(
+                #    self.test_acquire_and_release,
+                #    acquire_and_release,
+                #    [(doc_id, 0.01) for i in range(num_locks)])
+                result = result.get(timeout = 5)
+                self.assertEqual(result, [True] * num_locks)
+        except Exception:
+            raise
+        finally:
+            # clean up
+            with open_job(jobname, test_token) as job:
+                pass
+            job.remove(force = True)
 
 if __name__ == '__main__':
     unittest.main()

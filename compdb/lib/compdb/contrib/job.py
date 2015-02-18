@@ -45,11 +45,6 @@ def job_spec(name, parameters):
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
 
-def sleep_random(time):
-    from random import uniform
-    from time import sleep
-    sleep(uniform(0, time))
-
 class JobNoIdError(RuntimeError):
     pass
 
@@ -82,17 +77,6 @@ class Job(object):
         self._with_id()
         return {'_id': self._spec['_id']}
 
-#    def _get_status(self):
-#        doc = self._jobs_collection.find_one(self._job_doc_spec())
-#        assert doc is not None
-#        return doc[JOB_STATUS_KEY]
-#
-#    def _set_status(self, status):
-#        self._with_id()
-#        self._jobs_collection.update(
-#            spec = self._job_doc_spec(),
-#            document = {'$set': {JOB_STATUS_KEY: status}})
-#
     def get_working_directory(self):
         self._with_id()
         return self._wd
@@ -108,45 +92,66 @@ class Job(object):
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
 
-    def open(self):
+    def _add_instance(self):
+        self._jobs_collection.update(
+            spec = self._job_doc_spec(),
+            document = {'$push': {'executing': self._unique_id}})
+
+    def _remove_instance(self):
+        result = self._jobs_collection.find_and_modify(
+            query = self._job_doc_spec(),
+            update = {'$pull': {'executing': self._unique_id}},
+            new = True)
+        return len(result['executing'])
+
+    def _open(self):
         import os
+        self._with_id()
+        self._cwd = os.getcwd()
+        self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
+        self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
+        self._create_directories()
+        os.chdir(self.get_working_directory())
+        self._add_instance()
+        msg = "Opened job with id: '{}'."
+        logger.debug(msg.format(self.get_id()))
+
+    def _close_with_error(self):
+        import shutil, os
+        self._with_id()
+        os.chdir(self._cwd)
+        self._cwd = None
+        self._remove_instance()
+
+    def _close(self):
+        import shutil, os
+        if self.num_open_instances() == 0:
+            shutil.rmtree(self.get_working_directory())
+
+    def open(self):
         with self._lock:
-            self._with_id()
-            self._cwd = os.getcwd()
-            self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
-            self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
-            self._create_directories()
-            os.chdir(self.get_working_directory())
-            self._jobs_collection.update(
-                spec = self._job_doc_spec(),
-                document = {'$push': {'executing': self._unique_id}})
-            #self._set_status('open')
-            msg = "Opened job with id: '{}'."
-            logger.debug(msg.format(self.get_id()))
+            self._open()
 
     def close(self):
-        import shutil, os
         with self._lock:
-            self._with_id()
-            os.chdir(self._cwd)
-            self._cwd = None
-            result = self._jobs_collection.find_and_modify(
-                query = self._job_doc_spec(),
-                update = {'$pull': {'executing': self._unique_id}},
-                new = True)
-            if len(result['executing']) == 0:
-                shutil.rmtree(self.get_working_directory())
-                #self._set_status('closed')
+            self._close()
 
     def __enter__(self):
         import os
         from . concurrency import DocumentLock
-        sleep_random(0.01)
-        result = get_jobs_collection().update(
-            spec = self._spec,
-            document = {'$set': self._spec},
-            #document = self._spec,
-            upsert = True)
+        from pymongo.errors import DuplicateKeyError
+        from . import sleep_random
+        sleep_random(0.1)
+        try:
+            result = get_jobs_collection().update(
+                spec = self._spec,
+                document = {'$set': self._spec},
+                upsert = True)
+        except DuplicateKeyError as error:
+            raise RuntimeError("Unable to open job. "
+             "Use `contrib.sleep_random` if you have trouble with "
+             "opening jobs in concurrency.")
+            raise RuntimeError(msg) from error
         assert result['ok']
         if result['updatedExisting']:
             _id = get_jobs_collection().find_one(self._spec)['_id']
@@ -161,15 +166,14 @@ class Job(object):
 
     def __exit__(self, err_type, err_value, traceback):
         import os
-        if err_type is None:
-            self.close()
-        else:
-            with self._lock:
-                #self._set_status('error')
+        with self._lock:
+            if err_type is None:
+                self._close_with_error()
+            else:
                 err_doc = '{}:{}'.format(err_type, err_value)
                 get_jobs_collection().update(
                     self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
-                os.chdir(self._cwd)
+                self._close_with_error()
                 return False
     
     def clear_working_directory(self):
@@ -196,12 +200,13 @@ class Job(object):
     def remove(self, force = False):
         self._with_id()
         if not force:
-            assert self.num_open_instances() == 0
+            if not self.num_open_instances() == 0:
+                raise RuntimeWarning("You are trying to remove an open instance. "
+                "Use 'force = True' to ignore this.")
         self._remove()
 
     def _remove(self):
         import shutil
-        #assert self._get_status() != 'open'
         for dir in (self.get_working_directory(), self.get_filestorage_directory()):
             try:
                 shutil.rmtree(self.get_working_directory())
@@ -243,3 +248,11 @@ class Job(object):
     def remove_file(self, filename):
         import os
         os.remove(self.storage_filename(filename))
+
+    def store(self, key, value):
+        self.collection.update({}, {key: value}, upsert = True)
+
+    def get(self, key):
+        doc = self.collection.find_one(
+            {key: {'$exists': True}}, fields = [key,])
+        return doc if doc is None else doc.get(key)

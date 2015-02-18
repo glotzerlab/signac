@@ -24,3 +24,9 @@ def find_jobs(name = None, parameters = None):
     jobs = find_job_docs(name = name, parameters = parameters)
     for job in jobs:
         yield reopen_job(job_id = job['_id'])
+
+def sleep_random(time = 1.0):
+    from random import uniform
+    from time import sleep
+    sleep(uniform(0, time))
+
