@@ -45,6 +45,11 @@ def job_spec(name, parameters):
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
 
+def sleep_random(time):
+    from random import uniform
+    from time import sleep
+    sleep(uniform(0, time))
+
 class JobNoIdError(RuntimeError):
     pass
 
@@ -136,6 +141,7 @@ class Job(object):
     def __enter__(self):
         import os
         from . concurrency import DocumentLock
+        sleep_random(0.01)
         result = get_jobs_collection().update(
             spec = self._spec,
             document = {'$set': self._spec},
@@ -222,6 +228,14 @@ class Job(object):
     def storage_filename(self, filename):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
+
+    def lock(self, blocking = True, timeout = -1):
+        from . concurrency import DocumentLock
+        self._with_id()
+        return DocumentLock(
+            collection = self._jobs_collection,
+            document_id = self.get_id(),
+            blocking = blocking, timeout = timeout)
 
     def open_storagefile(self, filename, * args, ** kwargs):
         return open(self.storage_filename(filename), * args, ** kwargs)

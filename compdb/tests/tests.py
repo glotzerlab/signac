@@ -130,7 +130,17 @@ class JobTest(unittest.TestCase):
             self.assertIsNone(job.collection.find_one(doc))
         job.remove()
 
-    def test_multiple_instances(self):
+def open_and_lock_and_release_job(jobname, token):
+    from compdb.contrib import open_job
+    with open_job(jobname, test_token) as job:
+        with job.lock():
+            pass
+    return True
+
+
+class JobConcurrencyTest(unittest.TestCase):
+
+    def test_recursive_job_opening(self):
         jobname = 'test_multiple_instances'
         from compdb.contrib import open_job
         with open_job(jobname, test_token) as job0:
@@ -144,6 +154,38 @@ class JobTest(unittest.TestCase):
         self.assertEqual(job1.num_open_instances(), 0)
         job0.remove()
         job1.remove()
+
+    def test_acquire_and_release(self):
+        jobname = 'test_acquire_and_release'
+        from compdb.contrib import open_job
+        with open_job(jobname, test_token) as job:
+            with job.lock(timeout = 1):
+                pass
+        job.remove()
+
+    def test_process_concurrency(self):
+        from compdb.contrib import open_job
+        from multiprocessing import Pool
+
+        jobname = 'test_process_concurrency'
+        num_processes = 10
+        num_locks = 10
+        with Pool(processes = num_processes) as pool:
+            result = pool.starmap_async(
+                open_and_lock_and_release_job,
+                [(jobname, test_token) for i in range(num_locks)])
+
+            #result = pool.starmap_async(
+            #    self.test_acquire_and_release,
+            #    acquire_and_release,
+            #    [(doc_id, 0.01) for i in range(num_locks)])
+            result = result.get(timeout = 5)
+            self.assertEqual(result, [True] * num_locks)
+
+        # clean up
+        with open_job(jobname, test_token) as job:
+            pass
+        job.remove()
 
 if __name__ == '__main__':
     unittest.main()
