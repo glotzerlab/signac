@@ -35,23 +35,23 @@ class JobTest(unittest.TestCase):
             self.assertIsNotNone(job_doc)
         test_job.remove()
 
-    def test_job_status(self):
-        from compdb.contrib import open_job
-        with open_job('testjob', test_token) as job:
-            self.assertEqual(job._get_status(), 'open')
-        self.assertEqual(job._get_status(), 'closed')
-        job.remove()
+    #def test_job_status(self):
+    #    from compdb.contrib import open_job
+    #    with open_job('testjob', test_token) as job:
+    #        self.assertEqual(job._get_status(), 'open')
+    #    self.assertEqual(job._get_status(), 'closed')
+    #    job.remove()
 
-    def test_job_failure_status(self):
-        from compdb.contrib import open_job
-        try:
-            with open_job('testjob', test_token) as job:
-                self.assertEqual(job._get_status(), 'open')
-                raise ValueError('expected')
-        except ValueError:
-            pass
-        self.assertEqual(job._get_status(), 'error')
-        job.remove()
+    #def test_job_failure_status(self):
+    #    from compdb.contrib import open_job
+    #    try:
+    #        with open_job('testjob', test_token) as job:
+    #            self.assertEqual(job._get_status(), 'open')
+    #            raise ValueError('expected')
+    #    except ValueError:
+    #        pass
+    #    self.assertEqual(job._get_status(), 'error')
+    #    job.remove()
 
     def test_store_and_retrieve_value_in_job_collection(self):
         import compdb.contrib
@@ -129,6 +129,21 @@ class JobTest(unittest.TestCase):
                 job.open_storagefile('_my_file', 'rb')
             self.assertIsNone(job.collection.find_one(doc))
         job.remove()
+
+    def test_multiple_instances(self):
+        jobname = 'test_multiple_instances'
+        from compdb.contrib import open_job
+        with open_job(jobname, test_token) as job0:
+            self.assertEqual(job0.num_open_instances(), 1)
+            with open_job(jobname, test_token) as job1:
+                self.assertEqual(job0.num_open_instances(), 2)
+                self.assertEqual(job1.num_open_instances(), 2)
+            self.assertEqual(job0.num_open_instances(), 1)
+            self.assertEqual(job1.num_open_instances(), 1)
+        self.assertEqual(job0.num_open_instances(), 0)
+        self.assertEqual(job1.num_open_instances(), 0)
+        job0.remove()
+        job1.remove()
 
 if __name__ == '__main__':
     unittest.main()

@@ -51,8 +51,11 @@ class JobNoIdError(RuntimeError):
 class Job(object):
     
     def __init__(self, spec):
+        import uuid
+        self._unique_id = uuid.uuid4()
         self._spec = spec
         self._jobs_collection = get_meta_db()['jobs']
+        self._lock = None
         self._collection = None
         self._cwd = None
         self._wd = None
@@ -74,17 +77,17 @@ class Job(object):
         self._with_id()
         return {'_id': self._spec['_id']}
 
-    def _get_status(self):
-        doc = self._jobs_collection.find_one(self._job_doc_spec())
-        assert doc is not None
-        return doc[JOB_STATUS_KEY]
-
-    def _set_status(self, status):
-        self._with_id()
-        self._jobs_collection.update(
-            spec = self._job_doc_spec(),
-            document = {'$set': {JOB_STATUS_KEY: status}})
-
+#    def _get_status(self):
+#        doc = self._jobs_collection.find_one(self._job_doc_spec())
+#        assert doc is not None
+#        return doc[JOB_STATUS_KEY]
+#
+#    def _set_status(self, status):
+#        self._with_id()
+#        self._jobs_collection.update(
+#            spec = self._job_doc_spec(),
+#            document = {'$set': {JOB_STATUS_KEY: status}})
+#
     def get_working_directory(self):
         self._with_id()
         return self._wd
@@ -102,26 +105,37 @@ class Job(object):
 
     def open(self):
         import os
-        self._with_id()
-        self._cwd = os.getcwd()
-        self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
-        self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
-        self._create_directories()
-        os.chdir(self.get_working_directory())
-        self._set_status('open')
-        msg = "Opened job with id: '{}'."
-        logger.debug(msg.format(self.get_id()))
+        with self._lock:
+            self._with_id()
+            self._cwd = os.getcwd()
+            self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
+            self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
+            self._create_directories()
+            os.chdir(self.get_working_directory())
+            self._jobs_collection.update(
+                spec = self._job_doc_spec(),
+                document = {'$push': {'executing': self._unique_id}})
+            #self._set_status('open')
+            msg = "Opened job with id: '{}'."
+            logger.debug(msg.format(self.get_id()))
 
     def close(self):
         import shutil, os
-        self._with_id()
-        self._set_status('closed')
-        os.chdir(self._cwd)
-        shutil.rmtree(self.get_working_directory())
-        self._cwd = None
+        with self._lock:
+            self._with_id()
+            os.chdir(self._cwd)
+            self._cwd = None
+            result = self._jobs_collection.find_and_modify(
+                query = self._job_doc_spec(),
+                update = {'$pull': {'executing': self._unique_id}},
+                new = True)
+            if len(result['executing']) == 0:
+                shutil.rmtree(self.get_working_directory())
+                #self._set_status('closed')
 
     def __enter__(self):
         import os
+        from . concurrency import DocumentLock
         result = get_jobs_collection().update(
             spec = self._spec,
             document = {'$set': self._spec},
@@ -135,6 +149,7 @@ class Job(object):
         self._spec = get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id
+        self._lock = DocumentLock(self._jobs_collection, self.get_id())
         self.open()
         return self
 
@@ -143,12 +158,13 @@ class Job(object):
         if err_type is None:
             self.close()
         else:
-            self._set_status('error')
-            err_doc = '{}:{}'.format(err_type, err_value)
-            get_jobs_collection().update(
-                self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
-            os.chdir(self._cwd)
-            return False
+            with self._lock:
+                #self._set_status('error')
+                err_doc = '{}:{}'.format(err_type, err_value)
+                get_jobs_collection().update(
+                    self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
+                os.chdir(self._cwd)
+                return False
     
     def clear_working_directory(self):
         import shutil
@@ -171,16 +187,37 @@ class Job(object):
         self.clear_filestorage_directory()
         self.collection.remove()
 
-    def remove(self):
+    def remove(self, force = False):
         self._with_id()
-        assert self._get_status() != 'open'
-        self.clear()
+        if not force:
+            assert self.num_open_instances() == 0
+        self._remove()
+
+    def _remove(self):
+        import shutil
+        #assert self._get_status() != 'open'
+        for dir in (self.get_working_directory(), self.get_filestorage_directory()):
+            try:
+                shutil.rmtree(self.get_working_directory())
+            except FileNotFoundError:
+                pass
         self.collection.drop()
-        get_jobs_collection().remove(self.spec)
+        get_jobs_collection().remove(self._job_doc_spec())
 
     @property
     def collection(self):
         return get_project_db()['job_{}'.format(self.get_id())]
+
+    def _open_instances(self):
+        self._with_id()
+        job_doc = self._jobs_collection.find_one(self._job_doc_spec())
+        if job_doc is None:
+            return list()
+        else:
+            return job_doc.get('executing', list())
+
+    def num_open_instances(self):
+        return len(self._open_instances())
 
     def storage_filename(self, filename):
         from os.path import join
