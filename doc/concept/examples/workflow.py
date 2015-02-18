@@ -30,7 +30,6 @@ def complete_job_execution_example():
             name = 'example_job',
             project = 'example_project',
             author = compdb.get_author('johndoe'),
-            working_directory = '/nobackup/johndoe/example_project/example_job',
             parameters = params) as job:
             # Some of the arguments should be more conventiently provided by 
             #   *) environment variables, 
@@ -157,19 +156,20 @@ def low_level_access():
         parameters = params) as job:
         
         # The unique job id
-        id_ = job.id_()
+        _id = job.get_id()
 
         # The project database
-        db = job.get_project_db()
+        db = compdb.job.get_project_db()
 
         # The project directory
-        project_dir = job.get_project_dir()
-
-        # The actual working directory
-        job_wd = job.get_working_dir()
+        project_dir = compdb.job.get_project_dir()
 
         # The filestorage directory
-        job_filestorage = job.get_filestorage_dir()
+        filestorage = compdb.job.get_filestorage_dir()
+
+        # The working directory
+        job_wd = job.get_working_dir() # Usually equal to os.cwd()
+
 
 def config():
     import compdb

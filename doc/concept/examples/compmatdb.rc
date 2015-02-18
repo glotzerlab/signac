@@ -1,5 +1,6 @@
 {
-	"author_id": "csadorf",
+	"author_name": "Carl Simon Adorf",
+  "author_email": "csadorf@umich.edu",
 	"project_dir": "/nobackup/csadorf/example_project", 
 	"filestorage": "/nfs/glotzer/compmatdb/storage/",
 	"database": {"host": "localhost"}

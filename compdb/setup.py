@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'compmatdb',
+    name = 'compdb',
     version = '0.1',
-    package_dir = {'': 'src'},
-    packages = find_packages('src'),
+    package_dir = {'': 'lib'},
+    packages = find_packages('lib'),
 
     author = 'Carl Simon Adorf',
     author_email = 'csadorf@umich.edu',
-    description = "Computational Materials Database.",
+    description = "Computational Database.",
     keywords = 'simulation tools mc md monte-carlo mongodb jobmanagement materials database',
 
     classifiers=[
