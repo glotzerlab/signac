@@ -2,6 +2,7 @@ import logging
 logger = logging.getLogger('job')
 
 from .. config import CONFIG
+from .. import _get_db
 
 JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'

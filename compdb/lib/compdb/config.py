@@ -22,11 +22,13 @@ REQUIRED_KEYS = [
 DEFAULTS = {
     'database_host': 'localhost',
     'database_meta': '_compdb',
+    'database_global_fs': '_compdb_fs',
     'working_dir': CWD,
 }
 
-LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + []
-
+LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
+    'global_fs_dir',
+    ]
 
 def read_config_files():
     args = dict()
@@ -71,10 +73,17 @@ def verify(args):
     assert set(args.keys()).issubset(set(LEGAL_ARGS))
     assert set(REQUIRED_KEYS).issubset(set(args.keys()))
 
-    dirs = ['working_dir', 'project_dir', 'filestorage_dir']
+    DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
+    dirs = (dir for dir in DIRS if dir in args)
+
     for dir_key in dirs:
-        args[dir_key] = os.path.realpath(args[dir_key])
-        if not os.path.isdir(args[dir_key]):
+        args[dir_key] = os.path.expanduser(args[dir_key])
+    for dir_key in dirs:
+        if os.path.isdir(os.path.abspath(args[dir_key])):
+            args[dir_key] = os.path.abspath(args[dir_key])
+        elif os.path.isdir(os.path.realpath(args[dir_key])):
+            args[dir_key] = os.path.realpath(args[dir_key])
+        else:
             msg = "Directory specified for '{}': '{}', does not exist."
             raise IOError(msg.format(dir_key, args[dir_key]))
 
