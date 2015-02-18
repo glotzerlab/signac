@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger('job')
+
 from .. config import CONFIG
 
 JOB_STATUS_KEY = 'status'
@@ -23,53 +26,144 @@ def get_meta_db():
 def get_jobs_collection():
     return get_meta_db()['jobs']
 
+def get_project_id():
+    return CONFIG['project']
+
 def get_project_db():
-    return get_db(CONFIG['project'])
+    return get_db(get_project_id())
 
 def filestorage_dir():
     return CONFIG['filestorage_dir']
 
 def job_spec(name, parameters):
-    spec = dict()
+    spec = {
+        'project':  get_project_id(),
+    }
     if name is not None:
         spec.update({JOB_NAME_KEY: name})
     if parameters is not None:
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
 
+class JobNoIdError(RuntimeError):
+    pass
+
 class Job(object):
     
     def __init__(self, spec):
         self._spec = spec
         self._jobs_collection = get_meta_db()['jobs']
+        self._collection = None
+        self._cwd = None
+        self._wd = None
+        self._fs = None
 
     @property
     def spec(self):
         return self._spec
 
+    def get_id(self):
+        return self.spec.get('_id', None)
+
+    def _with_id(self):
+        if self.get_id() is None:
+            raise JobNoIdError()
+        assert self.get_id() is not None
+    
+    def _job_doc_spec(self):
+        self._with_id()
+        return {'_id': self._spec['_id']}
+
+    def _get_status(self):
+        doc = self._jobs_collection.find_one(self._job_doc_spec())
+        assert doc is not None
+        return doc[JOB_STATUS_KEY]
+
+    def _set_status(self, status):
+        self._with_id()
+        self._jobs_collection.update(
+            spec = self._job_doc_spec(),
+            document = {'$set': {JOB_STATUS_KEY: status}})
+
     def get_working_directory(self):
-        import os.path
-        from os.path import join
-        return join(CONFIG['working_dir'], str(self.get_id()))
+        self._with_id()
+        return self._wd
 
     def get_filestorage_directory(self):
-        from os.path import join
-        return join(CONFIG['filestorage_dir'], str(self.get_id()))
+        self._with_id()
+        return self._fs
 
     def _create_directories(self):
         import os
+        self._with_id()
         for dir_name in (self.get_working_directory(), self.get_filestorage_directory()):
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
 
+    def open(self):
+        import os
+        self._with_id()
+        self._cwd = os.getcwd()
+        self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
+        self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
+        self._create_directories()
+        os.chdir(self.get_working_directory())
+        self._set_status('open')
+        msg = "Opened job with id: '{}'."
+        logger.debug(msg.format(self.get_id()))
+
+    def close(self):
+        import shutil, os
+        self._with_id()
+        self._set_status('closed')
+        os.chdir(self._cwd)
+        shutil.rmtree(self.get_working_directory())
+        self._cwd = None
+
+    def __enter__(self):
+        import os
+        result = get_jobs_collection().update(
+            spec = self._spec,
+            document = {'$set': self._spec},
+            #document = self._spec,
+            upsert = True)
+        assert result['ok']
+        if result['updatedExisting']:
+            _id = get_jobs_collection().find_one(self._spec)['_id']
+        else:
+            _id = result['upserted']
+        self._spec = get_jobs_collection().find_one({'_id': _id})
+        assert self._spec is not None
+        assert self.get_id() == _id
+        self.open()
+        return self
+
+    def __exit__(self, err_type, err_value, traceback):
+        import os
+        if err_type is None:
+            self.close()
+        else:
+            self._set_status('error')
+            err_doc = '{}:{}'.format(err_type, err_value)
+            get_jobs_collection().update(
+                self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
+            os.chdir(self._cwd)
+            return False
+    
     def clear_working_directory(self):
         import shutil
-        shutil.rmtree(self.get_working_directory())
+        try:
+            shutil.rmtree(self.get_working_directory())
+        except FileNotFoundError:
+            pass
         self._create_directories()
 
     def clear_filestorage_directory(self):
         import shutil
-        shutil.rmtree(self.get_filestorage_directory())
+        try:
+            shutil.rmtree(self.get_filestorage_directory())
+        except FileNotFoundError:
+            pass
         self._create_directories()
 
     def clear(self):
@@ -78,43 +172,23 @@ class Job(object):
         self.collection.remove()
 
     def remove(self):
+        self._with_id()
+        assert self._get_status() != 'open'
         self.clear()
+        self.collection.drop()
         get_jobs_collection().remove(self.spec)
-
-    def __enter__(self):
-        import os
-        _id = get_jobs_collection().save(self._spec)
-        assert self._spec['_id'] == _id
-        self._create_directories()
-        os.chdir(self.get_working_directory())
-        get_jobs_collection().update(
-            self.spec, {'$set': {JOB_STATUS_KEY: 'open'}})
-        return self
-
-    def __exit__(self, err_type, err_value, traceback):
-        import shutil
-        get_jobs_collection().update(
-            self.spec, {'$set': {JOB_STATUS_KEY: 'closed'}})
-        if err_type is None:
-            shutil.rmtree(self.get_working_directory())
-        else:
-            err_doc = '{}:{}'.format(err_type, err_value)
-            get_jobs_collection().update(
-                self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
-
-    def get_id(self):
-        return self.spec.get('_id', None)
 
     @property
     def collection(self):
         return get_project_db()['job_{}'.format(self.get_id())]
 
-    def open_file(self, file, * args, ** kwargs):
+    def storage_filename(self, filename):
         from os.path import join
-        fn = join(self.get_filestorage_directory(), file)
-        return open(fn, * args, ** kwargs)
+        return join(self.get_filestorage_directory(), filename)
 
-    def remove_file(self, file):
+    def open_storagefile(self, filename, * args, ** kwargs):
+        return open(self.storage_filename(filename), * args, ** kwargs)
+
+    def remove_file(self, filename):
         import os
-        fn = os.path.join(self.get_filestorage_directory(), file)
-        os.remove(fn)
+        os.remove(self.storage_filename(filename))

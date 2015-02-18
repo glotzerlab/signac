@@ -8,8 +8,10 @@ def open_job(name, parameters = None):
         return reopen_job(previous['_id'])
 
 def reopen_job(job_id):
-    from .job import Job
-    return Job(spec = {'_id': job_id})
+    from .job import Job, get_jobs_collection
+    spec = get_jobs_collection().find_one({'_id': job_id})
+    assert spec is not None
+    return Job(spec)
 
 def find_job_docs(name = None, parameters = None):
     from .job import get_jobs_collection, job_spec
