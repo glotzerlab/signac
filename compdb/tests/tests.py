@@ -25,7 +25,6 @@ class JobTest(unittest.TestCase):
         with open_job('testjob') as test_job:
             jobs_collection = job.get_jobs_collection()
             self.assertEqual(test_job.spec, test_job._spec)
-            print(test_job.spec)
             job_doc = jobs_collection.find_one(test_job.spec)
             self.assertIsNotNone(job_doc)
 
@@ -61,12 +60,34 @@ class JobTest(unittest.TestCase):
         from compdb.contrib import open_job
         import uuid
         doc = {'a': uuid.uuid4()}
-        job_name = uuid.uuid4()
+        job_name = 'store_and_retrieve_value_in_job_collection'
         with open_job(job_name) as job:
             job.collection.insert(doc)
 
         jobs = compdb.contrib.find_jobs(name = job_name)
         for job in jobs:
+            self.assertIsNotNone(job.collection.find_one(doc))
+
+    def test_reopen_job(self):
+        from compdb.contrib import open_job
+        job_name = 'test_reopen_job'
+        with open_job(job_name) as job:
+            job_id = job.get_id()
+
+        with open_job(job_name) as job:
+            self.assertEqual(job.get_id(), job_id)
+
+    def test_reopen_job_and_reretrieve_doc(self):
+        from compdb.contrib import open_job
+        job_name = 'test_reopen_job'
+        import uuid
+        doc = {'a': uuid.uuid4()}
+        with open_job(job_name) as job:
+            job.collection.save(doc)
+            job_id = job.get_id()
+
+        with open_job(job_name) as job:
+            self.assertEqual(job.get_id(), job_id)
             self.assertIsNotNone(job.collection.find_one(doc))
 
 if __name__ == '__main__':

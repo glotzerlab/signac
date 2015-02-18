@@ -1,6 +1,11 @@
 def open_job(name, parameters = None):
-    from . job import Job, job_spec
-    return Job(spec = job_spec(name = name, parameters = parameters))
+    from . job import Job, job_spec, get_jobs_collection
+    spec = job_spec(name = name, parameters = parameters)
+    previous = get_jobs_collection().find_one(spec)
+    if previous is None:
+        return Job(spec = spec)
+    else:
+        return reopen_job(previous['_id'])
 
 def reopen_job(job_id):
     from .job import Job
