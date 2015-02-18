@@ -73,7 +73,7 @@ def verify(args):
 
     dirs = ['working_dir', 'project_dir', 'filestorage_dir']
     for dir_key in dirs:
-        args[dir_key] = os.path.expanduser(args[dir_key])
+        args[dir_key] = os.path.realpath(args[dir_key])
         if not os.path.isdir(args[dir_key]):
             msg = "Directory specified for '{}': '{}', does not exist."
             raise IOError(msg.format(dir_key, args[dir_key]))

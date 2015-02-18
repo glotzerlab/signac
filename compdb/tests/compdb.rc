@@ -2,7 +2,7 @@
 	"author_name": "Carl Simon Adorf",
   "author_email": "csadorf@umich.edu",
   "project":  "test_project",
-	"project_dir": "~/local/compmatdb/compdb/tests/test_project",
-	"filestorage_dir": "~/local/compmatdb/compdb/tests/test_storage",
-  "working_dir": "~/local/compmatdb/compdb/tests/working_dir"
+	"project_dir": "./test_project",
+	"filestorage_dir": "./test_storage",
+  "working_dir": "./working_dir"
 }

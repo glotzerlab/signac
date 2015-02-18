@@ -30,7 +30,9 @@ def filestorage_dir():
     return CONFIG['filestorage_dir']
 
 def job_spec(name, parameters):
-    spec = {JOB_NAME_KEY: name}
+    spec = dict()
+    if name is not None:
+        spec.update({JOB_NAME_KEY: name})
     if parameters is not None:
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
@@ -47,23 +49,55 @@ class Job(object):
 
     def get_working_directory(self):
         import os.path
-        return os.path.join(CONFIG['working_dir'], str(self.get_id()))
+        from os.path import join
+        return join(CONFIG['working_dir'], str(self.get_id()))
+
+    def get_filestorage_directory(self):
+        from os.path import join
+        return join(CONFIG['filestorage_dir'], str(self.get_id()))
+
+    def _create_directories(self):
+        import os
+        for dir_name in (self.get_working_directory(), self.get_filestorage_directory()):
+            if not os.path.isdir(dir_name):
+                os.makedirs(dir_name)
+
+    def clear_working_directory(self):
+        import shutil
+        shutil.rmtree(self.get_working_directory())
+        self._create_directories()
+
+    def clear_filestorage_directory(self):
+        import shutil
+        shutil.rmtree(self.get_filestorage_directory())
+        self._create_directories()
+
+    def clear(self):
+        self.clear_working_directory()
+        self.clear_filestorage_directory()
+        self.collection.remove()
+
+    def remove(self):
+        self.clear()
+        get_jobs_collection().remove(self.spec)
 
     def __enter__(self):
         import os
         _id = get_jobs_collection().save(self._spec)
         assert self._spec['_id'] == _id
-        if not os.path.isdir(self.get_working_directory()):
-            os.makedirs(self.get_working_directory())
+        self._create_directories()
         os.chdir(self.get_working_directory())
         get_jobs_collection().update(
             self.spec, {'$set': {JOB_STATUS_KEY: 'open'}})
         return self
 
     def __exit__(self, err_type, err_value, traceback):
+        import shutil
         get_jobs_collection().update(
             self.spec, {'$set': {JOB_STATUS_KEY: 'closed'}})
-        if err_type is not None:
+        if err_type is None:
+            shutil.rmtree(self.get_working_directory())
+        else:
             err_doc = '{}:{}'.format(err_type, err_value)
             get_jobs_collection().update(
                 self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
@@ -77,5 +111,10 @@ class Job(object):
 
     def open_file(self, file, * args, ** kwargs):
         from os.path import join
-        fn = join(self.get_working_directory(), file)
+        fn = join(self.get_filestorage_directory(), file)
         return open(fn, * args, ** kwargs)
+
+    def remove_file(self, file):
+        import os
+        fn = os.path.join(self.get_filestorage_directory(), file)
+        os.remove(fn)
