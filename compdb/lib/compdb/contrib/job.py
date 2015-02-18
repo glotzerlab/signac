@@ -230,6 +230,9 @@ class Job(object):
     def num_open_instances(self):
         return len(self._open_instances())
 
+    def is_exclusive_instance(self):
+        return self.num_open_instances <= 1
+
     def lock(self, blocking = True, timeout = -1):
         from . concurrency import DocumentLock
         self._with_id()
@@ -261,6 +264,20 @@ class Job(object):
         import shutil
         shutil.move(filename, self.storage_filename(filename))
 
-    def load_file(self, filename):
+    def restore_file(self, filename):
         import shutil
         shutil.move(self.storage_filename(filename), filename)
+
+    def list_stored_files(self):
+        import os 
+        return os.listdir(self.get_filestorage_directory())
+
+    def store_all(self):
+        import os
+        for file_or_dir in os.listdir(self.get_working_directory()):
+            self.store_file(file_or_dir)
+    
+    def restore_all(self):
+        import os
+        for file_or_dir in self.list_stored_files():
+            self.restore_file(file_or_dir)

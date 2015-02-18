@@ -106,7 +106,7 @@ class JobStorageTest(unittest.TestCase):
         self.assertEqual(data, read_back)
         job.remove()
 
-    def test_store_and_load_file(self):
+    def test_store_and_restore_file(self):
         import os, uuid
         from compdb.contrib import open_job
         data = str(uuid.uuid4())
@@ -118,11 +118,33 @@ class JobStorageTest(unittest.TestCase):
             self.assertTrue(os.path.exists(fn))
             job.store_file(fn)
             self.assertFalse(os.path.exists(fn))
-            job.load_file(fn)
+            job.restore_file(fn)
             self.assertTrue(os.path.exists(fn))
             with open(fn, 'rb') as file:
                 read_back = file.read().decode()
         self.assertEqual(data, read_back)
+        job.remove()
+
+    def test_store_all_and_restore_all(self):
+        import os, uuid
+        from compdb.contrib import open_job
+        data = str(uuid.uuid4())
+        fns = ('_my_file', '_my_second_file')
+
+        with open_job('testjob', test_token) as job:
+            for fn in fns:
+                with open(fn, 'wb') as file:
+                    file.write(data.encode())
+                self.assertTrue(os.path.exists(fn))
+            job.store_all()
+            for fn in fns:
+                self.assertFalse(os.path.exists(fn))
+            job.restore_all()
+            for fn in fns:
+                self.assertTrue(os.path.exists(fn))
+                with open(fn, 'rb') as file:
+                    read_back = file.read().decode()
+                self.assertEqual(data, read_back)
         job.remove()
 
     def test_job_clearing(self):
