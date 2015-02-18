@@ -90,5 +90,19 @@ class JobTest(unittest.TestCase):
             self.assertEqual(job.get_id(), job_id)
             self.assertIsNotNone(job.collection.find_one(doc))
 
+    def test_open_file(self):
+        from compdb.contrib import open_job
+        import uuid
+        data = str(uuid.uuid4())
+
+        with open_job('testjob') as job:
+            with job.open_file('_my_file', 'wb') as file:
+                file.write(data.encode())
+
+            with job.open_file('_my_file', 'rb') as file:
+                read_back = file.read().decode()
+
+        self.assertEqual(data, read_back)
+
 if __name__ == '__main__':
     unittest.main()
