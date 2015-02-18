@@ -32,9 +32,7 @@ def complete_find_and_store_structures_example():
 
     # Export the structure into the working directory
     tetrahedron.write('_tmp_structure.xml', fileformat = 'hoomd_blue_xml')
-
     init_xml('_tmp_structure.xml')        # Initialize a hoomd simulation from this file
-    compdb.utils.hoomd.init(tetrahedron)     # Or init directly from the structure instance
 
     # Writing into a spcific fileformat is only possible,
     # if the structure is in a native format.
@@ -42,8 +40,8 @@ def complete_find_and_store_structures_example():
     # It is always possible to write the file in its original format.
 
     # You can also use an external database to find structures
-    protein = compdb.db.find_structure('2MQS', source = 'PDB')    # Protein database
-    crystal = compdb.db.find_structure('as34234', source = 'CSD') # Cambridge Structural Database
+    protein = compdb.db.find_structure({'name': '2MQS'}, source = 'PDB')    # Protein database
+    crystal = compdb.db.find_structure({'name': 'as34234'}, source = 'CSD') # Cambridge Structural Database
 
     # How to export structures to the database
     #
@@ -66,3 +64,6 @@ def complete_find_and_store_structures_example():
         structure = molecule,
         author = compdb.get_author('jondoe'),
         project = 'example_project')
+
+def special_methods_hoomd():
+    compdb.utils.hoomd.init(tetrahedron)     # Or init directly from the structure instance
