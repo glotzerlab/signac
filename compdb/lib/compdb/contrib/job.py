@@ -209,7 +209,7 @@ class Job(object):
         import shutil
         for dir in (self.get_working_directory(), self.get_filestorage_directory()):
             try:
-                shutil.rmtree(self.get_working_directory())
+                shutil.rmtree(dir)
             except FileNotFoundError:
                 pass
         self.collection.drop()
@@ -230,10 +230,6 @@ class Job(object):
     def num_open_instances(self):
         return len(self._open_instances())
 
-    def storage_filename(self, filename):
-        from os.path import join
-        return join(self.get_filestorage_directory(), filename)
-
     def lock(self, blocking = True, timeout = -1):
         from . concurrency import DocumentLock
         self._with_id()
@@ -242,13 +238,6 @@ class Job(object):
             document_id = self.get_id(),
             blocking = blocking, timeout = timeout)
 
-    def open_storagefile(self, filename, * args, ** kwargs):
-        return open(self.storage_filename(filename), * args, ** kwargs)
-
-    def remove_file(self, filename):
-        import os
-        os.remove(self.storage_filename(filename))
-
     def store(self, key, value):
         self.collection.update({}, {key: value}, upsert = True)
 
@@ -256,3 +245,22 @@ class Job(object):
         doc = self.collection.find_one(
             {key: {'$exists': True}}, fields = [key,])
         return doc if doc is None else doc.get(key)
+
+    def storage_filename(self, filename):
+        from os.path import join
+        return join(self.get_filestorage_directory(), filename)
+
+    def open_file(self, filename, * args, ** kwargs):
+        return open(self.storage_filename(filename), * args, ** kwargs)
+
+    def remove_file(self, filename):
+        import os
+        os.remove(self.storage_filename(filename))
+    
+    def store_file(self, filename):
+        import shutil
+        shutil.move(filename, self.storage_filename(filename))
+
+    def load_file(self, filename):
+        import shutil
+        shutil.move(self.storage_filename(filename), filename)

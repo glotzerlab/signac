@@ -90,19 +90,38 @@ class JobStorageTest(unittest.TestCase):
             self.assertIsNotNone(job.collection.find_one(doc))
         job.remove()
 
-    def test_open_storagefile(self):
+    def test_open_file(self):
         from compdb.contrib import open_job
         import uuid
         data = str(uuid.uuid4())
 
         with open_job('testjob', test_token) as job:
-            with job.open_storagefile('_my_file', 'wb') as file:
+            with job.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
 
-            with job.open_storagefile('_my_file', 'rb') as file:
+            with job.open_file('_my_file', 'rb') as file:
                 read_back = file.read().decode()
 
             job.remove_file('_my_file')
+        self.assertEqual(data, read_back)
+        job.remove()
+
+    def test_store_and_load_file(self):
+        import os, uuid
+        from compdb.contrib import open_job
+        data = str(uuid.uuid4())
+        fn = '_my_file'
+
+        with open_job('testjob', test_token) as job:
+            with open(fn, 'wb') as file:
+                file.write(data.encode())
+            self.assertTrue(os.path.exists(fn))
+            job.store_file(fn)
+            self.assertFalse(os.path.exists(fn))
+            job.load_file(fn)
+            self.assertTrue(os.path.exists(fn))
+            with open(fn, 'rb') as file:
+                read_back = file.read().decode()
         self.assertEqual(data, read_back)
         job.remove()
 
@@ -114,18 +133,18 @@ class JobStorageTest(unittest.TestCase):
         doc = {'a': uuid.uuid4()}
 
         with open_job('test_clean_job', test_token) as job:
-            with job.open_storagefile('_my_file', 'wb') as file:
+            with job.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
             job.collection.save(doc)
             
         with open_job('test_clean_job', test_token) as job:
-            with job.open_storagefile('_my_file', 'rb') as file:
+            with job.open_file('_my_file', 'rb') as file:
                 read_back = file.read().decode()
             self.assertEqual(data, read_back)
             self.assertIsNotNone(job.collection.find_one(doc))
             job.clear()
             with self.assertRaises(IOError):
-                job.open_storagefile('_my_file', 'rb')
+                job.open_file('_my_file', 'rb')
             self.assertIsNone(job.collection.find_one(doc))
         job.remove()
 
