@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger('job')
 
 from compdb.core.config import CONFIG
-from compdb.core import _get_db
+from compdb.core import get_db
 
 JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'
