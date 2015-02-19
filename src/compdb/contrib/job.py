@@ -3,6 +3,7 @@ logger = logging.getLogger('job')
 
 from compdb.core.config import CONFIG
 from compdb.core import get_db
+from compdb.core.storage import Storage
 
 JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'
@@ -112,6 +113,9 @@ class Job(object):
         self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
         self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
         self._create_directories()
+        self._storage = Storage(
+            fs_path = self._fs,
+            wd_path = self._wd)
         os.chdir(self.get_working_directory())
         self._add_instance()
         msg = "Opened job with id: '{}'."
@@ -136,6 +140,10 @@ class Job(object):
     def close(self):
         with self._lock:
             self._close()
+
+    @property
+    def storage(self):
+        return self._storage
 
     def __enter__(self):
         import os
@@ -199,7 +207,7 @@ class Job(object):
 
     def clear(self):
         self.clear_working_directory()
-        self.clear_filestorage_directory()
+        self._storage.clear()
         self.collection.remove()
 
     def remove(self, force = False):
@@ -258,31 +266,31 @@ class Job(object):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
 
-    def open_file(self, filename, * args, ** kwargs):
-        return open(self.storage_filename(filename), * args, ** kwargs)
+    #def open_file(self, filename, * args, ** kwargs):
+    #    return open(self.storage_filename(filename), * args, ** kwargs)
 
-    def remove_file(self, filename):
-        import os
-        os.remove(self.storage_filename(filename))
-    
-    def store_file(self, filename):
-        import shutil
-        shutil.move(filename, self.storage_filename(filename))
+    #def remove_file(self, filename):
+    #    import os
+    #    os.remove(self.storage_filename(filename))
+    #
+    #def store_file(self, filename):
+    #    import shutil
+    #    shutil.move(filename, self.storage_filename(filename))
 
-    def restore_file(self, filename):
-        import shutil
-        shutil.move(self.storage_filename(filename), filename)
+    #def restore_file(self, filename):
+    #    import shutil
+    #    shutil.move(self.storage_filename(filename), filename)
 
-    def list_stored_files(self):
-        import os 
-        return os.listdir(self.get_filestorage_directory())
+    #def list_stored_files(self):
+    #    import os 
+    #    return os.listdir(self.get_filestorage_directory())
 
-    def store_all(self):
-        import os
-        for file_or_dir in os.listdir(self.get_working_directory()):
-            self.store_file(file_or_dir)
-    
-    def restore_all(self):
-        import os
-        for file_or_dir in self.list_stored_files():
-            self.restore_file(file_or_dir)
+    #def store_all(self):
+    #    import os
+    #    for file_or_dir in os.listdir(self.get_working_directory()):
+    #        self.store_file(file_or_dir)
+    #
+    #def restore_all(self):
+    #    import os
+    #    for file_or_dir in self.list_stored_files():
+    #        self.restore_file(file_or_dir)

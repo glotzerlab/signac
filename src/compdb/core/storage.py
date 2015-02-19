@@ -4,8 +4,10 @@ logger = logging.getLogger('storage')
 class ReadOnlyStorage(object):
     
     def __init__(self, fs_path, wd_path):
-        self._fs_path = self._norm_path(fs_path)
         self._wd_path = self._norm_path(wd_path)
+        self._fs_path = self._norm_path(fs_path)
+        msg = "Opened storage at '{}' to '{}'."
+        logger.debug(msg.format(self._wd_path, self._fs_path))
 
     def open_file(self, filename, * args, ** kwargs):
         return open(self._fn_fs(filename), 'rb', * args, ** kwargs)
@@ -27,7 +29,7 @@ class ReadOnlyStorage(object):
 
     def list_files(self):   
         from os import listdir
-        listdir(self._fs_path)
+        return listdir(self._fs_path)
 
     def download_file(self, filename, overwrite = False):
         from shutil import copy2 as copy
@@ -46,6 +48,11 @@ class Storage(ReadOnlyStorage):
     def remove_file(self, filename):
         import os
         os.remove(self._fn_fs(filename))
+
+    def clear(self):
+        import os
+        for fn in os.listdir(self._fs_path):
+            os.remove(os.path.join(self._fs_path, fn))
 
     def remove(self):
         from shutil import rmtree
@@ -77,18 +84,25 @@ class Storage(ReadOnlyStorage):
     def store_files(self, pathname = '*', * args):
         import glob
         from itertools import chain
-        from os.path import join
+        from os.path import join, split
         for pattern in chain([pathname], args):
-            for fn in glob.glob(join(self._wd_path, pattern)):
-                self.store_file(fn)
+            p = join(self._wd_path, pattern)
+            logger.debug("Pattern '{}'.".format(p))
+            for fn in glob.glob(p):
+                base = split(fn)[1]
+                self.store_file(base)
 
     def restore_files(self, pathname = '*', * args):
         import glob
         from itertools import chain
-        from os.path import join
+        from os.path import join, split
         for pattern in chain([pathname], args):
-            for fn in glob.glob(join(self._fs_path, pattern)):
-                self.restore_file(fn)
+            p = join(self._fs_path, pattern)
+            logger.debug("Pattern '{}'.".format(p))
+            for fn in glob.glob(p):
+                base = split(fn)[1]
+                self.restore_file(base)
+                #self.restore_file(fn)
 
     def fetch_file(self, storage, fn):
         from shutil import copy2 as copy
