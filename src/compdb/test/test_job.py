@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import unittest
 
 # Make sure the jobs created for this test are unique.
@@ -215,11 +213,6 @@ class JobConcurrencyTest(unittest.TestCase):
                 result = pool.starmap_async(
                     open_and_lock_and_release_job,
                     [(jobname, test_token) for i in range(num_locks)])
-
-                #result = pool.starmap_async(
-                #    self.test_acquire_and_release,
-                #    acquire_and_release,
-                #    [(doc_id, 0.01) for i in range(num_locks)])
                 result = result.get(timeout = 5)
                 self.assertEqual(result, [True] * num_locks)
         except Exception:

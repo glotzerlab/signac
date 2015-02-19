@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name = 'compdb',
     version = '0.1',
-    package_dir = {'': 'lib'},
-    packages = find_packages('lib'),
+    package_dir = {'': 'src'},
+    packages = find_packages(),
 
     author = 'Carl Simon Adorf',
     author_email = 'csadorf@umich.edu',

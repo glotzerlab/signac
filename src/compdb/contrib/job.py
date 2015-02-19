@@ -1,8 +1,8 @@
 import logging
 logger = logging.getLogger('job')
 
-from .. config import CONFIG
-from .. import _get_db
+from compdb.core.config import CONFIG
+from compdb.core import _get_db
 
 JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'
@@ -142,17 +142,21 @@ class Job(object):
         from . concurrency import DocumentLock
         from pymongo.errors import DuplicateKeyError
         from . import sleep_random
-        sleep_random(0.1)
-        try:
-            result = get_jobs_collection().update(
-                spec = self._spec,
-                document = {'$set': self._spec},
-                upsert = True)
-        except DuplicateKeyError as error:
-            raise RuntimeError("Unable to open job. "
-             "Use `contrib.sleep_random` if you have trouble with "
-             "opening jobs in concurrency.")
-            raise RuntimeError(msg) from error
+        num_attempts = 3
+        for attempt in range(num_attempts):
+            try:
+                result = get_jobs_collection().update(
+                    spec = self._spec,
+                    document = {'$set': self._spec},
+                    upsert = True)
+                break
+            except DuplicateKeyError as error:
+                if attempt >= (num_attempts-1):
+                    raise RuntimeError("Unable to open job. "
+                     "Use `contrib.sleep_random` if you have trouble with "
+                     "opening jobs in concurrency.") from error
+                else:
+                    sleep_random(0.1)
         assert result['ok']
         if result['updatedExisting']:
             _id = get_jobs_collection().find_one(self._spec)['_id']
