@@ -2,7 +2,7 @@ import unittest
 
 # Make sure the jobs created for this test are unique.
 import uuid
-test_token = {'test_token': uuid.uuid4()}
+test_token = {'test_token': str(uuid.uuid4())}
 
 class ConfigTest(unittest.TestCase):
     
@@ -68,11 +68,11 @@ class JobStorageTest(unittest.TestCase):
         job_name = 'store_and_retrieve_value_in_job_collection'
         with open_job(job_name, test_token) as test_job:
             test_job.collection.insert(doc)
+        test_job.remove()
 
         jobs = compdb.contrib.find_jobs(job_name, test_token)
         for job in jobs:
             self.assertIsNotNone(job.collection.find_one(doc))
-        test_job.remove()
 
     def test_reopen_job_and_reretrieve_doc(self):
         from compdb.contrib import open_job

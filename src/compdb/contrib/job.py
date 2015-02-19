@@ -5,6 +5,8 @@ from compdb.core.config import CONFIG
 from compdb.core import get_db
 from compdb.core.storage import Storage
 
+from . concurrency import DocumentLock
+
 JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'
 JOB_NAME_KEY = 'name'
@@ -47,12 +49,19 @@ def job_spec(name, parameters):
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
 
+def generate_hash_from_spec(spec):
+    import json, hashlib
+    blob = json.dumps(spec, sort_keys = True)
+    m = hashlib.md5()
+    m.update(blob.encode())
+    return m.hexdigest()
+
 class JobNoIdError(RuntimeError):
     pass
 
 class Job(object):
     
-    def __init__(self, spec):
+    def __init__(self, spec, blocking = True, timeout = -1):
         import uuid
         self._unique_id = uuid.uuid4()
         self._spec = spec
@@ -62,6 +71,11 @@ class Job(object):
         self._cwd = None
         self._wd = None
         self._fs = None
+        self._obtain_id()
+        self._with_id()
+        self._lock = DocumentLock(
+            self._jobs_collection, self.get_id(),
+            blocking = blocking, timeout = timeout)
 
     @property
     def spec(self):
@@ -145,11 +159,17 @@ class Job(object):
     def storage(self):
         return self._storage
 
-    def __enter__(self):
+    def _obtain_id(self):
         import os
-        from . concurrency import DocumentLock
         from pymongo.errors import DuplicateKeyError
         from . import sleep_random
+        if not '_id' in self._spec:
+            try:
+                _id = generate_hash_from_spec(self._spec)
+            except TypeError:
+                logger.error(self._spec)
+                raise TypeError("Unable to hash specs.")
+            self._spec.update({'_id': _id})
         num_attempts = 3
         for attempt in range(num_attempts):
             try:
@@ -160,11 +180,11 @@ class Job(object):
                 break
             except DuplicateKeyError as error:
                 if attempt >= (num_attempts-1):
-                    raise RuntimeError("Unable to open job. "
+                    raise RuntimeError("Unable to open job after {} attempts. "
                      "Use `contrib.sleep_random` if you have trouble with "
-                     "opening jobs in concurrency.") from error
+                     "opening jobs in concurrency.".format(attempt+1)) from error
                 else:
-                    sleep_random(0.1)
+                    sleep_random(1)
         assert result['ok']
         if result['updatedExisting']:
             _id = get_jobs_collection().find_one(self._spec)['_id']
@@ -173,11 +193,13 @@ class Job(object):
         self._spec = get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id
-        self._lock = DocumentLock(self._jobs_collection, self.get_id())
+
+    def __enter__(self):
         self.open()
         return self
 
     def __exit__(self, err_type, err_value, traceback):
+        logger.debug("Exiting.")
         import os
         with self._lock:
             if err_type is None:
@@ -214,8 +236,8 @@ class Job(object):
         self._with_id()
         if not force:
             if not self.num_open_instances() == 0:
-                raise RuntimeWarning("You are trying to remove an open instance. "
-                "Use 'force = True' to ignore this.")
+                msg = "You are trying to remove a job, which has {} open instances. Use 'force=True' to ignore this."
+                raise RuntimeError(msg.format(self.num_open_instances()))
         self._remove()
 
     def _remove(self):
@@ -265,32 +287,3 @@ class Job(object):
     def storage_filename(self, filename):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
-
-    #def open_file(self, filename, * args, ** kwargs):
-    #    return open(self.storage_filename(filename), * args, ** kwargs)
-
-    #def remove_file(self, filename):
-    #    import os
-    #    os.remove(self.storage_filename(filename))
-    #
-    #def store_file(self, filename):
-    #    import shutil
-    #    shutil.move(filename, self.storage_filename(filename))
-
-    #def restore_file(self, filename):
-    #    import shutil
-    #    shutil.move(self.storage_filename(filename), filename)
-
-    #def list_stored_files(self):
-    #    import os 
-    #    return os.listdir(self.get_filestorage_directory())
-
-    #def store_all(self):
-    #    import os
-    #    for file_or_dir in os.listdir(self.get_working_directory()):
-    #        self.store_file(file_or_dir)
-    #
-    #def restore_all(self):
-    #    import os
-    #    for file_or_dir in self.list_stored_files():
-    #        self.restore_file(file_or_dir)
