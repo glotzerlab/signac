@@ -1,8 +1,13 @@
+import logging
+logger = logging.getLogger('dbdocument')
+
 class ReadOnlyDBDocument(object):
 
     def __init__(self, collection, _id):
         self._collection = collection
         self._id = _id
+        msg = "Opened DBDocument '{}' on '{}'."
+        logger.debug(msg.format(_id, collection))
 
     def _spec(self):
         return {'_id': self._id}
@@ -12,6 +17,8 @@ class ReadOnlyDBDocument(object):
             self._spec(),
             fields = [key],
             )
+        msg = "Retrieved '{}' for key '{}'."
+        logger.debug(msg.format(doc, key))
         assert doc is not None
         return doc[key]
     
@@ -46,11 +53,13 @@ class DBDocument(ReadOnlyDBDocument):
         assert result['ok']
 
     def __setitem__(self, key, value):
+        msg = "Storing '{}'='{}'."
+        logger.debug(msg.format(key, value))
         result = self._collection.update(
             spec = self._spec(),
-            document = {
-                '$set': {key: value}
-            })
+            document = {'$set': {key: value}},
+            upsert = True
+            )
         assert result['ok']
 
     def __delitem__(self, key):

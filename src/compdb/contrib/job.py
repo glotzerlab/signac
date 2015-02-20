@@ -4,6 +4,7 @@ logger = logging.getLogger('job')
 from compdb.core.config import CONFIG
 from compdb.core import get_db
 from compdb.core.storage import Storage
+from compdb.core.dbdocument import DBDocument
 
 from . concurrency import DocumentLock
 
@@ -76,6 +77,8 @@ class Job(object):
         self._lock = DocumentLock(
             self._jobs_collection, self.get_id(),
             blocking = blocking, timeout = timeout)
+        self._jobs_doc_collection = get_project_db()['compdb_job_docs']
+        self._dbdocument = DBDocument(self._jobs_doc_collection, self.get_id())
 
     @property
     def spec(self):
@@ -230,6 +233,7 @@ class Job(object):
     def clear(self):
         self.clear_working_directory()
         self._storage.clear()
+        self._dbdocument.clear()
         self.collection.remove()
 
     def remove(self, force = False):
@@ -276,13 +280,9 @@ class Job(object):
             document_id = self.get_id(),
             blocking = blocking, timeout = timeout)
 
-    def store(self, key, value):
-        self.collection.update({}, {key: value}, upsert = True)
-
-    def get(self, key):
-        doc = self.collection.find_one(
-            {key: {'$exists': True}}, fields = [key,])
-        return doc if doc is None else doc.get(key)
+    @property
+    def document(self):
+        return self._dbdocument
 
     def storage_filename(self, filename):
         from os.path import join

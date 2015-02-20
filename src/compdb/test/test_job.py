@@ -51,13 +51,15 @@ class JobStorageTest(unittest.TestCase):
         key = 'my_test_key'
         value = uuid.uuid4()
         with open_job('testjob', test_token) as test_job:
-            test_job.store(key, value)
-            self.assertIsNotNone(test_job.get(key))
-            self.assertEqual(test_job.get(key), value)
+            test_job.document[key] = value
+            self.assertEqual(test_job.document[key], value)
+            self.assertIsNotNone(test_job.document.get(key))
+            self.assertEqual(test_job.document.get(key), value)
 
         with open_job('testjob', test_token) as test_job:
-            self.assertIsNotNone(test_job.get(key))
-            self.assertEqual(test_job.get(key), value)
+            self.assertIsNotNone(test_job.document.get(key))
+            self.assertEqual(test_job.document.get(key), value)
+            self.assertEqual(test_job.document[key], value)
         test_job.remove()
 
     def test_store_and_retrieve_value_in_job_collection(self):
