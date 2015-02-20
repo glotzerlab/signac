@@ -57,6 +57,27 @@ def generate_hash_from_spec(spec):
     m.update(blob.encode())
     return m.hexdigest()
 
+class JobSection(object):
+
+    def __init__(self, job, name):
+        self._job = job
+        self._name = name
+        self._key = "_job_section_{}".format(name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, err_type, err_val, traceback):
+        if err_type:
+            self._job.document[self._key] = False
+            return False
+        else:
+            self._job.document[self._key] = True
+            return True
+    
+    def completed(self):
+        return self._job.document.get(self._key, False)
+
 class JobNoIdError(RuntimeError):
     pass
 
@@ -287,3 +308,6 @@ class Job(object):
     def storage_filename(self, filename):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
+
+    def section(self, name):
+        return JobSection(self, name)

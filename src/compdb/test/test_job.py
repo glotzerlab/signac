@@ -177,7 +177,6 @@ def open_and_lock_and_release_job(jobname, token):
             pass
     return True
 
-
 class JobConcurrencyTest(unittest.TestCase):
 
     def test_recursive_job_opening(self):
@@ -224,6 +223,30 @@ class JobConcurrencyTest(unittest.TestCase):
             with open_job(jobname, test_token) as job:
                 pass
             job.remove(force = True)
+
+    def test_sections(self):
+        from compdb.contrib import open_job
+        name = 'test_sections'
+        with open_job(name, test_token) as job:
+            ex = False
+            with job.section('sec0') as sec:
+                if not sec.completed():
+                    ex = True
+            self.assertTrue(ex)
+
+            ex2 = False
+            with job.section('sec0') as sec:
+                if not sec.completed():
+                    ex2 = True
+            self.assertFalse(ex2)
+
+        with open_job(name, test_token) as job:
+            ex3 = False
+            with job.section('sec0') as sec:
+                if not sec.completed():
+                    ex3 = True
+            self.assertFalse(ex3)
+        job.remove()
 
 if __name__ == '__main__':
     unittest.main()

@@ -17,10 +17,10 @@ class ReadOnlyDBDocument(object):
             self._spec(),
             fields = [key],
             )
-        msg = "Retrieved '{}' for key '{}'."
-        logger.debug(msg.format(doc, key))
-        assert doc is not None
-        return doc[key]
+        if doc is None:
+            raise KeyError(key)
+        else:
+            return doc[key]
     
     def __iter__(self):
         doc = self._collection.find_one(self._spec())
