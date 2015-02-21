@@ -52,7 +52,9 @@ class Project(object):
         return self.config['filestorage_dir']
 
     def remove(self):
-        self.get_jobs_collection().drop()
+        from pymongo import MongoClient
+        client = MongoClient(self.config['database_host'])
+        client.drop_database(self.get_id())
 
 def job_spec(name, parameters):
     #spec = {
@@ -103,7 +105,6 @@ class Job(object):
         self._unique_id = uuid.uuid4()
         self._project = project
         self._spec = spec
-        self._jobs_collection = self._project._get_meta_db()['jobs']
         self._lock = None
         self._collection = None
         self._cwd = None
@@ -112,7 +113,7 @@ class Job(object):
         self._obtain_id()
         self._with_id()
         self._lock = DocumentLock(
-            self._jobs_collection, self.get_id(),
+            self._project.get_jobs_collection(), self.get_id(),
             blocking = blocking, timeout = timeout)
         self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
@@ -155,12 +156,12 @@ class Job(object):
                 os.makedirs(dir_name)
 
     def _add_instance(self):
-        self._jobs_collection.update(
+        self._project.get_jobs_collection().update(
             spec = self._job_doc_spec(),
             document = {'$push': {'executing': self._unique_id}})
 
     def _remove_instance(self):
-        result = self._jobs_collection.find_and_modify(
+        result = self._project.get_jobs_collection().find_and_modify(
             query = self._job_doc_spec(),
             update = {'$pull': {'executing': self._unique_id}},
             new = True)
@@ -308,7 +309,7 @@ class Job(object):
 
     def _open_instances(self):
         self._with_id()
-        job_doc = self._jobs_collection.find_one(self._job_doc_spec())
+        job_doc = self._project.get_jobs_collection().find_one(self._job_doc_spec())
         if job_doc is None:
             return list()
         else:
@@ -324,7 +325,7 @@ class Job(object):
         from . concurrency import DocumentLock
         self._with_id()
         return DocumentLock(
-            collection = self._jobs_collection,
+            collection = self._project.get_jobs_collection(),
             document_id = self.get_id(),
             blocking = blocking, timeout = timeout)
 

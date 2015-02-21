@@ -17,52 +17,6 @@ def make_test_fn():
 def get_test_file():
     return make_test_fn(), make_test_data()
 
-@contextmanager
-def get_storage(name = None):
-    from compdb.core.config import read_config
-    config = read_config()
-    import os, shutil
-    if name is None:
-        import uuid
-        name = str(uuid.uuid4())
-    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
-    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
-    wd_path = os.path.realpath(os.path.join(CWD, config['working_dir']))
-    if not os.path.isdir(fs_path):
-        os.mkdir(fs_path)
-    cwd = os.getcwd()
-    os.chdir(wd_path)
-    storage = Storage(fs_path = fs_path, wd_path = wd_path)
-    error = None
-    try:
-        yield storage
-    except Exception as error:
-        raise
-    finally:
-        storage.remove()
-        os.chdir(cwd)
-
-@contextmanager
-def get_readonly_storage(name = None):
-    from compdb.core.config import read_config
-    config = read_config()
-    import os,shutil
-    if name is None:
-        import uuid
-        name = str(uuid.uuid4())
-    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
-    wd_path = os.path.realpath(os.path.join(CWD, config['working_dir']))
-    cwd = os.getcwd()
-    os.chdir(wd_path)
-    storage = ReadOnlyStorage(fs_path = fs_path, wd_path = wd_path)
-    error = None
-    try:
-        yield storage
-    except Exception as error:
-        raise
-    finally:
-        os.chdir(cwd)
-
 @contextmanager 
 def test_file(fn = None):
     import uuid, os
@@ -81,19 +35,49 @@ def test_file(fn = None):
         except Exception:
             pass
 
+class GetStorage(object):
+    
+    def __init__(self, storage_type = Storage):
+        self._storage_type = storage_type
+        pass
+
+    def __enter__(self):
+        import os
+        from tempfile import TemporaryDirectory as TempDir
+        self._fs_dir = TempDir(prefix = 'compdb')
+        self._wd_dir = TempDir(prefix = 'compdb')
+        self._cwd = os.getcwd()
+        os.chdir(self._wd_dir.name)
+        return self._storage_type(self._fs_dir.name, self._wd_dir.name) 
+
+    def __exit__(self, err_type, err_value, traceback):
+        import os
+        self._fs_dir.cleanup()
+        self._wd_dir.cleanup()
+        os.chdir(self._cwd)
+        return False
+
+def get_storage():
+    return GetStorage()
+
+@contextmanager
+def get_ro_storage(storage):
+    yield ReadOnlyStorage(storage._fs_path, storage._wd_path)
+    pass
+
 class TestReadOnlyStorage(unittest.TestCase):
 
     def test_construction(self):
         name = 'test_readonly_construction'
-        with get_storage(name) as storage:
-            get_readonly_storage(name)
+        with get_storage() as storage:
+            get_ro_storage(storage)
 
     def test_download_file(self):
         import os
         from os.path import isfile
         name = 'test_download_file'
-        with get_storage(name) as storage:
-            with get_readonly_storage(name) as rostorage:
+        with get_storage() as storage:
+            with get_ro_storage(storage) as rostorage:
                 with test_file() as (fn, data):
                     self.assertTrue(isfile(fn))
                     storage.store_file(fn)
