@@ -1,11 +1,13 @@
 import unittest
 from contextlib import contextmanager
 
-testtoken = {"test_storage": "lksjdflkj2370urojflksdhjfusofjs:LMDFkjsdlf7uoidufjos"}
+# Make sure the storages created for this test are unique.
+import uuid
+test_token = {'test_token': str(uuid.uuid4())}
 
 def test_doc():
     import uuid
-    ret = dict(testtoken)
+    ret = dict(test_token)
     ret.update({
         'name' : str(uuid.uuid4())})
     return ret
@@ -23,9 +25,23 @@ def remove_files(storage, spec):
 
 class StorageTest(unittest.TestCase):
     
+    def setUp(self):
+        import tempfile
+        from pymongo import MongoClient
+        from compdb.db import Storage
+        client = MongoClient()
+        db = client['testing']
+        self._mc = db['compdb_storage_test']
+        self._tmp_fs = tempfile.TemporaryDirectory()
+        self._storage = Storage(self._mc, self._tmp_fs.name)
+    
+    def tearDown(self):
+        self._tmp_fs.cleanup()
+        self._mc.drop()
+    
     def test_new_file(self):
         from compdb.db import _get_global_fs
-        storage = _get_global_fs()
+        storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
             data = test_data()
@@ -35,7 +51,7 @@ class StorageTest(unittest.TestCase):
     def test_delete_file(self):
         import os.path
         from compdb.db import _get_global_fs
-        storage = _get_global_fs()
+        storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
             data = test_data()
@@ -46,7 +62,7 @@ class StorageTest(unittest.TestCase):
     def test_find(self):
         from compdb.db import _get_global_fs
         import uuid
-        storage = _get_global_fs()
+        storage = self._storage
         doc = test_doc()
         data = test_data()
         with remove_files(storage, doc):

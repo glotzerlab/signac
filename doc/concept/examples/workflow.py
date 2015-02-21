@@ -4,9 +4,10 @@ def minimal_job_example():
     # context of the compdb does not require any additional boiler-code,
     # but the enclosing manager.
     import compdb
-    with compdb.contrib.open_job('exampe_job') as job:
+    with compdb.contrib.open_job('example_job') as job:
+        job.restore_files()
         # Execution code here.
-        job.store_all()
+        job.store_files()
 
 def job_concurrency_example():
     import compdb
@@ -73,11 +74,13 @@ def complete_job_execution_example():
                 job.store_binary('my_data', file.read().encode())
 
             # Example on how to store multiple files in your working directory.
+            job.store_files('_*')
+            # This is essentially equivalent to
             import glob
             for filename in glob.glob('_*'): # ex. for all files that start with underscore
                 job.store_file(filename) # wrapper for store_binary
-            # If you want to be rigorous
-            job.store_all()
+            # If you want to store or files just
+            job.store_files()
 
             # Example on how to store natively supported data.
             # 

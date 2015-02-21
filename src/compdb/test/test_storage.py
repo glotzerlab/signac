@@ -2,10 +2,6 @@ import unittest
 from contextlib import contextmanager
 
 from compdb.core.storage import ReadOnlyStorage, Storage
-from compdb.core.config import CONFIG
-
-FS_DIR = CONFIG['filestorage_dir']
-WD_DIR = CONFIG['working_dir']
 
 import os
 CWD = os.getcwd()
@@ -23,12 +19,15 @@ def get_test_file():
 
 @contextmanager
 def get_storage(name = None):
+    from compdb.core.config import read_config
+    config = read_config()
     import os, shutil
     if name is None:
         import uuid
         name = str(uuid.uuid4())
-    fs_path = os.path.realpath(os.path.join(CWD, FS_DIR, name))
-    wd_path = os.path.realpath(os.path.join(CWD, WD_DIR))
+    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
+    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
+    wd_path = os.path.realpath(os.path.join(CWD, config['working_dir']))
     if not os.path.isdir(fs_path):
         os.mkdir(fs_path)
     cwd = os.getcwd()
@@ -45,12 +44,14 @@ def get_storage(name = None):
 
 @contextmanager
 def get_readonly_storage(name = None):
+    from compdb.core.config import read_config
+    config = read_config()
     import os,shutil
     if name is None:
         import uuid
         name = str(uuid.uuid4())
-    fs_path = os.path.realpath(os.path.join(CWD, FS_DIR, name))
-    wd_path = os.path.realpath(os.path.join(CWD, WD_DIR))
+    fs_path = os.path.realpath(os.path.join(CWD, config['filestorage_dir'], name))
+    wd_path = os.path.realpath(os.path.join(CWD, config['working_dir']))
     cwd = os.getcwd()
     os.chdir(wd_path)
     storage = ReadOnlyStorage(fs_path = fs_path, wd_path = wd_path)

@@ -1,7 +1,6 @@
 import logging
 logger = logging.getLogger('job')
 
-from compdb.core.config import CONFIG
 from compdb.core import get_db
 from compdb.core.storage import Storage
 from compdb.core.dbdocument import DBDocument
@@ -16,34 +15,50 @@ JOB_PARAMETERS_KEY = 'parameters'
 def valid_name(name):
     return not name.startswith('_compdb')
 
-def _get_db(db_name):
-    from pymongo import MongoClient
-    client = MongoClient(CONFIG['database']['host'])
-    return client[db_name]
+class Project(object):
+    
+    def __init__(self, config = None):
+        if config is None:
+            from compdb.core.config import read_config
+            config = read_config()
+        self._config = config
 
-def get_db(db_name):
-    assert valid_name(db_name)
-    return _get_db(db_name)
+    @property 
+    def config(self):
+        return self._config
 
-def get_meta_db():
-    return _get_db(CONFIG['database_meta'])
+    def _get_db(self, db_name):
+        from pymongo import MongoClient
+        client = MongoClient(self.config['database_host'])
+        return client[db_name]
+        
+    def get_db(self, db_name):
+        assert valid_name(db_name)
+        return self._get_db(db_name)
 
-def get_jobs_collection():
-    return get_meta_db()['jobs']
+    def _get_meta_db(self):
+        return self._get_db(self.config['database_meta'])
 
-def get_project_id():
-    return CONFIG['project']
+    def get_jobs_collection(self):
+        return self._get_meta_db()['compdb_jobs']
 
-def get_project_db():
-    return get_db(get_project_id())
+    def get_id(self):
+        return self.config['project']
 
-def filestorage_dir():
-    return CONFIG['filestorage_dir']
+    def get_project_db(self):
+        return self.get_db(self.get_id())
+
+    def filestorage_dir(self):
+        return self.config['filestorage_dir']
+
+    def remove(self):
+        self.get_jobs_collection().drop()
 
 def job_spec(name, parameters):
-    spec = {
-        'project':  get_project_id(),
-    }
+    #spec = {
+    #    'project':  project.get_id(),
+    #}
+    spec = {}
     if name is not None:
         spec.update({JOB_NAME_KEY: name})
     if parameters is not None:
@@ -83,11 +98,12 @@ class JobNoIdError(RuntimeError):
 
 class Job(object):
     
-    def __init__(self, spec, blocking = True, timeout = -1):
+    def __init__(self, project, spec, blocking = True, timeout = -1):
         import uuid
         self._unique_id = uuid.uuid4()
+        self._project = project
         self._spec = spec
-        self._jobs_collection = get_meta_db()['jobs']
+        self._jobs_collection = self._project._get_meta_db()['jobs']
         self._lock = None
         self._collection = None
         self._cwd = None
@@ -98,11 +114,11 @@ class Job(object):
         self._lock = DocumentLock(
             self._jobs_collection, self.get_id(),
             blocking = blocking, timeout = timeout)
-        self._jobs_doc_collection = get_project_db()[str(self.get_id())]
+        self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
-            get_project_db()['compdb_job_docs'],
+            self._project.get_project_db()['compdb_job_docs'],
             self.get_id())
-        self._cache = get_project_db()['compdb_cache'.format(self.get_id())]
+        self._cache = self._project.get_project_db()['compdb_cache'.format(self.get_id())]
         #self._dbcachedoc = DBDocument(
         #    get_project_db()['compdb_cache'],
         #    self.get_id())
@@ -154,8 +170,8 @@ class Job(object):
         import os
         self._with_id()
         self._cwd = os.getcwd()
-        self._wd = os.path.join(CONFIG['working_dir'], str(self.get_id()))
-        self._fs = os.path.join(filestorage_dir(), str(self.get_id()))
+        self._wd = os.path.join(self._project.config['working_dir'], str(self.get_id()))
+        self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._create_directories()
         self._storage = Storage(
             fs_path = self._fs,
@@ -203,7 +219,7 @@ class Job(object):
         num_attempts = 3
         for attempt in range(num_attempts):
             try:
-                result = get_jobs_collection().update(
+                result = self._project.get_jobs_collection().update(
                     spec = self._spec,
                     document = {'$set': self._spec},
                     upsert = True)
@@ -217,10 +233,10 @@ class Job(object):
                     sleep_random(1)
         assert result['ok']
         if result['updatedExisting']:
-            _id = get_jobs_collection().find_one(self._spec)['_id']
+            _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
         else:
             _id = result['upserted']
-        self._spec = get_jobs_collection().find_one({'_id': _id})
+        self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id
 
@@ -236,7 +252,7 @@ class Job(object):
                 self._close_with_error()
             else:
                 err_doc = '{}:{}'.format(err_type, err_value)
-                get_jobs_collection().update(
+                self._project.get_jobs_collection().update(
                     self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
                 self._close_with_error()
                 return False
@@ -283,7 +299,7 @@ class Job(object):
         except FileNotFoundError:
             pass
         self._dbuserdoc.remove()
-        get_jobs_collection().remove(self._job_doc_spec())
+        self._project.get_jobs_collection().remove(self._job_doc_spec())
         del self.spec['_id']
 
     @property
