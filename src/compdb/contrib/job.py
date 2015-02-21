@@ -98,8 +98,14 @@ class Job(object):
         self._lock = DocumentLock(
             self._jobs_collection, self.get_id(),
             blocking = blocking, timeout = timeout)
-        self._jobs_doc_collection = get_project_db()['compdb_job_docs']
-        self._dbdocument = DBDocument(self._jobs_doc_collection, self.get_id())
+        self._jobs_doc_collection = get_project_db()[str(self.get_id())]
+        self._dbuserdoc = DBDocument(
+            get_project_db()['compdb_job_docs'],
+            self.get_id())
+        self._cache = get_project_db()['{}_cache'.format(self.get_id())]
+        #self._dbcachedoc = DBDocument(
+        #    get_project_db()['compdb_cache'],
+        #    self.get_id())
 
     @property
     def spec(self):
@@ -243,19 +249,20 @@ class Job(object):
             pass
         self._create_directories()
 
-    def clear_filestorage_directory(self):
-        import shutil
-        try:
-            shutil.rmtree(self.get_filestorage_directory())
-        except FileNotFoundError:
-            pass
-        self._create_directories()
+    #def clear_filestorage_directory(self):
+    #    import shutil
+    #    try:
+    #        shutil.rmtree(self.get_filestorage_directory())
+    #    except FileNotFoundError:
+    #        pass
+    #    self._create_directories()
 
     def clear(self):
         self.clear_working_directory()
         self._storage.clear()
-        self._dbdocument.clear()
-        self.collection.remove()
+        self._dbuserdoc.clear()
+        self._jobs_doc_collection.drop()
+        self._cache.drop()
 
     def remove(self, force = False):
         self._with_id()
@@ -267,17 +274,19 @@ class Job(object):
 
     def _remove(self):
         import shutil
-        for dir in (self.get_working_directory(), self.get_filestorage_directory()):
-            try:
-                shutil.rmtree(dir)
-            except FileNotFoundError:
-                pass
-        self.collection.drop()
+        self.clear()
+        self._storage.remove()
+        try:
+            shutil.rmtree(self.get_working_directory())
+        except FileNotFoundError:
+            pass
+        self._dbuserdoc.remove()
         get_jobs_collection().remove(self._job_doc_spec())
+        del self.spec['_id']
 
     @property
     def collection(self):
-        return get_project_db()['job_{}'.format(self.get_id())]
+        return self._jobs_doc_collection
 
     def _open_instances(self):
         self._with_id()
@@ -303,7 +312,7 @@ class Job(object):
 
     @property
     def document(self):
-        return self._dbdocument
+        return self._dbuserdoc
 
     def storage_filename(self, filename):
         from os.path import join
@@ -311,3 +320,58 @@ class Job(object):
 
     def section(self, name):
         return JobSection(self, name)
+
+    def _store_in_cache(self, spec, data):
+        import pickle
+        try:
+            logger.debug("Trying to cache results.")
+            blob = pickle.dumps(data)
+            doc = dict(spec)
+            doc['data'] = blob
+            self._cache.update(spec, doc, upsert = True)
+            rdoc = self._cache.find_one(spec)
+            assert rdoc is not None
+            assert rdoc['data'] == blob
+            assert pickle.loads(rb) == data
+        except InvalidDocument as error:
+            logger.error("Failed to encode: {}".format(error))
+        except AssertionError:
+            logger.warning("Test retrieval did not pass equality test.")
+            self._cache.remove(spec)
+        finally:
+            if self._cache.find_one(spec) is None:
+                logger.debug("Caching failed.")
+            else:
+                logger.debug("Cached succesfully.")
+            return data
+
+    def cached(self, function, * args, ** kwargs):
+        import inspect, pickle
+        from bson.errors import InvalidDocument
+        signature = str(inspect.signature(function))
+        arguments = inspect.getcallargs(function, *args, ** kwargs)
+        spec = {
+            'name': function.__name__,
+            'signature': signature,
+            'arguments': arguments}
+        msg = "Cached function call for '{}{}'.".format(
+            function.__name__, signature)
+        logger.debug(msg)
+        logger.debug(self._cache)
+        logger.debug(spec)
+        doc = None
+        try:
+            doc = self._cache.find_one(spec)
+        except InvalidDocument as error:
+            raise RuntimeError("Failed to encode function arguments.") from error
+        else:
+            if doc is None:
+                logger.debug("No results found. Executing...")
+                result = function(* args, ** kwargs)
+                return self._store_in_cache(spec, result)
+            else:
+                logger.debug("Results found. Trying to load.")
+                try:
+                    return pickle.loads(doc['data'])
+                except Exception as error:
+                    raise RuntimeWarning("Unable to retrieve chached result.") from error

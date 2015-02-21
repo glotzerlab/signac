@@ -32,8 +32,10 @@ class ReadOnlyDBDocument(object):
             self._spec(),
             fields = [key],
             )
-        assert doc is not None
-        return key in doc
+        if doc is None:
+            return False
+        else:
+            return key in doc
 
     def get(self, key, default = None):
         try:
@@ -41,9 +43,6 @@ class ReadOnlyDBDocument(object):
         except KeyError:
             return default
     
-    def clear(self):
-        self._collection.save(self._spec())
-
 class DBDocument(ReadOnlyDBDocument):
 
     def store(document):
@@ -70,3 +69,8 @@ class DBDocument(ReadOnlyDBDocument):
             })
         assert result['ok']
 
+    def clear(self):
+        self._collection.save(self._spec())
+
+    def remove(self):
+        self._collection.remove(self._spec())

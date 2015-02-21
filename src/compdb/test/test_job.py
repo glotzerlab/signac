@@ -1,8 +1,19 @@
 import unittest
+from contextlib import contextmanager
 
 # Make sure the jobs created for this test are unique.
 import uuid
 test_token = {'test_token': str(uuid.uuid4())}
+
+@contextmanager
+def safe_open_job(name, * parameters):
+    from compdb.contrib import open_job as oj
+    job = oj(name, * parameters)
+    try:
+        yield job
+    except Exception:
+        job.remove()
+        raise
 
 class ConfigTest(unittest.TestCase):
     
@@ -192,7 +203,7 @@ class JobConcurrencyTest(unittest.TestCase):
         self.assertEqual(job0.num_open_instances(), 0)
         self.assertEqual(job1.num_open_instances(), 0)
         job0.remove()
-        job1.remove()
+        #job1.remove()
 
     def test_acquire_and_release(self):
         jobname = 'test_acquire_and_release'
@@ -247,6 +258,64 @@ class JobConcurrencyTest(unittest.TestCase):
                     ex3 = True
             self.assertFalse(ex3)
         job.remove()
+
+class MyCustomClass(object):
+    def __init__(self, a):
+        self._a = a
+        self._b = a
+    def __add__(self, rhs):
+        return MyCustomClass(self._a + rhs._a)
+    def bar(self):
+        return 'bar'
+    def __eq__(self, rhs):
+        return self._a == rhs._a and self._b == rhs._b
+
+class MyCustomHeavyClass(MyCustomClass):
+    def __init__(self, a):
+        import numpy as np
+        super().__init__(a)
+        self._c = np.ones(1e6)
+    def __eq__(self, rhs):
+        import numpy as np
+        return self._a == rhs._a and self._b == rhs._b and np.array_equal(self._c, rhs._c)
+
+ex = False
+def open_cache(unittest, data_type):
+    from compdb.contrib import open_job
+
+    a,b,c = range(3)
+    global ex
+    def foo(a, b, ** kwargs):
+        global ex
+        ex = True
+        return data_type(a+b)
+
+    expected_result = foo(a, b = b, c = c)
+    ex = False
+    job_name = str(data_type)
+    with open_job(job_name, test_token) as job:
+        result = job.cached(foo, a, b = b, c = c)
+        print(result, expected_result)
+        unittest.assertEqual(result, expected_result)
+    unittest.assertTrue(ex)
+
+    ex = False
+    with open_job(job_name, test_token) as job:
+        result = job.cached(foo, a, b = b, c = c)
+    unittest.assertEqual(result, expected_result)
+    unittest.assertFalse(ex)
+    job.remove()
+
+class TestJobCache(unittest.TestCase):
+    
+    def test_cache_native(self):
+        open_cache(self, int)
+
+    def test_cache_custom(self):
+        open_cache(self, MyCustomClass)
+
+    def test_cache_custom_heavy(self):
+        open_cache(self, MyCustomHeavyClass)
 
 if __name__ == '__main__':
     unittest.main()
