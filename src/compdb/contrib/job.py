@@ -102,7 +102,7 @@ class Job(object):
         self._dbuserdoc = DBDocument(
             get_project_db()['compdb_job_docs'],
             self.get_id())
-        self._cache = get_project_db()['{}_cache'.format(self.get_id())]
+        self._cache = get_project_db()['compdb_cache'.format(self.get_id())]
         #self._dbcachedoc = DBDocument(
         #    get_project_db()['compdb_cache'],
         #    self.get_id())
@@ -262,6 +262,8 @@ class Job(object):
         self._storage.clear()
         self._dbuserdoc.clear()
         self._jobs_doc_collection.drop()
+
+    def clear_cache(self):
         self._cache.drop()
 
     def remove(self, force = False):
@@ -321,12 +323,12 @@ class Job(object):
     def section(self, name):
         return JobSection(self, name)
 
-    def _store_in_cache(self, spec, data):
+    def _store_in_cache(self, spec, doc, data):
         import pickle
         try:
             logger.debug("Trying to cache results.")
             blob = pickle.dumps(data)
-            doc = dict(spec)
+            #doc = dict(spec)
             doc['data'] = blob
             self._cache.update(spec, doc, upsert = True)
             rdoc = self._cache.find_one(spec)
@@ -352,23 +354,26 @@ class Job(object):
         arguments = inspect.getcallargs(function, *args, ** kwargs)
         spec = {
             'name': function.__name__,
+            'module': function.__module__,
             'signature': signature,
-            'arguments': arguments}
-        msg = "Cached function call for '{}{}'.".format(
-            function.__name__, signature)
-        logger.debug(msg)
-        logger.debug(self._cache)
-        logger.debug(spec)
-        doc = None
+        }
+        doc_template = dict(spec)
+        doc_template['argument'] = arguments
+        spec.update(
+            {'argument.{}'.format(k): v for k,v in arguments.items() if not type(v) == dict})
+        spec.update(
+            {'argument.{}.{}'.format(k, k2): v2 for k,v in arguments.items() if type(v) == dict for k2,v2 in v.items()})
+        logger.debug("Cached function call for '{}{}'.".format(
+            function.__name__, signature))
         try:
             doc = self._cache.find_one(spec)
         except InvalidDocument as error:
             raise RuntimeError("Failed to encode function arguments.") from error
         else:
             if doc is None:
-                logger.debug("No results found. Executing...")
                 result = function(* args, ** kwargs)
-                return self._store_in_cache(spec, result)
+                logger.debug("No results found. Executing...")
+                return self._store_in_cache(spec, doc_template, result)
             else:
                 logger.debug("Results found. Trying to load.")
                 try:

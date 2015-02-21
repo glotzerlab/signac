@@ -290,18 +290,18 @@ def open_cache(unittest, data_type):
         ex = True
         return data_type(a+b)
 
-    expected_result = foo(a, b = b, c = c)
-    ex = False
     job_name = str(data_type)
+    expected_result = foo(a, b = b, c = c, job_name = job_name)
+    ex = False
     with open_job(job_name, test_token) as job:
-        result = job.cached(foo, a, b = b, c = c)
+        result = job.cached(foo, a, b = b, c = c, job_name = job_name)
         print(result, expected_result)
         unittest.assertEqual(result, expected_result)
     unittest.assertTrue(ex)
 
     ex = False
     with open_job(job_name, test_token) as job:
-        result = job.cached(foo, a, b = b, c = c)
+        result = job.cached(foo, a, b = b, c = c, job_name = job_name)
     unittest.assertEqual(result, expected_result)
     unittest.assertFalse(ex)
     job.remove()
@@ -316,6 +316,12 @@ class TestJobCache(unittest.TestCase):
 
     def test_cache_custom_heavy(self):
         open_cache(self, MyCustomHeavyClass)
+
+    def tearDown(self):
+        from compdb.contrib import open_job
+        with open_job('tearDown', test_token) as job:
+            job.clear_cache()
+        job.remove()
 
 if __name__ == '__main__':
     unittest.main()
