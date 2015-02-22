@@ -339,11 +339,5 @@ class TestJobCache(JobTest):
     def test_cache_custom_heavy(self):
         open_cache(self, MyCustomHeavyClass)
 
-    def tearDown(self):
-        from compdb.contrib import open_job
-        with open_job('tearDown', test_token) as job:
-            job.clear_cache()
-        job.remove()
-
 if __name__ == '__main__':
     unittest.main()
