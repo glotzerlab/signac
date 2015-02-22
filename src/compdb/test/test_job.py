@@ -20,16 +20,15 @@ class JobTest(unittest.TestCase):
     def setUp(self):
         import os, tempfile
         from compdb.contrib import get_project
-        self._tmp_pr = tempfile.TemporaryDirectory(prefix = 'compdb')
-        self._tmp_wd = tempfile.TemporaryDirectory(prefix = 'compdb')
-        self._tmp_fs = tempfile.TemporaryDirectory(prefix = 'compdb')
+        self._tmp_pr = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_wd = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_fs = tempfile.TemporaryDirectory(prefix = 'compdb_')
         os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
         os.environ['COMPDB_PROJECT'] = 'compdb_test_project'
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr.name
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs.name
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd.name
-        #os.environ['COMPDB_DATABASE_HOST'] = 'invalid_host'
         self._project = get_project()
 
     def tearDown(self):
@@ -301,7 +300,7 @@ class MyCustomHeavyClass(MyCustomClass):
     def __init__(self, a):
         import numpy as np
         super().__init__(a)
-        self._c = np.ones(1e6)
+        self._c = np.ones(2e7)
     def __eq__(self, rhs):
         import numpy as np
         return self._a == rhs._a and self._b == rhs._b and np.array_equal(self._c, rhs._c)
@@ -343,6 +342,14 @@ class TestJobCache(JobTest):
 
     def test_cache_custom_heavy(self):
         open_cache(self, MyCustomHeavyClass)
+
+    def test_cache_clear(self):
+        from compdb.contrib import get_project
+        project = get_project()
+        open_cache(self, int)
+        project.get_cache().clear()
+        open_cache(self, int)
+        project.get_cache().clear()
 
 class TestJobMilestones(JobTest):
     

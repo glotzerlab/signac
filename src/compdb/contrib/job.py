@@ -12,15 +12,130 @@ JOB_ERROR_KEY = 'error'
 JOB_NAME_KEY = 'name'
 JOB_PARAMETERS_KEY = 'parameters'
 MILESTONE_KEY = '_milestones'
+CACHE_KEY = 'compdb_cache'
+CACHE_DIR = '.cache'
 
 def valid_name(name):
     return not name.startswith('_compdb')
+
+def generate_hash_from_spec(spec):
+    import json, hashlib
+    blob = json.dumps(spec, sort_keys = True)
+    m = hashlib.md5()
+    m.update(blob.encode())
+    return m.hexdigest()
+
+def spec_for_nested_dict(nd):
+    spec.update(
+        {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
+    spec.update(
+        {'argument.{}.{}'.format(k, k2): v2 for k,v in nd.items() if type(v) == dict for k2,v2 in v.items()})
 
 class DatabaseError(BaseException):
     pass
 
 class ConnectionFailure(RuntimeError):
     pass
+
+class Cache(object):
+    
+    def __init__(self, project):
+        self._project = project
+        #self._check()
+
+    def _collection(self):
+        return self._project.get_project_db()[CACHE_KEY]
+
+    def _cache_dir(self):
+        from os.path import join
+        return join(self._project.filestorage_dir(), CACHE_DIR)
+
+    def _fn(self, name):
+        from os.path import join
+        return join(self._cache_dir(), name)
+
+    def _store_in_cache(self, spec, data):
+        import pickle, os
+        try:
+            logger.debug("Trying to cache results.")
+            blob = pickle.dumps(data)
+            id_ = self._collection().save(spec)
+            logger.debug('id_: {}'.format(id_))
+            if not os.path.isdir(self._cache_dir()):
+                os.mkdir(self._cache_dir())
+            logger.debug("Storing in '{}'.".format(self._fn(str(id_))))
+            with open(self._fn(str(id_)), 'wb') as cachefile:
+                pickle.dump(data, cachefile)
+        finally:
+            return data
+
+    def _load_from_cache(self, name):
+        import pickle
+        logger.debug("Loading from '{}'.".format(self._fn(name)))
+        with open(self._fn(name), 'rb') as cachefile:
+            return pickle.load(cachefile)
+
+    def _is_cached(self, spec):
+        try:
+            doc = self._collection().find_one(spec)
+        except InvalidDocument as error:
+            raise RuntimeError("Failed to encode function arguments.") from error
+        else:
+            return doc is not None
+
+    def run(self, function, * args, ** kwargs):
+        import inspect, pickle
+        from bson.errors import InvalidDocument
+        signature = str(inspect.signature(function))
+        arguments = inspect.getcallargs(function, *args, ** kwargs)
+        logger.debug("Cached function call for '{}{}'.".format(
+            function.__name__, signature))
+        spec = {
+            'name': function.__name__,
+            'module': function.__module__,
+            'signature': signature,
+            'arguments': generate_hash_from_spec(arguments),
+        }
+        doc = self._collection().find_one(spec)
+        if doc is not None:
+            logger.debug("Results found. Trying to load.")
+            try:
+                return self._load_from_cache(str(doc['_id']))
+            except FileNotFoundError:
+                logger.debug("Error while loading.")
+                self._check()
+                result = function(* args, ** kwargs)
+                return self._store_in_cache(spec, result)
+
+        else:
+            logger.debug("No results found. Executing...")
+            result = function(* args, ** kwargs)
+            return self._store_in_cache(spec, result)
+            
+    def _check(self):
+        import os
+        docs = self._collection().find()
+        remove = []
+        for doc in docs:
+            fn = self._fn(str(doc['_id']))
+            if not os.path.isfile(fn):
+                remove.append(doc['_id'])
+        self._collection().remove(
+            {'_id': {'$in': remove}})
+        if len(remove):
+            msg = "Removed link to '{}'. File(s) not found."
+            logger.warning(msg.format([str(i) for i in remove]))
+
+    def clear(self):
+        import os
+        docs = self._collection().find()
+        for doc in docs:
+            try: 
+                fn = self._fn(str(doc['_id']))
+                os.remove(fn)
+            except FileNotFoundError as error:
+                pass
+        self._collection().drop()
 
 class Project(object):
     
@@ -45,11 +160,9 @@ class Project(object):
             msg = "Failed to connect to database '{}' at '{}'."
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error
-        
     def get_db(self, db_name):
         assert valid_name(db_name)
         return self._get_db(db_name)
-            
 
     def _get_meta_db(self):
         return self._get_db(self.config['database_meta'])
@@ -69,6 +182,7 @@ class Project(object):
     def remove(self):
         from pymongo import MongoClient
         import pymongo.errors
+        self.get_cache().clear()
         try:
             host = self.config['database_host']
             client = MongoClient(host)
@@ -85,6 +199,9 @@ class Project(object):
     def get_milestones(self, job_id):
         return Milestones(self, job_id)
 
+    def get_cache(self):
+        return Cache(self)
+
 def job_spec(name, parameters):
     spec = {}
     if name is not None:
@@ -92,13 +209,6 @@ def job_spec(name, parameters):
     if parameters is not None:
         spec.update({JOB_PARAMETERS_KEY: parameters})
     return spec
-
-def generate_hash_from_spec(spec):
-    import json, hashlib
-    blob = json.dumps(spec, sort_keys = True)
-    m = hashlib.md5()
-    m.update(blob.encode())
-    return m.hexdigest()
 
 class JobSection(object):
 
@@ -183,10 +293,6 @@ class Job(object):
         self._dbuserdoc = DBDocument(
             self._project.get_project_db()['compdb_job_docs'],
             self.get_id())
-        self._cache = self._project.get_project_db()['compdb_cache'.format(self.get_id())]
-        #self._dbcachedoc = DBDocument(
-        #    get_project_db()['compdb_cache'],
-        #    self.get_id())
 
     @property
     def spec(self):
@@ -344,9 +450,6 @@ class Job(object):
         self._dbuserdoc.clear()
         self._jobs_doc_collection.drop()
 
-    def clear_cache(self):
-        self._cache.drop()
-
     def remove(self, force = False):
         self._with_id()
         if not force:
@@ -401,63 +504,12 @@ class Job(object):
     def section(self, name):
         return JobSection(self, name)
 
-    def _store_in_cache(self, spec, doc, data):
-        import pickle
-        try:
-            logger.debug("Trying to cache results.")
-            blob = pickle.dumps(data)
-            #doc = dict(spec)
-            doc['data'] = blob
-            self._cache.update(spec, doc, upsert = True)
-            rdoc = self._cache.find_one(spec)
-            assert rdoc is not None
-            assert rdoc['data'] == blob
-            assert pickle.loads(rb) == data
-        except InvalidDocument as error:
-            logger.error("Failed to encode: {}".format(error))
-        except AssertionError:
-            logger.warning("Test retrieval did not pass equality test.")
-            self._cache.remove(spec)
-        finally:
-            if self._cache.find_one(spec) is None:
-                logger.debug("Caching failed.")
-            else:
-                logger.debug("Cached succesfully.")
-            return data
+    @property
+    def cache(self):
+        return self._project.get_cache()
 
     def cached(self, function, * args, ** kwargs):
-        import inspect, pickle
-        from bson.errors import InvalidDocument
-        signature = str(inspect.signature(function))
-        arguments = inspect.getcallargs(function, *args, ** kwargs)
-        spec = {
-            'name': function.__name__,
-            'module': function.__module__,
-            'signature': signature,
-        }
-        doc_template = dict(spec)
-        doc_template['argument'] = arguments
-        spec.update(
-            {'argument.{}'.format(k): v for k,v in arguments.items() if not type(v) == dict})
-        spec.update(
-            {'argument.{}.{}'.format(k, k2): v2 for k,v in arguments.items() if type(v) == dict for k2,v2 in v.items()})
-        logger.debug("Cached function call for '{}{}'.".format(
-            function.__name__, signature))
-        try:
-            doc = self._cache.find_one(spec)
-        except InvalidDocument as error:
-            raise RuntimeError("Failed to encode function arguments.") from error
-        else:
-            if doc is None:
-                result = function(* args, ** kwargs)
-                logger.debug("No results found. Executing...")
-                return self._store_in_cache(spec, doc_template, result)
-            else:
-                logger.debug("Results found. Trying to load.")
-                try:
-                    return pickle.loads(doc['data'])
-                except Exception as error:
-                    raise RuntimeWarning("Unable to retrieve chached result.") from error
+        return self.cache.run(function, * args, ** kwargs) 
 
     @property
     def milestones(self):
