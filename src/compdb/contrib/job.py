@@ -77,8 +77,13 @@ class Project(object):
             msg = "{}: Failed to remove project database on '{}'."
             raise ConnectionFailure(msg.format(self.get_id(), host)) from error
 
+    def lock_job(self, job_id, blocking = True, timeout = -1):
+        return DocumentLock(
+            self.get_jobs_collection(), job_id,
+            blocking = blocking, timeout = timeout)
+
     def get_milestones(self, job_id):
-        return Milestones(self.get_jobs_collection(), job_id)
+        return Milestones(self, job_id)
 
 def job_spec(name, parameters):
     spec = {}
@@ -118,22 +123,25 @@ class JobSection(object):
 
 class Milestones(object):
 
-    def __init__(self, collection, id_doc):
-        self._collection = collection
-        self._id_doc = id_doc
+    def __init__(self, project, job_id):
+        self._project = project
+        self._job_id = job_id
 
     def _spec(self):
-        return {'_id': self._id_doc}
+        return {'_id': self._job_id}
+
+    def _collection(self):
+        return self._project.get_jobs_collection()
 
     def mark(self, name):
-        result = self._collection.update(
+        result = self._collection().update(
             self._spec(),
             {'$addToSet': {MILESTONE_KEY: name}},
             upsert = True)
         assert result['ok']
 
     def remove(self, name):
-        assert self._collection.update(
+        assert self._collection().update(
             self._spec(),
             {'$pull': {MILESTONE_KEY: name}})['ok']
 
@@ -141,14 +149,14 @@ class Milestones(object):
         spec = self._spec()
         spec.update({
             MILESTONE_KEY: { '$in': [name]}})
-        result = self._collection.find_one(
+        result = self._collection().find_one(
             spec,
             fields = [MILESTONE_KEY])
         logger.debug(result)
         return result is not None
 
     def clear(self):
-        spec.update(
+        self._collection().update(
             self._spec(),
             {'$unset': {MILESTONE_KEY: ''}})
 
@@ -162,7 +170,6 @@ class Job(object):
         self._unique_id = uuid.uuid4()
         self._project = project
         self._spec = spec
-        self._lock = None
         self._collection = None
         self._cwd = None
         self._wd = None
@@ -379,11 +386,8 @@ class Job(object):
         return self.num_open_instances <= 1
 
     def lock(self, blocking = True, timeout = -1):
-        from . concurrency import DocumentLock
-        self._with_id()
-        return DocumentLock(
-            collection = self._project.get_jobs_collection(),
-            document_id = self.get_id(),
+        return self._project.lock_job(
+            self.get_id(),
             blocking = blocking, timeout = timeout)
 
     @property

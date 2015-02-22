@@ -209,6 +209,10 @@ def open_and_lock_and_release_job(jobname, token):
     from compdb.contrib import open_job
     with open_job(jobname, test_token) as job:
         with job.lock(timeout = 1):
+            if job.milestones.reached('concurrent'):
+                job.milestones.remove('concurrent')
+            else:
+                job.milestones.mark('concurrent')
             pass
     return True
 
@@ -346,6 +350,7 @@ class TestJobMilestones(JobTest):
         from compdb.contrib import open_job
         name = 'test_milestones'
         with open_job(name, test_token) as job:
+            job.milestones.clear()
             self.assertFalse(job.milestones.reached('started'))
             job.milestones.mark('started')
             self.assertTrue(job.milestones.reached('started'))
@@ -359,12 +364,20 @@ class TestJobMilestones(JobTest):
             self.assertTrue(job.milestones.reached('other'))
             job.milestones.remove('started')
             self.assertFalse(job.milestones.reached('started'))
+            job.milestones.mark('started')
+            job.milestones.mark('other')
+            self.assertTrue(job.milestones.reached('started'))
+            self.assertTrue(job.milestones.reached('other'))
+            job.milestones.clear()
+            self.assertFalse(job.milestones.reached('started'))
+            self.assertFalse(job.milestones.reached('other'))
         job.remove()
 
     def test_milestones_reopen(self):
         from compdb.contrib import open_job
         name = 'test_milestones'
         with open_job(name, test_token) as job:
+            job.milestones.clear()
             self.assertFalse(job.milestones.reached('started'))
             job.milestones.mark('started')
 
