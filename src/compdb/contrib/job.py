@@ -54,12 +54,12 @@ class Cache(object):
         from os.path import join
         return join(self._cache_dir(), name)
 
-    def _store_in_cache(self, spec, data):
+    def _store_in_cache(self, doc, data):
         import pickle, os
         try:
             logger.debug("Trying to cache results.")
             blob = pickle.dumps(data)
-            id_ = self._collection().save(spec)
+            id_ = self._collection().save(doc)
             logger.debug('id_: {}'.format(id_))
             if not os.path.isdir(self._cache_dir()):
                 os.mkdir(self._cache_dir())
@@ -68,6 +68,17 @@ class Cache(object):
                 pickle.dump(data, cachefile)
         finally:
             return data
+
+    def _hash_function(self, function):
+        import hashlib, inspect
+        code = inspect.getsource(function)
+        m = hashlib.md5()
+        m.update(code.encode())
+        return m.hexdigest()
+
+    def _code_is_identical(self, function, doc):
+        assert 'code' in doc
+        return self._hash_function(function) == doc['code']
 
     def _load_from_cache(self, name):
         import pickle
@@ -88,6 +99,7 @@ class Cache(object):
         from bson.errors import InvalidDocument
         signature = str(inspect.signature(function))
         arguments = inspect.getcallargs(function, *args, ** kwargs)
+        code = inspect.getsource(function)
         logger.debug("Cached function call for '{}{}'.".format(
             function.__name__, signature))
         spec = {
@@ -98,19 +110,21 @@ class Cache(object):
         }
         doc = self._collection().find_one(spec)
         if doc is not None:
-            logger.debug("Results found. Trying to load.")
-            try:
-                return self._load_from_cache(str(doc['_id']))
-            except FileNotFoundError:
-                logger.debug("Error while loading.")
-                self._check()
-                result = function(* args, ** kwargs)
-                return self._store_in_cache(spec, result)
-
-        else:
-            logger.debug("No results found. Executing...")
-            result = function(* args, ** kwargs)
-            return self._store_in_cache(spec, result)
+            if self._code_is_identical(function, doc):
+                logger.debug("Results found. Trying to load.")
+                try:
+                    return self._load_from_cache(str(doc['_id']))
+                except FileNotFoundError:
+                    logger.debug("Error while loading.")
+                    self._check()
+                    spec.update({'code': self._hash_function(function)})
+                    result = function(* args, ** kwargs)
+                    return self._store_in_cache(spec, result)
+        # No retrieval possible
+        logger.debug("No results found. Executing...")
+        result = function(* args, ** kwargs)
+        spec.update({'code': self._hash_function(function)})
+        return self._store_in_cache(spec, result)
             
     def _check(self):
         import os

@@ -351,6 +351,36 @@ class TestJobCache(JobTest):
         open_cache(self, int)
         project.get_cache().clear()
 
+    def test_modify_code(self):
+        from compdb.contrib import open_job
+        a,b,c = range(3)
+        global ex
+        def foo(a, b, ** kwargs):
+            global ex
+            ex = True
+            return int(a+b)
+
+        job_name = 'test_modify_code'
+        expected_result = foo(a, b = b, c = c, job_name = job_name)
+        ex = False
+        with open_job(job_name, test_token) as job:
+            result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+            print(result, expected_result)
+            self.assertEqual(result, expected_result)
+        self.assertTrue(ex)
+
+        def foo(a, b, ** kwargs):
+            global ex
+            ex = True
+            return int(b+a)
+
+        ex = False
+        with open_job(job_name, test_token) as job:
+            result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+        self.assertEqual(result, expected_result)
+        self.assertTrue(ex)
+        job.remove()
+
 class TestJobMilestones(JobTest):
     
     def test_milestones(self):
