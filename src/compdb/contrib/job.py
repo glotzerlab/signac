@@ -11,6 +11,7 @@ JOB_STATUS_KEY = 'status'
 JOB_ERROR_KEY = 'error'
 JOB_NAME_KEY = 'name'
 JOB_PARAMETERS_KEY = 'parameters'
+MILESTONE_KEY = '_milestones'
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -76,6 +77,9 @@ class Project(object):
             msg = "{}: Failed to remove project database on '{}'."
             raise ConnectionFailure(msg.format(self.get_id(), host)) from error
 
+    def get_milestones(self, job_id):
+        return Milestones(self.get_jobs_collection(), job_id)
+
 def job_spec(name, parameters):
     spec = {}
     if name is not None:
@@ -111,6 +115,42 @@ class JobSection(object):
     
     def completed(self):
         return self._job.document.get(self._key, False)
+
+class Milestones(object):
+
+    def __init__(self, collection, id_doc):
+        self._collection = collection
+        self._id_doc = id_doc
+
+    def _spec(self):
+        return {'_id': self._id_doc}
+
+    def mark(self, name):
+        result = self._collection.update(
+            self._spec(),
+            {'$addToSet': {MILESTONE_KEY: name}},
+            upsert = True)
+        assert result['ok']
+
+    def remove(self, name):
+        assert self._collection.update(
+            self._spec(),
+            {'$pull': {MILESTONE_KEY: name}})['ok']
+
+    def reached(self, name):
+        spec = self._spec()
+        spec.update({
+            MILESTONE_KEY: { '$in': [name]}})
+        result = self._collection.find_one(
+            spec,
+            fields = [MILESTONE_KEY])
+        logger.debug(result)
+        return result is not None
+
+    def clear(self):
+        spec.update(
+            self._spec(),
+            {'$unset': {MILESTONE_KEY: ''}})
 
 class JobNoIdError(RuntimeError):
     pass
@@ -414,3 +454,7 @@ class Job(object):
                     return pickle.loads(doc['data'])
                 except Exception as error:
                     raise RuntimeWarning("Unable to retrieve chached result.") from error
+
+    @property
+    def milestones(self):
+        return self._project.get_milestones(self.get_id()) 

@@ -340,5 +340,37 @@ class TestJobCache(JobTest):
     def test_cache_custom_heavy(self):
         open_cache(self, MyCustomHeavyClass)
 
+class TestJobMilestones(JobTest):
+    
+    def test_milestones(self):
+        from compdb.contrib import open_job
+        name = 'test_milestones'
+        with open_job(name, test_token) as job:
+            self.assertFalse(job.milestones.reached('started'))
+            job.milestones.mark('started')
+            self.assertTrue(job.milestones.reached('started'))
+            self.assertFalse(job.milestones.reached('other'))
+            job.milestones.mark('started')
+            job.milestones.mark('other')
+            self.assertTrue(job.milestones.reached('started'))
+            self.assertTrue(job.milestones.reached('other'))
+            job.milestones.remove('started')
+            self.assertFalse(job.milestones.reached('started'))
+            self.assertTrue(job.milestones.reached('other'))
+            job.milestones.remove('started')
+            self.assertFalse(job.milestones.reached('started'))
+        job.remove()
+
+    def test_milestones_reopen(self):
+        from compdb.contrib import open_job
+        name = 'test_milestones'
+        with open_job(name, test_token) as job:
+            self.assertFalse(job.milestones.reached('started'))
+            job.milestones.mark('started')
+
+        with open_job(name, test_token) as job:
+            self.assertTrue(job.milestones.reached('started'))
+        job.remove()
+
 if __name__ == '__main__':
     unittest.main()
