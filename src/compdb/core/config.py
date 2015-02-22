@@ -15,6 +15,7 @@ ENVIRONMENT_VARIABLES = {
     'project_dir' :     'COMPDB_PROJECT_DIR',
     'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
     'working_dir':      'COMPDB_WORKING_DIR',
+    'database_host':    'COMPDB_DATABASE_HOST',
 }
 
 REQUIRED_KEYS = [

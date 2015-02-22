@@ -15,6 +15,12 @@ JOB_PARAMETERS_KEY = 'parameters'
 def valid_name(name):
     return not name.startswith('_compdb')
 
+class DatabaseError(BaseException):
+    pass
+
+class ConnectionFailure(RuntimeError):
+    pass
+
 class Project(object):
     
     def __init__(self, config = None):
@@ -29,12 +35,20 @@ class Project(object):
 
     def _get_db(self, db_name):
         from pymongo import MongoClient
-        client = MongoClient(self.config['database_host'])
-        return client[db_name]
+        import pymongo.errors
+        host = self.config['database_host']
+        try:
+            client = MongoClient(host)
+            return client[db_name]
+        except pymongo.errors.ConnectionFailure as error:
+            msg = "Failed to connect to database '{}' at '{}'."
+            #logger.error(msg.format(db_name, host))
+            raise ConnectionFailure(msg.format(db_name, host)) from error
         
     def get_db(self, db_name):
         assert valid_name(db_name)
         return self._get_db(db_name)
+            
 
     def _get_meta_db(self):
         return self._get_db(self.config['database_meta'])
@@ -53,13 +67,16 @@ class Project(object):
 
     def remove(self):
         from pymongo import MongoClient
-        client = MongoClient(self.config['database_host'])
-        client.drop_database(self.get_id())
+        import pymongo.errors
+        try:
+            host = self.config['database_host']
+            client = MongoClient(host)
+            client.drop_database(self.get_id())
+        except pymongo.errors.ConnectionFailure as error:
+            msg = "{}: Failed to remove project database on '{}'."
+            raise ConnectionFailure(msg.format(self.get_id(), host)) from error
 
 def job_spec(name, parameters):
-    #spec = {
-    #    'project':  project.get_id(),
-    #}
     spec = {}
     if name is not None:
         spec.update({JOB_NAME_KEY: name})
