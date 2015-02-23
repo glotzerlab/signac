@@ -69,6 +69,9 @@ class Job(object):
         self._dbuserdoc = DBDocument(
             self._project.get_project_db()['compdb_job_docs'],
             self.get_id())
+        if self._project.develop_mode():
+            msg = "Project '{}' is in development mode."
+            logger.warning(msg.format(self._project.get_id()))
 
     @property
     def spec(self):

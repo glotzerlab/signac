@@ -6,8 +6,8 @@ def valid_name(name):
 
 def _get_db(db_name):
     logger.warning("Deprecated.")
-    from . config import read_config
-    config = read_config()
+    from . config import load_config
+    config = load_config()
     from pymongo import MongoClient
     client = MongoClient(config['database_host'])
     return client[db_name]

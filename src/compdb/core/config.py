@@ -3,6 +3,7 @@ import os
 import logging
 logger = logging.getLogger('config')
 
+DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
 HOME = os.path.expanduser('~')
 CWD = os.getcwd()
@@ -16,7 +17,7 @@ ENVIRONMENT_VARIABLES = {
     'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
     'working_dir':      'COMPDB_WORKING_DIR',
     'database_host':    'COMPDB_DATABASE_HOST',
-    'debug':            'COMPDB_DEBUG',
+    'develop':          'COMPDB_DEVELOP',
 }
 
 REQUIRED_KEYS = [
@@ -26,19 +27,46 @@ REQUIRED_KEYS = [
 
 class Config(object):   
 
-    def __init__(self):
-        self._args = dict()
-        pass
+    def __init__(self, args = None):
+        self._args = DEFAULTS
+        if args is not None:
+            self.update(args)
 
-    def read(self):
+    def read(self, filename = DEFAULT_FILENAME):
+        import json
+        with open(filename) as file:
+            args = json.loads(file.read())
+            logger.debug("Read: {}".format(args))
+        self._args.update(args)
+
+    def _read_files(self):
+        for fn in config_filenames():
+            try:
+                logger.debug("Reading config file '{}'.".format(fn))
+                self.read(fn)
+            except Exception as error:
+                msg = "Error while reading config file '{}'."
+                logger.error(msg.format(fn))
+
+    def update(self, args):
+        self._args.update(args)
+
+    def load(self):
         logger.debug('Reading config...')
-        args = DEFAULTS
-        args.update(read_config_files())
-        args.update(read_environment())
+        self._read_files()
+        self._args.update(read_environment())
         logger.debug('Verifying config...')
-        verify(args)
+        verify(self._args)
         logger.debug('OK')
-        self._args = args
+
+    def write(self, filename = DEFAULT_FILENAME, indent = 0):
+        import json
+        with open(filename, 'w') as file:
+            json.dump(self._args, file, indent = indent)
+
+    def dump(self, indent = 0):
+        import json
+        print(json.dumps(self._args, indent = indent))
 
     def __getitem__(self, key):
         try:
@@ -64,24 +92,15 @@ DEFAULTS = {
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'debug',
+    'global_fs_dir', 'develop',
     ]
 
-def read_config_files():
-    args = dict()
-    import json
+def config_filenames():
     for filename in CONFIG_FILENAMES:
         for path in CONFIG_PATH:
-            try:
-                fn = os.path.join(path, filename)
-                with open(fn) as file:
-                    args.update(json.loads(file.read()))
-            except (IOError, ) as error:
-                continue
-            except Exception as error:
-                msg = "Error while reading config file '{}'."
-                logger.error(msg.format(fn))
-    return args
+            fn = os.path.join(path, filename)
+            if os.path.isfile(fn):
+                yield fn
 
 def read_environment():
     logger.debug("Reading environment variables.")
@@ -107,7 +126,7 @@ def verify(args):
     for key in REQUIRED_KEYS:
         if not key in args.keys():
             msg = "Missing required config key: '{}'."
-            logger.warning(msg.format(key))
+            #logger.warning(msg.format(key))
             #raise KeyError(msg.format(key))
 
     # sanity check
@@ -130,7 +149,7 @@ def verify(args):
                 msg = "Directory specified for '{}': '{}', does not exist."
                 raise IOError(msg.format(dir_key, args[dir_key]))
 
-def read_config():
+def load_config():
     config = Config()
-    config.read()
+    config.load()
     return config

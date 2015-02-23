@@ -1,10 +1,10 @@
 import logging
 logger = logging.getLogger('db')
 
-from compdb.core.config import read_config
+from compdb.core.config import load_config
 from compdb.core import _get_db
 
-CONFIG = read_config()
+CONFIG = load_config()
 
 def _get_db_global_fs():
     return _get_db(CONFIG['database_global_fs'])

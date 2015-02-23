@@ -17,4 +17,13 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Physics",
         ],
+
+    install_requires=['pymongo'],
+
+    entry_points = {
+        'console_scripts': [
+            'make_project = compdb.contrib.make_project:main',
+            'make_author = compdb.contrib.make_author:main',
+        ],
+    },
 )

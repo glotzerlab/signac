@@ -7,25 +7,13 @@ JOB_NAME_KEY = 'name'
 def valid_name(name):
     return not name.startswith('_compdb')
 
-def job_spec(name, parameters):
-    spec = {}
-    if name is not None:
-        spec.update({JOB_NAME_KEY: name})
-    if parameters is not None:
-        spec.update({JOB_PARAMETERS_KEY: parameters})
-    return spec
-
 class Project(object):
     
     def __init__(self, config = None):
         if config is None:
-            from compdb.core.config import read_config
-            config = read_config()
+            from compdb.core.config import load_config
+            config = load_config()
         self._config = config
-
-        if self.debug_mode():
-            logger.warning("Project '{}' opened in DEBUG mode.".format(
-            self.config['project']))
 
     @property 
     def config(self):
@@ -87,8 +75,24 @@ class Project(object):
         from . cache import Cache
         return Cache(self)
 
-    def debug_mode(self):
-        return bool(self.config.get('debug', False))
+    def develop_mode(self):
+        return bool(self.config.get('develop', False))
+
+    def activate_develop_mode(self):
+        self.config['develop'] = True
+
+    def _job_spec(self, name, parameters):
+        spec = {}
+        if name is not None:
+            spec.update({JOB_NAME_KEY: name})
+        if parameters is not None:
+            spec.update({JOB_PARAMETERS_KEY: parameters})
+        if self.develop_mode():
+            spec.update({'develop': True})
+        spec.update({
+            'project': self.get_id(),
+        })
+        return spec
 
     def _find_job_docs(self, spec):
         yield from self.get_jobs_collection().find(spec)
@@ -110,17 +114,15 @@ class Project(object):
             yield self._open_job({'_id': doc['_id']}, blocking, timeout)
 
     def open_job(self, name, parameters = None, blocking = True, timeout = -1):
-        if self.debug_mode():
-            parameters.update({'_debug': True})
-        spec = job_spec(name = name, parameters = parameters)
+        spec = self._job_spec(name = name, parameters = parameters)
         return self._open_job(spec, blocking, timeout)
 
     def find_job_docs(self, name = None, parameters = None):
-        spec = job_spec(name = name, parameters = parameters)
+        spec = self._job_spec(name = name, parameters = parameters)
         yield from self._find_job_docs(spec)
 
-    def clear_debug(self, force = True):
-        spec = {'_debug': {'$exists': True}}
-        debug_jobs = self._find_jobs(spec)
-        for debug_job in debug_jobs:
-            debug_job.remove(force = force)
+    def clear_develop(self, force = True):
+        spec = {'_develop': {'$exists': True}}
+        develop_jobs = self._find_jobs(spec)
+        for develop_job in develop_jobs:
+            develop_job.remove(force = force)
