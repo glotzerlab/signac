@@ -1,22 +1,17 @@
 def get_project():
-    from . job import Project
+    from . project import Project
     return Project()
 
 def open_job(name, parameters = None, blocking = True, timeout = -1):
-    from . job import Job, job_spec
     project = get_project()
-    spec = job_spec(name = name, parameters = parameters)
-    return Job(
-        project = project,
-        spec = spec,
-        blocking = blocking,
-        timeout = timeout)
+    return project.open_job(
+        name = name, parameters = parameters,
+        blocking = blocking, timeout = timeout)
 
 def find_job_docs(name = None, parameters = None):
-    from .job import job_spec
     project = get_project()
-    yield from project.get_jobs_collection().find(
-        job_spec(name = name, parameters = parameters))
+    yield from project.find_job_docs(
+        name = name, parameters = parameters)
 
 def find_jobs(name = None, parameters = None):
     from .job import Job

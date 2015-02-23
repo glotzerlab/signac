@@ -16,6 +16,7 @@ ENVIRONMENT_VARIABLES = {
     'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
     'working_dir':      'COMPDB_WORKING_DIR',
     'database_host':    'COMPDB_DATABASE_HOST',
+    'debug':            'COMPDB_DEBUG',
 }
 
 REQUIRED_KEYS = [
@@ -52,6 +53,9 @@ class Config(object):
     def __setitem__(self, key, value):
         self._args[key] = value
 
+    def __contains__(self, key):
+        return key in self._args
+
 DEFAULTS = {
     'database_host': 'localhost',
     'database_meta': '_compdb',
@@ -60,7 +64,7 @@ DEFAULTS = {
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir',
+    'global_fs_dir', 'debug',
     ]
 
 def read_config_files():
@@ -76,8 +80,7 @@ def read_config_files():
                 continue
             except Exception as error:
                 msg = "Error while reading config file '{}'."
-                logger.error(fn)
-                raise
+                logger.error(msg.format(fn))
     return args
 
 def read_environment():

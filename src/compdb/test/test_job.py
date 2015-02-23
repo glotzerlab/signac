@@ -44,14 +44,7 @@ class ConfigTest(JobTest):
 
 class JobOpenAndClosingTest(JobTest):
 
-    def test_open_and_close(self):
-        import compdb.contrib.job
-        project = compdb.contrib.job.Project()
-        with compdb.contrib.job.Job(project, {'name': 'testjob'}) as job:
-            pass
-        job.remove()
-
-    def test_open_job_method(self):
+    def test_open_job_close(self):
         from compdb.contrib import open_job
         with open_job('testjob', test_token) as job:
             pass

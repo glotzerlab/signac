@@ -52,8 +52,8 @@ class DBDocument(ReadOnlyDBDocument):
         assert result['ok']
 
     def __setitem__(self, key, value):
-        msg = "Storing '{}'='{}'."
-        logger.debug(msg.format(key, value))
+        msg = "Storing '{}'."
+        logger.debug(msg.format(key))
         result = self._collection.update(
             spec = self._spec(),
             document = {'$set': {key: value}},
