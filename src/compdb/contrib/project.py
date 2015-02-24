@@ -62,6 +62,8 @@ class Project(object):
         from pymongo import MongoClient
         import pymongo.errors
         self.get_cache().clear()
+        for job in self.find_jobs():
+            job.remove()
         try:
             host = self.config['database_host']
             client = MongoClient(host)

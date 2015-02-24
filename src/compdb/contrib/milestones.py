@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger('milestones')
 
-MILESTONE_KEY = '_milestones'
+MILESTONE_KEY = 'milestones'
 
 class Milestones(object):
 
@@ -36,6 +36,9 @@ class Milestones(object):
             fields = [MILESTONE_KEY])
         logger.debug(result)
         return result is not None
+
+    def __contains__(self, name):
+        return self.reached(name)
 
     def clear(self):
         self._collection().update(
