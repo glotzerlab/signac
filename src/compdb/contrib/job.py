@@ -1,4 +1,4 @@
-import logging
+import logging, threading
 logger = logging.getLogger('job')
 
 JOB_ERROR_KEY = 'error'
@@ -16,6 +16,32 @@ def spec_for_nested_dict(nd):
         {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
     spec.update(
         {'argument.{}.{}'.format(k, k2): v2 for k,v in nd.items() if type(v) == dict for k2,v2 in v.items()})
+
+class HeartBeatThread(threading.Thread):
+    def __init__(self, collection, _id, unique_id, period = 1):
+        super().__init__()
+        from threading import Event
+        self._collection = collection
+        self._job_id = _id
+        self._unique_id = unique_id
+        self._period = period
+        self._stop_event = Event()
+
+    def run(self):
+        from datetime import datetime
+        from time import sleep
+        while(True):
+            if self._stop_event.is_set():
+                return
+            self._collection.update(
+                {'_id': self._job_id},
+                {'$set':
+                    {'heartbeat.{}'.format(self._unique_id): datetime.utcnow()}},
+                upsert = True,)
+            sleep(self._period)
+
+    def stop(self):
+        self._stop_event.set()
 
 class JobSection(object):
 
@@ -49,7 +75,7 @@ class Job(object):
         from ..core.dbdocument import DBDocument
         from . concurrency import DocumentLock
 
-        self._unique_id = uuid.uuid4()
+        self._unique_id = str(uuid.uuid4())
         self._project = project
         self._spec = spec
         self._collection = None
@@ -71,6 +97,9 @@ class Job(object):
         if self._project.develop_mode():
             msg = "Project '{}' is in development mode."
             logger.warning(msg.format(self._project.get_id()))
+        self._heartbeat = HeartBeatThread(
+            self._project.get_jobs_collection(),
+            self.get_id(), self._unique_id)
 
     @property
     def spec(self):
@@ -118,9 +147,21 @@ class Job(object):
             new = True)
         return len(result['executing'])
 
+    def _start_heartbeat(self):
+        self._heartbeat.start()
+
+    def _stop_heartbeat(self):
+        self._heartbeat.stop()
+        self._heartbeat.join(1)
+        self._project.get_jobs_collection().update(
+            {'_id': self.get_id()},
+            {'$unset': 
+                {'heartbeat.{}'.format(self._unique_id): ''}})
+
     def _open(self):
         import os
         self._with_id()
+        self._start_heartbeat()
         self._cwd = os.getcwd()
         os.chdir(self.get_working_directory())
         self._add_instance()
@@ -132,6 +173,7 @@ class Job(object):
         self._with_id()
         os.chdir(self._cwd)
         self._cwd = None
+        self._stop_heartbeat()
         self._remove_instance()
 
     def _close(self):

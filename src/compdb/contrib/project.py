@@ -152,3 +152,38 @@ class Project(object):
         for develop_job in self.find_jobs(spec):
             develop_job.remove(force = force)
         self.collection.remove({'id': {'$in': list(job_ids)}})
+
+    def active_jobs(self):
+        spec = {'$where': 'this.executing.length > 0'}
+        yield from self.find_job_ids(spec)
+
+    def _unique_jobs_from_heartbeat(self):
+        docs = self.get_jobs_collection().find(
+            {'heartbeat': {'$exists': True}},
+            ['heartbeat'])
+        beats = [doc['heartbeat'] for doc in docs]
+        for beat in beats:
+            for uid, timestamp in beat.items():
+                yield uid
+
+    def job_pulse(self):
+        uids = self._unique_jobs_from_heartbeat()
+        for uid in uids:
+            hb_key = 'heartbeat.{}'.format(uid)
+            doc = self.get_jobs_collection().find_one(
+                {hb_key: {'$exists': True}})
+            yield uid, doc['heartbeat'][uid]
+
+    def kill_dead_jobs(self, seconds = 10):
+        import datetime
+        from datetime import datetime, timedelta
+        cut_off = datetime.utcnow() - timedelta(seconds = seconds)
+        uids = self._unique_jobs_from_heartbeat()
+        for uid in uids:
+            hbkey = 'heartbeat.{}'.format(uid)
+            doc = self.get_jobs_collection().update(
+                #{'heartbeat.{}'.format(uid): {'$exists': True},
+                {hbkey: {'$lt': cut_off}},
+                {   '$pull': {'executing': uid},
+                    '$unset': {hbkey: ''},
+                })
