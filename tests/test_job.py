@@ -99,7 +99,9 @@ class JobStorageTest(JobTest):
             test_job.collection.insert(doc)
         test_job.remove()
 
-        jobs = compdb.contrib.find_jobs(job_name, test_token)
+        jobs = compdb.contrib.find_jobs({
+            'name': job_name,
+            'parameters.test_token': test_token['test_token']})
         for job in jobs:
             self.assertIsNotNone(job.collection.find_one(doc))
 
