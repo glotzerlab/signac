@@ -75,3 +75,12 @@ Also used to clean the database from dead jobs.
 
   * Provide scripts that allow to open a job context and store data from the command line
   * Provide script to fetch from global db from the command line
+
+# Analysis
+
+  * Use hoomd json output
+  * Enable the query of jobs not only for the job parameters, but also the content!
+
+# Config
+    
+  * Search for config file with attribute 'project' recursively upwards!

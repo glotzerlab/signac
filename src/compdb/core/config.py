@@ -6,8 +6,8 @@ logger = logging.getLogger('config')
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
 HOME = os.path.expanduser('~')
+CONFIG_PATH = [HOME]
 CWD = os.getcwd()
-CONFIG_PATH = [HOME, CWD]
 
 ENVIRONMENT_VARIABLES = {
     'author_name' :     'COMPDB_AUTHOR_NAME',
@@ -40,7 +40,7 @@ class Config(object):
         self._args.update(args)
 
     def _read_files(self):
-        for fn in config_filenames():
+        for fn in search_config_files():
             try:
                 logger.debug("Reading config file '{}'.".format(fn))
                 self.read(fn)
@@ -95,12 +95,35 @@ LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
     'global_fs_dir', 'develop',
     ]
 
-def config_filenames():
-    for filename in CONFIG_FILENAMES:
-        for path in CONFIG_PATH:
-            fn = os.path.join(path, filename)
-            if os.path.isfile(fn):
+def search_tree():
+    from os import getcwd
+    from os.path import realpath, join, isfile
+    cwd = os.getcwd()
+    while(True):
+        for filename in CONFIG_FILENAMES:
+            fn = realpath(join(cwd, filename))
+            if isfile(fn):
                 yield fn
+                return
+        up = realpath(join(cwd, '..'))
+        if up == cwd:
+            msg = "Did not find project configuration file."
+            raise FileNotFoundError(msg)
+        else:
+            cwd = up
+
+def search_standard_dirs():
+    from os.path import realpath, join, isfile
+    for path in CONFIG_PATH:
+        for filename in CONFIG_FILENAMES:
+            fn = realpath(join(path, filename))
+            if isfile(fn):
+                yield fn
+                return
+
+def search_config_files():
+    yield from search_standard_dirs()
+    yield from search_tree()
 
 def read_environment():
     logger.debug("Reading environment variables.")

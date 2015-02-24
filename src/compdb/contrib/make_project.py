@@ -125,6 +125,7 @@ def main():
             logger.info(SUCCESS_MESSAGE.format(
                 project_name = args.project_name,
                 project_dir = args.directory))
+            config.load()
             check_for_author()
 
 if __name__ == '__main__':
