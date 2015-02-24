@@ -32,6 +32,9 @@ class Config(object):
         if args is not None:
             self.update(args)
 
+    def __str__(self):
+        return str(self._args)
+
     def read(self, filename = DEFAULT_FILENAME):
         import json
         with open(filename) as file:

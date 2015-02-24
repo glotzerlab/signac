@@ -36,7 +36,7 @@ def make_author(args):
     else:
         config.write(args.output)
 
-def main():
+def main(arguments = None):
         from argparse import ArgumentParser
         parser = ArgumentParser(
             description = "Setup up author meta data for compdb projects.",
@@ -58,10 +58,11 @@ def main():
             help = "The config file to write configuration to. Use '-' to print to standard output.",
             )
 
-        args = parser.parse_args()
+        args = parser.parse_args(arguments)
 
         verify(args)
         make_author(args)
 
 if __name__ == '__main__':
+    logging.basicConfig(level = logging.INFO)
     main()

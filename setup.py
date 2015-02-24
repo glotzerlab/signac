@@ -22,8 +22,9 @@ setup(
 
     entry_points = {
         'console_scripts': [
-            'make_project = compdb.contrib.make_project:main',
-            'make_author = compdb.contrib.make_author:main',
+            'compdb = compdb.contrib.script:main',
+            'compdb_init = compdb.contrib.init_project:main',
+            'compdb_configure = compdb.contrib.configure:main',
         ],
     },
 )

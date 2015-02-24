@@ -67,8 +67,7 @@ class Job(object):
             blocking = blocking, timeout = timeout)
         self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
-            self._project.get_project_db()['compdb_job_docs'],
-            self.get_id())
+            self._project.collection, self.get_id())
         if self._project.develop_mode():
             msg = "Project '{}' is in development mode."
             logger.warning(msg.format(self._project.get_id()))
@@ -179,6 +178,8 @@ class Job(object):
                     _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
                 else:
                     _id = result['upserted']
+        else:
+            _id = self._spec['_id']
         self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id

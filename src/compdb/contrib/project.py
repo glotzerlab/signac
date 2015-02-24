@@ -3,6 +3,7 @@ logger = logging.getLogger('project')
 
 JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
+JOB_DOCS = 'compdb_job_docs'
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -18,6 +19,9 @@ class Project(object):
     @property 
     def config(self):
         return self._config
+
+    def root_directory(self):
+        return self._config['project_dir']
 
     def _get_db(self, db_name):
         from pymongo import MongoClient
@@ -45,6 +49,10 @@ class Project(object):
 
     def get_project_db(self):
         return self.get_db(self.get_id())
+    
+    @property
+    def collection(self):
+        return self.get_project_db()[JOB_DOCS]
 
     def filestorage_dir(self):
         return self.config['filestorage_dir']
@@ -94,13 +102,6 @@ class Project(object):
         })
         return spec
 
-    def _find_job_docs(self, spec):
-        yield from self.get_jobs_collection().find(spec)
-    
-    def _find_jobs(self, spec, blocking = True, timeout = -1):
-        for doc in self._find_job_docs(spec):
-            yield self._open_job({'_id': doc['_id']}, blocking, timeout)
-
     def _open_job(self, spec, blocking = True, timeout = -1):
         from . job import Job
         return Job(
@@ -109,20 +110,42 @@ class Project(object):
             blocking = blocking,
             timeout = timeout)
 
-    def find_jobs(self, name = None, parameters = None, blocking = True, timeout = -1):
-        for doc in self.find_job_docs(name, parameters):
-            yield self._open_job({'_id': doc['_id']}, blocking, timeout)
-
     def open_job(self, name, parameters = None, blocking = True, timeout = -1):
         spec = self._job_spec(name = name, parameters = parameters)
         return self._open_job(spec, blocking, timeout)
 
-    def find_job_docs(self, name = None, parameters = None):
-        spec = self._job_spec(name = name, parameters = parameters)
-        yield from self._find_job_docs(spec)
+    def _find_jobs(self, job_spec, * args, **kwargs):
+        from copy import copy
+        job_spec_ = copy(job_spec)
+        if 'project' in job_spec_:
+            raise ValueError("You cannot provide a value for 'project' using this search method.")
+        job_spec_.update({'project': self.get_id()})
+        if self.develop_mode():
+            job_spec_.update({'develop': True})
+        yield from self.get_jobs_collection().find(
+            job_spec_, * args, ** kwargs)
+
+    def find_job_ids(self, spec):
+        for job in self._find_jobs(spec, fields = ['_id']):
+            yield job['_id']
+    
+    def find_jobs(self, job_spec = {}, spec = None, blocking = True, timeout = -1):
+        job_ids = list(self.find_job_ids(job_spec))
+        if spec is not None:
+            spec.update({'_id': {'$in': job_ids}})
+            docs = self.collection.find(spec)
+            job_ids = (doc['_id'] for doc in docs)
+        for _id in job_ids:
+            yield self._open_job({'_id': _id}, blocking, timeout)
+    
+    def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
+        job_ids = self.find_job_ids(job_spec)
+        spec.update({'_id': {'$in': list(job_ids)}})
+        yield from self.collection.find(spec, * args, ** kwargs)
 
     def clear_develop(self, force = True):
-        spec = {'_develop': {'$exists': True}}
-        develop_jobs = self._find_jobs(spec)
-        for develop_job in develop_jobs:
+        spec = {'develop': True}
+        job_ids = self.find_job_ids(spec)
+        for develop_job in self.find_jobs(spec):
             develop_job.remove(force = force)
+        self.collection.remove({'id': {'$in': list(job_ids)}})
