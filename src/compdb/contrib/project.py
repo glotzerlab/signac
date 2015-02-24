@@ -31,6 +31,7 @@ class Project(object):
             client = MongoClient(host)
             return client[db_name]
         except pymongo.errors.ConnectionFailure as error:
+            from . errors import ConnectionFailure
             msg = "Failed to connect to database '{}' at '{}'."
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error

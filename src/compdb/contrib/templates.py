@@ -55,16 +55,23 @@ def main():
 
     for state_point in state_points():
         with open_job('JOBNAME', state_point) as job:
-            # Uncomment to use milestone for process flow.
-            #if job.milestones.reached("MY_MILESTONE")
-            #    print('skipping')
-            #    continue
+            if job.milestones.reached('basic'):
+                print('skipping')
+                continue
 
             # Execution code here
             p = job.parameters()
             job.document['result'] = p['a'] + p['b']
 
-            #job.milestones.mark('MY_MILESTONE')
+            job.milestones.mark('basic')
+
+    # Extend a few jobs
+    for job in project.find_jobs({'parameters.a': 0}):
+        with job:
+            if job.milestones.reached('basic'):
+                if not job.milestones.reached('extended'):
+                    job.document['result'] += 100
+                    job.milestones.mark('extended')
 
 if __name__ == '__main__':
     import logging

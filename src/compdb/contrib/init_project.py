@@ -8,8 +8,17 @@ DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 
-SUCCESS_MESSAGE = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
-MESSAGE_AUTHOR_MISSING = "Did not find any author information. This will lead to problems during project execution. Execute `make_author` to create missing author information."
+MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
+MSG_AUTHOR_MISSING = "Did not find any author information. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
+MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
+
+def check_for_database(args):
+    from pymongo import MongoClient
+    from pymongo.errors import ConnectionFailure
+    try:
+        client = MongoClient(args.db_host)
+    except ConnectionFailure:
+        logger.warning(MSG_NO_DB_ACCESS.format(args.db_host))
 
 def check_for_existing_project(args):
     from os.path import realpath
@@ -34,7 +43,7 @@ def check_for_author():
         logger.warning("No author email address defined.")
         p = True
     if p:
-        logger.warning(MESSAGE_AUTHOR_MISSING)
+        logger.warning(MSG_AUTHOR_MISSING)
     
 def generate_config(args):
     from compdb.core.config import Config
@@ -143,6 +152,7 @@ def main(arguments = None):
     try:
         if not args.force:
             check_for_existing_project(args)
+        check_for_database(args)
         setup_default_dirs(args)
         config = generate_config(args)
         mk_dirs(args)
@@ -152,7 +162,7 @@ def main(arguments = None):
     else:
         import os
         config.write(os.path.join(args.directory, 'compdb.rc'))
-        logger.info(SUCCESS_MESSAGE.format(
+        logger.info(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))
         config.load()
