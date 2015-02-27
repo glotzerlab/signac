@@ -62,14 +62,22 @@ class Config(object):
         verify(self._args)
         logger.debug('OK')
 
-    def write(self, filename = DEFAULT_FILENAME, indent = 0):
+    def write(self, filename = DEFAULT_FILENAME, indent = 0, keys = None):
+        if keys is None:
+            args = self._args
+        else:
+            args = {k: self._args[k] for k in keys if k in self._args}
         import json
         with open(filename, 'w') as file:
-            json.dump(self._args, file, indent = indent)
+            json.dump(args, file, indent = indent)
 
-    def dump(self, indent = 0):
+    def dump(self, indent = 0, keys = None):
         import json
-        print(json.dumps(self._args, indent = indent))
+        if keys is None:
+            args = self._args
+        else:
+            args = {k: self._args[k] for k in keys if k in self._args}
+        print(json.dumps(args, indent = indent))
 
     def __getitem__(self, key):
         try:

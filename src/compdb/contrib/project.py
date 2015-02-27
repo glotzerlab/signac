@@ -15,6 +15,15 @@ class Project(object):
             from compdb.core.config import load_config
             config = load_config()
         self._config = config
+        #self._check_config()
+
+    def _check_config(self):
+        for key in REQUIRED_CONFIG_KEYS:
+            try:
+                self._config[key]
+            except KeyError as error:
+                msg = "Can not open project, configuration incomplete: '{}'."
+                raise KeyError(msg.format(error))
 
     @property 
     def config(self):
@@ -58,12 +67,12 @@ class Project(object):
     def filestorage_dir(self):
         return self.config['filestorage_dir']
 
-    def remove(self):
+    def remove(self, force = False):
         from pymongo import MongoClient
         import pymongo.errors
         self.get_cache().clear()
         for job in self.find_jobs():
-            job.remove()
+            job.remove(force = force)
         try:
             host = self.config['database_host']
             client = MongoClient(host)

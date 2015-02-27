@@ -1,5 +1,5 @@
 MINIMAL = {
-    'run.py': """from compdb.contrib import open_job, get_project
+    'run.py': """from compdb.contrib import get_project
 
 def state_points():
     A = (0, 1, 2,)
@@ -8,17 +8,9 @@ def state_points():
         for b in B:
             yield {'a': a, 'b': b}
 
-def main():
-    # The following commands activate the development mode
-    # and clear any data previously created in development mode.
-    # This makes it easiert to test your jobs without affecting
-    # your actual data.
-    project = get_project()             # Get a handle on the project.
-    project.clear_develop()             # Clear previous data from develop mode.
-    project.activate_develop_mode()     # Activate the develop mode.
-
+def main(project):
     for state_point in state_points():
-        with open_job('JOBNAME', state_point) as job:
+        with project.open_job('JOBNAME', state_point) as job:
             # Uncomment to use milestone for process flow.
             #if 'MY_MILESTONE' in job.milestones:
             #    print('skipping')
@@ -32,10 +24,41 @@ def main():
 if __name__ == '__main__':
     import logging
     logging.basicConfig(level = logging.INFO)
-    main()""",
+    # The following commands activate the development mode
+    # and clear any data previously created in development mode.
+    # This makes it easier to test your jobs without affecting
+    # your actual data.
+    project = get_project()             # Get a handle on the project.
+    project.clear_develop()             # Clear previous data from develop mode.
+    project.activate_develop_mode()     # Activate the develop mode.
+
+    main(project)""",
+
+    'concurrent_run.py': """from compdb.contrib import get_project
+from multiprocessing import Pool, cpu_count
+import run
+
+NUM_PROCESSES = min(4, cpu_count())
+
+# Execute your jobs concurrently.
+
+def main(project):
+    N = len(list(run.state_points())) // NUM_PROCESSES + 1
+    with Pool(processes = NUM_PROCESSES) as p:
+        p.map(run.main, [project for i in range(N)])
+
+if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level = logging.INFO)
+    project = get_project()  # Get a handle on the project.
+    project.clear_develop()  # Clear previous data from develop mode.
+    project.activate_develop_mode()     # Activate the develop mode.
+    main(project)""",
 }
+
 EXAMPLE = {
-    'run.py': """from compdb.contrib import open_job, get_project
+    'run.py': """from compdb.contrib import get_project
+from time import sleep
 
 def state_points():
     A = (0, 1, 2,)
@@ -44,17 +67,9 @@ def state_points():
         for b in B:
             yield {'a': a, 'b': b}
 
-def main():
-    # The following commands activate the development mode
-    # and clear any data previously created in development mode.
-    # This makes it easiert to test your jobs without affecting
-    # your actual data.
-    project = get_project()             # Get a handle on the project.
-    project.clear_develop()             # Clear previous data from develop mode.
-    project.activate_develop_mode()     # Activate the develop mode.
-
+def main(project):
     for state_point in state_points():
-        with open_job('JOBNAME', state_point) as job:
+        with project.open_job('JOBNAME', state_point) as job:
             if 'basic' in job.milestones:
                 print('skipping')
                 continue
@@ -62,6 +77,7 @@ def main():
             # Execution code here
             p = job.parameters()
             job.document['result'] = p['a'] + p['b']
+            sleep(1)
 
             job.milestones.mark('basic')
 
@@ -75,13 +91,43 @@ def main():
 if __name__ == '__main__':
     import logging
     logging.basicConfig(level = logging.INFO)
-    main()""",
+    # The following commands activate the development mode
+    # and clear any data previously created in development mode.
+    # This makes it easier to test your jobs without affecting
+    # your actual data.
+    project = get_project()             # Get a handle on the project.
+    project.clear_develop()             # Clear previous data from develop mode.
+    project.activate_develop_mode()     # Activate the develop mode.
+
+    main(project)""",
+
+    'concurrent_run.py': """from compdb.contrib import get_project
+from multiprocessing import Pool, cpu_count
+import run
+
+NUM_PROCESSES = min(4, cpu_count())
+
+# Execute your jobs concurrently.
+
+def main(project):
+    N = len(list(run.state_points())) // NUM_PROCESSES + 1
+    with Pool(processes = NUM_PROCESSES) as p:
+        p.map(run.main, [project for i in range(N)])
+
+if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level = logging.INFO)
+    project = get_project()  # Get a handle on the project.
+    project.clear_develop()  # Clear previous data from develop mode.
+    project.activate_develop_mode()     # Activate the develop mode.
+    main(project)""",
+
     'analyze.py': """from compdb.contrib import open_job, get_project
 
 def main():
     # The following commands activate the development mode
     # and clear any data previously created in development mode.
-    # This makes it easiert to test your jobs without affecting
+    # This makes it easier to test your jobs without affecting
     # your actual data.
     project = get_project()              # Get a handle on the project.
     #project.clear_develop()             # Clear previous data from develop mode.

@@ -163,6 +163,7 @@ class Job(object):
         self._with_id()
         self._start_heartbeat()
         self._cwd = os.getcwd()
+        self._create_directories()
         os.chdir(self.get_working_directory())
         self._add_instance()
         msg = "Opened job with id: '{}'."
@@ -269,7 +270,7 @@ class Job(object):
         self._with_id()
         if not force:
             if not self.num_open_instances() == 0:
-                msg = "You are trying to remove a job, which has {} open instances. Use 'force=True' to ignore this."
+                msg = "You are trying to remove a job, which has {} open instance(s). Use 'force=True' to ignore this."
                 raise RuntimeError(msg.format(self.num_open_instances()))
         self._remove()
 

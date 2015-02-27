@@ -361,5 +361,31 @@ class TestDocumentLocks(unittest.TestCase):
         finally:
             self.mc.remove(doc_id)
 
+    def test_process_concurrency(self):
+        doc_id = self.mc.insert({'a': 0})
+        num_workers = 5
+        num_locks = 20
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+        try:
+            with ProcessPoolExecutor(max_workers = num_workers) as executor:
+                results = {executor.submit(lock_and_release, doc_id) for i in range(num_locks)}
+                for future in as_completed(results):
+                    assert future.result()
+        except DocumentLockError as error:
+            raise
+        finally:
+            self.mc.remove(doc_id)
+
+def lock_and_release(doc_id):
+    from pymongo import MongoClient
+    client = MongoClient()
+    db = client['testing']
+    collection = db['document_lock']
+    import time
+    with DocumentLock(collection, doc_id):
+        time.sleep(0.01)
+    return True
+
+
 if __name__ == '__main__':
     unittest.main()

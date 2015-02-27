@@ -11,6 +11,9 @@ SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
 MSG_AUTHOR_MISSING = "Did not find any author information. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
+PROJECT_CONFIG_KEYS = [
+    'project', '_project_dir', 'working_dir',
+    'filestorage_dir', 'database_host']
 
 def check_for_database(args):
     from pymongo import MongoClient
@@ -25,10 +28,11 @@ def check_for_existing_project(args):
     from compdb.contrib import get_project
     try:
         project = get_project()
-    except FileNotFoundError:
+        root_dir = project.root_directory()
+    except (FileNotFoundError, KeyError):
         pass
     else:
-        if realpath(project.root_directory()) == realpath(args.directory):
+        if realpath(root_dir) == realpath(args.directory):
             msg = "Project in directory '{}' already exists. Use '-f' or '--force' argument to ignore this warning and create a project anyways. This will lead to potential data loss!"
             raise RuntimeError(msg.format(realpath(args.directory)))
 
@@ -161,7 +165,9 @@ def main(arguments = None):
         raise
     else:
         import os
-        config.write(os.path.join(args.directory, 'compdb.rc'))
+        config.write(
+            os.path.join(args.directory, 'compdb.rc'), 
+            keys = PROJECT_CONFIG_KEYS)
         logger.info(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))

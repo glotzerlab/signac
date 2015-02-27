@@ -32,7 +32,7 @@
 
   * Implement Milestone/ Jobcontrol concept
   * Consider to provide specialized job class, that handle the need for multiple runs with different randomseeds
-  * Provide a routing to clean a project from jobs that have not reached a specific milestone
+  * Provide a routine to clean a project from jobs that have not reached a specific milestone
   * Discourage the extension of job scripts, better: Provide a new job context.
   * Provide the 'cached' method, see below.
   * Automatically store meta data with each job, see below.
