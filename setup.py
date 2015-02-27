@@ -4,7 +4,7 @@ setup(
     name = 'compdb',
     version = '0.1',
     package_dir = {'': 'src'},
-    packages = find_packages(),
+    packages = find_packages('src'),
 
     author = 'Carl Simon Adorf',
     author_email = 'csadorf@umich.edu',
