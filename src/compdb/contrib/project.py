@@ -5,6 +5,9 @@ JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
 
+FN_DUMP_JOBS = 'compdb_jobs.json'
+FN_DUMP_DOCS = 'compdb_docs.json'
+
 def valid_name(name):
     return not name.startswith('_compdb')
 
@@ -126,7 +129,7 @@ class Project(object):
         spec = self._job_spec(name = name, parameters = parameters)
         return self._open_job(spec, blocking, timeout)
 
-    def _job_spec_modifier(self, job_spec, develop = None):
+    def _job_spec_modifier(self, job_spec = {}, develop = None):
         from copy import copy
         job_spec_ = copy(job_spec)
         if 'project' in job_spec_:
@@ -169,32 +172,32 @@ class Project(object):
         spec = {'$where': 'this.executing.length > 0'}
         yield from self.find_job_ids(spec)
 
-    def _unique_jobs_from_heartbeat(self):
+    def _unique_jobs_from_pulse(self):
         docs = self.get_jobs_collection().find(
-            {'heartbeat': {'$exists': True}},
-            ['heartbeat'])
-        beats = [doc['heartbeat'] for doc in docs]
+            {'pulse': {'$exists': True}},
+            ['pulse'])
+        beats = [doc['pulse'] for doc in docs]
         for beat in beats:
             for uid, timestamp in beat.items():
                 yield uid
 
     def job_pulse(self):
-        uids = self._unique_jobs_from_heartbeat()
+        uids = self._unique_jobs_from_pulse()
         for uid in uids:
-            hb_key = 'heartbeat.{}'.format(uid)
+            hb_key = 'pulse.{}'.format(uid)
             doc = self.get_jobs_collection().find_one(
                 {hb_key: {'$exists': True}})
-            yield uid, doc['heartbeat'][uid]
+            yield uid, doc['pulse'][uid]
 
     def kill_dead_jobs(self, seconds = 10):
         import datetime
         from datetime import datetime, timedelta
         cut_off = datetime.utcnow() - timedelta(seconds = seconds)
-        uids = self._unique_jobs_from_heartbeat()
+        uids = self._unique_jobs_from_pulse()
         for uid in uids:
-            hbkey = 'heartbeat.{}'.format(uid)
+            hbkey = 'pulse.{}'.format(uid)
             doc = self.get_jobs_collection().update(
-                #{'heartbeat.{}'.format(uid): {'$exists': True},
+                #{'pulse.{}'.format(uid): {'$exists': True},
                 {hbkey: {'$lt': cut_off}},
                 {   '$pull': {'executing': uid},
                     '$unset': {hbkey: ''},
@@ -237,7 +240,6 @@ class Project(object):
             params = sorted(self._aggregate_parameters())
             url = str(os.path.join(* chain.from_iterable(
                 (str(p), '{'+str(p)+'}') for p in params)))
-            print(url)
         parameters = re.findall('\{\w+\}', url)
         links = self._get_links(url, parameters)
         for src, dst in links:
@@ -254,3 +256,83 @@ class Project(object):
         for src, dst in self._get_links(url):
             yield('{cmd} {src} {dst}'.format(
                 cmd = cmd, src = src, dst = dst))
+
+    def dump_snapshot(self):
+        from bson.json_util import dumps
+        spec = self._job_spec_modifier(develop = False)
+        job_docs = self.get_jobs_collection().find(spec)
+        for doc in job_docs:
+            print(dumps(doc))
+        docs = self.find()
+        for doc in docs:
+            print(dumps(doc))
+
+    def _create_snapshot(self, dst, full = False):
+        import os
+        from bson.json_util import dumps
+        spec = self._job_spec_modifier(develop = False)
+        job_docs = self.get_jobs_collection().find(spec)
+        docs = self.collection.find()
+        fn_dump_jobs = os.path.join(dst, FN_DUMP_JOBS)
+        with open(fn_dump_jobs, 'wb') as file:
+            for job_doc in job_docs:
+                file.write("{}\n".format(dumps(job_doc)).encode())
+        fn_dump_docs = os.path.join(dst, FN_DUMP_DOCS)
+        with open(fn_dump_docs, 'wb') as file:
+            for doc in docs:
+                file.write("{}\n".format(dumps(doc)).encode())
+        return [fn_dump_jobs, fn_dump_docs]
+
+    def _restore_snapshot_from_src(self, src):
+        from os.path import join
+        from bson.json_util import loads
+        with open(join(src, FN_DUMP_JOBS), 'rb') as file:
+            for line in file:
+                job_doc = loads(line.decode())
+                assert job_doc['project'] == self.get_id()
+                self.get_jobs_collection().save(job_doc)
+        with open(join(src, FN_DUMP_DOCS), 'rb') as file:
+            for line in file:
+                doc = loads(line.decode())
+                self.collection.save(doc)
+    
+    def _restore_snapshot(self, src):
+        from os.path import isfile
+        from tarfile import TarFile
+        from tempfile import TemporaryDirectory
+        if isfile(src):
+            with TemporaryDirectory() as tmp_dir:
+                with TarFile(src, 'r') as tarfile:
+                    tarfile.extractall(tmp_dir)
+                    self._restore_snapshot_from_src(tmp_dir)
+        else:
+            self._restore_snapshot_from_src(src)
+
+    def create_snapshot(self, dst, full = False):
+        import os
+        from tarfile import TarFile
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
+            with TarFile(dst, 'w') as tarfile:
+                for fn in self._create_snapshot(tmp, full):
+                    tarfile.add(fn, os.path.relpath(fn, tmp))
+
+    def restore_snapshot(self, src):
+        import os
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as tmp_dir:
+            fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
+            try:
+                self.create_snapshot(fn_rollback)
+                self._restore_snapshot(src)
+            except Exception as error:
+                # msg = "Error during restore from '{src}': {error}."
+                #logger.error(msg.format(src = src, error = error))
+                try:
+                    self._restore_snapshot(fn_rollback)
+                except:
+                    msg = "Failed to rollback!"
+                    logger.critical(msg)
+                else:
+                    logger.debug("Rolled back.")
+                raise error

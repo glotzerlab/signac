@@ -7,6 +7,47 @@ test_token = {'test_token': str(uuid.uuid4())}
 
 from test_job import safe_open_job, JobTest
 
+class ProjectBackupTest(JobTest):
+    
+    def test_dump(self):
+        from compdb.contrib import get_project
+        project = get_project()
+        with project.open_job('test_dump', test_token) as job:
+            job.document['result'] = 123
+        project.dump_snapshot()
+
+    def test_create_snapshot(self):
+        from compdb.contrib import get_project
+        from os import remove
+        project = get_project()
+        with project.open_job('test_create_snapshot', test_token) as job:
+            job.document['result'] = 123
+        fn_tmp = '_dump.tar'
+        project.create_snapshot(fn_tmp)
+        remove(fn_tmp)
+
+    def test_create_and_restore_snapshot(self):
+        from os import remove
+        from compdb.contrib import get_project
+        from tempfile import TemporaryFile
+        project = get_project()
+        with project.open_job('test_create_snapshot', test_token) as job:
+            job.document['result'] = 123
+        fn_tmp = '_dump.tar'
+        project.create_snapshot(fn_tmp)
+        project.restore_snapshot(fn_tmp)
+        remove(fn_tmp)
+
+    def test_bad_restore(self):
+        from compdb.contrib import get_project
+        from tempfile import TemporaryFile
+        project = get_project()
+        with project.open_job('test_create_snapshot', test_token) as job:
+            job.document['result'] = 123
+        fn_tmp = '_dump.tar'
+        #project.create_snapshot(fn_tmp)
+        self.assertRaises(FileNotFoundError, project.restore_snapshot, '_bullshit.tar')
+
 class ProjectViewTest(JobTest):
     
     def test_get_links(self):
