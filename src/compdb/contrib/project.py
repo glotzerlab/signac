@@ -126,16 +126,19 @@ class Project(object):
         spec = self._job_spec(name = name, parameters = parameters)
         return self._open_job(spec, blocking, timeout)
 
-    def _find_jobs(self, job_spec, * args, **kwargs):
+    def _job_spec_modifier(self, job_spec, develop = None):
         from copy import copy
         job_spec_ = copy(job_spec)
         if 'project' in job_spec_:
             raise ValueError("You cannot provide a value for 'project' using this search method.")
         job_spec_.update({'project': self.get_id()})
-        if self.develop_mode():
+        if develop or (develop is None and self.develop_mode()):
             job_spec_.update({'develop': True})
+        return job_spec
+
+    def _find_jobs(self, job_spec, * args, **kwargs):
         yield from self.get_jobs_collection().find(
-            job_spec_, * args, ** kwargs)
+            self._job_spec_modifier(job_spec), * args, ** kwargs)
 
     def find_job_ids(self, spec):
         for job in self._find_jobs(spec, fields = ['_id']):
@@ -196,3 +199,58 @@ class Project(object):
                 {   '$pull': {'executing': uid},
                     '$unset': {hbkey: ''},
                 })
+
+    def _aggregate_parameters(self, job_spec = {}):
+        pipe = [
+            {'$match': self._job_spec_modifier(job_spec)},
+            {'$group': {
+                '_id': False,
+                'parameters': { '$addToSet': '$parameters'}}},
+            ]
+        result = self.get_jobs_collection().aggregate(pipe)
+        assert result['ok']
+        return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+
+    def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
+        yield from self._find_jobs(
+            self._job_spec_modifier(job_spec),
+            sort = [('parameters.{}'.format(p), 1) for p in parameters],
+            * args, ** kwargs)
+    
+    def _get_links(self, url, parameters):
+        import os
+        fs = self.filestorage_dir()
+        walk = self._walk_jobs(parameters)
+        for w in walk:
+            src = os.path.join(fs, w['_id'])
+            try:
+                dst = url.format(** w['parameters'])
+            except KeyError as error:
+                msg = "Unknown parameter: {}"
+                raise KeyError(msg.format(error)) from error
+            yield src, dst
+
+    def create_view(self, url = None, copy = False):
+        import os, re, shutil
+        from itertools import chain
+        if url is None:
+            params = sorted(self._aggregate_parameters())
+            url = str(os.path.join(* chain.from_iterable(
+                (str(p), '{'+str(p)+'}') for p in params)))
+            print(url)
+        parameters = re.findall('\{\w+\}', url)
+        links = self._get_links(url, parameters)
+        for src, dst in links:
+            try:
+                os.makedirs(os.path.dirname(dst))
+            except FileExistsError:
+                pass
+            if copy:
+                shutil.copytree(src, dst)
+            else:
+                os.symlink(src, dst, target_is_directory = True)
+
+    def create_view_script(self, url, cmd = 'ln -s'):
+        for src, dst in self._get_links(url):
+            yield('{cmd} {src} {dst}'.format(
+                cmd = cmd, src = src, dst = dst))
