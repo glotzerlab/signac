@@ -51,3 +51,7 @@ Less minimal boilerplate scripts can be obtained with:
 
 In addition to the minimal template scripts, this will actually store data within your project database, which can be analyzed.
 These scripts are provided to be slightly more exemplary on how to use the package.
+
+## Wiki
+
+The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/compmatdb/wiki).
