@@ -4,9 +4,12 @@ logger = logging.getLogger('project')
 JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
+JOB_META_DOCS = 'compdb_jobs'
 
 FN_DUMP_JOBS = 'compdb_jobs.json'
 FN_DUMP_DOCS = 'compdb_docs.json'
+FN_DUMP_STORAGE = 'storage'
+FN_RESTORE_SCRIPT_SH = 'restore.sh'
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -55,7 +58,7 @@ class Project(object):
         return self._get_db(self.config['database_meta'])
 
     def get_jobs_collection(self):
-        return self._get_meta_db()['compdb_jobs']
+        return self._get_meta_db()[JOB_META_DOCS]
 
     def get_id(self):
         return self.config['project']
@@ -257,7 +260,7 @@ class Project(object):
             yield('{cmd} {src} {dst}'.format(
                 cmd = cmd, src = src, dst = dst))
 
-    def dump_snapshot(self):
+    def dump_db_snapshot(self):
         from bson.json_util import dumps
         spec = self._job_spec_modifier(develop = False)
         job_docs = self.get_jobs_collection().find(spec)
@@ -267,7 +270,7 @@ class Project(object):
         for doc in docs:
             print(dumps(doc))
 
-    def _create_snapshot(self, dst, full = False):
+    def _create_db_snapshot(self, dst):
         import os
         from bson.json_util import dumps
         spec = self._job_spec_modifier(develop = False)
@@ -283,56 +286,112 @@ class Project(object):
                 file.write("{}\n".format(dumps(doc)).encode())
         return [fn_dump_jobs, fn_dump_docs]
 
+    def _create_restore_scripts(self, dst):
+        import os
+        from . templates import RESTORE_SH
+        fn_restore_script_sh = os.path.join(dst, FN_RESTORE_SCRIPT_SH)
+        with open(fn_restore_script_sh, 'wb') as file:
+            file.write("#/usr/bin/env sh\n# -*- coding: utf-8 -*-\n".encode())
+            file.write(RESTORE_SH.format(
+                project = self.get_id(),
+                db_host = self.config['database_host'],
+                fs_dir = self.filestorage_dir(),
+                db_meta = self.config['database_meta'],
+                compdb_docs = JOB_META_DOCS,
+                compdb_job_docs = JOB_DOCS,
+                sn_storage_dir= FN_DUMP_STORAGE,
+                    ).encode())
+        return [fn_restore_script_sh]
+
     def _restore_snapshot_from_src(self, src):
-        from os.path import join
+        import shutil
+        from os.path import join, isdir
         from bson.json_util import loads
-        with open(join(src, FN_DUMP_JOBS), 'rb') as file:
-            for line in file:
-                job_doc = loads(line.decode())
-                assert job_doc['project'] == self.get_id()
-                self.get_jobs_collection().save(job_doc)
-        with open(join(src, FN_DUMP_DOCS), 'rb') as file:
-            for line in file:
-                doc = loads(line.decode())
-                self.collection.save(doc)
+        try:
+            with open(join(src, FN_DUMP_JOBS), 'rb') as file:
+                for job in self.find_jobs():
+                    job.remove()
+                for line in file:
+                    job_doc = loads(line.decode())
+                    assert job_doc['project'] == self.get_id()
+                    self.get_jobs_collection().save(job_doc)
+        except FileNotFoundError as error:
+            logger.warning(error)
+        try:
+            with open(join(src, FN_DUMP_DOCS), 'rb') as file:
+                self.collection.remove()
+                for line in file:
+                    doc = loads(line.decode())
+                    self.collection.save(doc)
+        except FileNotFoundError as error:
+            logger.warning(error)
+        fn_storage = join(src, FN_DUMP_STORAGE)
+        if isdir(fn_storage):
+            shutil.move(fn_storage, self.filestorage_dir())
     
     def _restore_snapshot(self, src):
-        from os.path import isfile
+        from os.path import isfile, isdir
         from tarfile import TarFile
         from tempfile import TemporaryDirectory
         if isfile(src):
             with TemporaryDirectory() as tmp_dir:
                 with TarFile(src, 'r') as tarfile:
-                    tarfile.extractall(tmp_dir)
+                    tarfile.extract(FN_DUMP_JOBS, tmp_dir)
+                    tarfile.extract(FN_DUMP_DOCS, tmp_dir)
+                    try:
+                        tarfile.extract(FN_DUMP_STORAGE, tmp_dir)
+                    except KeyError:
+                        pass
                     self._restore_snapshot_from_src(tmp_dir)
-        else:
+        elif isdir(src):
             self._restore_snapshot_from_src(src)
+        else:
+            raise FileNotFoundError(src)
 
-    def create_snapshot(self, dst, full = False):
+    def _create_snapshot(self, dst, full = True):
         import os
         from tarfile import TarFile
         from tempfile import TemporaryDirectory
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             with TarFile(dst, 'w') as tarfile:
-                for fn in self._create_snapshot(tmp, full):
+                for fn in self._create_db_snapshot(tmp):
                     tarfile.add(fn, os.path.relpath(fn, tmp))
+                for fn in self._create_restore_scripts(tmp):
+                    tarfile.add(fn, os.path.relpath(fn, tmp))
+                if full:
+                    tarfile.add(self.filestorage_dir(), FN_DUMP_STORAGE)
+
+    def create_snapshot(self, dst):
+        return self._create_snapshot(dst, full = True)
+
+    def create_db_snapshot(self, dst):
+        return self._create_snapshot(dst, full = False)
 
     def restore_snapshot(self, src):
-        import os
+        import os, shutil
         from tempfile import TemporaryDirectory
         with TemporaryDirectory() as tmp_dir:
             fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
+            path_to_fs = os.path.dirname(self.filestorage_dir())
+            fn_storage_backup = os.path.join(path_to_fs, 'fs_backup')
+            rollback_backup_created = False
             try:
-                self.create_snapshot(fn_rollback)
+                self.create_db_snapshot(fn_rollback)
+                shutil.move(self.filestorage_dir(), fn_storage_backup)
+                rollback_backup_created = True
                 self._restore_snapshot(src)
             except Exception as error:
                 # msg = "Error during restore from '{src}': {error}."
                 #logger.error(msg.format(src = src, error = error))
-                try:
-                    self._restore_snapshot(fn_rollback)
-                except:
-                    msg = "Failed to rollback!"
-                    logger.critical(msg)
-                else:
-                    logger.debug("Rolled back.")
+                if rollback_backup_created:
+                    try:
+                        shutil.move(fn_storage_backup, self.filestorage_dir())
+                        self._restore_snapshot(fn_rollback)
+                    except:
+                        msg = "Failed to rollback!"
+                        logger.critical(msg)
+                    else:
+                        logger.debug("Rolled back.")
                 raise error
+            else:
+                shutil.rmtree(fn_storage_backup)

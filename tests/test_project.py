@@ -9,24 +9,24 @@ from test_job import safe_open_job, JobTest
 
 class ProjectBackupTest(JobTest):
     
-    def test_dump(self):
+    def test_dump_db_snapshot(self):
         from compdb.contrib import get_project
         project = get_project()
         with project.open_job('test_dump', test_token) as job:
             job.document['result'] = 123
-        project.dump_snapshot()
+        project.dump_db_snapshot()
 
-    def test_create_snapshot(self):
+    def test_create_db_snapshot(self):
         from compdb.contrib import get_project
         from os import remove
         project = get_project()
         with project.open_job('test_create_snapshot', test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
-        project.create_snapshot(fn_tmp)
+        project.create_db_snapshot(fn_tmp)
         remove(fn_tmp)
 
-    def test_create_and_restore_snapshot(self):
+    def test_create_and_restore_db_snapshot(self):
         from os import remove
         from compdb.contrib import get_project
         from tempfile import TemporaryFile
@@ -34,6 +34,29 @@ class ProjectBackupTest(JobTest):
         with project.open_job('test_create_snapshot', test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
+        project.create_db_snapshot(fn_tmp)
+        project.restore_snapshot(fn_tmp)
+        remove(fn_tmp)
+
+    def test_create_and_restore_snapshot(self):
+        from os import remove
+        from compdb.contrib import get_project
+        from tempfile import TemporaryFile
+        project = get_project()
+        A = ['a_{}'.format(i) for i in range(2)]
+        B = ['b_{}'.format(i) for i in range(2)]
+        def states():
+            for a in A:
+                for b in B:
+                    p = dict(test_token)
+                    p.update({'a': a, 'b': b})
+                    yield p
+        for state in states():
+            with project.open_job('test_full_restore', state) as job:
+                job.document['result'] = 123
+                with job.storage.open_file('result.txt', 'wb') as file:
+                    file.write('123'.encode())
+        fn_tmp = '_full_dump.tar'
         project.create_snapshot(fn_tmp)
         project.restore_snapshot(fn_tmp)
         remove(fn_tmp)
@@ -45,7 +68,6 @@ class ProjectBackupTest(JobTest):
         with project.open_job('test_create_snapshot', test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
-        #project.create_snapshot(fn_tmp)
         self.assertRaises(FileNotFoundError, project.restore_snapshot, '_bullshit.tar')
 
 class ProjectViewTest(JobTest):
