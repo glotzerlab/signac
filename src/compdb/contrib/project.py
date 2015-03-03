@@ -413,7 +413,6 @@ class Project(object):
                         logger.debug("Rolled back.")
                 raise error
             else:
-                print("removing {}".format(fn_storage_backup))
                 try:
                     shutil.rmtree(fn_storage_backup)
                 except FileNotFoundError:
