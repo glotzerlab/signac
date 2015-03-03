@@ -11,6 +11,7 @@ SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
+MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'. You can use these commands to set them:"
 #PROJECT_CONFIG_KEYS = [
 #    'project', '_project_dir', 'working_dir',
 #    'filestorage_dir', 'database_host']
@@ -34,20 +35,23 @@ def check_for_existing_project(args):
     else:
         if realpath(root_dir) == realpath(args.directory):
             msg = "Project in directory '{}' already exists. Use '-f' or '--force' argument to ignore this warning and create a project anyways. This will lead to potential data loss!"
-            raise RuntimeError(msg.format(realpath(args.directory)))
+            print(msg.format(realpath(args.directory)))
+            return True
+    return False
 
-def check_for_author():
+def check_environment():
     from compdb.contrib import get_project
     project = get_project()
-    warn = False
-    if project.config.get('author_name') is None:
-        logger.warning("No author name defined.")
-        warn = True
-    if project.config.get('author_email') is None:
-        logger.warning("No author email address defined.")
-        warn = True
-    if warn:
-        logger.warning(MSG_AUTHOR_INCOMPLETE)
+
+    keys = ['author_name', 'author_email', 'working_dir', 'filestorage_dir']
+    missing = []
+    for key in keys:
+        if project.config.get(key) is None:
+            missing.append(key)
+    if len(missing):
+        print(MSG_ENV_INCOMPLETE.format(missing))
+        for key in missing:
+            print("compdb config add {key} [your_value]".format(key = key))
 
 def adjust_args(args):
     from os.path import abspath
@@ -139,7 +143,8 @@ def main(arguments = None):
     try:
         adjust_args(args)
         if not args.force:
-            check_for_existing_project(args)
+            if check_for_existing_project(args):
+                return
         check_for_database(args)
         config = generate_config(args)
         copy_templates(args)
@@ -149,11 +154,11 @@ def main(arguments = None):
         import os
         config.write(os.path.join(args.directory, 'compdb.rc'))
             #keys = PROJECT_CONFIG_KEYS)
-        logger.info(MSG_SUCCESS.format(
+        print(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))
         config.load()
-        check_for_author()
+        check_environment()
 
 if __name__ == '__main__':
     main()

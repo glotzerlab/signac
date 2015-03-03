@@ -67,8 +67,9 @@ class Config(object):
             except Exception as error:
                 msg = "Error while reading config file '{}'."
                 logger.error(msg.format(fn))
-        logger.debug("Found root: {}".format(dirname(fn)))
-        self['project_dir'] = root
+        if root is not None:
+            logger.debug("Found root: {}".format(dirname(fn)))
+            self['project_dir'] = root
 
     def update(self, args):
         self._args.update(args)
@@ -106,8 +107,9 @@ class Config(object):
             v = self._args.get(key)
             return DEFAULTS[key] if v is None else v
         except KeyError as error:
-            msg = "Missing config key: '{}'."
-            raise KeyError(msg.format(key)) from error
+            msg = "Missing config key: '{key}'. "
+            msg += "Try 'compdb config add {key} [your_value]"
+            raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):
         return self._args.get(key, default)

@@ -8,37 +8,63 @@ from os.path import expanduser
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
-OPERATIONS= ['add', 'set', 'remove']
+OPERATIONS= ['add', 'set', 'remove', 'show']
 
 def filter(args):
     from os.path import abspath
-    if args.name.endswith('_dir'):
-        args.value = abspath(args.value)
+    if args.name: 
+        if args.name.endswith('_dir'):
+            args.value = abspath(args.value)
 
 def add(args):
     from compdb.core.config import Config
     config = Config()
-    config.read(args.output)
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
     if args.name in config:
         msg = "Value for '{}' is already set in '{}'. Use 'set' instead of 'add' to overwrite."
-        print(msg.format(args.name, args.output))
+        print(msg.format(args.name, args.config))
         return
     config[args.name] = args.value
-    config.write(args.output)
+    if args.config == '-':
+        config.dump()
+    else:
+        config.write(args.config)
 
 def set_value(args):
     from compdb.core.config import Config
     config = Config()
-    config.read(args.output)
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
     config[args.name] = args.value
-    config.write(args.output)
+    if args.config == '-':
+        config.dump()
+    else:
+        config.write(args.config)
 
 def remove(args):
     from compdb.core.config import Config
     config = Config()
-    config.read(args.output)
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
     del config[args.name]
-    config.write(args.output)
+    config.write(args.config)
+
+def show(args):
+    from compdb.core.config import Config
+    config = Config()
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
+    config.dump()
+
 
 def verify(args):
     import re
@@ -47,9 +73,9 @@ def verify(args):
     if not re.match(RE_EMAIL, args.email):
         msg = "Invalid email address: '{}'."
         raise ValueError(msg.format(args.email))
-    if args.output != '-':
+    if args.config != '-':
         from os.path import expanduser, realpath
-        args.output = realpath(expanduser(args.output))
+        args.config = realpath(expanduser(args.config))
 
 def make_author(args):
     from compdb.core.config import Config
@@ -59,16 +85,16 @@ def make_author(args):
         'author_email': args.email,
     }
     config = Config()
-    if not args.output == '-':
+    if not args.config == '-':
         try:
-            config.read(args.output)
+            config.read(args.config)
         except FileNotFoundError:
             pass
     config.update(c)
-    if args.output == '-':
+    if args.config == '-':
         config.dump()
     else:
-        config.write(args.output)
+        config.write(args.config)
 
 def main(arguments = None):
         from argparse import ArgumentParser
@@ -84,6 +110,7 @@ def main(arguments = None):
         parser.add_argument(
             'name',
             type = str,
+            nargs = '?',
             help = "variable name",
             )
         parser.add_argument(
@@ -94,10 +121,10 @@ def main(arguments = None):
             help = "variable value",
             )
         parser.add_argument(
-            '-o', '--output',
+            '-c', '--config',
             type = str,
             default = expanduser('~/compdb.rc'),
-            help = "The config file to write configuration to. Use '-' to print to standard output.",
+            help = "The config file to read and write from. Use '-' to print to standard output.",
             )
 
         args = parser.parse_args(arguments)
@@ -108,6 +135,8 @@ def main(arguments = None):
             set_value(args)
         elif args.operation == 'remove':
             remove(args)
+        elif args.operation == 'show':
+            show(args)
         else:
             print("Unknown operation: {}".format(args.operation))
 
