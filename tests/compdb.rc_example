@@ -1,8 +1,0 @@
-{
-	"author_name": "Carl Simon Adorf",
-  "author_email": "csadorf@umich.edu",
-  "project":  "test_project",
-	"project_dir": "./test_project",
-	"filestorage_dir": "./test_storage",
-  "working_dir": "./working_dir"
-}

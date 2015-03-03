@@ -20,24 +20,24 @@ class JobTest(unittest.TestCase):
     def setUp(self):
         import os, tempfile
         from compdb.contrib import get_project
-        self._tmp_pr = tempfile.TemporaryDirectory(prefix = 'compdb_')
-        self._tmp_wd = tempfile.TemporaryDirectory(prefix = 'compdb_')
-        self._tmp_fs = tempfile.TemporaryDirectory(prefix = 'compdb_')
-        #print("pr={},wd={},fs={}".format(
-            #self._tmp_pr.name, self._tmp_wd.name, self._tmp_fs.name))
+        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
+        self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
+        self._tmp_fs = os.path.join(self._tmp_dir.name, 'fs')
+        os.mkdir(self._tmp_pr)
+        os.mkdir(self._tmp_wd)
+        os.mkdir(self._tmp_fs)
         os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
         os.environ['COMPDB_PROJECT'] = 'compdb_test_project'
-        os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr.name
-        os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs.name
-        os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd.name
+        os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
+        os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
+        os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
         self._project = get_project()
 
     def tearDown(self):
-        self._tmp_pr.cleanup()
-        self._tmp_wd.cleanup()
-        self._tmp_fs.cleanup()
         self._project.remove(force = True)
+        self._tmp_dir.cleanup()
 
 class ConfigTest(JobTest):
     

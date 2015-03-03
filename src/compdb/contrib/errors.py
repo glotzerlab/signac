@@ -3,4 +3,3 @@ class DatabaseError(BaseException):
 
 class ConnectionFailure(RuntimeError):
     pass
-
