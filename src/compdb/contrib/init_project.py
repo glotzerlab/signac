@@ -51,11 +51,12 @@ def check_for_author():
     
 def generate_config(args):
     from compdb.core.config import Config
+    from os.path import abspath
     args = {
         'project':  args.project_name,
-        'project_dir': args.directory,
-        'working_dir': args.workspace,
-        'filestorage_dir': args.storage,
+        'project_dir': abspath(args.directory),
+        'working_dir': abspath(args.workspace),
+        'filestorage_dir': abspath(args.storage),
         'database_host': args.db_host,
     }
     config = Config(args)

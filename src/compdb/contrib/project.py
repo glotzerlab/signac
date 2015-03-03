@@ -141,7 +141,7 @@ class Project(object):
         yield from self.get_jobs_collection().find(
             self._job_spec_modifier(job_spec), * args, ** kwargs)
 
-    def find_job_ids(self, spec):
+    def find_job_ids(self, spec = {}):
         for job in self._find_jobs(spec, fields = ['_id']):
             yield job['_id']
     
@@ -301,13 +301,11 @@ class Project(object):
         return [fn_restore_script_sh]
 
     def _restore_snapshot_from_src(self, src, force = False):
-        import shutil
+        import shutil, os
         from os.path import join, isdir, dirname, exists
         from bson.json_util import loads
         from . utility import restore_db
         fn_storage = join(src, FN_DUMP_STORAGE)
-        if isdir(fn_storage):
-            shutil.move(fn_storage, dirname(self.filestorage_dir()))
         try:
             with open(join(src, FN_DUMP_JOBS), 'rb') as file:
                 for job in self.find_jobs():
@@ -332,6 +330,11 @@ class Project(object):
             logger.warning(error)
             if not force:
                 raise
+        for root, dirs, files in os.walk(fn_storage):
+            for dir in dirs:
+                shutil.move(join(root, dir), self.filestorage_dir())
+            assert exists(join(self.filestorage_dir(), dir))
+            break
     
     def _restore_snapshot(self, src):
         from os.path import isfile, isdir, join
@@ -356,11 +359,8 @@ class Project(object):
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             with TarFile(dst, 'w') as tarfile:
                 for fn in chain(self._create_db_snapshot(tmp), self._create_restore_scripts(tmp)):
-                #for fn in self._create_db_snapshot(tmp):
                     logger.debug("Storing '{}'...".format(fn))
                     tarfile.add(fn, os.path.relpath(fn, tmp))
-                #for fn in self._create_restore_scripts(tmp):
-                #    tarfile.add(fn, os.path.relpath(fn, tmp))
                 if full:
                     tarfile.add(
                         self.filestorage_dir(), FN_DUMP_STORAGE,
@@ -383,9 +383,14 @@ class Project(object):
             rollback_backup_created = False
             try:
                 logger.info("Trying to restore from '{}'.".format(src))
-                logger.debug("Creating rollback snapshot...")
+                logger.debug("Creating rollback backup...")
                 self.create_db_snapshot(fn_rollback)
-                shutil.move(self.filestorage_dir(), fn_storage_backup)
+                for job_id in self.find_job_ids():
+                    try:
+                        shutil.move(
+                            os.path.join(self.filestorage_dir(), job_id), os.path.join(fn_storage_backup, job_id))
+                    except FileNotFoundError as error:
+                        pass
                 rollback_backup_created = True
                 self._restore_snapshot(src)
             except Exception as error:
@@ -394,7 +399,12 @@ class Project(object):
                 if rollback_backup_created:
                     try:
                         logger.info("Restoring previous state...")
-                        shutil.move(fn_storage_backup, self.filestorage_dir())
+                        #shutil.move(fn_storage_backup, self.filestorage_dir())
+                        for root, dirs, files in os.walk(fn_storage_backup):
+                            for dir in dirs:
+                                print(join(root, dir))
+                                print(self.filestorage_dir())
+                                shutil.move(join(root, dir), self.filestorage_dir())
                         self._restore_snapshot(fn_rollback)
                     except:
                         msg = "Failed to rollback!"
@@ -403,5 +413,9 @@ class Project(object):
                         logger.debug("Rolled back.")
                 raise error
             else:
-                shutil.rmtree(fn_storage_backup)
+                print("removing {}".format(fn_storage_backup))
+                try:
+                    shutil.rmtree(fn_storage_backup)
+                except FileNotFoundError:
+                    pass
                 logger.info("Restored snapshot '{}'.".format(src))
