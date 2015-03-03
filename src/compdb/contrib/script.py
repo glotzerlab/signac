@@ -1,7 +1,7 @@
 import logging
 logger = logging.getLogger('compdb')
 
-LEGAL_COMMANDS = ['init', 'config', 'snapshot', 'restore', 'cleanup']
+LEGAL_COMMANDS = ['init', 'config', 'snapshot', 'restore', 'cleanup', 'remove_project']
 
 def store_snapshot(raw_args):
     from . import get_project
@@ -50,6 +50,22 @@ def clean_up(raw_args):
     logger.info("Killing dead jobs...")
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
+def remove(raw_args):
+    from argparse import ArgumentParser
+    from . import get_project
+    from . utility import query_yes_no
+    project = get_project()
+    question = "Are you sure you want to remove project '{}'?"
+    if query_yes_no(question.format(project.get_id()), default = 'no'):
+        try:
+            project.remove()
+        except RuntimeError as error:
+            print("Error during project removal.")
+            print("This can be caused by currently executed jobs.")
+            print("Try 'compdb clenaup'.")
+            if query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
+                project.remove(force = True)
+
 def main():
     logging.basicConfig(level = logging.INFO)
     from argparse import ArgumentParser
@@ -73,5 +89,7 @@ def main():
         return restore_snapshot(more)
     elif args.command == 'cleanup':
         return clean_up(more)
+    elif args.command == 'remove_project':
+        return remove(more)
     else:
         print("Unknown command '{}'.".format(args.command))

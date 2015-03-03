@@ -37,11 +37,11 @@ LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
 
 DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 
-
 class Config(object):   
 
     def __init__(self, args = None):
-        self._args = DEFAULTS
+        from copy import copy
+        self._args = {}
         if args is not None:
             self.update(args)
 
@@ -56,13 +56,20 @@ class Config(object):
         self._args.update(args)
 
     def _read_files(self):
+        from os.path import dirname
+        root = None
         for fn in search_config_files():
             try:
                 logger.debug("Reading config file '{}'.".format(fn))
                 self.read(fn)
+                if root is None and 'project' in self:
+                    root = dirname(fn)
             except Exception as error:
                 msg = "Error while reading config file '{}'."
                 logger.error(msg.format(fn))
+        if root is not None:
+            logger.debug("Found root: {}".format(dirname(fn)))
+            self['project_dir'] = root
 
     def update(self, args):
         self._args.update(args)
@@ -97,10 +104,12 @@ class Config(object):
 
     def __getitem__(self, key):
         try:
-            return self._args[key]
-        except KeyError:
-            msg = "Missing config key: '{}'."
-            raise KeyError(msg.format(key))
+            v = self._args.get(key)
+            return DEFAULTS[key] if v is None else v
+        except KeyError as error:
+            msg = "Missing config key: '{key}'. "
+            msg += "Try 'compdb config add {key} [your_value]"
+            raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):
         return self._args.get(key, default)
@@ -110,6 +119,9 @@ class Config(object):
 
     def __contains__(self, key):
         return key in self._args
+
+    def __delitem__(self, key):
+        del self._args[key]
 
 def search_tree():
     from os import getcwd

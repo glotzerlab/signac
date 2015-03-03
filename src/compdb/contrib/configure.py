@@ -4,7 +4,67 @@
 import logging
 logger = logging.getLogger('make_author')
 
+from os.path import expanduser
+
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
+
+OPERATIONS= ['add', 'set', 'remove', 'show']
+
+def filter(args):
+    from os.path import abspath
+    if args.name: 
+        if args.name.endswith('_dir'):
+            args.value = abspath(args.value)
+
+def add(args):
+    from compdb.core.config import Config
+    config = Config()
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
+    if args.name in config:
+        msg = "Value for '{}' is already set in '{}'. Use 'set' instead of 'add' to overwrite."
+        print(msg.format(args.name, args.config))
+        return
+    config[args.name] = args.value
+    if args.config == '-':
+        config.dump()
+    else:
+        config.write(args.config)
+
+def set_value(args):
+    from compdb.core.config import Config
+    config = Config()
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
+    config[args.name] = args.value
+    if args.config == '-':
+        config.dump()
+    else:
+        config.write(args.config)
+
+def remove(args):
+    from compdb.core.config import Config
+    config = Config()
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
+    del config[args.name]
+    config.write(args.config)
+
+def show(args):
+    from compdb.core.config import Config
+    config = Config()
+    try:
+        config.read(args.config)
+    except FileNotFoundError:
+        pass
+    config.dump()
+
 
 def verify(args):
     import re
@@ -13,9 +73,9 @@ def verify(args):
     if not re.match(RE_EMAIL, args.email):
         msg = "Invalid email address: '{}'."
         raise ValueError(msg.format(args.email))
-    if args.output != '-':
+    if args.config != '-':
         from os.path import expanduser, realpath
-        args.output = realpath(expanduser(args.output))
+        args.config = realpath(expanduser(args.config))
 
 def make_author(args):
     from compdb.core.config import Config
@@ -25,43 +85,60 @@ def make_author(args):
         'author_email': args.email,
     }
     config = Config()
-    if not args.output == '-':
+    if not args.config == '-':
         try:
-            config.read(args.output)
+            config.read(args.config)
         except FileNotFoundError:
             pass
     config.update(c)
-    if args.output == '-':
+    if args.config == '-':
         config.dump()
     else:
-        config.write(args.output)
+        config.write(args.config)
 
 def main(arguments = None):
         from argparse import ArgumentParser
         parser = ArgumentParser(
-            description = "Setup up author meta data for compdb projects.",
+            description = "Change the compDB configuration.",
+            )
+        parser.add_argument(
+            'operation',
+            type = str,
+            help = "The config operation you would like to perform.",
+            choices = OPERATIONS,
             )
         parser.add_argument(
             'name',
             type = str,
-            help = "The users' name. Example: 'John Doe'",
+            nargs = '?',
+            help = "variable name",
             )
         parser.add_argument(
-            'email',
+            'value',
             type = str,
-            help = "The users' email address. Example: 'johndoe@example.com'."
+            nargs = '?',
+            default = '',
+            help = "variable value",
             )
         parser.add_argument(
-            '-o', '--output',
+            '-c', '--config',
             type = str,
-            default = '~/compdb.rc',
-            help = "The config file to write configuration to. Use '-' to print to standard output.",
+            default = expanduser('~/compdb.rc'),
+            help = "The config file to read and write from. Use '-' to print to standard output.",
             )
 
         args = parser.parse_args(arguments)
-
-        verify(args)
-        make_author(args)
+        filter(args)
+        if args.operation == 'add':
+            add(args)
+        elif args.operation == 'set':
+            set_value(args)
+        elif args.operation == 'remove':
+            remove(args)
+        elif args.operation == 'show':
+            show(args)
+        else:
+            print("Unknown operation: {}".format(args.operation))
 
 if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO)
