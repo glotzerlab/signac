@@ -22,8 +22,19 @@ ENVIRONMENT_VARIABLES = {
 
 REQUIRED_KEYS = [
     'author_name', 'author_email', 'project',
-    'project_dir',  'filestorage_dir',
+    'project_dir',  'filestorage_dir', 'working_dir',
     ]
+
+DEFAULTS = {
+    'database_host': 'localhost',
+    'database_meta': '_compdb',
+    'database_global_fs': '_compdb_fs',
+}
+
+LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
+    'global_fs_dir', 'develop', 
+    ]
+
 
 class Config(object):   
 
@@ -59,8 +70,11 @@ class Config(object):
         self._read_files()
         self._args.update(read_environment())
         logger.debug('Verifying config...')
-        verify(self._args)
+        self.verify()
         logger.debug('OK')
+
+    def verify(self):
+        verify(self._args)
 
     def write(self, filename = DEFAULT_FILENAME, indent = 0, keys = None):
         if keys is None:
@@ -95,17 +109,6 @@ class Config(object):
     def __contains__(self, key):
         return key in self._args
 
-DEFAULTS = {
-    'database_host': 'localhost',
-    'database_meta': '_compdb',
-    'database_global_fs': '_compdb_fs',
-    'working_dir': CWD,
-}
-
-LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop',
-    ]
-
 def search_tree():
     from os import getcwd
     from os.path import realpath, join, isfile
@@ -119,7 +122,9 @@ def search_tree():
         up = realpath(join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
-            raise FileNotFoundError(msg)
+            logger.debug(msg)
+            return
+            #raise FileNotFoundError(msg)
         else:
             cwd = up
 
@@ -156,7 +161,6 @@ def verify(args):
             #logger.warning(msg.format(key))
             raise KeyError(msg.format(key))
 
-    logger.debug(args)
     for key in REQUIRED_KEYS:
         if not key in args.keys():
             msg = "Missing required config key: '{}'."
@@ -168,7 +172,7 @@ def verify(args):
     #assert set(REQUIRED_KEYS).issubset(set(args.keys()))
 
     DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
-    dirs = (dir for dir in DIRS if dir in args)
+    dirs = [dir for dir in DIRS if dir in args]
 
     for dir_key in dirs:
         if dir_key in args:
@@ -181,7 +185,7 @@ def verify(args):
                 args[dir_key] = os.path.realpath(args[dir_key])
             else:
                 msg = "Directory specified for '{}': '{}', does not exist."
-                raise IOError(msg.format(dir_key, args[dir_key]))
+                raise NotADirectoryError(msg.format(dir_key, args[dir_key]))
 
 def load_config():
     config = Config()

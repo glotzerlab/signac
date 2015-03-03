@@ -24,6 +24,7 @@ class JobTest(unittest.TestCase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         self._tmp_fs = os.path.join(self._tmp_dir.name, 'fs')
+        #print(self._tmp_pr, self._tmp_wd, self._tmp_fs)
         os.mkdir(self._tmp_pr)
         os.mkdir(self._tmp_wd)
         os.mkdir(self._tmp_fs)
@@ -36,6 +37,7 @@ class JobTest(unittest.TestCase):
         self._project = get_project()
 
     def tearDown(self):
+        import os
         self._project.remove(force = True)
         self._tmp_dir.cleanup()
 

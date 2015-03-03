@@ -141,7 +141,7 @@ class Project(object):
         job_spec_.update({'project': self.get_id()})
         if develop or (develop is None and self.develop_mode()):
             job_spec_.update({'develop': True})
-        return job_spec
+        return job_spec_
 
     def _find_jobs(self, job_spec, * args, **kwargs):
         yield from self.get_jobs_collection().find(
@@ -220,7 +220,7 @@ class Project(object):
 
     def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
         yield from self._find_jobs(
-            self._job_spec_modifier(job_spec),
+            job_spec,
             sort = [('parameters.{}'.format(p), 1) for p in parameters],
             * args, ** kwargs)
     
@@ -306,8 +306,11 @@ class Project(object):
 
     def _restore_snapshot_from_src(self, src):
         import shutil
-        from os.path import join, isdir
+        from os.path import join, isdir, dirname
         from bson.json_util import loads
+        fn_storage = join(src, FN_DUMP_STORAGE)
+        if isdir(fn_storage):
+            shutil.move(fn_storage, dirname(self.filestorage_dir()))
         try:
             with open(join(src, FN_DUMP_JOBS), 'rb') as file:
                 for job in self.find_jobs():
@@ -326,9 +329,6 @@ class Project(object):
                     self.collection.save(doc)
         except FileNotFoundError as error:
             logger.warning(error)
-        fn_storage = join(src, FN_DUMP_STORAGE)
-        if isdir(fn_storage):
-            shutil.move(fn_storage, self.filestorage_dir())
     
     def _restore_snapshot(self, src):
         from os.path import isfile, isdir
@@ -377,6 +377,8 @@ class Project(object):
             fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
             path_to_fs = os.path.dirname(self.filestorage_dir())
             fn_storage_backup = os.path.join(path_to_fs, 'fs_backup')
+            print(fn_storage_backup)
+            assert not os.path.exists(fn_storage_backup)
             rollback_backup_created = False
             try:
                 logger.info("Trying to restore from '{}'.".format(src))
@@ -401,3 +403,4 @@ class Project(object):
                 raise error
             else:
                 shutil.rmtree(fn_storage_backup)
+                logger.info("Restored snapshot '{}'.".format(src))

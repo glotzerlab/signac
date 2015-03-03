@@ -29,7 +29,7 @@ def check_for_existing_project(args):
     try:
         project = get_project()
         root_dir = project.root_directory()
-    except (FileNotFoundError, KeyError):
+    except (FileNotFoundError, NotADirectoryError, KeyError):
         pass
     else:
         if realpath(root_dir) == realpath(args.directory):
@@ -58,7 +58,9 @@ def generate_config(args):
         'filestorage_dir': args.storage,
         'database_host': args.db_host,
     }
-    return Config(args)
+    config = Config(args)
+    config.verify()
+    return config
 
 def setup_default_dirs(args):
     import os
@@ -158,8 +160,8 @@ def main(arguments = None):
             check_for_existing_project(args)
         check_for_database(args)
         setup_default_dirs(args)
-        config = generate_config(args)
         mk_dirs(args)
+        config = generate_config(args)
         copy_templates(args)
     except Exception as error:
         raise
