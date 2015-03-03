@@ -21,16 +21,8 @@ class Project(object):
         if config is None:
             from compdb.core.config import load_config
             config = load_config()
+        config.verify()
         self._config = config
-        #self._check_config()
-
-    def _check_config(self):
-        for key in REQUIRED_CONFIG_KEYS:
-            try:
-                self._config[key]
-            except KeyError as error:
-                msg = "Can not open project, configuration incomplete: '{}'."
-                raise KeyError(msg.format(error))
 
     @property 
     def config(self):
@@ -51,6 +43,7 @@ class Project(object):
             msg = "Failed to connect to database '{}' at '{}'."
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error
+
     def get_db(self, db_name):
         assert valid_name(db_name)
         return self._get_db(db_name)

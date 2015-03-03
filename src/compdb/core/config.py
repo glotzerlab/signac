@@ -35,6 +35,8 @@ LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
     'global_fs_dir', 'develop', 
     ]
 
+DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
+
 
 class Config(object):   
 
@@ -158,34 +160,24 @@ def verify(args):
     for key in args.keys():
         if not key in LEGAL_ARGS:
             msg = "Illegal config key: '{}'."
-            #logger.warning(msg.format(key))
-            raise KeyError(msg.format(key))
-
-    for key in REQUIRED_KEYS:
-        if not key in args.keys():
-            msg = "Missing required config key: '{}'."
-            #logger.warning(msg.format(key))
+            logger.warning(msg.format(key))
             #raise KeyError(msg.format(key))
+
+    #for key in REQUIRED_KEYS:
+    #    if not key in args.keys():
+    #        msg = "Missing required config key: '{}'."
+    #        logger.warning(msg.format(key))
+    #        #raise KeyError(msg.format(key))
 
     # sanity check
     #assert set(args.keys()).issubset(set(LEGAL_ARGS))
     #assert set(REQUIRED_KEYS).issubset(set(args.keys()))
 
-    DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
     dirs = [dir for dir in DIRS if dir in args]
-
     for dir_key in dirs:
-        if dir_key in args:
-            args[dir_key] = os.path.expanduser(args[dir_key])
-    for dir_key in dirs:
-        if dir_key in args:
-            if os.path.isdir(os.path.abspath(args[dir_key])):
-                args[dir_key] = os.path.abspath(args[dir_key])
-            elif os.path.isdir(os.path.realpath(args[dir_key])):
-                args[dir_key] = os.path.realpath(args[dir_key])
-            else:
-                msg = "Directory specified for '{}': '{}', does not exist."
-                raise NotADirectoryError(msg.format(dir_key, args[dir_key]))
+        if not os.path.isabs(args[dir_key]):
+            msg = "Directory specified for '{}': '{}' is not an absolute path."
+            logger.warning(msg.format(dir_key, args[dir_key]))
 
 def load_config():
     config = Config()
