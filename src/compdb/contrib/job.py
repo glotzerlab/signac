@@ -3,6 +3,7 @@ logger = logging.getLogger('job')
 
 JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
+PULSE_PERIOD = 10
 
 def generate_hash_from_spec(spec):
     import json, hashlib
@@ -18,7 +19,7 @@ def spec_for_nested_dict(nd):
         {'argument.{}.{}'.format(k, k2): v2 for k,v in nd.items() if type(v) == dict for k2,v2 in v.items()})
 
 class PulseThread(threading.Thread):
-    def __init__(self, collection, _id, unique_id, period = 1):
+    def __init__(self, collection, _id, unique_id, period = PULSE_PERIOD):
         super().__init__()
         from threading import Event
         self._collection = collection

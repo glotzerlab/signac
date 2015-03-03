@@ -5,6 +5,7 @@ JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
 JOB_META_DOCS = 'compdb_jobs'
+from . job import PULSE_PERIOD
 
 FN_DUMP_JOBS = 'compdb_jobs.json'
 FN_DUMP_DOCS = 'compdb_docs.json'
@@ -192,7 +193,7 @@ class Project(object):
                 {hb_key: {'$exists': True}})
             yield uid, doc['pulse'][uid]
 
-    def kill_dead_jobs(self, seconds = 10):
+    def kill_dead_jobs(self, seconds = 5 * PULSE_PERIOD):
         import datetime
         from datetime import datetime, timedelta
         cut_off = datetime.utcnow() - timedelta(seconds = seconds)
@@ -359,7 +360,9 @@ class Project(object):
                 for fn in self._create_restore_scripts(tmp):
                     tarfile.add(fn, os.path.relpath(fn, tmp))
                 if full:
-                    tarfile.add(self.filestorage_dir(), FN_DUMP_STORAGE)
+                    tarfile.add(
+                        self.filestorage_dir(), FN_DUMP_STORAGE,
+                        exclude = lambda fn: str(fn) == 'fs_backup')
 
     def create_snapshot(self, dst):
         return self._create_snapshot(dst, full = True)
@@ -376,15 +379,18 @@ class Project(object):
             fn_storage_backup = os.path.join(path_to_fs, 'fs_backup')
             rollback_backup_created = False
             try:
+                logger.info("Trying to restore from '{}'.".format(src))
+                logger.debug("Creating rollback snapshot...")
                 self.create_db_snapshot(fn_rollback)
                 shutil.move(self.filestorage_dir(), fn_storage_backup)
                 rollback_backup_created = True
                 self._restore_snapshot(src)
             except Exception as error:
-                # msg = "Error during restore from '{src}': {error}."
-                #logger.error(msg.format(src = src, error = error))
+                msg = "Error during restore from '{src}': {error}."
+                logger.error(msg.format(src = src, error = error))
                 if rollback_backup_created:
                     try:
+                        logger.info("Restoring previous state...")
                         shutil.move(fn_storage_backup, self.filestorage_dir())
                         self._restore_snapshot(fn_rollback)
                     except:
