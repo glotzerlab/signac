@@ -54,4 +54,4 @@ These scripts are provided to be slightly more exemplary on how to use the packa
 
 ## Wiki
 
-The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/compmatdb/wiki).
+The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/compdb/wiki).
