@@ -8,9 +8,10 @@ JOB_META_DOCS = 'compdb_jobs'
 from . job import PULSE_PERIOD
 
 FN_DUMP_JOBS = 'compdb_jobs.json'
-FN_DUMP_DOCS = 'compdb_docs.json'
 FN_DUMP_STORAGE = 'storage'
+FN_DUMP_DB = 'dump'
 FN_RESTORE_SCRIPT_SH = 'restore.sh'
+FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -267,6 +268,7 @@ class Project(object):
     def _create_db_snapshot(self, dst):
         import os
         from bson.json_util import dumps
+        from . utility import dump_db
         spec = self._job_spec_modifier(develop = False)
         job_docs = self.get_jobs_collection().find(spec)
         docs = self.collection.find()
@@ -274,11 +276,12 @@ class Project(object):
         with open(fn_dump_jobs, 'wb') as file:
             for job_doc in job_docs:
                 file.write("{}\n".format(dumps(job_doc)).encode())
-        fn_dump_docs = os.path.join(dst, FN_DUMP_DOCS)
-        with open(fn_dump_docs, 'wb') as file:
-            for doc in docs:
-                file.write("{}\n".format(dumps(doc)).encode())
-        return [fn_dump_jobs, fn_dump_docs]
+        fn_dump_db = os.path.join(dst, FN_DUMP_DB)
+        dump_db(
+            host = self.config['database_host'],
+            database = self.get_id(),
+            dst = fn_dump_db)
+        return [fn_dump_jobs, fn_dump_db]
 
     def _create_restore_scripts(self, dst):
         import os
@@ -297,10 +300,11 @@ class Project(object):
                     ).encode())
         return [fn_restore_script_sh]
 
-    def _restore_snapshot_from_src(self, src):
+    def _restore_snapshot_from_src(self, src, force = False):
         import shutil
-        from os.path import join, isdir, dirname
+        from os.path import join, isdir, dirname, exists
         from bson.json_util import loads
+        from . utility import restore_db
         fn_storage = join(src, FN_DUMP_STORAGE)
         if isdir(fn_storage):
             shutil.move(fn_storage, dirname(self.filestorage_dir()))
@@ -314,28 +318,30 @@ class Project(object):
                     self.get_jobs_collection().save(job_doc)
         except FileNotFoundError as error:
             logger.warning(error)
+            if not force:
+                raise
         try:
-            with open(join(src, FN_DUMP_DOCS), 'rb') as file:
-                self.collection.remove()
-                for line in file:
-                    doc = loads(line.decode())
-                    self.collection.save(doc)
-        except FileNotFoundError as error:
+            fn_dump_db = join(src, FN_DUMP_DB, self.get_id())
+            if not exists(fn_dump_db):
+                raise NotADirectoryError(fn_dump_db)
+            restore_db(
+                host = self.config['database_host'],
+                database = self.get_id(), 
+                src = fn_dump_db)
+        except NotADirectoryError as error:
             logger.warning(error)
+            if not force:
+                raise
     
     def _restore_snapshot(self, src):
-        from os.path import isfile, isdir
+        from os.path import isfile, isdir, join
         from tarfile import TarFile
         from tempfile import TemporaryDirectory
         if isfile(src):
             with TemporaryDirectory() as tmp_dir:
                 with TarFile(src, 'r') as tarfile:
-                    tarfile.extract(FN_DUMP_JOBS, tmp_dir)
-                    tarfile.extract(FN_DUMP_DOCS, tmp_dir)
-                    try:
-                        tarfile.extract(FN_DUMP_STORAGE, tmp_dir)
-                    except KeyError:
-                        pass
+                    # TODO Implement check of content routine!
+                    tarfile.extractall(tmp_dir)
                     self._restore_snapshot_from_src(tmp_dir)
         elif isdir(src):
             self._restore_snapshot_from_src(src)
@@ -346,12 +352,15 @@ class Project(object):
         import os
         from tarfile import TarFile
         from tempfile import TemporaryDirectory
+        from itertools import chain
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             with TarFile(dst, 'w') as tarfile:
-                for fn in self._create_db_snapshot(tmp):
+                for fn in chain(self._create_db_snapshot(tmp), self._create_restore_scripts(tmp)):
+                #for fn in self._create_db_snapshot(tmp):
+                    logger.debug("Storing '{}'...".format(fn))
                     tarfile.add(fn, os.path.relpath(fn, tmp))
-                for fn in self._create_restore_scripts(tmp):
-                    tarfile.add(fn, os.path.relpath(fn, tmp))
+                #for fn in self._create_restore_scripts(tmp):
+                #    tarfile.add(fn, os.path.relpath(fn, tmp))
                 if full:
                     tarfile.add(
                         self.filestorage_dir(), FN_DUMP_STORAGE,
@@ -370,7 +379,6 @@ class Project(object):
             fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
             path_to_fs = os.path.dirname(self.filestorage_dir())
             fn_storage_backup = os.path.join(path_to_fs, 'fs_backup')
-            print(fn_storage_backup)
             assert not os.path.exists(fn_storage_backup)
             rollback_backup_created = False
             try:
