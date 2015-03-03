@@ -9,11 +9,11 @@ DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
-MSG_AUTHOR_MISSING = "Did not find any author information. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
+MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
-PROJECT_CONFIG_KEYS = [
-    'project', '_project_dir', 'working_dir',
-    'filestorage_dir', 'database_host']
+#PROJECT_CONFIG_KEYS = [
+#    'project', '_project_dir', 'working_dir',
+#    'filestorage_dir', 'database_host']
 
 def check_for_database(args):
     from pymongo import MongoClient
@@ -39,47 +39,38 @@ def check_for_existing_project(args):
 def check_for_author():
     from compdb.contrib import get_project
     project = get_project()
-    p = False
+    warn = False
     if project.config.get('author_name') is None:
         logger.warning("No author name defined.")
-        p = True
+        warn = True
     if project.config.get('author_email') is None:
         logger.warning("No author email address defined.")
-        p = True
-    if p:
-        logger.warning(MSG_AUTHOR_MISSING)
+        warn = True
+    if warn:
+        logger.warning(MSG_AUTHOR_INCOMPLETE)
+
+def adjust_args(args):
+    from os.path import abspath
+    if args.workspace:
+        args['working_dir'] = abspath(args.workspace)
+    if args.storage:
+        args['filestorage_dir'] = abspath(args.storage)
     
 def generate_config(args):
     from compdb.core.config import Config
-    from os.path import abspath
-    args = {
-        'project':  args.project_name,
-        'project_dir': abspath(args.directory),
-        'working_dir': abspath(args.workspace),
-        'filestorage_dir': abspath(args.storage),
-        'database_host': args.db_host,
+    c_args = {
+         'project':  args.project_name,
     }
-    config = Config(args)
+    if args.workspace:
+        c_args['working_dir'] = args.workspace
+    if args.storage:
+        c_args['filestorage_dir'] = args.storage
+    if args.db_host:
+         c_args['database_host'] = args.db_host
+    config = Config()
+    config = Config(c_args)
     config.verify()
     return config
-
-def setup_default_dirs(args):
-    import os
-    if args.workspace is None:
-        args.workspace = os.path.join(
-            args.directory, DEFAULT_WORKSPACE)
-    if args.storage is None:
-        args.storage = os.path.join(
-            args.directory, DEFAULT_STORAGE)
-
-def mk_dirs(args):
-    import os
-    dirs =  [args.directory, args.workspace, args.storage]
-    for path in dirs:
-        try:
-            os.mkdir(path)
-        except FileExistsError:
-            pass
 
 def get_templates():
     from compdb.contrib.templates import TEMPLATES
@@ -101,7 +92,7 @@ def copy_templates(args):
                 file.write(c.encode('utf-8'))
 
 def main(arguments = None):
-    logging.basicConfig(level = logging.INFO)
+    logging.basicConfig(level = logging.DEBUG)
     from argparse import ArgumentParser
     parser = ArgumentParser(
         description = "Make a new mock compdb project.",
@@ -128,19 +119,8 @@ def main(arguments = None):
         help = "The project's filestorage directory. Defaults to directory '{}' within the project's root directory.".format(DEFAULT_STORAGE),
         )
     parser.add_argument(
-        '-n', '--name',
-        type = str,
-        help = "The users' name.",
-        )
-    parser.add_argument(
-        '--email',
-        type = str,
-        help = "The users' email address.",
-        )
-    parser.add_argument(
         '--db-host',
         type = str,
-        default = 'localhost',
         help = "The MongoDB database host address.",
         )
     parser.add_argument(
@@ -157,20 +137,18 @@ def main(arguments = None):
 
     args = parser.parse_args(arguments)
     try:
+        adjust_args(args)
         if not args.force:
             check_for_existing_project(args)
         check_for_database(args)
-        setup_default_dirs(args)
-        mk_dirs(args)
         config = generate_config(args)
         copy_templates(args)
     except Exception as error:
         raise
     else:
         import os
-        config.write(
-            os.path.join(args.directory, 'compdb.rc'), 
-            keys = PROJECT_CONFIG_KEYS)
+        config.write(os.path.join(args.directory, 'compdb.rc'))
+            #keys = PROJECT_CONFIG_KEYS)
         logger.info(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))
