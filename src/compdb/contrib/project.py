@@ -381,16 +381,13 @@ class Project(object):
                 os.remove(dst)
                 raise
 
-    def create_snapshot(self, dst):
+    def create_snapshot(self, dst, full = True):
         import os
         fn, ext = os.path.splitext(dst)
         mode = 'w:'
         if ext in ['.gz', '.bz2']:
             mode += ext[1:]
-        return self._create_snapshot(dst, full = True, mode = mode)
-
-    def create_db_snapshot(self, dst):
-        return self._create_snapshot(dst, full = False)
+        return self._create_snapshot(dst, full = full, mode = mode)
 
     def restore_snapshot(self, src):
         import os, shutil

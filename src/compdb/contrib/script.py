@@ -5,6 +5,7 @@ LEGAL_COMMANDS = ['init', 'config', 'snapshot', 'restore', 'cleanup', 'remove_pr
 
 def store_snapshot(raw_args):
     from . import get_project
+    from . utility import query_yes_no
     from argparse import ArgumentParser
     from os.path import exists
     parser = ArgumentParser()
@@ -16,22 +17,30 @@ def store_snapshot(raw_args):
         '--database-only',
         action = 'store_true',
         help = "Create only a snapshot of the database, without a copy of the value storage.",)
+    parser.add_argument(
+        '--overwrite',
+        action = 'store_true',
+        help = "Overwrite existing snapshots with the same name without asking.",
+        )
     args = parser.parse_args(raw_args)
-    if exists(args.snapshot):
-        msg = "Error: File '{}' already exists."
-        raise ValueError(msg.format(args.snapshot))
+    if not args.overwrite and exists(args.snapshot):
+        q = "File with name '{}' already exists. Overwrite?"
+        if not query_yes_no(q.format(args.snapshot), 'no'):
+            msg = "Error: File '{}' already exists."
+            raise ValueError(msg.format(args.snapshot))
     project = get_project()
     try:
         if args.database_only:
-            project.create_db_snapshot(args.snapshot)
+            print("Creating project database snapshot.")
         else:
-            project.create_snapshot(args.snapshot)
+            print("Creating project snapshot.")
+        project.create_snapshot(args.snapshot, not args.database_only)
     except Exception as error:
         msg = "Failed to create snapshot."
         print(msg)
         raise
     else:
-        project.create_snapshot(args.snapshot)
+        print("Success.")
 
 def restore_snapshot(raw_args):
     from . import get_project
