@@ -11,7 +11,7 @@ SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
-MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'. You can use these commands to set them:"
+MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"
 #PROJECT_CONFIG_KEYS = [
 #    'project', '_project_dir', 'working_dir',
 #    'filestorage_dir', 'database_host']
