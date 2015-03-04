@@ -44,7 +44,9 @@ def restore_snapshot(raw_args):
         )
     args = parser.parse_args(raw_args)
     project = get_project()
+    print("Trying to restore from: {}".format(args.snapshot))
     project.restore_snapshot(args.snapshot)
+    print("Success.")
 
 def clean_up(raw_args):
     from . import get_project

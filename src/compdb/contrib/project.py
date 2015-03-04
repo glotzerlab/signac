@@ -345,11 +345,12 @@ class Project(object):
     
     def _restore_snapshot(self, src):
         from os.path import isfile, isdir, join
-        from tarfile import TarFile
+        import tarfile
         from tempfile import TemporaryDirectory
         if isfile(src):
             with TemporaryDirectory() as tmp_dir:
-                with TarFile(src, 'r') as tarfile:
+                with tarfile.open(src, 'r') as tarfile:
+                #with TarFile(src, 'r') as tarfile:
                     # TODO Implement check of content routine!
                     tarfile.extractall(tmp_dir)
                     self._restore_snapshot_from_src(tmp_dir)
@@ -358,14 +359,14 @@ class Project(object):
         else:
             raise FileNotFoundError(src)
 
-    def _create_snapshot(self, dst, full = True):
+    def _create_snapshot(self, dst, full = True, mode = 'w'):
         import os
-        from tarfile import TarFile
+        import tarfile
         from tempfile import TemporaryDirectory
         from itertools import chain
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             try:
-                with TarFile(dst, 'w') as tarfile:
+                with tarfile.open(dst, mode) as tarfile:
                     for fn in chain(
                             self._create_db_snapshot(tmp),
                             self._create_restore_scripts(tmp),
@@ -381,7 +382,12 @@ class Project(object):
                 raise
 
     def create_snapshot(self, dst):
-        return self._create_snapshot(dst, full = True)
+        import os
+        fn, ext = os.path.splitext(dst)
+        mode = 'w:'
+        if ext in ['.gz', '.bz2']:
+            mode += ext[1:]
+        return self._create_snapshot(dst, full = True, mode = mode)
 
     def create_db_snapshot(self, dst):
         return self._create_snapshot(dst, full = False)
