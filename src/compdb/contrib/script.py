@@ -17,10 +17,17 @@ def store_snapshot(raw_args):
         help = "Create only a snapshot of the database, without a copy of the value storage.",)
     args = parser.parse_args(raw_args)
     project = get_project()
-    if args.database_only:
-        project.create_db_snapshot(args.snapshot)
+    try:
+        if args.database_only:
+            project.create_db_snapshot(args.snapshot)
+        else:
+            project.create_snapshot(args.snapshot)
+    except Exception as error:
+        print("Failed to create snapshot.")
+        print(error)
     else:
-        project.create_snapshot(args.snapshot)
+        msg = "Successfully created snapshot '{sn}' of '{pr}'."
+        print(msg.format(sn = args.snapshot, pr = project.get_id()))
 
 def restore_snapshot(raw_args):
     from . import get_project

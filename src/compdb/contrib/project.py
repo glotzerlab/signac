@@ -283,6 +283,12 @@ class Project(object):
             dst = fn_dump_db)
         return [fn_dump_jobs, fn_dump_db]
 
+    def _create_config_snapshot(self, dst):
+        from os.path import join
+        fn_config = join(dst, 'compdb.rc')
+        self.config.write(fn_config)
+        return [fn_config]
+
     def _create_restore_scripts(self, dst):
         import os
         from . templates import RESTORE_SH
@@ -357,14 +363,21 @@ class Project(object):
         from tempfile import TemporaryDirectory
         from itertools import chain
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
-            with TarFile(dst, 'w') as tarfile:
-                for fn in chain(self._create_db_snapshot(tmp), self._create_restore_scripts(tmp)):
-                    logger.debug("Storing '{}'...".format(fn))
-                    tarfile.add(fn, os.path.relpath(fn, tmp))
-                if full:
-                    tarfile.add(
-                        self.filestorage_dir(), FN_DUMP_STORAGE,
-                        exclude = lambda fn: str(fn) == 'fs_backup')
+            try:
+                with TarFile(dst, 'w') as tarfile:
+                    for fn in chain(
+                            self._create_db_snapshot(tmp),
+                            self._create_restore_scripts(tmp),
+                            self._create_config_snapshot(tmp)):
+                        logger.debug("Storing '{}'...".format(fn))
+                        tarfile.add(fn, os.path.relpath(fn, tmp))
+                    if full:
+                        tarfile.add(
+                            self.filestorage_dir(), FN_DUMP_STORAGE,
+                            exclude = lambda fn: str(fn) == 'fs_backup')
+            except Exception:
+                os.remove(dst)
+                raise
 
     def create_snapshot(self, dst):
         return self._create_snapshot(dst, full = True)
