@@ -253,14 +253,6 @@ class Job(object):
             pass
         self._create_directories()
 
-    #def clear_filestorage_directory(self):
-    #    import shutil
-    #    try:
-    #        shutil.rmtree(self.get_filestorage_directory())
-    #    except FileNotFoundError:
-    #        pass
-    #    self._create_directories()
-
     def clear(self):
         self.clear_working_directory()
         self._storage.clear()

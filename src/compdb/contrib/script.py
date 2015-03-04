@@ -6,6 +6,7 @@ LEGAL_COMMANDS = ['init', 'config', 'snapshot', 'restore', 'cleanup', 'remove_pr
 def store_snapshot(raw_args):
     from . import get_project
     from argparse import ArgumentParser
+    from os.path import exists
     parser = ArgumentParser()
     parser.add_argument(
         'snapshot',
@@ -16,9 +17,19 @@ def store_snapshot(raw_args):
         action = 'store_true',
         help = "Create only a snapshot of the database, without a copy of the value storage.",)
     args = parser.parse_args(raw_args)
+    if exists(args.snapshot):
+        msg = "Error: File '{}' already exists."
+        raise ValueError(msg.format(args.snapshot))
     project = get_project()
-    if args.database_only:
-        project.create_db_snapshot(args.snapshot)
+    try:
+        if args.database_only:
+            project.create_db_snapshot(args.snapshot)
+        else:
+            project.create_snapshot(args.snapshot)
+    except Exception as error:
+        msg = "Failed to create snapshot."
+        print(msg)
+        raise
     else:
         project.create_snapshot(args.snapshot)
 
@@ -67,29 +78,42 @@ def remove(raw_args):
                 project.remove(force = True)
 
 def main():
-    logging.basicConfig(level = logging.INFO)
+    import sys
+    from . utility import add_verbosity_action_argument
+    #logging.basicConfig(level = logging.INFO)
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument(
         'command',
         choices = LEGAL_COMMANDS,
         )
+    add_verbosity_action_argument(parser)
 
     args, more = parser.parse_known_args()
 
-    if args.command == 'init':
-        from compdb.contrib.init_project import main
-        return main(more)
-    elif args.command == 'config':
-        from compdb.contrib.configure import main
-        return main(more)
-    elif args.command == 'snapshot':
-        return store_snapshot(more)
-    elif args.command == 'restore':
-        return restore_snapshot(more)
-    elif args.command == 'cleanup':
-        return clean_up(more)
-    elif args.command == 'remove_project':
-        return remove(more)
+    try:
+        if args.command == 'init':
+            from compdb.contrib.init_project import main
+            return main(more)
+        elif args.command == 'config':
+            from compdb.contrib.configure import main
+            return main(more)
+        elif args.command == 'snapshot':
+            return store_snapshot(more)
+        elif args.command == 'restore':
+            return restore_snapshot(more)
+        elif args.command == 'cleanup':
+            return clean_up(more)
+        elif args.command == 'remove_project':
+            return remove(more)
+        else:
+            print("Unknown command '{}'.".format(args.command))
+            sys.exit(2)
+    except Exception as error:
+        if args.verbosity > 0:
+            raise
+        else:
+            print("Error: {}".format(error))
+            print("Use -v to increase verbosity of messages.")
     else:
-        print("Unknown command '{}'.".format(args.command))
+        sys.exit(0)

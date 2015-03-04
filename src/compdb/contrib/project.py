@@ -12,6 +12,7 @@ FN_DUMP_STORAGE = 'storage'
 FN_DUMP_DB = 'dump'
 FN_RESTORE_SCRIPT_SH = 'restore.sh'
 FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
+FN_STORAGE_BACKUP = '_fs_backup'
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -300,6 +301,12 @@ class Project(object):
                     ).encode())
         return [fn_restore_script_sh]
 
+    def _create_config_snapshot(self, dst):
+        from os.path import join
+        fn_config = join(dst, 'compdb.rc')
+        self.config.write(fn_config)
+        return [fn_config]
+
     def _restore_snapshot_from_src(self, src, force = False):
         import shutil, os
         from os.path import join, isdir, dirname, exists
@@ -357,14 +364,21 @@ class Project(object):
         from tempfile import TemporaryDirectory
         from itertools import chain
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
-            with TarFile(dst, 'w') as tarfile:
-                for fn in chain(self._create_db_snapshot(tmp), self._create_restore_scripts(tmp)):
-                    logger.debug("Storing '{}'...".format(fn))
-                    tarfile.add(fn, os.path.relpath(fn, tmp))
-                if full:
-                    tarfile.add(
-                        self.filestorage_dir(), FN_DUMP_STORAGE,
-                        exclude = lambda fn: str(fn) == 'fs_backup')
+            try:
+                with TarFile(dst, 'w') as tarfile:
+                    for fn in chain(
+                            self._create_db_snapshot(tmp),
+                            self._create_restore_scripts(tmp),
+                            self._create_config_snapshot(tmp)):
+                        logger.debug("Storing '{}'...".format(fn))
+                        tarfile.add(fn, os.path.relpath(fn, tmp))
+                    if full:
+                        tarfile.add(
+                            self.filestorage_dir(), FN_DUMP_STORAGE,
+                            exclude = lambda fn: str(fn) == FN_STORAGE_BACKUP)
+            except Exception:
+                os.remove(dst)
+                raise
 
     def create_snapshot(self, dst):
         return self._create_snapshot(dst, full = True)
@@ -375,11 +389,16 @@ class Project(object):
     def restore_snapshot(self, src):
         import os, shutil
         from tempfile import TemporaryDirectory
+        from os.path import join
+        num_active = len(list(self.active_jobs()))
+        if num_active > 0:
+            msg = "This project has indication of active jobs. "
+            msg += "You can use 'compdb cleanup' to remove dead jobs."
+            raise RuntimeError(msg.format(num_active))
         with TemporaryDirectory() as tmp_dir:
             fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
-            path_to_fs = os.path.dirname(self.filestorage_dir())
-            fn_storage_backup = os.path.join(path_to_fs, 'fs_backup')
-            assert not os.path.exists(fn_storage_backup)
+            fn_storage_backup = os.path.join(
+                self.filestorage_dir(), FN_STORAGE_BACKUP)
             rollback_backup_created = False
             try:
                 logger.info("Trying to restore from '{}'.".format(src))
@@ -399,21 +418,18 @@ class Project(object):
                 if rollback_backup_created:
                     try:
                         logger.info("Restoring previous state...")
-                        #shutil.move(fn_storage_backup, self.filestorage_dir())
                         for root, dirs, files in os.walk(fn_storage_backup):
                             for dir in dirs:
-                                print(join(root, dir))
-                                print(self.filestorage_dir())
                                 shutil.move(join(root, dir), self.filestorage_dir())
                         self._restore_snapshot(fn_rollback)
                     except:
                         msg = "Failed to rollback!"
                         logger.critical(msg)
+                        raise
                     else:
                         logger.debug("Rolled back.")
                 raise error
             else:
-                print("removing {}".format(fn_storage_backup))
                 try:
                     shutil.rmtree(fn_storage_backup)
                 except FileNotFoundError:
