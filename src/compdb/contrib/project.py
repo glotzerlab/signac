@@ -119,9 +119,9 @@ class Project(object):
 
     def _job_spec(self, parameters):
         spec = {}
-        if not len(parameters):
-            msg = "Parameters dictionary cannot be empty!"
-            raise ValueError(msg)
+        #if not len(parameters):
+        #    msg = "Parameters dictionary cannot be empty!"
+        #    raise ValueError(msg)
         if parameters is not None:
             spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
