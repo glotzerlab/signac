@@ -11,8 +11,9 @@ def info(args):
         args.more = True
 
     print(project)
-    if args.status:
+    if args.more:
         print(project.config)
+    if args.status:
         print("{} registered job(s)".format(len(list(project.find_job_ids()))))
         print("{} active job(s)".format(len(list(project.active_jobs()))))
     if args.jobs:
@@ -38,11 +39,13 @@ def info(args):
                 print(dumps(job.spec['parameters'], sort_keys = True))
     if args.pulse:
         from datetime import datetime
+        from compdb.contrib.job import PULSE_PERIOD
         jobs = list(project.job_pulse())
         if jobs:
+            print("Pulse period (expected): {}s.".format(PULSE_PERIOD))
             for uid, age in jobs:
                 delta = datetime.utcnow() - age
-                msg = "UID: {uid}, last signal: {age} seconds"
+                msg = "UID: {uid}, last signal: {age:.2f} seconds"
                 print(msg.format(
                     uid = uid, 
                     age = delta.total_seconds()))
@@ -96,7 +99,6 @@ def restore_snapshot(args):
 
 def clean_up(args):
     from . import get_project
-    args = parser.parse_args(raw_args)
     project = get_project()
     logger.info("Killing dead jobs...")
     project.kill_dead_jobs(seconds = args.tolerance_time)
