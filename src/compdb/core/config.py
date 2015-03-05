@@ -94,13 +94,19 @@ class Config(object):
         with open(filename, 'w') as file:
             json.dump(args, file, indent = indent)
 
-    def dump(self, indent = 0, keys = None):
+    def _dump(self, indent = 0, keys = None):
         import json
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        print(json.dumps(args, indent = indent))
+        return json.dumps(args, indent = indent, sort_keys = True)
+
+    def dump(self, indent = 0, keys = None):
+        print(self._dump(indent, keys))
+
+    def __str__(self):
+        return self._dump()
 
     def __getitem__(self, key):
         try:

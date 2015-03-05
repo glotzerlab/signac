@@ -102,6 +102,9 @@ class Job(object):
             self._project.get_jobs_collection(),
             self.get_id(), self._unique_id)
 
+    def __str__(self):
+        return self.get_id()
+
     @property
     def spec(self):
         return self._spec

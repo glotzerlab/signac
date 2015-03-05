@@ -95,12 +95,28 @@ def copy_templates(args):
                 c = SCRIPT_HEADER + content
                 file.write(c.encode('utf-8'))
 
-def main(arguments = None):
-    logging.basicConfig(level = logging.DEBUG)
-    from argparse import ArgumentParser
-    parser = ArgumentParser(
-        description = "Make a new mock compdb project.",
-        )
+def init_project(args):
+    try:
+        adjust_args(args)
+        if not args.force:
+            if check_for_existing_project(args):
+                return
+        check_for_database(args)
+        config = generate_config(args)
+        copy_templates(args)
+    except Exception as error:
+        raise
+    else:
+        import os
+        config.write(os.path.join(args.directory, 'compdb.rc'))
+            #keys = PROJECT_CONFIG_KEYS)
+        print(MSG_SUCCESS.format(
+            project_name = args.project_name,
+            project_dir = os.path.realpath(args.directory)))
+        config.load()
+        check_environment()
+
+def setup_parser(parser):
     parser.add_argument(
         'project_name',
         type = str,
@@ -139,26 +155,15 @@ def main(arguments = None):
         action = 'store_true',
         help = "Ignore warnings that prevent project creation. This might lead to potential data loss!")
 
+def main(arguments = None):
+    logging.basicConfig(level = logging.DEBUG)
+    from argparse import ArgumentParser
+    parser = ArgumentParser(
+        description = "Make a new mock compdb project.",
+        )
+    setup_parser(parser)
     args = parser.parse_args(arguments)
-    try:
-        adjust_args(args)
-        if not args.force:
-            if check_for_existing_project(args):
-                return
-        check_for_database(args)
-        config = generate_config(args)
-        copy_templates(args)
-    except Exception as error:
-        raise
-    else:
-        import os
-        config.write(os.path.join(args.directory, 'compdb.rc'))
-            #keys = PROJECT_CONFIG_KEYS)
-        print(MSG_SUCCESS.format(
-            project_name = args.project_name,
-            project_dir = os.path.realpath(args.directory)))
-        config.load()
-        check_environment()
+    init_project(args)
 
 if __name__ == '__main__':
     main()

@@ -26,6 +26,9 @@ class Project(object):
         config.verify()
         self._config = config
 
+    def __str__(self):
+        return self.get_id()
+
     @property 
     def config(self):
         return self._config
@@ -115,6 +118,13 @@ class Project(object):
             'project': self.get_id(),
         })
         return spec
+
+    def get_job(self, job_id, blocking = True, timeout = -1):
+        from . job import Job
+        return Job(
+            project = self,
+            spec = {'_id': job_id},
+            blocking = blocking, timeout = timeout)
 
     def _open_job(self, spec, blocking = True, timeout = -1):
         from . job import Job
@@ -406,7 +416,7 @@ class Project(object):
             try:
                 logger.info("Trying to restore from '{}'.".format(src))
                 logger.debug("Creating rollback backup...")
-                self.create_db_snapshot(fn_rollback)
+                self.create_snapshot(fn_rollback, full = False)
                 for job_id in self.find_job_ids():
                     try:
                         shutil.move(

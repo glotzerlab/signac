@@ -93,11 +93,11 @@ def set_verbosity_level(verbosity, default = None, increment = 10):
 
     Args:
       verbosity: The verbosity level as integer.
-      default: The default verbosity level, defaults to logging.INFO.
+      default: The default verbosity level, defaults to logging.ERROR.
     """
     import logging
     if default is None:
-        default = logging.INFO
+        default = logging.ERROR
     logging.basicConfig(
         level = default - increment * verbosity)
 
@@ -119,3 +119,8 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         v_level = getattr(args, self.dest)
         set_verbosity_level(v_level)
 
+class EmptyIsTrue(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values is None:
+            values = True
+        setattr(namespace, self.dest, values)
