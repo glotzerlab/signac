@@ -469,6 +469,6 @@ class Project(object):
                 logger.info("Restored snapshot '{}'.".format(src))
 
     def job_pool(self, parameter_set, exclude = None):
-        from . job_pool import Pool
+        from . job_pool import JobPool
         from copy import copy
-        return Pool(self, parameter_set, copy(exclude))
+        return JobPool(self, parameter_set, copy(exclude))

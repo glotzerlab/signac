@@ -1,6 +1,10 @@
-class Pool(object):
+import logging
+logger = logging.getLogger('job_pool')
+
+class JobPool(object):
 
     def __init__(self, project, parameter_set, exclude_condition = None):
+        self._open = False
         self._project = project
         self._parameter_set = parameter_set
         self._exclude_condition = exclude_condition
@@ -41,45 +45,71 @@ class Pool(object):
         return len(list(self._get_valid_indeces()))
 
     def _update_counter(self, delta):
-        import fcntl
+        import fcntl, os
         fn_pool_counter = self._fn_pool_counter()
         try:
             with open(fn_pool_counter, 'xb') as file:
-                file.write(str(1).encode())
+                fcntl.flock(file, fcntl.LOCK_EX)
+                file.write(str(delta).encode())
+                self._setup()
         except FileExistsError:
             with open(fn_pool_counter, 'r+b') as file:
                 fcntl.flock(file, fcntl.LOCK_EX)
                 counter = int(file.read().decode())
+                counter += delta
+                if counter == 1:
+                    try:
+                        self._setup()
+                    except FileExistsError:
+                        pass
+                elif counter == 0:
+                    os.remove(self._fn_pool())
+                elif counter < 0:
+                    return
                 file.seek(0)
                 file.truncate()
-                file.write(str(counter+delta).encode())
+                file.write(str(counter).encode())
 
-    def setup(self):
+    def _setup(self):
         fn_pool = self._fn_pool()
-        try:
-            indeces = self._get_valid_indeces()
-            str_indeces= ','.join(str(i) for i in indeces)
-            with open(fn_pool, 'xb') as file:
-                file.write(str_indeces.encode())
-        except FileExistsError:
-            pass
+        #try:
+        indeces = self._get_valid_indeces()
+        str_indeces= ','.join(str(i) for i in indeces)
+        with open(fn_pool, 'xb') as file:
+            file.write(str_indeces.encode())
+        #except FileExistsError:
+            #pass
+
+    def open(self):
+        if not self._open:
+            self._update_counter(1)
+            self._open = True
+
+    def close(self):
+        if self._open:
+            self._update_counter(-1)
 
     def __enter__(self):
-        self.setup()
-        self._update_counter(1)
+        self.open()
         return self
 
     def __exit__(self, err_type, err_val, traceback):
-        import fcntl
-        self._update_counter(-1)
+        self.close()
 
     def _get_index(self, rank):
-        with open(self._fn_pool(), 'rb') as file:
-            indeces = file.read().decode().split(',')
-            try:
-                return int(indeces[rank])
-            except ValueError:
-                raise IndexError(rank)
+        try:
+            with open(self._fn_pool(), 'rb') as file:
+                indeces = file.read().decode().split(',')
+                try:
+                    return int(indeces[rank])
+                except IndexError as error:
+                    msg = "Invalid rank: {}"
+                    logger.error(msg.format(rank))
+                    raise IndexError(msg.format(rank)) from error
+                    raise IndexError(rank) from error
+        except FileNotFoundError:
+            msg = "Pool not opened."
+            raise RuntimeError(msg)
 
     def parameters(self, rank):
         return self._parameter_set[self._get_index(rank)]
