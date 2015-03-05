@@ -1,14 +1,20 @@
 import logging
 logger = logging.getLogger('compdb')
 
-LEGAL_COMMANDS = ['init', 'config', 'snapshot', 'restore', 'cleanup', 'remove_project', 'show']
-
-def show(args):
+def info(args):
     from compdb.contrib import get_project
     project = get_project()
+    if args.all:
+        args.status = True
+        args.jobs = True
+        args.pulse = True
+        args.more = True
+
     print(project)
     if args.status:
         print(project.config)
+        print("{} registered job(s)".format(len(list(project.find_job_ids()))))
+        print("{} active job(s)".format(len(list(project.active_jobs()))))
     if args.jobs:
         legit_ids = project.find_job_ids()
         if args.jobs is True:
@@ -20,7 +26,6 @@ def show(args):
             if unknown_ids:
                 print("Unknown ids: {}".format(','.join(unknown_ids)))
         if args.status:
-            print(project)
             print("Job ID{}".format(' ' * 26), "Open Instances")
         for known in known_ids:
             job = project.get_job(known)
@@ -29,7 +34,8 @@ def show(args):
             else:
                 print(job)
             if args.more:
-                print(job.spec['parameters'])
+                from json import dumps
+                print(dumps(job.spec['parameters'], sort_keys = True))
     if args.pulse:
         from datetime import datetime
         jobs = list(project.job_pulse())
@@ -42,6 +48,20 @@ def show(args):
                     age = delta.total_seconds()))
         else:
             print("No active jobs found.")
+
+def view(args):
+    from compdb.contrib import get_project
+    from os.path import join
+    project = get_project()
+    if args.url:
+        url = join(args.prefix, args.url)
+    else:
+        url = join(args.prefix, project.get_default_view_url())
+    if args.copy:
+        q = "Are you sure you want to create copy of the whole dataset? This might create extremely high network load!"
+        if not(args.yes or query_yes_no(q, 'no')):
+            return
+    project.create_view(url = url, copy = args.copy)
 
 def store_snapshot(args):
     from . import get_project
@@ -181,26 +201,47 @@ def main():
         default = int(5 * PULSE_PERIOD))
     parser_cleanup.set_defaults(func = clean_up)
 
-    parser_show = subparsers.add_parser('show')
-    parser_show.add_argument(
+    parser_info = subparsers.add_parser('info')
+    parser_info.add_argument(
         '-j', '--jobs',
         nargs = '?',
         action = EmptyIsTrue,
         help = "Lists the jobs of this project. Provide a comma-separated list to show only a subset.",
         )
-    parser_show.add_argument(
+    parser_info.add_argument(
         '-s', '--status',
         action = 'store_true',
         help = "Print status information.")
-    parser_show.add_argument(
+    parser_info.add_argument(
         '-p', '--pulse',
         action = 'store_true',
         help = "Print job pulse status.")
-    parser_show.add_argument(
+    parser_info.add_argument(
         '-m', '--more',
         action = 'store_true',
         help = "Show more details.")
-    parser_show.set_defaults(func = show)
+    parser_info.add_argument(
+        '-a', '--all',
+        action = 'store_true',
+        help = "Show everything.")
+    parser_info.set_defaults(func = info)
+    
+    parser_view = subparsers.add_parser('view')
+    parser_view.add_argument(
+        '--prefix',
+        type = str,
+        default = 'view/',
+        help = "Prefix the given view url.")
+    parser_view.add_argument(
+        '-u', '--url',
+        type = str,
+        help = "Provide a url for the view in the form: abc/{a}/{b}, where each value in curly brackets denotes the name of a parameter."
+        )
+    parser_view.add_argument(
+        '-c', '--copy',
+        action = 'store_true',
+        help = "Generate a copy of the whole dataset instead of linking to it. WARNING: This option may create very high network load!")
+    parser_view.set_defaults(func = view)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)

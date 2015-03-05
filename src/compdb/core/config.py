@@ -106,7 +106,7 @@ class Config(object):
         print(self._dump(indent, keys))
 
     def __str__(self):
-        return self._dump()
+        return self._dump(indent = 1)
 
     def __getitem__(self, key):
         try:

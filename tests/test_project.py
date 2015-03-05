@@ -23,7 +23,7 @@ class ProjectBackupTest(JobTest):
         with project.open_job('test_create_snapshot', test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
-        project.create_db_snapshot(fn_tmp)
+        project.create_snapshot(fn_tmp, full = False)
         remove(fn_tmp)
 
     def test_create_and_restore_db_snapshot(self):
@@ -34,7 +34,7 @@ class ProjectBackupTest(JobTest):
         with project.open_job('test_create_snapshot', test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
-        project.create_db_snapshot(fn_tmp)
+        project.create_snapshot(fn_tmp, full = False)
         project.restore_snapshot(fn_tmp)
         remove(fn_tmp)
 

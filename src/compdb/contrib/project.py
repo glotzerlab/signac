@@ -27,7 +27,13 @@ class Project(object):
         self._config = config
 
     def __str__(self):
-        return self.get_id()
+        try:
+            return self.get_id()
+        except KeyError:
+            import os
+            msg = "Unable to determine project id. "
+            msg += "Are you sure '{}' is a compDB project path?"
+            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
 
     @property 
     def config(self):
@@ -242,13 +248,17 @@ class Project(object):
                 raise KeyError(msg.format(error)) from error
             yield src, dst
 
+    def get_default_view_url(self):
+        import os
+        from itertools import chain
+        params = sorted(self._aggregate_parameters())
+        return str(os.path.join(* chain.from_iterable(
+            (str(p), '{'+str(p)+'}') for p in params)))
+
     def create_view(self, url = None, copy = False):
         import os, re, shutil
-        from itertools import chain
         if url is None:
-            params = sorted(self._aggregate_parameters())
-            url = str(os.path.join(* chain.from_iterable(
-                (str(p), '{'+str(p)+'}') for p in params)))
+            url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
         links = self._get_links(url, parameters)
         for src, dst in links:
