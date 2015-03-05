@@ -5,13 +5,6 @@ JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 10
 
-def generate_hash_from_spec(spec):
-    import json, hashlib
-    blob = json.dumps(spec, sort_keys = True)
-    m = hashlib.md5()
-    m.update(blob.encode())
-    return m.hexdigest()
-
 def spec_for_nested_dict(nd):
     spec.update(
         {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
@@ -95,9 +88,6 @@ class Job(object):
         self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
             self._project.collection, self.get_id())
-        if self._project.develop_mode():
-            msg = "Project '{}' is in development mode."
-            logger.warning(msg.format(self._project.get_id()))
         self._pulse = PulseThread(
             self._project.get_jobs_collection(),
             self.get_id(), self._unique_id)
@@ -204,6 +194,7 @@ class Job(object):
         import os
         from pymongo.errors import DuplicateKeyError
         from . import sleep_random
+        from . hashing import generate_hash_from_spec
         if not '_id' in self._spec:
             try:
                 _id = generate_hash_from_spec(self._spec)

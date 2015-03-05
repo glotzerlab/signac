@@ -78,6 +78,9 @@ class Project(object):
     def filestorage_dir(self):
         return self.config['filestorage_dir']
 
+    def _workspace_dir(self):
+        return self.config['workspace_dir']
+
     def remove(self, force = False):
         from pymongo import MongoClient
         import pymongo.errors
@@ -110,12 +113,14 @@ class Project(object):
         return bool(self.config.get('develop', False))
 
     def activate_develop_mode(self):
+        msg = "{}: Activating develop mode!"
+        logger.warning(msg.format(self.get_id()))
         self.config['develop'] = True
 
     def _job_spec(self, name, parameters):
         spec = {}
-        if name is not None:
-            spec.update({JOB_NAME_KEY: name})
+        #if name is not None:
+        #    spec.update({JOB_NAME_KEY: name})
         if parameters is not None:
             spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
@@ -266,10 +271,14 @@ class Project(object):
                 os.makedirs(os.path.dirname(dst))
             except FileExistsError:
                 pass
-            if copy:
-                shutil.copytree(src, dst)
-            else:
-                os.symlink(src, dst, target_is_directory = True)
+            try:
+                if copy:
+                    shutil.copytree(src, dst)
+                else:
+                    os.symlink(src, dst, target_is_directory = True)
+            except FileExistsError as error:
+                msg = "Failed to create view for url '{url}'. Are you using enough parameters for uniqueness?"
+                raise RuntimeError(msg)
 
     def create_view_script(self, url, cmd = 'ln -s'):
         for src, dst in self._get_links(url):
@@ -458,3 +467,8 @@ class Project(object):
                 except FileNotFoundError:
                     pass
                 logger.info("Restored snapshot '{}'.".format(src))
+
+    def job_pool(self, parameter_set, exclude = None):
+        from . job_pool import Pool
+        from copy import copy
+        return Pool(self, parameter_set, copy(exclude))
