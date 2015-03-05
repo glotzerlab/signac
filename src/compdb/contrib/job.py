@@ -83,7 +83,7 @@ class Job(object):
         self._cwd = None
         self._obtain_id()
         self._with_id()
-        self._wd = os.path.join(self._project.config['working_dir'], str(self.get_id()))
+        self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._create_directories()
         self._storage = Storage(
@@ -124,7 +124,7 @@ class Job(object):
         self._with_id()
         return {'_id': self._spec['_id']}
 
-    def get_working_directory(self):
+    def get_workspace_directory(self):
         self._with_id()
         return self._wd
 
@@ -135,7 +135,7 @@ class Job(object):
     def _create_directories(self):
         import os
         self._with_id()
-        for dir_name in (self.get_working_directory(), self.get_filestorage_directory()):
+        for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
 
@@ -168,7 +168,7 @@ class Job(object):
         self._start_pulse()
         self._cwd = os.getcwd()
         self._create_directories()
-        os.chdir(self.get_working_directory())
+        os.chdir(self.get_workspace_directory())
         self._add_instance()
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
@@ -184,7 +184,7 @@ class Job(object):
     def _close(self):
         import shutil, os
         if self.num_open_instances() == 0:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
@@ -248,16 +248,16 @@ class Job(object):
                 self._close_with_error()
                 return False
     
-    def clear_working_directory(self):
+    def clear_workspace_directory(self):
         import shutil
         try:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
         self._create_directories()
 
     def clear(self):
-        self.clear_working_directory()
+        self.clear_workspace_directory()
         self._storage.clear()
         self._dbuserdoc.clear()
         self._jobs_doc_collection.drop()
@@ -275,7 +275,7 @@ class Job(object):
         self.clear()
         self._storage.remove()
         try:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
         self._dbuserdoc.remove()

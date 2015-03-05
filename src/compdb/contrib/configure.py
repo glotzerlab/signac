@@ -63,7 +63,7 @@ def show(args):
         config.read(args.config)
     except FileNotFoundError:
         pass
-    config.dump()
+    config.dump(indent = 1)
 
 
 def verify(args):

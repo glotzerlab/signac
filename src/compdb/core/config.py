@@ -15,14 +15,14 @@ ENVIRONMENT_VARIABLES = {
     'project':          'COMPDB_PROJECT',
     'project_dir' :     'COMPDB_PROJECT_DIR',
     'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
-    'working_dir':      'COMPDB_WORKING_DIR',
+    'workspace_dir':      'COMPDB_WORKING_DIR',
     'database_host':    'COMPDB_DATABASE_HOST',
     'develop':          'COMPDB_DEVELOP',
 }
 
 REQUIRED_KEYS = [
     'author_name', 'author_email', 'project',
-    'project_dir',  'filestorage_dir', 'working_dir',
+    'project_dir',  'filestorage_dir', 'workspace_dir',
     ]
 
 DEFAULTS = {
@@ -35,7 +35,7 @@ LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
     'global_fs_dir', 'develop', 
     ]
 
-DIRS = ['working_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
+DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 
 class Config(object):   
 

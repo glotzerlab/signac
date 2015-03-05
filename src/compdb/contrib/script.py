@@ -116,6 +116,8 @@ def remove(args):
                 print("Try 'compdb clenaup'.")
                 if args.yes or query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
                     project.remove(force = True)
+            else:
+                print("Project removed from database.")
     elif args.job:
         job_ids = set(args.job.split(','))
         legit_ids = project.find_job_ids()

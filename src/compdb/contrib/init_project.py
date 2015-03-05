@@ -13,7 +13,7 @@ MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to pro
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
 MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"
 #PROJECT_CONFIG_KEYS = [
-#    'project', '_project_dir', 'working_dir',
+#    'project', '_project_dir', 'workspace_dir',
 #    'filestorage_dir', 'database_host']
 
 def check_for_database(args):
@@ -43,7 +43,7 @@ def check_environment():
     from compdb.contrib import get_project
     project = get_project()
 
-    keys = ['author_name', 'author_email', 'working_dir', 'filestorage_dir']
+    keys = ['author_name', 'author_email', 'workspace_dir', 'filestorage_dir']
     missing = []
     for key in keys:
         if project.config.get(key) is None:
@@ -56,7 +56,7 @@ def check_environment():
 def adjust_args(args):
     from os.path import abspath
     if args.workspace:
-        args['working_dir'] = abspath(args.workspace)
+        args['workspace_dir'] = abspath(args.workspace)
     if args.storage:
         args['filestorage_dir'] = abspath(args.storage)
     
@@ -66,7 +66,7 @@ def generate_config(args):
          'project':  args.project_name,
     }
     if args.workspace:
-        c_args['working_dir'] = args.workspace
+        c_args['workspace_dir'] = args.workspace
     if args.storage:
         c_args['filestorage_dir'] = args.storage
     if args.db_host:
