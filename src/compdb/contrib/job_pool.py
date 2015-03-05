@@ -114,5 +114,5 @@ class JobPool(object):
     def parameters(self, rank):
         return self._parameter_set[self._get_index(rank)]
 
-    def open_job(self, jobname, rank):
-        return self._project.open_job(jobname, self.parameters(rank))
+    def open_job(self, rank):
+        return self._project.open_job(self.parameters(rank))

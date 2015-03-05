@@ -12,7 +12,7 @@ class ProjectBackupTest(JobTest):
     def test_dump_db_snapshot(self):
         from compdb.contrib import get_project
         project = get_project()
-        with project.open_job('test_dump', test_token) as job:
+        with project.open_job(test_token) as job:
             job.document['result'] = 123
         project.dump_db_snapshot()
 
@@ -20,7 +20,7 @@ class ProjectBackupTest(JobTest):
         from compdb.contrib import get_project
         from os import remove
         project = get_project()
-        with project.open_job('test_create_snapshot', test_token) as job:
+        with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
         project.create_snapshot(fn_tmp, full = False)
@@ -31,7 +31,7 @@ class ProjectBackupTest(JobTest):
         from compdb.contrib import get_project
         from tempfile import TemporaryFile
         project = get_project()
-        with project.open_job('test_create_snapshot', test_token) as job:
+        with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
         project.create_snapshot(fn_tmp, full = False)
@@ -52,7 +52,7 @@ class ProjectBackupTest(JobTest):
                     p.update({'a': a, 'b': b})
                     yield p
         for state in states():
-            with project.open_job('test_full_restore', state) as job:
+            with project.open_job(state) as job:
                 job.document['result'] = 123
                 with job.storage.open_file('result.txt', 'wb') as file:
                     file.write('123'.encode())
@@ -65,7 +65,7 @@ class ProjectBackupTest(JobTest):
         from compdb.contrib import get_project
         from tempfile import TemporaryFile
         project = get_project()
-        with project.open_job('test_create_snapshot', test_token) as job:
+        with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
         self.assertRaises(FileNotFoundError, project.restore_snapshot, '_bullshit.tar')
@@ -81,7 +81,7 @@ class ProjectViewTest(JobTest):
             for b in B:
                 p = dict(test_token)
                 p.update({'a': a, 'b': b})
-                with project.open_job('test_views', p) as test_job:
+                with project.open_job(p) as test_job:
                     test_job.document['result'] = True
         url = 'view/a/{a}/b/{b}'
         self.assertEqual(len(list(project._get_links(url, parameters=['a','b']))), len(A) * len(B))
@@ -100,7 +100,7 @@ class ProjectViewTest(JobTest):
             for b in B:
                 p = dict(test_token)
                 p.update({'a': a, 'b': b})
-                with project.open_job('test_views', p) as test_job:
+                with project.open_job(p) as test_job:
                     test_job.document['result'] = True
         with TemporaryDirectory(prefix = 'comdb_') as tmp:
             url = os.path.join(tmp,'a/{a}/b/{b}')
@@ -111,7 +111,7 @@ def open_pool(state_points, rank, condition = None):
     project = get_project()
     with project.job_pool(state_points, condition) as pool:
         try:
-            job = pool.open_job('myjob', rank)
+            job = pool.open_job(rank)
             if job.parameters()['a'] == 0:
                 job.document['check'] = True
         except IndexError:

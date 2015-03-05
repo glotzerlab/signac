@@ -117,7 +117,7 @@ class Project(object):
         logger.warning(msg.format(self.get_id()))
         self.config['develop'] = True
 
-    def _job_spec(self, name, parameters):
+    def _job_spec(self, parameters):
         spec = {}
         #if name is not None:
         #    spec.update({JOB_NAME_KEY: name})
@@ -145,8 +145,8 @@ class Project(object):
             blocking = blocking,
             timeout = timeout)
 
-    def open_job(self, name, parameters = None, blocking = True, timeout = -1):
-        spec = self._job_spec(name = name, parameters = parameters)
+    def open_job(self, parameters = None, blocking = True, timeout = -1):
+        spec = self._job_spec(parameters = parameters)
         return self._open_job(spec, blocking, timeout)
 
     def _job_spec_modifier(self, job_spec = {}, develop = None):
