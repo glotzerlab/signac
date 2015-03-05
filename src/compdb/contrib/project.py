@@ -119,8 +119,9 @@ class Project(object):
 
     def _job_spec(self, parameters):
         spec = {}
-        #if name is not None:
-        #    spec.update({JOB_NAME_KEY: name})
+        if not len(parameters):
+            msg = "Parameters dictionary cannot be empty!"
+            raise ValueError(msg)
         if parameters is not None:
             spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
@@ -189,7 +190,9 @@ class Project(object):
         self.collection.remove({'id': {'$in': list(job_ids)}})
 
     def active_jobs(self):
-        spec = {'$where': 'this.executing.length > 0'}
+        spec = {
+            'executing': {'$exists': True},
+            '$where': 'this.executing.length > 0'}
         yield from self.find_job_ids(spec)
 
     def _unique_jobs_from_pulse(self):

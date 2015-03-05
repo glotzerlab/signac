@@ -34,7 +34,7 @@ class JobPool(object):
         else:
             docs = list(self._project.find(spec = self._exclude_condition))
             doc_ids = set(doc['_id'] for doc in docs)
-            job_ids = (self._project.open_job('', p).get_id() for p in self._parameter_set)
+            job_ids = (self._project.open_job(p).get_id() for p in self._parameter_set)
             for index, job_id in enumerate(job_ids):
                 if job_id in doc_ids:
                     continue
