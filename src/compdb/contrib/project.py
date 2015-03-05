@@ -122,8 +122,9 @@ class Project(object):
         #if not len(parameters):
         #    msg = "Parameters dictionary cannot be empty!"
         #    raise ValueError(msg)
-        if parameters is not None:
-            spec.update({JOB_PARAMETERS_KEY: parameters})
+        if parameters is None:
+            parameters = {}
+        spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
             spec.update({'develop': True})
         spec.update({
@@ -235,7 +236,10 @@ class Project(object):
             ]
         result = self.get_jobs_collection().aggregate(pipe)
         assert result['ok']
-        return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+        if len(result['result']):
+            return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+        else:
+            return set()
 
     def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
         yield from self._find_jobs(
@@ -250,7 +254,10 @@ class Project(object):
         for w in walk:
             src = os.path.join(fs, w['_id'])
             try:
-                dst = url.format(** w['parameters'])
+                from collections import defaultdict
+                dd = defaultdict(lambda: 'None')
+                dd.update(w['parameters'])
+                dst = url.format(** dd)
             except KeyError as error:
                 msg = "Unknown parameter: {}"
                 raise KeyError(msg.format(error)) from error
@@ -260,8 +267,11 @@ class Project(object):
         import os
         from itertools import chain
         params = sorted(self._aggregate_parameters())
-        return str(os.path.join(* chain.from_iterable(
-            (str(p), '{'+str(p)+'}') for p in params)))
+        if len(params):
+            return str(os.path.join(* chain.from_iterable(
+                (str(p), '{'+str(p)+'}') for p in params)))
+        else:
+            return str()
 
     def create_view(self, url = None, copy = False):
         import os, re, shutil
@@ -371,6 +381,10 @@ class Project(object):
                 raise
         for root, dirs, files in os.walk(fn_storage):
             for dir in dirs:
+                try:
+                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                except (FileNotFoundError, IsADirectoryError):
+                    pass
                 shutil.move(join(root, dir), self.filestorage_dir())
             assert exists(join(self.filestorage_dir(), dir))
             break

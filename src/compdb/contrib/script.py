@@ -111,13 +111,14 @@ def remove(args):
         question = "Are you sure you want to remove project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
             try:
-                project.remove()
+                project.remove(force = args.force)
             except RuntimeError as error:
                 print("Error during project removal.")
-                print("This can be caused by currently executed jobs.")
-                print("Try 'compdb clenaup'.")
-                if args.yes or query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
-                    project.remove(force = True)
+                if not args.force:
+                    print("This can be caused by currently executed jobs.")
+                    print("Try 'compdb clenaup'.")
+                    if args.yes or query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
+                        project.remove(force = True)
             else:
                 print("Project removed from database.")
     elif args.job:
@@ -170,6 +171,10 @@ def main():
         action = 'store_true',
         help = 'Remove the whole project.'
         )
+    parser_remove.add_argument(
+        '-f', '--force',
+        action = 'store_true',
+        help = "Ignore errors during removal. May lead to data loss!")
     parser_remove.set_defaults(func = remove)
 
     parser_snapshot = subparsers.add_parser('snapshot')
