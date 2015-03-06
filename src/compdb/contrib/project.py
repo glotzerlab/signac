@@ -17,6 +17,9 @@ FN_STORAGE_BACKUP = '_fs_backup'
 def valid_name(name):
     return not name.startswith('_compdb')
 
+class RollBackupExistsError(RuntimeError):
+    pass
+
 class Project(object):
     
     def __init__(self, config = None):
@@ -247,9 +250,10 @@ class Project(object):
             sort = [('parameters.{}'.format(p), 1) for p in parameters],
             * args, ** kwargs)
     
-    def _get_links(self, url, parameters):
+    def _get_links(self, url, parameters, fs = None):
         import os
-        fs = self.filestorage_dir()
+        if fs is None:
+            fs = self.filestorage_dir()
         walk = self._walk_jobs(parameters)
         for w in walk:
             src = os.path.join(fs, w['_id'])
@@ -290,13 +294,20 @@ class Project(object):
                 else:
                     os.symlink(src, dst, target_is_directory = True)
             except FileExistsError as error:
-                msg = "Failed to create view for url '{url}'. Are you using enough parameters for uniqueness?"
+                msg = "Failed to create view for url '{url}'. "
+                msg += "Possible causes: A view with the same path exists already or you are not using enough parameters for uniqueness."
                 raise RuntimeError(msg)
 
-    def create_view_script(self, url, cmd = 'ln -s'):
-        for src, dst in self._get_links(url):
-            yield('{cmd} {src} {dst}'.format(
-                cmd = cmd, src = src, dst = dst))
+    def create_view_script(self, url = None, cmd = None, fs = None):
+        import os, re
+        if cmd is None:
+            cmd = 'mkdir -p {head}\nln -s {src} {head}/{tail}'
+        if url is None:
+            url = self.get_default_view_url()
+        parameters = re.findall('\{\w+\}', url)
+        for src, dst in self._get_links(url, parameters, fs):
+            head, tail = os.path.split(dst)
+            yield cmd.format(src = src, head = head, tail = tail)
 
     def dump_db_snapshot(self):
         from bson.json_util import dumps
@@ -349,6 +360,30 @@ class Project(object):
         self.config.write(fn_config)
         return [fn_config]
 
+    def _create_snapshot_view_script(self, dst):
+        from os.path import join
+        fn_script = join(dst, 'link_view.sh')
+        with open(fn_script, 'wb') as file:
+            file.write("CMD_LINK='ln -s'\n".encode())
+            file.write("CMD_MKDIR='mkdir -p'\n".encode())
+            cmd = "$CMD_MKDIR view/{head}\n$CMD_LINK {src} view/{head}/{tail}\n"
+            for line in self.create_view_script(
+                cmd = cmd, fs = FN_DUMP_STORAGE):
+                file.write(line.encode())
+        return [fn_script]
+
+    def _check_snapshot(self, src):
+        from os.path import isfile, isdir
+        import tarfile
+        # TODO Implement check of content routine!
+        if isfile(src):
+            with tarfile.open(src, 'r') as tarfile:
+                pass
+        elif isdir(src):
+            pass
+        else:
+            raise FileNotFoundError(src)
+
     def _restore_snapshot_from_src(self, src, force = False):
         import shutil, os
         from os.path import join, isdir, dirname, exists
@@ -396,8 +431,6 @@ class Project(object):
         if isfile(src):
             with TemporaryDirectory() as tmp_dir:
                 with tarfile.open(src, 'r') as tarfile:
-                #with TarFile(src, 'r') as tarfile:
-                    # TODO Implement check of content routine!
                     tarfile.extractall(tmp_dir)
                     self._restore_snapshot_from_src(tmp_dir)
         elif isdir(src):
@@ -416,13 +449,15 @@ class Project(object):
                     for fn in chain(
                             self._create_db_snapshot(tmp),
                             self._create_restore_scripts(tmp),
-                            self._create_config_snapshot(tmp)):
+                            self._create_config_snapshot(tmp),
+                            self._create_snapshot_view_script(tmp)):
                         logger.debug("Storing '{}'...".format(fn))
                         tarfile.add(fn, os.path.relpath(fn, tmp))
                     if full:
-                        tarfile.add(
-                            self.filestorage_dir(), FN_DUMP_STORAGE,
-                            exclude = lambda fn: str(fn) == FN_STORAGE_BACKUP)
+                        for id_ in self.find_job_ids():
+                            src_ = os.path.join(self.filestorage_dir(), id_)
+                            dst_ = os.path.join(FN_DUMP_STORAGE, id_)
+                            tarfile.add(src_, dst_)
             except Exception:
                 os.remove(dst)
                 raise
@@ -435,54 +470,88 @@ class Project(object):
             mode += ext[1:]
         return self._create_snapshot(dst, full = full, mode = mode)
 
+    def _create_rollbackup(self, dst):
+        import os, shutil
+        from os.path import join
+        logger.debug("Creating rollback backup...")
+        os.mkdir(dst)
+        fn_db_backup = os.path.join(dst, 'db_backup.tar')
+        fn_storage_backup = join(dst, FN_STORAGE_BACKUP)
+
+        self.create_snapshot(fn_db_backup, full = False)
+        for job_id in self.find_job_ids():
+            try:
+                shutil.move(
+                    os.path.join(self.filestorage_dir(), job_id), 
+                    os.path.join(fn_storage_backup, job_id))
+            except FileNotFoundError as error:
+                pass
+    
+    def _restore_rollbackup(self, dst):
+        import os, shutil
+        from os.path import join
+        fn_storage_backup = join(dst, FN_STORAGE_BACKUP)
+        fn_db_backup = os.path.join(dst, 'db_backup.tar')
+
+        for root, dirs, files in os.walk(fn_storage_backup):
+            for dir in dirs:
+                try:
+                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                except (FileNotFoundError, IsADirectoryError):
+                    pass
+                shutil.move(join(root, dir), self.filestorage_dir())
+                self._restore_snapshot(fn_db_backup)
+    
+    def _remove_rollbackup(self, dst):
+        import shutil
+        shutil.rmtree(dst)
+
     def restore_snapshot(self, src):
         import os, shutil
         from tempfile import TemporaryDirectory
         from os.path import join
+        logger.info("Trying to restore from '{}'.".format(src))
         num_active = len(list(self.active_jobs()))
         if num_active > 0:
             msg = "This project has indication of active jobs. "
             msg += "You can use 'compdb cleanup' to remove dead jobs."
             raise RuntimeError(msg.format(num_active))
-        with TemporaryDirectory() as tmp_dir:
-            fn_rollback = os.path.join(tmp_dir, 'rollback.tar')
-            fn_storage_backup = os.path.join(
-                self.filestorage_dir(), FN_STORAGE_BACKUP)
-            rollback_backup_created = False
+        self._check_snapshot(src)
+        dst_rollbackup = join(
+            self._workspace_dir(), 
+            'restore_rollback_{}'.format(self.get_id()))
+        try:
+            self._create_rollbackup(dst_rollbackup)
+        except FileExistsError as error:
+            raise RollBackupExistsError(dst_rollbackup)
+        except BaseException as error:
             try:
-                logger.info("Trying to restore from '{}'.".format(src))
-                logger.debug("Creating rollback backup...")
-                self.create_snapshot(fn_rollback, full = False)
-                for job_id in self.find_job_ids():
-                    try:
-                        shutil.move(
-                            os.path.join(self.filestorage_dir(), job_id), os.path.join(fn_storage_backup, job_id))
-                    except FileNotFoundError as error:
-                        pass
-                rollback_backup_created = True
+                self._remove_rollbackup(str(error))
+            except FileNotFoundError:
+                pass
+            raise
+        else:
+            try:
                 self._restore_snapshot(src)
-            except Exception as error:
-                msg = "Error during restore from '{src}': {error}."
-                logger.error(msg.format(src = src, error = error))
-                if rollback_backup_created:
-                    try:
-                        logger.info("Restoring previous state...")
-                        for root, dirs, files in os.walk(fn_storage_backup):
-                            for dir in dirs:
-                                shutil.move(join(root, dir), self.filestorage_dir())
-                        self._restore_snapshot(fn_rollback)
-                    except:
-                        msg = "Failed to rollback!"
-                        logger.critical(msg)
-                        raise
-                    else:
-                        logger.debug("Rolled back.")
-                raise error
-            else:
+            except BaseException as error:
+                if type(error) == KeyboardInterrupt:
+                    print("Interrupted.")
+                else:
+                    msg = "Error during restore from '{src}': {error}."
+                    logger.error(msg.format(src = src, error = error))
+                logger.info("Restoring previous state...")
                 try:
-                    shutil.rmtree(fn_storage_backup)
-                except FileNotFoundError:
-                    pass
+                    self._restore_rollbackup(dst_rollbackup)
+                except:
+                    msg = "Failed to rollback!"
+                    logger.critical(msg)
+                    raise
+                else:
+                    logger.info("Rolled back.")
+                    self._remove_rollbackup(dst_rollbackup)
+                raise
+            else:
+                self._remove_rollbackup(dst_rollbackup)
                 logger.info("Restored snapshot '{}'.".format(src))
 
     def job_pool(self, parameter_set, exclude = None):

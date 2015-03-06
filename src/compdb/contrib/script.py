@@ -54,7 +54,8 @@ def info(args):
 
 def view(args):
     from compdb.contrib import get_project
-    from os.path import join
+    from os.path import join, exists
+    from os import listdir
     project = get_project()
     if args.url:
         url = join(args.prefix, args.url)
@@ -64,7 +65,14 @@ def view(args):
         q = "Are you sure you want to create copy of the whole dataset? This might create extremely high network load!"
         if not(args.yes or query_yes_no(q, 'no')):
             return
-    project.create_view(url = url, copy = args.copy)
+    if args.script:
+        for line in project.create_view_script(url = url, cmd = args.script):
+            print(line)
+    else:
+        if exists(args.prefix) and listdir(args.prefix):
+            print("Path '{}' is not empty.".format(args.prefix))
+            return
+        project.create_view(url = url, copy = args.copy)
 
 def store_snapshot(args):
     from . import get_project
@@ -92,10 +100,33 @@ def store_snapshot(args):
 
 def restore_snapshot(args):
     from . import get_project
+    from . utility import query_yes_no
+    from . project import RollBackupExistsError
     project = get_project()
     print("Trying to restore from: {}".format(args.snapshot))
-    project.restore_snapshot(args.snapshot)
-    print("Success.")
+    try:
+        project.restore_snapshot(args.snapshot)
+    except FileNotFoundError as error:
+        raise RuntimeError("File not found: {}".format(error))
+    except RollBackupExistsError as dst:
+        q = "A backup from a previous restore attempt exists. "
+        q += "Do you want to try to recover from that?"
+        if query_yes_no(q, 'no'):
+            try:
+                project._restore_rollbackup(str(dst))
+            except Exception as error:
+                print("The recovery failed. The corrupted recovery backup lies in '{}'. It is probably safe to delete it after inspection.".format(dst))
+                raise
+            else:
+                print("Successfully recovered.")
+                project._remove_rollbackup(str(dst))
+        else:
+            q = "Do you want to delete it?"
+            if query_yes_no(q, 'no'):
+                project._remove_rollbackup(str(dst))
+                print("Removed.")
+    else:
+        print("Success.")
 
 def clean_up(args):
     from . import get_project
@@ -250,6 +281,13 @@ def main():
         '-c', '--copy',
         action = 'store_true',
         help = "Generate a copy of the whole dataset instead of linking to it. WARNING: This option may create very high network load!")
+    parser_view.add_argument(
+        '-s', '--script',
+        type = str,
+        nargs = '?',
+        const = 'mkdir -p {head}\nln -s {src} {head}/{tail}',
+        help = r"Output a line foreach job where {src} is replaced with the the job's storage directory path, {head} and {tail} combined represent your view path. Default: 'mkdir -p {head}\nln -s {src} {head}/{tail}'."
+        )
     parser_view.set_defaults(func = view)
     
     args = parser.parse_args()

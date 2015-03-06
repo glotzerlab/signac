@@ -85,9 +85,7 @@ class ProjectViewTest(JobTest):
                     test_job.document['result'] = True
         url = 'view/a/{a}/b/{b}'
         self.assertEqual(len(list(project._get_links(url, parameters=['a','b']))), len(A) * len(B))
-        def check_invalid_url():
-            list(project._get_links(url+'/{c}', parameters = ['a', 'b']))
-        self.assertRaises(KeyError, check_invalid_url)
+        list(project._get_links(url+'/{c}', parameters = ['a', 'b']))
 
     def test_create_view(self):
         import os
