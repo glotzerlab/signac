@@ -11,8 +11,8 @@ The package requires Python 3 and is tested with version 3.3.
 
 ## Installation
 
-    git clone git@bitbucket.org:glotzer/compmatdb.git
-    cd compmatdb
+    git clone git@bitbucket.org:glotzer/compdb.git
+    cd compdb
     python setup.py install
 
 On system's without root access you can install the package with
@@ -43,15 +43,6 @@ In addition, a few example scripts will be created, that may, but do not have to
 
 To test if everything is correctly setup, you can then execute `python run.py` which will run a mock parameter exploration study without actually storing any data.
 
-## More examples
-
-Less minimal boilerplate scripts can be obtained with:
-
-    compdb init MyProject --template example
-
-In addition to the minimal template scripts, this will actually store data within your project database, which can be analyzed.
-These scripts are provided to be slightly more exemplary on how to use the package.
-
-## Wiki
+## Get help:
 
 The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/compdb/wiki).
