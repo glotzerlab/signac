@@ -74,6 +74,27 @@ def view(args):
             return
         project.create_view(url = url, copy = args.copy)
 
+def check(args):
+    from . import check
+    checks = [
+        ('Checking database connection...',
+        check.check_database_connection),
+        ('Checking global configuration...',
+        check.check_global_config),
+        ('Checking project configuration...',
+        check.check_project_config),
+        ]
+    for msg, check in checks:
+        print(msg)
+        try:
+            check()
+        except Exception as error:
+            print("Error: {}".format(error))
+            if args.verbosity > 0:
+                raise
+        else:
+            print("OK")
+
 def store_snapshot(args):
     from . import get_project
     from . utility import query_yes_no
@@ -289,6 +310,9 @@ def main():
         help = r"Output a line foreach job where {src} is replaced with the the job's storage directory path, {head} and {tail} combined represent your view path. Default: 'mkdir -p {head}\nln -s {src} {head}/{tail}'."
         )
     parser_view.set_defaults(func = view)
+
+    parser_check = subparsers.add_parser('check')
+    parser_check.set_defaults(func = check)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)

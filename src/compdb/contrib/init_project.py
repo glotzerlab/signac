@@ -8,21 +8,8 @@ DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 
-MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Now try to execute `python run.py` to test your project configuration."""
+MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Execute `compdb check` to check your configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
-MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'. This does not prevent the project initialization. However the database must be accessable during job execution or analysis."
-MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"
-#PROJECT_CONFIG_KEYS = [
-#    'project', '_project_dir', 'workspace_dir',
-#    'filestorage_dir', 'database_host']
-
-def check_for_database(args):
-    from pymongo import MongoClient
-    from pymongo.errors import ConnectionFailure
-    try:
-        client = MongoClient(args.db_host)
-    except ConnectionFailure:
-        logger.warning(MSG_NO_DB_ACCESS.format(args.db_host))
 
 def check_for_existing_project(args):
     from os.path import realpath
@@ -38,20 +25,6 @@ def check_for_existing_project(args):
             print(msg.format(realpath(args.directory)))
             return True
     return False
-
-def check_environment():
-    from compdb.contrib import get_project
-    project = get_project()
-
-    keys = ['author_name', 'author_email', 'workspace_dir', 'filestorage_dir']
-    missing = []
-    for key in keys:
-        if project.config.get(key) is None:
-            missing.append(key)
-    if len(missing):
-        print(MSG_ENV_INCOMPLETE.format(missing))
-        for key in missing:
-            print("compdb config add {key} [your_value]".format(key = key))
 
 def adjust_args(args):
     from os.path import abspath
@@ -96,12 +69,12 @@ def copy_templates(args):
                 file.write(c.encode('utf-8'))
 
 def init_project(args):
+    from . import check
     try:
         adjust_args(args)
         if not args.force:
             if check_for_existing_project(args):
                 return
-        check_for_database(args)
         config = generate_config(args)
         copy_templates(args)
     except Exception as error:
@@ -114,7 +87,6 @@ def init_project(args):
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))
         config.load()
-        check_environment()
 
 def setup_parser(parser):
     parser.add_argument(

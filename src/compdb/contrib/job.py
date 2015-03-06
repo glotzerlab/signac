@@ -88,9 +88,7 @@ class Job(object):
         self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
             self._project.collection, self.get_id())
-        self._pulse = PulseThread(
-            self._project.get_jobs_collection(),
-            self.get_id(), self._unique_id)
+        self._pulse = None
 
     def __str__(self):
         return self.get_id()
@@ -142,15 +140,19 @@ class Job(object):
         return len(result['executing'])
 
     def _start_pulse(self):
+        self._pulse = PulseThread(
+            self._project.get_jobs_collection(),
+            self.get_id(), self._unique_id)
         self._pulse.start()
 
     def _stop_pulse(self):
-        self._pulse.stop()
-        self._pulse.join(1)
-        self._project.get_jobs_collection().update(
-            {'_id': self.get_id()},
-            {'$unset': 
-                {'pulse.{}'.format(self._unique_id): ''}})
+        if self._pulse is not None:
+            self._pulse.stop()
+            self._pulse.join(1)
+            self._project.get_jobs_collection().update(
+                {'_id': self.get_id()},
+                {'$unset': 
+                    {'pulse.{}'.format(self._unique_id): ''}})
 
     def _open(self):
         import os
