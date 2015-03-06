@@ -64,7 +64,7 @@ class Cache(object):
     def run(self, function, * args, ** kwargs):
         import inspect, pickle
         from bson.errors import InvalidDocument
-        from . job import generate_hash_from_spec
+        from . hashing import generate_hash_from_spec
 
         signature = str(inspect.signature(function))
         arguments = inspect.getcallargs(function, *args, ** kwargs)

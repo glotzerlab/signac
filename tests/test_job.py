@@ -6,9 +6,9 @@ import uuid
 test_token = {'test_token': str(uuid.uuid4())}
 
 @contextmanager
-def safe_open_job(name, * parameters):
+def safe_open_job(* parameters):
     from compdb.contrib import open_job as oj
-    job = oj(name, * parameters)
+    job = oj(* parameters)
     try:
         yield job
     except Exception:
@@ -50,24 +50,23 @@ class JobOpenAndClosingTest(JobTest):
 
     def test_open_job_close(self):
         from compdb.contrib import open_job
-        with open_job('testjob', test_token) as job:
+        with open_job(test_token) as job:
             pass
         job.remove()
 
     def test_reopen_job(self):
         from compdb.contrib import open_job
-        job_name = 'test_reopen_job'
-        with open_job(job_name, test_token) as job:
+        with open_job(test_token) as job:
             job_id = job.get_id()
 
-        with open_job(job_name, test_token) as job:
+        with open_job(test_token) as job:
             self.assertEqual(job.get_id(), job_id)
         job.remove()
 
     def test_job_doc_retrieval(self):
         from compdb.contrib import open_job, get_project
         project = get_project()
-        with open_job('testjob', test_token) as test_job:
+        with open_job(test_token) as test_job:
             jobs_collection = project.get_jobs_collection()
             self.assertEqual(test_job.spec, test_job._spec)
             job_doc = jobs_collection.find_one(test_job.spec)
@@ -81,13 +80,13 @@ class JobStorageTest(JobTest):
         from compdb.contrib import open_job
         key = 'my_test_key'
         value = uuid.uuid4()
-        with open_job('testjob', test_token) as test_job:
+        with open_job(test_token) as test_job:
             test_job.document[key] = value
             self.assertEqual(test_job.document[key], value)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
 
-        with open_job('testjob', test_token) as test_job:
+        with open_job(test_token) as test_job:
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
             self.assertEqual(test_job.document[key], value)
@@ -98,27 +97,11 @@ class JobStorageTest(JobTest):
         from compdb.contrib import open_job
         import uuid
         doc = {'a': uuid.uuid4()}
-        job_name = 'store_and_retrieve_value_in_job_collection'
-        with open_job(job_name, test_token) as test_job:
-            test_job.collection.insert(doc)
-        test_job.remove()
+        with open_job(test_token) as test_job:
+            test_job.collection.save(doc)
+            job_id = test_job.get_id()
 
-        jobs = compdb.contrib.find_jobs({
-            'name': job_name,
-            'parameters.test_token': test_token['test_token']})
-        for job in jobs:
-            self.assertIsNotNone(job.collection.find_one(doc))
-
-    def test_reopen_job_and_reretrieve_doc(self):
-        from compdb.contrib import open_job
-        job_name = 'test_reopen_job'
-        import uuid
-        doc = {'a': uuid.uuid4()}
-        with open_job(job_name, test_token) as job:
-            job.collection.save(doc)
-            job_id = job.get_id()
-
-        with open_job(job_name, test_token) as job:
+        with open_job(test_token) as job:
             self.assertEqual(job.get_id(), job_id)
             self.assertIsNotNone(job.collection.find_one(doc))
         job.remove()
@@ -128,7 +111,7 @@ class JobStorageTest(JobTest):
         import uuid
         data = str(uuid.uuid4())
 
-        with open_job('testjob', test_token) as job:
+        with open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
 
@@ -145,7 +128,7 @@ class JobStorageTest(JobTest):
         data = str(uuid.uuid4())
         fn = '_my_file'
 
-        with open_job('testjob', test_token) as job:
+        with open_job(test_token) as job:
             with open(fn, 'wb') as file:
                 file.write(data.encode())
             self.assertTrue(os.path.exists(fn))
@@ -164,7 +147,7 @@ class JobStorageTest(JobTest):
         data = str(uuid.uuid4())
         fns = ('_my_file', '_my_second_file')
 
-        with open_job('testjob', test_token) as job:
+        with open_job(test_token) as job:
             for fn in fns:
                 with open(fn, 'wb') as file:
                     file.write(data.encode())
@@ -187,12 +170,12 @@ class JobStorageTest(JobTest):
         data = str(uuid.uuid4())
         doc = {'a': uuid.uuid4()}
 
-        with open_job('test_clean_job', test_token) as job:
+        with open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
             job.collection.save(doc)
             
-        with open_job('test_clean_job', test_token) as job:
+        with open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'rb') as file:
                 read_back = file.read().decode()
             self.assertEqual(data, read_back)
@@ -203,9 +186,9 @@ class JobStorageTest(JobTest):
             self.assertIsNone(job.collection.find_one(doc))
         job.remove()
 
-def open_and_lock_and_release_job(jobname, token):
+def open_and_lock_and_release_job(token):
     from compdb.contrib import open_job
-    with open_job(jobname, test_token, timeout = 20) as job:
+    with open_job(test_token, timeout = 20) as job:
         pass
         #time.sleep(5)
         #with job.lock(timeout = 1):
@@ -219,11 +202,10 @@ def open_and_lock_and_release_job(jobname, token):
 class JobConcurrencyTest(JobTest):
 
     def test_recursive_job_opening(self):
-        jobname = 'test_multiple_instances'
         from compdb.contrib import open_job
-        with open_job(jobname, test_token) as job0:
+        with open_job(test_token) as job0:
             self.assertEqual(job0.num_open_instances(), 1)
-            with open_job(jobname, test_token) as job1:
+            with open_job(test_token) as job1:
                 self.assertEqual(job0.num_open_instances(), 2)
                 self.assertEqual(job1.num_open_instances(), 2)
             self.assertEqual(job0.num_open_instances(), 1)
@@ -233,10 +215,9 @@ class JobConcurrencyTest(JobTest):
         job0.remove()
 
     def test_acquire_and_release(self):
-        jobname = 'test_acquire_and_release'
         from compdb.contrib import open_job
         from compdb.contrib.concurrency import DocumentLockError
-        with open_job(jobname, test_token, timeout = 1) as job:
+        with open_job(test_token, timeout = 1) as job:
             with job.lock(timeout = 1):
                 def lock_it():
                     with job.lock(blocking=False):
@@ -248,28 +229,26 @@ class JobConcurrencyTest(JobTest):
         from compdb.contrib import open_job
         from multiprocessing import Pool
 
-        jobname = 'test_process_concurrency'
         num_processes = 10
         num_locks = 10
         try:
             with Pool(processes = num_processes) as pool:
                 result = pool.starmap_async(
                     open_and_lock_and_release_job,
-                    [(jobname, test_token) for i in range(num_locks)])
+                    [(test_token) for i in range(num_locks)])
                 result = result.get(timeout = 20)
                 self.assertEqual(result, [True] * num_locks)
         except Exception:
             raise
         finally:
             # clean up
-            with open_job(jobname, test_token) as job:
+            with open_job(test_token) as job:
                 pass
             job.remove(force = True)
 
     def test_sections(self):
         from compdb.contrib import open_job
-        name = 'test_sections'
-        with open_job(name, test_token) as job:
+        with open_job(test_token) as job:
             ex = False
             with job.section('sec0') as sec:
                 if not sec.completed():
@@ -282,7 +261,7 @@ class JobConcurrencyTest(JobTest):
                     ex2 = True
             self.assertFalse(ex2)
 
-        with open_job(name, test_token) as job:
+        with open_job(test_token) as job:
             ex3 = False
             with job.section('sec0') as sec:
                 if not sec.completed():
@@ -321,18 +300,17 @@ def open_cache(unittest, data_type):
         ex = True
         return data_type(a+b)
 
-    job_name = str(data_type)
-    expected_result = foo(a, b = b, c = c, job_name = job_name)
+    expected_result = foo(a, b = b, c = c)
     ex = False
-    with open_job(job_name, test_token) as job:
-        result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+    with open_job(test_token) as job:
+        result = job.cached(foo, a, b = b, c = c)
         #print(result, expected_result)
         unittest.assertEqual(result, expected_result)
     unittest.assertTrue(ex)
 
     ex = False
-    with open_job(job_name, test_token) as job:
-        result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+    with open_job(test_token) as job:
+        result = job.cached(foo, a, b = b, c = c)
     unittest.assertEqual(result, expected_result)
     unittest.assertFalse(ex)
     job.remove()
@@ -365,11 +343,10 @@ class TestJobCache(JobTest):
             ex = True
             return int(a+b)
 
-        job_name = 'test_modify_code'
-        expected_result = foo(a, b = b, c = c, job_name = job_name)
+        expected_result = foo(a, b = b, c = c)
         ex = False
-        with open_job(job_name, test_token) as job:
-            result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+        with open_job(test_token) as job:
+            result = job.cached(foo, a, b = b, c = c)
             #print(result, expected_result)
             self.assertEqual(result, expected_result)
         self.assertTrue(ex)
@@ -380,8 +357,8 @@ class TestJobCache(JobTest):
             return int(b+a)
 
         ex = False
-        with open_job(job_name, test_token) as job:
-            result = job.cached(foo, a, b = b, c = c, job_name = job_name)
+        with open_job(test_token) as job:
+            result = job.cached(foo, a, b = b, c = c)
         self.assertEqual(result, expected_result)
         self.assertTrue(ex)
         job.remove()
@@ -390,8 +367,7 @@ class TestJobMilestones(JobTest):
     
     def test_milestones(self):
         from compdb.contrib import open_job
-        name = 'test_milestones'
-        with open_job(name, test_token) as job:
+        with open_job(test_token) as job:
             job.milestones.clear()
             self.assertFalse(job.milestones.reached('started'))
             job.milestones.mark('started')
@@ -417,13 +393,12 @@ class TestJobMilestones(JobTest):
 
     def test_milestones_reopen(self):
         from compdb.contrib import open_job
-        name = 'test_milestones'
-        with open_job(name, test_token) as job:
+        with open_job(test_token) as job:
             job.milestones.clear()
             self.assertFalse(job.milestones.reached('started'))
             job.milestones.mark('started')
 
-        with open_job(name, test_token) as job:
+        with open_job(test_token) as job:
             self.assertTrue(job.milestones.reached('started'))
         job.remove()
 

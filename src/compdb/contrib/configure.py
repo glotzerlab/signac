@@ -10,7 +10,7 @@ RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
 OPERATIONS= ['add', 'set', 'remove', 'show']
 
-def filter(args):
+def process(args):
     from os.path import abspath
     if args.name: 
         if args.name.endswith('_dir'):
@@ -63,7 +63,7 @@ def show(args):
         config.read(args.config)
     except FileNotFoundError:
         pass
-    config.dump()
+    config.dump(indent = 1)
 
 
 def verify(args):
@@ -96,11 +96,20 @@ def make_author(args):
     else:
         config.write(args.config)
 
-def main(arguments = None):
-        from argparse import ArgumentParser
-        parser = ArgumentParser(
-            description = "Change the compDB configuration.",
-            )
+def configure(args):
+    process(args)
+    if args.operation == 'add':
+        add(args)
+    elif args.operation == 'set':
+        set_value(args)
+    elif args.operation == 'remove':
+        remove(args)
+    elif args.operation == 'show':
+        show(args)
+    else:
+        print("Unknown operation: {}".format(args.operation))
+
+def setup_parser(parser):
         parser.add_argument(
             'operation',
             type = str,
@@ -127,18 +136,14 @@ def main(arguments = None):
             help = "The config file to read and write from. Use '-' to print to standard output.",
             )
 
+def main(arguments = None):
+        from argparse import ArgumentParser
+        parser = ArgumentParser(
+            description = "Change the compDB configuration.",
+            )
+
         args = parser.parse_args(arguments)
-        filter(args)
-        if args.operation == 'add':
-            add(args)
-        elif args.operation == 'set':
-            set_value(args)
-        elif args.operation == 'remove':
-            remove(args)
-        elif args.operation == 'show':
-            show(args)
-        else:
-            print("Unknown operation: {}".format(args.operation))
+        configure(args)
 
 if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO)

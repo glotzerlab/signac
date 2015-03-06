@@ -51,8 +51,11 @@ class Storage(ReadOnlyStorage):
 
     def clear(self):
         import os
-        for fn in os.listdir(self._fs_path):
-            os.remove(os.path.join(self._fs_path, fn))
+        self.remove()
+        try:
+            os.mkdir(self._fs_path)
+        except FileExistsError:
+            pass
 
     def remove(self):
         from shutil import rmtree

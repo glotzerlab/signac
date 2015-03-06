@@ -5,13 +5,6 @@ JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 10
 
-def generate_hash_from_spec(spec):
-    import json, hashlib
-    blob = json.dumps(spec, sort_keys = True)
-    m = hashlib.md5()
-    m.update(blob.encode())
-    return m.hexdigest()
-
 def spec_for_nested_dict(nd):
     spec.update(
         {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
@@ -83,7 +76,7 @@ class Job(object):
         self._cwd = None
         self._obtain_id()
         self._with_id()
-        self._wd = os.path.join(self._project.config['working_dir'], str(self.get_id()))
+        self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._create_directories()
         self._storage = Storage(
@@ -95,12 +88,12 @@ class Job(object):
         self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
         self._dbuserdoc = DBDocument(
             self._project.collection, self.get_id())
-        if self._project.develop_mode():
-            msg = "Project '{}' is in development mode."
-            logger.warning(msg.format(self._project.get_id()))
         self._pulse = PulseThread(
             self._project.get_jobs_collection(),
             self.get_id(), self._unique_id)
+
+    def __str__(self):
+        return self.get_id()
 
     @property
     def spec(self):
@@ -121,7 +114,7 @@ class Job(object):
         self._with_id()
         return {'_id': self._spec['_id']}
 
-    def get_working_directory(self):
+    def get_workspace_directory(self):
         self._with_id()
         return self._wd
 
@@ -132,7 +125,7 @@ class Job(object):
     def _create_directories(self):
         import os
         self._with_id()
-        for dir_name in (self.get_working_directory(), self.get_filestorage_directory()):
+        for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
             if not os.path.isdir(dir_name):
                 os.makedirs(dir_name)
 
@@ -165,7 +158,7 @@ class Job(object):
         self._start_pulse()
         self._cwd = os.getcwd()
         self._create_directories()
-        os.chdir(self.get_working_directory())
+        os.chdir(self.get_workspace_directory())
         self._add_instance()
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
@@ -181,7 +174,7 @@ class Job(object):
     def _close(self):
         import shutil, os
         if self.num_open_instances() == 0:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
@@ -201,6 +194,7 @@ class Job(object):
         import os
         from pymongo.errors import DuplicateKeyError
         from . import sleep_random
+        from . hashing import generate_hash_from_spec
         if not '_id' in self._spec:
             try:
                 _id = generate_hash_from_spec(self._spec)
@@ -245,24 +239,16 @@ class Job(object):
                 self._close_with_error()
                 return False
     
-    def clear_working_directory(self):
+    def clear_workspace_directory(self):
         import shutil
         try:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
         self._create_directories()
 
-    #def clear_filestorage_directory(self):
-    #    import shutil
-    #    try:
-    #        shutil.rmtree(self.get_filestorage_directory())
-    #    except FileNotFoundError:
-    #        pass
-    #    self._create_directories()
-
     def clear(self):
-        self.clear_working_directory()
+        self.clear_workspace_directory()
         self._storage.clear()
         self._dbuserdoc.clear()
         self._jobs_doc_collection.drop()
@@ -280,7 +266,7 @@ class Job(object):
         self.clear()
         self._storage.remove()
         try:
-            shutil.rmtree(self.get_working_directory())
+            shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
         self._dbuserdoc.remove()
