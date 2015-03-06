@@ -1,13 +1,39 @@
 import logging
 logger = logging.getLogger('job_pool')
 
+from weakref import WeakValueDictionary
+from queue import Queue
+
+_executors = WeakValueDictionary()
+
+MPI_ROOT = 0
+TAG_INDECES = 0
+
+def count_pools():
+    return len(JobPool._instances)
+
+def count_jobs():
+    n = 0
+    for id_, pool in JobPool._instances.items():
+        n += len(pool)
+    return n
+
+def all_pools():
+    yield from JobPool._instances.values()
+
 class JobPool(object):
 
+    _instances = WeakValueDictionary()
+
     def __init__(self, project, parameter_set, exclude_condition = None):
-        self._open = False
+        self._instances[id(self)] = self
         self._project = project
         self._parameter_set = parameter_set
         self._exclude_condition = exclude_condition
+        self._job_queue = Queue()
+        self._job_queue_done = Queue()
+        self._job_queue_failed = Queue()
+        self._indeces = None
 
     def get_id(self):
         from . hashing import generate_hash_from_spec
@@ -16,19 +42,47 @@ class JobPool(object):
             'set':  self._parameter_set}
         return generate_hash_from_spec(pool_spec)
 
-    def _fn_pool(self):
-        from os.path import join
-        return join(
-            self._project._workspace_dir(), 
-            '_job_pool_{}'.format(self.get_id()))
+    def _comm(self):
+        from mpi4py import MPI
+        return MPI.COMM_WORLD
 
-    def _fn_pool_counter(self):
-        from os.path import join
-        return join(
-            self._project._workspace_dir(), 
-            '_job_pool_counter_{}'.format(self.get_id()))
+    def _get_rank(self):
+        return self._comm().Get_rank()
 
-    def _get_valid_indeces(self):
+    def _get_size(self):
+        return self._comm().Get_size()
+
+    def submit(self, c):
+        self._job_queue.put(c)
+
+    def start(self):
+        assert self._indeces is not None
+        msg = "Starting pool with rank '{}'."
+        logger.info(msg.format(self._get_rank()))
+        if not len(self._indeces):
+            return
+        while not self._job_queue.empty():
+            job = self._job_queue.get()
+            try:
+                msg = "Executing job '{}' with rank {}."
+                logger.debug(msg.format(job, self._get_rank()))
+                for i in self._indeces:
+                    job(self._open_job(i))
+            except:
+                self._job_queue_failed.put(job)
+                raise
+            else:
+                self._job_queue_done.put(job)
+            finally:
+                self._job_queue.task_done()
+
+    def reset_queue(self):
+        from itertools import chain
+        for queue in chain((self._job_queue_done, self._job_queue_failed)):
+            while not queue.empty():
+                self._job_queue.put(queue.get())
+
+    def _calculate_indeces(self):
         if self._exclude_condition is None:
             yield from range(len(self._parameter_set))
         else:
@@ -42,52 +96,38 @@ class JobPool(object):
                     yield index
 
     def __len__(self):
-        return len(list(self._get_valid_indeces()))
-
-    def _update_counter(self, delta):
-        import fcntl, os
-        fn_pool_counter = self._fn_pool_counter()
-        try:
-            with open(fn_pool_counter, 'xb') as file:
-                fcntl.flock(file, fcntl.LOCK_EX)
-                file.write(str(delta).encode())
-                self._setup()
-        except FileExistsError:
-            with open(fn_pool_counter, 'r+b') as file:
-                fcntl.flock(file, fcntl.LOCK_EX)
-                counter = int(file.read().decode())
-                counter += delta
-                if counter == 1:
-                    try:
-                        self._setup()
-                    except FileExistsError:
-                        pass
-                elif counter == 0:
-                    os.remove(self._fn_pool())
-                elif counter < 0:
-                    return
-                file.seek(0)
-                file.truncate()
-                file.write(str(counter).encode())
+        return len(list(self._calculate_indeces()))
 
     def _setup(self):
-        fn_pool = self._fn_pool()
-        #try:
-        indeces = self._get_valid_indeces()
-        str_indeces= ','.join(str(i) for i in indeces)
-        with open(fn_pool, 'xb') as file:
-            file.write(str_indeces.encode())
-        #except FileExistsError:
-            #pass
+        from mpi4py import MPI
+        def serialize(indeces):
+            return ','.join(str(i) for i in indeces).encode()
+        def deserialize(data):
+            try:
+                return [int(i) for i in data.decode().split(',')]
+            except ValueError:
+                return []
+
+        if self._get_rank() == MPI_ROOT:
+            size = self._get_size()
+            indeces = list(self._calculate_indeces())
+            cs = len(indeces) // size
+            rest = len(indeces) % size
+            for node in range(1, size):
+                self._comm().send(
+                    serialize(indeces[rest+node*cs:rest+(node+1)*cs]),
+                    dest = node, tag = TAG_INDECES)
+            self._indeces = indeces[:cs+rest]
+        else:
+            self._indeces = deserialize(self._comm().recv(
+                source = MPI_ROOT, tag = TAG_INDECES))
 
     def open(self):
-        if not self._open:
-            self._update_counter(1)
-            self._open = True
+        assert self._indeces is None
+        self._setup()
 
     def close(self):
-        if self._open:
-            self._update_counter(-1)
+        self._indeces = None
 
     def __enter__(self):
         self.open()
@@ -111,7 +151,10 @@ class JobPool(object):
             raise RuntimeError(msg)
 
     def parameters(self, rank):
-        return self._parameter_set[self._get_index(rank)]
+        assert self._indeces is not None
+        return self._parameter_set[self._indeces[rank]]
 
-    def open_job(self, rank):
-        return self._project.open_job(self.parameters(rank))
+    def _open_job(self, index):
+        assert self._indeces is not None
+        return self._project.open_job(
+            self._parameter_set[index])

@@ -95,6 +95,10 @@ def check(args):
         else:
             print("OK")
 
+def submit(args):
+    from . job_submit import submit_mpi
+    submit_mpi(args.module)
+
 def store_snapshot(args):
     from . import get_project
     from . utility import query_yes_no
@@ -313,6 +317,13 @@ def main():
 
     parser_check = subparsers.add_parser('check')
     parser_check.set_defaults(func = check)
+
+    parser_submit = subparsers.add_parser('submit')
+    parser_submit.add_argument(
+        'module',
+        type = str,
+        help = "The path to the python module containing job_pools.")
+    parser_submit.set_defaults(func = submit)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
