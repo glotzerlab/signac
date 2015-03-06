@@ -102,11 +102,10 @@ class JobPool(object):
                 indeces = file.read().decode().split(',')
                 try:
                     return int(indeces[rank])
-                except IndexError as error:
+                except (ValueError, IndexError) as error:
                     msg = "Invalid rank: {}"
                     logger.error(msg.format(rank))
                     raise IndexError(msg.format(rank)) from error
-                    raise IndexError(rank) from error
         except FileNotFoundError:
             msg = "Pool not opened."
             raise RuntimeError(msg)
