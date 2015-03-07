@@ -96,8 +96,10 @@ def check(args):
             print("OK")
 
 def submit(args):
-    from . job_submit import submit_mpi
-    submit_mpi(args.module)
+    from os.path import abspath
+    from . job_submit import find_all_pools, submit_mpi
+    for pool in find_all_pools(abspath(args.module)):
+        submit_mpi(pool)
 
 def store_snapshot(args):
     from . import get_project

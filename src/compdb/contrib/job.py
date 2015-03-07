@@ -124,8 +124,10 @@ class Job(object):
         import os
         self._with_id()
         for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
-            if not os.path.isdir(dir_name):
+            try:
                 os.makedirs(dir_name)
+            except OSError:
+                pass
 
     def _add_instance(self):
         self._project.get_jobs_collection().update(
