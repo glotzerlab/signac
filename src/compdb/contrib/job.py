@@ -103,6 +103,9 @@ class Job(object):
     def get_id(self):
         return self.spec.get('_id', None)
 
+    def get_project(self):
+        return self._project
+
     def _with_id(self):
         if self.get_id() is None:
             raise JobNoIdError()

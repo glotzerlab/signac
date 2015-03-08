@@ -58,9 +58,12 @@ class Project(object):
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error
 
-    def get_db(self, db_name):
-        assert valid_name(db_name)
-        return self._get_db(db_name)
+    def get_db(self, db_name = None):
+        if db_name is None:
+            return self.get_project_db()
+        else:
+            assert valid_name(db_name)
+            return self._get_db(db_name)
 
     def _get_meta_db(self):
         return self._get_db(self.config['database_meta'])
