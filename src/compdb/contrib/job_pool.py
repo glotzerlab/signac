@@ -48,7 +48,11 @@ class JobPool(object):
     def submit(self, c):
         self._job_queue.put(c)
 
-    def start(self, rank, size):
+    def start(self, rank = None, size = None, limit = None, blocking = True, timeout = -1):
+        if rank is None:
+            rank = self._comm().Get_rank()
+        if size is None:
+            size = self._comm().Get_size()
         msg = "Starting pool with rank '{}'."
         logger.info(msg.format(rank))
         indeces = self._setup(rank, size)
@@ -59,8 +63,15 @@ class JobPool(object):
             try:
                 msg = "Executing job '{}' with rank {}."
                 logger.debug(msg.format(job, rank))
-                for i in indeces[rank]:
-                    job(self._open_job(i))
+                for i, index in enumerate(indeces[rank]):
+                    if limit is not None:
+                        if i >= limit:
+                            break
+                    msg = "Rank {}: Parameter index: {}."
+                    logger.debug(msg.format(rank, index))
+                    job(self._project.open_job( 
+                        parameters = self._parameter_set[index],
+                        blocking = blocking, timeout = timeout))
             except:
                 self._job_queue_failed.put(job)
                 raise
@@ -92,16 +103,25 @@ class JobPool(object):
         return len(list(self._calculate_indeces()))
 
     def _setup(self, rank, size):
+        rank = self._comm().Get_rank()
         matrix = None
         if rank == MPI_ROOT:
             indeces = list(self._calculate_indeces())
-            cs = len(indeces) // size
-            rest = len(indeces) % size
-            matrix = [indeces[:cs+rest]]
-            for node in range(1,size):
-                matrix.append(indeces[rest+node*cs:rest+(node+1)*cs])
+            matrix = [indeces[i:j] for i,j in decompose(len(indeces), size)]
+            logger.info("Broadcasting domain decomposition.")
+            logger.debug(matrix)
+        logger.debug("Reached barrier.")
+        self._comm().Barrier()
         return self._comm().bcast(matrix, root = MPI_ROOT)
 
-    def _open_job(self, index):
-        return self._project.open_job(
-            self._parameter_set[index])
+def decompose(num_jobs, num_ranks):
+    assert num_ranks >= 1
+    num_jobs_per_rank = num_jobs // num_ranks
+    rest = num_jobs % num_ranks
+    i = 0
+    for rank in range(num_ranks):
+        j = i + num_jobs_per_rank
+        if rank < rest:
+            j += 1 
+        yield i, j
+        i = j
