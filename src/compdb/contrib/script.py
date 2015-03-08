@@ -95,7 +95,7 @@ def check(args):
         else:
             print("OK")
 
-def submit(args):
+def run_pools(args):
     from os.path import abspath
     from . job_submit import find_all_pools, submit_mpi
     for pool in find_all_pools(abspath(args.module)):
@@ -320,12 +320,12 @@ def main():
     parser_check = subparsers.add_parser('check')
     parser_check.set_defaults(func = check)
 
-    parser_submit = subparsers.add_parser('submit')
-    parser_submit.add_argument(
+    parser_run = subparsers.add_parser('run')
+    parser_run.add_argument(
         'module',
         type = str,
-        help = "The path to the python module containing job_pools.")
-    parser_submit.set_defaults(func = submit)
+        help = "The path to the python module defining job_pools.")
+    parser_run.set_defaults(func = run_pools)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
