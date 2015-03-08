@@ -36,6 +36,9 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 3:
     msg = "This module requires Python version 3.3 or higher."
     raise ImportError(msg)
 
+import logging
+logger = logging.getLogger('concurrency')
+
 try:
     from threading import TIMEOUT_MAX
 except ImportError:
@@ -103,8 +106,7 @@ class DocumentBaseLock(object):
                     while(not stop_event.is_set()):
                         if self._acquire():
                             return True
-                        stop_event.wait(max(0.1, timeout / 100))
-                        #time.sleep(max(0.1, timeout / 100))
+                        stop_event.wait(max(1, timeout / 100))
                 t_acq = Thread(target = try_to_acquire)
                 t_acq.start()
                 t_acq.join(timeout = None if timeout == -1 else timeout)
@@ -157,6 +159,7 @@ class DocumentLock(DocumentBaseLock):
             timeout = timeout)
 
     def _acquire(self):
+        logger.debug("Acquiring lock...")
         result = self._collection.find_and_modify(
             query = {
                 '_id': self._document_id,
@@ -167,6 +170,7 @@ class DocumentLock(DocumentBaseLock):
         return result is not None
 
     def _release(self):
+        logger.debug("Releasing lock...")
         result = self._collection.find_and_modify(
             query = {
                 '_id': self._document_id,

@@ -261,11 +261,12 @@ def main():
 
     parser_cleanup = subparsers.add_parser('cleanup')
     from . job import PULSE_PERIOD
+    default_wait = int(20 *  PULSE_PERIOD)
     parser_cleanup.add_argument(
         '-t', '--tolerance-time',
         type = int,
-        help = "Tolerated time in seconds since last pulse before a job is declared dead.",
-        default = int(5 * PULSE_PERIOD))
+        help = "Tolerated time in seconds since last pulse before a job is declared dead (default={}).".format(default_wait),
+        default = default_wait)
     parser_cleanup.set_defaults(func = clean_up)
 
     parser_info = subparsers.add_parser('info')
