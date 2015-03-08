@@ -18,7 +18,7 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo'],
+    install_requires=['pymongo', 'mpi4py'],
 
     entry_points = {
         'console_scripts': [
