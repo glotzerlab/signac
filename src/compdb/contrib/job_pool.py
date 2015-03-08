@@ -103,7 +103,6 @@ class JobPool(object):
                     self._exclude_condition, job_ids))
             else:
                 excluded = set()
-            print(job_ids, included, excluded)
 
             for index, job_id in enumerate(job_ids):
                 if job_id in included and not job_id in excluded:
