@@ -34,6 +34,7 @@ class JobTest(unittest.TestCase):
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
+        os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         self._project = get_project()
 
     def tearDown(self):
