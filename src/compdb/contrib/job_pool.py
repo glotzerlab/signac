@@ -25,11 +25,12 @@ class JobPool(object):
 
     _instances = WeakValueDictionary()
 
-    def __init__(self, project, parameter_set, exclude_condition = None):
+    def __init__(self, project, parameter_set, include = None, exclude = None):
         self._instances[id(self)] = self
         self._project = project
         self._parameter_set = parameter_set
-        self._exclude_condition = exclude_condition
+        self._include_condition = include
+        self._exclude_condition = exclude
         self._job_queue = Queue()
         self._job_queue_done = Queue()
         self._job_queue_failed = Queue()
@@ -87,17 +88,34 @@ class JobPool(object):
                 self._job_queue.put(queue.get())
 
     def _calculate_indeces(self):
-        if self._exclude_condition is None:
+        if self._include_condition is None and self._exclude_condition is None:
             yield from range(len(self._parameter_set))
         else:
-            docs = list(self._project.find(spec = self._exclude_condition))
-            doc_ids = set(doc['_id'] for doc in docs)
-            job_ids = (self._project.open_job(p).get_id() for p in self._parameter_set)
+            job_ids = [self._project.open_job(p).get_id()
+                for p in self._parameter_set]
+            if self._include_condition is not None:
+                included = set(self._check_condition(
+                    self._include_condition, job_ids))
+            else:
+                included = set(job_ids)
+            if self._exclude_condition is not None:
+                excluded = set(self._check_condition(
+                    self._exclude_condition, job_ids))
+            else:
+                excluded = set()
+            print(job_ids, included, excluded)
+
             for index, job_id in enumerate(job_ids):
-                if job_id in doc_ids:
-                    continue
-                else:
+                if job_id in included and not job_id in excluded:
                     yield index
+
+    def _check_condition(self, condition, ids):
+        cond_docs = self._project.find(spec = condition)
+        cond_ids = set(doc['_id'] for doc in cond_docs)
+        for id_ in ids:
+            if id_ in cond_ids:
+                yield id_
+
 
     def __len__(self):
         return len(list(self._calculate_indeces()))

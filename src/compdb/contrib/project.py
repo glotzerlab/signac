@@ -560,7 +560,7 @@ class Project(object):
                 self._remove_rollbackup(dst_rollbackup)
                 logger.info("Restored snapshot '{}'.".format(src))
 
-    def job_pool(self, parameter_set, exclude = None):
+    def job_pool(self, parameter_set, include = None, exclude = None):
         from . job_pool import JobPool
         from copy import copy
-        return JobPool(self, parameter_set, copy(exclude))
+        return JobPool(self, parameter_set, copy(include), copy(exclude))
