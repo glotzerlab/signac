@@ -46,33 +46,77 @@ class JobPool(object):
         from mpi4py import MPI
         return MPI.COMM_WORLD
 
+    def _broadcast(self, rank, data):
+        self._comm().Barrier()
+        if rank == MPI_ROOT:
+            return self._comm().bcast(data, root = MPI_ROOT)
+        else:
+            return self._comm().bcast(None, root = MPI_ROOT)
+
     def submit(self, c):
         self._job_queue.put(c)
 
-    def start(self, rank = None, size = None, limit = None, blocking = True, timeout = -1):
+    def _write_jobfile(self, filename, matrix):
+        with open(filename, 'xb') as file:
+            file.write("{}\n".format(len(self)).encode())
+            for jobs in matrix:
+                file.write("{}\n".format(','.join(jobs)).encode())
+
+    def write_jobfile(self, filename, size = None):
+        if size is None:
+            size = self._comm().Get_size()
+        matrix = self._get_matrix(size)
+        self._write_jobfile(filename, matrix)
+
+    def _read_jobfile(self, filename, rank):
+        with open(filename, 'rb') as file:
+            num_jobs = int(file.readline().decode())
+            if num_jobs < len(self):
+                msg = "Jobfile '{}' seems outdated! "
+                msg += "# of jobs in pool: {}, # of jobs in file: {}."
+                logger.warning(msg.format(filename, len(self), num_jobs))
+            for i in range(rank): # Skip the lines with lower rank
+                file.readline()
+            line = file.readline().decode()
+            ids = line.split(',')
+            if ids == ['\n']:
+                return []
+            else:
+                return [id_.strip() for id_ in ids]
+
+    def start(self, rank = None, size = None, limit = None, blocking = True, timeout = -1, jobfile = None):
         if rank is None:
             rank = self._comm().Get_rank()
         if size is None:
             size = self._comm().Get_size()
         msg = "Starting pool with rank '{}'."
         logger.info(msg.format(rank))
-        indeces = self._setup(rank, size)
-        if rank >= len(indeces):
-            return
+        if jobfile is None:
+            job_ids = self._broadcast_matrix(rank, size)
+        else:
+            try:
+                self.write_jobfile(jobfile, size)
+            except FileExistsError:
+                pass
+            job_ids = self._read_jobfile(jobfile, rank)
         while not self._job_queue.empty():
             job = self._job_queue.get()
             try:
                 msg = "Executing job '{}' with rank {}."
                 logger.debug(msg.format(job, rank))
-                for i, index in enumerate(indeces[rank]):
+                for i, job_id in enumerate(job_ids):
                     if limit is not None:
                         if i >= limit:
                             break
-                    msg = "Rank {}: Parameter index: {}."
-                    logger.debug(msg.format(rank, index))
-                    job(self._project.open_job( 
-                        parameters = self._parameter_set[index],
-                        blocking = blocking, timeout = timeout))
+                    if job_id in self._check_condition(
+                            self._exclude_condition, job_ids):
+                        msg = "Skipping '{}' due to exclude condition."
+                        logger.debug(msg.format(job_id))
+                        continue
+                    else:
+                        job(self._project.get_job(
+                            job_id = job_id,
+                            blocking = blocking, timeout = timeout))
             except:
                 self._job_queue_failed.put(job)
                 raise
@@ -87,7 +131,7 @@ class JobPool(object):
             while not queue.empty():
                 self._job_queue.put(queue.get())
 
-    def _calculate_indeces(self):
+    def _get_valid_ids(self):
         if self._include_condition is None and self._exclude_condition is None:
             yield from range(len(self._parameter_set))
         else:
@@ -106,7 +150,7 @@ class JobPool(object):
 
             for index, job_id in enumerate(job_ids):
                 if job_id in included and not job_id in excluded:
-                    yield index
+                    yield job_id
 
     def _check_condition(self, condition, ids):
         cond_docs = self._project.find(spec = condition)
@@ -115,21 +159,23 @@ class JobPool(object):
             if id_ in cond_ids:
                 yield id_
 
-
     def __len__(self):
-        return len(list(self._calculate_indeces()))
+        return len(list(self._get_valid_ids()))
 
-    def _setup(self, rank, size):
+    def _get_matrix(self, size):
+        ids = list(self._get_valid_ids())
+        matrix = [ids[i:j] for i,j in decompose(len(ids), size)]
+        return matrix
+
+    def _broadcast_matrix(self, rank, size):
         rank = self._comm().Get_rank()
         matrix = None
         if rank == MPI_ROOT:
-            indeces = list(self._calculate_indeces())
-            matrix = [indeces[i:j] for i,j in decompose(len(indeces), size)]
+            matrix = self._get_matrix(size)
             logger.info("Broadcasting domain decomposition.")
             logger.debug(matrix)
         logger.debug("Reached barrier.")
-        self._comm().Barrier()
-        return self._comm().bcast(matrix, root = MPI_ROOT)
+        return self._broadcast(rank, matrix)[rank]
 
 def decompose(num_jobs, num_ranks):
     assert num_ranks >= 1
