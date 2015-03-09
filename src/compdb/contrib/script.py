@@ -54,6 +54,7 @@ def info(args):
 
 def view(args):
     from compdb.contrib import get_project
+    from . utility import query_yes_no
     from os.path import join, exists
     from os import listdir
     project = get_project()
@@ -72,7 +73,7 @@ def view(args):
         if exists(args.prefix) and listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
-        project.create_view(url = url, copy = args.copy)
+        project.create_view(url = url, copy = args.copy, workspace = args.workspace)
 
 def check(args):
     from . import check
@@ -315,6 +316,11 @@ def main():
         nargs = '?',
         const = 'mkdir -p {head}\nln -s {src} {head}/{tail}',
         help = r"Output a line foreach job where {src} is replaced with the the job's storage directory path, {head} and {tail} combined represent your view path. Default: 'mkdir -p {head}\nln -s {src} {head}/{tail}'."
+        )
+    parser_view.add_argument(
+        '-w', '--workspace',
+        action = 'store_true',
+        help = "Generate a view of the workspace instead of the filestorage.",
         )
     parser_view.set_defaults(func = view)
 

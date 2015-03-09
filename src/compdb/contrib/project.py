@@ -253,10 +253,8 @@ class Project(object):
             sort = [('parameters.{}'.format(p), 1) for p in parameters],
             * args, ** kwargs)
     
-    def _get_links(self, url, parameters, fs = None):
+    def _get_links(self, url, parameters, fs):
         import os
-        if fs is None:
-            fs = self.filestorage_dir()
         walk = self._walk_jobs(parameters)
         for w in walk:
             src = os.path.join(fs, w['_id'])
@@ -280,12 +278,15 @@ class Project(object):
         else:
             return str()
 
-    def create_view(self, url = None, copy = False):
+    def create_view(self, url = None, copy = False, workspace = False):
         import os, re, shutil
         if url is None:
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
-        links = self._get_links(url, parameters)
+        if workspace:
+            links = self._get_links(url, parameters, self._workspace_dir())
+        else:
+            links = self._get_links(url, parameters, self.filestorage_dir())
         for src, dst in links:
             try:
                 os.makedirs(os.path.dirname(dst))
