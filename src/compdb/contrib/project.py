@@ -36,8 +36,7 @@ class Project(object):
         self._loggers = [logging.getLogger('compdb')]
         self._logging_queue = Queue()
         self._logging_queue_handler = QueueHandler(self._logging_queue)
-        self._logging_listener = QueueListener(
-            self._logging_queue, self._logging_db_handler())
+        self._logging_listener = None
 
     def __str__(self):
         try:
@@ -597,6 +596,9 @@ class Project(object):
     def start_logging(self, level = logging.INFO):
         for logger in self._loggers:
             logger.addHandler(self.logging_handler())
+        if self._logging_listener is None:
+            self._logging_listener = QueueListener(
+                self._logging_queue, self._logging_db_handler())
         self._logging_listener.start()
 
     def stop_logging(self):

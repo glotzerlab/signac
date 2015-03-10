@@ -67,14 +67,18 @@ class Job(object):
         import uuid, os
         from ..core.storage import Storage
         from ..core.dbdocument import DBDocument
-        from . concurrency import DocumentLock
+        from . errors import ConnectionFailure
 
         self._unique_id = str(uuid.uuid4())
         self._project = project
         self._spec = spec
         self._collection = None
         self._cwd = None
-        self._obtain_id()
+        try:
+            self._obtain_id()
+        except  ConnectionFailure as error:
+            logger.error("Failed to obtain id.")
+            raise
         self._with_id()
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
@@ -82,13 +86,13 @@ class Job(object):
         self._storage = Storage(
             fs_path = self._fs,
             wd_path = self._wd)
-        self._lock = DocumentLock(
-            self._project.get_jobs_collection(), self.get_id(),
-            blocking = blocking, timeout = timeout)
-        self._jobs_doc_collection = self._project.get_project_db()[str(self.get_id())]
+        self._lock = None
         self._dbuserdoc = DBDocument(
             self._project.collection, self.get_id())
         self._pulse = None
+
+    def _get_jobs_doc_collection(self):
+        return self._project.get_project_db()[str(self.get_id())]
 
     def __str__(self):
         return self.get_id()
@@ -185,12 +189,18 @@ class Job(object):
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
+    def _get_lock(self, blocking = True, timeout = -1):
+        from . concurrency import DocumentLock
+        return DocumentLock(
+                self._project.get_jobs_collection(), self.get_id(),
+                blocking = blocking, timeout = timeout)
+
     def open(self):
-        with self._lock:
+        with self._get_lock():
             self._open()
 
     def close(self):
-        with self._lock:
+        with self._get_lock():
             self._close()
 
     @property
@@ -235,7 +245,7 @@ class Job(object):
 
     def __exit__(self, err_type, err_value, traceback):
         import os
-        with self._lock:
+        with self._get_lock():
             if err_type is None:
                 self._close_with_error()
                 self._close()
@@ -258,7 +268,7 @@ class Job(object):
         self.clear_workspace_directory()
         self._storage.clear()
         self._dbuserdoc.clear()
-        self._jobs_doc_collection.drop()
+        self._get_jobs_doc_collection().drop()
 
     def remove(self, force = False):
         self._with_id()
@@ -282,7 +292,7 @@ class Job(object):
 
     @property
     def collection(self):
-        return self._jobs_doc_collection
+        return self._get_jobs_doc_collection()
 
     def _open_instances(self):
         self._with_id()
