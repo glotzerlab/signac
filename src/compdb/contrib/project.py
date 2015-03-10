@@ -582,6 +582,9 @@ class Project(object):
     def _get_logging_collection(self):
         return self.get_project_db()[COLLECTION_LOGGING]
 
+    def clear_logs(self):
+        self._get_logging_collection().drop()
+
     def _logging_db_handler(self, lock_id = None):
         from . logging import MongoDBHandler
         return MongoDBHandler(

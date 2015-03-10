@@ -110,9 +110,13 @@ def show_log(args):
         #datefmt = "%Y-%m-%d %H:%M:%S",
         style = '{')
     project = get_project()
+    showed_log = False
     for record in project.get_logs(
             level = args.level, limit = args.lines):
         print(formatter.format(record))
+        showed_log = True
+    if not showed_log:
+        print("No logs available.")
 
 def store_snapshot(args):
     from . import get_project
@@ -199,12 +203,18 @@ def remove(args):
         known_ids = job_ids.intersection(legit_ids)
         print(known_ids, unknown_ids)
         return
+        msg = "Selective removal of jobs currently not supported."
+        raise NotImplementedError(msg)
         if len(unknown_ids):
             if not(args.yes or query_yes_no(q)):
                 return
         for id_ in known_ids:
             job = project.get_job(id_)
             print(job)
+    elif args.logs:
+        question = "Are you sure you want to clear all logs from project '{}'?"
+        if args.yes or query_yes_no(question.format(project.get_id())):
+            project.clear_logs()
     else:
         print("No selection.")
 
@@ -240,7 +250,12 @@ def main():
     parser_remove.add_argument(
         '-p', '--project',
         action = 'store_true',
-        help = 'Remove the whole project.'
+        help = 'Remove the whole project.',
+        )
+    parser_remove.add_argument(
+        '-l', '--logs',
+        action = 'store_true',
+        help = "Remove all logs.",
         )
     parser_remove.add_argument(
         '-f', '--force',
