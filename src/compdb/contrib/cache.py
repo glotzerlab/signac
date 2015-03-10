@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('cache')
+logger = logging.getLogger('compdb.cache')
 
 CACHE_KEY = 'compdb_cache'
 CACHE_DIR = '.cache'

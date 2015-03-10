@@ -1,5 +1,5 @@
 import logging, threading
-logger = logging.getLogger('job')
+logger = logging.getLogger('compdb.job')
 
 JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'

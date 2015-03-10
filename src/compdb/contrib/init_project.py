@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger('make_project')
+logger = logging.getLogger('compdb.init_project')
 
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'

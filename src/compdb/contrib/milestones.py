@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('milestones')
+logger = logging.getLogger('compdb.milestones')
 
 MILESTONE_KEY = 'milestones'
 

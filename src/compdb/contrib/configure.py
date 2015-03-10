@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger('make_author')
+logger = logging.getLogger('compdb.configure')
 
 from os.path import expanduser
 

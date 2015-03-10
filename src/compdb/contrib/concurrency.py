@@ -37,7 +37,7 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 3:
     raise ImportError(msg)
 
 import logging
-logger = logging.getLogger('concurrency')
+logger = logging.getLogger('compdb.concurrency')
 
 try:
     from threading import TIMEOUT_MAX

@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger('compdb.utility')
+
 def dump_db(host, database, dst):
     import subprocess
     cmd = "mongodump --host {host} --db {database} --out {dst}"

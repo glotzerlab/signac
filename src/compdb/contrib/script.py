@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb')
+logger = logging.getLogger('compdb.script')
 
 def info(args):
     from compdb.contrib import get_project
@@ -101,6 +101,18 @@ def run_pools(args):
     from . job_submit import find_all_pools, submit_mpi
     for pool in find_all_pools(abspath(args.module)):
         submit_mpi(pool)
+
+def show_log(args):
+    from . import get_project
+    from . logging import record_from_doc
+    formatter = logging.Formatter(
+        fmt = args.format,
+        #datefmt = "%Y-%m-%d %H:%M:%S",
+        style = '{')
+    project = get_project()
+    for record in project.get_logs(
+            level = args.level, limit = args.lines):
+        print(formatter.format(record))
 
 def store_snapshot(args):
     from . import get_project
@@ -333,6 +345,27 @@ def main():
         type = str,
         help = "The path to the python module defining job_pools.")
     parser_run.set_defaults(func = run_pools)
+
+    parser_log = subparsers.add_parser('log')
+    parser_log.add_argument(
+        '-l', '--level',
+        type = str,
+        default = 'INFO',
+        help = "The minimum log level to be retrieved.",
+        )
+    parser_log.add_argument(
+        '-n', '--lines',
+        type = int,
+        default = 100,
+        help = "Only output the last n lines from the log.",
+        )
+    parser_log.add_argument(
+        '-f', '--format',
+        type = str,
+        default = "{asctime} {levelname} {message}",
+        help = "The formatting of log messages.",
+        )
+    parser_log.set_defaults(func = show_log)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)

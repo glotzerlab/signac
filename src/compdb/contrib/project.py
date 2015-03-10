@@ -1,5 +1,8 @@
 import logging
-logger = logging.getLogger('project')
+logger = logging.getLogger('compdb.project')
+from queue import Queue
+#from multiprocessing import Queue
+from logging.handlers import QueueHandler, QueueListener
 
 JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
@@ -13,6 +16,8 @@ FN_DUMP_DB = 'dump'
 FN_RESTORE_SCRIPT_SH = 'restore.sh'
 FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
 FN_STORAGE_BACKUP = '_fs_backup'
+
+COLLECTION_LOGGING = 'logging'
 
 def valid_name(name):
     return not name.startswith('_compdb')
@@ -28,6 +33,11 @@ class Project(object):
             config = load_config()
         config.verify()
         self._config = config
+        self._loggers = [logging.getLogger('compdb')]
+        self._logging_queue = Queue()
+        self._logging_queue_handler = QueueHandler(self._logging_queue)
+        self._logging_listener = QueueListener(
+            self._logging_queue, self._logging_db_handler())
 
     def __str__(self):
         try:
@@ -568,3 +578,36 @@ class Project(object):
         from . job_pool import JobPool
         from copy import copy
         return JobPool(self, parameter_set, copy(include), copy(exclude))
+
+    def _get_logging_collection(self):
+        return self.get_project_db()[COLLECTION_LOGGING]
+
+    def _logging_db_handler(self, lock_id = None):
+        from . logging import MongoDBHandler
+        return MongoDBHandler(
+            collection = self._get_logging_collection(),
+            lock_id = lock_id)
+
+    def logging_handler(self):
+        return self._logging_queue_handler
+
+    def start_logging(self, level = logging.INFO):
+        for logger in self._loggers:
+            logger.addHandler(self.logging_handler())
+        self._logging_listener.start()
+
+    def stop_logging(self):
+        self._logging_listener.stop()
+
+    def get_logs(self, level = 'INFO', limit = 0):
+        from . logging import record_from_doc
+        log_collection = self._get_logging_collection()
+        spec = {'levelname': level}
+        sort = [('created', 1)]
+        if limit:
+            skip = max(0, log_collection.count() - limit)
+        else:
+            skip = 0
+        docs = log_collection.find(spec).sort(sort).skip(skip)
+        for doc in docs:
+            yield record_from_doc(doc)

@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('job_pool')
+logger = logging.getLogger('compdb.job_pool')
 
 from weakref import WeakValueDictionary
 from queue import Queue
@@ -70,7 +70,10 @@ class JobPool(object):
 
     def _read_jobfile(self, filename, rank):
         with open(filename, 'rb') as file:
-            num_jobs = int(file.readline().decode())
+            try:
+                num_jobs = int(file.readline().decode())
+            except ValueError:
+                return []
             if num_jobs < len(self):
                 msg = "Jobfile '{}' seems outdated! "
                 msg += "# of jobs in pool: {}, # of jobs in file: {}."
