@@ -26,11 +26,16 @@ def get_collection():
     return db['test_dbdocument']
 
 @contextmanager
-def get_dbdoc():
-    with document() as id_:
-        dbdoc = DBDocument(get_collection(), id_)
-        yield dbdoc
-    
+def get_dbdoc(host = 'localhost', id_ = None):
+    if id_ is None:
+        with document() as id_:
+            dbdoc = DBDocument(host, 'testing', 'dbdocument', id_)
+            with dbdoc as x:
+                yield x
+    else:
+        dbdoc = DBDocument(host, 'testing', 'dbdocument', id_)
+        with dbdoc as x:
+            yield x
 
 class TestDBDocument(unittest.TestCase):
     
@@ -80,6 +85,29 @@ class TestDBDocument(unittest.TestCase):
             dbdoc.clear()
             for k in dbdoc:
                 self.assertEqual(k, '_id')
+
+    def test_bad_host(self):
+        import os
+        key = "test_bad_host"
+        data = testdata()
+        with get_dbdoc(host = 'example.com') as dbdoc:
+            dbdoc[key] = data
+            rb = dbdoc[key]
+            self.assertEqual(rb, data)
+            self.assertIn(key, dbdoc)
+            self.assertNotIn('abc', dbdoc)
+        self.assertTrue(os.path.exists(dbdoc._buffer_fn()))
+
+        with dbdoc:
+            self.assertIn(key, dbdoc)
+            self.assertEqual(dbdoc.get(key), data)
+        self.assertTrue(os.path.exists(dbdoc._buffer_fn()))
+
+        id_ = dbdoc._id
+        with get_dbdoc(id_ = dbdoc._id) as valid_dbdoc:
+            self.assertIn(key, valid_dbdoc)
+            self.assertEqual(valid_dbdoc.get(key), data)
+        self.assertFalse(os.path.exists(valid_dbdoc._buffer_fn()))
 
 if __name__ == '__main__':
     unittest.main()
