@@ -5,6 +5,8 @@ JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 10
 
+from . project import JOB_DOCS
+
 def spec_for_nested_dict(nd):
     spec.update(
         {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
@@ -88,7 +90,8 @@ class Job(object):
             wd_path = self._wd)
         self._lock = None
         self._dbuserdoc = DBDocument(
-            self._project.collection, self.get_id())
+            self._project.config['database_host'],
+            self._project.get_id(), JOB_DOCS, self.get_id())
         self._pulse = None
 
     def _get_jobs_doc_collection(self):
@@ -171,12 +174,14 @@ class Job(object):
         self._create_directories()
         os.chdir(self.get_workspace_directory())
         self._add_instance()
+        self._dbuserdoc.open()
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
     def _close_with_error(self):
         import shutil, os
         self._with_id()
+        self._dbuserdoc.close()
         os.chdir(self._cwd)
         self._cwd = None
         self._stop_pulse()

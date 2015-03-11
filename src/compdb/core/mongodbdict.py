@@ -1,6 +1,5 @@
 import logging
 logger = logging.getLogger('mongodbdict')
-logger.addHandler(logging.NullHandler)
 
 class ReadOnlyMongoDBDict(object):
 

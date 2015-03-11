@@ -58,7 +58,7 @@ class ReadOnlyDBDocument(object):
         if not self._failed_sync_condition:
             self._to_sync.join()
 
-    def __enter__(self):
+    def open(self):
         from sqlitedict import SqliteDict
         from threading import Thread
         self._buffer = SqliteDict(self._buffer_fn())
@@ -73,7 +73,7 @@ class ReadOnlyDBDocument(object):
         self._sync_thread.start()
         return self
 
-    def __exit__(self, err_type, err_val, traceback):   
+    def close(self):
         self._join()
         self._stop_event.set()
         self._sync_thread.join()
@@ -81,6 +81,18 @@ class ReadOnlyDBDocument(object):
             self._buffer.close()
         else:
             self._buffer.terminate()
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, err_type, err_val, traceback):   
+        try:
+            self.close()
+        except:
+            return False
+        else:
+            return True
 
     def __getitem__(self, key):
         self._join()
@@ -112,8 +124,10 @@ class DBDocument(ReadOnlyDBDocument):
             self[key] = value
 
     def clear(self):
-        self._get_buffer().clear()
+        if self._buffer is not None:
+            self._get_buffer().clear()
 
     def remove(self):
         self._mongodict.remove()
-        self._get_buffer().terminate()
+        if self._buffer is not None:
+            self._get_buffer().terminate()
