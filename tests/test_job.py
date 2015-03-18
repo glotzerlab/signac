@@ -83,11 +83,13 @@ class JobStorageTest(JobTest):
         value = uuid.uuid4()
         with open_job(test_token) as test_job:
             test_job.document[key] = value
+            self.assertTrue(key in test_job.document)
             self.assertEqual(test_job.document[key], value)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
 
         with open_job(test_token) as test_job:
+            self.assertTrue(key in test_job.document)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
             self.assertEqual(test_job.document[key], value)
@@ -189,7 +191,7 @@ class JobStorageTest(JobTest):
 
 def open_and_lock_and_release_job(token):
     from compdb.contrib import open_job
-    with open_job(test_token, timeout = 20) as job:
+    with open_job(test_token, timeout = 30) as job:
         pass
         #time.sleep(5)
         #with job.lock(timeout = 1):
@@ -204,9 +206,9 @@ class JobConcurrencyTest(JobTest):
 
     def test_recursive_job_opening(self):
         from compdb.contrib import open_job
-        with open_job(test_token) as job0:
+        with open_job(test_token, timeout = 1) as job0:
             self.assertEqual(job0.num_open_instances(), 1)
-            with open_job(test_token) as job1:
+            with open_job(test_token, timeout = 1) as job1:
                 self.assertEqual(job0.num_open_instances(), 2)
                 self.assertEqual(job1.num_open_instances(), 2)
             self.assertEqual(job0.num_open_instances(), 1)
@@ -230,20 +232,20 @@ class JobConcurrencyTest(JobTest):
         from compdb.contrib import open_job
         from multiprocessing import Pool
 
-        num_processes = 10
+        num_processes = 100
         num_locks = 10
         try:
             with Pool(processes = num_processes) as pool:
                 result = pool.starmap_async(
                     open_and_lock_and_release_job,
                     [(test_token) for i in range(num_locks)])
-                result = result.get(timeout = 20)
+                result = result.get(timeout = 60)
                 self.assertEqual(result, [True] * num_locks)
         except Exception:
             raise
         finally:
             # clean up
-            with open_job(test_token) as job:
+            with open_job(test_token, timeout = 60) as job:
                 pass
             job.remove(force = True)
 

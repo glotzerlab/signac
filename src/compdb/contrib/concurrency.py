@@ -106,7 +106,7 @@ class DocumentBaseLock(object):
                     while(not stop_event.is_set()):
                         if self._acquire():
                             return True
-                        stop_event.wait(max(1, timeout / 100))
+                        stop_event.wait(max(0.001, timeout / 1000))
                 t_acq = Thread(target = try_to_acquire)
                 t_acq.start()
                 t_acq.join(timeout = None if timeout == -1 else timeout)

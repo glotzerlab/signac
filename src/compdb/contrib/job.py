@@ -65,7 +65,7 @@ class JobNoIdError(RuntimeError):
 
 class Job(object):
     
-    def __init__(self, project, spec, blocking = True, timeout = -1):
+    def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
         import uuid, os
         from ..core.storage import Storage
         from ..core.dbdocument import DBDocument
@@ -76,23 +76,38 @@ class Job(object):
         self._spec = spec
         self._collection = None
         self._cwd = None
+        self._timeout = timeout
+        self._blocking = blocking
+        self._lock = None
         try:
             self._obtain_id()
         except  ConnectionFailure as error:
             logger.error("Failed to obtain id.")
             raise
         self._with_id()
+        if rank is None:
+            self._rank = self._determine_rank()
+        else:
+            self._rank = rank
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._create_directories()
         self._storage = Storage(
             fs_path = self._fs,
             wd_path = self._wd)
-        self._lock = None
-        self._dbuserdoc = DBDocument(
+        self._dbdocument = DBDocument(
             self._project.config['database_host'],
-            self._project.get_id(), JOB_DOCS, self.get_id())
+            self._project.get_id(), JOB_DOCS,
+            self.get_id(), self._rank)
         self._pulse = None
+
+    def _determine_rank(self):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        if comm.Get_rank() > 0:
+            return comm.Get_rank()
+        else:
+            return self.num_open_instances()
 
     def _get_jobs_doc_collection(self):
         return self._project.get_project_db()[str(self.get_id())]
@@ -109,6 +124,9 @@ class Job(object):
 
     def get_id(self):
         return self.spec.get('_id', None)
+
+    def get_rank(self):
+        return self._rank
 
     def get_project(self):
         return self._project
@@ -174,14 +192,14 @@ class Job(object):
         self._create_directories()
         os.chdir(self.get_workspace_directory())
         self._add_instance()
-        self._dbuserdoc.open()
+        self._dbdocument.open()
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
     def _close_with_error(self):
         import shutil, os
         self._with_id()
-        self._dbuserdoc.close()
+        self._dbdocument.close()
         os.chdir(self._cwd)
         self._cwd = None
         self._stop_pulse()
@@ -194,11 +212,12 @@ class Job(object):
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
-    def _get_lock(self, blocking = True, timeout = -1):
+    def _get_lock(self, blocking = None, timeout = None):
         from . concurrency import DocumentLock
         return DocumentLock(
                 self._project.get_jobs_collection(), self.get_id(),
-                blocking = blocking, timeout = timeout)
+                blocking = blocking or self._blocking,
+                timeout = timeout or self._timeout,)
 
     def open(self):
         with self._get_lock():
@@ -272,7 +291,7 @@ class Job(object):
     def clear(self):
         self.clear_workspace_directory()
         self._storage.clear()
-        self._dbuserdoc.clear()
+        self._dbdocument.clear()
         self._get_jobs_doc_collection().drop()
 
     def remove(self, force = False):
@@ -287,11 +306,11 @@ class Job(object):
         import shutil
         self.clear()
         self._storage.remove()
+        self._dbdocument.remove()
         try:
             shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
-        self._dbuserdoc.remove()
         self._project.get_jobs_collection().remove(self._job_doc_spec())
         del self.spec['_id']
 
@@ -320,7 +339,7 @@ class Job(object):
 
     @property
     def document(self):
-        return self._dbuserdoc
+        return self._dbdocument
 
     def storage_filename(self, filename):
         from os.path import join

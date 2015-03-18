@@ -23,6 +23,7 @@ class ReadOnlyMongoDBDict(object):
         return {'_id': self._id}
 
     def __getitem__(self, key):
+        logger.debug("Getting '{}'".format(key))
         doc = self._get_collection().find_one(
             self._spec(),
             fields = [key],
@@ -56,7 +57,7 @@ class ReadOnlyMongoDBDict(object):
 class MongoDBDict(ReadOnlyMongoDBDict):
 
     def __setitem__(self, key, value):
-        msg = "Storing '{}'."
+        msg = "Setting '{}'."
         logger.debug(msg.format(key))
         result = self._get_collection().update(
             spec = self._spec(),

@@ -154,17 +154,22 @@ class Project(object):
             spec = {'_id': job_id},
             blocking = blocking, timeout = timeout)
 
-    def _open_job(self, spec, blocking = True, timeout = -1):
+    def _open_job(self, spec, blocking = True, timeout = -1, rank = 0):
         from . job import Job
         return Job(
             project = self,
             spec = spec,
             blocking = blocking,
-            timeout = timeout)
+            timeout = timeout,
+            rank = rank)
 
-    def open_job(self, parameters = None, blocking = True, timeout = -1):
+    def open_job(self, parameters = None, blocking = True, timeout = -1, rank = 0):
         spec = self._job_spec(parameters = parameters)
-        return self._open_job(spec, blocking, timeout)
+        return self._open_job(
+            spec = spec,
+            blocking = blocking,
+            timeout = timeout,
+            rank = rank)
 
     def _job_spec_modifier(self, job_spec = {}, develop = None):
         from copy import copy
@@ -276,6 +281,22 @@ class Project(object):
                 msg = "Unknown parameter: {}"
                 raise KeyError(msg.format(error)) from error
             yield src, dst
+
+    def get_storage_links(self, url = None):
+        import re
+        if url is None:
+            url = self.get_default_view_url()
+        parameters = re.findall('\{\w+\}', url)
+        yield from self._get_links(
+            url, parameters, self.filestorage_dir())
+
+    def get_workspace_links(self, url = None):
+        import re
+        if url is None:
+            url = self.get_default_view_url()
+        parameters = re.findall('\{\w+\}', url)
+        yield from self._get_links(
+            url, parameters, self.workspace_dir())
 
     def get_default_view_url(self):
         import os

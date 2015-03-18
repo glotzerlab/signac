@@ -32,10 +32,12 @@ def get_dbdoc(host = 'localhost', id_ = None):
             dbdoc = DBDocument(host, 'testing', 'dbdocument', id_)
             with dbdoc as x:
                 yield x
+            x.remove()
     else:
         dbdoc = DBDocument(host, 'testing', 'dbdocument', id_)
         with dbdoc as x:
             yield x
+        x.remove()
 
 class TestDBDocument(unittest.TestCase):
     
@@ -51,6 +53,29 @@ class TestDBDocument(unittest.TestCase):
             self.assertEqual(rb, data)
             self.assertIn(key, dbdoc)
             self.assertNotIn('abc', dbdoc)
+
+    def test_not_open(self):
+        with document() as id_:
+            dbdoc = DBDocument(
+                'localhost', 'testing', 'dbdocument', id_)
+            with self.assertRaises(RuntimeError):
+                dbdoc['key'] = 'data'
+            with self.assertRaises(RuntimeError):
+                data = dbdoc['key']
+            dbdoc.clear()
+            #with self.assertRaises(RuntimeError):
+            with self.assertRaises(AttributeError):
+                dbdoc.close()
+            dbdoc.remove()
+
+    def test_open_closing(self):
+        with document() as id_:
+            dbdoc = DBDocument(
+                'localhost', 'testing', 'dbdocument', id_)
+            dbdoc.open()
+            dbdoc.clear()
+            dbdoc.close()
+            dbdoc.remove()
 
     def test_get(self):
         key = "test_get"
@@ -96,18 +121,15 @@ class TestDBDocument(unittest.TestCase):
             self.assertEqual(rb, data)
             self.assertIn(key, dbdoc)
             self.assertNotIn('abc', dbdoc)
-        self.assertTrue(os.path.exists(dbdoc._buffer_fn()))
 
         with dbdoc:
             self.assertIn(key, dbdoc)
             self.assertEqual(dbdoc.get(key), data)
-        self.assertTrue(os.path.exists(dbdoc._buffer_fn()))
 
         id_ = dbdoc._id
         with get_dbdoc(id_ = dbdoc._id) as valid_dbdoc:
             self.assertIn(key, valid_dbdoc)
             self.assertEqual(valid_dbdoc.get(key), data)
-        self.assertFalse(os.path.exists(valid_dbdoc._buffer_fn()))
 
 if __name__ == '__main__':
     unittest.main()

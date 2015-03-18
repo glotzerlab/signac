@@ -87,7 +87,8 @@ class JobPool(object):
             else:
                 return [id_.strip() for id_ in ids]
 
-    def start(self, rank = None, size = None, limit = None, blocking = True, timeout = -1, jobfile = None):
+    def start(self, rank = None, size = None, limit = None,
+              blocking = True, timeout = -1, jobfile = None):
         if rank is None:
             rank = self._comm().Get_rank()
         if size is None:
@@ -111,15 +112,15 @@ class JobPool(object):
                     if limit is not None:
                         if i >= limit:
                             break
-                    if job_id in self._check_condition(
-                            self._exclude_condition, job_ids):
-                        msg = "Skipping '{}' due to exclude condition."
-                        logger.debug(msg.format(job_id))
-                        continue
-                    else:
-                        job(self._project.get_job(
-                            job_id = job_id,
-                            blocking = blocking, timeout = timeout))
+                    if self._exclude_condition is not None:
+                        if job_id in self._check_condition(
+                                self._exclude_condition, job_ids):
+                            msg = "Skipping '{}' due to exclude condition."
+                            logger.debug(msg.format(job_id))
+                            continue
+                    job(self._project.get_job(
+                        job_id = job_id,
+                        blocking = blocking, timeout = timeout))
             except:
                 self._job_queue_failed.put(job)
                 raise
@@ -135,11 +136,11 @@ class JobPool(object):
                 self._job_queue.put(queue.get())
 
     def _get_valid_ids(self):
+        job_ids = [self._project.open_job(p).get_id()
+            for p in self._parameter_set]
         if self._include_condition is None and self._exclude_condition is None:
-            yield from range(len(self._parameter_set))
+            yield from job_ids
         else:
-            job_ids = [self._project.open_job(p).get_id()
-                for p in self._parameter_set]
             if self._include_condition is not None:
                 included = set(self._check_condition(
                     self._include_condition, job_ids))

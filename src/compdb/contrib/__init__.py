@@ -3,12 +3,13 @@ def get_project():
     open_job.project = None
     return Project()
 
-def open_job(parameters = None, blocking = True, timeout = -1):
+def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
     if open_job.project is None:
         open_job.project = get_project()
     return open_job.project.open_job(
         parameters = parameters,
-        blocking = blocking, timeout = timeout)
+        blocking = blocking, timeout = timeout,
+        rank = rank)
 open_job.project = None
 
 def find_jobs(job_spec = {}, spec = None):
