@@ -6,25 +6,30 @@ logger = logging.getLogger('methods')
 ATTRIBUTE_ADAPTER = 'adapter'
 
 class DBMethod(object):
-    
-    def __init__(self, callable, expects):
-        self._callable = callable
-        self._expects = expects
+    expects = None
 
-    @property
-    def expects(self):
-        return self._expects
+    def apply(self, arg):
+        raise NotImplementedError()
 
-    def __call__(self, * args, ** kwargs):
-        return self._callable(* args, ** kwargs)
+    def __call__(self, arg):
+        assert isinstance(arg, self.expects)
+        return self.apply(arg)
 
     def __repr__(self):
-        return "DBMethod(callable={c},expects={e})".format(
-            c = self._callable.__name__,
-            e = self._expects)
+        return "{m}.{t}(expects={e})".format(
+            m = self.__module__,
+            t = type(self),
+            e = self.expects)
 
     def name(self):
         return self.__repr__()
+
+def make_db_method(callable, expected_type):
+    class Method(DBMethod):
+        expects = expected_type
+        def apply(self, arg):
+            return callable(arg)
+    return Method()
 
 class Adapter(object):
     expects = None
@@ -32,6 +37,9 @@ class Adapter(object):
 
     def __call__(self, x):
         assert isinstance(x, self.expects)
+        return self.convert(x)
+
+    def convert(self, x):
         return self.returns(x)
 
 def make_adapter(src, dst, convert = None):

@@ -199,10 +199,12 @@ class Database(object):
         doc = self._data.find_one(standard_filter, * args, ** kwargs)
         if len(methods_filter):
             filtered = self._filter_by_methods([doc], methods_filter)
-        if doc['id'] in filtered:
-            return doc
+            if doc['_id'] in filtered:
+                return doc
+            else:
+                return None
         else:
-            return None
+            return doc
 
     def _insert_one(self, metadata, data):
         import copy
@@ -258,8 +260,10 @@ class Database(object):
 
     def _delete_doc(self, doc):
         self._gridfs.delete(doc[KEY_FILE_ID])
-        #self._cache.delete_many({KEY_FILE_ID: doc['_id']})
-        self._cache.remove({KEY_FILE_ID: doc['_id']})
+        if PYMONGO_3:
+            self._cache.delete_many({KEY_FILE_ID: doc['_id']})
+        else:
+            self._cache.remove({KEY_FILE_ID: doc['_id']})
 
     def add_adapter(self, adapter):
         from . import conversion
@@ -276,6 +280,8 @@ class Database(object):
         docs = self._data.find(filter, *args, ** kwargs)
         for doc in docs:
             self._delete_doc(doc)
-        #result = self._data.delete_many(filter)
-        result = self._data.remove(filter)
+        if PYMONGO_3:
+            result = self._data.delete_many(filter)
+        else:
+            result = self._data.remove(filter)
         return result

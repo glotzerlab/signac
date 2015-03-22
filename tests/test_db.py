@@ -83,15 +83,13 @@ class DBTest(unittest.TestCase):
             from math import sqrt
             assert isinstance(x, int)
             return sqrt(x)
-        foo_method = conversion.DBMethod(foo, expects = int)
+        foo_method = conversion.make_db_method(foo, int)
 
         f = {foo_method: {'$lt': 7}}
         f.update(TEST_TOKEN)
         docs = list(db.find(TEST_TOKEN))
         self.assertTrue(docs)
         docs_foo = list(db.find(f))
-        for doc in docs_foo:
-            print(doc)
         self.assertEqual(len(docs_foo), len(data))
         f_implicit_conversion = {foo: {'$lt': 7}}
         f_implicit_conversion.update(TEST_TOKEN)
@@ -99,5 +97,4 @@ class DBTest(unittest.TestCase):
         self.assertEqual(len(docs_foo_nc), len(data))
 
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.DEBUG)
     unittest.main() 

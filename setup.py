@@ -18,7 +18,7 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo', 'mpi4py', 'sqlitedict'],
+    install_requires=['pymongo', 'mpi4py', 'sqlitedict', 'jsonpickle','networkx'],
 
     entry_points = {
         'console_scripts': [
