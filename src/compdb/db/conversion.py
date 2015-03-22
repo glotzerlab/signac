@@ -31,7 +31,17 @@ def make_db_method(callable, expected_type):
             return callable(arg)
     return Method()
 
-class Adapter(object):
+class AdapterMetaType(type):
+
+    def __init__(cls, name, bases, dct):
+        if not hasattr(cls, 'registry'):
+            cls.registry = dict()
+        else:
+            cls.registry[name] = cls
+
+        super().__init__(name, bases, dct)
+
+class Adapter(metaclass = AdapterMetaType):
     expects = None
     returns = None
 
@@ -88,5 +98,15 @@ def get_converter(network, source_type, target_type):
     else:
         return Converter(list(adapters))
 
-class BasicFormat(object):
+class FormatMetaType(type):
+
+    def __init__(cls, name, bases, dct):
+        if not hasattr(cls, 'registry'):
+            cls.registry = dict()
+        else:
+            cls.registry[name] = cls
+
+        super().__init__(name, bases, dct)
+
+class BasicFormat(metaclass = FormatMetaType):
     pass

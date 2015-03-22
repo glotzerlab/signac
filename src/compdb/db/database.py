@@ -54,11 +54,20 @@ def decode(data):
     #data = json.loads(binary.decode())
     return data
 
+def generate_auto_network():
+    from . import conversion
+    import networkx as nx
+    network = nx.DiGraph()
+    network.add_nodes_from(conversion.BasicFormat.registry.values())
+    for adapter in conversion.Adapter.registry.values():
+        conversion.add_adapter_to_network(
+            network, adapter)
+    return network
+
 class Database(object):
 
     def __init__(self, db, config = None):
         from gridfs import GridFS
-        import networkx as nx
         if config is None:
             from ..core.config import load_config
             config = load_config()
@@ -67,7 +76,7 @@ class Database(object):
         self._data = self._db['data']
         self._cache = self._db['cache']
         self._gridfs = GridFS(self._db)
-        self._adapter_network = nx.DiGraph()
+        self._adapter_network = generate_auto_network()
 
     @property
     def adapter_network(self):
@@ -145,9 +154,14 @@ class Database(object):
             return standard_filter, methods_filter
 
     def _filter_by_method(self, doc_ids, method, expression):
-        cached_docs = self._cache.find(
-            {KEY_CACHE_DOC_ID: {'$in': list(doc_ids)}},
-            projection = [KEY_CACHE_DOC_ID])
+        cache_spec = callable_spec(method)
+        cache_spec[KEY_CACHE_DOC_ID] = {'$in': list(doc_ids)}
+        if PYMONGO_3:
+            cached_docs = self._cache.find(
+                filter = cache_spec, projection = [KEY_CACHE_DOC_ID])
+        else:
+            cached_docs = self._cache.find(
+                spec = cache_spec, fields = [KEY_CACHE_DOC_ID])
         cached_ids = [doc[KEY_CACHE_DOC_ID] for doc in cached_docs]
         non_cached_ids = doc_ids.difference(cached_ids)
         self._update_cache(non_cached_ids, method)
@@ -235,7 +249,6 @@ class Database(object):
             KEY_FILE_TYPE: str(type(data))
             })
         self._add_metadata_from_context(meta)
-        print(meta)
         if PYMONGO_3:
             return self._data.insert_one(meta)
         else:
