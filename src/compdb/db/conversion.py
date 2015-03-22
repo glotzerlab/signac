@@ -88,20 +88,5 @@ def get_converter(network, source_type, target_type):
     else:
         return Converter(list(adapters))
 
-def basic_network():
-    an = nx.DiGraph()
-    import uuid
-    an.add_nodes_from([int, float, str, uuid.UUID])
-    add_adapter_to_network(an, make_adapter(int, float))
-    add_adapter_to_network(an, make_adapter(float, int))
-    # to make it interesting...
-    #add_adapter_to_network(an, make_adapter(int, str))
-    add_adapter_to_network(an, make_adapter(str, int))
-    add_adapter_to_network(an, make_adapter(float, str))
-    add_adapter_to_network(an, make_adapter(uuid.UUID, str))
-    return an
-
-if __name__ == '__main__':
-    from matplotlib import pyplot as plt
-    plot = nx.draw(basic_network(), with_labels = True)
-    plt.show()
+class BasicFormat(object):
+    pass

@@ -1,17 +1,36 @@
-
 import unittest
+import networkx as nx
 import uuid
+
 TESTING_DB = 'testing_matdb'
 TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 
+def basic_network():
+    import uuid
+    from compdb.db.conversion import add_adapter_to_network, make_adapter
+    an = nx.DiGraph()
+    an.add_nodes_from([int, float, str, uuid.UUID])
+    add_adapter_to_network(an, make_adapter(int, float))
+    add_adapter_to_network(an, make_adapter(float, int))
+    # to make it interesting...
+    #add_adapter_to_network(an, make_adapter(int, str))
+    add_adapter_to_network(an, make_adapter(str, int))
+    add_adapter_to_network(an, make_adapter(float, str))
+    add_adapter_to_network(an, make_adapter(uuid.UUID, str))
+    return an
+
+def draw_network(network):
+    from matplotlib import pyplot as plt
+    plot = nx.draw(basic_network(), with_labels = True)
+    plt.show()
+
 def get_db():
     from pymongo import MongoClient
-    from compdb.db.conversion import basic_network
     from compdb.db.database import Database
     client = MongoClient()
-    return Database(
-        db = client[TESTING_DB],
-        adapter_network = basic_network())
+    db = Database(db = client[TESTING_DB])
+    db.adapter_network = basic_network()
+    return db
 
 def get_test_data():
     import uuid
@@ -35,6 +54,10 @@ def custom_to_float(custom):
 class DBTest(unittest.TestCase):
 
     def setUp(self):
+        import os
+        os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
+        os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
+        os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         db = get_db()
         metadata, data = get_test_record()
         db.insert_one(metadata, data)

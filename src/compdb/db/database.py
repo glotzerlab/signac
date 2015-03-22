@@ -56,13 +56,26 @@ def decode(data):
 
 class Database(object):
 
-    def __init__(self, db, adapter_network = None):
+    def __init__(self, db, config = None):
         from gridfs import GridFS
+        import networkx as nx
+        if config is None:
+            from ..core.config import load_config
+            config = load_config()
+        self._config = config
         self._db = db
         self._data = self._db['data']
         self._cache = self._db['cache']
         self._gridfs = GridFS(self._db)
-        self._adapter_network = adapter_network
+        self._adapter_network = nx.DiGraph()
+
+    @property
+    def adapter_network(self):
+        return self._adapter_network
+
+    @adapter_network.setter
+    def adapter_network(self, value):
+        self._adapter_network = value
 
     def _update_cache(self, doc_ids, method):
         from . import conversion
@@ -206,6 +219,12 @@ class Database(object):
         else:
             return doc
 
+    def _add_metadata_from_context(self, metadata):
+        if not 'author_name' in metadata:
+            metadata['author_name'] = self._config['author_name']
+        if not 'author_email' in metadata:
+            metadata['author_email'] = self._config['author_email']
+
     def _insert_one(self, metadata, data):
         import copy
         meta = copy.copy(metadata)
@@ -215,6 +234,8 @@ class Database(object):
             KEY_FILE_ID: file_id,
             KEY_FILE_TYPE: str(type(data))
             })
+        self._add_metadata_from_context(meta)
+        print(meta)
         if PYMONGO_3:
             return self._data.insert_one(meta)
         else:

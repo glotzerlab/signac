@@ -5,6 +5,7 @@ from compdb.core.config import load_config
 from compdb.core import _get_db
 
 from .database import Database
+from .conversion import make_db_method
 
 def _get_db_global_fs():
     return _get_db(CONFIG['database_global_fs'])
