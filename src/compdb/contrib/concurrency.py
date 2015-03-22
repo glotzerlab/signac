@@ -92,6 +92,7 @@ class DocumentBaseLock(object):
         Returns:
             Returns true when lock was successfully acquired, otherwise false.
         """
+        logger.debug("Acquiring lock.")
         if not blocking and timeout != -1:
             raise ValueError("Cannot set timeout if blocking is False.")
         if timeout > TIMEOUT_MAX:
@@ -159,7 +160,6 @@ class DocumentLock(DocumentBaseLock):
             timeout = timeout)
 
     def _acquire(self):
-        logger.debug("Acquiring lock...")
         result = self._collection.find_and_modify(
             query = {
                 '_id': self._document_id,
@@ -170,7 +170,7 @@ class DocumentLock(DocumentBaseLock):
         return result is not None
 
     def _release(self):
-        logger.debug("Releasing lock...")
+        logger.debug("Releasing lock.")
         result = self._collection.find_and_modify(
             query = {
                 '_id': self._document_id,
