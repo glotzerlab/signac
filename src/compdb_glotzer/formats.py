@@ -1,16 +1,25 @@
-from compdb.db.conversion import BasicFormat
+from compdb.db import formats, BasicFormat
 
-class TrajectoryFile(BasicFormat):
+class XMLFile(formats.FileFormat):
+    pass
 
-    def __init__(self, data):
-        self._data = data
+class TrajectoryFile(formats.FileFormat):
+    pass
 
-    @property
-    def data(self):
-        return self._data
-
-class HoomdXMLTrajectoryFile(TrajectoryFile):
+class HoomdXMLTrajectoryFile(TrajectoryFile, XMLFile):
     pass
 
 class PosTrajectoryFile(TrajectoryFile):
+    pass
+
+class DCDTrajectoryFile(TrajectoryFile):
+    pass
+
+class SourceCodeFile(formats.FileFormat):
+    pass
+
+class SourceCodeHeaderFile(formats.FileFormat):
+    pass
+
+class ScriptFile(formats.FileFormat):
     pass
