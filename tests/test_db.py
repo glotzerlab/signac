@@ -148,6 +148,23 @@ class DBTest(unittest.TestCase):
         f_implicit_conversion.update(TEST_TOKEN)
         docs_foo_nc = list(db.find(f_implicit_conversion))
         self.assertEqual(len(docs_foo_nc), 1)
+        bullshit = {'bullshit': True}
+        f_logic = {'$and': [{'$or': [f, bullshit]}, f]}
+        docs_logic = list(db.find(f_logic))
+        self.assertEqual(len(docs_logic), len(data))
+        doc_logic = db.find_one(f_logic)
+        self.assertIsNotNone(doc_logic)
+
+    def test_filter_logic(self):
+        db = get_db()
+        bullshit = {'bullshit': True}
+        data = db.find_one(
+            {'$or': [get_test_metadata(), bullshit]})
+        self.assertIsNotNone(data)
+        data = db.find_one(
+            {'$and': [get_test_metadata(),
+                {'$or': [get_test_metadata(), bullshit]}]})
+        self.assertIsNotNone(data)
 
 if __name__ == '__main__':
     unittest.main() 

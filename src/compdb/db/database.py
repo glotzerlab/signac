@@ -254,8 +254,7 @@ class Database(object):
 
     def _find_with_methods(self, filter = None, * args, ** kwargs):
         if filter is None:
-            return self._data.find(filter, * args, ** kwargs)
-
+            return None
         standard_filter, methods_filter = self._split_filter(filter)
         if methods_filter:
             if PYMONGO_3:
@@ -267,23 +266,9 @@ class Database(object):
                     spec = standard_filter,
                     fields = ['_id'])
             filtered = self._filter_by_methods(docs, methods_filter)
-            if PYMONGO_3:
-                return self._data.find(
-                    filter = {'_id': {'$in': list(filtered)}},
-                    * args, ** kwargs)
-            else:
-                return self._data.find(
-                    spec = {'_id': {'$in': list(filtered)}},
-                    * args, ** kwargs)
+            return {'_id': {'$in': list(filtered)}}
         else:
-            if PYMONGO_3:
-                return self._data.find(
-                    filter = standard_filter, 
-                    * args, ** kwargs)
-            else:
-                return self._data.find(
-                    spec = standard_filter,
-                    * args, ** kwargs)
+            return standard_filter
 
     def _find_one_with_methods(self, filter = None, *args, **kwargs):
         if filter is None:
@@ -388,17 +373,40 @@ class Database(object):
                 if KEY_FILE_ID in to_be_updated:
                     self._gridfs.delete(to_be_updated[KEY_FILE_ID])
 
+    def _process_filter(self, filter, * args, ** kwargs):
+        if isinstance(filter, dict):
+            plain = dict()
+            for key, value in filter.items():
+                if key in ('$or', '$and'):
+                    plain_expressions = []
+                    for expression in value:
+                        plain_expressions.append(
+                            self._process_filter(
+                                expression, * args, ** kwargs))
+                        #self._find_with_methods(
+                        #    filter = expression, * args, ** kwargs))
+                    plain[key] = plain_expressions
+                else:
+                    plain[key] = self._process_filter(
+                        value, * args, ** kwargs)
+            return self._find_with_methods(plain, * args, ** kwargs)
+        else:
+            return filter
+
     def find(self, filter = None, projection = None, * args, ** kwargs):
-        docs = self._find_with_methods(
+        plain_filter = self._process_filter(
             filter = filter,
-            projection = projection, * args, ** kwargs)
+            projection = projection,
+            * args, ** kwargs)
+        docs = self._data.find(plain_filter)
         for doc in docs:
             yield self._result_from_doc(doc)
 
     def find_one(self, filter_or_id, * args, ** kwargs):
         if isinstance(filter_or_id, dict):
-            doc = self._find_one_with_methods(
-                filter_or_id, *args, ** kwargs)
+            plain_filter = self._process_filter(
+                filter = filter_or_id, * args, ** kwargs)
+            doc = self._data.find_one(plain_filter, * args, ** kwargs)
             if doc is None:
                 return None
             else:
