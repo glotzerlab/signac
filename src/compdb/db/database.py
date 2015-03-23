@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.matdb')
+logger = logging.getLogger('compdb.db.database')
 
 COLLECTION_DATA = 'data'
 COLLECTION_CACHE = 'cache'
@@ -384,8 +384,10 @@ class Database(object):
             if to_be_updated is not None:
                 self._gridfs.delete(to_be_updated[KEY_FILE_ID])
 
-    def find(self, * args, ** kwargs):
-        docs = self._find_with_methods(* args, ** kwargs)
+    def find(self, filter = None, projection = None, * args, ** kwargs):
+        docs = self._find_with_methods(
+            filter = filter,
+            projection = projection, * args, ** kwargs)
         for doc in docs:
             yield self._result_from_doc(doc)
 

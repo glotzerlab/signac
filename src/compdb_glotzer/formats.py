@@ -23,3 +23,9 @@ class SourceCodeHeaderFile(formats.FileFormat):
 
 class ScriptFile(formats.FileFormat):
     pass
+
+class SimulationInputFile(formats.FileFormat):
+    pass
+
+class HoomdInputFile(SimulationInputFile):
+    pass
