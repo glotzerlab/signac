@@ -5,11 +5,13 @@ COLLECTION_DATA = 'data'
 COLLECTION_CACHE = 'cache'
 KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'
+KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_FILE_ID = 'file_id'
 KEY_FILE_TYPE = 'file_type'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
+KEY_CACHE_COUNTER = 'counter'
 KEY_DOC_META = 'meta'
 KEY_DOC_DATA = 'data'
 
@@ -26,6 +28,12 @@ def hash_module(c):
         m.update(file.read())
     return m.hexdigest()
 
+def hash_source(c):
+    import inspect, hashlib
+    m = hashlib.md5()
+    m.update(inspect.getsource(c).encode())
+    return m.hexdigest()
+
 def callable_name(c):
     try:
         return c.__name__
@@ -33,12 +41,18 @@ def callable_name(c):
         return c.name()
 
 def callable_spec(c):
+    import inspect
     assert callable(c)
-    spec = {
-        KEY_CALLABLE_NAME: callable_name(c),
-        KEY_CALLABLE_MODULE: c.__module__,
-        KEY_CALLABLE_MODULE_HASH: hash_module(c),
-    }
+    try:
+        spec = {
+            KEY_CALLABLE_SOURCE_HASH: hash_source(type(c)),
+        }
+    except TypeError:
+        spec = {
+            KEY_CALLABLE_NAME: callable_name(c),
+            KEY_CALLABLE_MODULE: c.__module__,
+            KEY_CALLABLE_MODULE_HASH: hash_module(c),
+        }
     return spec
 
 def encode(data):
@@ -135,15 +149,19 @@ class Database(object):
                 cache_doc = callable_spec(method)
                 cache_doc[KEY_CACHE_DOC_ID] = doc['_id']
                 try:
+                    update = {
+                        '$set': {KEY_CACHE_RESULT: result},
+                        '$setOnInsert': {KEY_CACHE_COUNTER: 0},
+                    }
                     if PYMONGO_3:
                         self._cache.update_one(
                             filter = cache_doc,
-                            update = {'$set': {KEY_CACHE_RESULT: result}},
+                            update = update,
                             upsert = True)
                     else:
                         self._cache.update(
                             spec = cache_doc,
-                            document = {'$set': {KEY_CACHE_RESULT: result}},
+                            document = update,
                             upsert = True)
                 except bson.errors.InvalidDocument as error:
                     msg = "Caching error: {}"
@@ -188,9 +206,12 @@ class Database(object):
             {'$project': {'_id': '$_id'}},
             ]
         result = self._cache.aggregate(pipe)
+        counter_update = {'$inc': {KEY_CACHE_COUNTER: 1}}
         if PYMONGO_3:
+            self._cache.update_many(cache_spec, counter_update)
             return set(doc['_id'] for doc in result)
         else:
+            self._cache.update(cache_spec, counter_update)
             return set(doc['_id'] for doc in result['result'])
 
     def _filter_by_methods(self, docs, methods_filter):
