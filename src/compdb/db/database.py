@@ -1,23 +1,23 @@
 import logging
 logger = logging.getLogger('compdb.db.database')
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+import bson
+
 COLLECTION_DATA = 'data'
 COLLECTION_CACHE = 'cache'
 KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'
 KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
-KEY_FILE_ID = 'file_id'
-KEY_FILE_TYPE = 'file_type'
+KEY_FILE_ID = '_file_id'
+KEY_FILE_TYPE = '_file_type'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
 KEY_CACHE_COUNTER = 'counter'
 KEY_DOC_META = 'meta'
 KEY_DOC_DATA = 'data'
-
-import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
-import bson
 
 def hash_module(c):
     import inspect, hashlib
