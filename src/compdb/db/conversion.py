@@ -37,7 +37,8 @@ class AdapterMetaType(type):
         if not hasattr(cls, 'registry'):
             cls.registry = dict()
         else:
-            cls.registry[name] = cls
+            identifier = "{}_to_{}".format(cls.expects, cls.returns)
+            cls.registry[identifier] = cls
 
         super().__init__(name, bases, dct)
 
@@ -89,14 +90,28 @@ def get_adapter_chain_from_network(network, source_type, target_type):
         edge = network[path[i]][path[i+1]]
         yield edge[ATTRIBUTE_ADAPTER]
 
-def get_converter(network, source_type, target_type):
+def _get_converter(network, source_type, target_type):
     try:
         adapters = get_adapter_chain_from_network(
             network, source_type, target_type)
-    except nx.exception.NetworkXError:
+    except (nx.exception.NetworkXNoPath, nx.exception.NetworkXError):
         raise ConversionError(source_type, target_type)
     else:
         return Converter(list(adapters))
+
+def get_converter(network, source_type, target_type):
+    import inspect
+    mro = inspect.getmro(source_type)
+    for src_type in mro:
+        try:
+            converter = _get_converter(network, src_type, target_type)
+        except nx.exception.NetworkXNoPath as error:
+            pass
+        except ConversionError as error:
+            pass
+        else:
+            return converter
+    raise ConversionError(source_type, target_type)
 
 class FormatMetaType(type):
 

@@ -71,6 +71,26 @@ class DBTest(unittest.TestCase):
         data = db._find_one(get_test_metadata())
         self.assertIsNotNone(data)
 
+    def test_replace_one(self):
+        db = get_db()
+        data = db.find_one(get_test_metadata())
+        self.assertIsNotNone(data)
+        test_data = get_test_data()
+        db.replace_one(get_test_metadata(), test_data)
+        data2 = db.find_one(get_test_metadata())
+        self.assertIsNotNone(data2)
+        self.assertEqual(data2['data'], test_data)
+
+    def test_update_one(self):
+        db = get_db()
+        data = db.find_one(get_test_metadata())
+        self.assertIsNotNone(data)
+        test_data = get_test_data()
+        db.update_one(get_test_metadata(), test_data)
+        data2 = db.find_one(get_test_metadata())
+        self.assertIsNotNone(data2)
+        self.assertEqual(data2['data'], test_data)
+
     def test_method_filter(self):
         db = get_db()
 
@@ -117,7 +137,7 @@ class DBTest(unittest.TestCase):
         f_implicit_conversion = {foo: {'$lt': 7}}
         f_implicit_conversion.update(TEST_TOKEN)
         docs_foo_nc = list(db.find(f_implicit_conversion))
-        self.assertEqual(len(docs_foo_nc), len(data))
+        self.assertEqual(len(docs_foo_nc), 1)
 
 if __name__ == '__main__':
     unittest.main() 

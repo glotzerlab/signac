@@ -1,9 +1,9 @@
-from compdb.db import conversion
+from compdb.db import Adapter
 import freud
 
 from . import formats
 
-class PosFileToFreudTrajectory(conversion.Adapter):
+class PosFileToFreudTrajectory(Adapter):
     expects = formats.PosTrajectoryFile
     returns = freud.trajectory.Trajectory
 
