@@ -45,6 +45,7 @@ def callable_spec(c):
     assert callable(c)
     try:
         spec = {
+            KEY_CALLABLE_NAME: callable_name(c),
             KEY_CALLABLE_SOURCE_HASH: hash_source(type(c)),
         }
     except TypeError:
@@ -81,7 +82,7 @@ def generate_auto_network():
     network.add_nodes_from(formats.BASICS)
     network.add_nodes_from(conversion.BasicFormat.registry.values())
     for adapter in conversion.Adapter.registry.values():
-        logger.debug("Adding adapter '{}' to network.".format(adapter))
+        logger.debug("Adding '{}' to network.".format(adapter()))
         conversion.add_adapter_to_network(
             network, adapter)
     return network
@@ -111,11 +112,18 @@ class Database(object):
     def _update_cache(self, doc_ids, method):
         from . import conversion
         docs = self._data.find({'_id': {'$in': list(doc_ids)}})
-        failed_application = docs.count()
+        records_skipped = docs.count()
+        conversion_errors = 0
+        no_conversion_path = 0
         for doc in docs:
             try:
                 src = self._get(doc[KEY_FILE_ID])
                 if isinstance(method, conversion.DBMethod):
+                    try:
+                        isinstance(src, method.expects)
+                    except TypeError:
+                        msg = "Illegal expect type: '{}'."
+                        raise TypeError(msg.format(method.expects))
                     if not isinstance(src, method.expects):
                         msg = "Trying to convert from '{}' to '{}'."
                         logger.debug(msg.format(type(src), method.expects))
@@ -136,16 +144,24 @@ class Database(object):
                         else:
                             src = src_converted
                         logger.debug('Success.')
-                result = method(src)
+                try:
+                    result = method(src)
+                except Exception as error:
+                    raise RuntimeError(error)
+            except conversion.NoConversionPath as error:
+                no_conversion_path += 1
+                msg = "No path to convert from '{}' to '{}'."
+                logger.warning(msg.format(* error.args))
             except conversion.ConversionError as error:
+                conversion_errors += 1
                 msg = "Failed to convert form '{}' to '{}'."
                 logger.debug(msg.format(* error.args))
-            except Exception as error:
+            except RuntimeError as error:
                 msg = "Could not apply method '{}' to '{}': {}"
                 logger.debug(msg.format(method, src, error))
                 #raise
             else:
-                failed_application -= 1
+                records_skipped -= 1
                 cache_doc = callable_spec(method)
                 cache_doc[KEY_CACHE_DOC_ID] = doc['_id']
                 try:
@@ -166,10 +182,19 @@ class Database(object):
                 except bson.errors.InvalidDocument as error:
                     msg = "Caching error: {}"
                     logger.warning(msg.format(error))
-
-        if failed_application > 0:
-            msg = "Number of failed applications of '{}': {}."
-            logger.warning(msg.format(method, failed_application))
+                    raise TypeError(error) from error
+        if conversion_errors or records_skipped or no_conversion_path:
+            msg = "{m}:"
+            logger.warning(msg.format(m = method))
+        if no_conversion_path > 0:
+            msg = "# missing conversion paths: {n}"
+            logger.warning(msg.format(m = method, n = records_skipped))
+        if conversion_errors > 0:
+            msg = "# failed conversions: {n}"
+            logger.warning(msg.format(m = method, n = records_skipped))
+        if records_skipped > 0:
+            msg = "# records skipped: {n}"
+            logger.warning(msg.format(m = method, n = records_skipped))
 
     def _split_filter(self, filter):
         if filter is None:
@@ -195,7 +220,12 @@ class Database(object):
                 spec = cache_spec, fields = [KEY_CACHE_DOC_ID])
         cached_ids = [doc[KEY_CACHE_DOC_ID] for doc in cached_docs]
         non_cached_ids = doc_ids.difference(cached_ids)
-        self._update_cache(non_cached_ids, method)
+        try:
+            self._update_cache(non_cached_ids, method)
+        except TypeError as error:
+            msg = "Failed to process filter '{f}': {e}"
+            f = {method: expression}
+            raise TypeError(msg.format(f = f,e = error)) from error
         pipe = [ 
             {'$match': cache_spec},
             {'$project': {

@@ -53,6 +53,12 @@ class Adapter(metaclass = AdapterMetaType):
     def convert(self, x):
         return self.returns(x)
 
+    def __str__(self):
+        return "{n}(from={f},to={t})".format(
+            n = self.__class__,
+            f = self.expects,
+            t = self.returns)
+
 def make_adapter(src, dst, convert = None):
     class BasicAdapter(Adapter):
         expects = src
@@ -71,15 +77,23 @@ def add_adapter_to_network(network, adapter):
 class ConversionError(Exception):
     pass
 
+class NoConversionPath(ConversionError):
+    pass
+
 class Converter(object):
     
-    def __init__(self, adapter_chain):
+    def __init__(self, adapter_chain, source_type, target_type):
+        self._source_type = source_type
+        self._target_type = target_type
         self._adapter_chain = adapter_chain
 
     def convert(self, data):
-        for adapter in self._adapter_chain:
-            data = adapter()(data)
-        return data
+        try:
+            for adapter in self._adapter_chain:
+                data = adapter()(data)
+            return data
+        except Exception as error:
+            raise ConversionError(self._source_type, self._target_type) from error
 
     def __len__(self):
         return len(self._adapter_chain)
@@ -94,10 +108,9 @@ def _get_converter(network, source_type, target_type):
     try:
         adapters = get_adapter_chain_from_network(
             network, source_type, target_type)
-    except (nx.exception.NetworkXNoPath, nx.exception.NetworkXError):
-        raise ConversionError(source_type, target_type)
-    else:
-        return Converter(list(adapters))
+        return Converter(list(adapters), source_type, target_type)
+    except (nx.exception.NetworkXNoPath, nx.exception.NetworkXError) as error:
+        raise NoConversionPath(source_type, target_type) from error
 
 def get_converter(network, source_type, target_type):
     import inspect
@@ -105,8 +118,6 @@ def get_converter(network, source_type, target_type):
     for src_type in mro:
         try:
             converter = _get_converter(network, src_type, target_type)
-        except nx.exception.NetworkXNoPath as error:
-            pass
         except ConversionError as error:
             pass
         else:
