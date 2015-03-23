@@ -117,6 +117,8 @@ class Database(object):
         no_conversion_path = 0
         for doc in docs:
             try:
+                if not KEY_FILE_ID in doc:
+                    continue
                 src = self._get(doc[KEY_FILE_ID])
                 if isinstance(method, conversion.DBMethod):
                     try:
@@ -306,7 +308,8 @@ class Database(object):
     def _make_meta_document(self, metadata, data):
         import copy
         meta = copy.copy(metadata)
-        meta[KEY_FILE_TYPE] = str(type(data))
+        if data is not None:
+            meta[KEY_FILE_TYPE] = str(type(data))
         self._add_metadata_from_context(meta)
         return meta
 
@@ -315,8 +318,9 @@ class Database(object):
 
     def _insert_one(self, metadata, data):
         meta = self._make_meta_document(metadata, data)
-        file_id = self._put_file(data)
-        meta[KEY_FILE_ID] = file_id
+        if data is not None:
+            file_id = self._put_file(data)
+            meta[KEY_FILE_ID] = file_id
         if PYMONGO_3:
             return self._data.insert_one(meta)
         else:
@@ -325,31 +329,28 @@ class Database(object):
     def _resolve_filter(self, filter):
         return filter
 
-    def _find_one(self, filter = None):
-        doc = self._data.find_one(self._resolve_filter(filter))
-        file_id = doc[KEY_FILE_ID]
-        return self._get(file_id)
-
     def _get(self, file_id):
         grid_file = self._gridfs.get(file_id)
         return decode(grid_file.read())
 
     def _result_from_doc(self, doc):
         result = dict(doc)
-        result['data'] = self._get(result[KEY_FILE_ID])
-        del result[KEY_FILE_ID]
+        if KEY_FILE_ID in result:
+            result[KEY_DOC_DATA] = self._get(result[KEY_FILE_ID])
+            del result[KEY_FILE_ID]
         return result
 
-    def insert_one(self, document, data, * args, ** kwargs):
+    def insert_one(self, document, data = None, * args, ** kwargs):
         self._insert_one(document, data, * args, ** kwargs)
 
-    def replace_one(self, document, replacement_data, upsert = False, * args, ** kwargs):
+    def replace_one(self, filter, replacement_data = None, upsert = False, * args, ** kwargs):
         import copy
-        meta = self._make_meta_document(document, replacement_data)
+        meta = self._make_meta_document(filter, replacement_data)
         to_be_replaced = self._data.find_one(meta)
-        file_id = self._put_file(replacement_data)
         replacement = copy.copy(meta)
-        replacement[KEY_FILE_ID] = file_id
+        if replacement_data is not None:
+            file_id = self._put_file(replacement_data)
+            replacement[KEY_FILE_ID] = file_id
         try:
             if PYMONGO_3:
                 result = self._data.replace_one(
@@ -365,13 +366,15 @@ class Database(object):
             raise
         else:
             if to_be_replaced is not None:
-                self._gridfs.delete(to_be_replaced[KEY_FILE_ID])
+                if KEY_FILE_ID in to_be_replaced:
+                    self._gridfs.delete(to_be_replaced[KEY_FILE_ID])
             return result
 
-    def update_one(self, document, data, * args, ** kwargs):
+    def update_one(self, document, data = None, * args, ** kwargs):
         meta = self._make_meta_document(document, data)
-        file_id = self._put_file(data)
-        update = {'$set': {KEY_FILE_ID: file_id}}
+        if data is not None:
+            file_id = self._put_file(data)
+            update = {'$set': {KEY_FILE_ID: file_id}}
         to_be_updated = self._data.find_one(meta)
         try:
             if PYMONGO_3:
@@ -382,7 +385,8 @@ class Database(object):
             self._gridfs.delete(file_id)
         else:
             if to_be_updated is not None:
-                self._gridfs.delete(to_be_updated[KEY_FILE_ID])
+                if KEY_FILE_ID in to_be_updated:
+                    self._gridfs.delete(to_be_updated[KEY_FILE_ID])
 
     def find(self, filter = None, projection = None, * args, ** kwargs):
         docs = self._find_with_methods(
@@ -404,7 +408,8 @@ class Database(object):
             return self._result_from_doc(doc)
 
     def _delete_doc(self, doc):
-        self._gridfs.delete(doc[KEY_FILE_ID])
+        if KEY_FILE_ID in doc:
+            self._gridfs.delete(doc[KEY_FILE_ID])
         if PYMONGO_3:
             self._cache.delete_many({KEY_FILE_ID: doc['_id']})
         else:

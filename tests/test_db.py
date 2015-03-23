@@ -68,8 +68,18 @@ class DBTest(unittest.TestCase):
     
     def test_find_one(self):
         db = get_db()
-        data = db._find_one(get_test_metadata())
+        data = db.find_one(get_test_metadata())
         self.assertIsNotNone(data)
+
+    def test_insert_without_data(self):
+        db = get_db()
+        meta = get_test_metadata()
+        data = get_test_data()
+        meta['extra'] = data
+        db.insert_one(meta)
+        doc = db.find_one(meta)
+        self.assertIsNotNone(doc)
+        self.assertEqual(doc['extra'], data)
 
     def test_replace_one(self):
         db = get_db()
