@@ -310,10 +310,12 @@ class Database(object):
         self._add_metadata_from_context(meta)
         return meta
 
+    def _put_file(self, data):
+        return self._gridfs.put(encode(data))
+
     def _insert_one(self, metadata, data):
         meta = self._make_meta_document(metadata, data)
-        binary = encode(data)
-        file_id = self._gridfs.put(encode(data))
+        file_id = self._put_file(data)
         meta[KEY_FILE_ID] = file_id
         if PYMONGO_3:
             return self._data.insert_one(meta)
@@ -345,29 +347,30 @@ class Database(object):
         import copy
         meta = self._make_meta_document(document, replacement_data)
         to_be_replaced = self._data.find_one(meta)
-        file_id = self._gridfs.put(encode(replacement_data))
+        file_id = self._put_file(replacement_data)
         replacement = copy.copy(meta)
         replacement[KEY_FILE_ID] = file_id
         try:
             if PYMONGO_3:
-                return self._data.replace_one(
+                result = self._data.replace_one(
                     filter = meta,
                     replacement = replacement,
                     * args, ** kwargs)
             else:
                 if to_be_replaced is not None:
                     replacement['_id'] = to_be_replaced['_id']
-                return self._data.save(to_save = replacement)
+                result = self._data.save(to_save = replacement)
         except:
             self._gridfs.delete(file_id)
             raise
         else:
             if to_be_replaced is not None:
                 self._gridfs.delete(to_be_replaced[KEY_FILE_ID])
+            return result
 
     def update_one(self, document, data, * args, ** kwargs):
         meta = self._make_meta_document(document, data)
-        file_id = self._gridfs.put(encode(data))
+        file_id = self._put_file(data)
         update = {'$set': {KEY_FILE_ID: file_id}}
         to_be_updated = self._data.find_one(meta)
         try:
