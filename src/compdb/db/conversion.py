@@ -121,7 +121,7 @@ def get_converter(network, source_type, target_type):
             pass
         else:
             return converter
-    raise ConversionError(source_type, target_type)
+    raise NoConversionPath(source_type, target_type)
 
 class FormatMetaType(type):
 

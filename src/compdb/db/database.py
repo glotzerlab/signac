@@ -136,8 +136,9 @@ class Database(object):
                             msg = "Found conversion path: {} nodes."
                             logger.debug(msg.format(len(converter)))
                             src_converted = converter.convert(src)
-                        except conversion.ConversionError as error:
-                            msg = "Failed. Trying implicit conversion."
+                        #except conversion.ConversionError as error:
+                        except conversion.NoConversionPath as error:
+                            msg = "No path found. Trying implicit conversion."
                             logger.debug(msg)
                             try:
                                 src_converted = method.expects(src)
@@ -153,7 +154,7 @@ class Database(object):
             except conversion.NoConversionPath as error:
                 no_conversion_path += 1
                 msg = "No path to convert from '{}' to '{}'."
-                logger.warning(msg.format(* error.args))
+                logger.debug(msg.format(* error.args))
             except conversion.ConversionError as error:
                 conversion_errors += 1
                 msg = "Failed to convert form '{}' to '{}'."
@@ -187,16 +188,16 @@ class Database(object):
                     raise TypeError(error) from error
         if conversion_errors or records_skipped or no_conversion_path:
             msg = "{m}:"
-            logger.warning(msg.format(m = method))
+            logger.debug(msg.format(m = method))
         if no_conversion_path > 0:
-            msg = "# missing conversion paths: {n}"
-            logger.warning(msg.format(m = method, n = records_skipped))
+            msg = "# no conversion paths: {n}"
+            logger.debug(msg.format(m = method, n = records_skipped))
         if conversion_errors > 0:
             msg = "# failed conversions: {n}"
-            logger.warning(msg.format(m = method, n = records_skipped))
+            logger.debug(msg.format(m = method, n = records_skipped))
         if records_skipped > 0:
             msg = "# records skipped: {n}"
-            logger.warning(msg.format(m = method, n = records_skipped))
+            logger.debug(msg.format(m = method, n = records_skipped))
 
     def _split_filter(self, filter):
         if filter is None:
@@ -250,6 +251,10 @@ class Database(object):
         matching = set(doc['_id'] for doc in docs)
         for method, value in methods_filter.items():
             matching = self._filter_by_method(matching, method, value)
+        msg = "Record methods coverage: {}% (records skipped: {})"
+        skipped = docs.count() - len(matching)
+        coverage = float(len(matching) / docs.count()) * 100
+        logger.info(msg.format(coverage, skipped))
         return matching
 
     def _find_with_methods(self, filter = None, * args, ** kwargs):
@@ -347,7 +352,8 @@ class Database(object):
                     replacement['_id'] = to_be_replaced['_id']
                 result = self._data.save(to_save = replacement)
         except:
-            self._gridfs.delete(file_id)
+            if replacement_data is not None:
+                self._gridfs.delete(file_id)
             raise
         else:
             if to_be_replaced is not None:
@@ -367,7 +373,8 @@ class Database(object):
             else:
                 self._data.update(meta, update, * args, ** kwargs)
         except:
-            self._gridfs.delete(file_id)
+            if data is not None:
+                self._gridfs.delete(file_id)
         else:
             if to_be_updated is not None:
                 if KEY_FILE_ID in to_be_updated:

@@ -154,6 +154,8 @@ class DBTest(unittest.TestCase):
         self.assertEqual(len(docs_logic), len(data))
         doc_logic = db.find_one(f_logic)
         self.assertIsNotNone(doc_logic)
+        doc_logic = db.find_one({'$and': [bullshit, f_logic]})
+        self.assertIsNone(doc_logic)
 
     def test_filter_logic(self):
         db = get_db()
@@ -164,6 +166,12 @@ class DBTest(unittest.TestCase):
         data = db.find_one(
             {'$and': [get_test_metadata(),
                 {'$or': [get_test_metadata(), bullshit]}]})
+        self.assertIsNotNone(data)
+        data = db.find_one(
+            {'$and': [get_test_metadata(), bullshit]})
+        self.assertIsNone(data)
+        data = db.find_one(
+            {'$and': [{'$or': [get_test_metadata(), bullshit]}]})
         self.assertIsNotNone(data)
 
 if __name__ == '__main__':
