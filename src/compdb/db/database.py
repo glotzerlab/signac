@@ -91,62 +91,6 @@ def generate_auto_network():
             network, adapter)
     return network
 
-class TemporaryCollection(object):
-    
-    def __init__(self, db, cursor, resolve):
-        self._db = db
-        self._cursor = cursor
-        self._resolve_function = resolve
-        self._collection = None
-
-    def _get_collection(self):
-        if self._collection is None:
-            msg = "Temporary collection not open."
-            raise RuntimeError(msg)
-        else:
-            return self._collection
-
-    def _resolve(self, cursor):
-        del cursor['data']
-        return self._resolve_function(cursor)
-
-    def open(self):
-        import uuid
-        c_name = str(uuid.uuid4())
-        self._collection = self._db[c_name]
-        try:
-            self._collection.insert_many(list(
-                self._cursor))
-                #self._resolve(self._cursor)))
-        except:
-            self._collection.drop()
-            self._collection = None
-            raise
-
-    def close(self):
-        self._collection.drop()
-        self._collection = None
-
-    def __enter__(self):
-        self.open()
-        return self
-
-    def __exit__(self, err_type, err_val, traceback):
-        self.close()
-        return False
-
-    def find(self, * args, ** kwargs):
-        return map(self._resolve,
-            self._get_collection().find(* args, ** kwargs))
-
-    def find_one(self, * args, ** kwargs):
-        return map(self._resolve,
-            self._get_collection().find_one(* args, ** kwargs))
-
-    def aggregate(self, * args, ** kwargs):
-        return map(self._resolve,
-            self._get_collection().aggregate(* args, ** kwargs))
-
 class UnsupportedExpressionError(ValueError):
     pass
 
@@ -157,7 +101,15 @@ class FileCursor(object):
         self._call_dict = call_dict
 
     def __call__(self, cursor):
-        return self._db._resolve_doc(cursor, self._call_dict)
+        from . import conversion
+        try:
+            return self._db._resolve_doc(cursor, self._call_dict)
+        except conversion.NoConversionPath:
+            pass
+        except conversion.ConversionError as error:
+            msg = "Conversion error for doc '{}': {}"
+            logger.warning(msg.format(doc, error))
+        return {}
 
 class Database(object):
 
@@ -569,6 +521,7 @@ class Database(object):
                 method = call_dict[result[6:-1]]
                 if data is None:
                     msg = "Unable to resolve function call in expression."
+                    return None
                     raise RuntimeError(msg)
                 elif isinstance(data, list):
                     return [method(self._convert_src(d, method)) for d in data]
@@ -585,4 +538,4 @@ class Database(object):
         plain_pipeline = list(self._resolve_pipeline(pipeline, call_dict))
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         result = self._data.aggregate(plain_pipeline, ** kwargs)
-        return map(FileCursor(self, call_dict), result)
+        return filter(len, map(FileCursor(self, call_dict), result))
