@@ -14,12 +14,14 @@ KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_FILE_ID = '_file_id'
 KEY_FILE_TYPE = '_file_type'
-KEY_GROUP_FILES = '_file_ids'
+#KEY_GROUP_FILES = '_file_ids'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
 KEY_CACHE_COUNTER = 'counter'
 KEY_DOC_META = 'meta'
 KEY_DOC_DATA = 'data'
+
+ILLEGAL_AGGREGATION_KEYS = ['$group', '$out']
 
 def hash_module(c):
     import inspect, hashlib
@@ -91,30 +93,71 @@ def generate_auto_network():
 
 class TemporaryCollection(object):
     
-    def __init__(self, collection):
+    def __init__(self, db, cursor, resolve):
+        self._db = db
+        self._cursor = cursor
+        self._resolve_function = resolve
         self._collection = None
-        self._collection_ = collection
 
-    def find_one(self, * args, ** kwargs):
-        return self._collection.find_one(* args, ** kwargs)
+    def _get_collection(self):
+        if self._collection is None:
+            msg = "Temporary collection not open."
+            raise RuntimeError(msg)
+        else:
+            return self._collection
 
-    def find_many(self, * args, ** kwargs):
-        return self._collection.find_many(* args, ** kwargs)
+    def _resolve(self, cursor):
+        del cursor['data']
+        return self._resolve_function(cursor)
 
-    def aggregate(self, * args, ** kwargs):
-        return self._collection.aggregate(* args, ** kwargs)
+    def open(self):
+        import uuid
+        c_name = str(uuid.uuid4())
+        self._collection = self._db[c_name]
+        try:
+            self._collection.insert_many(list(
+                self._cursor))
+                #self._resolve(self._cursor)))
+        except:
+            self._collection.drop()
+            self._collection = None
+            raise
+
+    def close(self):
+        self._collection.drop()
+        self._collection = None
 
     def __enter__(self):
-        self._collection = self._collection_i
+        self.open()
         return self
 
     def __exit__(self, err_type, err_val, traceback):
-        self._collection.drop()
-        self._collection = None
+        self.close()
         return False
+
+    def find(self, * args, ** kwargs):
+        return map(self._resolve,
+            self._get_collection().find(* args, ** kwargs))
+
+    def find_one(self, * args, ** kwargs):
+        return map(self._resolve,
+            self._get_collection().find_one(* args, ** kwargs))
+
+    def aggregate(self, * args, ** kwargs):
+        return map(self._resolve,
+            self._get_collection().aggregate(* args, ** kwargs))
 
 class UnsupportedExpressionError(ValueError):
     pass
+
+class FileCursor(object):
+
+    def __init__(self, db, call_dict):
+        self._db = db
+        self._call_dict = call_dict
+
+    def __call__(self, cursor):
+        return self._db._resolve_doc(cursor, self._call_dict)
 
 class Database(object):
 
@@ -129,7 +172,6 @@ class Database(object):
         self._cache = self._db['cache']
         self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
-        self._call_dict = dict()
 
     @property
     def formats_network(self):
@@ -360,9 +402,9 @@ class Database(object):
         if KEY_FILE_ID in result:
             result[KEY_DOC_DATA] = self._get(result[KEY_FILE_ID])
             del result[KEY_FILE_ID]
-        if KEY_GROUP_FILES in result:
-            result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
-            del result[KEY_GROUP_FILES]
+        #if KEY_GROUP_FILES in result:
+        #    result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
+        #    del result[KEY_GROUP_FILES]
         return result
 
     def insert_one(self, document, data = None, * args, ** kwargs):
@@ -416,23 +458,26 @@ class Database(object):
                     self._gridfs.delete(to_be_updated[KEY_FILE_ID])
 
     def find(self, filter = None, projection = None, * args, ** kwargs):
-        plain_filter = self._resolve(filter)
+        call_dict = dict()
+        plain_filter = self._resolve(filter, call_dict)
         docs = self._data.find(
             plain_filter, projection, * args, ** kwargs)
-        for doc in docs:
-            yield self._resolve_doc(doc)
-        self._call_dict.clear()
+        return map(FileCursor(self, call_dict), docs)
 
     def find_one(self, filter_or_id, * args, ** kwargs):
-        plain_filter_or_id = self._resolve(filter_or_id)
+        call_dict = dict()
+        plain_filter_or_id = self._resolve(filter_or_id, call_dict)
         doc = self._data.find_one(plain_filter_or_id, * args, ** kwargs)
         if doc is not None:
-            doc = self._resolve_doc(doc)
-        self._call_dict.clear()
+            doc = self._resolve_doc(doc, call_dict)
         return doc
 
-    def _resolve_doc(self, doc):
-        return self._resolve_calls(self._resolve_files(doc))
+    def _resolve_doc(self, doc, call_dict):
+        return self._resolve_calls(self._resolve_files(doc), call_dict)
+
+    def resolve(self, docs):
+        for doc in docs:
+            yield self._resolve_files(doc)
 
     def _delete_doc(self, doc):
         if KEY_FILE_ID in doc:
@@ -463,23 +508,21 @@ class Database(object):
             result = self._data.remove(filter)
         return result
 
-    def _resolve_dict(self, d, * args, ** kwargs):
+    def _resolve_dict(self, d, call_dict, * args, ** kwargs):
         standard = dict()
         methods_filter = dict()
         #methods_projection = dict()
         for key, value in d.items():
             if callable(key):
                 assert not callable(value)
-                methods_filter[key] = self._resolve(value)
+                methods_filter[key] = self._resolve(value, call_dict)
             elif key == '$project':
                 value[KEY_FILE_ID] = '$'+KEY_FILE_ID
                 standard[key] = value
-            elif key == '$group':
+            elif key.startswith('$') and key in ILLEGAL_AGGREGATION_KEYS:
                 raise UnsupportedExpressionError(key)
-                value[KEY_GROUP_FILES] = {'$push': '$'+KEY_FILE_ID}
-                standard[key] = value
             else:
-                standard[key] = self._resolve(value)
+                standard[key] = self._resolve(value, call_dict)
         docs = self._data.find(filter=standard,projection=['_id'])
         if methods_filter:
             filtered = self._filter_by_methods(docs, methods_filter)
@@ -487,41 +530,43 @@ class Database(object):
         else:
             return d
 
-    def _resolve(self, expr, *args, **kwargs):
+    def _resolve(self, expr, call_dict, *args, **kwargs):
         if isinstance(expr, dict):
-            plain = {k: self._resolve(v, * args, ** kwargs)
+            plain = {k: self._resolve(v, call_dict, * args, ** kwargs)
                     for k,v in expr.items()}
-            return self._resolve_dict(plain, * args, ** kwargs)
+            return self._resolve_dict(plain, call_dict, * args, ** kwargs)
         elif isinstance(expr, list):
-            return [self._resolve(v, *args, **kwargs) for v in expr]
+            return [self._resolve(v, call_dict, *args, **kwargs) for v in expr]
         elif callable(expr):
             call_id = str(uuid.uuid4())
-            self._call_dict[call_id] = expr
+            call_dict[call_id] = expr
             return {'$literal': "$CALL({})".format(call_id)}
         else:
             return expr
 
-    def _resolve_stage(self, stage):
-        return self._resolve(stage)
+    def _resolve_stage(self, stage, call_dict):
+        return self._resolve(stage, call_dict)
 
-    def _resolve_pipeline(self, pipeline):
+    def _resolve_pipeline(self, pipeline, call_dict):
         for stage in pipeline:
-            yield self._resolve_stage(stage)
+            yield self._resolve_stage(stage, call_dict)
 
-    def _resolve_calls(self, result, data = None):
+    def _resolve_calls(self, result, call_dict, data = None):
         if isinstance(result, dict):
-            if KEY_DOC_DATA in result:
+            if KEY_FILE_ID in result:
+                data = self._get(result[KEY_FILE_ID])
+            elif KEY_DOC_DATA in result:
                 data = result[KEY_DOC_DATA]
-            elif KEY_GROUP_FILES in result:
-                data = result[KEY_GROUP_FILES]
-            return {self._resolve_calls(k, data): 
-                        self._resolve_calls(v, data)
+            #elif KEY_GROUP_FILES in result:
+            #    data = result[KEY_GROUP_FILES]
+            return {self._resolve_calls(k, call_dict, data):
+                        self._resolve_calls(v, call_dict, data)
                 for k, v in result.items()}
         elif isinstance(result, list):
-            return [self._resolve_calls(v, data) for v in result]
+            return [self._resolve_calls(v, call_dict, data) for v in result]
         elif isinstance(result, str):
             if result.startswith('$CALL('):
-                method = self._call_dict[result[6:-1]]
+                method = call_dict[result[6:-1]]
                 if data is None:
                     msg = "Unable to resolve function call in expression."
                     raise RuntimeError(msg)
@@ -536,24 +581,8 @@ class Database(object):
             return result
 
     def aggregate(self, pipeline, ** kwargs):
-        plain_pipeline = list(self._resolve_pipeline(pipeline))
+        call_dict = dict()
+        plain_pipeline = list(self._resolve_pipeline(pipeline, call_dict))
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         result = self._data.aggregate(plain_pipeline, ** kwargs)
-        for doc in result:
-            yield self._resolve_doc(doc)
-        self._call_dict.clear()
-
-    def aggregate_collection(self, pipeline, ** kwargs):
-        plain_pipeline = list(self._resolve_pipeline(pipeline))
-        logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
-        result = self._data.aggregate(plain_pipeline, ** kwargs)
-        c_name = str(uuid.uuid4())
-        tmp_collection = self._db[cname]
-        try:
-            tmp_collection.insert_many(list(result))
-            tmp_collection = TemporaryCollection(self._db[c_name])
-        except:
-            tmp_collection.drop()
-            raise
-        else:
-            return TemporaryCollection(tmp_collection)
+        return map(FileCursor(self, call_dict), result)
