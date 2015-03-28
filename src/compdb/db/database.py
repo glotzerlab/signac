@@ -4,6 +4,7 @@ logger = logging.getLogger('compdb.db.database')
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 import bson
+import uuid
 
 COLLECTION_DATA = 'data'
 COLLECTION_CACHE = 'cache'
@@ -13,6 +14,7 @@ KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_FILE_ID = '_file_id'
 KEY_FILE_TYPE = '_file_type'
+KEY_GROUP_FILES = '_file_ids'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
 KEY_CACHE_COUNTER = 'counter'
@@ -69,7 +71,7 @@ def decode(data):
     if isinstance(data, dict):
         if 'py/object' in data:
             msg = "Missing format definition for: '{}'."
-            logger.warning(msg.format(data['py/object']))
+            logger.debug(msg.format(data['py/object']))
     #import json
     #data = json.loads(binary.decode())
     return data
@@ -87,6 +89,33 @@ def generate_auto_network():
             network, adapter)
     return network
 
+class TemporaryCollection(object):
+    
+    def __init__(self, collection):
+        self._collection = None
+        self._collection_ = collection
+
+    def find_one(self, * args, ** kwargs):
+        return self._collection.find_one(* args, ** kwargs)
+
+    def find_many(self, * args, ** kwargs):
+        return self._collection.find_many(* args, ** kwargs)
+
+    def aggregate(self, * args, ** kwargs):
+        return self._collection.aggregate(* args, ** kwargs)
+
+    def __enter__(self):
+        self._collection = self._collection_i
+        return self
+
+    def __exit__(self, err_type, err_val, traceback):
+        self._collection.drop()
+        self._collection = None
+        return False
+
+class UnsupportedExpressionError(ValueError):
+    pass
+
 class Database(object):
 
     def __init__(self, db, config = None):
@@ -100,6 +129,7 @@ class Database(object):
         self._cache = self._db['cache']
         self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
+        self._call_dict = dict()
 
     @property
     def formats_network(self):
@@ -108,6 +138,37 @@ class Database(object):
     @formats_network.setter
     def formats_network(self, value):
         self._formats_network = value
+
+    def _convert_src(self, src, method):
+        from . import conversion
+        if isinstance(method, conversion.DBMethod):
+            try:
+                isinstance(src, method.expects)
+            except TypeError:
+                msg = "Illegal expect type: '{}'."
+                raise TypeError(msg.format(method.expects))
+            if not isinstance(src, method.expects):
+                msg = "Trying to convert from '{}' to '{}'."
+                logger.debug(msg.format(type(src), method.expects))
+                try:
+                    converter = conversion.get_converter(
+                        self._formats_network,
+                        type(src), method.expects)
+                    msg = "Found conversion path: {} nodes."
+                    logger.debug(msg.format(len(converter)))
+                    src_converted = converter.convert(src)
+                #except conversion.ConversionError as error:
+                except conversion.NoConversionPath as error:
+                    msg = "No path found. Trying implicit conversion."
+                    logger.debug(msg)
+                    try:
+                        src_converted = method.expects(src)
+                    except:
+                        raise error
+                else:
+                    src = src_converted
+                logger.debug('Success.')
+        return src
 
     def _update_cache(self, doc_ids, method):
         from . import conversion
@@ -120,33 +181,7 @@ class Database(object):
                 if not KEY_FILE_ID in doc:
                     continue
                 src = self._get(doc[KEY_FILE_ID])
-                if isinstance(method, conversion.DBMethod):
-                    try:
-                        isinstance(src, method.expects)
-                    except TypeError:
-                        msg = "Illegal expect type: '{}'."
-                        raise TypeError(msg.format(method.expects))
-                    if not isinstance(src, method.expects):
-                        msg = "Trying to convert from '{}' to '{}'."
-                        logger.debug(msg.format(type(src), method.expects))
-                        try:
-                            converter = conversion.get_converter(
-                                self._formats_network,
-                                type(src), method.expects)
-                            msg = "Found conversion path: {} nodes."
-                            logger.debug(msg.format(len(converter)))
-                            src_converted = converter.convert(src)
-                        #except conversion.ConversionError as error:
-                        except conversion.NoConversionPath as error:
-                            msg = "No path found. Trying implicit conversion."
-                            logger.debug(msg)
-                            try:
-                                src_converted = method.expects(src)
-                            except:
-                                raise error
-                        else:
-                            src = src_converted
-                        logger.debug('Success.')
+                src = self._convert_src(src, method)
                 try:
                     result = method(src)
                 except Exception as error:
@@ -316,18 +351,18 @@ class Database(object):
         else:
             return self._data.insert(meta)
 
-    def _resolve_filter(self, filter):
-        return filter
-
     def _get(self, file_id):
         grid_file = self._gridfs.get(file_id)
         return decode(grid_file.read())
 
-    def _result_from_doc(self, doc):
+    def _resolve_files(self, doc):
         result = dict(doc)
         if KEY_FILE_ID in result:
             result[KEY_DOC_DATA] = self._get(result[KEY_FILE_ID])
             del result[KEY_FILE_ID]
+        if KEY_GROUP_FILES in result:
+            result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
+            del result[KEY_GROUP_FILES]
         return result
 
     def insert_one(self, document, data = None, * args, ** kwargs):
@@ -380,47 +415,24 @@ class Database(object):
                 if KEY_FILE_ID in to_be_updated:
                     self._gridfs.delete(to_be_updated[KEY_FILE_ID])
 
-    def _process_filter(self, filter, * args, ** kwargs):
-        if isinstance(filter, dict):
-            plain = dict()
-            for key, value in filter.items():
-                if key in ('$or', '$and'):
-                    plain_expressions = []
-                    for expression in value:
-                        plain_expressions.append(
-                            self._process_filter(
-                                expression, * args, ** kwargs))
-                        #self._find_with_methods(
-                        #    filter = expression, * args, ** kwargs))
-                    plain[key] = plain_expressions
-                else:
-                    plain[key] = self._process_filter(
-                        value, * args, ** kwargs)
-            return self._find_with_methods(plain, * args, ** kwargs)
-        else:
-            return filter
-
     def find(self, filter = None, projection = None, * args, ** kwargs):
-        plain_filter = self._process_filter(
-            filter = filter,
-            projection = projection,
-            * args, ** kwargs)
-        docs = self._data.find(plain_filter)
+        plain_filter = self._resolve(filter)
+        docs = self._data.find(
+            plain_filter, projection, * args, ** kwargs)
         for doc in docs:
-            yield self._result_from_doc(doc)
+            yield self._resolve_doc(doc)
+        self._call_dict.clear()
 
     def find_one(self, filter_or_id, * args, ** kwargs):
-        if isinstance(filter_or_id, dict):
-            plain_filter = self._process_filter(
-                filter = filter_or_id, * args, ** kwargs)
-            doc = self._data.find_one(plain_filter, * args, ** kwargs)
-            if doc is None:
-                return None
-            else:
-                return self._result_from_doc(doc)
-        else:
-            doc = self._data.find_one(filter_or_id, *args, **kwargs)
-            return self._result_from_doc(doc)
+        plain_filter_or_id = self._resolve(filter_or_id)
+        doc = self._data.find_one(plain_filter_or_id, * args, ** kwargs)
+        if doc is not None:
+            doc = self._resolve_doc(doc)
+        self._call_dict.clear()
+        return doc
+
+    def _resolve_doc(self, doc):
+        return self._resolve_calls(self._resolve_files(doc))
 
     def _delete_doc(self, doc):
         if KEY_FILE_ID in doc:
@@ -450,3 +462,98 @@ class Database(object):
         else:
             result = self._data.remove(filter)
         return result
+
+    def _resolve_dict(self, d, * args, ** kwargs):
+        standard = dict()
+        methods_filter = dict()
+        #methods_projection = dict()
+        for key, value in d.items():
+            if callable(key):
+                assert not callable(value)
+                methods_filter[key] = self._resolve(value)
+            elif key == '$project':
+                value[KEY_FILE_ID] = '$'+KEY_FILE_ID
+                standard[key] = value
+            elif key == '$group':
+                raise UnsupportedExpressionError(key)
+                value[KEY_GROUP_FILES] = {'$push': '$'+KEY_FILE_ID}
+                standard[key] = value
+            else:
+                standard[key] = self._resolve(value)
+        docs = self._data.find(filter=standard,projection=['_id'])
+        if methods_filter:
+            filtered = self._filter_by_methods(docs, methods_filter)
+            return {'_id': {'$in': list(filtered)}}
+        else:
+            return d
+
+    def _resolve(self, expr, *args, **kwargs):
+        if isinstance(expr, dict):
+            plain = {k: self._resolve(v, * args, ** kwargs)
+                    for k,v in expr.items()}
+            return self._resolve_dict(plain, * args, ** kwargs)
+        elif isinstance(expr, list):
+            return [self._resolve(v, *args, **kwargs) for v in expr]
+        elif callable(expr):
+            call_id = str(uuid.uuid4())
+            self._call_dict[call_id] = expr
+            return {'$literal': "$CALL({})".format(call_id)}
+        else:
+            return expr
+
+    def _resolve_stage(self, stage):
+        return self._resolve(stage)
+
+    def _resolve_pipeline(self, pipeline):
+        for stage in pipeline:
+            yield self._resolve_stage(stage)
+
+    def _resolve_calls(self, result, data = None):
+        if isinstance(result, dict):
+            if KEY_DOC_DATA in result:
+                data = result[KEY_DOC_DATA]
+            elif KEY_GROUP_FILES in result:
+                data = result[KEY_GROUP_FILES]
+            return {self._resolve_calls(k, data): 
+                        self._resolve_calls(v, data)
+                for k, v in result.items()}
+        elif isinstance(result, list):
+            return [self._resolve_calls(v, data) for v in result]
+        elif isinstance(result, str):
+            if result.startswith('$CALL('):
+                method = self._call_dict[result[6:-1]]
+                if data is None:
+                    msg = "Unable to resolve function call in expression."
+                    raise RuntimeError(msg)
+                elif isinstance(data, list):
+                    return [method(self._convert_src(d, method)) for d in data]
+                else:
+                    src = self._convert_src(data, method)
+                    return method(src)
+            else:
+                return result
+        else:
+            return result
+
+    def aggregate(self, pipeline, ** kwargs):
+        plain_pipeline = list(self._resolve_pipeline(pipeline))
+        logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
+        result = self._data.aggregate(plain_pipeline, ** kwargs)
+        for doc in result:
+            yield self._resolve_doc(doc)
+        self._call_dict.clear()
+
+    def aggregate_collection(self, pipeline, ** kwargs):
+        plain_pipeline = list(self._resolve_pipeline(pipeline))
+        logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
+        result = self._data.aggregate(plain_pipeline, ** kwargs)
+        c_name = str(uuid.uuid4())
+        tmp_collection = self._db[cname]
+        try:
+            tmp_collection.insert_many(list(result))
+            tmp_collection = TemporaryCollection(self._db[c_name])
+        except:
+            tmp_collection.drop()
+            raise
+        else:
+            return TemporaryCollection(tmp_collection)
