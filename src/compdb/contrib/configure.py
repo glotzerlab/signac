@@ -9,6 +9,7 @@ from os.path import expanduser
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
 OPERATIONS= ['add', 'set', 'remove', 'show']
+USER_GLOBAL = expanduser('~/compdb.rc')
 
 def process(args):
     from os.path import abspath
@@ -16,55 +17,48 @@ def process(args):
         if args.name.endswith('_dir'):
             args.value = abspath(args.value)
 
-def add(args):
+def get_config(args):
     from compdb.core.config import Config
     config = Config()
     try:
-        config.read(args.config)
+        if args._global:
+            config.read(USER_GLOBAL)
+        else:
+            config.read(args.config)
     except FileNotFoundError:
         pass
+    return config
+
+def write_config(config, args):
+    if args._global:
+        config.write(USER_GLOBAL)
+    elif args.config == '-':
+        config.dump()
+    else:
+        config.write(args.config)
+
+def add(args):
+    config = get_config(args)
     if args.name in config:
         msg = "Value for '{}' is already set in '{}'. Use 'set' instead of 'add' to overwrite."
         print(msg.format(args.name, args.config))
         return
     config[args.name] = args.value
-    if args.config == '-':
-        config.dump()
-    else:
-        config.write(args.config)
+    write_config(config, args)
 
 def set_value(args):
-    from compdb.core.config import Config
-    config = Config()
-    try:
-        config.read(args.config)
-    except FileNotFoundError:
-        pass
+    config = get_config(args)
     config[args.name] = args.value
-    if args.config == '-':
-        config.dump()
-    else:
-        config.write(args.config)
+    write_config(config, args)
 
 def remove(args):
-    from compdb.core.config import Config
-    config = Config()
-    try:
-        config.read(args.config)
-    except FileNotFoundError:
-        pass
+    config = get_config(args)
     del config[args.name]
-    config.write(args.config)
+    write_config(config, args)
 
 def show(args):
-    from compdb.core.config import Config
-    config = Config()
-    try:
-        config.read(args.config)
-    except FileNotFoundError:
-        pass
+    config = get_config(args)
     config.dump(indent = 1)
-
 
 def verify(args):
     import re
@@ -77,24 +71,24 @@ def verify(args):
         from os.path import expanduser, realpath
         args.config = realpath(expanduser(args.config))
 
-def make_author(args):
-    from compdb.core.config import Config
-    import os
-    c = {
-        'author_name': args.name,
-        'author_email': args.email,
-    }
-    config = Config()
-    if not args.config == '-':
-        try:
-            config.read(args.config)
-        except FileNotFoundError:
-            pass
-    config.update(c)
-    if args.config == '-':
-        config.dump()
-    else:
-        config.write(args.config)
+#def make_author(args):
+#    from compdb.core.config import Config
+#    import os
+#    c = {
+#        'author_name': args.name,
+#        'author_email': args.email,
+#    }
+#    config = Config()
+#    if not args.config == '-':
+#        try:
+#            config.read(args.config)
+#        except FileNotFoundError:
+#            pass
+#    config.update(c)
+#    if args.config == '-':
+#        config.dump()
+#    else:
+#        config.write(args.config)
 
 def configure(args):
     process(args)
@@ -132,8 +126,14 @@ def setup_parser(parser):
         parser.add_argument(
             '-c', '--config',
             type = str,
-            default = expanduser('~/compdb.rc'),
+            default = expanduser('./compdb.rc'),
             help = "The config file to read and write from. Use '-' to print to standard output.",
+            )
+        parser.add_argument(
+            '-g', '--global',
+            dest = '_global',
+            action = 'store_true',
+            help = "Write to the user's global configuration file.",
             )
 
 def main(arguments = None):
@@ -141,7 +141,6 @@ def main(arguments = None):
         parser = ArgumentParser(
             description = "Change the compDB configuration.",
             )
-
         args = parser.parse_args(arguments)
         configure(args)
 

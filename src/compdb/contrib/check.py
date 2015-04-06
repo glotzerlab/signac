@@ -32,7 +32,42 @@ def check_global_config():
     else:
         return True
 
-def check_project_config():
+def check_project_config_offline():
+    from compdb.contrib import get_project
+    from compdb.contrib.errors import ConnectionFailure
+    from tempfile import TemporaryDirectory
+    import uuid, os
+
+    original_host = os.environ.get('COMPDB_DATABASE_HOST')
+    try:
+        os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
+        project = get_project(connectTimeoutMS = 10)
+        checktoken = {'checktoken': str(uuid.uuid4())}
+        checkvalue = str(uuid.uuid4())
+        with TemporaryDirectory() as tmp_dir:
+            job = project.open_job(checktoken)
+            try:
+                with job.document as document:
+                    document['check'] = checkvalue
+
+                with job.document as document:
+                    assert document['check'] == checkvalue
+            except:
+                raise
+            finally:
+                try:
+                    job.remove(force = True) # Not supported in offline mode
+                except:
+                    pass
+    except:
+        raise
+    finally:
+        if original_host is None:
+            del os.environ['COMPDB_DATABASE_HOST']
+        else:
+            os.environ['COMPDB_DATABASE_HOST'] = original_host
+
+def check_project_config_online():
     from compdb.contrib import get_project
     from tempfile import TemporaryDirectory
     import uuid, os

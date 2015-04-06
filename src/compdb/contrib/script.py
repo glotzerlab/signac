@@ -77,24 +77,36 @@ def view(args):
 
 def check(args):
     from . import check
+    from .errors import ConnectionFailure
+    encountered_error = False
     checks = [
         ('Checking database connection...',
         check.check_database_connection),
         ('Checking global configuration...',
         check.check_global_config),
-        ('Checking project configuration...',
-        check.check_project_config),
+        ('Checking project configuration (offline) (may take a few minutes) ...',
+        check.check_project_config_offline),
+        ('Checking project configuration (online) (may take a few minutes)',
+        check.check_project_config_online),
         ]
     for msg, check in checks:
         print(msg)
         try:
             check()
+        except ConnectionFailure as error:
+            print("Error: {}".format(error))
+            print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
+            if args.verbosity > 0:
+                raise
         except Exception as error:
             print("Error: {}".format(error))
             if args.verbosity > 0:
                 raise
+            encountered_error = True
         else:
             print("OK")
+    if encountered_error:
+        print("Encountered error during config check. Increase verbosity (-v) for more information.")
 
 def run_pools(args):
     from os.path import abspath

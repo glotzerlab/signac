@@ -69,7 +69,6 @@ class Job(object):
         import uuid, os
         from ..core.storage import Storage
         from ..core.dbdocument import DBDocument
-        from . errors import ConnectionFailure
 
         self._unique_id = str(uuid.uuid4())
         self._project = project
@@ -79,11 +78,7 @@ class Job(object):
         self._timeout = timeout
         self._blocking = blocking
         self._lock = None
-        try:
-            self._obtain_id()
-        except  ConnectionFailure as error:
-            logger.error("Failed to obtain id.")
-            raise
+        self._obtain_id()
         self._with_id()
         if rank is None:
             self._rank = self._determine_rank()
@@ -232,6 +227,20 @@ class Job(object):
         return self._storage
 
     def _obtain_id(self):
+        from . errors import ConnectionFailure
+        from . hashing import generate_hash_from_spec
+        try:
+            self._obtain_id_online()
+        except ConnectionFailure:
+            try:
+                _id = generate_hash_from_spec(self._spec)
+            except TypeError:
+                logger.error(self._spec)
+                raise TypeError("Unable to hash specs.")
+            else:
+                self._spec['_id'] = generate_hash_from_spec(self._spec)
+
+    def _obtain_id_online(self):
         import os
         from pymongo.errors import DuplicateKeyError
         from . import sleep_random
