@@ -19,6 +19,9 @@ FN_STORAGE_BACKUP = '_fs_backup'
 
 COLLECTION_LOGGING = 'logging'
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 def valid_name(name):
     return not name.startswith('_compdb')
 
@@ -144,7 +147,7 @@ class Project(object):
         self.config['develop'] = True
 
     def _job_spec(self, parameters):
-        spec = {}
+        spec = dict()
         #if not len(parameters):
         #    msg = "Parameters dictionary cannot be empty!"
         #    raise ValueError(msg)
@@ -197,8 +200,10 @@ class Project(object):
             self._job_spec_modifier(job_spec), * args, ** kwargs)
 
     def find_job_ids(self, spec = {}):
-        for job in self._find_jobs(spec, fields = ['_id']):
-            yield job['_id']
+        if PYMONGO_3:
+            yield from self._find_jobs(spec, projection = ['_id'])
+        else:
+            yield from self._find_jobs(spec, fields = ['_id'])
     
     def find_jobs(self, job_spec = {}, spec = None, blocking = True, timeout = -1):
         job_ids = list(self.find_job_ids(job_spec))

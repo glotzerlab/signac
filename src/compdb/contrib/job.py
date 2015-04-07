@@ -1,6 +1,9 @@
 import logging, threading
 logger = logging.getLogger('compdb.job')
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 10
@@ -242,9 +245,35 @@ class Job(object):
                 self._spec['_id'] = generate_hash_from_spec(self._spec)
 
     def _obtain_id_online(self):
+        if PYMONGO_3:
+            self._obtain_id_online_pymongo3()
+        else:
+            self._obtain_id_online_pymongo2()
+
+    def _obtain_id_online_pymongo3(self):
         import os
         from pymongo.errors import DuplicateKeyError
-        from . import sleep_random
+        from . hashing import generate_hash_from_spec
+        if not '_id' in self._spec:
+            try:
+                _id = generate_hash_from_spec(self._spec)
+            except TypeError:
+                logger.error(self._spec)
+                raise TypeError("Unable to hash specs.")
+            self._spec.update({'_id': _id})
+            logger.debug("Opening with spec: {}".format(self._spec))
+        else:
+            _id = self._spec['_id']
+        self._spec = self._project.get_jobs_collection().find_one_and_update(
+            filter = self._spec,
+            update = {'$setOnInsert': self._spec},
+            upsert = True,
+            return_document = pymongo.ReturnDocument.AFTER)
+        assert self.get_id() == _id
+
+    def _obtain_id_online_pymongo2(self):
+        import os
+        from pymongo.errors import DuplicateKeyError
         from . hashing import generate_hash_from_spec
         if not '_id' in self._spec:
             try:

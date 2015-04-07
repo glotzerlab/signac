@@ -86,9 +86,10 @@ def check(args):
         check.check_global_config),
         ('project configuration (online) (may take a while)',
         check.check_project_config_online),
-        ('project configuration (offline) (may take a while)',
-        check.check_project_config_offline),
         ]
+    checks_offline = [
+        ('project configuration (offline) (may take a while)',
+        check.check_project_config_offline)]
     for msg, check in checks:
         print("Checking {} ... ".format(msg), end='', flush=True)
         try:
