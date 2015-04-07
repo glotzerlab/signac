@@ -80,20 +80,21 @@ def check(args):
     from .errors import ConnectionFailure
     encountered_error = False
     checks = [
-        ('Checking database connection...',
+        ('database connection',
         check.check_database_connection),
-        ('Checking global configuration...',
+        ('global configuration',
         check.check_global_config),
-        ('Checking project configuration (offline) (may take a few minutes) ...',
-        check.check_project_config_offline),
-        ('Checking project configuration (online) (may take a few minutes)',
+        ('project configuration (online) (may take a while)',
         check.check_project_config_online),
+        ('project configuration (offline) (may take a while)',
+        check.check_project_config_offline),
         ]
     for msg, check in checks:
-        print(msg)
+        print("Checking {} ... ".format(msg), end='', flush=True)
         try:
             check()
         except ConnectionFailure as error:
+            print()
             print("Error: {}".format(error))
             print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
             if args.verbosity > 0:
@@ -104,7 +105,7 @@ def check(args):
                 raise
             encountered_error = True
         else:
-            print("OK")
+            print("ok")
     if encountered_error:
         print("Encountered error during config check. Increase verbosity (-v) for more information.")
 
@@ -409,3 +410,6 @@ def main():
             print("Use -v to increase verbosity of messages.")
     else:
         sys.exit(0)
+
+if __name__ == '__main__':
+    main()

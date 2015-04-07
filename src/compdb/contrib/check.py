@@ -32,6 +32,39 @@ def check_global_config():
     else:
         return True
 
+def check_project_config_online():
+    from compdb.contrib import get_project
+    from tempfile import TemporaryDirectory
+    import uuid, os
+
+    project = get_project()
+    checktoken = {'checktoken': str(uuid.uuid4())}
+    checkvalue = str(uuid.uuid4())
+    job = project.open_job(checktoken)
+    try:
+        with job:
+            job.document['check'] = checkvalue
+            assert job.document['check'] == checkvalue
+            with job.storage.open_file('check.txt', 'wb') as file:
+                file.write(checkvalue.encode())
+            with open('check_wd.txt', 'wb') as file:
+                file.write(checkvalue.encode())
+            job.storage.store_file('check_wd.txt')
+
+        with job:
+            assert job.document.get('check') == checkvalue
+            assert job.document['check'] == checkvalue
+            with job.storage.open_file('check.txt', 'rb') as file:
+                assert file.read().decode() == checkvalue
+            job.storage.restore_file('check_wd.txt')
+            assert os.path.exists('check_wd.txt')
+            with open('check_wd.txt', 'rb') as file:
+                assert file.read().decode() == checkvalue
+    except:
+        raise
+    finally:
+        job.remove()
+
 def check_project_config_offline():
     from compdb.contrib import get_project
     from compdb.contrib.errors import ConnectionFailure
@@ -39,9 +72,11 @@ def check_project_config_offline():
     import uuid, os
 
     original_host = os.environ.get('COMPDB_DATABASE_HOST')
+    original_timeout = os.environ.get('COMPDB_CONNECT_TIMEOUT')
+    os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
+    os.environ['COMPDB_CONNECT_TIMEOUT'] = '100'
     try:
-        os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
-        project = get_project(connectTimeoutMS = 10)
+        project = get_project()
         checktoken = {'checktoken': str(uuid.uuid4())}
         checkvalue = str(uuid.uuid4())
         with TemporaryDirectory() as tmp_dir:
@@ -66,35 +101,7 @@ def check_project_config_offline():
             del os.environ['COMPDB_DATABASE_HOST']
         else:
             os.environ['COMPDB_DATABASE_HOST'] = original_host
-
-def check_project_config_online():
-    from compdb.contrib import get_project
-    from tempfile import TemporaryDirectory
-    import uuid, os
-
-    project = get_project()
-    checktoken = {'checktoken': str(uuid.uuid4())}
-    checkvalue = str(uuid.uuid4())
-    with TemporaryDirectory() as tmp_dir:
-        job = project.open_job(checktoken)
-        try:
-            with job:
-                job.document['check'] = checkvalue
-                with job.storage.open_file('check.txt', 'wb') as file:
-                    file.write(checkvalue.encode())
-                with open('check_wd.txt', 'wb') as file:
-                    file.write(checkvalue.encode())
-                job.storage.store_file('check_wd.txt')
-
-            with job:
-                assert job.document['check'] == checkvalue
-                with job.storage.open_file('check.txt', 'rb') as file:
-                    assert file.read().decode() == checkvalue
-                job.storage.restore_file('check_wd.txt')
-                assert os.path.exists('check_wd.txt')
-                with open('check_wd.txt', 'rb') as file:
-                    assert file.read().decode() == checkvalue
-        except:
-            raise
-        finally:
-            job.remove()
+        if original_timeout is None:
+            del os.environ['COMPDB_CONNECT_TIMEOUT']
+        else:
+            os.environ['COMPDB_CONNECT_TIMEOUT'] = original_timeout

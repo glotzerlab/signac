@@ -10,14 +10,15 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 
 ENVIRONMENT_VARIABLES = {
-    'author_name' :     'COMPDB_AUTHOR_NAME',
-    'author_email':     'COMPDB_AUTHOR_EMAIL',
-    'project':          'COMPDB_PROJECT',
-    'project_dir' :     'COMPDB_PROJECT_DIR',
-    'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
-    'workspace_dir':      'COMPDB_WORKING_DIR',
-    'database_host':    'COMPDB_DATABASE_HOST',
-    'develop':          'COMPDB_DEVELOP',
+    'author_name' :         'COMPDB_AUTHOR_NAME',
+    'author_email':         'COMPDB_AUTHOR_EMAIL',
+    'project':              'COMPDB_PROJECT',
+    'project_dir' :         'COMPDB_PROJECT_DIR',
+    'filestorage_dir':      'COMPDB_FILESTORAGE_DIR',
+    'workspace_dir':        'COMPDB_WORKING_DIR',
+    'database_host':        'COMPDB_DATABASE_HOST',
+    'develop':              'COMPDB_DEVELOP',
+    'connect_timeout_ms':   'COMPDB_CONNECT_TIMEOUT',
 }
 
 REQUIRED_KEYS = [
@@ -32,7 +33,7 @@ DEFAULTS = {
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 
+    'global_fs_dir', 'develop', 'connect_timeout_ms',
     ]
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']

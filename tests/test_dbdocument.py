@@ -80,11 +80,15 @@ class TestDBDocument(unittest.TestCase):
     def test_get(self):
         key = "test_get"
         data = testdata()
-        with get_dbdoc() as dbdoc:
+        with get_dbdoc():
             dbdoc[key] = data
             self.assertEqual(dbdoc.get(key), data)
             self.assertIsNone(dbdoc.get('abc'))
             self.assertEqual(dbdoc.get('abc', 123), 123)
+
+        with get_dbdoc():
+            self.assertEqual(dbdoc[key], data)
+            self.assertEqual(dbdoc.get(key), data)
 
     def test_iteration(self):
         key = 'test_iteration'

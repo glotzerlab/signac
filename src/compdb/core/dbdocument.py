@@ -10,8 +10,8 @@ def sync_worker(stop_event, synced_or_failed_event,
     while(not stop_event.is_set()):
         #src.sync()
         try:
-            action, key = queue.get(timeout = 0.1)
             synced_or_failed_event.clear()
+            action, key = queue.get(timeout = 0.1)
             logger.debug("syncing: {} {}".format(action, key))
             if action == 'set':
                 dst[key] = src[key]
@@ -22,6 +22,8 @@ def sync_worker(stop_event, synced_or_failed_event,
             elif action == 'clr':
                 if src:
                     src.clear()
+            elif action == 'continue':
+                continue
             else:
                 raise RuntimeError("illegal sync action", action)
         except Empty:  # Only caught if we cleared the queue
@@ -43,14 +45,16 @@ def sync_worker(stop_event, synced_or_failed_event,
 
 class ReadOnlyDBDocument(object):
 
-    def __init__(self, host, db_name, collection_name, _id, rank = 0):
+    def __init__(self, host, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
         from threading import Event, Condition
         from . mongodbdict import MongoDBDict
         self._id = _id
         self._rank = rank
         self._buffer = None
         self._mongodict = MongoDBDict(
-            host, db_name, collection_name, _id)
+            host, db_name,
+            collection_name, _id,
+            connect_timeout_ms = connect_timeout_ms)
         self._sync_queue = Queue()
         self._stop_event = Event()
         self._synced_or_failed_event = Event()
@@ -74,7 +78,7 @@ class ReadOnlyDBDocument(object):
             raise RuntimeError(msg)
         return self._buffer
 
-    def _join(self, timeout = 1.0):
+    def _join(self, timeout = 5.0):
         if self._sync_error_condition.is_set():
             return False
         else:
@@ -89,6 +93,7 @@ class ReadOnlyDBDocument(object):
             tablename = 'dbdocument',
             autocommit = False)
         self._buffer.sync()
+        #logger.debug(list(self._buffer.items()))
         logger.debug("Syncing buffer...")
         for key in self._buffer.keys():
             self._sync_queue.put(('set', key))
@@ -103,10 +108,11 @@ class ReadOnlyDBDocument(object):
 
     def close(self, timeout = None):
         logger.debug("Closing and syncing...")
+        #logger.debug(list(self._buffer.items()))
         self._join()
         self._stop_event.set()
-        self._buffer.sync()
         self._sync_thread.join(timeout = timeout)
+        self._buffer.sync()
         if self._sync_thread.is_alive() or \
               self._sync_error_condition.is_set():
             logger.warning("Unable to sync to database.")
@@ -148,6 +154,10 @@ class ReadOnlyDBDocument(object):
         self._sync_queue.put(('get', key))
         self._join()
         return self._get_buffer().get(key, default)
+
+    def items(self):
+        self._join()
+        return self._get_buffer().items()
 
 class DBDocument(ReadOnlyDBDocument):
     

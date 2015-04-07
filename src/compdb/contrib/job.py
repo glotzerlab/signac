@@ -93,7 +93,8 @@ class Job(object):
         self._dbdocument = DBDocument(
             self._project.config['database_host'],
             self._project.get_id(), JOB_DOCS,
-            self.get_id(), self._rank)
+            self.get_id(), self._rank,
+            connect_timeout_ms = self._project.config.get('connect_timeout_ms'))
         self._pulse = None
 
     def _determine_rank(self):
@@ -227,7 +228,7 @@ class Job(object):
         return self._storage
 
     def _obtain_id(self):
-        from . errors import ConnectionFailure
+        from pymongo.errors import ConnectionFailure
         from . hashing import generate_hash_from_spec
         try:
             self._obtain_id_online()

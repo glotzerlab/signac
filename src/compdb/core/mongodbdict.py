@@ -1,21 +1,29 @@
 import logging
 logger = logging.getLogger('mongodbdict')
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 class ReadOnlyMongoDBDict(object):
 
-    def __init__(self, host, db_name, collection_name, _id):
+    def __init__(self, host, db_name, collection_name, _id, connect_timeout_ms = None):
         self._host = host
         self._db_name = db_name
         self._collection_name = collection_name
         self._collection = None
         self._id = _id
+        self._connect_timeout_ms = connect_timeout_ms
         msg = "Opened MongoDBDict '{}' on '{}'."
         logger.debug(msg.format(_id, collection_name))
 
     def _get_collection(self):
         from pymongo import MongoClient
         if self._collection is None:
-            client = MongoClient(self._host)
+            msg = "Connection timeout: {}"
+            logger.debug(msg.format(self._connect_timeout_ms))
+            client = MongoClient(
+                self._host,
+                connectTimeoutMS = self._connect_timeout_ms)
             self._collection = client[self._db_name][self._collection_name]
         return self._collection
 
@@ -24,10 +32,14 @@ class ReadOnlyMongoDBDict(object):
 
     def __getitem__(self, key):
         logger.debug("Getting '{}'".format(key))
-        doc = self._get_collection().find_one(
-            self._spec(),
-            fields = [key],
-            )
+        if PYMONGO_3:
+            doc = self._get_collection().find_one(
+                filter = self._spec(),
+                projection = [key])
+        else:
+            doc = self._get_collection().find_one(
+                self._spec(),
+                fields = [key])
         if doc is None:
             raise KeyError(key)
         else:
@@ -39,10 +51,14 @@ class ReadOnlyMongoDBDict(object):
         yield from doc
 
     def __contains__(self, key):
-        doc = self._get_collection().find_one(
-            self._spec(),
-            fields = [key],
-            )
+        if PYMONGO_3:
+            doc = self._get_collection().find_one(
+                filter = self._spec(),
+                projection = [key])
+        else:
+            doc = self._get_collection().find_one(
+                self._spec(),
+                fields = [key])
         if doc is None:
             return False
         else:
@@ -59,19 +75,29 @@ class MongoDBDict(ReadOnlyMongoDBDict):
     def __setitem__(self, key, value):
         msg = "Setting '{}'."
         logger.debug(msg.format(key))
-        result = self._get_collection().update(
-            spec = self._spec(),
-            document = {'$set': {key: value}},
-            upsert = True
-            )
+        if PYMONGO_3:
+            self._get_collection().update_one(
+                filter = self._spec(),
+                update = {'$set': {key: value}},
+                upsert = True)
+        else:
+            self._get_collection().update(
+                spec = self._spec(),
+                document = {'$set': {key: value}},
+                upsert = True)
 
     def __delitem__(self, key):
-        result = self._get_collection().update(
-            spec = self._spec(),
-            document = {
-                '$unset': {key: ''}
-            })
-        assert result['ok']
+        if PYMONGO_3:
+            result = self._get_collection().update_one(
+                filter = self._spec(),
+                update = {'$unset': {key: ''}})
+        else:
+            result = self._get_collection().update(
+                spec = self._spec(),
+                document = {
+                    '$unset': {key: ''}
+                })
+            assert result['ok']
 
     def clear(self):
         self._get_collection().save(self._spec())

@@ -37,6 +37,7 @@ class Project(object):
         self._logging_queue = Queue()
         self._logging_queue_handler = QueueHandler(self._logging_queue)
         self._logging_listener = None
+        self._client = None
 
     def __str__(self):
         try:
@@ -54,13 +55,24 @@ class Project(object):
     def root_directory(self):
         return self._config['project_dir']
 
+    def _get_client(self):
+        if self._client is None:
+            from pymongo import MongoClient
+            timeout = self.config.get('connect_timeout_ms')
+            if timeout is not None:
+                timeout = int(timeout)
+            msg = "Connecting (timeout={})..."
+            logger.debug(msg.format(timeout))
+            self._client = MongoClient(
+                self.config['database_host'],
+                connectTimeoutMS = timeout)
+        return self._client
+
     def _get_db(self, db_name):
-        from pymongo import MongoClient
         import pymongo.errors
         host = self.config['database_host']
         try:
-            client = MongoClient(host)
-            return client[db_name]
+            return self._get_client()[db_name]
         except pymongo.errors.ConnectionFailure as error:
             from . errors import ConnectionFailure
             msg = "Failed to connect to database '{}' at '{}'."
@@ -97,14 +109,13 @@ class Project(object):
         return self.config['workspace_dir']
 
     def remove(self, force = False):
-        from pymongo import MongoClient
         import pymongo.errors
         self.get_cache().clear()
         for job in self.find_jobs():
             job.remove(force = force)
         try:
             host = self.config['database_host']
-            client = MongoClient(host)
+            client = self._get_client()
             client.drop_database(self.get_id())
         except pymongo.errors.ConnectionFailure as error:
             msg = "{}: Failed to remove project database on '{}'."

@@ -286,38 +286,6 @@ class Database(object):
         logger.info(msg.format(coverage, skipped))
         return matching
 
-    def _find_with_methods(self, filter = None, * args, ** kwargs):
-        if filter is None:
-            return None
-        standard_filter, methods_filter = self._split_filter(filter)
-        if methods_filter:
-            if PYMONGO_3:
-                docs = self._data.find(
-                    filter = standard_filter, 
-                    projection = ['_id'])
-            else:
-                docs = self._data.find(
-                    spec = standard_filter,
-                    fields = ['_id'])
-            filtered = self._filter_by_methods(docs, methods_filter)
-            return {'_id': {'$in': list(filtered)}}
-        else:
-            return standard_filter
-
-    def _find_one_with_methods(self, filter = None, *args, **kwargs):
-        if filter is None:
-            return self._data.find_one(filter, * args, ** kwargs)
-        standard_filter, methods_filter = self._split_filter(filter)
-        doc = self._data.find_one(standard_filter, * args, ** kwargs)
-        if len(methods_filter):
-            filtered = self._filter_by_methods([doc], methods_filter)
-            if doc['_id'] in filtered:
-                return doc
-            else:
-                return None
-        else:
-            return doc
-
     def _add_metadata_from_context(self, metadata):
         if not 'author_name' in metadata:
             metadata['author_name'] = self._config['author_name']
@@ -475,7 +443,10 @@ class Database(object):
                 raise UnsupportedExpressionError(key)
             else:
                 standard[key] = self._resolve(value, call_dict)
-        docs = self._data.find(filter=standard,projection=['_id'])
+        if PYMONGO_3:
+            docs = self._data.find(filter=standard,projection=['_id'])
+        else:
+            docs = self._data.find(spec = standard, fields = ['_id'])
         if methods_filter:
             filtered = self._filter_by_methods(docs, methods_filter)
             return {'_id': {'$in': list(filtered)}}
@@ -538,4 +509,7 @@ class Database(object):
         plain_pipeline = list(self._resolve_pipeline(pipeline, call_dict))
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         result = self._data.aggregate(plain_pipeline, ** kwargs)
-        return filter(len, map(FileCursor(self, call_dict), result))
+        if PYMONGO_3:
+            return filter(len, map(FileCursor(self, call_dict), result))
+        else:
+            return filter(len, map(FileCursor(self, call_dict), result['result']))
