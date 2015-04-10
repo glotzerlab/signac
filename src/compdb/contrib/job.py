@@ -71,7 +71,8 @@ class Job(object):
     def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
         import uuid, os
         from ..core.storage import Storage
-        from ..core.dbdocument import DBDocument
+        #from ..core.dbdocument import DBDocument
+        from ..core.mongodbdict import MongoDBDict as DBDocument
 
         self._unique_id = str(uuid.uuid4())
         self._project = project
@@ -96,7 +97,8 @@ class Job(object):
         self._dbdocument = DBDocument(
             self._project.config['database_host'],
             self._project.get_id(), JOB_DOCS,
-            self.get_id(), self._rank,
+            self.get_id(),
+            #self._rank,
             connect_timeout_ms = self._project.config.get('connect_timeout_ms'))
         self._pulse = None
 
@@ -191,14 +193,14 @@ class Job(object):
         self._create_directories()
         os.chdir(self.get_workspace_directory())
         self._add_instance()
-        self._dbdocument.open()
+        #self._dbdocument.open()
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
     def _close_with_error(self):
         import shutil, os
         self._with_id()
-        self._dbdocument.close()
+        #self._dbdocument.close()
         os.chdir(self._cwd)
         self._cwd = None
         self._stop_pulse()
@@ -288,7 +290,6 @@ class Job(object):
         import os
         from pymongo.errors import DuplicateKeyError
         from . hashing import generate_hash_from_spec
-        print('pymongo2')
         if not '_id' in self._spec:
             try:
                 _id = generate_hash_from_spec(self._spec)
@@ -298,7 +299,6 @@ class Job(object):
             try:
                 self._spec.update({'_id': _id})
                 logger.debug("Opening with spec: {}".format(self._spec))
-                print('pymongo2', self._spec)
                 result = self._project.get_jobs_collection().update(
                     spec = self._spec,
                     document = {'$setOnInsert': self._spec},
@@ -313,7 +313,6 @@ class Job(object):
                     _id = result['upserted']
         else:
             _id = self._spec['_id']
-        print('_id', _id)
         self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id
