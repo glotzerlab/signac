@@ -201,9 +201,11 @@ class Project(object):
 
     def find_job_ids(self, spec = {}):
         if PYMONGO_3:
-            yield from self._find_jobs(spec, projection = ['_id'])
+            docs = self._find_jobs(spec, projection = ['_id'])
         else:
-            yield from self._find_jobs(spec, fields = ['_id'])
+            docs = self._find_jobs(spec, fields = ['_id'])
+        for doc in docs:
+            yield doc['_id']
     
     def find_jobs(self, job_spec = {}, spec = None, blocking = True, timeout = -1):
         job_ids = list(self.find_job_ids(job_spec))

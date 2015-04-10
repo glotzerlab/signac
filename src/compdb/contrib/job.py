@@ -265,22 +265,22 @@ class Job(object):
         else:
             _id = self._spec['_id']
         try:
-            result = self._project.get_jobs_collection().update(
-                self._spec, {'$setOnInsert': self._spec}, upsert = True)
-            #self._spec = self._project.get_jobs_collection().find_one_and_update(
-            #    filter = self._spec,
-            #    update = {'$setOnInsert': self._spec},
-            #    upsert = True,
-            #    return_document = pymongo.ReturnDocument.AFTER)
+            #result = self._project.get_jobs_collection().update(
+            #    self._spec, {'$setOnInsert': self._spec}, upsert = True)
+            self._spec = self._project.get_jobs_collection().find_one_and_update(
+                filter = self._spec,
+                update = {'$setOnInsert': self._spec},
+                upsert = True,
+                return_document = pymongo.ReturnDocument.AFTER)
         except DuplicateKeyError as error:
             pass
         else:
-            assert result['ok']
-            if result['updatedExisting']:
-                _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
-            else:
-                _id = result['upserted']
-            #_id = self._spec['_id']
+            #assert result['ok']
+            #if result['updatedExisting']:
+            #    _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
+            #else:
+            #    _id = result['upserted']
+            _id = self._spec['_id']
         self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self.get_id() == _id
 
@@ -288,6 +288,7 @@ class Job(object):
         import os
         from pymongo.errors import DuplicateKeyError
         from . hashing import generate_hash_from_spec
+        print('pymongo2')
         if not '_id' in self._spec:
             try:
                 _id = generate_hash_from_spec(self._spec)
@@ -297,6 +298,7 @@ class Job(object):
             try:
                 self._spec.update({'_id': _id})
                 logger.debug("Opening with spec: {}".format(self._spec))
+                print('pymongo2', self._spec)
                 result = self._project.get_jobs_collection().update(
                     spec = self._spec,
                     document = {'$setOnInsert': self._spec},
@@ -311,6 +313,7 @@ class Job(object):
                     _id = result['upserted']
         else:
             _id = self._spec['_id']
+        print('_id', _id)
         self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self._spec is not None
         assert self.get_id() == _id
