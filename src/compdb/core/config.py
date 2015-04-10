@@ -19,6 +19,7 @@ ENVIRONMENT_VARIABLES = {
     'database_host':        'COMPDB_DATABASE_HOST',
     'develop':              'COMPDB_DEVELOP',
     'connect_timeout_ms':   'COMPDB_CONNECT_TIMEOUT',
+    'compmatdb_host':       'COMPDB_COMPMATDB_HOST',
 }
 
 REQUIRED_KEYS = [
@@ -28,12 +29,13 @@ REQUIRED_KEYS = [
 
 DEFAULTS = {
     'database_host': 'localhost',
-    'database_meta': '_compdb',
-    'database_global_fs': '_compdb_fs',
+    'database_meta': 'compdb',
+    'database_global_fs': 'compdb_fs',
+    'database_compmatdb': 'compmatdb',
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 'connect_timeout_ms',
+    'global_fs_dir', 'develop', 'connect_timeout_ms', 'compmatdb_host',
     ]
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']

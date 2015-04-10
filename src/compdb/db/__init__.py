@@ -9,6 +9,17 @@ from .conversion import make_db_method
 from .conversion import Adapter, BasicFormat, DBMethod
 from . import methods
 
+def access_compmatdb(host = None, config = None):
+    import pymongo
+    if config is None:
+        from ..core.config import load_config
+        config = load_config()
+    if host is None:
+        host = config['compmatdb_host']
+    client = pymongo.MongoClient(host)
+    db = client[config['database_compmatdb']]
+    return Database(db = db, config = config)
+
 def _get_db_global_fs():
     return _get_db(CONFIG['database_global_fs'])
 

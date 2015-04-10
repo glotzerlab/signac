@@ -260,15 +260,28 @@ class Job(object):
             except TypeError:
                 logger.error(self._spec)
                 raise TypeError("Unable to hash specs.")
-            self._spec.update({'_id': _id})
+            self._spec['_id'] = _id
             logger.debug("Opening with spec: {}".format(self._spec))
         else:
             _id = self._spec['_id']
-        self._spec = self._project.get_jobs_collection().find_one_and_update(
-            filter = self._spec,
-            update = {'$setOnInsert': self._spec},
-            upsert = True,
-            return_document = pymongo.ReturnDocument.AFTER)
+        try:
+            result = self._project.get_jobs_collection().update(
+                self._spec, {'$setOnInsert': self._spec}, upsert = True)
+            #self._spec = self._project.get_jobs_collection().find_one_and_update(
+            #    filter = self._spec,
+            #    update = {'$setOnInsert': self._spec},
+            #    upsert = True,
+            #    return_document = pymongo.ReturnDocument.AFTER)
+        except DuplicateKeyError as error:
+            pass
+        else:
+            assert result['ok']
+            if result['updatedExisting']:
+                _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
+            else:
+                _id = result['upserted']
+            #_id = self._spec['_id']
+        self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
         assert self.get_id() == _id
 
     def _obtain_id_online_pymongo2(self):

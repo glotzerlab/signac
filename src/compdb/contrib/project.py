@@ -23,7 +23,7 @@ import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def valid_name(name):
-    return not name.startswith('_compdb')
+    return not name.startswith('compdb')
 
 class RollBackupExistsError(RuntimeError):
     pass
@@ -271,11 +271,14 @@ class Project(object):
                 'parameters': { '$addToSet': '$parameters'}}},
             ]
         result = self.get_jobs_collection().aggregate(pipe)
-        assert result['ok']
-        if len(result['result']):
-            return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+        if PYMONGO_3:
+            return set([k for r in result for p in r['parameters'] for k in p.keys()])
         else:
-            return set()
+            assert result['ok']
+            if len(result['result']):
+                return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+            else:
+                return set()
 
     def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
         yield from self._find_jobs(

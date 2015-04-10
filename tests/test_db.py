@@ -207,43 +207,43 @@ class DBTest(unittest.TestCase):
         for doc in docs:
             self.assertTrue('foo' in doc)
          
-    def test_collection_aggregate(self):
-        return # TODO rejected
-        db = get_db()
-        from compdb.db import conversion
-        db = get_db()
-        metadata = get_test_metadata()
-        custom_adapter = conversion.make_adapter(
-            CustomFloat, float, custom_to_float)
-        db.add_adapter(custom_adapter)
+    #def test_collection_aggregate(self):
+    #    return # TODO rejected
+    #    db = get_db()
+    #    from compdb.db import conversion
+    #    db = get_db()
+    #    metadata = get_test_metadata()
+    #    custom_adapter = conversion.make_adapter(
+    #        CustomFloat, float, custom_to_float)
+    #    db.add_adapter(custom_adapter)
 
-        data = [42, 42.0, '42', CustomFloat(42.0)]
-        for d in data:
-            db.insert_one(metadata, d)
+    #    data = [42, 42.0, '42', CustomFloat(42.0)]
+    #    for d in data:
+    #        db.insert_one(metadata, d)
 
-        def foo(x):
-            from math import sqrt
-            assert isinstance(x, int)
-            return sqrt(x)
-        foo_method = conversion.make_db_method(foo, int)
+    #    def foo(x):
+    #        from math import sqrt
+    #        assert isinstance(x, int)
+    #        return sqrt(x)
+    #    foo_method = conversion.make_db_method(foo, int)
 
-        pipe = [
-            {'$match': TEST_TOKEN},
-            {'$match': {foo_method: {'$lt': 7}}},
-            {'$project': {
-                '_id': False,
-                'foo': foo_method}}]
-        direct_docs = list(db.aggregate(pipe))
-        aggregate_collection = db.aggregate_collection(pipe)
-        with self.assertRaises(RuntimeError):
-            aggregate_collection.find()
-        with aggregate_collection as c:
-            docs = list(c.find())
-            docs = list(db.resolve(c.find()))
-            self.assertTrue(docs)
-            self.assertEqual(len(docs), len(direct_docs))
-            for a, b in zip(docs, direct_docs):
-                self.assertEqual(a['foo'], b['foo'])
+    #    pipe = [
+    #        {'$match': TEST_TOKEN},
+    #        {'$match': {foo_method: {'$lt': 7}}},
+    #        {'$project': {
+    #            '_id': False,
+    #            'foo': foo_method}}]
+    #    direct_docs = list(db.aggregate(pipe))
+    #    aggregate_collection = db.aggregate_collection(pipe)
+    #    with self.assertRaises(RuntimeError):
+    #        aggregate_collection.find()
+    #    with aggregate_collection as c:
+    #        docs = list(c.find())
+    #        docs = list(db.resolve(c.find()))
+    #        self.assertTrue(docs)
+    #        self.assertEqual(len(docs), len(direct_docs))
+    #        for a, b in zip(docs, direct_docs):
+    #            self.assertEqual(a['foo'], b['foo'])
 
 if __name__ == '__main__':
     unittest.main() 

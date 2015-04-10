@@ -2,7 +2,7 @@ import logging
 logger = logging.getLogger('core')
 
 def valid_name(name):
-    return not name.startswith('_compdb')
+    return not name.startswith('compdb')
 
 def _get_db(db_name):
     logger.warning("Deprecated.")

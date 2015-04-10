@@ -6,8 +6,8 @@ PYMONGO_3 = pymongo.version_tuple[0] == 3
 import bson
 import uuid
 
-COLLECTION_DATA = 'data'
-COLLECTION_CACHE = 'cache'
+COLLECTION_DATA = 'compdb_data'
+COLLECTION_CACHE = 'compdb_cache'
 KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'
 KEY_CALLABLE_SOURCE_HASH = 'source_hash'
@@ -124,6 +124,7 @@ class Database(object):
         self._cache = self._db['cache']
         self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
+        self.debug_mode = False
 
     @property
     def formats_network(self):
@@ -190,8 +191,11 @@ class Database(object):
                 logger.debug(msg.format(* error.args))
             except RuntimeError as error:
                 msg = "Could not apply method '{}' to '{}': {}"
+                if len(str(src)) > 80:
+                    src = str(src)[:80] + '...'
                 logger.debug(msg.format(method, src, error))
-                #raise
+                if self.debug_mode:
+                    raise
             else:
                 records_skipped -= 1
                 cache_doc = callable_spec(method)
