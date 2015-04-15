@@ -3,6 +3,8 @@ import os
 import logging
 logger = logging.getLogger('config')
 
+import bson.json_util as json
+
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
 HOME = os.path.expanduser('~')
@@ -52,7 +54,6 @@ class Config(object):
         return str(self._args)
 
     def read(self, filename = DEFAULT_FILENAME):
-        import json
         with open(filename) as file:
             args = json.loads(file.read())
             logger.debug("Read: {}".format(args))
@@ -93,12 +94,10 @@ class Config(object):
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        import json
         with open(filename, 'w') as file:
             json.dump(args, file, indent = indent)
 
     def _dump(self, indent = 0, keys = None):
-        import json
         if keys is None:
             args = self._args
         else:

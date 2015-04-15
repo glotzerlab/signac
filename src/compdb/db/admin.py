@@ -24,3 +24,6 @@ def clear_cache(db, filter = None):
         f = {'doc_id': {'$in': list(doc['_id'] for doc in docs)}}
         print(f)
         _clear_cache(db, f)
+
+def data_backend(db):
+    return db._data

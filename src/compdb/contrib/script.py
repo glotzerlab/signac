@@ -35,7 +35,7 @@ def info(args):
             else:
                 print(job)
             if args.more:
-                from json import dumps
+                from bson.json_util import dumps
                 print(dumps(job.spec['parameters'], sort_keys = True))
     if args.pulse:
         from datetime import datetime

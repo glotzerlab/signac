@@ -108,7 +108,8 @@ class FileCursor(object):
             pass
         except conversion.ConversionError as error:
             msg = "Conversion error for doc '{}': {}"
-            logger.warning(msg.format(doc, error))
+            logger.warning(msg.format(cursor, error))
+            raise
         return {}
 
 class Database(object):
@@ -284,9 +285,9 @@ class Database(object):
         matching = set(doc['_id'] for doc in docs)
         for method, value in methods_filter.items():
             matching = self._filter_by_method(matching, method, value)
-        msg = "Record methods coverage: {}% (records skipped: {})"
+        msg = "Record methods coverage: {:.2%} (records skipped: {})"
         skipped = docs.count() - len(matching)
-        coverage = float(len(matching) / docs.count()) * 100
+        coverage = float(len(matching) / docs.count())
         logger.info(msg.format(coverage, skipped))
         return matching
 
