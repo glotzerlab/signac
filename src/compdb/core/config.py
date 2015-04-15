@@ -3,7 +3,7 @@ import os
 import logging
 logger = logging.getLogger('config')
 
-import bson.json_util as json
+import json
 
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
@@ -54,10 +54,14 @@ class Config(object):
         return str(self._args)
 
     def read(self, filename = DEFAULT_FILENAME):
-        with open(filename) as file:
-            args = json.loads(file.read())
-            logger.debug("Read: {}".format(args))
-        self._args.update(args)
+        try:
+            with open(filename) as file:
+                args = json.loads(file.read())
+                logger.debug("Read: {}".format(args))
+            self._args.update(args)
+        except ValueError as error:
+            msg = "Failed to read config file '{}'."
+            raise RuntimeError(msg.format(filename))
 
     def _read_files(self):
         from os.path import dirname
@@ -90,12 +94,15 @@ class Config(object):
         verify(self._args)
 
     def write(self, filename = DEFAULT_FILENAME, indent = 0, keys = None):
+        import tempfile
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        with open(filename, 'w') as file:
-            json.dump(args, file, indent = indent)
+        with tempfile.NamedTemporaryFile() as file:
+            with open(filename, 'w') as file:
+                json.dump(args, file, indent = indent)
+            os.rename(file.name, filename)
 
     def _dump(self, indent = 0, keys = None):
         if keys is None:
