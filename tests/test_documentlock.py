@@ -2,6 +2,19 @@ import unittest
 
 from compdb.contrib.concurrency import DocumentLockError, DocumentLock, DocumentRLock, LOCK_ID_FIELD
 
+def acquire_and_release(doc_id, wait):
+    """Testing function, to test process concurrency this must be available on module level."""
+    import time
+    from pymongo import MongoClient
+    client = MongoClient()
+    db = client['testing']
+    mc = db['document_lock']
+    lock = DocumentLock(mc, doc_id)
+    lock.acquire()
+    time.sleep(wait)
+    lock.release()
+    return True
+
 class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):

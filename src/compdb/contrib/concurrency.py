@@ -92,6 +92,7 @@ class DocumentBaseLock(object):
         Returns:
             Returns true when lock was successfully acquired, otherwise false.
         """
+        from math import tanh
         logger.debug("Acquiring lock.")
         if not blocking and timeout != -1:
             raise ValueError("Cannot set timeout if blocking is False.")
@@ -104,10 +105,13 @@ class DocumentBaseLock(object):
                 import time
                 stop_event = Event()
                 def try_to_acquire():
+                    from math import tanh
+                    from itertools import count
+                    w = (tanh(0.05 * i) for i in count())
                     while(not stop_event.is_set()):
                         if self._acquire():
                             return True
-                        stop_event.wait(max(0.001, timeout / 1000))
+                        stop_event.wait(max(0.001, next(w)))
                 t_acq = Thread(target = try_to_acquire)
                 t_acq.start()
                 t_acq.join(timeout = None if timeout == -1 else timeout)
@@ -235,16 +239,3 @@ class DocumentRLock(DocumentBaseLock):
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated or lock was released too many times. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))
-
-def acquire_and_release(doc_id, wait):
-    """Testing function, to test process concurrency this must be available on module level."""
-    import time
-    from pymongo import MongoClient
-    client = MongoClient()
-    db = client['testing']
-    mc = db['document_lock']
-    lock = DocumentLock(mc, doc_id)
-    lock.acquire()
-    time.sleep(wait)
-    lock.release()
-    return True
