@@ -211,20 +211,20 @@ def remove(args):
             else:
                 print("Project removed from database.")
     elif args.job:
-        job_ids = set(args.job.split(','))
+        job_ids = set(args.job)
         legit_ids = project.find_job_ids()
-        unknown_ids = job_ids.difference(legit_ids)
-        known_ids = job_ids.intersection(legit_ids)
-        print(known_ids, unknown_ids)
-        return
-        msg = "Selective removal of jobs currently not supported."
-        raise NotImplementedError(msg)
-        if len(unknown_ids):
-            if not(args.yes or query_yes_no(q)):
-                return
-        for id_ in known_ids:
+        match = set()
+        for legit_id in legit_ids:
+            for selected in job_ids:
+                if legit_id.startswith(selected):
+                    match.add(legit_id)
+        print("{} job(s) selected for removal.".format(len(match)))
+        q = "Are you sure you want to delete the selected jobs?"
+        if not(args.yes or query_yes_no(q)):
+            return
+        for id_ in match:
             job = project.get_job(id_)
-            print(job)
+            job.remove(force = args.force)
     elif args.logs:
         question = "Are you sure you want to clear all logs from project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id())):
