@@ -93,6 +93,9 @@ class JobPool(object):
             rank = self._comm().Get_rank()
         if size is None:
             size = self._comm().Get_size()
+        if rank >= size:
+            msg = "Illegal rank {}, size is {}."
+            raise ValueError(msg.format(rank, size))
         msg = "Starting pool with rank '{}'."
         logger.info(msg.format(rank))
         if jobfile is None:
@@ -172,7 +175,6 @@ class JobPool(object):
         return matrix
 
     def _broadcast_matrix(self, rank, size):
-        rank = self._comm().Get_rank()
         matrix = None
         if rank == MPI_ROOT:
             matrix = self._get_matrix(size)
