@@ -400,8 +400,8 @@ def main():
     parser_log.add_argument(
         '-l', '--level',
         type = str,
-        default = 'INFO',
-        help = "The minimum log level to be retrieved.",
+        default = logging.INFO,
+        help = "The minimum log level to be retrieved, either as numeric value or name. Ex. -l DEBUG"
         )
     parser_log.add_argument(
         '-n', '--lines',

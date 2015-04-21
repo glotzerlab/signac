@@ -646,13 +646,17 @@ class Project(object):
     def stop_logging(self):
         self._logging_listener.stop()
 
-    def get_logs(self, level = 'INFO', limit = 0):
+    def get_logs(self, level = logging.INFO, limit = 0):
         from . logging import record_from_doc
         log_collection = self._get_logging_collection()
-        spec = {'levelname': level}
+        try:
+            levelno = int(level)
+        except ValueError:
+            levelno = logging.getLevelName(level)
+        spec = {'levelno': {'$gte': levelno}}
         sort = [('created', 1)]
         if limit:
-            skip = max(0, log_collection.count() - limit)
+            skip = max(0, log_collection.find(spec).count() - limit)
         else:
             skip = 0
         docs = log_collection.find(spec).sort(sort).skip(skip)
