@@ -125,9 +125,11 @@ class JobPool(object):
                         job_id = job_id,
                         blocking = blocking, timeout = timeout))
             except:
+                logger.debug("Job '{}' failed.".format(job))
                 self._job_queue_failed.put(job)
                 raise
             else:
+                logger.debug("Job '{}' done.".format(job))
                 self._job_queue_done.put(job)
             finally:
                 self._job_queue.task_done()
