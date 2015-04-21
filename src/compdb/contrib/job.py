@@ -209,7 +209,7 @@ class Job(object):
     def _close(self):
         import shutil, os
         if self.num_open_instances() == 0:
-            shutil.rmtree(self.get_workspace_directory())
+            shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
