@@ -107,8 +107,8 @@ class FileCursor(object):
         except conversion.NoConversionPath:
             pass
         except conversion.ConversionError as error:
-            msg = "Conversion error for doc '{}': {}"
-            logger.warning(msg.format(cursor, error))
+            msg = "Conversion error for doc with '{}': {}"
+            logger.warning(msg.format(cursor['_id'], error))
             raise
         return {}
 

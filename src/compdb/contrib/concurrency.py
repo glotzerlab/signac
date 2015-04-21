@@ -132,6 +132,12 @@ class DocumentBaseLock(object):
         """
         self._release()
 
+    def force_release(self):
+        logger.debug("Force releasing lock.")
+        result = self._collection.find_and_modify(
+            query = {'_id': self._document_id},
+            update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
+
     def __enter__(self):
         """Use the lock as context manager.
 
@@ -171,7 +177,10 @@ class DocumentLock(DocumentBaseLock):
             update = {
                 '$set': {
                     LOCK_ID_FIELD: self._lock_id}})
-        return result is not None
+        acquired = result is not None
+        if acquired:
+            logger.debug("Acquired.")
+        return acquired
 
     def _release(self):
         logger.debug("Releasing lock.")
@@ -185,6 +194,7 @@ class DocumentLock(DocumentBaseLock):
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))
+        logger.debug("Released.")
 
 class DocumentRLock(DocumentBaseLock):
     

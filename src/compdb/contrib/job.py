@@ -228,6 +228,9 @@ class Job(object):
         with self._get_lock():
             self._close()
 
+    def force_release(self):
+        self._get_lock().force_release()
+
     @property
     def storage(self):
         return self._storage

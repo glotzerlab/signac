@@ -189,7 +189,8 @@ def restore_snapshot(args):
 def clean_up(args):
     from . import get_project
     project = get_project()
-    logger.info("Killing dead jobs...")
+    msg = "Killing all jobs without sign of life for more than {} seconds."
+    print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
 def remove(args):
@@ -205,26 +206,37 @@ def remove(args):
                 print("Error during project removal.")
                 if not args.force:
                     print("This can be caused by currently executed jobs.")
-                    print("Try 'compdb clenaup'.")
-                    if args.yes or query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
+                    print("Try 'compdb cleanup'.")
+                    if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                         project.remove(force = True)
             else:
                 print("Project removed from database.")
     elif args.job:
-        job_ids = set(args.job)
-        legit_ids = project.find_job_ids()
-        match = set()
-        for legit_id in legit_ids:
-            for selected in job_ids:
-                if legit_id.startswith(selected):
-                    match.add(legit_id)
-        print("{} job(s) selected for removal.".format(len(match)))
-        q = "Are you sure you want to delete the selected jobs?"
-        if not(args.yes or query_yes_no(q)):
-            return
-        for id_ in match:
-            job = project.get_job(id_)
-            job.remove(force = args.force)
+        if len(args.job) == 1 and args.job[0] == 'all':
+            match = set(project.find_job_ids())
+        else:
+            job_ids = set(args.job)
+            legit_ids = project.find_job_ids()
+            match = set()
+            for legit_id in legit_ids:
+                for selected in job_ids:
+                    if legit_id.startswith(selected):
+                        match.add(legit_id)
+        if args.release:
+            print("{} job(s) selected for release.".format(len(match)))
+            for id_ in match:
+                job = project.get_job(id_)
+                job.force_release()
+            print("Released selected jobs.")
+        else:
+            print("{} job(s) selected for removal.".format(len(match)))
+            q = "Are you sure you want to delete the selected jobs?"
+            if not(args.yes or query_yes_no(q)):
+                return
+            for id_ in match:
+                job = project.get_job(id_)
+                job.remove(force = args.force)
+            print("Removed selected jobs.")
     elif args.logs:
         question = "Are you sure you want to clear all logs from project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id())):
@@ -259,7 +271,12 @@ def main():
     parser_remove.add_argument(
         '-j', '--job',
         nargs = '*',
-        help = "A list of jobs, that are to be removed as a comma separated list of job ids.",
+        help = "Remove all jobs that match the provided ids. Use 'all' to select all jobs. Example: '-j ed05b' or '-j=ed05b,59255' or '-j all'.",
+        )
+    parser_remove.add_argument(
+        '-r', '--release',
+        action = 'store_true',
+        help = "Release locked jobs instead of removing them.",
         )
     parser_remove.add_argument(
         '-p', '--project',
@@ -309,6 +326,10 @@ def main():
         type = int,
         help = "Tolerated time in seconds since last pulse before a job is declared dead (default={}).".format(default_wait),
         default = default_wait)
+    parser_cleanup.add_argument(
+        '-r', '--release',
+        action = 'store_true',
+        help = "Release locked jobs.")
     parser_cleanup.set_defaults(func = clean_up)
 
     parser_info = subparsers.add_parser('info')
