@@ -37,7 +37,7 @@ DEFAULTS = {
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 'connect_timeout_ms', 'compmatdb_host',
+    'global_fs_dir', 'develop', 'connect_timeout_ms', 'socket_timeout_ms', 'compmatdb_host',
     ]
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']

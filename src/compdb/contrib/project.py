@@ -64,10 +64,14 @@ class Project(object):
             timeout = self.config.get('connect_timeout_ms')
             if timeout is not None:
                 timeout = int(timeout)
+            socket_timeout = self.config.get('socket_timeout_ms')
+            if socket_timeout is not None:
+                socket_timeout = int(socket_timeout)
             msg = "Connecting (timeout={})..."
             logger.debug(msg.format(timeout))
             self._client = MongoClient(
                 self.config['database_host'],
+                socketTimeoutMS = socket_timeout,
                 connectTimeoutMS = timeout)
         return self._client
 
