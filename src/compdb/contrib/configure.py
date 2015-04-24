@@ -8,7 +8,7 @@ from os.path import expanduser
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
-OPERATIONS= ['add', 'set', 'remove', 'show']
+OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
 USER_GLOBAL = expanduser('~/compdb.rc')
 
 def process(args):
@@ -18,13 +18,16 @@ def process(args):
             args.value = abspath(args.value)
 
 def get_config(args):
-    from compdb.core.config import Config
+    from compdb.core.config import Config, load_config
     config = Config()
     try:
         if args._global:
             config.read(USER_GLOBAL)
-        else:
+        elif args.config:
             config.read(args.config)
+        else:
+            config = load_config()
+            #config.read(expanduser('./compdb.rc'))
     except FileNotFoundError:
         pass
     return config
@@ -34,8 +37,11 @@ def write_config(config, args):
         config.write(USER_GLOBAL)
     elif args.config == '-':
         config.dump()
-    else:
+    elif args.config:
         config.write(args.config)
+    else:
+        msg = "You need to use option '--global' or '--config' to specify which config file to write to."
+        raise ValueError(msg)
 
 def add(args):
     config = get_config(args)
@@ -56,9 +62,21 @@ def remove(args):
     del config[args.name]
     write_config(config, args)
 
-def show(args):
+def dump(args):
     config = get_config(args)
     config.dump(indent = 1)
+
+def show(args):
+    from ..core.config import LEGAL_ARGS, DEFAULTS
+    config = get_config(args)
+    legal_args = sorted(LEGAL_ARGS)
+    l_column0 = max(len(arg) for arg in legal_args)
+    print("Current configuration:")
+    print()
+    msg = "{arg:<" + str(l_column0) + "}: {value}"
+    for arg in legal_args:
+        line = msg.format(arg = arg, value = config.get(arg))
+        print(line)
 
 def verify(args):
     import re
@@ -98,6 +116,8 @@ def configure(args):
         set_value(args)
     elif args.operation == 'remove':
         remove(args)
+    elif args.operation == 'dump':
+        dump(args)
     elif args.operation == 'show':
         show(args)
     else:
@@ -126,7 +146,7 @@ def setup_parser(parser):
         parser.add_argument(
             '-c', '--config',
             type = str,
-            default = expanduser('./compdb.rc'),
+            #default = expanduser('./compdb.rc'),
             help = "The config file to read and write from. Use '-' to print to standard output.",
             )
         parser.add_argument(
@@ -142,7 +162,7 @@ def main(arguments = None):
             description = "Change the compDB configuration.",
             )
         args = parser.parse_args(arguments)
-        configure(args)
+        return configure(args)
 
 if __name__ == '__main__':
     logging.basicConfig(level = logging.INFO)

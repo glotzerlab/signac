@@ -127,7 +127,7 @@ class Config(object):
             raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):
-        return self._args.get(key, default)
+        return self._args.get(key, DEFAULTS.get(key, default))
 
     def __setitem__(self, key, value):
         self._args[key] = value
