@@ -111,12 +111,14 @@ def set_check_true(job):
         job.document['check'] = True
 
 def start_pool(state_points, exclude_condition, rank, size, jobs = []):
+    import tempfile
     from compdb.contrib import get_project
     project = get_project()
     job_pool = project.job_pool(state_points, exclude_condition)
     for job in jobs:
         job_pool.submit(job)
-    job_pool.start(rank, size)
+    with tempfile.NamedTemporaryFile() as jobfile:
+        job_pool.start(rank, size, jobfile = jobfile.name)
 
 class ProjectPoolTest(JobTest):
     
@@ -145,7 +147,7 @@ class ProjectPoolTest(JobTest):
                 start_pool,
                 [(state_points, condition, rank, num_proc, jobs)
                     for rank in range(num_proc)])
-            result = result.get(timeout = 20)
+            result.get(timeout = 20)
 
     def test_pool_condition(self):
         from multiprocessing import Pool
@@ -171,7 +173,7 @@ class ProjectPoolTest(JobTest):
                 start_pool,
                 [(state_points, condition, rank, num_proc, jobs)
                     for rank in range(num_proc)])
-            result = result.get(timeout = 20)
+            result.get(timeout = 20)
         job_pool = project.job_pool(state_points, condition)
         self.assertEqual(len(job_pool), 0)
 

@@ -25,9 +25,11 @@ def draw_network(network):
     plt.show()
 
 def get_db():
+    from compdb.core.config import load_config
     from pymongo import MongoClient
     from compdb.db.database import Database
-    client = MongoClient()
+    config = load_config()
+    client = MongoClient(config['database_host'])
     db = Database(db = client[TESTING_DB])
     db.adapter_network = basic_network()
     return db
@@ -57,7 +59,6 @@ class DBTest(unittest.TestCase):
         import os
         os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
-        os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         db = get_db()
         metadata, data = get_test_record()
         db.insert_one(metadata, data)

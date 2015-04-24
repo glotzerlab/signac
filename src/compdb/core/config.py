@@ -34,10 +34,11 @@ DEFAULTS = {
     'database_meta': 'compdb',
     'database_global_fs': 'compdb_fs',
     'database_compmatdb': 'compmatdb',
+    'connect_timeout_ms': 5000,
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 'connect_timeout_ms', 'socket_timeout_ms', 'compmatdb_host',
+    'global_fs_dir', 'develop', 'socket_timeout_ms', 'compmatdb_host',
     ]
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']

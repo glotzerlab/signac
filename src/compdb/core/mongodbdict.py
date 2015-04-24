@@ -19,11 +19,15 @@ class ReadOnlyMongoDBDict(object):
     def _get_collection(self):
         from pymongo import MongoClient
         if self._collection is None:
-            msg = "Connection timeout: {}"
+            msg = "Connecting MongoDBDict (timeout={})."
             logger.debug(msg.format(self._connect_timeout_ms))
-            client = MongoClient(
-                self._host,
-                connectTimeoutMS = self._connect_timeout_ms)
+            if self._connect_timeout_ms is None:
+                client = MongoClient(self._host)
+            else:
+                client = MongoClient(
+                    self._host,
+                    connectTimeoutMS = self._connect_timeout_ms,
+                    serverSelectionTimeoutMS = int(1.5 * self._connect_timeout_ms))
             self._collection = client[self._db_name][self._collection_name]
         return self._collection
 

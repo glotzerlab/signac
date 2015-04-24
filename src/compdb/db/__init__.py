@@ -65,7 +65,7 @@ class Storage(object):
 
     def find(self, spec = {}, *args, ** kwargs):
         import os
-        docs = self._collection.find(spec = spec, fields = ['_id'], * args, ** kwargs)
+        docs = self._collection.find(spec, ['_id'], * args, ** kwargs)
         for doc in docs:
             file_id = doc['_id']
             fn = self._filename(file_id)

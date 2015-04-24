@@ -29,7 +29,9 @@ class StorageTest(unittest.TestCase):
         import tempfile
         from pymongo import MongoClient
         from compdb.db import Storage
-        client = MongoClient()
+        from compdb.core.config import load_config
+        config = load_config()
+        client = MongoClient(config['database_host'])
         db = client['testing']
         self._mc = db['compdb_storage_test']
         self._tmp_fs = tempfile.TemporaryDirectory()
