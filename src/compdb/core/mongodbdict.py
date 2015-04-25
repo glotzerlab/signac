@@ -24,10 +24,15 @@ class ReadOnlyMongoDBDict(object):
             if self._connect_timeout_ms is None:
                 client = MongoClient(self._host)
             else:
-                client = MongoClient(
-                    self._host,
-                    connectTimeoutMS = self._connect_timeout_ms,
-                    serverSelectionTimeoutMS = int(1.5 * self._connect_timeout_ms))
+                if PYMONGO_3:
+                    client = MongoClient(
+                        self._host,
+                        connectTimeoutMS = self._connect_timeout_ms,
+                        serverSelectionTimeoutMS = int(1.5 * self._connect_timeout_ms))
+                else:
+                    client = MongoClient(
+                        self._host,
+                        connectTimeoutMS = self._connect_timeout_ms)
             self._collection = client[self._db_name][self._collection_name]
         return self._collection
 
