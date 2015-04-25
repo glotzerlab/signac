@@ -3,3 +3,6 @@ class DatabaseError(BaseException):
 
 class ConnectionFailure(RuntimeError):
     pass
+
+class ConfigError(RuntimeError):
+    pass

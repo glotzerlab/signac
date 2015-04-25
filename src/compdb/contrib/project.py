@@ -43,13 +43,7 @@ class Project(object):
         self._client = None
 
     def __str__(self):
-        try:
-            return self.get_id()
-        except KeyError:
-            import os
-            msg = "Unable to determine project id. "
-            msg += "Are you sure '{}' is a compDB project path?"
-            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
+        return self.get_id()
 
     @property 
     def config(self):
@@ -100,8 +94,13 @@ class Project(object):
         return self._get_meta_db()[JOB_META_DOCS]
 
     def get_id(self):
-        return self.config['project']
-
+        try:
+            return self.config['project']
+        except KeyError:
+            import os
+            msg = "Unable to determine project id. "
+            msg += "Are you sure '{}' is a compDB project path?"
+            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
     def get_project_db(self):
         return self.get_db(self.get_id())
     

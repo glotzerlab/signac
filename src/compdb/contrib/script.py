@@ -78,18 +78,29 @@ def view(args):
 def check(args):
     from . import check
     from .errors import ConnectionFailure
+    from compdb.contrib import get_project
+    project = get_project()
     encountered_error = False
     checks = [
         ('database connection',
         check.check_database_connection),
         ('global configuration',
-        check.check_global_config),
-        ('project configuration (online) (may take a while)',
-        check.check_project_config_online),
-        ]
-    checks_offline = [
-        ('project configuration (offline) (may take a while)',
-        check.check_project_config_offline)]
+        check.check_global_config)]
+    try:
+        project_id = project.get_id()
+    except LookupError:
+        print("Current working directory is not configured as project a project directory.")
+    else:
+        print("Found project: {}.".format(project_id))
+        checks.extend([
+            ('project configuration (online)',
+            check.check_project_config_online),
+            ])
+        if args.offline:
+            checks.extend([
+                ('project configuration (offline)',
+                check.check_project_config_offline),
+                ])
     for msg, check in checks:
         print("Checking {} ... ".format(msg), end='', flush=True)
         try:
@@ -101,6 +112,7 @@ def check(args):
             if args.verbosity > 0:
                 raise
         except Exception as error:
+            print()
             print("Error: {}".format(error))
             if args.verbosity > 0:
                 raise
@@ -108,7 +120,10 @@ def check(args):
         else:
             print("ok")
     if encountered_error:
-        print("Encountered error during config check. Increase verbosity (-v) for more information.")
+        print("Encountered error during config check.")
+        print("Use -v to increase verbosity of messages.")
+    else:
+        print("All tests passed. No errors.")
 
 def run_pools(args):
     from os.path import abspath
@@ -387,6 +402,10 @@ def main():
     parser_view.set_defaults(func = view)
 
     parser_check = subparsers.add_parser('check')
+    parser_check.add_argument(
+        '--offline',
+        action = 'store_true',
+        help = 'Perform offline checks.',)
     parser_check.set_defaults(func = check)
 
     parser_run = subparsers.add_parser('run')

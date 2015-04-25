@@ -236,7 +236,8 @@ class Job(object):
         return self._storage
 
     def _obtain_id(self):
-        from pymongo.errors import ConnectionFailure
+        #from pymongo.errors import ConnectionFailure
+        from . errors import ConnectionFailure
         from . hashing import generate_hash_from_spec
         try:
             self._obtain_id_online()

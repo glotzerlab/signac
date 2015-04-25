@@ -38,6 +38,7 @@ def check_project_config_online():
     import uuid, os
 
     project = get_project()
+    project.get_id()
     checktoken = {'checktoken': str(uuid.uuid4())}
     checkvalue = str(uuid.uuid4())
     job = project.open_job(checktoken)
@@ -70,6 +71,9 @@ def check_project_config_offline():
     from compdb.contrib.errors import ConnectionFailure
     from tempfile import TemporaryDirectory
     import uuid, os
+
+    msg = "Offline capability not supported in this version."
+    raise NotImplementedError(msg)
 
     original_host = os.environ.get('COMPDB_DATABASE_HOST')
     original_timeout = os.environ.get('COMPDB_CONNECT_TIMEOUT')
