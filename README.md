@@ -26,8 +26,10 @@ into your home directory.
 To check if the package was installed correctly, execute `import compdb` within a python shell.
 That should not result in any error.
 
-To test the package, executing `nosetests` within the repositories root directory.
-Most tests require a MongoDB instance to be available on localhost on the standard port.
+To test the package, execute `nosetests` within the repositories root directory.
+Most tests require a MongoDB instance to connect to. The default is 'localhost'. To specify a different server host, execute:
+
+    $ compdb config set database_host yourhost.com
 
 ## Setting up a project.
 
@@ -41,7 +43,7 @@ This is how you set up a new empty project.
 This will create the basic configuration for a project named "MyProject" within the directory `my_project`.
 In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
 
-To test if everything is correctly setup, you can then execute `python run.py` which will run a mock parameter exploration study without actually storing any data.
+To test if everything is correctly setup, you can then execute `$ compdb check` which will check your configuration and the connectivity to the configured database.
 
 ## Get help:
 
