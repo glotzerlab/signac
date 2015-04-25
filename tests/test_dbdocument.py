@@ -28,7 +28,9 @@ def document(collection = None):
 
 def get_collection():
     from pymongo import MongoClient
-    client = MongoClient()
+    from compdb.core.config import load_config
+    config = load_config()
+    client = MongoClient(config['database_host'])
     db = client['testing']
     return db['test_dbdocument']
 

@@ -6,7 +6,9 @@ def acquire_and_release(doc_id, wait):
     """Testing function, to test process concurrency this must be available on module level."""
     import time
     from pymongo import MongoClient
-    client = MongoClient()
+    from compdb.core.config import load_config
+    config = load_config()
+    client = MongoClient(config['database_host'])
     db = client['testing']
     mc = db['document_lock']
     lock = DocumentLock(mc, doc_id)
@@ -19,7 +21,9 @@ class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):
         from pymongo import MongoClient 
-        client = MongoClient()
+        from compdb.core.config import load_config
+        config = load_config()
+        client = MongoClient(config['database_host'])
         db = client['testing']
         self.mc = db['document_lock']
 
@@ -147,7 +151,9 @@ class TestDocumentLocks(unittest.TestCase):
 
 def lock_and_release(doc_id):
     from pymongo import MongoClient
-    client = MongoClient()
+    from compdb.core.config import load_config
+    config = load_config()
+    client = MongoClient(config['database_host'])
     db = client['testing']
     collection = db['document_lock']
     import time
