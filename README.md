@@ -11,13 +11,13 @@ The package requires Python 3 and is tested with version 3.3.
 
 ## Installation
 
-    git clone git@bitbucket.org:glotzer/compdb.git
-    cd compdb
-    python setup.py install
+    $ git clone git@bitbucket.org:glotzer/compdb.git
+    $ cd compdb
+    $ python setup.py install
 
 On system's without root access you can install the package with
   
-    python setup.py install --user
+    $ python setup.py install --user
 
 into your home directory.
 
@@ -36,9 +36,9 @@ Most tests require a MongoDB instance to connect to. The default is 'localhost'.
 The database facilitates a project-based workflow.
 This is how you set up a new empty project.
 
-    mkdir my_project
-    cd my_project
-    compdb init MyProject
+    $ mkdir my_project
+    $ cd my_project
+    $ compdb init MyProject
 
 This will create the basic configuration for a project named "MyProject" within the directory `my_project`.
 In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
