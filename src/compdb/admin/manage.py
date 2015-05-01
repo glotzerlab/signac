@@ -41,6 +41,12 @@ def get_username(args, default = None):
     else:
         return default
 
+def manage_shell(args):
+    import code
+    client = connect_and_authenticate(args)
+    banner = "Use the 'client' variable to interact with the pymongo client."
+    code.interact(banner = banner, local = {'client': client})
+
 def manage_user(args):
     client = connect_and_authenticate(args)
     db = client['$external']
@@ -114,7 +120,14 @@ def main():
 
     subparsers = parser.add_subparsers()
 
-    parser_user = subparsers.add_parser('user')
+    parser_shell = subparsers.add_parser(
+        'shell',
+        description = "Enter an interactive mongo shell.")
+    parser_shell.set_defaults(func = manage_shell)
+
+    parser_user = subparsers.add_parser(
+        'user',
+        description = 'Show and manage user roles.')
     parser_user.add_argument(
         'command',
         type = str,

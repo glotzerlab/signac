@@ -54,19 +54,18 @@ class Project(object):
 
     def _get_client(self):
         if self._client is None:
-            from pymongo import MongoClient
-            timeout = self.config.get('connect_timeout_ms')
-            if timeout is not None:
-                timeout = int(timeout)
-            socket_timeout = self.config.get('socket_timeout_ms')
-            if socket_timeout is not None:
-                socket_timeout = int(socket_timeout)
-            msg = "Connecting (timeout={})..."
-            logger.debug(msg.format(timeout))
-            self._client = MongoClient(
-                self.config['database_host'],
-                socketTimeoutMS = socket_timeout,
-                connectTimeoutMS = timeout)
+            from ..core.dbclient_connector import DBClientConnector
+            prefix = 'database_'
+            connector = DBClientConnector(self.config, prefix = prefix)
+            logger.debug("Connecting to database.")
+            try:
+                connector.connect()
+                connector.authenticate()
+            except:
+                logger.error("Connecting failed.")
+            else:
+                logger.debug("Connected and authenticated.")
+            self._client = connector.client
         return self._client
 
     def _get_db(self, db_name):
