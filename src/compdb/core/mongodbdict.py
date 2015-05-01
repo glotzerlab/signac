@@ -6,34 +6,19 @@ PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 class ReadOnlyMongoDBDict(object):
 
-    def __init__(self, host, db_name, collection_name, _id, connect_timeout_ms = None):
-        self._host = host
-        self._db_name = db_name
-        self._collection_name = collection_name
-        self._collection = None
+    def __init__(self, collection, _id):
+        #self._host = host
+        #self._db_name = db_name
+        #self._collection_name = collection_name
+        #self._collection = None
         self._id = _id
-        self._connect_timeout_ms = connect_timeout_ms
-        msg = "Opened MongoDBDict '{}' on '{}'."
-        logger.debug(msg.format(_id, collection_name))
+        #self._connect_timeout_ms = connect_timeout_ms
+        self._collection = collection
+        logger.debug("Opening MongoDBDict")
+        #msg = "Opened MongoDBDict '{}' on '{}'."
+        #logger.debug(msg.format(_id, collection_name))
 
     def _get_collection(self):
-        from pymongo import MongoClient
-        if self._collection is None:
-            msg = "Connecting MongoDBDict (timeout={})."
-            logger.debug(msg.format(self._connect_timeout_ms))
-            if self._connect_timeout_ms is None:
-                client = MongoClient(self._host)
-            else:
-                if PYMONGO_3:
-                    client = MongoClient(
-                        self._host,
-                        connectTimeoutMS = self._connect_timeout_ms,
-                        serverSelectionTimeoutMS = int(1.5 * self._connect_timeout_ms))
-                else:
-                    client = MongoClient(
-                        self._host,
-                        connectTimeoutMS = self._connect_timeout_ms)
-            self._collection = client[self._db_name][self._collection_name]
         return self._collection
 
     def _spec(self):

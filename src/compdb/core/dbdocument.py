@@ -48,13 +48,13 @@ class ReadOnlyDBDocument(object):
     def __init__(self, host, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
         from threading import Event, Condition
         from . mongodbdict import MongoDBDict
+        from pymongo import MongoClient
         self._id = _id
         self._rank = rank
         self._buffer = None
-        self._mongodict = MongoDBDict(
-            host, db_name,
-            collection_name, _id,
-            connect_timeout_ms = connect_timeout_ms)
+        client = MongoClient(host)
+        collection = client[db_name][collection_name]
+        self._mongodict = MongoDBDict(collection, _id)
         self._sync_queue = Queue()
         self._stop_event = Event()
         self._synced_or_failed_event = Event()

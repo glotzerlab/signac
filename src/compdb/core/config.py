@@ -22,6 +22,7 @@ ENVIRONMENT_VARIABLES = {
     'develop':              'COMPDB_DEVELOP',
     'connect_timeout_ms':   'COMPDB_CONNECT_TIMEOUT',
     'compmatdb_host':       'COMPDB_COMPMATDB_HOST',
+    'database_auth_mechanism': 'COMPDB_DATABASE_AUTH_MECHANISM',
 }
 
 REQUIRED_KEYS = [

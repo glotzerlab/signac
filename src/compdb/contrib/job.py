@@ -95,11 +95,8 @@ class Job(object):
             fs_path = self._fs,
             wd_path = self._wd)
         self._dbdocument = DBDocument(
-            self._project.config['database_host'],
-            self._project.get_id(), JOB_DOCS,
-            self.get_id(),
-            #self._rank,
-            connect_timeout_ms = self._project.config.get('connect_timeout_ms'))
+            self._project.collection,
+            self.get_id())
         self._pulse = None
 
     def _determine_rank(self):
