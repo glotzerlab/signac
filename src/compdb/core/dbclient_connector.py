@@ -43,41 +43,64 @@ class DBClientConnector(object):
         except KeyError:
             return self._config.get(key, default)
 
-    def connect(self):
+    def _connect_pymongo3(self, host):
         from pymongo import MongoClient
-        import ssl
+        parameters = {
+            'connectTimeoutMS': self._config_get('connect_timeout_ms'),
+        }
 
+        auth_mechanism = self._config_get('auth_mechanism')
+        if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
+            client = MongoClient(
+                host,
+                ** parameters)
+        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
+            from os.path import expanduser
+            client = MongoClient(
+                host, 
+                ssl = True,
+                ssl_keyfile = expanduser(self._config_get('ssl_keyfile')),
+                ssl_certfile = expanduser(self._config_get('ssl_certfile')),
+                ssl_cert_reqs = SSL_CERT_REQS[self._config_get('ssl_cert_reqs', 'required')],
+                ssl_ca_certs = expanduser(self._config_get('ssl_ca_certs')),
+                ssl_match_hostname = self._config_get('ssl_match_hostname', True),
+                ** parameters)
+        else:
+            raise_unsupported_auth_mechanism(auth_mechanism)
+        self._client = client
+
+    def _connect_pymongo2(self, host):
+        from pymongo import MongoClient
+        parameters = {
+            'connectTimeoutMS': self._config_get('connect_timeout_ms'),
+        }
+
+        auth_mechanism = self._config_get('auth_mechanism')
+        if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
+            client = MongoClient(
+                host,
+                ** parameters)
+        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
+            msg = "SSL authentication not supported for pymongo versions <= 3.x ."
+            logger.critical(msg)
+            raise_unsupported_auth_mechanism(auth_mechanism)
+        else:
+            raise_unsupported_auth_mechanism(auth_mechanism)
+        self._client = client
+
+    def connect(self, host = None):
+        import ssl
         msg = "Connecting with config '{}' and prefix '{}'."
         logger.debug(msg.format(self._config, self._prefix))
         logger.debug("Connecting to host '{host}'.".format(host=self._config_get('host')))
 
-        if PYMONGO_3:
-            parameters = {
-                'connectTimeoutMS': self._config_get('connect_timeout_ms'),
-            }
+        if host is None:
+            host = self._config_get('host')
 
-            auth_mechanism = self._config_get('auth_mechanism')
-            if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
-                client = MongoClient(
-                    self._config_get('host'),
-                    ** parameters)
-            elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-                from os.path import expanduser
-                client = MongoClient(
-                    self._config_get('host'),
-                    ssl = True,
-                    ssl_keyfile = expanduser(self._config_get('ssl_keyfile')),
-                    ssl_certfile = expanduser(self._config_get('ssl_certfile')),
-                    ssl_cert_reqs = SSL_CERT_REQS[self._config_get('ssl_cert_reqs', 'required')],
-                    ssl_ca_certs = expanduser(self._config_get('ssl_ca_certs')),
-                    ssl_match_hostname = self._config_get('ssl_match_hostname', True),
-                    ** parameters)
-            else:
-                raise_unsupported_auth_mechanism(auth_mechanism)
-            self._client = client
+        if PYMONGO_3:
+            self._connect_pymongo3(host)
         else:
-            msg = "pymongo versions <= 3.x not supported."
-            raise NotImplementedError(msg)
+            self._connect_pymongo2(host)
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism')
