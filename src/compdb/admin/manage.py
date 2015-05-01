@@ -22,6 +22,11 @@ def add_x509_user(client, subject, databases, roles):
     values = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
     return db_external.command('createUser', subject, ** values)
 
+def add_scram_sha1_user(client, username, password):
+    db_admin = client['admin']
+    result = db_admin.add_user(username, password)
+    return result
+
 def grant_roles_to_user(db_auth, user, databases, roles):
     values = {'roles': [{'role': role, 'db': db} for role in roles for db in databases]}
     return db_auth.command('grantRolesToUser', user, ** values)
@@ -49,36 +54,51 @@ def manage_shell(args):
 
 def manage_user(args):
     client = connect_and_authenticate(args)
-    db = client['$external']
     msg = "Managing user '{}'."
     username = get_username(args)
     if args.command == 'show':
-        if username is None:
-            info = db.command('usersInfo')
-        else:
-            info = db.command('usersInfo', username)
-        for user in info['users']:
-            print('user: {}'.format(user['user']))
-            print('roles: {}'.format(user['roles']))
-            print()
+        for db_auth in client['$external'], client['admin']:
+            print("Authorizing DB: {}".format(db_auth))
+            if username is None:
+                info = db_auth.command('usersInfo')
+            else:
+                info = db_auth.command('usersInfo', username)
+            for user in info['users']:
+                print('user: {}'.format(user['user']))
+                print('roles: {}'.format(user['roles']))
+                print()
 
     elif args.command == 'add':
         if args.database is None:
             raise ValueError("Specify database to manage.")
         if args.username is not None:
-            raise NotImplementedError("Adding user by name not supported.")
+            import getpass
+            password = getpass.getpass("Password for new user: ")
+            password2 = getpass.getpass("Confirm password: ")
+            if password != password2:
+                raise ValueError("Passwords do not match.")
+            db_auth = client['admin']
+            print(add_scram_sha1_user(client, username, password))
+            print(grant_roles_to_user(db_auth, username, [args.database], args.roles))
         elif args.usercertificate is not None:
             result = add_x509_user(client, username, [args.database], args.roles)
             print(result)
         else:
             raise ValueError("Specify username or user certificate.")
+    elif args.command == 'remove':
+        if args.external:
+            db_auth = client['$external']
+        else:
+            db_auth = client['admin']
+        db_auth.remove_user(username)
+        print("OK")
     elif args.command in ('grant', 'revoke'):
         if args.database is None:
             raise ValueError("Specify database to manage.")
-        if args.username is not None:
-            db_auth = client['admin']
-        elif args.usercertificate is not None:
-            db_auth = client['$external']
+        #if args.username is not None:
+        #    db_auth = client['admin']
+        #elif args.usercertificate is not None:
+        db_auth = client['$external']
         if args.command == 'grant':
             result = grant_roles_to_user(db_auth, username, [args.database], args.roles)
         elif args.command == 'revoke':
@@ -148,6 +168,10 @@ def main():
         nargs = '+',
         default = ['read'],
         help = "The roles to be granted/ revoked.")
+    parser_user.add_argument(
+        '--external',
+        action = 'store_true',
+        help = "Use the external database for user management. Automatically used for certificates.")
     parser_user.set_defaults(func = manage_user)
 
     args = parser.parse_args()
