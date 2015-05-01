@@ -47,6 +47,7 @@ LEGAL_ARGS.extend([
     ])
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
+FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs']
 
 class Config(object):   
 

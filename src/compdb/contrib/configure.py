@@ -12,10 +12,11 @@ OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
 USER_GLOBAL = expanduser('~/compdb.rc')
 
 def process(args):
-    from os.path import abspath
+    from compdb.core.config import DIRS, FILES
+    from os.path import abspath, expanduser
     if args.name: 
-        if args.name.endswith('_dir'):
-            args.value = abspath(args.value)
+        if args.name in DIRS or args.name in FILES:
+            args.value = abspath(expanduser(args.value))
 
 def get_config(args):
     from compdb.core.config import Config, load_config
