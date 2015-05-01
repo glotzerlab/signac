@@ -96,14 +96,15 @@ class UnsupportedExpressionError(ValueError):
 
 class FileCursor(object):
 
-    def __init__(self, db, call_dict):
+    def __init__(self, db, call_dict, projection):
         self._db = db
         self._call_dict = call_dict
+        self._projection = projection
 
     def __call__(self, cursor):
         from . import conversion
         try:
-            return self._db._resolve_doc(cursor, self._call_dict)
+            return self._db._resolve_doc(cursor, self._call_dict, self._projection)
         except conversion.NoConversionPath:
             pass
         except conversion.ConversionError as error:
@@ -387,18 +388,25 @@ class Database(object):
         plain_filter = self._resolve(filter, call_dict)
         docs = self._data.find(
             plain_filter, projection, * args, ** kwargs)
-        return map(FileCursor(self, call_dict), docs)
+        return map(FileCursor(self, call_dict, projection), docs)
 
-    def find_one(self, filter_or_id, * args, ** kwargs):
+    def find_one(self, filter_or_id, projection = None, * args, ** kwargs):
         call_dict = dict()
         plain_filter_or_id = self._resolve(filter_or_id, call_dict)
-        doc = self._data.find_one(plain_filter_or_id, * args, ** kwargs)
+        doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
         if doc is not None:
-            doc = self._resolve_doc(doc, call_dict)
-        return doc
+            return self._resolve_doc(doc, call_dict, projection)
+        else:
+            return None
 
-    def _resolve_doc(self, doc, call_dict):
-        return self._resolve_calls(self._resolve_files(doc), call_dict)
+    def _resolve_doc(self, doc, call_dict, projection = None):
+        return self._resolve_projection(self._resolve_calls(self._resolve_files(doc), call_dict), projection)
+
+    def _resolve_projection(self, doc, projection):
+        if projection is None:
+            return doc
+        else:
+            return {k: v for k,v in doc.items() if k in projection}
 
     def resolve(self, docs):
         for doc in docs:
