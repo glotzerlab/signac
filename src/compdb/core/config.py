@@ -31,6 +31,7 @@ REQUIRED_KEYS = [
 
 DEFAULTS = {
     'database_host': 'localhost',
+    'database_auth_mechanism': 'SSL-x509',
     'database_meta': 'compdb',
     'database_global_fs': 'compdb_fs',
     'database_compmatdb': 'compmatdb',
@@ -40,6 +41,10 @@ DEFAULTS = {
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
     'global_fs_dir', 'develop', 'socket_timeout_ms', 'compmatdb_host',
     ]
+
+LEGAL_ARGS.extend([
+    'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs'
+    ])
 
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 
@@ -187,7 +192,7 @@ def verify(args):
     import os
     for key in args.keys():
         if not key in LEGAL_ARGS:
-            msg = "Illegal config key: '{}'."
+            msg = "Config key '{}' not recognized. Possible version conflict."
             logger.warning(msg.format(key))
             #raise KeyError(msg.format(key))
 

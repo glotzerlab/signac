@@ -449,6 +449,7 @@ def main():
         else:
             print("Error: {}".format(error))
             print("Use -v to increase verbosity of messages.")
+            sys.exit(1)
     else:
         sys.exit(0)
 

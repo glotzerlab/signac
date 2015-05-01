@@ -25,6 +25,7 @@ setup(
             'compdb = compdb.contrib.script:main',
             'compdb_init = compdb.contrib.init_project:main',
             'compdb_configure = compdb.contrib.configure:main',
+            'compdb_admin = compdb.admin.manage:main',
         ],
     },
 )
