@@ -209,7 +209,11 @@ class Project(object):
         for doc in docs:
             yield doc['_id']
     
-    def find_jobs(self, job_spec = {}, spec = None, blocking = True, timeout = -1):
+    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
+        if job_spec is None:
+            job_spec = {}
+        else:
+            job_spec = {'parameters.{}'.format(k): v for k,v in job_spec.items()}
         job_ids = list(self.find_job_ids(job_spec))
         if spec is not None:
             spec.update({'_id': {'$in': job_ids}})
