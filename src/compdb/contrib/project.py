@@ -8,7 +8,6 @@ JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
 JOB_META_DOCS = 'compdb_jobs'
-JOB_META_QUEUE = 'compdb_job_queue'
 from . job import PULSE_PERIOD
 
 FN_DUMP_JOBS = 'compdb_jobs.json'
@@ -19,9 +18,13 @@ FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH
 FN_STORAGE_BACKUP = '_fs_backup'
 
 COLLECTION_LOGGING = 'logging'
+COLLECTION_JOB_QUEUE = 'compdb_job_queue'
+COLLECTION_JOB_QUEUE_RESULTS = 'compdb_job_results'
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
+
+from ..core.mongodb_queue import Empty
 
 def valid_name(name):
     return not name.startswith('compdb')
@@ -42,6 +45,7 @@ class Project(object):
         self._logging_queue_handler = QueueHandler(self._logging_queue)
         self._logging_listener = None
         self._client = None
+        self._job_queue = None
 
     def __str__(self):
         return self.get_id()
@@ -670,3 +674,13 @@ class Project(object):
         docs = log_collection.find(spec).sort(sort).skip(skip)
         for doc in docs:
             yield record_from_doc(doc)
+
+    @property
+    def job_queue(self):
+        if self._job_queue is None:
+            from ..core.mongodb_executor import MongoDBExecutor
+            from ..core.mongodb_queue import MongoDBQueue
+            mongodb_queue = MongoDBQueue(self.get_project_db()[COLLECTION_JOB_QUEUE])
+            collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
+            self._job_queue = MongoDBExecutor(mongodb_queue, collection_job_results)
+        return self._job_queue

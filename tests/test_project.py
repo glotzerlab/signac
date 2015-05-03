@@ -177,5 +177,25 @@ class ProjectPoolTest(JobTest):
         job_pool = project.job_pool(state_points, condition)
         self.assertEqual(len(job_pool), 0)
 
+def simple_function(x):
+    return x*x
+
+class ProjectQueueTest(JobTest):
+
+    def test_queue(self):
+        from compdb.contrib import get_project
+        from compdb.contrib.project import Empty
+        project = get_project()
+        queue = project.job_queue
+        num_jobs = 10
+        futures = [queue.submit(simple_function, i) for i in range(num_jobs)]
+        try:
+            queue.serve(timeout = 0.1)
+        except Empty:
+            pass
+        for i, future in enumerate(futures):
+            result = future.result(0.1)
+            self.assertEqual(result, simple_function(i))
+
 if __name__ == '__main__':
     unittest.main()
