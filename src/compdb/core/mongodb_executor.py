@@ -91,11 +91,14 @@ def execution_worker(stop_event, job_queue, result_collection, timeout):
         item = job_queue.get(block = True, timeout = timeout)
         _id = item['_id']
         fn, args, kwargs = decode_callable(item)
+        logger.info("Executing job '{}({},{})' (id={})...".format(fn, args, kwargs, _id))
         try:
             result = fn(*args, ** kwargs)
         except Exception as error:
+            logger.warning("Execution of job with id={} aborted with error: {}".format(_id, error))
             result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_ERROR: encode(error)}}, upsert = True)
         else:
+            logger.info("Finished exection of job with id={}.".format(_id))
             result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_RESULT: encode(result)}}, upsert = True)
 
 class MongoDBExecutor(object):

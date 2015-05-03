@@ -126,11 +126,11 @@ class MongoDBQueueTest(unittest.TestCase):
             self.assertEqual(item1, c_item1)
             self.assertNotIn(id1, queue)
 
-def my_test_function(x, y = 1):
+def my_function(x, y = 1):
     return x * x * y
 
-def my_test_error_function(x, y = 1):
-    raise RuntimeError(my_test_function(x, y = 1))
+def error_function(x, y = 1):
+    raise RuntimeError(my_function(x, y = 1))
 
 def execution_server(id_queue, id_results, timeout):
     executor = get_executor_no_drop(id_queue, id_results)
@@ -148,11 +148,11 @@ class MongoDBExecutorTest(unittest.TestCase):
 
     def test_encode_decode(self):
         from compdb.core.mongodb_executor import encode_callable, decode_callable
-        fn = my_test_function
+        fn = my_function
         args = (1, )
         kwargs = {'y': 2}
         r = fn(*args, **kwargs)
-        encoded = encode_callable(my_test_function, args, kwargs)
+        encoded = encode_callable(my_function, args, kwargs)
         fn2, args2, kwargs2 = decode_callable(encoded)
         r2 = fn2(*args2, **kwargs2)
         self.assertEqual(fn, fn2)
@@ -162,24 +162,24 @@ class MongoDBExecutorTest(unittest.TestCase):
 
     def test_put(self):
         with get_executor() as executor:
-            executor.submit(my_test_function, 1)
+            executor.submit(my_function, 1)
 
     def test_put_and_execute(self):
         with get_executor() as executor:
-            future = executor.submit(my_test_function, x = 2, y = 4)
+            future = executor.submit(my_function, x = 2, y = 4)
             with self.assertRaises(Empty):
                 executor.serve(timeout = 0.1)
             result = future.result(0.2)
-            self.assertEqual(my_test_function(x = 2, y = 4), result)
+            self.assertEqual(my_function(x = 2, y = 4), result)
 
     def test_put_and_execute_with_error(self):
         with get_executor() as executor:
-            future1 = executor.submit(my_test_function, x = 2, y = 4)
-            future2 = executor.submit(my_test_error_function, x = 2, y = 4)
+            future1 = executor.submit(my_function, x = 2, y = 4)
+            future2 = executor.submit(error_function, x = 2, y = 4)
             with self.assertRaises(Empty):
                 executor.serve(timeout = 0.1)
             result1 = future1.result(0.1)
-            self.assertEqual(my_test_function(x = 2, y = 4), result1)
+            self.assertEqual(my_function(x = 2, y = 4), result1)
             with self.assertRaises(RuntimeError):
                 result2 = future2.result(0.1)
                 
@@ -195,14 +195,14 @@ class MongoDBExecutorTest(unittest.TestCase):
         timeout = 0.1
 
         with get_executor(id_queue, id_results) as executor:
-            futures = [executor.submit(my_test_function, x = i) for i in range(num_jobs)]
+            futures = [executor.submit(my_function, x = i) for i in range(num_jobs)]
             with Pool(processes = num_processes) as pool:
                 result = pool.starmap(execution_server, 
                     [(id_queue, id_results, timeout) for i in range(num_jobs)])
                 self.assertEqual(result, [True] * num_jobs)
             for i, future in enumerate(futures):
                 result = future.result(timeout = 1)
-                self.assertEqual(my_test_function(x = i), result)
+                self.assertEqual(my_function(x = i), result)
 
 if __name__ == '__main__':
     unittest.main()

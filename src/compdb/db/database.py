@@ -96,7 +96,7 @@ class UnsupportedExpressionError(ValueError):
 
 class FileCursor(object):
 
-    def __init__(self, db, call_dict, projection):
+    def __init__(self, db, call_dict, projection = None):
         self._db = db
         self._call_dict = call_dict
         self._projection = projection
