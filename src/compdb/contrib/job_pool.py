@@ -66,6 +66,7 @@ class JobPool(object):
         if size is None:
             size = self._comm().Get_size()
         matrix = self._get_matrix(size)
+        logger.debug("Job matrix: {}".format(matrix))
         self._write_jobfile(filename, matrix)
 
     def _read_jobfile(self, filename, rank):

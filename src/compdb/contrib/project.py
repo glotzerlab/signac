@@ -62,7 +62,8 @@ class Project(object):
                 connector.connect()
                 connector.authenticate()
             except:
-                logger.error("Connecting failed.")
+                logger.error("Connection failed.")
+                raise
             else:
                 logger.debug("Connected and authenticated.")
             self._client = connector.client
