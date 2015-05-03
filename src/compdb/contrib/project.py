@@ -8,6 +8,7 @@ JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
 JOB_META_DOCS = 'compdb_jobs'
+JOB_META_QUEUE = 'compdb_job_queue'
 from . job import PULSE_PERIOD
 
 FN_DUMP_JOBS = 'compdb_jobs.json'
