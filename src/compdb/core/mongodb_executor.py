@@ -5,6 +5,7 @@ KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'
 KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
+KEY_CALLABLE_CHECKSUM = 'checksum'
 
 KEY_ITEM = 'item'
 KEY_RESULT_RESULT = 'result'
@@ -51,30 +52,30 @@ def callable_spec(c):
     return spec
 
 def encode_callable(fn, args, kwargs):
-    #import jsonpickle
-    import pickle
+    import jsonpickle as pickle
+    #import pickle
     import hashlib
     checksum_src = hash_source(fn)
     binary = pickle.dumps(
         {'fn': fn, 'args': args, 'kwargs': kwargs,
          'module': fn.__module__,
-         'src': checksum_src})
+         'src': checksum_src}).encode()
     checksum = hashlib.sha1()
     checksum.update(binary)
-    return {'callable': binary, 'checksum': checksum.hexdigest()}
+    return {'callable': binary, KEY_CALLABLE_CHECKSUM: checksum.hexdigest()}
 
 def decode_callable(doc):
-    #import jsonpickle
-    import pickle
+    import jsonpickle as pickle
+    #import pickle
     import hashlib
     binary = doc['callable']
-    checksum = doc['checksum']
+    checksum = doc[KEY_CALLABLE_CHECKSUM]
     m = hashlib.sha1()
     m.update(binary)
     if not checksum == m.hexdigest():
         raise RuntimeWarning("Checksum deviation! Possible security violation!")
     #c_doc = jsonpickle.decode(binary.decode())
-    c_doc = pickle.loads(binary)
+    c_doc = pickle.loads(binary.decode())
     fn = c_doc['fn']
     #if fn is None:
     #    msg = "Failed to unpickle '{}'. Possible version conflict."
@@ -209,7 +210,7 @@ class MongoDBExecutor(object):
             assert False
 
     def _fetch_result(self, item, block = False, timeout = None):
-        spec = {'{}.{}'.format(KEY_ITEM, k): v for k,v in item.items()}
+        spec = {'{}.{}'.format(KEY_ITEM, KEY_CALLABLE_CHECKSUM): item[KEY_CALLABLE_CHECKSUM]}
         if block:
             from . utility import mongodb_fetch_find_one
             return mongodb_fetch_find_one(self._result_collection, spec, timeout = timeout)

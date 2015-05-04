@@ -185,11 +185,11 @@ class MongoDBExecutorTest(unittest.TestCase):
         self.assertEqual(kwargs, kwargs2)
         self.assertEqual(r, r2)
 
-    def test_put(self):
+    def test_submit(self):
         with get_executor() as executor:
             executor.submit(my_function, 1)
 
-    def test_put_and_execute(self):
+    def test_submit_and_execute(self):
         with get_executor() as executor:
             future = executor.submit(my_function, x = 2, y = 4)
             with self.assertRaises(Empty):
@@ -197,7 +197,22 @@ class MongoDBExecutorTest(unittest.TestCase):
             result = future.result(0.2)
             self.assertEqual(my_function(x = 2, y = 4), result)
 
-    def test_put_and_execute_with_error(self):
+    def test_submit_execute_and_fetch(self):
+        from compdb.core.mongodb_executor import encode_callable, decode_callable, encode, decode
+        args = ()
+        kwargs = {'x': 2, 'y': 4}
+        expected_result = my_function(*args, **kwargs)
+        with get_executor() as executor:
+            future = executor.submit(my_function, x = 2, y = 4)
+            with self.assertRaises(Empty):
+                executor.enter_loop(timeout = 0.1)
+            result = future.result(0.2)
+            self.assertEqual(expected_result, result)
+            raw = executor._fetch_result(encode_callable(my_function, args, kwargs))
+            decoded = decode_callable(raw['item'])
+            self.assertEqual(expected_result, decode(raw['result']))
+
+    def test_submit_and_execute_with_error(self):
         with get_executor() as executor:
             future1 = executor.submit(my_function, x = 2, y = 4)
             future2 = executor.submit(error_function, x = 2, y = 4)
@@ -205,6 +220,25 @@ class MongoDBExecutorTest(unittest.TestCase):
                 executor.enter_loop(timeout = 0.1)
             result1 = future1.result(0.1)
             self.assertEqual(my_function(x = 2, y = 4), result1)
+            with self.assertRaises(RuntimeError):
+                result2 = future2.result(0.1)
+
+    def test_resubmit(self):
+        with get_executor() as executor:
+            future1 = executor.submit(my_function, 2, y = 4)
+            future2 = executor.submit(error_function, 2, y = 4)
+            with self.assertRaises(ValueError):
+                executor.submit(my_function, 2, y = 4)
+            with self.assertRaises(ValueError):
+                executor.submit(error_function, 2, y = 4)
+            with self.assertRaises(Empty):
+                executor.enter_loop(timeout = 0.1)
+            with self.assertRaises(ValueError):
+                executor.submit(my_function, 2, y = 4)
+            with self.assertRaises(ValueError):
+                executor.submit(error_function, 2, y = 4)
+            result1 = future1.result(0.1)
+            self.assertEqual(my_function(2, y = 4), result1)
             with self.assertRaises(RuntimeError):
                 result2 = future2.result(0.1)
                 
