@@ -146,6 +146,12 @@ class MongoDBExecutor(object):
     
     def submit(self, fn, overwrite = False, *args, **kwargs):
         item = encode_callable(fn, args, kwargs)
+        if not overwrite:
+            has_result = self._fetch_result(item) is not None
+            queued = item in self._job_queue
+            if has_result or queued:
+                msg = "Item '{}' already submitted."
+                raise ValueError(msg.format(item))
         _id = self._job_queue.put(item)
         self._result_collection.insert_one({'_id': _id})
         return Future(self, _id)
@@ -183,8 +189,6 @@ class MongoDBExecutor(object):
 
     def _get_result(self, _id, timeout):
         from . utility import mongodb_fetch_find_one
-        from threading import Thread, Event
-        import queue
         spec = {
             '_id': _id,
             '$or': [
@@ -197,6 +201,14 @@ class MongoDBExecutor(object):
             raise decode(result[KEY_RESULT_ERROR])['error']
         else:
             assert False
+
+    def _fetch_result(self, item, block = False, timeout = None):
+        spec = {KEY_ITEM: item}
+        if block:
+            from . utility import mongodb_fetch_find_one
+            return mongodb_fetch_find_one(self._result_collection, spec, timeout = timeout)
+        else:
+            return self._result_collection.find_one(spec)
 
     def clear_completed(self):
         self._job_queue.clear() 

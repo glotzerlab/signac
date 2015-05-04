@@ -126,6 +126,31 @@ class MongoDBQueueTest(unittest.TestCase):
             self.assertEqual(item1, c_item1)
             self.assertNotIn(id1, queue)
 
+    def test_contains(self):
+        item1 = get_item()
+        item2 = get_item()
+        with get_queue() as queue:
+            self.assertNotIn(item1, queue)
+            self.assertNotIn(item2, queue)
+            queue.put(item1)
+            self.assertIn(item1, queue)
+            self.assertNotIn(item2, queue)
+            queue.put(item2)
+            self.assertIn(item1, queue)
+            self.assertIn(item2, queue)
+            r_item1 = queue.get()
+            self.assertEqual(item1, r_item1)
+            self.assertNotIn(item1, queue)
+            self.assertIn(item2, queue)
+            r_item2 = queue.get()
+            self.assertEqual(item2, r_item2)
+            self.assertNotIn(item1, queue)
+            self.assertNotIn(item2, queue)
+            queue.task_done()
+            queue.task_done()
+            with self.assertRaises(ValueError):
+                queue.task_done()
+
 def my_function(x, y = 1):
     return x * x * y
 

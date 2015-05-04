@@ -33,8 +33,8 @@ class MongoDBQueue(object):
         from pymongo import ASCENDING
         return self._collection.find_one_and_delete(FILTER_NOT_COUNTER, sort = [('_id', ASCENDING)])
 
-    def __contains__(self, _id):
-        return self._collection.find_one({'_id': _id}) is not None
+    def __contains__(self, item):
+        return self._collection.find_one(item) is not None
 
     def _num_open_tasks(self):
         result = self._collection.find_one(FILTER_COUNTER)
