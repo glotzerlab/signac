@@ -6,6 +6,7 @@ KEY_CALLABLE_MODULE = 'module'
 KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 
+KEY_ITEM = 'item'
 KEY_RESULT_RESULT = 'result'
 KEY_RESULT_ERROR = 'error'
 
@@ -111,10 +112,22 @@ def execute_callable(job_queue, result_collection, item):
         exc = traceback.format_exc()
         logger.warning("Execution of job with id={} aborted with error: {}\n{}".format(_id, error, exc))
         error_doc = {'error': error, 'traceback': exc}
-        result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_ERROR: encode(error_doc)}}, upsert = True)
+        result_collection.update_one(
+            {'_id': _id},
+            {'$set': {
+                KEY_ITEM: encode(item),
+                KEY_RESULT_ERROR: encode(error_doc),
+                }},
+            upsert = True)
     else:
         logger.info("Finished exection of job with id={}.".format(_id))
-        result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_RESULT: encode(result)}}, upsert = True)
+        result_collection.update_one(
+            {'_id': _id},
+            {'$set': {
+                KEY_ITEM: encode(item),
+                KEY_RESULT_RESULT: encode(result),
+                }},
+            upsert = True)
 
 def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None):
     while(not stop_event.is_set()):
@@ -131,7 +144,7 @@ class MongoDBExecutor(object):
         self._result_collection = result_collection
         self._stop_event = Event()
     
-    def submit(self, fn, *args, **kwargs):
+    def submit(self, fn, overwrite = False, *args, **kwargs):
         item = encode_callable(fn, args, kwargs)
         _id = self._job_queue.put(item)
         self._result_collection.insert_one({'_id': _id})
@@ -169,47 +182,21 @@ class MongoDBExecutor(object):
         self._stop_event.set()
 
     def _get_result(self, _id, timeout):
+        from . utility import mongodb_fetch_find_one
         from threading import Thread, Event
         import queue
-        result_queue = queue.Queue()
-        error_queue = queue.Queue()
-        result = None
-        stop_event = Event()
-        def try_to_get():
-            from math import tanh
-            from itertools import count
-            w = (tanh(0.05 * i) for i in count())
-            spec = {'_id': _id}
-            while(not stop_event.is_set()):
-                result = self._result_collection.find_one(spec)
-                if result is not None:
-                    if KEY_RESULT_RESULT in result:
-                        result_queue.put(decode(result[KEY_RESULT_RESULT]))
-                        break
-                    elif KEY_RESULT_ERROR in result:
-                        error_queue.put(decode(result[KEY_RESULT_ERROR]))
-                        break
-                    else:
-                        pass # no results yet
-                stop_event.wait(max(0.001, next(w)))
-        t_get = Thread(target = try_to_get)
-        t_get.start()
-        t_get.join(timeout = timeout)
-        if t_get.is_alive():
-            stop_event.set()
-            t_get.join()
-        error = None
-        try:
-            return result_queue.get_nowait()
-        except queue.Empty:
-            try:
-                error_doc = error_queue.get_nowait()
-            except queue.Empty:
-                pass
-            else:
-                print(error_doc['traceback'])
-                raise error_doc['error']
-        raise TimeoutError()
+        spec = {
+            '_id': _id,
+            '$or': [
+                {KEY_RESULT_RESULT: {'$exists': True}},
+                {KEY_RESULT_ERROR: {'$exists': True}}]}
+        result = mongodb_fetch_find_one(self._result_collection, spec, timeout = timeout)
+        if KEY_RESULT_RESULT in result:
+            return decode(result[KEY_RESULT_RESULT])
+        elif KEY_RESULT_ERROR in result:
+            raise decode(result[KEY_RESULT_ERROR])['error']
+        else:
+            assert False
 
     def clear_completed(self):
         self._job_queue.clear() 

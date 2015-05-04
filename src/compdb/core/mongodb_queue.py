@@ -54,31 +54,11 @@ class MongoDBQueue(object):
         return result.inserted_id
 
     def get(self, block = True, timeout = None):
-        import queue
         if block:
-            tmp_queue = queue.Queue()
-            from threading import Thread, Event
-            import time
-            stop_event = Event()
-            def try_to_get():
-                from math import tanh
-                from itertools import count
-                w = (tanh(0.05 * i) for i in count())
-                while(not stop_event.is_set()):
-                    item = self._get()
-                    if item is not None:
-                        tmp_queue.put(item)
-                        return
-                    stop_event.wait(max(0.001, next(w)))
-            t_get = Thread(target = try_to_get)
-            t_get.start()
-            t_get.join(timeout = timeout)
-            if t_get.is_alive():
-                stop_event.set()
-                t_get.join()
+            from . utility import fetch
             try:
-                return tmp_queue.get_nowait()
-            except queue.Empty:
+                return fetch(target = self._get, timeout = timeout)
+            except TimeoutError:
                 raise Empty()
         else:
             item = self._get()
