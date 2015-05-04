@@ -1,6 +1,10 @@
 import logging
 logger = logging.getLogger('compdb.script')
 
+def has_active_jobs(project):
+    from itertools import islice
+    return len(list(islice(project.active_jobs(), 1)))
+
 def info(args):
     from compdb.contrib import get_project
     project = get_project()
@@ -51,6 +55,23 @@ def info(args):
                     age = delta.total_seconds()))
         else:
             print("No active jobs found.")
+    if args.queue:
+        queue = project.job_queue
+        s = "Queued/Completed/Aborted: {}/{}/{}"
+        print(s.format(queue.num_queued(), queue.num_completed(), queue.num_aborted()))
+        if args.more:
+            print("Queued:")
+            for q in queue.get_queued():
+                if q is None:
+                    print("Error on retrieval.")
+                else:
+                    print(q)
+            print("Completed:")
+            for c in queue.get_completed():
+                print(c)
+            print("Aborted:")
+            for a in queue.get_aborted():
+                print(a['error'])
 
 def view(args):
     from compdb.contrib import get_project
@@ -226,7 +247,7 @@ def remove(args):
                         project.remove(force = True)
             else:
                 print("Project removed from database.")
-    elif args.job:
+    if args.job:
         if len(args.job) == 1 and args.job[0] == 'all':
             match = set(project.find_job_ids())
         else:
@@ -252,10 +273,20 @@ def remove(args):
                 job = project.get_job(id_)
                 job.remove(force = args.force)
             print("Removed selected jobs.")
-    elif args.logs:
+    if args.logs:
         question = "Are you sure you want to clear all logs from project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id())):
             project.clear_logs()
+    if args.queue:
+        question = "Are you sure you want to clear the job queue results of project '{}'?"
+        if args.yes or query_yes_no(question.format(project.get_id()), 'no'):
+            project.job_queue.clear_results()
+    if args.queued:
+        if has_active_jobs(project):
+            print("Project has indication of active jobs!")
+        q = "Are you sure you want to clear the job queue of project '{}'?"
+        if args.yes or query_yes_no(q.format(project.get_id())):
+            project.job_queue.clear_queue()
     else:
         print("No selection.")
 
@@ -288,6 +319,14 @@ def main():
         nargs = '*',
         help = "Remove all jobs that match the provided ids. Use 'all' to select all jobs. Example: '-j ed05b' or '-j=ed05b,59255' or '-j all'.",
         )
+    parser_remove.add_argument(
+        '-q', '--queue',
+        action = 'store_true',
+        help = "Clear the job queue results.")
+    parser_remove.add_argument(
+        '--queued',
+        action = 'store_true',
+        help = "Clear the queued jobs.")
     parser_remove.add_argument(
         '-r', '--release',
         action = 'store_true',
@@ -362,6 +401,10 @@ def main():
         '-p', '--pulse',
         action = 'store_true',
         help = "Print job pulse status.")
+    parser_info.add_argument(
+        '-q', '--queue',
+        action = 'store_true',
+        help = "Print job queue status.")
     parser_info.add_argument(
         '-m', '--more',
         action = 'store_true',

@@ -20,11 +20,14 @@ class MongoDBQueue(object):
     def __init__(self, collection):
         self._collection = collection
 
-    def full(self):
-        return False # There is no limit on the queue size implemented.
+    def qsize(self):
+        return self._collection.find(FILTER_NOT_COUNTER).count()
 
     def empty(self):
-        return self._collection.find(FILTER_NOT_COUNTER).count() == 0
+        return self.qsize() == 0
+
+    def full(self):
+        return False # There is no limit on the queue size implemented.
 
     def _get(self):
         from pymongo import ASCENDING
@@ -101,3 +104,11 @@ class MongoDBQueue(object):
             if self._num_open_tasks() == 0:
                 return
             time.sleep(max(0.001, next(w)))
+
+    def peek(self):
+        items = self._collection.find(FILTER_NOT_COUNTER)
+        yield from items
+
+    def clear(self):
+        self._collection.delete_many(
+            {'$or': [FILTER_COUNTER, FILTER_NOT_COUNTER]})

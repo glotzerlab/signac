@@ -50,16 +50,21 @@ def callable_spec(c):
     return spec
 
 def encode_callable(fn, args, kwargs):
-    import jsonpickle
+    #import jsonpickle
+    import pickle
     import hashlib
     checksum_src = hash_source(fn)
-    binary = jsonpickle.encode({'fn': fn, 'args': args, 'kwargs': kwargs, 'src': checksum_src}).encode()
+    binary = pickle.dumps(
+        {'fn': fn, 'args': args, 'kwargs': kwargs,
+         'module': fn.__module__,
+         'src': checksum_src})
     checksum = hashlib.sha1()
     checksum.update(binary)
     return {'callable': binary, 'checksum': checksum.hexdigest()}
 
 def decode_callable(doc):
-    import jsonpickle
+    #import jsonpickle
+    import pickle
     import hashlib
     binary = doc['callable']
     checksum = doc['checksum']
@@ -67,7 +72,12 @@ def decode_callable(doc):
     m.update(binary)
     if not checksum == m.hexdigest():
         raise RuntimeWarning("Checksum deviation! Possible security violation!")
-    c_doc = jsonpickle.decode(binary.decode())
+    #c_doc = jsonpickle.decode(binary.decode())
+    c_doc = pickle.loads(binary)
+    fn = c_doc['fn']
+    #if fn is None:
+    #    msg = "Failed to unpickle '{}'. Possible version conflict."
+    #    raise ValueError(msg.format(doc))
     if not hash_source(c_doc['fn']) == c_doc['src']:
         raise RuntimeWarning("Source checksum deviation! Possible version conflict.")
     return c_doc['fn'], c_doc['args'], c_doc['kwargs']
@@ -200,3 +210,45 @@ class MongoDBExecutor(object):
                 print(error_doc['traceback'])
                 raise error_doc['error']
         raise TimeoutError()
+
+    def clear_completed(self):
+        self._job_queue.clear() 
+        self._result_collection.delete_many(
+            {KEY_RESULT_RESULT: {'$exists': True}})
+
+    def clear_aborted(self):
+        self._result_collection.delete_many(
+            {KEY_RESULT_ERROR: {'$exists': True}})
+
+    def clear_results(self):
+        self._result_collection.delete_many({})
+
+    def clear_queue(self):
+        self._job_queue.clear()
+
+    def get_queued(self):
+        for q in self._job_queue.peek():
+            yield decode_callable(q)
+
+    def num_queued(self):
+        return self._job_queue.qsize()
+
+    def _get_completed(self):
+        return self._result_collection.find({KEY_RESULT_RESULT: {'$exists': True}})
+
+    def num_completed(self):
+        return self._get_completed().count()
+
+    def get_completed(self):
+        for doc in self._get_completed():
+            yield decode(doc[KEY_RESULT_RESULT])
+
+    def _get_aborted(self):
+        return self._result_collection.find({KEY_RESULT_ERROR: {'$exists': True}})
+
+    def num_aborted(self):
+        return self._get_aborted().count()
+
+    def get_aborted(self):
+        for doc in self._get_aborted():
+            yield decode(doc[KEY_RESULT_ERROR])
