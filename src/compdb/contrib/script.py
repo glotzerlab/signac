@@ -285,7 +285,7 @@ def remove(args):
         if has_active_jobs(project):
             print("Project has indication of active jobs!")
         q = "Are you sure you want to clear the job queue of project '{}'?"
-        if args.yes or query_yes_no(q.format(project.get_id())):
+        if args.yes or query_yes_no(q.format(project.get_id()), 'no'):
             project.job_queue.clear_queue()
     else:
         print("No selection.")
