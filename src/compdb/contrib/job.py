@@ -385,7 +385,7 @@ class Job(object):
         return len(self._open_instances())
 
     def is_exclusive_instance(self):
-        return self.num_open_instances <= 1
+        return self.num_open_instances() <= 1
 
     def lock(self, blocking = True, timeout = -1):
         return self._project.lock_job(
