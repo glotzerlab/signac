@@ -72,6 +72,7 @@ def info(args):
             print("Aborted:")
             for a in queue.get_aborted():
                 print(a['error'])
+                print(a['traceback'])
 
 def view(args):
     from compdb.contrib import get_project
@@ -287,8 +288,8 @@ def remove(args):
         q = "Are you sure you want to clear the job queue of project '{}'?"
         if args.yes or query_yes_no(q.format(project.get_id()), 'no'):
             project.job_queue.clear_queue()
-    else:
-        print("No selection.")
+    if not (args.project or args.job or args.logs or args.queue or args.queued):
+        print("Nothing selected for removal.")
 
 def main():
     import sys

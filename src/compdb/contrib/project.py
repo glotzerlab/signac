@@ -160,7 +160,7 @@ class Project(object):
         #    msg = "Parameters dictionary cannot be empty!"
         #    raise ValueError(msg)
         if parameters is None:
-            parameters = {}
+            parameters = dict()
         spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
             spec.update({'develop': True})
