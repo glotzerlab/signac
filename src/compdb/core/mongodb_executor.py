@@ -115,7 +115,7 @@ def execute_callable(job_queue, result_collection, item):
         result_collection.update_one(
             {'_id': _id},
             {'$set': {
-                KEY_ITEM: encode(item),
+                KEY_ITEM: item,
                 KEY_RESULT_ERROR: encode(error_doc),
                 }},
             upsert = True)
@@ -124,7 +124,7 @@ def execute_callable(job_queue, result_collection, item):
         result_collection.update_one(
             {'_id': _id},
             {'$set': {
-                KEY_ITEM: encode(item),
+                KEY_ITEM: item,
                 KEY_RESULT_RESULT: encode(result),
                 }},
             upsert = True)
@@ -143,18 +143,24 @@ class MongoDBExecutor(object):
         self._job_queue = job_queue
         self._result_collection = result_collection
         self._stop_event = Event()
-    
-    def submit(self, fn, overwrite = False, *args, **kwargs):
-        item = encode_callable(fn, args, kwargs)
-        if not overwrite:
-            has_result = self._fetch_result(item) is not None
-            queued = item in self._job_queue
-            if has_result or queued:
-                msg = "Item '{}' already submitted."
-                raise ValueError(msg.format(item))
+
+    def _put(self, item):
         _id = self._job_queue.put(item)
         self._result_collection.insert_one({'_id': _id})
         return Future(self, _id)
+
+    def submit(self, fn, *args, **kwargs):
+        item = encode_callable(fn, args, kwargs)
+        queued = lambda: item in self._job_queue
+        in_results = lambda: self._fetch_result(item) is not None
+        if queued() or in_results():
+            msg = "Item '{}' already submitted."
+            raise ValueError(msg.format(item))
+        return self._put(item)
+
+    def resubmit(self, fn, * args, ** kwargs):
+        item = encode_callable(fn, args, kwargs)
+        return self._put(item)
 
     def enter_loop(self, timeout = None):
         self._stop_event.clear()
@@ -203,7 +209,7 @@ class MongoDBExecutor(object):
             assert False
 
     def _fetch_result(self, item, block = False, timeout = None):
-        spec = {KEY_ITEM: item}
+        spec = {'{}.{}'.format(KEY_ITEM, k): v for k,v in item.items()}
         if block:
             from . utility import mongodb_fetch_find_one
             return mongodb_fetch_find_one(self._result_collection, spec, timeout = timeout)
