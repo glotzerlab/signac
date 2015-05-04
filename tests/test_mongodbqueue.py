@@ -132,10 +132,10 @@ def my_function(x, y = 1):
 def error_function(x, y = 1):
     raise RuntimeError(my_function(x, y = 1))
 
-def execution_server(id_queue, id_results, timeout):
+def execution_enter_loop(id_queue, id_results, timeout):
     executor = get_executor_no_drop(id_queue, id_results)
     try:
-        executor.serve(timeout)
+        executor.enter_loop(timeout)
     except Empty:
         pass
     return True
@@ -168,7 +168,7 @@ class MongoDBExecutorTest(unittest.TestCase):
         with get_executor() as executor:
             future = executor.submit(my_function, x = 2, y = 4)
             with self.assertRaises(Empty):
-                executor.serve(timeout = 0.1)
+                executor.enter_loop(timeout = 0.1)
             result = future.result(0.2)
             self.assertEqual(my_function(x = 2, y = 4), result)
 
@@ -177,7 +177,7 @@ class MongoDBExecutorTest(unittest.TestCase):
             future1 = executor.submit(my_function, x = 2, y = 4)
             future2 = executor.submit(error_function, x = 2, y = 4)
             with self.assertRaises(Empty):
-                executor.serve(timeout = 0.1)
+                executor.enter_loop(timeout = 0.1)
             result1 = future1.result(0.1)
             self.assertEqual(my_function(x = 2, y = 4), result1)
             with self.assertRaises(RuntimeError):
@@ -197,7 +197,7 @@ class MongoDBExecutorTest(unittest.TestCase):
         with get_executor(id_queue, id_results) as executor:
             futures = [executor.submit(my_function, x = i) for i in range(num_jobs)]
             with Pool(processes = num_processes) as pool:
-                result = pool.starmap(execution_server, 
+                result = pool.starmap(execution_enter_loop,
                     [(id_queue, id_results, timeout) for i in range(num_jobs)])
                 self.assertEqual(result, [True] * num_jobs)
             for i, future in enumerate(futures):

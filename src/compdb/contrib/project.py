@@ -389,7 +389,7 @@ class Project(object):
     def _create_db_snapshot(self, dst):
         import os
         from bson.json_util import dumps
-        from . utility import dump_db
+        from . utility import dump_db_from_config
         spec = self._job_spec_modifier(develop = False)
         job_docs = self.get_jobs_collection().find(spec)
         docs = self.collection.find()
@@ -398,10 +398,7 @@ class Project(object):
             for job_doc in job_docs:
                 file.write("{}\n".format(dumps(job_doc)).encode())
         fn_dump_db = os.path.join(dst, FN_DUMP_DB)
-        dump_db(
-            host = self.config['database_host'],
-            database = self.get_id(),
-            dst = fn_dump_db)
+        dump_db_from_config(self.config, fn_dump_db)
         return [fn_dump_jobs, fn_dump_db]
 
     def _create_config_snapshot(self, dst):
@@ -461,7 +458,7 @@ class Project(object):
         import shutil, os
         from os.path import join, isdir, dirname, exists
         from bson.json_util import loads
-        from . utility import restore_db
+        from . utility import restore_db_from_config
         fn_storage = join(src, FN_DUMP_STORAGE)
         try:
             with open(join(src, FN_DUMP_JOBS), 'rb') as file:
@@ -479,10 +476,7 @@ class Project(object):
             fn_dump_db = join(src, FN_DUMP_DB, self.get_id())
             if not exists(fn_dump_db):
                 raise NotADirectoryError(fn_dump_db)
-            restore_db(
-                host = self.config['database_host'],
-                database = self.get_id(), 
-                src = fn_dump_db)
+            restore_db_from_config(self.config, fn_dump_db)
         except NotADirectoryError as error:
             logger.warning(error)
             if not force:

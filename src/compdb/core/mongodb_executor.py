@@ -9,6 +9,9 @@ KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_RESULT_RESULT = 'result'
 KEY_RESULT_ERROR = 'error'
 
+MPI_ROOT = 0
+STOP_ITEM = "STOP".encode()
+
 def hash_module(c):
     import inspect, hashlib
     module = inspect.getmodule(c)
@@ -86,20 +89,29 @@ class Future(object):
     def result(self, timeout = None):
         return self._executor._get_result(self._id, timeout)
 
-def execution_worker(stop_event, job_queue, result_collection, timeout):
+def execute_callable(job_queue, result_collection, item):
+    _id = item['_id']
+    fn, args, kwargs = decode_callable(item)
+    logger.info("Executing job '{}({},{})' (id={})...".format(fn, args, kwargs, _id))
+    try:
+        result = fn(*args, ** kwargs)
+    except Exception as error:
+        import traceback
+        import sys
+        exc = traceback.format_exc()
+        logger.warning("Execution of job with id={} aborted with error: {}\n{}".format(_id, error, exc))
+        error_doc = {'error': error, 'traceback': exc}
+        result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_ERROR: encode(error_doc)}}, upsert = True)
+    else:
+        logger.info("Finished exection of job with id={}.".format(_id))
+        result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_RESULT: encode(result)}}, upsert = True)
+
+def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None):
     while(not stop_event.is_set()):
         item = job_queue.get(block = True, timeout = timeout)
-        _id = item['_id']
-        fn, args, kwargs = decode_callable(item)
-        logger.info("Executing job '{}({},{})' (id={})...".format(fn, args, kwargs, _id))
-        try:
-            result = fn(*args, ** kwargs)
-        except Exception as error:
-            logger.warning("Execution of job with id={} aborted with error: {}".format(_id, error))
-            result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_ERROR: encode(error)}}, upsert = True)
-        else:
-            logger.info("Finished exection of job with id={}.".format(_id))
-            result_collection.update_one({'_id': _id}, {'$set': {KEY_RESULT_RESULT: encode(result)}}, upsert = True)
+        if comm is not None:
+            comm.bcast(item, root = MPI_ROOT)
+        execute_callable(job_queue, result_collection, item)
 
 class MongoDBExecutor(object):
 
@@ -115,10 +127,34 @@ class MongoDBExecutor(object):
         self._result_collection.insert_one({'_id': _id})
         return Future(self, _id)
 
-    def serve(self, timeout = None):
+    def enter_loop(self, timeout = None):
         self._stop_event.clear()
+        logger.info("Entering execution loop, timeout={}.".format(timeout))
         execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout)
 
+    def enter_loop_mpi(self, timeout = None):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        self._stop_event.clear()
+        if rank == MPI_ROOT:
+            logger.info("Entering execution loop, rank={}, timeout={}.".format(rank, timeout))
+            try:
+                execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, comm)
+            except:
+                comm.bcast(STOP_ITEM, root = MPI_ROOT)
+                raise
+            else:
+                comm.bcast(STOP_ITEM, root = MPI_ROOT)
+        else:
+            logger.info("Entering execution loop, rank={}.".format(rank))
+            while(True):
+                item = comm.bcast(None, root = MPI_ROOT)
+                if item == STOP_ITEM:
+                    break
+                else:
+                    execute_callable(self._job_queue, self._result_collection, item)
+    
     def stop(self):
         self._stop_event.set()
 
@@ -139,11 +175,12 @@ class MongoDBExecutor(object):
                 if result is not None:
                     if KEY_RESULT_RESULT in result:
                         result_queue.put(decode(result[KEY_RESULT_RESULT]))
+                        break
                     elif KEY_RESULT_ERROR in result:
                         error_queue.put(decode(result[KEY_RESULT_ERROR]))
+                        break
                     else:
                         pass # no results yet
-                    return
                 stop_event.wait(max(0.001, next(w)))
         t_get = Thread(target = try_to_get)
         t_get.start()
@@ -156,9 +193,10 @@ class MongoDBExecutor(object):
             return result_queue.get_nowait()
         except queue.Empty:
             try:
-                error = error_queue.get_nowait()
+                error_doc = error_queue.get_nowait()
             except queue.Empty:
                 pass
             else:
-                raise error
+                print(error_doc['traceback'])
+                raise error_doc['error']
         raise TimeoutError()
