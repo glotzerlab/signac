@@ -52,21 +52,21 @@ def callable_spec(c):
     return spec
 
 def encode_callable(fn, args, kwargs):
-    import jsonpickle as pickle
-    #import pickle
+    #import jsonpickle as pickle
+    import pickle
     import hashlib
     checksum_src = hash_source(fn)
     binary = pickle.dumps(
         {'fn': fn, 'args': args, 'kwargs': kwargs,
          'module': fn.__module__,
-         'src': checksum_src}).encode()
+         'src': checksum_src})#.encode()
     checksum = hashlib.sha1()
     checksum.update(binary)
     return {'callable': binary, KEY_CALLABLE_CHECKSUM: checksum.hexdigest()}
 
 def decode_callable(doc):
-    import jsonpickle as pickle
-    #import pickle
+    #import jsonpickle as pickle
+    import pickle
     import hashlib
     binary = doc['callable']
     checksum = doc[KEY_CALLABLE_CHECKSUM]
@@ -75,7 +75,7 @@ def decode_callable(doc):
     if not checksum == m.hexdigest():
         raise RuntimeWarning("Checksum deviation! Possible security violation!")
     #c_doc = jsonpickle.decode(binary.decode())
-    c_doc = pickle.loads(binary.decode())
+    c_doc = pickle.loads(binary)#.decode())
     fn = c_doc['fn']
     #if fn is None:
     #    msg = "Failed to unpickle '{}'. Possible version conflict."
@@ -177,6 +177,10 @@ class MongoDBExecutor(object):
             logger.info("Entering execution loop, rank={}, timeout={}.".format(rank, timeout))
             try:
                 execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, comm)
+            except KeyboardInterrupt:
+                logger.warning("Execution interrupted.")
+                comm.bcast(STOP_ITEM, root = MPI_ROOT)
+                raise
             except:
                 comm.bcast(STOP_ITEM, root = MPI_ROOT)
                 raise
