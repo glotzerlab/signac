@@ -29,7 +29,12 @@ def fetch(target, timeout = None):
         stop_event.wait(max(0.001, next(w)))
     thread_fetch = Thread(target = inner_loop)
     thread_fetch.start()
-    thread_fetch.join(timeout = timeout)
+    try:
+        thread_fetch.join(timeout = timeout)
+    except KeyboardInterrupt:
+        stop_event.set()
+        thread_fetch.join()
+        raise
     if thread_fetch.is_alive():
         stop_event.set()
         thread_fetch.join()
