@@ -7,13 +7,19 @@ test_token = {'test_token': str(uuid.uuid4())}
 
 @contextmanager
 def safe_open_job(* parameters):
-    from compdb.contrib import open_job as oj
-    job = oj(* parameters)
+    from copdb.contrib import get_project
+    project = get_project()
+    job = project.open_job(*parameters)
     try:
         yield job
     except Exception:
         job.remove()
         raise
+
+def open_job(*args, **kwargs):
+    from compdb.contrib import get_project
+    project = get_project()
+    return project.open_job(*args, **kwargs)
 
 class JobTest(unittest.TestCase):
     
@@ -49,13 +55,11 @@ class ConfigTest(JobTest):
 class JobOpenAndClosingTest(JobTest):
 
     def test_open_job_close(self):
-        from compdb.contrib import open_job
         with open_job(test_token) as job:
             pass
         job.remove()
 
     def test_reopen_job(self):
-        from compdb.contrib import open_job
         with open_job(test_token) as job:
             job_id = job.get_id()
 
@@ -64,9 +68,9 @@ class JobOpenAndClosingTest(JobTest):
         job.remove()
 
     def test_job_doc_retrieval(self):
-        from compdb.contrib import open_job, get_project
+        from compdb.contrib import get_project
         project = get_project()
-        with open_job(test_token) as test_job:
+        with project.open_job(test_token) as test_job:
             jobs_collection = project.get_jobs_collection()
             self.assertEqual(test_job.spec, test_job._spec)
             job_doc = jobs_collection.find_one(test_job.spec)
@@ -77,7 +81,6 @@ class JobStorageTest(JobTest):
     
     def test_store_and_get(self):
         import uuid
-        from compdb.contrib import open_job
         key = 'my_test_key'
         value = uuid.uuid4()
         with open_job(test_token) as test_job:
@@ -96,7 +99,6 @@ class JobStorageTest(JobTest):
 
     def test_store_and_retrieve_value_in_job_collection(self):
         import compdb.contrib
-        from compdb.contrib import open_job
         import uuid
         doc = {'a': uuid.uuid4()}
         with open_job(test_token) as test_job:
@@ -109,7 +111,6 @@ class JobStorageTest(JobTest):
         job.remove()
 
     def test_open_file(self):
-        from compdb.contrib import open_job
         import uuid
         data = str(uuid.uuid4())
 
@@ -126,7 +127,6 @@ class JobStorageTest(JobTest):
 
     def test_store_and_restore_file(self):
         import os, uuid
-        from compdb.contrib import open_job
         data = str(uuid.uuid4())
         fn = '_my_file'
 
@@ -145,7 +145,6 @@ class JobStorageTest(JobTest):
 
     def test_store_all_and_restore_all(self):
         import os, uuid
-        from compdb.contrib import open_job
         data = str(uuid.uuid4())
         fns = ('_my_file', '_my_second_file')
 
@@ -166,7 +165,6 @@ class JobStorageTest(JobTest):
         job.remove()
 
     def test_job_clearing(self):
-        from compdb.contrib import open_job
         from os.path import isfile
         import uuid
         data = str(uuid.uuid4())
@@ -189,7 +187,6 @@ class JobStorageTest(JobTest):
         job.remove()
 
 def open_and_lock_and_release_job(token):
-    from compdb.contrib import open_job
     with open_job(test_token, timeout = 30) as job:
         pass
         #time.sleep(5)
@@ -204,10 +201,11 @@ def open_and_lock_and_release_job(token):
 class JobConcurrencyTest(JobTest):
 
     def test_recursive_job_opening(self):
-        from compdb.contrib import open_job
-        with open_job(test_token, timeout = 1) as job0:
+        from compdb.contrib import get_project
+        project = get_project()
+        with project.open_job(test_token, timeout = 1) as job0:
             self.assertEqual(job0.num_open_instances(), 1)
-            with open_job(test_token, timeout = 1) as job1:
+            with project.open_job(test_token, timeout = 1) as job1:
                 self.assertEqual(job0.num_open_instances(), 2)
                 self.assertEqual(job1.num_open_instances(), 2)
             self.assertEqual(job0.num_open_instances(), 1)
@@ -217,7 +215,6 @@ class JobConcurrencyTest(JobTest):
         job0.remove()
 
     def test_acquire_and_release(self):
-        from compdb.contrib import open_job
         from compdb.contrib.concurrency import DocumentLockError
         with open_job(test_token, timeout = 1) as job:
             with job.lock(timeout = 1):
@@ -228,7 +225,6 @@ class JobConcurrencyTest(JobTest):
         job.remove()
 
     def test_process_concurrency(self):
-        from compdb.contrib import open_job
         from multiprocessing import Pool
 
         num_processes = 100
@@ -270,7 +266,6 @@ class MyCustomHeavyClass(MyCustomClass):
 
 ex = False
 def open_cache(unittest, data_type):
-    from compdb.contrib import open_job
 
     a,b,c = range(3)
     global ex
@@ -314,7 +309,6 @@ class TestJobCache(JobTest):
         project.get_cache().clear()
 
     def test_modify_code(self):
-        from compdb.contrib import open_job
         a,b,c = range(3)
         global ex
         def foo(a, b, ** kwargs):
