@@ -190,7 +190,7 @@ class ProjectQueueTest(JobTest):
         num_jobs = 10
         futures = [queue.submit(simple_function, i) for i in range(num_jobs)]
         try:
-            queue.serve(timeout = 0.1)
+            queue.enter_loop(timeout = 0.1)
         except Empty:
             pass
         for i, future in enumerate(futures):

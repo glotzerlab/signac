@@ -2,7 +2,6 @@ import logging
 logger = logging.getLogger('db')
 
 from compdb.core.config import load_config
-from compdb.core import _get_db
 
 from .database import Database
 from .conversion import make_db_method
@@ -21,14 +20,6 @@ def access_compmatdb(host = None, config = None):
     connector.authenticate()
     db = connector.client[config['database_compmatdb']]
     return Database(db = db, config = config)
-
-def _get_db_global_fs():
-    return _get_db(CONFIG['database_global_fs'])
-
-def _get_global_fs():
-    return Storage(
-        collection = _get_db_global_fs()['compdb.fs'],
-        fs_dir = CONFIG['global_fs_dir'])
 
 class StorageFileCursor(object):
 

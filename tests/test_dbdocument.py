@@ -12,6 +12,7 @@ def testdata():
 
 @contextmanager
 def document(collection = None):
+    from pymongo.errors import OperationFailure
     if collection is None:
         collection = get_collection()
     _id = None
@@ -24,7 +25,10 @@ def document(collection = None):
     except Exception:
         raise
     finally:
-        collection.remove({'_id': _id})
+        try:
+            collection.remove({'_id': _id})
+        except OperationFailure:
+            pass
 
 def get_collection():
     from pymongo import MongoClient
@@ -128,34 +132,34 @@ class TestDBDocument(unittest.TestCase):
             for k in dbdoc:
                 self.assertEqual(k, '_id')
 
-    def test_bad_host(self):
-        import os
-        import tempfile
-        key = "test_bad_host"
-        data = testdata()
-        cwd = os.getcwd()
-        try:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                os.chdir(tmpdir)
-                with get_dbdoc(host = 'example.com') as dbdoc:
-                    dbdoc[key] = data
-                    rb = dbdoc[key]
-                    self.assertEqual(rb, data)
-                    self.assertIn(key, dbdoc)
-                    self.assertNotIn('abc', dbdoc)
+    #def test_bad_host(self):
+    #    import os
+    #    import tempfile
+    #    key = "test_bad_host"
+    #    data = testdata()
+    #    cwd = os.getcwd()
+    #    try:
+    #        with tempfile.TemporaryDirectory() as tmpdir:
+    #            os.chdir(tmpdir)
+    #            with get_dbdoc(host = 'example.com') as dbdoc:
+    #                dbdoc[key] = data
+    #                rb = dbdoc[key]
+    #                self.assertEqual(rb, data)
+    #                self.assertIn(key, dbdoc)
+    #                self.assertNotIn('abc', dbdoc)
 
-                with dbdoc:
-                    self.assertIn(key, dbdoc)
-                    self.assertEqual(dbdoc.get(key), data)
+    #            with dbdoc:
+    #                self.assertIn(key, dbdoc)
+    #                self.assertEqual(dbdoc.get(key), data)
 
-                id_ = dbdoc._id
-                with get_dbdoc(id_ = dbdoc._id) as valid_dbdoc:
-                    self.assertIn(key, valid_dbdoc)
-                    self.assertEqual(valid_dbdoc.get(key), data)
-        except:
-            raise
-        finally:
-            os.chdir(cwd)
+    #            id_ = dbdoc._id
+    #            with get_dbdoc(id_ = dbdoc._id) as valid_dbdoc:
+    #                self.assertIn(key, valid_dbdoc)
+    #                self.assertEqual(valid_dbdoc.get(key), data)
+    #    except:
+    #        raise
+    #    finally:
+    #        os.chdir(cwd)
 
 if __name__ == '__main__':
     unittest.main()

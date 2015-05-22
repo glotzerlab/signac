@@ -3,7 +3,7 @@ import os
 import logging
 logger = logging.getLogger('config')
 
-import json
+import json as serializer
 
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
@@ -12,17 +12,17 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 
 ENVIRONMENT_VARIABLES = {
-    'author_name' :         'COMPDB_AUTHOR_NAME',
-    'author_email':         'COMPDB_AUTHOR_EMAIL',
-    'project':              'COMPDB_PROJECT',
-    'project_dir' :         'COMPDB_PROJECT_DIR',
-    'filestorage_dir':      'COMPDB_FILESTORAGE_DIR',
-    'workspace_dir':        'COMPDB_WORKING_DIR',
-    'database_host':        'COMPDB_DATABASE_HOST',
-    'develop':              'COMPDB_DEVELOP',
-    'connect_timeout_ms':   'COMPDB_CONNECT_TIMEOUT',
-    'compmatdb_host':       'COMPDB_COMPMATDB_HOST',
-    'database_auth_mechanism': 'COMPDB_DATABASE_AUTH_MECHANISM',
+    'author_name' :              'COMPDB_AUTHOR_NAME',
+    'author_email':              'COMPDB_AUTHOR_EMAIL',
+    'project':                   'COMPDB_PROJECT',
+    'project_dir' :              'COMPDB_PROJECT_DIR',
+    'filestorage_dir':           'COMPDB_FILESTORAGE_DIR',
+    'workspace_dir':             'COMPDB_WORKING_DIR',
+    'database_host':             'COMPDB_DATABASE_HOST',
+    'develop':                   'COMPDB_DEVELOP',
+    'connect_timeout_ms':        'COMPDB_CONNECT_TIMEOUT',
+    'compmatdb_host':            'COMPDB_COMPMATDB_HOST',
+    'database_auth_mechanism':   'COMPDB_DATABASE_AUTH_MECHANISM',
 }
 
 REQUIRED_KEYS = [
@@ -31,22 +31,19 @@ REQUIRED_KEYS = [
     ]
 
 DEFAULTS = {
-    'database_host': 'localhost',
-    'database_auth_mechanism': 'SSL-x509',
-    'database_meta': 'compdb',
-    'database_global_fs': 'compdb_fs',
-    'database_compmatdb': 'compmatdb',
-    'connect_timeout_ms': 5000,
+    'database_host':            'localhost',
+    'database_auth_mechanism':  'SSL-x509',
+    'database_meta':            'compdb',
+    'database_compmatdb':       'compmatdb',
+    'connect_timeout_ms':       5000,
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 'socket_timeout_ms', 'compmatdb_host',
+    'develop', 'compmatdb_host',
+    'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile',
     ]
 
-LEGAL_ARGS.extend([
-    'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile'
-    ])
-
+# File and dir names are interpreted relative to the working directory and stored as absolute path.
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
 
@@ -64,7 +61,7 @@ class Config(object):
     def read(self, filename = DEFAULT_FILENAME):
         try:
             with open(filename) as file:
-                args = json.loads(file.read())
+                args = serializer.loads(file.read())
                 logger.debug("Read: {}".format(args))
             self._args.update(args)
         except ValueError as error:
@@ -101,7 +98,7 @@ class Config(object):
     def verify(self):
         verify(self._args)
 
-    def write(self, filename = DEFAULT_FILENAME, indent = 0, keys = None):
+    def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
         import tempfile
         if keys is None:
             args = self._args
@@ -109,17 +106,17 @@ class Config(object):
             args = {k: self._args[k] for k in keys if k in self._args}
         with tempfile.NamedTemporaryFile() as file:
             with open(filename, 'w') as file:
-                json.dump(args, file, indent = indent)
+                serializer.dump(args, file, indent = indent)
             os.rename(file.name, filename)
 
-    def _dump(self, indent = 0, keys = None):
+    def _dump(self, indent = 2, keys = None):
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        return json.dumps(args, indent = indent, sort_keys = True)
+        return serializer.dumps(args, indent = indent, sort_keys = True)
 
-    def dump(self, indent = 0, keys = None):
+    def dump(self, indent = 2, keys = None):
         print(self._dump(indent, keys))
 
     def __str__(self):

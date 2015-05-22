@@ -248,29 +248,6 @@ class JobConcurrencyTest(JobTest):
                 pass
             job.remove(force = True)
 
-    def test_sections(self):
-        from compdb.contrib import open_job
-        with open_job(test_token) as job:
-            ex = False
-            with job.section('sec0') as sec:
-                if not sec.completed():
-                    ex = True
-            self.assertTrue(ex)
-
-            ex2 = False
-            with job.section('sec0') as sec:
-                if not sec.completed():
-                    ex2 = True
-            self.assertFalse(ex2)
-
-        with open_job(test_token) as job:
-            ex3 = False
-            with job.section('sec0') as sec:
-                if not sec.completed():
-                    ex3 = True
-            self.assertFalse(ex3)
-        job.remove()
-
 class MyCustomClass(object):
     def __init__(self, a):
         self._a = a
@@ -363,45 +340,6 @@ class TestJobCache(JobTest):
             result = job.cached(foo, a, b = b, c = c)
         self.assertEqual(result, expected_result)
         self.assertTrue(ex)
-        job.remove()
-
-class TestJobMilestones(JobTest):
-    
-    def test_milestones(self):
-        from compdb.contrib import open_job
-        with open_job(test_token) as job:
-            job.milestones.clear()
-            self.assertFalse(job.milestones.reached('started'))
-            job.milestones.mark('started')
-            self.assertTrue(job.milestones.reached('started'))
-            self.assertFalse(job.milestones.reached('other'))
-            job.milestones.mark('started')
-            job.milestones.mark('other')
-            self.assertTrue(job.milestones.reached('started'))
-            self.assertTrue(job.milestones.reached('other'))
-            job.milestones.remove('started')
-            self.assertFalse(job.milestones.reached('started'))
-            self.assertTrue(job.milestones.reached('other'))
-            job.milestones.remove('started')
-            self.assertFalse(job.milestones.reached('started'))
-            job.milestones.mark('started')
-            job.milestones.mark('other')
-            self.assertTrue(job.milestones.reached('started'))
-            self.assertTrue(job.milestones.reached('other'))
-            job.milestones.clear()
-            self.assertFalse(job.milestones.reached('started'))
-            self.assertFalse(job.milestones.reached('other'))
-        job.remove()
-
-    def test_milestones_reopen(self):
-        from compdb.contrib import open_job
-        with open_job(test_token) as job:
-            job.milestones.clear()
-            self.assertFalse(job.milestones.reached('started'))
-            job.milestones.mark('started')
-
-        with open_job(test_token) as job:
-            self.assertTrue(job.milestones.reached('started'))
         job.remove()
 
 if __name__ == '__main__':

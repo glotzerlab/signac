@@ -2,7 +2,7 @@ import unittest
 import networkx as nx
 import uuid
 
-TESTING_DB = 'testing_matdb'
+TESTING_DB = 'testing_compmatdb'
 TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 
 def basic_network():

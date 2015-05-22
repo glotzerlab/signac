@@ -10,12 +10,6 @@ PULSE_PERIOD = 10
 
 from . project import JOB_DOCS
 
-def spec_for_nested_dict(nd):
-    spec.update(
-        {'argument.{}'.format(k): v for k,v in nd.items() if not type(v) == dict})
-    spec.update(
-        {'argument.{}.{}'.format(k, k2): v2 for k,v in nd.items() if type(v) == dict for k2,v2 in v.items()})
-
 class PulseThread(threading.Thread):
     def __init__(self, collection, _id, unique_id, period = PULSE_PERIOD):
         super().__init__()
@@ -41,27 +35,6 @@ class PulseThread(threading.Thread):
 
     def stop(self):
         self._stop_event.set()
-
-class JobSection(object):
-
-    def __init__(self, job, name):
-        self._job = job
-        self._name = name
-        self._key = "_job_section_{}".format(name)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, err_type, err_val, traceback):
-        if err_type:
-            self._job.document[self._key] = False
-            return False
-        else:
-            self._job.document[self._key] = True
-            return True
-    
-    def completed(self):
-        return self._job.document.get(self._key, False)
 
 class JobNoIdError(RuntimeError):
     pass
@@ -400,16 +373,9 @@ class Job(object):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
 
-    def section(self, name):
-        return JobSection(self, name)
-
     @property
     def cache(self):
         return self._project.get_cache()
 
     def cached(self, function, * args, ** kwargs):
         return self.cache.run(function, * args, ** kwargs) 
-
-    @property
-    def milestones(self):
-        return self._project.get_milestones(self.get_id()) 

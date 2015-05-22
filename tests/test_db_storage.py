@@ -42,7 +42,6 @@ class StorageTest(unittest.TestCase):
         self._mc.drop()
     
     def test_new_file(self):
-        from compdb.db import _get_global_fs
         storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
@@ -52,7 +51,6 @@ class StorageTest(unittest.TestCase):
 
     def test_delete_file(self):
         import os.path
-        from compdb.db import _get_global_fs
         storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
@@ -62,7 +60,6 @@ class StorageTest(unittest.TestCase):
         self.assertEqual(len(list(storage.find(doc))), 0)
 
     def test_find(self):
-        from compdb.db import _get_global_fs
         import uuid
         storage = self._storage
         doc = test_doc()
