@@ -1,7 +1,6 @@
 import logging
 logger = logging.getLogger('compdb.project')
 from queue import Queue
-#from multiprocessing import Queue
 from logging.handlers import QueueHandler, QueueListener
 
 JOB_PARAMETERS_KEY = 'parameters'
@@ -92,8 +91,11 @@ class Project(object):
             assert valid_name(db_name)
             return self._get_db(db_name)
 
+    def get_project_db(self):
+        return self.get_db(self.get_id())
+
     def _get_meta_db(self):
-        return self._get_db(self.config['database_meta'])
+        return self.get_project_db()
 
     def get_jobs_collection(self):
         return self._get_meta_db()[JOB_META_DOCS]
@@ -106,9 +108,7 @@ class Project(object):
             msg = "Unable to determine project id. "
             msg += "Are you sure '{}' is a compDB project path?"
             raise LookupError(msg.format(os.path.realpath(os.getcwd())))
-    def get_project_db(self):
-        return self.get_db(self.get_id())
-    
+
     @property
     def collection(self):
         return self.get_project_db()[JOB_DOCS]
