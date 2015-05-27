@@ -1,0 +1,5 @@
+{
+  "compmatdb_host": "localhost",
+  "database_host": "localhost",
+  "database_auth_mechanism": "none"
+}

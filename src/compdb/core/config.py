@@ -1,7 +1,8 @@
-import os
-
 import logging
-logger = logging.getLogger('config')
+logger = logging.getLogger(__name__)
+
+import os
+import json as serializer
 
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
@@ -10,14 +11,17 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 
 ENVIRONMENT_VARIABLES = {
-    'author_name' :     'COMPDB_AUTHOR_NAME',
-    'author_email':     'COMPDB_AUTHOR_EMAIL',
-    'project':          'COMPDB_PROJECT',
-    'project_dir' :     'COMPDB_PROJECT_DIR',
-    'filestorage_dir':  'COMPDB_FILESTORAGE_DIR',
-    'workspace_dir':      'COMPDB_WORKING_DIR',
-    'database_host':    'COMPDB_DATABASE_HOST',
-    'develop':          'COMPDB_DEVELOP',
+    'author_name' :              'COMPDB_AUTHOR_NAME',
+    'author_email':              'COMPDB_AUTHOR_EMAIL',
+    'project':                   'COMPDB_PROJECT',
+    'project_dir' :              'COMPDB_PROJECT_DIR',
+    'filestorage_dir':           'COMPDB_FILESTORAGE_DIR',
+    'workspace_dir':             'COMPDB_WORKING_DIR',
+    'database_host':             'COMPDB_DATABASE_HOST',
+    'develop':                   'COMPDB_DEVELOP',
+    'connect_timeout_ms':        'COMPDB_CONNECT_TIMEOUT',
+    'compmatdb_host':            'COMPDB_COMPMATDB_HOST',
+    'database_auth_mechanism':   'COMPDB_DATABASE_AUTH_MECHANISM',
 }
 
 REQUIRED_KEYS = [
@@ -26,16 +30,21 @@ REQUIRED_KEYS = [
     ]
 
 DEFAULTS = {
-    'database_host': 'localhost',
-    'database_meta': '_compdb',
-    'database_global_fs': '_compdb_fs',
+    'database_host':            'localhost',
+    'database_auth_mechanism':  'SSL-x509',
+    'database_meta':            'compdb',
+    'database_compmatdb':       'compmatdb',
+    'connect_timeout_ms':       5000,
 }
 
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'global_fs_dir', 'develop', 
+    'develop', 'compmatdb_host',
+    'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile',
     ]
 
+# File and dir names are interpreted relative to the working directory and stored as absolute path.
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
+FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
 
 class Config(object):   
 
@@ -49,11 +58,14 @@ class Config(object):
         return str(self._args)
 
     def read(self, filename = DEFAULT_FILENAME):
-        import json
-        with open(filename) as file:
-            args = json.loads(file.read())
-            logger.debug("Read: {}".format(args))
-        self._args.update(args)
+        try:
+            with open(filename) as file:
+                args = serializer.loads(file.read())
+                logger.debug("Read: {}".format(args))
+            self._args.update(args)
+        except ValueError as error:
+            msg = "Failed to read config file '{}'."
+            raise RuntimeError(msg.format(filename))
 
     def _read_files(self):
         from os.path import dirname
@@ -85,24 +97,25 @@ class Config(object):
     def verify(self):
         verify(self._args)
 
-    def write(self, filename = DEFAULT_FILENAME, indent = 0, keys = None):
+    def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
+        import tempfile
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        import json
-        with open(filename, 'w') as file:
-            json.dump(args, file, indent = indent)
+        with tempfile.NamedTemporaryFile() as file:
+            with open(filename, 'w') as file:
+                serializer.dump(args, file, indent = indent)
+            os.rename(file.name, filename)
 
-    def _dump(self, indent = 0, keys = None):
-        import json
+    def _dump(self, indent = 2, keys = None):
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
-        return json.dumps(args, indent = indent, sort_keys = True)
+        return serializer.dumps(args, indent = indent, sort_keys = True)
 
-    def dump(self, indent = 0, keys = None):
+    def dump(self, indent = 2, keys = None):
         print(self._dump(indent, keys))
 
     def __str__(self):
@@ -118,7 +131,7 @@ class Config(object):
             raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):
-        return self._args.get(key, default)
+        return self._args.get(key, DEFAULTS.get(key, default))
 
     def __setitem__(self, key, value):
         self._args[key] = value
@@ -177,7 +190,7 @@ def verify(args):
     import os
     for key in args.keys():
         if not key in LEGAL_ARGS:
-            msg = "Illegal config key: '{}'."
+            msg = "Config key '{}' not recognized. Possible version conflict."
             logger.warning(msg.format(key))
             #raise KeyError(msg.format(key))
 

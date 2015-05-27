@@ -1,16 +1,25 @@
 import logging
-logger = logging.getLogger('db')
+logger = logging.getLogger(__name__)
 
 from compdb.core.config import load_config
-from compdb.core import _get_db
 
-def _get_db_global_fs():
-    return _get_db(CONFIG['database_global_fs'])
+from .database import Database
+from .conversion import make_db_method
+from .conversion import Adapter, BasicFormat, DBMethod
+from . import methods
 
-def _get_global_fs():
-    return Storage(
-        collection = _get_db_global_fs()['compdb.fs'],
-        fs_dir = CONFIG['global_fs_dir'])
+def access_compmatdb(host = None, config = None):
+    from ..core.dbclient_connector import DBClientConnector
+    if config is None:
+        from ..core.config import load_config
+        config = load_config()
+    if host is None:
+        host = config['compmatdb_host']
+    connector = DBClientConnector(config)
+    connector.connect(host)
+    connector.authenticate()
+    db = connector.client[config['database_compmatdb']]
+    return Database(db = db, config = config)
 
 class StorageFileCursor(object):
 
@@ -49,7 +58,7 @@ class Storage(object):
 
     def find(self, spec = {}, *args, ** kwargs):
         import os
-        docs = self._collection.find(spec = spec, fields = ['_id'], * args, ** kwargs)
+        docs = self._collection.find(spec, ['_id'], * args, ** kwargs)
         for doc in docs:
             file_id = doc['_id']
             fn = self._filename(file_id)

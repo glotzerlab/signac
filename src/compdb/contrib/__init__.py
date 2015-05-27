@@ -3,19 +3,21 @@ def get_project():
     open_job.project = None
     return Project()
 
-def open_job(parameters = None, blocking = True, timeout = -1):
-    if open_job.project is None:
-        open_job.project = get_project()
-    return open_job.project.open_job(
+def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
+    raise PendingDeprecationWarning()
+    project = get_project()
+    return project.open_job(
         parameters = parameters,
-        blocking = blocking, timeout = timeout)
-open_job.project = None
+        blocking = blocking, timeout = timeout,
+        rank = rank)
 
 def find_jobs(job_spec = {}, spec = None):
+    raise PendingDeprecationWarning()
     project = get_project()
     yield from project.find_jobs(job_spec, spec)
 
 def find(job_spec = {}, spec = {}):
+    raise PendingDeprecationWarning()
     project = get_project()
     yield from project.find(job_spec, spec)
 

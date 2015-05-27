@@ -36,6 +36,9 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 3:
     msg = "This module requires Python version 3.3 or higher."
     raise ImportError(msg)
 
+import logging
+logger = logging.getLogger(__name__)
+
 try:
     from threading import TIMEOUT_MAX
 except ImportError:
@@ -89,6 +92,8 @@ class DocumentBaseLock(object):
         Returns:
             Returns true when lock was successfully acquired, otherwise false.
         """
+        from math import tanh
+        logger.debug("Acquiring lock.")
         if not blocking and timeout != -1:
             raise ValueError("Cannot set timeout if blocking is False.")
         if timeout > TIMEOUT_MAX:
@@ -100,11 +105,13 @@ class DocumentBaseLock(object):
                 import time
                 stop_event = Event()
                 def try_to_acquire():
+                    from math import tanh
+                    from itertools import count
+                    w = (tanh(0.05 * i) for i in count())
                     while(not stop_event.is_set()):
                         if self._acquire():
                             return True
-                        stop_event.wait(max(0.1, timeout / 100))
-                        #time.sleep(max(0.1, timeout / 100))
+                        stop_event.wait(max(0.001, next(w)))
                 t_acq = Thread(target = try_to_acquire)
                 t_acq.start()
                 t_acq.join(timeout = None if timeout == -1 else timeout)
@@ -124,6 +131,12 @@ class DocumentBaseLock(object):
         If lock cannot be released or the number of releases exceeds the number of acquires for a reentrant lock a DocumentLockError is raised.
         """
         self._release()
+
+    def force_release(self):
+        logger.debug("Force releasing lock.")
+        result = self._collection.find_and_modify(
+            query = {'_id': self._document_id},
+            update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
 
     def __enter__(self):
         """Use the lock as context manager.
@@ -164,9 +177,13 @@ class DocumentLock(DocumentBaseLock):
             update = {
                 '$set': {
                     LOCK_ID_FIELD: self._lock_id}})
-        return result is not None
+        acquired = result is not None
+        if acquired:
+            logger.debug("Acquired.")
+        return acquired
 
     def _release(self):
+        logger.debug("Releasing lock.")
         result = self._collection.find_and_modify(
             query = {
                 '_id': self._document_id,
@@ -177,6 +194,7 @@ class DocumentLock(DocumentBaseLock):
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))
+        logger.debug("Released.")
 
 class DocumentRLock(DocumentBaseLock):
     
@@ -231,161 +249,3 @@ class DocumentRLock(DocumentBaseLock):
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated or lock was released too many times. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))
-
-def acquire_and_release(doc_id, wait):
-    """Testing function, to test process concurrency this must be available on module level."""
-    import time
-    from pymongo import MongoClient
-    client = MongoClient()
-    db = client['testing']
-    mc = db['document_lock']
-    lock = DocumentLock(mc, doc_id)
-    lock.acquire()
-    time.sleep(wait)
-    lock.release()
-    return True
-
-import unittest
-class TestDocumentLocks(unittest.TestCase):
-
-    def setUp(self):
-        from pymongo import MongoClient 
-        client = MongoClient()
-        db = client['testing']
-        self.mc = db['document_lock']
-
-    def test_basic(self):
-        doc_id = self.mc.insert({'a': 0})
-        try:
-            lock = DocumentLock(self.mc, doc_id)
-            assert lock.acquire()
-            lock.release()
-            rlock = DocumentRLock(self.mc, doc_id)
-            num_levels = 3
-            for i in range(num_levels):
-                assert rlock.acquire()
-            for i in range(num_levels):
-                rlock.release()
-            try:
-                rlock.release()
-            except DocumentLockError as error:
-                pass # expected
-            else:
-                assert False
-        except DocumentLockError as error:
-            raise
-        finally:
-            self.mc.remove(doc_id)
-
-    # Check locks as context manager
-
-    # Check nested locks
-    def test_nested_locks(self):
-        doc_id = self.mc.insert({'a': 0})
-        try:
-            with DocumentLock(self.mc, doc_id):
-                with DocumentLock(self.mc, doc_id, blocking = False):
-                    pass # should raise
-        except DocumentLockError as error:
-            pass # expected
-        else:
-            assert False
-        finally:
-            self.mc.remove(doc_id)
-
-    # Check illegal modification during lock
-    def test_document_corruption(self):
-        doc_id = self.mc.insert({'a': 0})
-        try:
-            with DocumentLock(self.mc, doc_id):
-                # modify lock attribute
-                self.mc.update(
-                    {'_id': doc_id},
-                    {'$set': {LOCK_ID_FIELD: 0}})
-        except DocumentLockError as error:
-            pass # expected
-        else:
-            assert False
-        finally:
-            self.mc.remove(doc_id)
-
-    def test_nested_locks_with_timeout(self):
-        timeout = 1
-        doc_id = self.mc.insert({'a': 0})
-        try:
-            with DocumentLock(self.mc, doc_id):
-                with DocumentLock(self.mc, doc_id, timeout = timeout):
-                    pass # should fail
-        except DocumentLockError as error:
-            pass # expected
-        else:
-            assert False
-        finally:
-            self.mc.remove(doc_id)
-
-    def test_process_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
-        try:
-            num_processes = 10
-            num_locks = 100
-            from multiprocessing import Pool
-            with Pool(processes = num_processes) as pool:
-                result = pool.starmap_async(
-                    acquire_and_release,
-                    [(doc_id, 0.01) for i in range(num_locks)])
-                result = result.get(timeout = 5)
-                assert result == [True] * num_locks
-        except DocumentLockError as error:
-            raise
-        finally:
-            self.mc.remove(doc_id)
-
-    def test_thread_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
-        num_workers = 5
-        num_locks = 20
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        try:
-            with ThreadPoolExecutor(max_workers = num_workers) as executor:
-                lock = DocumentLock(self.mc, doc_id)
-                def lock_and_release():
-                    import time
-                    with lock:
-                        time.sleep(0.01)
-                    return True
-                results = {executor.submit(lock_and_release) for i in range(num_locks)}
-                for future in as_completed(results):
-                    assert future.result()
-        except DocumentLockError as error:
-            raise
-        finally:
-            self.mc.remove(doc_id)
-
-    def test_process_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
-        num_workers = 5
-        num_locks = 20
-        from concurrent.futures import ProcessPoolExecutor, as_completed
-        try:
-            with ProcessPoolExecutor(max_workers = num_workers) as executor:
-                results = {executor.submit(lock_and_release, doc_id) for i in range(num_locks)}
-                for future in as_completed(results):
-                    assert future.result()
-        except DocumentLockError as error:
-            raise
-        finally:
-            self.mc.remove(doc_id)
-
-def lock_and_release(doc_id):
-    from pymongo import MongoClient
-    client = MongoClient()
-    db = client['testing']
-    collection = db['document_lock']
-    import time
-    with DocumentLock(collection, doc_id):
-        time.sleep(0.01)
-    return True
-
-
-if __name__ == '__main__':
-    unittest.main()

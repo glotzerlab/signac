@@ -8,6 +8,7 @@ class Structure(object):
         self.name = name
 
     def _set_name(self, value):
+        pass
 
     @name.setter
     def name(self, value):

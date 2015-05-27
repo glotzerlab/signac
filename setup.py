@@ -18,13 +18,14 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo'],
+    install_requires=['pymongo', 'mpi4py', 'sqlitedict', 'jsonpickle','networkx'],
 
     entry_points = {
         'console_scripts': [
             'compdb = compdb.contrib.script:main',
             'compdb_init = compdb.contrib.init_project:main',
             'compdb_configure = compdb.contrib.configure:main',
+            'compdb_admin = compdb.admin.manage:main',
         ],
     },
 )

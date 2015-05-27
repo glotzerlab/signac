@@ -1,5 +1,9 @@
 import logging
-logger = logging.getLogger('compdb')
+logger = logging.getLogger(__name__)
+
+def has_active_jobs(project):
+    from itertools import islice
+    return len(list(islice(project.active_jobs(), 1)))
 
 def info(args):
     from compdb.contrib import get_project
@@ -35,7 +39,7 @@ def info(args):
             else:
                 print(job)
             if args.more:
-                from json import dumps
+                from bson.json_util import dumps
                 print(dumps(job.spec['parameters'], sort_keys = True))
     if args.pulse:
         from datetime import datetime
@@ -51,9 +55,28 @@ def info(args):
                     age = delta.total_seconds()))
         else:
             print("No active jobs found.")
+    if args.queue:
+        queue = project.job_queue
+        s = "Queued/Completed/Aborted: {}/{}/{}"
+        print(s.format(queue.num_queued(), queue.num_completed(), queue.num_aborted()))
+        if args.more:
+            print("Queued:")
+            for q in queue.get_queued():
+                if q is None:
+                    print("Error on retrieval.")
+                else:
+                    print(q)
+            print("Completed:")
+            for c in queue.get_completed():
+                print(c)
+            print("Aborted:")
+            for a in queue.get_aborted():
+                print(a['error'])
+                print(a['traceback'])
 
 def view(args):
     from compdb.contrib import get_project
+    from . utility import query_yes_no
     from os.path import join, exists
     from os import listdir
     project = get_project()
@@ -72,7 +95,79 @@ def view(args):
         if exists(args.prefix) and listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
-        project.create_view(url = url, copy = args.copy)
+        project.create_view(url = url, copy = args.copy, workspace = args.workspace)
+
+def check(args):
+    from . import check
+    from .errors import ConnectionFailure
+    from compdb.contrib import get_project
+    project = get_project()
+    encountered_error = False
+    checks = [
+        ('database connection',
+        check.check_database_connection),
+        ('global configuration',
+        check.check_global_config)]
+    try:
+        project_id = project.get_id()
+    except LookupError:
+        print("Current working directory is not configured as project a project directory.")
+    else:
+        print("Found project: {}.".format(project_id))
+        checks.extend([
+            ('project configuration (online)',
+            check.check_project_config_online),
+            ])
+        if args.offline:
+            checks.extend([
+                ('project configuration (offline)',
+                check.check_project_config_offline),
+                ])
+    for msg, check in checks:
+        print("Checking {} ... ".format(msg), end='', flush=True)
+        try:
+            check()
+        except ConnectionFailure as error:
+            print()
+            print("Error: {}".format(error))
+            print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
+            if args.verbosity > 0:
+                raise
+        except Exception as error:
+            print()
+            print("Error: {}".format(error))
+            if args.verbosity > 0:
+                raise
+            encountered_error = True
+        else:
+            print("ok")
+    if encountered_error:
+        print("Encountered error during config check.")
+        print("Use -v to increase verbosity of messages.")
+    else:
+        print("All tests passed. No errors.")
+
+def run_pools(args):
+    from os.path import abspath
+    from . job_submit import find_all_pools, submit_mpi
+    for pool in find_all_pools(abspath(args.module)):
+        submit_mpi(pool)
+
+def show_log(args):
+    from . import get_project
+    from . logging import record_from_doc
+    formatter = logging.Formatter(
+        fmt = args.format,
+        #datefmt = "%Y-%m-%d %H:%M:%S",
+        style = '{')
+    project = get_project()
+    showed_log = False
+    for record in project.get_logs(
+            level = args.level, limit = args.lines):
+        print(formatter.format(record))
+        showed_log = True
+    if not showed_log:
+        print("No logs available.")
 
 def store_snapshot(args):
     from . import get_project
@@ -131,7 +226,8 @@ def restore_snapshot(args):
 def clean_up(args):
     from . import get_project
     project = get_project()
-    logger.info("Killing dead jobs...")
+    msg = "Killing all jobs without sign of life for more than {} seconds."
+    print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
 def remove(args):
@@ -147,26 +243,53 @@ def remove(args):
                 print("Error during project removal.")
                 if not args.force:
                     print("This can be caused by currently executed jobs.")
-                    print("Try 'compdb clenaup'.")
-                    if args.yes or query_yes_no("Ignore this warning and remove anywas?", default = 'no'):
+                    print("Try 'compdb cleanup'.")
+                    if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                         project.remove(force = True)
             else:
                 print("Project removed from database.")
-    elif args.job:
-        job_ids = set(args.job.split(','))
-        legit_ids = project.find_job_ids()
-        unknown_ids = job_ids.difference(legit_ids)
-        known_ids = job_ids.intersection(legit_ids)
-        print(known_ids, unknown_ids)
-        return
-        if len(unknown_ids):
+    if args.job:
+        if len(args.job) == 1 and args.job[0] == 'all':
+            match = set(project.find_job_ids())
+        else:
+            job_ids = set(args.job)
+            legit_ids = project.find_job_ids()
+            match = set()
+            for legit_id in legit_ids:
+                for selected in job_ids:
+                    if legit_id.startswith(selected):
+                        match.add(legit_id)
+        if args.release:
+            print("{} job(s) selected for release.".format(len(match)))
+            for id_ in match:
+                job = project.get_job(id_)
+                job.force_release()
+            print("Released selected jobs.")
+        else:
+            print("{} job(s) selected for removal.".format(len(match)))
+            q = "Are you sure you want to delete the selected jobs?"
             if not(args.yes or query_yes_no(q)):
                 return
-        for id_ in known_ids:
-            job = project.get_job(id_)
-            print(job)
-    else:
-        print("No selection.")
+            for id_ in match:
+                job = project.get_job(id_)
+                job.remove(force = args.force)
+            print("Removed selected jobs.")
+    if args.logs:
+        question = "Are you sure you want to clear all logs from project '{}'?"
+        if args.yes or query_yes_no(question.format(project.get_id())):
+            project.clear_logs()
+    if args.queue:
+        question = "Are you sure you want to clear the job queue results of project '{}'?"
+        if args.yes or query_yes_no(question.format(project.get_id()), 'no'):
+            project.job_queue.clear_results()
+    if args.queued:
+        if has_active_jobs(project):
+            print("Project has indication of active jobs!")
+        q = "Are you sure you want to clear the job queue of project '{}'?"
+        if args.yes or query_yes_no(q.format(project.get_id()), 'no'):
+            project.job_queue.clear_queue()
+    if not (args.project or args.job or args.logs or args.queue or args.queued):
+        print("Nothing selected for removal.")
 
 def main():
     import sys
@@ -195,12 +318,30 @@ def main():
     parser_remove.add_argument(
         '-j', '--job',
         nargs = '*',
-        help = "A list of jobs, that are to be removed as a comma separated list of job ids.",
+        help = "Remove all jobs that match the provided ids. Use 'all' to select all jobs. Example: '-j ed05b' or '-j=ed05b,59255' or '-j all'.",
+        )
+    parser_remove.add_argument(
+        '-q', '--queue',
+        action = 'store_true',
+        help = "Clear the job queue results.")
+    parser_remove.add_argument(
+        '--queued',
+        action = 'store_true',
+        help = "Clear the queued jobs.")
+    parser_remove.add_argument(
+        '-r', '--release',
+        action = 'store_true',
+        help = "Release locked jobs instead of removing them.",
         )
     parser_remove.add_argument(
         '-p', '--project',
         action = 'store_true',
-        help = 'Remove the whole project.'
+        help = 'Remove the whole project.',
+        )
+    parser_remove.add_argument(
+        '-l', '--logs',
+        action = 'store_true',
+        help = "Remove all logs.",
         )
     parser_remove.add_argument(
         '-f', '--force',
@@ -234,11 +375,16 @@ def main():
 
     parser_cleanup = subparsers.add_parser('cleanup')
     from . job import PULSE_PERIOD
+    default_wait = int(20 *  PULSE_PERIOD)
     parser_cleanup.add_argument(
         '-t', '--tolerance-time',
         type = int,
-        help = "Tolerated time in seconds since last pulse before a job is declared dead.",
-        default = int(5 * PULSE_PERIOD))
+        help = "Tolerated time in seconds since last pulse before a job is declared dead (default={}).".format(default_wait),
+        default = default_wait)
+    parser_cleanup.add_argument(
+        '-r', '--release',
+        action = 'store_true',
+        help = "Release locked jobs.")
     parser_cleanup.set_defaults(func = clean_up)
 
     parser_info = subparsers.add_parser('info')
@@ -256,6 +402,10 @@ def main():
         '-p', '--pulse',
         action = 'store_true',
         help = "Print job pulse status.")
+    parser_info.add_argument(
+        '-q', '--queue',
+        action = 'store_true',
+        help = "Print job queue status.")
     parser_info.add_argument(
         '-m', '--more',
         action = 'store_true',
@@ -288,7 +438,47 @@ def main():
         const = 'mkdir -p {head}\nln -s {src} {head}/{tail}',
         help = r"Output a line foreach job where {src} is replaced with the the job's storage directory path, {head} and {tail} combined represent your view path. Default: 'mkdir -p {head}\nln -s {src} {head}/{tail}'."
         )
+    parser_view.add_argument(
+        '-w', '--workspace',
+        action = 'store_true',
+        help = "Generate a view of the workspace instead of the filestorage.",
+        )
     parser_view.set_defaults(func = view)
+
+    parser_check = subparsers.add_parser('check')
+    parser_check.add_argument(
+        '--offline',
+        action = 'store_true',
+        help = 'Perform offline checks.',)
+    parser_check.set_defaults(func = check)
+
+    parser_run = subparsers.add_parser('run')
+    parser_run.add_argument(
+        'module',
+        type = str,
+        help = "The path to the python module defining job_pools.")
+    parser_run.set_defaults(func = run_pools)
+
+    parser_log = subparsers.add_parser('log')
+    parser_log.add_argument(
+        '-l', '--level',
+        type = str,
+        default = logging.INFO,
+        help = "The minimum log level to be retrieved, either as numeric value or name. Ex. -l DEBUG"
+        )
+    parser_log.add_argument(
+        '-n', '--lines',
+        type = int,
+        default = 100,
+        help = "Only output the last n lines from the log.",
+        )
+    parser_log.add_argument(
+        '-f', '--format',
+        type = str,
+        default = "{asctime} {levelname} {message}",
+        help = "The formatting of log messages.",
+        )
+    parser_log.set_defaults(func = show_log)
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
@@ -303,5 +493,9 @@ def main():
         else:
             print("Error: {}".format(error))
             print("Use -v to increase verbosity of messages.")
+            sys.exit(1)
     else:
         sys.exit(0)
+
+if __name__ == '__main__':
+    main()

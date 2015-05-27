@@ -84,8 +84,10 @@ class ProjectViewTest(JobTest):
                 with project.open_job(p) as test_job:
                     test_job.document['result'] = True
         url = 'view/a/{a}/b/{b}'
-        self.assertEqual(len(list(project._get_links(url, parameters=['a','b']))), len(A) * len(B))
-        list(project._get_links(url+'/{c}', parameters = ['a', 'b']))
+        self.assertEqual(
+            len(list(project.get_storage_links(url))),
+            len(A) * len(B))
+        list(project.get_storage_links(url+'/{c}'))
 
     def test_create_view(self):
         import os
@@ -104,37 +106,48 @@ class ProjectViewTest(JobTest):
             url = os.path.join(tmp,'a/{a}/b/{b}')
             project.create_view(url)
 
-def open_pool(state_points, rank, condition = None):
+def set_check_true(job):
+    with job:
+        job.document['check'] = True
+
+def start_pool(state_points, exclude_condition, rank, size, jobs = []):
+    import tempfile
     from compdb.contrib import get_project
     project = get_project()
-    with project.job_pool(state_points, condition) as pool:
-        try:
-            job = pool.open_job(rank)
-            if job.parameters()['a'] == 0:
-                job.document['check'] = True
-        except IndexError:
-            raise
-            return False
-    return True
+    job_pool = project.job_pool(state_points, exclude_condition)
+    for job in jobs:
+        job_pool.submit(job)
+    with tempfile.NamedTemporaryFile() as jobfile:
+        job_pool.start(rank, size, jobfile = jobfile.name)
 
 class ProjectPoolTest(JobTest):
     
-    def test_enter(self):
+    def test_start(self):
         from compdb.contrib import get_project
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
-        with project.job_pool(state_points) as pool:
+        def dummy_function(job):
             pass
+
+        pool = project.job_pool(state_points)
+        pool.submit(dummy_function)
+        pool.start()
 
     def test_pool_concurrency(self):
         from multiprocessing import Pool
+        from compdb.contrib import get_project
+        project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
-        num_processes = min(len(state_points), 4)
-        with Pool(processes = num_processes) as pool:
+        job_pool = project.job_pool(state_points)
+        num_proc = min(len(state_points), 4)
+        jobs = []
+        condition = {}
+        with Pool(processes = num_proc) as pool:
             result = pool.starmap_async(
-                open_pool, [(state_points, rank) for rank in range(len(state_points))])
-            result = result.get(timeout = 20)
-            self.assertEqual(result, [True] * len(state_points))
+                start_pool,
+                [(state_points, condition, rank, num_proc, jobs)
+                    for rank in range(num_proc)])
+            result.get(timeout = 20)
 
     def test_pool_condition(self):
         from multiprocessing import Pool
@@ -142,7 +155,7 @@ class ProjectPoolTest(JobTest):
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(4) for b in range(4)]
         condition = {'check': True}
-        pool = project.job_pool(state_points, condition)
+        pool = project.job_pool(state_points, exclude = condition)
         self.assertEqual(len(pool), len(state_points))
 
     def test_pool_concurrency_with_condition(self):
@@ -151,24 +164,38 @@ class ProjectPoolTest(JobTest):
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         condition = {'check': True}
-        job_pool = project.job_pool(state_points, condition)
-        pool_len = len(job_pool)
+        job_pool = project.job_pool(state_points, exclude = condition)
         self.assertEqual(len(job_pool), len(state_points))
-        num_processes = min(len(job_pool), 4)
-        with Pool(processes = num_processes) as pool:
+        num_proc = min(len(job_pool), 4)
+        jobs = [set_check_true]
+        with Pool(processes = num_proc) as pool:
             result = pool.starmap_async(
-                open_pool, [(state_points, rank, condition) 
-                    for rank in range(len(job_pool))])
-            result = result.get(timeout = 20)
-            self.assertEqual(result, [True] * pool_len)
+                start_pool,
+                [(state_points, condition, rank, num_proc, jobs)
+                    for rank in range(num_proc)])
+            result.get(timeout = 20)
+        job_pool = project.job_pool(state_points, condition)
+        self.assertEqual(len(job_pool), 0)
 
-            job_pool = project.job_pool(state_points, condition)
-            pool_len = len(job_pool)
-            result = pool.starmap_async(
-                open_pool, [(state_points, rank, condition) 
-                    for rank in range(len(job_pool))])
-            result = result.get(timeout = 20)
-            self.assertEqual(result, [True] * pool_len)
+def simple_function(x):
+    return x*x
+
+class ProjectQueueTest(JobTest):
+
+    def test_queue(self):
+        from compdb.contrib import get_project
+        from compdb.contrib.project import Empty
+        project = get_project()
+        queue = project.job_queue
+        num_jobs = 10
+        futures = [queue.submit(simple_function, i) for i in range(num_jobs)]
+        try:
+            queue.enter_loop(timeout = 0.1)
+        except Empty:
+            pass
+        for i, future in enumerate(futures):
+            result = future.result(0.1)
+            self.assertEqual(result, simple_function(i))
 
 if __name__ == '__main__':
     unittest.main()

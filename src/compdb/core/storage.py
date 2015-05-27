@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('storage')
+logger = logging.getLogger(__name__)
 
 class ReadOnlyStorage(object):
     
@@ -59,7 +59,10 @@ class Storage(ReadOnlyStorage):
 
     def remove(self):
         from shutil import rmtree
-        rmtree(self._fs_path)
+        try:
+            rmtree(self._fs_path)
+        except FileNotFoundError as error:
+            pass
 
     def _move_file(self, src, dst):
         from shutil import move

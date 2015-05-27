@@ -29,7 +29,9 @@ class StorageTest(unittest.TestCase):
         import tempfile
         from pymongo import MongoClient
         from compdb.db import Storage
-        client = MongoClient()
+        from compdb.core.config import load_config
+        config = load_config()
+        client = MongoClient(config['database_host'])
         db = client['testing']
         self._mc = db['compdb_storage_test']
         self._tmp_fs = tempfile.TemporaryDirectory()
@@ -40,7 +42,6 @@ class StorageTest(unittest.TestCase):
         self._mc.drop()
     
     def test_new_file(self):
-        from compdb.db import _get_global_fs
         storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
@@ -50,7 +51,6 @@ class StorageTest(unittest.TestCase):
 
     def test_delete_file(self):
         import os.path
-        from compdb.db import _get_global_fs
         storage = self._storage
         doc = test_doc()
         with remove_files(storage, doc):
@@ -60,7 +60,6 @@ class StorageTest(unittest.TestCase):
         self.assertEqual(len(list(storage.find(doc))), 0)
 
     def test_find(self):
-        from compdb.db import _get_global_fs
         import uuid
         storage = self._storage
         doc = test_doc()

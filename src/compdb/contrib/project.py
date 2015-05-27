@@ -1,5 +1,8 @@
 import logging
-logger = logging.getLogger('project')
+logger = logging.getLogger(__name__)
+
+from queue import Queue
+from logging.handlers import QueueHandler, QueueListener
 
 JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
@@ -14,8 +17,17 @@ FN_RESTORE_SCRIPT_SH = 'restore.sh'
 FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
 FN_STORAGE_BACKUP = '_fs_backup'
 
+COLLECTION_LOGGING = 'logging'
+COLLECTION_JOB_QUEUE = 'compdb_job_queue'
+COLLECTION_JOB_QUEUE_RESULTS = 'compdb_job_results'
+
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
+from ..core.mongodb_queue import Empty
+
 def valid_name(name):
-    return not name.startswith('_compdb')
+    return not name.startswith('compdb')
 
 class RollBackupExistsError(RuntimeError):
     pass
@@ -28,15 +40,15 @@ class Project(object):
             config = load_config()
         config.verify()
         self._config = config
+        self._loggers = [logging.getLogger('compdb')]
+        self._logging_queue = Queue()
+        self._logging_queue_handler = QueueHandler(self._logging_queue)
+        self._logging_listener = None
+        self._client = None
+        self._job_queue = None
 
     def __str__(self):
-        try:
-            return self.get_id()
-        except KeyError:
-            import os
-            msg = "Unable to determine project id. "
-            msg += "Are you sure '{}' is a compDB project path?"
-            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
+        return self.get_id()
 
     @property 
     def config(self):
@@ -45,35 +57,59 @@ class Project(object):
     def root_directory(self):
         return self._config['project_dir']
 
+    def _get_client(self):
+        if self._client is None:
+            from ..core.dbclient_connector import DBClientConnector
+            prefix = 'database_'
+            connector = DBClientConnector(self.config, prefix = prefix)
+            logger.debug("Connecting to database.")
+            try:
+                connector.connect()
+                connector.authenticate()
+            except:
+                logger.error("Connection failed.")
+                raise
+            else:
+                logger.debug("Connected and authenticated.")
+            self._client = connector.client
+        return self._client
+
     def _get_db(self, db_name):
-        from pymongo import MongoClient
         import pymongo.errors
         host = self.config['database_host']
         try:
-            client = MongoClient(host)
-            return client[db_name]
+            return self._get_client()[db_name]
         except pymongo.errors.ConnectionFailure as error:
             from . errors import ConnectionFailure
             msg = "Failed to connect to database '{}' at '{}'."
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error
 
-    def get_db(self, db_name):
-        assert valid_name(db_name)
-        return self._get_db(db_name)
+    def get_db(self, db_name = None):
+        if db_name is None:
+            return self.get_project_db()
+        else:
+            assert valid_name(db_name)
+            return self._get_db(db_name)
+
+    def get_project_db(self):
+        return self.get_db(self.get_id())
 
     def _get_meta_db(self):
-        return self._get_db(self.config['database_meta'])
+        return self.get_project_db()
 
     def get_jobs_collection(self):
         return self._get_meta_db()[JOB_META_DOCS]
 
     def get_id(self):
-        return self.config['project']
+        try:
+            return self.config['project']
+        except KeyError:
+            import os
+            msg = "Unable to determine project id. "
+            msg += "Are you sure '{}' is a compDB project path?"
+            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
 
-    def get_project_db(self):
-        return self.get_db(self.get_id())
-    
     @property
     def collection(self):
         return self.get_project_db()[JOB_DOCS]
@@ -85,14 +121,13 @@ class Project(object):
         return self.config['workspace_dir']
 
     def remove(self, force = False):
-        from pymongo import MongoClient
         import pymongo.errors
         self.get_cache().clear()
         for job in self.find_jobs():
             job.remove(force = force)
         try:
             host = self.config['database_host']
-            client = MongoClient(host)
+            client = self._get_client()
             client.drop_database(self.get_id())
         except pymongo.errors.ConnectionFailure as error:
             msg = "{}: Failed to remove project database on '{}'."
@@ -121,12 +156,12 @@ class Project(object):
         self.config['develop'] = True
 
     def _job_spec(self, parameters):
-        spec = {}
+        spec = dict()
         #if not len(parameters):
         #    msg = "Parameters dictionary cannot be empty!"
         #    raise ValueError(msg)
         if parameters is None:
-            parameters = {}
+            parameters = dict()
         spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
             spec.update({'develop': True})
@@ -142,17 +177,22 @@ class Project(object):
             spec = {'_id': job_id},
             blocking = blocking, timeout = timeout)
 
-    def _open_job(self, spec, blocking = True, timeout = -1):
+    def _open_job(self, spec, blocking = True, timeout = -1, rank = 0):
         from . job import Job
         return Job(
             project = self,
             spec = spec,
             blocking = blocking,
-            timeout = timeout)
+            timeout = timeout,
+            rank = rank)
 
-    def open_job(self, parameters = None, blocking = True, timeout = -1):
+    def open_job(self, parameters = None, blocking = True, timeout = -1, rank = 0):
         spec = self._job_spec(parameters = parameters)
-        return self._open_job(spec, blocking, timeout)
+        return self._open_job(
+            spec = spec,
+            blocking = blocking,
+            timeout = timeout,
+            rank = rank)
 
     def _job_spec_modifier(self, job_spec = {}, develop = None):
         from copy import copy
@@ -169,10 +209,18 @@ class Project(object):
             self._job_spec_modifier(job_spec), * args, ** kwargs)
 
     def find_job_ids(self, spec = {}):
-        for job in self._find_jobs(spec, fields = ['_id']):
-            yield job['_id']
+        if PYMONGO_3:
+            docs = self._find_jobs(spec, projection = ['_id'])
+        else:
+            docs = self._find_jobs(spec, fields = ['_id'])
+        for doc in docs:
+            yield doc['_id']
     
-    def find_jobs(self, job_spec = {}, spec = None, blocking = True, timeout = -1):
+    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
+        if job_spec is None:
+            job_spec = {}
+        else:
+            job_spec = {'parameters.{}'.format(k): v for k,v in job_spec.items()}
         job_ids = list(self.find_job_ids(job_spec))
         if spec is not None:
             spec.update({'_id': {'$in': job_ids}})
@@ -238,11 +286,14 @@ class Project(object):
                 'parameters': { '$addToSet': '$parameters'}}},
             ]
         result = self.get_jobs_collection().aggregate(pipe)
-        assert result['ok']
-        if len(result['result']):
-            return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+        if PYMONGO_3:
+            return set([k for r in result for p in r['parameters'] for k in p.keys()])
         else:
-            return set()
+            assert result['ok']
+            if len(result['result']):
+                return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+            else:
+                return set()
 
     def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
         yield from self._find_jobs(
@@ -250,10 +301,8 @@ class Project(object):
             sort = [('parameters.{}'.format(p), 1) for p in parameters],
             * args, ** kwargs)
     
-    def _get_links(self, url, parameters, fs = None):
+    def _get_links(self, url, parameters, fs):
         import os
-        if fs is None:
-            fs = self.filestorage_dir()
         walk = self._walk_jobs(parameters)
         for w in walk:
             src = os.path.join(fs, w['_id'])
@@ -267,6 +316,22 @@ class Project(object):
                 raise KeyError(msg.format(error)) from error
             yield src, dst
 
+    def get_storage_links(self, url = None):
+        import re
+        if url is None:
+            url = self.get_default_view_url()
+        parameters = re.findall('\{\w+\}', url)
+        yield from self._get_links(
+            url, parameters, self.filestorage_dir())
+
+    def get_workspace_links(self, url = None):
+        import re
+        if url is None:
+            url = self.get_default_view_url()
+        parameters = re.findall('\{\w+\}', url)
+        yield from self._get_links(
+            url, parameters, self.workspace_dir())
+
     def get_default_view_url(self):
         import os
         from itertools import chain
@@ -277,12 +342,15 @@ class Project(object):
         else:
             return str()
 
-    def create_view(self, url = None, copy = False):
+    def create_view(self, url = None, copy = False, workspace = False):
         import os, re, shutil
         if url is None:
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
-        links = self._get_links(url, parameters)
+        if workspace:
+            links = self._get_links(url, parameters, self._workspace_dir())
+        else:
+            links = self._get_links(url, parameters, self.filestorage_dir())
         for src, dst in links:
             try:
                 os.makedirs(os.path.dirname(dst))
@@ -322,7 +390,7 @@ class Project(object):
     def _create_db_snapshot(self, dst):
         import os
         from bson.json_util import dumps
-        from . utility import dump_db
+        from . utility import dump_db_from_config
         spec = self._job_spec_modifier(develop = False)
         job_docs = self.get_jobs_collection().find(spec)
         docs = self.collection.find()
@@ -331,10 +399,7 @@ class Project(object):
             for job_doc in job_docs:
                 file.write("{}\n".format(dumps(job_doc)).encode())
         fn_dump_db = os.path.join(dst, FN_DUMP_DB)
-        dump_db(
-            host = self.config['database_host'],
-            database = self.get_id(),
-            dst = fn_dump_db)
+        dump_db_from_config(self.config, fn_dump_db)
         return [fn_dump_jobs, fn_dump_db]
 
     def _create_config_snapshot(self, dst):
@@ -394,7 +459,7 @@ class Project(object):
         import shutil, os
         from os.path import join, isdir, dirname, exists
         from bson.json_util import loads
-        from . utility import restore_db
+        from . utility import restore_db_from_config
         fn_storage = join(src, FN_DUMP_STORAGE)
         try:
             with open(join(src, FN_DUMP_JOBS), 'rb') as file:
@@ -412,10 +477,7 @@ class Project(object):
             fn_dump_db = join(src, FN_DUMP_DB, self.get_id())
             if not exists(fn_dump_db):
                 raise NotADirectoryError(fn_dump_db)
-            restore_db(
-                host = self.config['database_host'],
-                database = self.get_id(), 
-                src = fn_dump_db)
+            restore_db_from_config(self.config, fn_dump_db)
         except NotADirectoryError as error:
             logger.warning(error)
             if not force:
@@ -560,7 +622,60 @@ class Project(object):
                 self._remove_rollbackup(dst_rollbackup)
                 logger.info("Restored snapshot '{}'.".format(src))
 
-    def job_pool(self, parameter_set, exclude = None):
+    def job_pool(self, parameter_set, include = None, exclude = None):
         from . job_pool import JobPool
         from copy import copy
-        return JobPool(self, parameter_set, copy(exclude))
+        return JobPool(self, parameter_set, copy(include), copy(exclude))
+
+    def _get_logging_collection(self):
+        return self.get_project_db()[COLLECTION_LOGGING]
+
+    def clear_logs(self):
+        self._get_logging_collection().drop()
+
+    def _logging_db_handler(self, lock_id = None):
+        from . logging import MongoDBHandler
+        return MongoDBHandler(
+            collection = self._get_logging_collection(),
+            lock_id = lock_id)
+
+    def logging_handler(self):
+        return self._logging_queue_handler
+
+    def start_logging(self, level = logging.INFO):
+        for logger in self._loggers:
+            logger.addHandler(self.logging_handler())
+        if self._logging_listener is None:
+            self._logging_listener = QueueListener(
+                self._logging_queue, self._logging_db_handler())
+        self._logging_listener.start()
+
+    def stop_logging(self):
+        self._logging_listener.stop()
+
+    def get_logs(self, level = logging.INFO, limit = 0):
+        from . logging import record_from_doc
+        log_collection = self._get_logging_collection()
+        try:
+            levelno = int(level)
+        except ValueError:
+            levelno = logging.getLevelName(level)
+        spec = {'levelno': {'$gte': levelno}}
+        sort = [('created', 1)]
+        if limit:
+            skip = max(0, log_collection.find(spec).count() - limit)
+        else:
+            skip = 0
+        docs = log_collection.find(spec).sort(sort).skip(skip)
+        for doc in docs:
+            yield record_from_doc(doc)
+
+    @property
+    def job_queue(self):
+        if self._job_queue is None:
+            from ..core.mongodb_executor import MongoDBExecutor
+            from ..core.mongodb_queue import MongoDBQueue
+            mongodb_queue = MongoDBQueue(self.get_project_db()[COLLECTION_JOB_QUEUE])
+            collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
+            self._job_queue = MongoDBExecutor(mongodb_queue, collection_job_results)
+        return self._job_queue

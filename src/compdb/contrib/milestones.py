@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('milestones')
+logger = logging.getLogger(__name__)
 
 MILESTONE_KEY = 'milestones'
 
@@ -31,9 +31,7 @@ class Milestones(object):
         spec = self._spec()
         spec.update({
             MILESTONE_KEY: { '$in': [name]}})
-        result = self._collection().find_one(
-            spec,
-            fields = [MILESTONE_KEY])
+        result = self._collection().find_one(spec, [MILESTONE_KEY])
         logger.debug(result)
         return result is not None
 
