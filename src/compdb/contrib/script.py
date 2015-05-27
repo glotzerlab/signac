@@ -104,16 +104,16 @@ def check(args):
     project = get_project()
     encountered_error = False
     checks = [
-        ('database connection',
-        check.check_database_connection),
         ('global configuration',
-        check.check_global_config)]
+        check.check_global_config),
+        ('database connection',
+        check.check_database_connection)]
     try:
         project_id = project.get_id()
     except LookupError:
-        print("Current working directory is not configured as project a project directory.")
+        print("Current working directory is not configured as a project directory.")
     else:
-        print("Found project: {}.".format(project_id))
+        print("Found project: '{}'.".format(project_id))
         checks.extend([
             ('project configuration (online)',
             check.check_project_config_online),
@@ -133,6 +133,7 @@ def check(args):
             print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
             if args.verbosity > 0:
                 raise
+            encountered_error = True
         except Exception as error:
             print()
             print("Error: {}".format(error))
