@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.job_queue')
+logger = logging.getLogger(__name__)
 
 KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'

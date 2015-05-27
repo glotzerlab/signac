@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('storage')
+logger = logging.getLogger(__name__)
 
 class ReadOnlyStorage(object):
     

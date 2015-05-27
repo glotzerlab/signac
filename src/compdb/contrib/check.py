@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.check')
+logger = logging.getLogger(__name__)
 
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'."
 MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"

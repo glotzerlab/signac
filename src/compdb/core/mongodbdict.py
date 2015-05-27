@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('mongodbdict')
+logger = logging.getLogger(__name__)
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3

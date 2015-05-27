@@ -1,2 +1,2 @@
 import logging
-logger = logging.getLogger('core')
+logger = logging.getLogger(__name__)

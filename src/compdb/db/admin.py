@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.db.admin')
+logger = logging.getLogger(__name__)
 
 from .database import PYMONGO_3
 

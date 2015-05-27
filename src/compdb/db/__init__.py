@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('db')
+logger = logging.getLogger(__name__)
 
 from compdb.core.config import load_config
 

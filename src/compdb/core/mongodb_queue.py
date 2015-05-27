@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.mongodb_queue')
+logger = logging.getLogger(__name__)
 
 from queue import Queue
 

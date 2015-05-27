@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.utility')
+logger = logging.getLogger(__name__)
 
 AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'

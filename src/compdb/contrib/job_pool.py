@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.job_pool')
+logger = logging.getLogger(__name__)
 
 from weakref import WeakValueDictionary
 from queue import Queue

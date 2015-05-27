@@ -1,5 +1,6 @@
 import logging
-logger = logging.getLogger('compdb.project')
+logger = logging.getLogger(__name__)
+
 from queue import Queue
 from logging.handlers import QueueHandler, QueueListener
 

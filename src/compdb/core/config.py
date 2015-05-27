@@ -1,8 +1,7 @@
-import os
-
 import logging
 logger = logging.getLogger(__name__)
 
+import os
 import json as serializer
 
 DEFAULT_FILENAME = 'compdb.rc'

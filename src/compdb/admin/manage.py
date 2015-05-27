@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.admin.manage')
+logger = logging.getLogger(__name__)
 
 def connect_and_authenticate(args):
     from ..core.config import load_config

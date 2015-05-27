@@ -1,6 +1,6 @@
 import networkx as nx
 import logging
-logger = logging.getLogger('compdb.db.conversion')
+logger = logging.getLogger(__name__)
 
 ATTRIBUTE_ADAPTER = 'adapter'
 

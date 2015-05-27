@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.script')
+logger = logging.getLogger(__name__)
 
 def has_active_jobs(project):
     from itertools import islice

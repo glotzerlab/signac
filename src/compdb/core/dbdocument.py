@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('compdb.core.dbdocument')
+logger = logging.getLogger(__name__)
 
 from queue import Queue
 
