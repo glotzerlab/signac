@@ -1,7 +1,7 @@
 import os
 
 import logging
-logger = logging.getLogger('config')
+logger = logging.getLogger(__name__)
 
 import json as serializer
 

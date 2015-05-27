@@ -5,6 +5,9 @@ from contextlib import contextmanager
 import uuid
 test_token = {'test_token': str(uuid.uuid4())}
 
+import warnings
+warnings.simplefilter('default')
+
 @contextmanager
 def safe_open_job(* parameters):
     from copdb.contrib import get_project
@@ -189,13 +192,6 @@ class JobStorageTest(JobTest):
 def open_and_lock_and_release_job(token):
     with open_job(test_token, timeout = 30) as job:
         pass
-        #time.sleep(5)
-        #with job.lock(timeout = 1):
-        #    #if job.milestones.reached('concurrent'):
-        #    #    job.milestones.remove('concurrent')
-        #    #else:
-        #    #    job.milestones.mark('concurrent')
-        #    pass
     return True
 
 class JobConcurrencyTest(JobTest):

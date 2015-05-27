@@ -1,40 +1,33 @@
 import logging, threading
-logger = logging.getLogger('compdb.job')
+logger = logging.getLogger(__name__)
+import warnings
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
+import multiprocessing
+import threading
+
 JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
-PULSE_PERIOD = 10
+PULSE_PERIOD = 1
 
 from . project import JOB_DOCS
 
-class PulseThread(threading.Thread):
-    def __init__(self, collection, _id, unique_id, period = PULSE_PERIOD):
-        super().__init__()
-        from threading import Event
-        self._collection = collection
-        self._job_id = _id
-        self._unique_id = unique_id
-        self._period = period
-        self._stop_event = Event()
-
-    def run(self):
-        from datetime import datetime
-        from time import sleep
-        while(True):
-            if self._stop_event.is_set():
-                return
-            self._collection.update(
-                {'_id': self._job_id},
-                {'$set':
-                    {'pulse.{}'.format(self._unique_id): datetime.utcnow()}},
-                upsert = True,)
-            sleep(self._period)
-
-    def stop(self):
-        self._stop_event.set()
+def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
+    from datetime import datetime
+    from time import sleep
+    while(True):
+        logger.debug("Pulse while loop.")
+        if stop_event.wait(timeout = PULSE_PERIOD):
+            logger.debug("Stop pulse.")
+            return
+        else:
+            logger.debug("Pulsing...")
+            collection.update(
+                {'_id': job_id},
+                {'$set': {'pulse.{}'.format(unique_id): datetime.utcnow()}},
+                upsert = True)
 
 class JobNoIdError(RuntimeError):
     pass
@@ -71,6 +64,7 @@ class Job(object):
             self._project.collection,
             self.get_id())
         self._pulse = None
+        self._pulse_stop_event = None
 
     def _determine_rank(self):
         from mpi4py import MPI
@@ -97,6 +91,7 @@ class Job(object):
         return self.spec.get('_id', None)
 
     def get_rank(self):
+        warnings.warn("The get_rank() function is highly experimental.", Warning)
         return self._rank
 
     def get_project(self):
@@ -140,20 +135,40 @@ class Job(object):
             new = True)
         return len(result['executing'])
 
-    def _start_pulse(self):
-        self._pulse = PulseThread(
-            self._project.get_jobs_collection(),
-            self.get_id(), self._unique_id)
-        self._pulse.start()
+    def _start_pulse(self, process = True):
+        from multiprocessing import Process
+        from threading import Thread
+        logger.debug("Starting pulse.")
+        assert self._pulse is None
+        assert self._pulse_stop_event is None
+        kwargs = {
+            'collection': self._project.get_jobs_collection(),
+            'job_id': self.get_id(),
+            'unique_id': self._unique_id}
+        try:
+            self._pulse_stop_event = multiprocessing.Event()
+            kwargs['stop_event'] = self._pulse_stop_event
+            self._pulse = Process(target = pulse_worker, kwargs = kwargs)
+            self._pulse.start()
+        except AssertionError as error:
+            logger.debug("Failed to start pulse process, falling back to pulse thread.")
+            self._pulse_stop_event = threading.Event()
+            kwargs['stop_event'] = self._pulse_stop_event
+            self._pulse = Thread(target = pulse_worker, kwargs = kwargs)
+            self._pulse.start()
 
     def _stop_pulse(self):
         if self._pulse is not None:
-            self._pulse.stop()
-            self._pulse.join(1)
+            logger.debug("Trying to stop pulse.")
+            self._pulse_stop_event.set()
+            self._pulse.join(2 * PULSE_PERIOD)
+            assert not self._pulse.is_alive()
             self._project.get_jobs_collection().update(
                 {'_id': self.get_id()},
                 {'$unset': 
                     {'pulse.{}'.format(self._unique_id): ''}})
+            self._pulse = None
+            self._pulse_stop_event = None
 
     def _open(self):
         import os
@@ -167,7 +182,7 @@ class Job(object):
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 
-    def _close_with_error(self):
+    def _close_stage_one(self):
         import shutil, os
         self._with_id()
         #self._dbdocument.close()
@@ -176,7 +191,7 @@ class Job(object):
         self._stop_pulse()
         self._remove_instance()
 
-    def _close(self):
+    def _close_stage_two(self):
         import shutil, os
         if self.num_open_instances() == 0:
             shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
@@ -196,7 +211,7 @@ class Job(object):
 
     def close(self):
         with self._get_lock():
-            self._close()
+            self._close_stage_two()
 
     def force_release(self):
         self._get_lock().force_release()
@@ -299,13 +314,13 @@ class Job(object):
         import os
         with self._get_lock():
             if err_type is None:
-                self._close_with_error()
-                self._close()
+                self._close_stage_one() # always executed
+                self._close_stage_two() # only executed if no error occurd
             else:
                 err_doc = '{}:{}'.format(err_type, err_value)
                 self._project.get_jobs_collection().update(
                     self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
-                self._close_with_error()
+                self._close_stage_one()
                 return False
     
     def clear_workspace_directory(self):
