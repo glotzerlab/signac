@@ -154,6 +154,22 @@ def run_pools(args):
     for pool in find_all_pools(abspath(args.module)):
         submit_mpi(pool)
 
+def run_queue(args):
+    from compdb.contrib import get_project
+    from compdb.core.mongodb_queue import Empty
+    project = get_project()
+    try:
+        print("Entering execution loop for project '{}'.".format(project))
+        project.job_queue.enter_loop_mpi(
+            timeout = args.timeout,
+            reload = not args.no_reload)
+    except Empty:
+        print("Queue empty, timed out.")
+    except KeyboardInterrupt:
+        print("Interrupted, exiting.")
+    else:
+        print("Exiting.")
+
 def show_log(args):
     from . import get_project
     from . logging import record_from_doc
@@ -455,10 +471,20 @@ def main():
 
     parser_run = subparsers.add_parser('run')
     parser_run.add_argument(
-        'module',
-        type = str,
-        help = "The path to the python module defining job_pools.")
-    parser_run.set_defaults(func = run_pools)
+        '-t', '--timeout',
+        type = int,
+        default = 300,
+        help = "Seconds to wait for new jobs in execution loop.")
+    parser_run.add_argument(
+        '--no-reload',
+        action = 'store_true',
+        help = "Do not reload modules before execution.")
+    parser_run.set_defaults(func = run_queue)
+    #parser_run.add_argument(
+    #    'module',
+    #    type = str,
+    #    help = "The path to the python module defining job_pools.")
+    #parser_run.set_defaults(func = run_pools)
 
     parser_log = subparsers.add_parser('log')
     parser_log.add_argument(
