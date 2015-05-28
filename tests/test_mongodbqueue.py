@@ -178,9 +178,17 @@ class MongoDBExecutorTest(unittest.TestCase):
         kwargs = {'y': 2}
         r = fn(*args, **kwargs)
         encoded = encode_callable(my_function, args, kwargs)
-        fn2, args2, kwargs2 = decode_callable(encoded)
+        # test without reload
+        fn2, args2, kwargs2 = decode_callable(encoded, reload = False)
         r2 = fn2(*args2, **kwargs2)
         self.assertEqual(fn, fn2)
+        self.assertEqual(args, args2)
+        self.assertEqual(kwargs, kwargs2)
+        self.assertEqual(r, r2)
+        # test with reload
+        fn2, args2, kwargs2 = decode_callable(encoded, reload = True)
+        r2 = fn2(*args2, **kwargs2)
+        self.assertNotEqual(fn, fn2)
         self.assertEqual(args, args2)
         self.assertEqual(kwargs, kwargs2)
         self.assertEqual(r, r2)

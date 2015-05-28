@@ -1,96 +1,14 @@
 import logging
 logger = logging.getLogger(__name__)
 
-KEY_CALLABLE_NAME = 'name'
-KEY_CALLABLE_MODULE = 'module'
-KEY_CALLABLE_SOURCE_HASH = 'source_hash'
-KEY_CALLABLE_MODULE_HASH = 'module_hash'
-KEY_CALLABLE_CHECKSUM = 'checksum'
+MPI_ROOT = 0
+STOP_ITEM = "STOP".encode()
 
 KEY_ITEM = 'item'
 KEY_RESULT_RESULT = 'result'
 KEY_RESULT_ERROR = 'error'
 
-MPI_ROOT = 0
-STOP_ITEM = "STOP".encode()
-
-def hash_module(c):
-    import inspect, hashlib
-    module = inspect.getmodule(c)
-    src_file = inspect.getsourcefile(module)
-    m = hashlib.md5()
-    with open(src_file, 'rb') as file:
-        m.update(file.read())
-    return m.hexdigest()
-
-def hash_source(c):
-    import inspect, hashlib
-    m = hashlib.md5()
-    m.update(inspect.getsource(c).encode())
-    return m.hexdigest()
-
-def callable_name(c):
-    try:
-        return c.__name__
-    except AttributeError:
-        return c.name()
-
-def callable_spec(c):
-    import inspect
-    assert callable(c)
-    try:
-        spec = {
-            KEY_CALLABLE_NAME: callable_name(c),
-            KEY_CALLABLE_SOURCE_HASH: hash_source(type(c)),
-        }
-    except TypeError:
-        spec = {
-            KEY_CALLABLE_NAME: callable_name(c),
-            KEY_CALLABLE_MODULE: c.__module__,
-            KEY_CALLABLE_MODULE_HASH: hash_module(c),
-        }
-    return spec
-
-def encode_callable(fn, args, kwargs):
-    #import jsonpickle as pickle
-    import pickle
-    import hashlib
-    checksum_src = hash_source(fn)
-    binary = pickle.dumps(
-        {'fn': fn, 'args': args, 'kwargs': kwargs,
-         'module': fn.__module__,
-         'src': checksum_src})#.encode()
-    checksum = hashlib.sha1()
-    checksum.update(binary)
-    return {'callable': binary, KEY_CALLABLE_CHECKSUM: checksum.hexdigest()}
-
-def decode_callable(doc):
-    #import jsonpickle as pickle
-    import pickle
-    import hashlib
-    binary = doc['callable']
-    checksum = doc[KEY_CALLABLE_CHECKSUM]
-    m = hashlib.sha1()
-    m.update(binary)
-    if not checksum == m.hexdigest():
-        raise RuntimeWarning("Checksum deviation! Possible security violation!")
-    #c_doc = jsonpickle.decode(binary.decode())
-    c_doc = pickle.loads(binary)#.decode())
-    fn = c_doc['fn']
-    #if fn is None:
-    #    msg = "Failed to unpickle '{}'. Possible version conflict."
-    #    raise ValueError(msg.format(doc))
-    if not hash_source(c_doc['fn']) == c_doc['src']:
-        raise RuntimeWarning("Source checksum deviation! Possible version conflict.")
-    return c_doc['fn'], c_doc['args'], c_doc['kwargs']
-
-def encode(item):
-    import jsonpickle
-    return jsonpickle.encode(item).encode()
-
-def decode(binary):
-    import jsonpickle
-    return jsonpickle.decode(binary.decode())
+from . serialization import encode, decode, encode_callable, decode_callable, KEY_CALLABLE_CHECKSUM
 
 class Future(object):
 
@@ -101,9 +19,9 @@ class Future(object):
     def result(self, timeout = None):
         return self._executor._get_result(self._id, timeout)
 
-def execute_callable(job_queue, result_collection, item):
+def execute_callable(job_queue, result_collection, item, reload):
     _id = item['_id']
-    fn, args, kwargs = decode_callable(item)
+    fn, args, kwargs = decode_callable(item, reload = reload)
     logger.info("Executing job '{}({},{})' (id={})...".format(fn, args, kwargs, _id))
     try:
         result = fn(*args, ** kwargs)
@@ -130,12 +48,12 @@ def execute_callable(job_queue, result_collection, item):
                 }},
             upsert = True)
 
-def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None):
+def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None, reload = True):
     while(not stop_event.is_set()):
         item = job_queue.get(block = True, timeout = timeout)
         if comm is not None:
             comm.bcast(item, root = MPI_ROOT)
-        execute_callable(job_queue, result_collection, item)
+        execute_callable(job_queue, result_collection, item, reload = reload)
 
 class MongoDBExecutor(object):
 
@@ -163,12 +81,12 @@ class MongoDBExecutor(object):
         item = encode_callable(fn, args, kwargs)
         return self._put(item)
 
-    def enter_loop(self, timeout = None):
+    def enter_loop(self, timeout = None, reload = True):
         self._stop_event.clear()
         logger.info("Entering execution loop, timeout={}.".format(timeout))
-        execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout)
+        execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, reload = reload)
 
-    def enter_loop_mpi(self, timeout = None):
+    def enter_loop_mpi(self, timeout = None, reload = True):
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
@@ -176,7 +94,7 @@ class MongoDBExecutor(object):
         if rank == MPI_ROOT:
             logger.info("Entering execution loop, rank={}, timeout={}.".format(rank, timeout))
             try:
-                execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, comm)
+                execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, comm, reload = reload)
             except KeyboardInterrupt:
                 logger.warning("Execution interrupted.")
                 comm.bcast(STOP_ITEM, root = MPI_ROOT)
@@ -193,7 +111,7 @@ class MongoDBExecutor(object):
                 if item == STOP_ITEM:
                     break
                 else:
-                    execute_callable(self._job_queue, self._result_collection, item)
+                    execute_callable(self._job_queue, self._result_collection, item, reload = reload)
     
     def stop(self):
         self._stop_event.set()
