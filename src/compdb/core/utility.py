@@ -12,11 +12,12 @@ def get_subject_from_certificate(fn_certificate):
         assert lines[0].startswith('subject=')
         return lines[0][len('subject='):].strip()
 
-def fetch(target, timeout = None):
+def fetch(target, timeout = None, stop_event = None):
     from threading import Thread, Event
     import queue
     tmp_queue = queue.Queue()
-    stop_event = Event()
+    if stop_event is None:
+        stop_event = Event()
     def inner_loop():
         from math import tanh
         from itertools import count

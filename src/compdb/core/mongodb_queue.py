@@ -53,11 +53,14 @@ class MongoDBQueue(object):
         self._collection.update_one(FILTER_COUNTER, {'$inc': {KEY_COUNTER: 1}}, upsert = True)
         return result.inserted_id
 
-    def get(self, block = True, timeout = None):
+    def get(self, block = True, timeout = None, stop_event = None):
         if block:
             from . utility import fetch
             try:
-                return fetch(target = self._get, timeout = timeout)
+                return fetch(
+                    target = self._get,
+                    timeout = timeout,
+                    stop_event = stop_event)
             except TimeoutError:
                 raise Empty()
         else:

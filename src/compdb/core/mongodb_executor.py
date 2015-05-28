@@ -50,7 +50,10 @@ def execute_callable(job_queue, result_collection, item, reload):
 
 def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None, reload = True):
     while(not stop_event.is_set()):
-        item = job_queue.get(block = True, timeout = timeout)
+        item = job_queue.get(
+            block = True,
+            timeout = timeout,
+            stop_event = stop_event)
         if comm is not None:
             comm.bcast(item, root = MPI_ROOT)
         execute_callable(job_queue, result_collection, item, reload = reload)
@@ -67,6 +70,10 @@ class MongoDBExecutor(object):
         _id = self._job_queue.put(item)
         self._result_collection.insert_one({'_id': _id})
         return Future(self, _id)
+
+    @property
+    def stop_event(self):
+        return self._stop_event
 
     def submit(self, fn, *args, **kwargs):
         item = encode_callable(fn, args, kwargs)
@@ -95,7 +102,7 @@ class MongoDBExecutor(object):
             logger.info("Entering execution loop, rank={}, timeout={}.".format(rank, timeout))
             try:
                 execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, comm, reload = reload)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 logger.warning("Execution interrupted.")
                 comm.bcast(STOP_ITEM, root = MPI_ROOT)
                 raise

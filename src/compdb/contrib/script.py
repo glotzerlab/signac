@@ -157,15 +157,23 @@ def run_pools(args):
 def run_queue(args):
     from compdb.contrib import get_project
     from compdb.core.mongodb_queue import Empty
+
     project = get_project()
+    # Catch SIGTERM logic
+    import signal, sys
+    def signal_term_handler(signal, frame):
+        project.job_queue.stop_event.set()
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, signal_term_handler)
     try:
-        print("Entering execution loop for project '{}'.".format(project))
+        msg = "Entering execution loop for project '{}', timeout={}s."
+        print(msg.format(project, args.timeout))
         project.job_queue.enter_loop_mpi(
             timeout = args.timeout,
             reload = not args.no_reload)
     except Empty:
         print("Queue empty, timed out.")
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         print("Interrupted, exiting.")
     else:
         print("Exiting.")
