@@ -195,3 +195,10 @@ class EmptyIsTrue(argparse.Action):
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
+
+class SmartFormatter(argparse.HelpFormatter):
+
+    def _split_lines(self, text, width):
+        if text.startswith('R|'):
+            return text[2:].splitlines()
+        return argparse.HelpFormatter._split_lines(self, text, width)

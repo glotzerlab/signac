@@ -8,8 +8,9 @@ from os.path import expanduser
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
-OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
+OPERATIONS= ['set', 'remove', 'dump', 'show']
 USER_GLOBAL = expanduser('~/compdb.rc')
+USER_LOCAL = expanduser('./compdb.rc')
 
 def process(args):
     from compdb.core.config import DIRS, FILES
@@ -18,7 +19,7 @@ def process(args):
         if args.name in DIRS or args.name in FILES:
             args.value = abspath(expanduser(args.value))
 
-def get_config(args):
+def get_config(args, for_writing = False):
     from compdb.core.config import Config, load_config
     config = Config()
     try:
@@ -26,6 +27,8 @@ def get_config(args):
             config.read(USER_GLOBAL)
         elif args.config:
             config.read(args.config)
+        elif for_writing:
+            config.read(USER_LOCAL)
         else:
             config = load_config()
             #config.read(expanduser('./compdb.rc'))
@@ -41,11 +44,20 @@ def write_config(config, args):
     elif args.config:
         config.write(args.config)
     else:
-        msg = "You need to use option '--global' or '--config' to specify which config file to write to."
-        raise ValueError(msg)
+        config.write(USER_LOCAL)
+        #msg = "You need to use option '--global' or '--config' to specify which config file to write to."
+        #raise ValueError(msg)
+
+def check_name(args):
+    from ..core.config import LEGAL_ARGS
+    if not args.force:
+        if not args.name in LEGAL_ARGS:
+            msg = "'{}' does not seem to be a valid configuration value. Use '-f' or '--force' to ignore this warning."
+            raise ValueError(msg.format(args.name))
 
 def add(args):
-    config = get_config(args)
+    check_name(args)
+    config = get_config(args, for_writing = True)
     if args.name in config:
         msg = "Value for '{}' is already set in '{}'. Use 'set' instead of 'add' to overwrite."
         print(msg.format(args.name, args.config))
@@ -54,12 +66,13 @@ def add(args):
     write_config(config, args)
 
 def set_value(args):
-    config = get_config(args)
+    check_name(args)
+    config = get_config(args, for_writing = True)
     config[args.name] = args.value
     write_config(config, args)
 
 def remove(args):
-    config = get_config(args)
+    config = get_config(args, for_writing = True)
     del config[args.name]
     write_config(config, args)
 
@@ -124,38 +137,53 @@ def configure(args):
     else:
         print("Unknown operation: {}".format(args.operation))
 
+HELP_OPERATION = """\
+    R|Configure compdb for your local environment.
+    You can perform one of the following operations:
+        
+        set:    Set value of 'name' to 'value'.
+
+        remove: Remove configuration value 'name'.
+
+        dump:   Dump the selected configuration.
+
+        show:   Show the complete configuration
+                including default values.
+
+    """
+import textwrap
+
 def setup_parser(parser):
         parser.add_argument(
             'operation',
             type = str,
-            help = "The config operation you would like to perform.",
             choices = OPERATIONS,
-            )
+            help = textwrap.dedent(HELP_OPERATION))
         parser.add_argument(
             'name',
             type = str,
             nargs = '?',
-            help = "variable name",
-            )
+            help = "variable name")
         parser.add_argument(
             'value',
             type = str,
             nargs = '?',
             default = '',
-            help = "variable value",
-            )
+            help = "variable value")
         parser.add_argument(
             '-c', '--config',
             type = str,
             #default = expanduser('./compdb.rc'),
-            help = "The config file to read and write from. Use '-' to print to standard output.",
-            )
+            help = "The config file to read and write from. Use '-' to print to standard output.")
         parser.add_argument(
             '-g', '--global',
             dest = '_global',
             action = 'store_true',
-            help = "Write to the user's global configuration file.",
-            )
+            help = "Write to the user's global configuration file.")
+        parser.add_argument(
+            '-f', '--force',
+            action = 'store_true',
+            help = "Ignore all warnings.")
 
 def main(arguments = None):
         from argparse import ArgumentParser

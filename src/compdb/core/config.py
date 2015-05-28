@@ -58,30 +58,34 @@ class Config(object):
         return str(self._args)
 
     def read(self, filename = DEFAULT_FILENAME):
+        is_root = False
         try:
             with open(filename) as file:
                 args = serializer.loads(file.read())
+                is_root = 'project' in args
                 logger.debug("Read: {}".format(args))
             self._args.update(args)
         except ValueError as error:
             msg = "Failed to read config file '{}'."
             raise RuntimeError(msg.format(filename))
+        else:
+            return is_root
 
     def _read_files(self):
         from os.path import dirname
-        root = None
+        root_directory = None
         for fn in search_config_files():
             try:
                 logger.debug("Reading config file '{}'.".format(fn))
-                self.read(fn)
-                if root is None and 'project' in self:
-                    root = dirname(fn)
+                is_root = self.read(fn)
+                if is_root:
+                    root_directory = dirname(fn)
             except Exception as error:
-                msg = "Error while reading config file '{}'."
-                logger.error(msg.format(fn))
-        if root is not None:
-            logger.debug("Found root: {}".format(dirname(fn)))
-            self['project_dir'] = root
+                msg = "Error while reading config file '{}': {}."
+                logger.error(msg.format(fn, error))
+        if root_directory is not None:
+            logger.debug("Found root: {}".format(root_directory))
+            self['project_dir'] = root_directory
 
     def update(self, args):
         self._args.update(args)
@@ -94,8 +98,8 @@ class Config(object):
         self.verify()
         logger.debug('OK')
 
-    def verify(self):
-        verify(self._args)
+    def verify(self, strict = False):
+        verify(self._args, strict = strict)
 
     def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
         import tempfile
@@ -142,7 +146,7 @@ class Config(object):
     def __delitem__(self, key):
         del self._args[key]
 
-def search_tree():
+def _search_tree():
     from os import getcwd
     from os.path import realpath, join, isfile
     cwd = os.getcwd()
@@ -151,7 +155,7 @@ def search_tree():
             fn = realpath(join(cwd, filename))
             if isfile(fn):
                 yield fn
-                return
+                #return
         up = realpath(join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
@@ -160,6 +164,11 @@ def search_tree():
             #raise FileNotFoundError(msg)
         else:
             cwd = up
+
+def search_tree():
+    tree = list(_search_tree())
+    tree.reverse()
+    yield from tree
 
 def search_standard_dirs():
     from os.path import realpath, join, isfile
@@ -186,13 +195,16 @@ def read_environment():
             pass
     return args
 
-def verify(args):
-    import os
+def verify(args, strict = False):
+    import os, warnings
     for key in args.keys():
         if not key in LEGAL_ARGS:
             msg = "Config key '{}' not recognized. Possible version conflict."
             logger.warning(msg.format(key))
-            #raise KeyError(msg.format(key))
+            if strict:
+                raise ValueError(msg.format(key))
+            else:
+                warnings.warn(msg.format(key), UserWarning)
 
     #for key in REQUIRED_KEYS:
     #    if not key in args.keys():

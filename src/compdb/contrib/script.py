@@ -318,9 +318,11 @@ def remove(args):
 
 def main():
     import sys
-    from . utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue
+    from . utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter
     from argparse import ArgumentParser
-    parser = ArgumentParser()
+    parser = ArgumentParser(
+        description = "CompDB - Computational Database",
+        formatter_class = SmartFormatter)
     parser.add_argument(
         '-y', '--yes',
         action = 'store_true',
@@ -335,7 +337,9 @@ def main():
     parser_init.set_defaults(func = init_project.init_project)
     
     from compdb.contrib import configure
-    parser_config = subparsers.add_parser('config')
+    parser_config = subparsers.add_parser('config',
+        description = "Configure compdb for your environment.",
+        formatter_class = SmartFormatter)
     configure.setup_parser(parser_config)
     parser_config.set_defaults(func = configure.configure)
 

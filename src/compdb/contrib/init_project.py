@@ -8,7 +8,8 @@ DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 
-MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'. Execute `compdb check` to check your configuration."""
+MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
+Execute `compdb check` to check your configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 
 def check_for_existing_project(args):
