@@ -171,6 +171,16 @@ class MongoDBExecutorTest(unittest.TestCase):
         with get_executor() as executor:
             pass
 
+    def test_encode_integrity(self):
+        from compdb.core.mongodb_executor import encode_callable, decode_callable
+        fn = my_function
+        args = (1, )
+        kwargs = {'y': 2}
+        r = fn(*args, **kwargs)
+        encoded = encode_callable(my_function, args, kwargs)
+        encoded2 = encode_callable(my_function, args, kwargs)
+        self.assertEqual(encoded, encoded2)
+
     def test_encode_decode(self):
         from compdb.core.mongodb_executor import encode_callable, decode_callable
         fn = my_function
