@@ -390,7 +390,7 @@ class Project(object):
     def _create_db_snapshot(self, dst):
         import os
         from bson.json_util import dumps
-        from . utility import dump_db_from_config
+        from . snapshot import dump_db_from_config
         spec = self._job_spec_modifier(develop = False)
         job_docs = self.get_jobs_collection().find(spec)
         docs = self.collection.find()
@@ -459,7 +459,7 @@ class Project(object):
         import shutil, os
         from os.path import join, isdir, dirname, exists
         from bson.json_util import loads
-        from . utility import restore_db_from_config
+        from . snapshot import restore_db_from_config
         fn_storage = join(src, FN_DUMP_STORAGE)
         try:
             with open(join(src, FN_DUMP_JOBS), 'rb') as file:
