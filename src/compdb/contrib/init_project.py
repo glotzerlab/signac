@@ -81,8 +81,8 @@ def copy_templates(args):
         fn = os.path.join(args.directory, filename)
         if os.path.isfile(fn):
             msg = "Skipping template file '{}' because a file with the same name already exists."
-            warnings.warn(msg.format(fn), UserWarning)
             logger.warning(msg.format(fn))
+            #warnings.warn(msg.format(fn), UserWarning)  # Too intimitading.
             #raise FileExistsError(msg.format(fn))
         else:
             with open(fn, 'wb') as file:
