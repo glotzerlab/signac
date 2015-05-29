@@ -46,6 +46,7 @@ class Project(object):
         self._logging_listener = None
         self._client = None
         self._job_queue = None
+        self.get_id()
 
     def __str__(self):
         return self.get_id()
