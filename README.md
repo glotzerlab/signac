@@ -31,10 +31,10 @@ Most tests require a MongoDB instance to connect to. The default is 'localhost'.
 
     $ compdb config set database_host yourhost.com
 
-## Setting up a project.
+## Quickstart
 
-The database facilitates a project-based workflow.
-This is how you set up a new empty project.
+The framework facilitates a project-based workflow.
+Setup a new project:
 
     $ mkdir my_project
     $ cd my_project
@@ -44,6 +44,18 @@ This will create the basic configuration for a project named "MyProject" within 
 In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
 
 To test if everything is correctly setup, you can then execute `$ compdb check` which will check your configuration and the connectivity to the configured database.
+
+Add a job to the job queue:
+
+    project.job_queue.submit(my_job, state_point)
+
+Execute jobs from the queue in serial:
+
+    $ compdb run
+
+and in parallel:
+
+    $ mpirun -np 8 compdb run
 
 ## Get help:
 
