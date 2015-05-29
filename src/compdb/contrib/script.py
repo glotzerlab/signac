@@ -57,8 +57,8 @@ def info(args):
             print("No active jobs found.")
     if args.queue:
         queue = project.job_queue
-        s = "Queued/Completed/Aborted: {}/{}/{}"
-        print(s.format(queue.num_queued(), queue.num_completed(), queue.num_aborted()))
+        s = "Queued/Aborted/Completed: {}/{}/{}"
+        print(s.format(queue.num_queued(), queue.num_aborted(), queue.num_completed()))
         if args.more:
             print("Queued:")
             for q in queue.get_queued():
@@ -164,6 +164,9 @@ def run_queue(args):
     from compdb.core.mongodb_queue import Empty
 
     project = get_project()
+    if not args.no_logging:
+        project.start_logging()
+
     # Catch SIGTERM logic
     import signal, sys
     def signal_term_handler(signal, frame):
@@ -505,6 +508,10 @@ def main():
         '-c', '--combine',
         action = 'store_true',
         help = "Do not fork the queue execution into multiple processes.")
+    parser_run.add_argument(
+        '--no-logging',
+        action = 'store_true',
+        help = "Do not log to project database.")
     parser_run.set_defaults(func = run_queue)
     #parser_run.add_argument(
     #    'module',
