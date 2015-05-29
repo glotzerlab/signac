@@ -60,3 +60,4 @@ and in parallel:
 ## Get help:
 
 The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/compdb/wiki).
+Checkout the examples in the example folder.
