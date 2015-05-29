@@ -43,6 +43,13 @@ class DBClientConnector(object):
         except KeyError:
             return self._config.get(key, default)
 
+    def _config_get_required(self, key):
+        result = self._config_get(key)
+        if result is None:
+            raise KeyError(key)
+        else:
+            return result
+
     def _connect_pymongo3(self, host):
         from pymongo import MongoClient
         parameters = {
@@ -59,10 +66,10 @@ class DBClientConnector(object):
             client = MongoClient(
                 host, 
                 ssl = True,
-                ssl_keyfile = expanduser(self._config_get('ssl_keyfile')),
-                ssl_certfile = expanduser(self._config_get('ssl_certfile')),
+                ssl_keyfile = expanduser(self._config_get_required('ssl_keyfile')),
+                ssl_certfile = expanduser(self._config_get_required('ssl_certfile')),
                 ssl_cert_reqs = SSL_CERT_REQS[self._config_get('ssl_cert_reqs', 'required')],
-                ssl_ca_certs = expanduser(self._config_get('ssl_ca_certs')),
+                ssl_ca_certs = expanduser(self._config_get_required('ssl_ca_certs')),
                 ssl_match_hostname = self._config_get('ssl_match_hostname', True),
                 ** parameters)
         else:
