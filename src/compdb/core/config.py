@@ -88,7 +88,8 @@ class Config(object):
             self['project_dir'] = root_directory
 
     def update(self, args):
-        self._args.update(args)
+        for key, value in args.items():
+            self[key] = value
 
     def load(self):
         logger.debug('Reading config...')
@@ -138,6 +139,9 @@ class Config(object):
         return self._args.get(key, DEFAULTS.get(key, default))
 
     def __setitem__(self, key, value):
+        from os.path import abspath, expanduser
+        if key in DIRS or key in FILES:
+            value = abspath(expanduser(value))
         self._args[key] = value
 
     def __contains__(self, key):

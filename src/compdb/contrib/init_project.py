@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
-SCRIPT_HEADER = "#/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
+SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
 Execute `compdb check` to check your configuration."""
@@ -33,20 +33,39 @@ def adjust_args(args):
         args['workspace_dir'] = abspath(args.workspace)
     if args.storage:
         args['filestorage_dir'] = abspath(args.storage)
+
+def make_dir(dirname):
+    import os
+    try:
+        os.makedirs(dirname)
+    except OSError:
+        pass
     
 def generate_config(args):
-    from compdb.core.config import Config
+    from compdb.core.config import Config, load_config
+    import os
+    global_config = load_config()
+    if not args.workspace and global_config.get('workspace_dir') is None:
+        args.workspace = DEFAULT_WORKSPACE
+    if not args.storage and global_config.get('filestorage_dir') is None:
+        args.storage = DEFAULT_STORAGE
     c_args = {
          'project':  args.project_name,
     }
     if args.workspace:
+        make_dir(args.workspace)
         c_args['workspace_dir'] = args.workspace
     if args.storage:
+        make_dir(args.storage)
         c_args['filestorage_dir'] = args.storage
     if args.db_host:
          c_args['database_host'] = args.db_host
     config = Config()
-    config = Config(c_args)
+    try:
+        config.read(os.path.join(args.directory, 'compdb.rc'))
+    except FileNotFoundError:
+        pass
+    config.update(c_args)
     config.verify()
     return config
 
@@ -55,19 +74,21 @@ def get_templates():
     return TEMPLATES.keys()
 
 def copy_templates(args):
-    import os
+    import os, stat, warnings
     from compdb.contrib.templates import TEMPLATES
     template = TEMPLATES[args.template]
     for filename, content in template.items():
         fn = os.path.join(args.directory, filename)
         if os.path.isfile(fn):
             msg = "Skipping template file '{}' because a file with the same name already exists."
+            warnings.warn(msg.format(fn), UserWarning)
             logger.warning(msg.format(fn))
             #raise FileExistsError(msg.format(fn))
         else:
             with open(fn, 'wb') as file:
                 c = SCRIPT_HEADER + content
                 file.write(c.encode('utf-8'))
+            os.chmod(fn, os.stat(fn).st_mode | stat.S_IEXEC)
 
 def init_project(args):
     from . import check
@@ -83,7 +104,6 @@ def init_project(args):
     else:
         import os
         config.write(os.path.join(args.directory, 'compdb.rc'))
-            #keys = PROJECT_CONFIG_KEYS)
         print(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.realpath(args.directory)))
