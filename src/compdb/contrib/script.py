@@ -16,7 +16,7 @@ def info(args):
 
     print(project)
     if args.more:
-        print(project.config)
+        print(project.root_directory())
     if args.status:
         print("{} registered job(s)".format(len(list(project.find_job_ids()))))
         print("{} active job(s)".format(len(list(project.active_jobs()))))
@@ -124,9 +124,10 @@ def check(args):
                 check.check_project_config_offline),
                 ])
     for msg, check in checks:
+        print()
         print("Checking {} ... ".format(msg), end='', flush=True)
         try:
-            check()
+            ok = check()
         except ConnectionFailure as error:
             print()
             print("Error: {}".format(error))
@@ -141,9 +142,13 @@ def check(args):
                 raise
             encountered_error = True
         else:
-            print("ok")
+            if ok:
+                print("OK.")
+            else:
+                print("Failed.")
+    print()
     if encountered_error:
-        print("Encountered error during config check.")
+        print("Not all checks passed.")
         print("Use -v to increase verbosity of messages.")
     else:
         print("All tests passed. No errors.")
@@ -168,9 +173,14 @@ def run_queue(args):
     try:
         msg = "Entering execution loop for project '{}', timeout={}s."
         print(msg.format(project, args.timeout))
-        project.job_queue.enter_loop_mpi(
-            timeout = args.timeout,
-            reload = not args.no_reload)
+        if args.combine:
+            project.job_queue.enter_loop_mpi(
+                timeout = args.timeout,
+                reload = not args.no_reload)
+        else:
+            project.job_queue.enter_loop(
+                timeout = args.timeout,
+                reload = not args.no_reload)
     except Empty:
         print("Queue empty, timed out.")
     except (KeyboardInterrupt, SystemExit):
@@ -491,6 +501,10 @@ def main():
         '--no-reload',
         action = 'store_true',
         help = "Do not reload modules before execution.")
+    parser_run.add_argument(
+        '-c', '--combine',
+        action = 'store_true',
+        help = "Do not fork the queue execution into multiple processes.")
     parser_run.set_defaults(func = run_queue)
     #parser_run.add_argument(
     #    'module',

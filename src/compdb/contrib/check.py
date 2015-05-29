@@ -12,8 +12,10 @@ def check_database_connection():
     try:
         db = project._get_meta_db()
     except ConnectionFailure:
-        logger.warning(MSG_NO_DB_ACCESS.format(db_host))
+        print(MSG_NO_DB_ACCESS.format(db_host))
         return False
+    else:
+        return True
 
 def check_global_config():
     from compdb.contrib import get_project
@@ -25,6 +27,7 @@ def check_global_config():
         if project.config.get(key) is None:
             missing.append(key)
     if len(missing):
+        print()
         print(MSG_ENV_INCOMPLETE.format(missing))
         for key in missing:
             print("compdb config add {key} [your_value]".format(key = key))
@@ -63,6 +66,8 @@ def check_project_config_online():
                 assert file.read().decode() == checkvalue
     except:
         raise
+    else:
+        return True
     finally:
         job.remove()
 
@@ -100,6 +105,8 @@ def check_project_config_offline():
                     pass
     except:
         raise
+    else:
+        return True
     finally:
         if original_host is None:
             del os.environ['COMPDB_DATABASE_HOST']
