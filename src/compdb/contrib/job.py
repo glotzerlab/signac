@@ -148,7 +148,7 @@ class Job(object):
         try:
             self._pulse_stop_event = multiprocessing.Event()
             kwargs['stop_event'] = self._pulse_stop_event
-            self._pulse = Process(target = pulse_worker, kwargs = kwargs)
+            self._pulse = Process(target = pulse_worker, kwargs = kwargs, daemon = True)
             self._pulse.start()
         except AssertionError as error:
             logger.debug("Failed to start pulse process, falling back to pulse thread.")
