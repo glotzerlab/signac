@@ -1,7 +1,9 @@
 def get_project():
     from . project import Project
     open_job.project = None
-    return Project()
+    project = Project()
+    project.get_id()
+    return project
 
 def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
     raise PendingDeprecationWarning()

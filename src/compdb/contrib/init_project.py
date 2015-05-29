@@ -18,7 +18,7 @@ def check_for_existing_project(args):
     try:
         project = get_project()
         root_dir = project.root_directory()
-    except (FileNotFoundError, NotADirectoryError, KeyError):
+    except (LookupError, FileNotFoundError, NotADirectoryError, KeyError):
         pass
     else:
         if realpath(root_dir) == realpath(args.directory):
