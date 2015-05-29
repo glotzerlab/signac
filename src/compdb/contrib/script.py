@@ -12,7 +12,7 @@ def info(args):
         args.status = True
         args.jobs = True
         args.pulse = True
-        args.more = True
+        args.queue = True
 
     print(project)
     if args.more:
@@ -158,38 +158,6 @@ def run_pools(args):
     from . job_submit import find_all_pools, submit_mpi
     for pool in find_all_pools(abspath(args.module)):
         submit_mpi(pool)
-
-def run_queue(args):
-    from compdb.contrib import get_project
-    from compdb.core.mongodb_queue import Empty
-
-    project = get_project()
-    if not args.no_logging:
-        project.start_logging()
-
-    # Catch SIGTERM logic
-    import signal, sys
-    def signal_term_handler(signal, frame):
-        project.job_queue.stop_event.set()
-        sys.exit(0)
-    signal.signal(signal.SIGTERM, signal_term_handler)
-    try:
-        msg = "Entering execution loop for project '{}', timeout={}s."
-        print(msg.format(project, args.timeout))
-        if args.combine:
-            project.job_queue.enter_loop_mpi(
-                timeout = args.timeout,
-                reload = not args.no_reload)
-        else:
-            project.job_queue.enter_loop(
-                timeout = args.timeout,
-                reload = not args.no_reload)
-    except Empty:
-        print("Queue empty, timed out.")
-    except (KeyboardInterrupt, SystemExit):
-        print("Interrupted, exiting.")
-    else:
-        print("Exiting.")
 
 def show_log(args):
     from . import get_project
@@ -494,30 +462,9 @@ def main():
         help = 'Perform offline checks.',)
     parser_check.set_defaults(func = check)
 
-    parser_run = subparsers.add_parser('run')
-    parser_run.add_argument(
-        '-t', '--timeout',
-        type = int,
-        default = 300,
-        help = "Seconds to wait for new jobs in execution loop.")
-    parser_run.add_argument(
-        '--no-reload',
-        action = 'store_true',
-        help = "Do not reload modules before execution.")
-    parser_run.add_argument(
-        '-c', '--combine',
-        action = 'store_true',
-        help = "Do not fork the queue execution into multiple processes.")
-    parser_run.add_argument(
-        '--no-logging',
-        action = 'store_true',
-        help = "Do not log to project database.")
-    parser_run.set_defaults(func = run_queue)
-    #parser_run.add_argument(
-    #    'module',
-    #    type = str,
-    #    help = "The path to the python module defining job_pools.")
-    #parser_run.set_defaults(func = run_pools)
+    from compdb.contrib import server
+    parser_server = subparsers.add_parser('server')
+    server.setup_parser(parser_server)
 
     parser_log = subparsers.add_parser('log')
     parser_log.add_argument(
