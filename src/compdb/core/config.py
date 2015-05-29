@@ -31,7 +31,7 @@ REQUIRED_KEYS = [
 
 DEFAULTS = {
     'database_host':            'localhost',
-    'database_auth_mechanism':  'SSL-x509',
+    'database_auth_mechanism':  'none',
     'database_meta':            'compdb',
     'database_compmatdb':       'compmatdb',
     'connect_timeout_ms':       5000,
@@ -155,7 +155,7 @@ def _search_tree():
             fn = realpath(join(cwd, filename))
             if isfile(fn):
                 yield fn
-                #return
+                return
         up = realpath(join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
