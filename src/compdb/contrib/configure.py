@@ -8,7 +8,7 @@ from os.path import expanduser
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
-OPERATIONS= ['set', 'remove', 'dump', 'show']
+OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
 USER_GLOBAL = expanduser('~/compdb.rc')
 USER_LOCAL = expanduser('./compdb.rc')
 
@@ -142,6 +142,9 @@ HELP_OPERATION = """\
     You can perform one of the following operations:
         
         set:    Set value of 'name' to 'value'.
+
+        add:    Like 'set', but will not overwrite
+                any existing values.
 
         remove: Remove configuration value 'name'.
 
