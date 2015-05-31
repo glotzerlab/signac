@@ -7,7 +7,7 @@ You can obtain a copy at [MongoDB](http://www.mongodb.org).
 You will also need the python MongoDB driver `pymongo`, which should be installed automatically.
 If not try `pip install pymongo` to install the package.
 
-The package requires Python 3 and is tested with version 3.3.
+The package requires Python 3 and is tested with version 3.3 and 3.4
 
 ## Installation
 
