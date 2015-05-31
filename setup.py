@@ -12,7 +12,7 @@ setup(
     keywords = 'simulation tools mc md monte-carlo mongodb jobmanagement materials database',
 
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Physics",
