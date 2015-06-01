@@ -51,11 +51,11 @@ Add a job to the job queue:
 
 Execute jobs from the queue in serial:
 
-    $ compdb run
+    $ compdb server
 
 and in parallel:
 
-    $ mpirun -np 8 compdb run
+    $ mpirun -np 8 compdb server
 
 ## Get help:
 
