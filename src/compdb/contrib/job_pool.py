@@ -43,8 +43,13 @@ class JobPool(object):
         return generate_hash_from_spec(pool_spec)
 
     def _comm(self):
-        from mpi4py import MPI
-        return MPI.COMM_WORLD
+        try:
+            from mpi4py import MPI
+        except ImportError:
+            from .. import raise_no_mpi4py_error
+            raise_no_mpi4py_error()
+        else:
+            return MPI.COMM_WORLD
 
     def _broadcast(self, rank, data):
         self._comm().Barrier()
