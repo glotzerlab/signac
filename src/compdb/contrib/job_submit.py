@@ -16,6 +16,11 @@ def find_all_pools(module_path):
     yield from job_pool.all_pools()
     
 def submit_mpi(pool):
-    from mpi4py import MPI
-    comm = MPI.COMM_WORLD
-    pool.start(comm.Get_rank(), comm.Get_size())
+    try:
+        from mpi4py import MPI
+    except ImportError:
+        from .. import raise_no_mpi4py_error
+        raise_no_mpi4py_error()
+    else:
+        comm = MPI.COMM_WORLD
+        pool.start(comm.Get_rank(), comm.Get_size())
