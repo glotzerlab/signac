@@ -11,9 +11,18 @@ The package requires Python 3 and is tested with version 3.3 and 3.4.
 
 ## Installation
 
+To install the package, you first need to clone the repository, either with
+
+    $ git clone https://USERNAME@bitbucket.org/glotzer/compdb.git
+
+or 
+
     $ git clone git@bitbucket.org:glotzer/compdb.git
+
+and then execute
+
     $ cd compdb
-    $ python setup.py install
+    $ sudo python setup.py install
 
 On system's without root access you can install the package with
   
@@ -26,7 +35,7 @@ into your home directory.
 To check if the package was installed correctly, execute `import compdb` within a python shell.
 That should not result in any error.
 
-To test the package, execute `nosetests` within the repositories root directory.
+To test whether the package works as expected, execute `nosetests` within the repositories root directory.
 Most tests require a MongoDB instance to connect to. The default is 'localhost'. To specify a different server host, execute:
 
     $ compdb config set database_host yourhost.com
