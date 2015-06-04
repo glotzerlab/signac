@@ -67,12 +67,17 @@ class Job(object):
         self._pulse_stop_event = None
 
     def _determine_rank(self):
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        if comm.Get_rank() > 0:
-            return comm.Get_rank()
+        try:
+            from mpi4py import MPI
+        except ImportError:
+            from .. import raise_no_mpi4py_error
+            raise_no_mpi4py_error()
         else:
-            return self.num_open_instances()
+            comm = MPI.COMM_WORLD
+            if comm.Get_rank() > 0:
+                return comm.Get_rank()
+            else:
+                return self.num_open_instances()
 
     def _get_jobs_doc_collection(self):
         return self._project.get_project_db()[str(self.get_id())]

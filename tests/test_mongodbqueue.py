@@ -15,8 +15,10 @@ def get_item():
     return {'my_item': testdata()}
 
 def get_collection_handle(_id):
+    from compdb.core.config import load_config
     from pymongo import MongoClient
-    client = MongoClient()
+    config = load_config()
+    client = MongoClient(config['database_host'])
     db = client['testing']
     if _id is None:
         _id = uuid.uuid4()

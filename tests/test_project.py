@@ -131,7 +131,12 @@ class ProjectPoolTest(JobTest):
 
         pool = project.job_pool(state_points)
         pool.submit(dummy_function)
-        pool.start()
+        try:
+            pool.start()
+        except EnvironmentError:
+            import warnings
+            msg = "Cannot test MPI support, due to missing mpi4py package."
+            warnings.warn(msg)
 
     def test_pool_concurrency(self):
         from multiprocessing import Pool

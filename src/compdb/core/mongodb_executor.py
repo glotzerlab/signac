@@ -94,7 +94,11 @@ class MongoDBExecutor(object):
         execution_worker(self._stop_event, self._job_queue, self._result_collection, timeout, reload = reload)
 
     def enter_loop_mpi(self, timeout = None, reload = True):
-        from mpi4py import MPI
+        try:
+            from mpi4py import MPI
+        except ImportError:
+            from .. import raise_no_mpi4py_error
+            raise_no_mpi4py_error()
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         self._stop_event.clear()
