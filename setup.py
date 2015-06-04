@@ -1,3 +1,10 @@
+import sys
+IS_PYTHON3 = sys.version_info[0] == 3
+if not IS_PYTHON3:
+    print("Error: CompDB requires python version >= 3.x.")
+    print("Exiting.")
+    sys.exit(1)
+
 from setuptools import setup, find_packages
 
 setup(
