@@ -5,7 +5,7 @@
 The computational material's database needs to connect to a MongoDB instance as database backend.
 You can obtain a copy at [MongoDB](http://www.mongodb.org).
 You will also need the python MongoDB driver `pymongo`, which should be installed automatically.
-If not try `pip install pymongo` to install the package. (or port install pyXX-pymongo on mac)
+If not try `pip install pymongo` to install the package. (or `port install pyXX-pymongo` on mac)
 
 The package requires Python 3 and is tested with version 3.3 and 3.4.
 
