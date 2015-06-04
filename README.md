@@ -35,7 +35,16 @@ into your home directory.
 To check if the package was installed correctly, execute `import compdb` within a python shell.
 That should not result in any error.
 
-To test whether the package works as expected, execute `nosetests` within the repositories root directory.
+Executing `compdb` on the command line should produce similar output to:
+
+    $ compdb
+    usage: compdb [-h] [-y] [-v]
+                  {init,config,remove,snapshot,restore,cleanup,info,view,check,server,log}
+                  ...
+
+If the command above fails, please refer to [here](https://bitbucket.org/glotzer/compdb/wiki/set_path).
+
+For detailed testing, execute `nosetests` within the repositories root directory.
 Most tests require a MongoDB instance to connect to. The default is 'localhost'. To specify a different server host, execute:
 
     $ compdb config set database_host yourhost.com
