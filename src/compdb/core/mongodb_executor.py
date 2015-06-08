@@ -50,6 +50,7 @@ def execute_callable(job_queue, result_collection, item, reload):
 
 def execution_worker(stop_event, job_queue, result_collection, timeout, comm = None, reload = True):
     while(not stop_event.is_set()):
+        logger.info("Waiting for next job...")
         item = job_queue.get(
             block = True,
             timeout = timeout,
