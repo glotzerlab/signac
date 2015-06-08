@@ -3,9 +3,10 @@ logger = logging.getLogger(__name__)
 
 class ReadOnlyStorage(object):
     
-    def __init__(self, fs_path, wd_path):
+    def __init__(self, fs_path, wd_path, allow_move = False):
         self._wd_path = self._norm_path(wd_path)
         self._fs_path = self._norm_path(fs_path)
+        self._allow_move = allow_move
         msg = "Opened storage at '{}' to '{}'."
         logger.debug(msg.format(self._wd_path, self._fs_path))
 
@@ -66,9 +67,13 @@ class Storage(ReadOnlyStorage):
 
     def _move_file(self, src, dst):
         from shutil import move
+        from os import rename
         msg = "Moving from '{}' to '{}'."
         logger.debug(msg.format(src, dst))
-        move(src, dst)
+        if self._allow_move:
+            move(src, dst)
+        else:
+            rename(src, dst)
 
     def store_file(self, filename):
         from shutil import move
