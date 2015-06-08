@@ -399,3 +399,13 @@ class Job(object):
 
     def cached(self, function, * args, ** kwargs):
         return self.cache.run(function, * args, ** kwargs) 
+
+    def import_job(self, other):
+        for key in other.document:
+            self.document[key] = other.document[key]
+        for fn in other.storage.list_files():
+            with other.storage.open_file(fn, 'rb') as src:
+                with self.storage.open_file(fn, 'wb') as dst:
+                    dst.write(src.read())
+        for doc in other.collection.find():
+            self.collection.insert_one(doc)

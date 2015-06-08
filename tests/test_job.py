@@ -332,5 +332,62 @@ class TestJobCache(JobTest):
         self.assertTrue(ex)
         job.remove()
 
+class TestJobImport(JobTest):
+
+    def test_import_document(self):
+        import uuid
+        test_token_clone = dict(test_token)
+        test_token_clone['clone'] = True
+        key = 'my_test_key'
+        value = uuid.uuid4()
+        with open_job(test_token) as test_job:
+            test_job.document[key] = value
+            self.assertTrue(key in test_job.document)
+            self.assertEqual(test_job.document[key], value)
+            self.assertIsNotNone(test_job.document.get(key))
+            self.assertEqual(test_job.document.get(key), value)
+            with open_job(test_token_clone) as job_clone:
+                job_clone.import_job(test_job)
+                self.assertTrue(key in job_clone.document)
+                self.assertEqual(job_clone.document[key], value)
+                self.assertIsNotNone(job_clone.document.get(key))
+                self.assertEqual(job_clone.document.get(key), value)
+
+    def test_import_files(self):
+        import os, uuid
+        data = str(uuid.uuid4())
+        fn = '_my_file'
+        test_token_clone = dict(test_token)
+        test_token_clone['clone'] = True
+
+        with open_job(test_token) as job:
+            with open(fn, 'wb') as file:
+                file.write(data.encode())
+            self.assertTrue(os.path.exists(fn))
+            job.storage.store_file(fn)
+            self.assertFalse(os.path.exists(fn))
+            with open_job(test_token_clone) as job_clone:
+                job_clone.import_job(job)
+                job_clone.storage.restore_file(fn)
+                self.assertTrue(os.path.exists(fn))
+                with open(fn, 'rb') as file:
+                    read_back = file.read().decode()
+        self.assertEqual(data, read_back)
+
+    def test_import_collection(self):
+        import uuid
+        test_token_clone = dict(test_token)
+        test_token_clone['clone'] = True
+        key = 'my_test_key'
+        value = uuid.uuid4()
+        doc = {key: value}
+        with open_job(test_token) as job:
+            job.collection.insert_one(doc)
+            with open_job(test_token_clone) as job_clone:
+                job_clone.import_job(job)
+                doc_check = job_clone.collection.find_one()
+                self.assertIsNotNone(doc_check)
+                self.assertEqual(doc, doc_check)
+
 if __name__ == '__main__':
     unittest.main()
