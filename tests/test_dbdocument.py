@@ -112,6 +112,8 @@ class TestDBDocument(unittest.TestCase):
         num_entries = 100
         pairs = [(str(i), testdata()) for i in range(num_entries)]
         with get_dbdoc() as dbdoc:
+            for k in dbdoc:
+                assert False
             for k, v in pairs:
                 dbdoc[k] = v
             for k in dbdoc:

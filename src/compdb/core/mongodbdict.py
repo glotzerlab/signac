@@ -41,8 +41,10 @@ class ReadOnlyMongoDBDict(object):
     
     def __iter__(self):
         doc = self._get_collection().find_one(self._spec())
-        assert doc is not None
-        yield from doc
+        if doc is None:
+            return
+        else:
+            yield from doc
 
     def __contains__(self, key):
         if PYMONGO_3:
