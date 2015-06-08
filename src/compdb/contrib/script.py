@@ -1,3 +1,4 @@
+# PYTHON_ARGCOMPLETE_OK
 import logging
 logger = logging.getLogger(__name__)
 
@@ -486,6 +487,11 @@ def main():
         help = "The formatting of log messages.",
         )
     parser_log.set_defaults(func = show_log)
+    try:
+        import argcomplete
+        argcomplete.autocomplete(parser)
+    except ImportError:
+        pass
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
