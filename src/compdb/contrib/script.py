@@ -57,8 +57,8 @@ def info(args):
             print("No active jobs found.")
     if args.queue:
         queue = project.job_queue
-        s = "Queued/Aborted/Completed: {}/{}/{}"
-        print(s.format(queue.num_queued(), queue.num_aborted(), queue.num_completed()))
+        s = "Queued/Active/Aborted/Completed: {}/{}/{}/{}"
+        print(s.format(queue.num_queued(), len(list(project.active_jobs())), queue.num_aborted(), queue.num_completed()))
         if args.more:
             print("Queued:")
             for q in queue.get_queued():
