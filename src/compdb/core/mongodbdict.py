@@ -44,7 +44,11 @@ class ReadOnlyMongoDBDict(object):
         if doc is None:
             return
         else:
-            yield from doc
+            for key in doc:
+                if key == '_id':
+                    continue
+                else:
+                    yield key
 
     def __contains__(self, key):
         if PYMONGO_3:
