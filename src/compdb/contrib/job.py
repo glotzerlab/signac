@@ -361,6 +361,7 @@ class Job(object):
 
     @property
     def collection(self):
+        self._obtain_id_online()
         return self._get_jobs_doc_collection()
 
     def _open_instances(self):
@@ -385,6 +386,7 @@ class Job(object):
     @property
     def document(self):
         if self._dbdocument is None:
+            self._obtain_id_online()
             from ..core.mongodbdict import MongoDBDict as DBDocument
             self._dbdocument = DBDocument(
                 self._project.collection,
