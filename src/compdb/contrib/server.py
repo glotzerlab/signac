@@ -66,7 +66,12 @@ def main(arguments = None):
     from argparse import ArgumentParser
     parser = ArgumentParser(description = DESCR_SERVER)
     setup_parser(parser)
-    args = parser.parse_args(arguments)
+    try:
+        from hoomd_script import option
+        user_args = option.get_user()
+        args = parser.parse_args(user_args)
+    except ImportError:
+        args = parser.parse_args(arguments)
     return start_with_args(args)
 
 if __name__ == '__main__':
