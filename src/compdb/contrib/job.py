@@ -225,16 +225,17 @@ class Job(object):
         #from pymongo.errors import ConnectionFailure
         from . errors import ConnectionFailure
         from . hashing import generate_hash_from_spec
-        self._spec['_id'] = generate_hash_from_spec(self._spec)
-        #try:
-        #    self._obtain_id_online()
-        #except ConnectionFailure:
-        #    try:
-        #        _id = generate_hash_from_spec(self._spec)
-        #    except TypeError:
-        #        logger.error(self._spec)
-        #        raise TypeError("Unable to hash specs.")
-        #    else:
+        if not 'parameters' in self._spec:
+            try:
+                self._obtain_id_online()
+            except ConnectionFailure:
+                try:
+                    _id = generate_hash_from_spec(self._spec)
+                except TypeError:
+                    logger.error(self._spec)
+                    raise TypeError("Unable to hash specs.")
+        else:
+            self._spec['_id'] = generate_hash_from_spec(self._spec)
 
     def _obtain_id_online(self):
         if PYMONGO_3:
