@@ -37,8 +37,6 @@ class Job(object):
     def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
         import uuid, os
         from ..core.storage import Storage
-        #from ..core.dbdocument import DBDocument
-        from ..core.mongodbdict import MongoDBDict as DBDocument
 
         self._unique_id = str(uuid.uuid4())
         self._project = project
@@ -60,9 +58,7 @@ class Job(object):
         self._storage = Storage(
             fs_path = self._fs,
             wd_path = self._wd)
-        self._dbdocument = DBDocument(
-            self._project.collection,
-            self.get_id())
+        self._dbdocument = None
         self._pulse = None
         self._pulse_stop_event = None
 
@@ -229,16 +225,16 @@ class Job(object):
         #from pymongo.errors import ConnectionFailure
         from . errors import ConnectionFailure
         from . hashing import generate_hash_from_spec
-        try:
-            self._obtain_id_online()
-        except ConnectionFailure:
-            try:
-                _id = generate_hash_from_spec(self._spec)
-            except TypeError:
-                logger.error(self._spec)
-                raise TypeError("Unable to hash specs.")
-            else:
-                self._spec['_id'] = generate_hash_from_spec(self._spec)
+        self._spec['_id'] = generate_hash_from_spec(self._spec)
+        #try:
+        #    self._obtain_id_online()
+        #except ConnectionFailure:
+        #    try:
+        #        _id = generate_hash_from_spec(self._spec)
+        #    except TypeError:
+        #        logger.error(self._spec)
+        #        raise TypeError("Unable to hash specs.")
+        #    else:
 
     def _obtain_id_online(self):
         if PYMONGO_3:
@@ -312,6 +308,7 @@ class Job(object):
         assert self.get_id() == _id
 
     def __enter__(self):
+        self._obtain_id_online()
         self.open()
         return self
 
@@ -339,7 +336,7 @@ class Job(object):
     def clear(self):
         self.clear_workspace_directory()
         self._storage.clear()
-        self._dbdocument.clear()
+        self.document.clear()
         self._get_jobs_doc_collection().drop()
 
     def remove(self, force = False):
@@ -387,6 +384,11 @@ class Job(object):
 
     @property
     def document(self):
+        if self._dbdocument is None:
+            from ..core.mongodbdict import MongoDBDict as DBDocument
+            self._dbdocument = DBDocument(
+                self._project.collection,
+                self.get_id())
         return self._dbdocument
 
     def storage_filename(self, filename):
