@@ -146,6 +146,7 @@ def check(args):
             if ok:
                 print("OK.")
             else:
+                encountered_error = True
                 print("Failed.")
     print()
     if encountered_error:
