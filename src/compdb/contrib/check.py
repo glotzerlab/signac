@@ -77,9 +77,6 @@ def check_project_config_offline():
     from tempfile import TemporaryDirectory
     import uuid, os
 
-    msg = "Offline capability not supported in this version."
-    raise NotImplementedError(msg)
-
     original_host = os.environ.get('COMPDB_DATABASE_HOST')
     original_timeout = os.environ.get('COMPDB_CONNECT_TIMEOUT')
     os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
@@ -90,19 +87,6 @@ def check_project_config_offline():
         checkvalue = str(uuid.uuid4())
         with TemporaryDirectory() as tmp_dir:
             job = project.open_job(checktoken)
-            try:
-                with job.document as document:
-                    document['check'] = checkvalue
-
-                with job.document as document:
-                    assert document['check'] == checkvalue
-            except:
-                raise
-            finally:
-                try:
-                    job.remove(force = True) # Not supported in offline mode
-                except:
-                    pass
     except:
         raise
     else:

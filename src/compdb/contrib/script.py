@@ -101,6 +101,7 @@ def view(args):
 def check(args):
     from . import check
     from .errors import ConnectionFailure
+    import pymongo
     from compdb.contrib import get_project
     project = get_project()
     encountered_error = False
@@ -116,14 +117,13 @@ def check(args):
     else:
         print("Found project: '{}'.".format(project_id))
         checks.extend([
+            ('project configuration (offline)',
+            check.check_project_config_offline),
+            ])
+        checks.extend([
             ('project configuration (online)',
             check.check_project_config_online),
             ])
-        if args.offline:
-            checks.extend([
-                ('project configuration (offline)',
-                check.check_project_config_offline),
-                ])
     for msg, check in checks:
         print()
         print("Checking {} ... ".format(msg), end='', flush=True)
@@ -133,6 +133,16 @@ def check(args):
             print()
             print("Error: {}".format(error))
             print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
+            if args.verbosity > 0:
+                raise
+            encountered_error = True
+        except pymongo.errors.OperationFailure as error:
+            print()
+            print("Error: {}".format(error))
+            auth_mechanism = project.config['database_auth_mechanism']
+            print("Your current auth mechanism is set to '{}'. Is that correct?".format(auth_mechanism))
+            print("Configure the auth mechanism with:")
+            print("compdb config set database_auth_mechanism [none|SCRAM-SHA-1|SSL-x509]")
             if args.verbosity > 0:
                 raise
             encountered_error = True
@@ -458,10 +468,10 @@ def main():
     parser_view.set_defaults(func = view)
 
     parser_check = subparsers.add_parser('check')
-    parser_check.add_argument(
-        '--offline',
-        action = 'store_true',
-        help = 'Perform offline checks.',)
+    #parser_check.add_argument(
+    #    '--offline',
+    #    action = 'store_true',
+    #    help = 'Perform offline checks.',)
     parser_check.set_defaults(func = check)
 
     from compdb.contrib import server
