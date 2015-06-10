@@ -95,10 +95,10 @@ def manage_user(args):
     elif args.command in ('grant', 'revoke'):
         if args.database is None:
             raise ValueError("Specify database to manage.")
-        #if args.username is not None:
-        #    db_auth = client['admin']
-        #elif args.usercertificate is not None:
-        db_auth = client['$external']
+        if args.username is not None:
+            db_auth = client['admin']
+        elif args.usercertificate is not None:
+            db_auth = client['$external']
         if args.command == 'grant':
             result = grant_roles_to_user(db_auth, username, [args.database], args.roles)
         elif args.command == 'revoke':

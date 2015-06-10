@@ -40,6 +40,7 @@ DEFAULTS = {
 LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
     'develop', 'compmatdb_host',
     'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile',
+    'database_username', 'database_password',
     ]
 
 # File and dir names are interpreted relative to the working directory and stored as absolute path.
