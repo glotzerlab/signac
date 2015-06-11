@@ -12,6 +12,9 @@ JOB_ERROR_KEY = 'error'
 MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 1
 
+FN_MANIFEST = '.compdb.json'
+MANIFEST_KEYS = ['_id', 'project', 'parameters']
+
 from . project import JOB_DOCS
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
@@ -117,12 +120,25 @@ class Job(object):
 
     def _create_directories(self):
         import os
+        import json as serializer
         self._with_id()
+        manifest = dict()
+        for key in MANIFEST_KEYS:
+            try:
+                manifest[key] = self._spec[key]
+            except KeyError:
+                logger.warning("Failed to write '{}' to manifest.".format(key))
         for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
             try:
                 os.makedirs(dir_name)
             except OSError:
                 pass
+            fn_manifest = os.path.join(dir_name, FN_MANIFEST)
+            msg = "Writing job manifest to '{fn}'."
+            logger.debug(msg.format(fn=fn_manifest))
+            with open(fn_manifest, 'wb') as file:
+                blob = serializer.dumps(manifest)+'\n'
+                file.write(blob.encode())
 
     def _add_instance(self):
         self._project.get_jobs_collection().update(
