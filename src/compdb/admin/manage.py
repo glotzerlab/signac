@@ -48,6 +48,12 @@ def get_username(args, default = None):
     else:
         return default
 
+def manage_shell(args):
+    import code
+    client = connect_and_authenticate(args)
+    banner = "Use the 'client' variable to interact with the pymongo client."
+    code.interact(banner = banner, local = {'client': client})
+
 def display_status(args):
     client = connect_and_authenticate(args)
     status = client.admin.command("serverStatus")
@@ -56,11 +62,13 @@ def display_status(args):
         print(value)
         print()
 
-def manage_shell(args):
-    import code
+def display_info(args):
     client = connect_and_authenticate(args)
-    banner = "Use the 'client' variable to interact with the pymongo client."
-    code.interact(banner = banner, local = {'client': client})
+    dbs = client.database_names()
+    print(client)
+    print()
+    print("Databases:")
+    print(dbs)
 
 def manage_user(args):
     client = connect_and_authenticate(args)
@@ -88,7 +96,7 @@ def manage_user(args):
             if password != password2:
                 raise ValueError("Passwords do not match.")
             db_auth = client['admin']
-            print(add_scram_sha1_user(client, username, password, [args.database], arg.roles))
+            print(add_scram_sha1_user(client, username, password, [args.database], args.roles))
             print(grant_roles_to_user(db_auth, username, [args.database], args.roles))
         elif args.usercertificate is not None:
             result = add_x509_user(client, username, [args.database], args.roles)
@@ -150,15 +158,15 @@ def main():
 
     subparsers = parser.add_subparsers()
 
-    parser_status = subparsers.add_parser(
-        'status',
-        description = "Display status information.")
-    parser_status.set_defaults(func = display_status)
-
     parser_shell = subparsers.add_parser(
         'shell',
         description = "Enter an interactive mongo shell.")
     parser_shell.set_defaults(func = manage_shell)
+
+    parser_info = subparsers.add_parser(
+        'info',
+        description = "Print administrative information.")
+    parser_info.set_defaults(func = display_info)
 
     parser_user = subparsers.add_parser(
         'user',
@@ -188,6 +196,11 @@ def main():
         action = 'store_true',
         help = "Use the external database for user management. Automatically used for certificates.")
     parser_user.set_defaults(func = manage_user)
+
+    parser_status = subparsers.add_parser(
+        'status',
+        description = "Display status information.")
+    parser_status.set_defaults(func = display_status)
 
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)

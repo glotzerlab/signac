@@ -35,6 +35,7 @@ setup(
             'compdb_admin = compdb.admin.manage:main',
             'compdb_server = compdb.contrib.server:main',
             'compdb_user = compdb.contrib.admin:main',
+            'compdb_admin_project = compdb.admin.manage_project:main',
         ],
     },
 )

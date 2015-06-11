@@ -5,12 +5,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 def welcome_msg(project):
-    msg = "Administrating project '{}':"
-    print(msg.format(project))
+    msg = "Administrating project '{project}' on '{host}':"
+    print(msg.format(project=project, host=project.config['database_host']))
 
 def get_project(args):
-    from . import get_project
-    return get_project()
+    #from . import get_project
+    from ..core.config import load_config
+    from . import project
+    config = load_config()
+    try:
+        config['project'] = args.project
+    except AttributeError:
+        pass
+    return project.Project(config = config)
 
 def get_client(project):
     return project._get_client()
@@ -155,14 +162,15 @@ def show_users(args):
     welcome_msg(project)
     client = get_client(project)
     username = get_username(args)
-    dbs = ['admin', project.get_id()]
-    dbs_auth = client['admin'], client['$external']
+    #dbs = ['admin', project.get_id()]
+    dbs = 'admin', '$external', project.get_id()
+    #dbs = client['admin'], client['$external'], client[project.get_id()]
     infos = []
-    for db_auth in dbs_auth:
+    for db_auth in dbs:
         if username is None:
-            infos.append(db_auth.command('usersInfo'))
+            infos.append(client[db_auth].command('usersInfo'))
         else:
-            infos.append(db_auth.command('usersInfo', username))
+            infos.append(client[db_auth].command('usersInfo', username))
     if username is None:
         users = []
         for info in infos:
