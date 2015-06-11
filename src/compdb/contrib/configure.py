@@ -48,27 +48,26 @@ def write_config(config, args):
         #msg = "You need to use option '--global' or '--config' to specify which config file to write to."
         #raise ValueError(msg)
 
-def check_name(args):
-    from ..core.config import LEGAL_ARGS
-    if not args.force:
-        if not args.name in LEGAL_ARGS:
-            msg = "'{}' does not seem to be a valid configuration value. Use '-f' or '--force' to ignore this warning."
-            raise ValueError(msg.format(args.name))
-
 def add(args):
-    check_name(args)
     config = get_config(args, for_writing = True)
     if args.name in config:
-        msg = "Value for '{}' is already set in '{}'. Use 'set' instead of 'add' to overwrite."
-        print(msg.format(args.name, args.config))
-        return
-    config[args.name] = args.value
-    write_config(config, args)
+        msg = "Value for '{}' is already set. Use 'set' instead of 'add' to overwrite."
+        raise RuntimeError(msg.format(args.name))
+    else:
+        set_value(args)
 
 def set_value(args):
-    check_name(args)
+    from ..core.config import IllegalKeyError, IllegalArgumentError
     config = get_config(args, for_writing = True)
-    config[args.name] = args.value
+    try:
+        config.__setitem__(args.name, args.value, args.force)
+    except IllegalKeyError as error:
+        msg = "'{}' does not seem to be a valid configuration key. Use '-f' or '--force' to ignore this warning."
+        raise ValueError(msg.format(args.name))
+    except IllegalArgumentError as error:
+        msg = "Value '{value}' for '{key}' is illegal. Possible values: '{choices}'."
+        key, value, choices = error.args
+        raise ValueError(msg.format(key=args.name, value=args.value, choices=choices))
     write_config(config, args)
 
 def remove(args):
@@ -103,25 +102,6 @@ def verify(args):
         from os.path import expanduser, realpath
         args.config = realpath(expanduser(args.config))
 
-#def make_author(args):
-#    from compdb.core.config import Config
-#    import os
-#    c = {
-#        'author_name': args.name,
-#        'author_email': args.email,
-#    }
-#    config = Config()
-#    if not args.config == '-':
-#        try:
-#            config.read(args.config)
-#        except FileNotFoundError:
-#            pass
-#    config.update(c)
-#    if args.config == '-':
-#        config.dump()
-#    else:
-#        config.write(args.config)
-
 def configure(args):
     process(args)
     if args.operation == 'add':
@@ -135,7 +115,7 @@ def configure(args):
     elif args.operation == 'show':
         show(args)
     else:
-        print("Unknown operation: {}".format(args.operation))
+        raise ValueError("Unknown operation: {}".format(args.operation))
 
 HELP_OPERATION = """\
     R|Configure compdb for your local environment.

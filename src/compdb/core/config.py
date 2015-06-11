@@ -37,15 +37,43 @@ DEFAULTS = {
     'connect_timeout_ms':       5000,
 }
 
-LEGAL_ARGS = REQUIRED_KEYS + list(DEFAULTS.keys()) + [
-    'develop', 'compmatdb_host',
-    'database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile',
-    'database_username', 'database_password',
-    ]
+from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
+CHOICES = {
+    'database_auth_mechanism': SUPPORTED_AUTH_MECHANISMS,
+    'database_ssl_cert_reqs': SSL_CERT_REQS.keys(),
+}
 
 # File and dir names are interpreted relative to the working directory and stored as absolute path.
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
+
+LEGAL_ARGS = REQUIRED_KEYS\
+    + list(DEFAULTS.keys())\
+    + list(CHOICES.keys())\
+    + DIRS + FILES\
+    + [
+    'develop', 'compmatdb_host',
+    'database_username', 'database_password',
+    ]
+
+
+class IllegalKeyError(ValueError):
+    pass
+
+class IllegalArgumentError(ValueError):
+    pass
+
+def process(key, value):
+    from os.path import abspath, expanduser
+    if not key in LEGAL_ARGS:
+        raise IllegalKeyError(key)
+    if key in DIRS or key in FILES:
+        return abspath(expanduser(value))
+    if key in CHOICES:
+        if not value in CHOICES[key]:
+            raise IllegalArgumentError(key, value, CHOICES[key])
+    serializer.dumps({key: value})
+    return value
 
 class Config(object):   
 
@@ -139,11 +167,11 @@ class Config(object):
     def get(self, key, default = None):
         return self._args.get(key, DEFAULTS.get(key, default))
 
-    def __setitem__(self, key, value):
-        from os.path import abspath, expanduser
-        if key in DIRS or key in FILES:
-            value = abspath(expanduser(value))
-        self._args[key] = value
+    def __setitem__(self, key, value, force = False):
+        if force:
+            self._args[key] = value
+        else:
+            self._args[key] = process(key, value)
 
     def __contains__(self, key):
         return key in self._args
