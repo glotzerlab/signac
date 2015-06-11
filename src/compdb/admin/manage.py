@@ -48,6 +48,14 @@ def get_username(args, default = None):
     else:
         return default
 
+def display_status(args):
+    client = connect_and_authenticate(args)
+    status = client.admin.command("serverStatus")
+    for key, value in status.items():
+        print(key)
+        print(value)
+        print()
+
 def manage_shell(args):
     import code
     client = connect_and_authenticate(args)
@@ -141,6 +149,11 @@ def main():
         help = "The database to manage.")
 
     subparsers = parser.add_subparsers()
+
+    parser_status = subparsers.add_parser(
+        'status',
+        description = "Display status information.")
+    parser_status.set_defaults(func = display_status)
 
     parser_shell = subparsers.add_parser(
         'shell',
