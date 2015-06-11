@@ -120,11 +120,14 @@ class Project(object):
     def _workspace_dir(self):
         return self.config['workspace_dir']
 
-    def remove(self, force = False):
-        import pymongo.errors
-        self.get_cache().clear()
+    def clear(self, force = False):
+        self.clear_logs()
         for job in self.find_jobs():
             job.remove(force = force)
+
+    def remove(self, force = False):
+        import pymongo.errors
+        self.clear(force = force)
         try:
             host = self.config['database_host']
             client = self._get_client()

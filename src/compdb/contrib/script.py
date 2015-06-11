@@ -253,6 +253,23 @@ def clean_up(args):
     print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
+def clear(args):
+    from . import get_project
+    from . utility import query_yes_no
+    project = get_project()
+    question = "Are you sure you want to clear project '{}'?"
+    if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
+        try:
+            project.clear(force = args.force)
+        except RuntimeError as error:
+            print("Error during project clearance.")
+            if not args.force:
+                print("This can be caused by currently executed jobs.")
+                print("Try 'compdb cleanup'.")
+                if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
+                    project.clear(force = True)
+
+
 def remove(args):
     from . import get_project
     from . utility import query_yes_no
@@ -340,6 +357,13 @@ def main():
         formatter_class = SmartFormatter)
     configure.setup_parser(parser_config)
     parser_config.set_defaults(func = configure.configure)
+
+    parser_clear = subparsers.add_parser('clear')
+    parser_clear.add_argument(
+        '-f', '--force',
+        action = 'store_true',
+        help = "Ignore errors during clearance. May lead to data loss!")
+    parser_clear.set_defaults(func = clear)
 
     parser_remove = subparsers.add_parser('remove')
     parser_remove.add_argument(
