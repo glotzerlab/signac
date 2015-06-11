@@ -22,10 +22,12 @@ def add_x509_user(client, subject, databases, roles):
     values = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
     return db_external.command('createUser', subject, ** values)
 
-def add_scram_sha1_user(client, username, password):
+def add_scram_sha1_user(client, username, password, databases, roles):
     db_admin = client['admin']
-    result = db_admin.add_user(username, password)
-    return result
+    values = {
+        'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
+    values['pwd'] = password
+    return db_admin.command('createUser', username, ** values)
 
 def grant_roles_to_user(db_auth, user, databases, roles):
     values = {'roles': [{'role': role, 'db': db} for role in roles for db in databases]}
@@ -78,7 +80,7 @@ def manage_user(args):
             if password != password2:
                 raise ValueError("Passwords do not match.")
             db_auth = client['admin']
-            print(add_scram_sha1_user(client, username, password))
+            print(add_scram_sha1_user(client, username, password, [args.database], arg.roles))
             print(grant_roles_to_user(db_auth, username, [args.database], args.roles))
         elif args.usercertificate is not None:
             result = add_x509_user(client, username, [args.database], args.roles)

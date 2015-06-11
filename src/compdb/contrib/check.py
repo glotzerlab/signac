@@ -71,6 +71,14 @@ def check_project_config_online():
     finally:
         job.remove()
 
+def check_project_config_online_readonly():
+    from . import get_project
+    project = get_project()
+    project.get_id()
+    list(project.find_jobs())
+    list(project.find())
+    return True
+
 def check_project_config_offline():
     from compdb.contrib import get_project
     from compdb.contrib.errors import ConnectionFailure

@@ -121,6 +121,10 @@ def check(args):
             check.check_project_config_offline),
             ])
         checks.extend([
+            ('project configuration (online, readonly)',
+            check.check_project_config_online_readonly),
+            ])
+        checks.extend([
             ('project configuration (online)',
             check.check_project_config_online),
             ])
@@ -138,7 +142,7 @@ def check(args):
             encountered_error = True
         except pymongo.errors.OperationFailure as error:
             print()
-            print("Error: {}".format(error))
+            print("Possible authorization problem.")
             auth_mechanism = project.config['database_auth_mechanism']
             print("Your current auth mechanism is set to '{}'. Is that correct?".format(auth_mechanism))
             print("Configure the auth mechanism with:")
@@ -161,7 +165,8 @@ def check(args):
     print()
     if encountered_error:
         print("Not all checks passed.")
-        print("Use -v to increase verbosity of messages.")
+        v = '-' + 'v' * (args.verbosity + 1)
+        print("Use 'compdb {} check' to increase verbosity of messages.".format(v))
     else:
         print("All tests passed. No errors.")
 
@@ -498,6 +503,11 @@ def main():
         help = "The formatting of log messages.",
         )
     parser_log.set_defaults(func = show_log)
+
+    from compdb.contrib import admin
+    parser_admin = subparsers.add_parser('user')
+    admin.setup_parser(parser_admin)
+
     try:
         import argcomplete
         argcomplete.autocomplete(parser)
@@ -512,11 +522,12 @@ def main():
         else:
             parser.print_usage()
     except Exception as error:
-        if args.verbosity > 0:
+        if args.verbosity > 1:
             raise
         else:
             print("Error: {}".format(error))
-            print("Use -v to increase verbosity of messages.")
+            v = '-' + 'v' * (args.verbosity + 1)
+            print("Use compdb {} to increase verbosity of messages.".format(v))
             sys.exit(1)
     else:
         sys.exit(0)
