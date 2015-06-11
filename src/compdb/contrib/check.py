@@ -75,8 +75,7 @@ def check_project_config_online_readonly():
     from . import get_project
     project = get_project()
     project.get_id()
-    list(project.find_jobs())
-    list(project.find())
+    list(project.find(limit = 1))
     return True
 
 def check_project_config_offline():
