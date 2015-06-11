@@ -173,6 +173,7 @@ def main(arguments = None):
         parser = ArgumentParser(
             description = "Change the compDB configuration.",
             )
+        setup_parser(parser)
         args = parser.parse_args(arguments)
         return configure(args)
 
