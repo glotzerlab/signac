@@ -56,10 +56,19 @@ def add(args):
     else:
         set_value(args)
 
+def check(key, value):
+    import re
+    if key.endswith('email'):
+        if not re.match(RE_EMAIL, value.strip()):
+            msg = "Invalid email address: '{}'."
+            raise ValueError(msg.format(value))
+
 def set_value(args):
     from ..core.config import IllegalKeyError, IllegalArgumentError
     config = get_config(args, for_writing = True)
     try:
+        if not args.force:
+            check(args.name, args.value)
         config.__setitem__(args.name, args.value, args.force)
     except IllegalKeyError as error:
         msg = "'{}' does not seem to be a valid configuration key. Use '-f' or '--force' to ignore this warning."
