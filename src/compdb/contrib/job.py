@@ -39,7 +39,6 @@ class Job(object):
     
     def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
         import uuid, os
-        from ..core.storage import Storage
 
         self._unique_id = str(uuid.uuid4())
         self._project = project
@@ -57,10 +56,7 @@ class Job(object):
             self._rank = rank
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
-        self._create_directories()
-        self._storage = Storage(
-            fs_path = self._fs,
-            wd_path = self._wd)
+        self._storage = None
         self._dbdocument = None
         self._pulse = None
         self._pulse_stop_event = None
@@ -235,6 +231,12 @@ class Job(object):
 
     @property
     def storage(self):
+        from ..core.storage import Storage
+        if self._storage is None:
+            self._create_directories()
+            self._storage = Storage(
+                fs_path = self._fs,
+                wd_path = self._wd)
         return self._storage
 
     def _obtain_id(self):
@@ -352,7 +354,7 @@ class Job(object):
 
     def clear(self):
         self.clear_workspace_directory()
-        self._storage.clear()
+        self.storage.clear()
         self.document.clear()
         self._get_jobs_doc_collection().drop()
 
@@ -367,8 +369,8 @@ class Job(object):
     def _remove(self):
         import shutil
         self.clear()
-        self._storage.remove()
-        self._dbdocument.remove()
+        self.storage.remove()
+        self.document.remove()
         try:
             shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
