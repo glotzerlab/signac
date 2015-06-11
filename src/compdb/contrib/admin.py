@@ -59,9 +59,9 @@ def add_user(args):
     #dbs = [project.get_id()]
     username = get_username(args)
     if user_exists(client, args):
-        return _grant_revoke_roles(args, False, project)
+        _grant_revoke_roles(args, False, project)
     else:
-        return add_user_to_db(project, client, username, args)
+        add_user_to_db(project, client, username, args)
 
 def add_user_to_db(project, client, username, args):
     dbs = [project.get_id()]
@@ -77,7 +77,12 @@ def add_user_to_db(project, client, username, args):
         password2 = getpass.getpass("Confirm password: ")
         if password != password2:
             raise ValueError("Passwords do not match.")
-        add_scram_sha1_user(client, username, password, dbs, roles)
+        print("Adding user '{}' to database.".format(username))
+        result = add_scram_sha1_user(client, username, password, dbs, roles)
+        if result['ok']:
+            print('OK.')
+        else:
+            raise RuntimeError(result)
 
 def remove_user(args):
     from . utility import query_yes_no
@@ -86,8 +91,11 @@ def remove_user(args):
     client = get_client(project)
     db_auth = get_db_auth(client, args)
     username = get_username(args)
+    if not user_exists(client, args):
+        msg = "User with username '{}', not found."
+        raise ValueError(msg.format(username))
     q = "Are you sure that you want to remove user '{}' from the database?"
-    if args.yes or query_yes_no(q.format(username)):
+    if args.yes or query_yes_no(q.format(username), 'no'):
         db_auth.remove_user(username)
         print("OK.")
 
