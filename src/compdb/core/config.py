@@ -139,15 +139,16 @@ class Config(object):
         verify(self._args, strict = strict)
 
     def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
-        import tempfile
+        import tempfile, shutil
         if keys is None:
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
+        blob = serializer.dumps(args, indent=indent, sort_keys=True)
         with tempfile.NamedTemporaryFile() as file:
-            with open(filename, 'w') as file:
-                serializer.dump(args, file, indent = indent)
-            os.rename(file.name, filename)
+            file.write((blob + '\n').encode())
+            file.flush()
+            shutil.copy(file.name, filename)
 
     def _dump(self, indent = 2, keys = None):
         if keys is None:
