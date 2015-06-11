@@ -55,7 +55,7 @@ LEGAL_ARGS = REQUIRED_KEYS\
     'develop', 'compmatdb_host',
     'database_username', 'database_password',
     ]
-
+LEGAL_ARGS = list(set(LEGAL_ARGS))
 
 class IllegalKeyError(ValueError):
     pass
@@ -89,10 +89,9 @@ class Config(object):
     def read(self, filename = DEFAULT_FILENAME):
         is_root = False
         try:
-            with open(filename) as file:
-                args = serializer.loads(file.read())
-                is_root = 'project' in args
-                logger.debug("Read: {}".format(args))
+            args = read_config_file(filename)
+            logger.debug("Read: {}".format(args))
+            is_root = 'project' in args
             self._args.update(args)
         except ValueError as error:
             msg = "Failed to read config file '{}'."
@@ -103,15 +102,23 @@ class Config(object):
     def _read_files(self):
         from os.path import dirname
         root_directory = None
-        for fn in search_config_files():
-            try:
-                logger.debug("Reading config file '{}'.".format(fn))
-                is_root = self.read(fn)
+        args_chain = []
+        try:
+            for fn in search_tree():
+                args = read_config_file(fn)
+                args_chain.append(args)
+                is_root = 'project' in args
                 if is_root:
                     root_directory = dirname(fn)
-            except Exception as error:
-                msg = "Error while reading config file '{}': {}."
-                logger.error(msg.format(fn, error))
+                    break
+            for fn in search_standard_dirs():
+                args = read_config_file(fn)
+                args_chain.append(args)
+        except Exception as error:
+            msg = "Error while reading config file '{}': {}."
+            logger.error(msg.format(fn, error))
+        for args in reversed(args_chain):
+            self._args.update(args)
         if root_directory is not None:
             logger.debug("Found root: {}".format(root_directory))
             self['project_dir'] = root_directory
@@ -179,6 +186,11 @@ class Config(object):
     def __delitem__(self, key):
         del self._args[key]
 
+def read_config_file(filename):
+    logger.debug("Reading config file '{}'.".format(filename))
+    with open(filename) as file:
+        return serializer.loads(file.read())
+
 def _search_tree():
     from os import getcwd
     from os.path import realpath, join, isfile
@@ -188,7 +200,7 @@ def _search_tree():
             fn = realpath(join(cwd, filename))
             if isfile(fn):
                 yield fn
-                return
+                #return
         up = realpath(join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
@@ -199,9 +211,10 @@ def _search_tree():
             cwd = up
 
 def search_tree():
-    tree = list(_search_tree())
-    tree.reverse()
-    yield from tree
+    yield from _search_tree()
+    #tree = list(_search_tree())
+    #tree.reverse()
+    #yield from tree
 
 def search_standard_dirs():
     from os.path import realpath, join, isfile
@@ -211,10 +224,6 @@ def search_standard_dirs():
             if isfile(fn):
                 yield fn
                 return
-
-def search_config_files():
-    yield from search_standard_dirs()
-    yield from search_tree()
 
 def read_environment():
     logger.debug("Reading environment variables.")
