@@ -149,22 +149,18 @@ def collect_users(info, dbs):
                 break
 
 def collect_roles(info, dbs, username):
-    roles = []
-    for entry in info['users']:
-        if entry['user'] == username:
-            for role in entry['roles']:
-                if role['db'] in dbs:
-                    yield role['role']
-                    break
+    for users in info['users']:
+        if users['user'] == username:
+            for entry in users['roles']:
+                if entry['db'] in dbs:
+                    yield entry['role']
 
 def show_users(args):
     project = get_project(args)
     welcome_msg(project)
     client = get_client(project)
     username = get_username(args)
-    #dbs = ['admin', project.get_id()]
     dbs = 'admin', '$external', project.get_id()
-    #dbs = client['admin'], client['$external'], client[project.get_id()]
     infos = []
     for db_auth in dbs:
         if username is None:
@@ -176,18 +172,18 @@ def show_users(args):
         for info in infos:
             users.extend(collect_users(info, dbs))
         print("Registered users:")
+        for user in users:
+            roles = []
+            for info in infos:
+                roles.extend(collect_roles(info, dbs, user))
+            print('user: ', user)
+            print('roles:', roles)
     else:
-        users = [username]
         print("Roles of user '{}':".format(username))
-    for user in users:
         roles = []
         for info in infos:
-            roles.extend(collect_roles(info, dbs, user))
-        if len(users) > 1:
-            print("user: ", user)
-            print("roles:", roles)
-        else:
-            print(roles)
+            roles.extend(collect_roles(info, dbs, username))
+        print(roles)
 
 HELP_OPERATION = """\
     R|Administrate the project database.
