@@ -1,11 +1,16 @@
-# Computational Materials database
+# Computational Database
+
+## About
+
+The Computational Database (CompDB) aids in the management, access and analysis of large-scale computational investigations.
+The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaboratos.
 
 ## Requirements
   
 The computational material's database needs to connect to a MongoDB instance as database backend.
 You can obtain a copy at [MongoDB](http://www.mongodb.org).
 You will also need the python MongoDB driver `pymongo`, which should be installed automatically.
-If not try `pip install pymongo` to install the package. (or `port install py3X-pymongo` on mac)
+If not try `pip install pymongo` or `port install py3X-pymongo` on mac to install the package.
 
 The package requires Python 3 and is tested with version 3.3 and 3.4.
 
@@ -61,7 +66,7 @@ Setup a new project:
 This will create the basic configuration for a project named "MyProject" within the directory `my_project`.
 In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
 
-To test if everything is correctly setup, you can then execute `$ compdb check` which will check your configuration and the connectivity to the configured database.
+To test if everything is correctly setup, you can then execute `$ compdb check` which will check your configuration, the connectivity and permissions on the database.
 
 Add a job to the job queue:
 
