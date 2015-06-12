@@ -18,16 +18,16 @@ def connect_and_authenticate(args):
     return connector.client
 
 def add_x509_user(client, subject, databases, roles):
-    db_external = client['$external']
-    values = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
-    return db_external.command('createUser', subject, ** values)
+    db_auth = client['$external']
+    kwargs = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
+    return db_auth.command('createUser', username, ** kwargs)
 
 def add_scram_sha1_user(client, username, password, databases, roles):
-    db_admin = client['admin']
-    values = {
+    db_auth = client['admin']
+    kwargs = {
         'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
-    values['pwd'] = password
-    return db_admin.command('createUser', username, ** values)
+    kwargs['pwd'] = password
+    return db_auth.command('createUser', username, ** kwargs)
 
 def grant_roles_to_user(db_auth, user, databases, roles):
     values = {'roles': [{'role': role, 'db': db} for role in roles for db in databases]}
