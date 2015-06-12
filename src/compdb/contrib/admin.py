@@ -26,10 +26,11 @@ def get_username(args):
     from os.path import isfile
     if args.user is None:
         return None
-    if isfile(args.user):
-        from ..core.utility import get_subject_from_certificate
-        username = get_subject_from_certificate
-        return get_subject_from_certificate(args.user)
+    if args.ssl:
+        if isfile(args.user):
+            from ..core.utility import get_subject_from_certificate
+            username = get_subject_from_certificate
+            return get_subject_from_certificate(args.user)
     else:
         return args.user
 
@@ -53,9 +54,10 @@ def get_db_auth(client, args):
     else:
         return client['admin']
 
-def user_exists(client, args):
+def user_exists(client, args, db_auth = None):
+    if db_auth is None:
+        db_auth = get_db_auth(client, args)
     username = get_username(args)
-    db_auth = get_db_auth(client, args)
     info = db_auth.command('usersInfo', username)
     return bool(info['users'])
 
@@ -70,6 +72,35 @@ def add_user(args):
     else:
         add_user_to_db(project, client, username, args)
 
+def prompt_password(msg):
+    import getpass
+    pwd = getpass.getpass(msg)
+    pwd2 = getpass.getpass("Confirm password: ")
+    if pwd != pwd2:
+        raise ValueError("Passwords do not match.")
+    return pwd
+
+def update_user(args):
+    project = get_project(args)
+    welcome_msg(project)
+    client = get_client(project)
+    username = get_username(args)
+    if args.password and args.ssl:
+        msg = "No password required for SSL authentication."
+        raise ValueError(msg)
+    if args.password:
+        db_auth = client.admin
+        msg = "Enter new password for user '{}': "
+        pwd = prompt_password(msg.format(username))
+        result = db_auth.command('updateUser', username, pwd = pwd)
+        if result ['ok']:
+            print('OK.')
+        else:
+            raise RuntimeError(result)
+    else:
+        msg = "Nothing to update."
+        raise ValueError(msg)
+
 def add_user_to_db(project, client, username, args):
     dbs = [project.get_id()]
     roles = get_roles(args)
@@ -78,12 +109,8 @@ def add_user_to_db(project, client, username, args):
         add_x509_user(client, username, dbs, roles)
     else:
         from ..admin.manage import add_scram_sha1_user
-        import getpass
         msg = "Enter password for new user '{}': "
-        password = getpass.getpass(msg.format(username))
-        password2 = getpass.getpass("Confirm password: ")
-        if password != password2:
-            raise ValueError("Passwords do not match.")
+        password = prompt_password(msg.format(username))
         print("Adding user '{}' to database.".format(username))
         result = add_scram_sha1_user(client, username, password, dbs, roles)
         if result['ok']:
@@ -191,6 +218,8 @@ HELP_OPERATION = """\
 
         add:            Add a user to this project.
 
+        update:         Update a users credentials.
+
         remove:         Remove a user from this project.
 
         grant:          Grant permissions to user.
@@ -222,6 +251,16 @@ def setup_parser(parser):
         help = "Grant only read permissions to new user.")
     parser_add.set_defaults(func = add_user)
 
+    parser_update = subparsers.add_parser(
+        'update',
+        description = "Update a user's credentials.")
+    setup_subparser(parser_update)
+    parser_update.add_argument(
+        '-p', '--password',
+        action = 'store_true',
+        help = "Update a user's password.")
+    parser_update.set_defaults(func = update_user)
+
     parser_remove = subparsers.add_parser('remove')
     setup_subparser(parser_remove)
     parser_remove.set_defaults(func = remove_user)
@@ -243,11 +282,8 @@ def setup_parser(parser):
     parser_revoke.set_defaults(func = revoke_roles)
 
     parser_show = subparsers.add_parser('show')
+    setup_subparser(parser_show)
     parser_show.set_defaults(func = show_users)
-    parser_show.add_argument(
-        '-u', '--user',
-        type = str,
-        help = "A username or a path to a certificate file.")
 
 def main(arguments = None):
         from argparse import ArgumentParser
@@ -274,6 +310,9 @@ def main(arguments = None):
             else:
                 print("Error: {}".format(error))
                 return 1
+        except KeyboardInterrupt as error:
+            print("Interrupted.")
+            return 1
         else:
             return 0
 
