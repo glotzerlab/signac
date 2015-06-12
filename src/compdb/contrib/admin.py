@@ -82,7 +82,6 @@ def prompt_password(msg):
 
 def update_user(args):
     project = get_project(args)
-    welcome_msg(project)
     client = get_client(project)
     username = get_username(args)
     if args.password and args.ssl:
