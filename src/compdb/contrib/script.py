@@ -332,7 +332,6 @@ def remove(args):
         print("Nothing selected for removal.")
 
 def main():
-    import sys
     from . utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter
     from argparse import ArgumentParser
     parser = ArgumentParser(
@@ -552,9 +551,17 @@ def main():
             print("Error: {}".format(error))
             v = '-' + 'v' * (args.verbosity + 1)
             print("Use compdb {} to increase verbosity of messages.".format(v))
-            sys.exit(1)
+            return 1
+    except KeyboardInterrupt:
+        if args.verbosity > 1:
+            raise
+        else:
+            print()
+            print("Interrupted.")
+            return 1
     else:
-        sys.exit(0)
+        return 0
 
 if __name__ == '__main__':
-    main()
+    import sys
+    sys.exit(main())
