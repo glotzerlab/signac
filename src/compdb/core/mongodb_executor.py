@@ -123,7 +123,11 @@ class MongoDBExecutor(object):
                 if item == STOP_ITEM:
                     break
                 else:
-                    execute_callable(self._job_queue, self._result_collection, item, reload = reload)
+                    try:
+                        execute_callable(self._job_queue, self._result_collection, item, reload = reload)
+                    except Exception:
+                        import sys
+                        sys.exit(1)
     
     def stop(self):
         self._stop_event.set()

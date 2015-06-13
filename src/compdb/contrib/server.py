@@ -37,10 +37,13 @@ def start(timeout = 300, reload = False, combine = False, logtodb = True):
                 reload = reload)
     except Empty:
         print("Queue empty, timed out.")
+        return 2
     except (KeyboardInterrupt, SystemExit):
         print("Interrupted, exiting.")
+        return 1
     else:
         print("Exiting.")
+        return 0
 
 def setup_parser(parser):
     parser.add_argument(
@@ -75,5 +78,6 @@ def main(arguments = None):
     return start_with_args(args)
 
 if __name__ == '__main__':
+    import sys
     logging.basicConfig(level = logging.INFO)
-    main()
+    sys.exit(main())
