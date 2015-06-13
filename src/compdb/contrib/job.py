@@ -132,9 +132,13 @@ class Job(object):
             fn_manifest = os.path.join(dir_name, FN_MANIFEST)
             msg = "Writing job manifest to '{fn}'."
             logger.debug(msg.format(fn=fn_manifest))
-            with open(fn_manifest, 'wb') as file:
-                blob = serializer.dumps(manifest)+'\n'
-                file.write(blob.encode())
+            try:
+                with open(fn_manifest, 'wb') as file:
+                    blob = serializer.dumps(manifest)+'\n'
+                    file.write(blob.encode())
+            except FileNotFoundError as error:
+                msg = "Unable to write manifest file to '{}'."
+                raise RuntimeError(msg.format(fn_manifest)) from error
 
     def _add_instance(self):
         self._project.get_jobs_collection().update(
