@@ -63,7 +63,7 @@ class IllegalKeyError(ValueError):
 class IllegalArgumentError(ValueError):
     pass
 
-def process(key, value):
+def process_set(key, value):
     from os.path import abspath, expanduser
     if not key in LEGAL_ARGS:
         raise IllegalKeyError(key)
@@ -72,7 +72,17 @@ def process(key, value):
     if key in CHOICES:
         if not value in CHOICES[key]:
             raise IllegalArgumentError(key, value, CHOICES[key])
-    serializer.dumps({key: value})
+    if key.endswith('password'):
+        import base64
+        return base64.standard_b64encode(value.encode()).decode()
+    return value
+
+def process_get(key, value):
+    if value is None:
+        return None
+    if key.endswith('password'):
+        import base64
+        return base64.standard_b64decode(value.encode()).decode()
     return value
 
 class Config(object):   
@@ -166,20 +176,22 @@ class Config(object):
     def __getitem__(self, key):
         try:
             v = self._args.get(key)
-            return DEFAULTS[key] if v is None else v
+            return process_get(
+                key, DEFAULTS[key] if v is None else v)
         except KeyError as error:
             msg = "Missing config key: '{key}'. "
             msg += "Try 'compdb config add {key} [your_value]"
             raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):
-        return self._args.get(key, DEFAULTS.get(key, default))
+        return process_get(
+            key, self._args.get(key, DEFAULTS.get(key, default)))
 
     def __setitem__(self, key, value, force = False):
         if force:
             self._args[key] = value
         else:
-            self._args[key] = process(key, value)
+            self._args[key] = process_set(key, value)
 
     def __contains__(self, key):
         return key in self._args
