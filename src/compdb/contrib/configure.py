@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from os.path import expanduser
+from . utility import prompt_password
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
@@ -18,6 +19,9 @@ def process(args):
     if args.name: 
         if args.name in DIRS or args.name in FILES:
             args.value = abspath(expanduser(args.value))
+        if args.name.endswith('password'):
+            if not args.value:
+                args.value = prompt_password()
 
 def get_config(args, for_writing = False):
     from compdb.core.config import Config, load_config

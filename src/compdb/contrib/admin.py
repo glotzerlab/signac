@@ -4,6 +4,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from .utility import prompt_password
+
 def welcome_msg(project):
     msg = "Administrating project '{project}' on '{host}':"
     print(msg.format(project=project, host=project.config['database_host']))
@@ -71,14 +73,6 @@ def add_user(args):
         _grant_revoke_roles(args, False, project)
     else:
         add_user_to_db(project, client, username, args)
-
-def prompt_password(msg):
-    import getpass
-    pwd = getpass.getpass(msg)
-    pwd2 = getpass.getpass("Confirm password: ")
-    if pwd != pwd2:
-        raise ValueError("Passwords do not match.")
-    return pwd
 
 def update_user(args):
     project = get_project(args)

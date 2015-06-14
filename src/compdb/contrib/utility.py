@@ -40,6 +40,15 @@ def query_yes_no(question, default="yes"):
 #Please respond with 'yes' or 'no' (or 'y' or 'n').
 #Is cabbage yummier than cauliflower? [Y/n] y
 #>>> True
+
+def prompt_password(prompt = 'Password: '):
+    import getpass
+    pwd = getpass.getpass(prompt)
+    pwd2 = getpass.getpass("Confirm password: ")
+    if pwd != pwd2:
+        raise ValueError("Passwords do not match.")
+    return pwd
+
 def add_verbosity_argument(parser, default = 0):
     """Add a verbosity argument to parser.
 
