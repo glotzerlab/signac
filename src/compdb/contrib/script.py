@@ -14,15 +14,18 @@ def info(args):
         args.jobs = True
         args.pulse = True
         args.queue = True
-
-    print(project)
+    if not args.no_title:
+        print(project)
     if args.more:
         print(project.root_directory())
     if args.status:
         print("{} registered job(s)".format(len(list(project.find_job_ids()))))
         print("{} active job(s)".format(len(list(project.active_jobs()))))
     if args.jobs:
-        legit_ids = project.find_job_ids()
+        if args.only_open:
+            legit_ids = project.active_jobs()
+        else:
+            legit_ids = project.find_job_ids()
         if args.jobs is True:
             known_ids = legit_ids
         else:
@@ -445,6 +448,10 @@ def main():
         help = "Lists the jobs of this project. Provide a comma-separated list to show only a subset.",
         )
     parser_info.add_argument(
+        '--only-open',
+        action = 'store_true',
+        help = "Only list open jobs.")
+    parser_info.add_argument(
         '-s', '--status',
         action = 'store_true',
         help = "Print status information.")
@@ -464,6 +471,10 @@ def main():
         '-a', '--all',
         action = 'store_true',
         help = "Show everything.")
+    parser_info.add_argument(
+        '--no-title',
+        action = 'store_true',
+        help = "Do not print the title. Useful for parsing scripts.")
     parser_info.set_defaults(func = info)
     
     parser_view = subparsers.add_parser('view')
