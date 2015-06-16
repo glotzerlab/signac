@@ -1,7 +1,14 @@
-def get_project():
+def get_project(project_path = None):
     from . project import Project
     open_job.project = None
-    project = Project()
+    if project_path is not None:
+        import os
+        cwd = os.getcwd()
+        os.chdir(project_path)
+        project = Project()
+        os.chdir(cwd)
+    else:
+        project = Project()
     project.get_id()
     return project
 
