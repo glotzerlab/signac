@@ -32,7 +32,7 @@ def valid_name(name):
 class RollBackupExistsError(RuntimeError):
     pass
 
-class Project(object):
+class BasicProject(object):
     
     def __init__(self, config = None):
         if config is None:
@@ -114,34 +114,6 @@ class Project(object):
     def collection(self):
         return self.get_project_db()[JOB_DOCS]
 
-    def filestorage_dir(self):
-        return self.config['filestorage_dir']
-
-    def _workspace_dir(self):
-        return self.config['workspace_dir']
-
-    def clear(self, force = False):
-        self.clear_logs()
-        for job in self.find_jobs():
-            job.remove(force = force)
-
-    def remove(self, force = False):
-        import pymongo.errors
-        self.clear(force = force)
-        try:
-            host = self.config['database_host']
-            client = self._get_client()
-            client.drop_database(self.get_id())
-        except pymongo.errors.ConnectionFailure as error:
-            msg = "{}: Failed to remove project database on '{}'."
-            raise ConnectionFailure(msg.format(self.get_id(), host)) from error
-
-    def lock_job(self, job_id, blocking = True, timeout = -1):
-        from . concurrency import DocumentLock
-        return DocumentLock(
-            self.get_jobs_collection(), job_id,
-            blocking = blocking, timeout = timeout)
-
     def get_milestones(self, job_id):
         from . milestones import Milestones
         return Milestones(self, job_id)
@@ -173,30 +145,6 @@ class Project(object):
         })
         return spec
 
-    def get_job(self, job_id, blocking = True, timeout = -1):
-        from . job import Job
-        return Job(
-            project = self,
-            spec = {'_id': job_id},
-            blocking = blocking, timeout = timeout)
-
-    def _open_job(self, spec, blocking = True, timeout = -1, rank = 0):
-        from . job import Job
-        return Job(
-            project = self,
-            spec = spec,
-            blocking = blocking,
-            timeout = timeout,
-            rank = rank)
-
-    def open_job(self, parameters = None, blocking = True, timeout = -1, rank = 0):
-        spec = self._job_spec(parameters = parameters)
-        return self._open_job(
-            spec = spec,
-            blocking = blocking,
-            timeout = timeout,
-            rank = rank)
-
     def _job_spec_modifier(self, job_spec = {}, develop = None):
         from copy import copy
         job_spec_ = copy(job_spec)
@@ -219,30 +167,10 @@ class Project(object):
         for doc in docs:
             yield doc['_id']
     
-    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
-        if job_spec is None:
-            job_spec = {}
-        else:
-            job_spec = {'parameters.{}'.format(k): v for k,v in job_spec.items()}
-        job_ids = list(self.find_job_ids(job_spec))
-        if spec is not None:
-            spec.update({'_id': {'$in': job_ids}})
-            docs = self.collection.find(spec)
-            job_ids = (doc['_id'] for doc in docs)
-        for _id in job_ids:
-            yield self._open_job({'_id': _id}, blocking, timeout)
-    
     def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
         job_ids = self.find_job_ids(job_spec)
         spec.update({'_id': {'$in': list(job_ids)}})
         yield from self.collection.find(spec, * args, ** kwargs)
-
-    def clear_develop(self, force = True):
-        spec = {'develop': True}
-        job_ids = self.find_job_ids(spec)
-        for develop_job in self.find_jobs(spec):
-            develop_job.remove(force = force)
-        self.collection.remove({'id': {'$in': list(job_ids)}})
 
     def active_jobs(self):
         spec = {
@@ -266,20 +194,6 @@ class Project(object):
             doc = self.get_jobs_collection().find_one(
                 {hb_key: {'$exists': True}})
             yield uid, doc['pulse'][uid]
-
-    def kill_dead_jobs(self, seconds = 5 * PULSE_PERIOD):
-        import datetime
-        from datetime import datetime, timedelta
-        cut_off = datetime.utcnow() - timedelta(seconds = seconds)
-        uids = self._unique_jobs_from_pulse()
-        for uid in uids:
-            hbkey = 'pulse.{}'.format(uid)
-            doc = self.get_jobs_collection().update(
-                #{'pulse.{}'.format(uid): {'$exists': True},
-                {hbkey: {'$lt': cut_off}},
-                {   '$pull': {'executing': uid},
-                    '$unset': {hbkey: ''},
-                })
 
     def _aggregate_parameters(self, job_spec = {}):
         pipe = [
@@ -318,6 +232,148 @@ class Project(object):
                 msg = "Unknown parameter: {}"
                 raise KeyError(msg.format(error)) from error
             yield src, dst
+
+    def dump_db_snapshot(self):
+        from bson.json_util import dumps
+        spec = self._job_spec_modifier(develop = False)
+        job_docs = self.get_jobs_collection().find(spec)
+        for doc in job_docs:
+            print(dumps(doc))
+        docs = self.find()
+        for doc in docs:
+            print(dumps(doc))
+
+    def _get_logging_collection(self):
+        return self.get_project_db()[COLLECTION_LOGGING]
+
+    def clear_logs(self):
+        self._get_logging_collection().drop()
+
+    def _logging_db_handler(self, lock_id = None):
+        from . logging import MongoDBHandler
+        return MongoDBHandler(
+            collection = self._get_logging_collection(),
+            lock_id = lock_id)
+
+    def logging_handler(self):
+        return self._logging_queue_handler
+
+    def start_logging(self, level = logging.INFO):
+        for logger in self._loggers:
+            logger.addHandler(self.logging_handler())
+        if self._logging_listener is None:
+            self._logging_listener = QueueListener(
+                self._logging_queue, self._logging_db_handler())
+        self._logging_listener.start()
+
+    def stop_logging(self):
+        self._logging_listener.stop()
+
+    def get_logs(self, level = logging.INFO, limit = 0):
+        from . logging import record_from_doc
+        log_collection = self._get_logging_collection()
+        log_collection.create_index('created')
+        try:
+            levelno = int(level)
+        except ValueError:
+            levelno = logging.getLevelName(level)
+        spec = {'levelno': {'$gte': levelno}}
+        sort = [('created', 1)]
+        if limit:
+            skip = max(0, log_collection.find(spec).count() - limit)
+        else:
+            skip = 0
+        docs = log_collection.find(spec).sort(sort).skip(skip)
+        for doc in docs:
+            yield record_from_doc(doc)
+
+class Project(BasicProject):
+
+    def filestorage_dir(self):
+        return self.config['filestorage_dir']
+
+    def _workspace_dir(self):
+        return self.config['workspace_dir']
+
+    def clear(self, force = False):
+        self.clear_logs()
+        for job in self.find_jobs():
+            job.remove(force = force)
+
+    def remove(self, force = False):
+        import pymongo.errors
+        self.clear(force = force)
+        try:
+            host = self.config['database_host']
+            client = self._get_client()
+            client.drop_database(self.get_id())
+        except pymongo.errors.ConnectionFailure as error:
+            msg = "{}: Failed to remove project database on '{}'."
+            raise ConnectionFailure(msg.format(self.get_id(), host)) from error
+
+    def lock_job(self, job_id, blocking = True, timeout = -1):
+        from . concurrency import DocumentLock
+        return DocumentLock(
+            self.get_jobs_collection(), job_id,
+            blocking = blocking, timeout = timeout)
+
+    def get_job(self, job_id, blocking = True, timeout = -1):
+        from . job import Job
+        return Job(
+            project = self,
+            spec = {'_id': job_id},
+            blocking = blocking, timeout = timeout)
+
+    def _open_job(self, spec, blocking = True, timeout = -1, rank = 0):
+        from . job import Job
+        return Job(
+            project = self,
+            spec = spec,
+            blocking = blocking,
+            timeout = timeout,
+            rank = rank)
+
+    def open_job(self, parameters = None, blocking = True, timeout = -1, rank = 0):
+        spec = self._job_spec(parameters = parameters)
+        return self._open_job(
+            spec = spec,
+            blocking = blocking,
+            timeout = timeout,
+            rank = rank)
+
+    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
+        if job_spec is None:
+            job_spec = {}
+        else:
+            job_spec = {'parameters.{}'.format(k): v for k,v in job_spec.items()}
+        job_ids = list(self.find_job_ids(job_spec))
+        if spec is not None:
+            spec.update({'_id': {'$in': job_ids}})
+            docs = self.collection.find(spec)
+            job_ids = (doc['_id'] for doc in docs)
+        for _id in job_ids:
+            yield self._open_job({'_id': _id}, blocking, timeout)
+
+    def clear_develop(self, force = True):
+        spec = {'develop': True}
+        job_ids = self.find_job_ids(spec)
+        for develop_job in self.find_jobs(spec):
+            develop_job.remove(force = force)
+        self.collection.remove({'id': {'$in': list(job_ids)}})
+
+    def kill_dead_jobs(self, seconds = 5 * PULSE_PERIOD):
+        import datetime
+        from datetime import datetime, timedelta
+        cut_off = datetime.utcnow() - timedelta(seconds = seconds)
+        uids = self._unique_jobs_from_pulse()
+        for uid in uids:
+            hbkey = 'pulse.{}'.format(uid)
+            doc = self.get_jobs_collection().update(
+                #{'pulse.{}'.format(uid): {'$exists': True},
+                {hbkey: {'$lt': cut_off}},
+                {   '$pull': {'executing': uid},
+                    '$unset': {hbkey: ''},
+                })
 
     def get_storage_links(self, url = None):
         import re
@@ -379,16 +435,6 @@ class Project(object):
         for src, dst in self._get_links(url, parameters, fs):
             head, tail = os.path.split(dst)
             yield cmd.format(src = src, head = head, tail = tail)
-
-    def dump_db_snapshot(self):
-        from bson.json_util import dumps
-        spec = self._job_spec_modifier(develop = False)
-        job_docs = self.get_jobs_collection().find(spec)
-        for doc in job_docs:
-            print(dumps(doc))
-        docs = self.find()
-        for doc in docs:
-            print(dumps(doc))
 
     def _create_db_snapshot(self, dst):
         import os
@@ -630,50 +676,6 @@ class Project(object):
         from copy import copy
         return JobPool(self, parameter_set, copy(include), copy(exclude))
 
-    def _get_logging_collection(self):
-        return self.get_project_db()[COLLECTION_LOGGING]
-
-    def clear_logs(self):
-        self._get_logging_collection().drop()
-
-    def _logging_db_handler(self, lock_id = None):
-        from . logging import MongoDBHandler
-        return MongoDBHandler(
-            collection = self._get_logging_collection(),
-            lock_id = lock_id)
-
-    def logging_handler(self):
-        return self._logging_queue_handler
-
-    def start_logging(self, level = logging.INFO):
-        for logger in self._loggers:
-            logger.addHandler(self.logging_handler())
-        if self._logging_listener is None:
-            self._logging_listener = QueueListener(
-                self._logging_queue, self._logging_db_handler())
-        self._logging_listener.start()
-
-    def stop_logging(self):
-        self._logging_listener.stop()
-
-    def get_logs(self, level = logging.INFO, limit = 0):
-        from . logging import record_from_doc
-        log_collection = self._get_logging_collection()
-        log_collection.create_index('created')
-        try:
-            levelno = int(level)
-        except ValueError:
-            levelno = logging.getLevelName(level)
-        spec = {'levelno': {'$gte': levelno}}
-        sort = [('created', 1)]
-        if limit:
-            skip = max(0, log_collection.find(spec).count() - limit)
-        else:
-            skip = 0
-        docs = log_collection.find(spec).sort(sort).skip(skip)
-        for doc in docs:
-            yield record_from_doc(doc)
-
     @property
     def job_queue(self):
         if self._job_queue is None:
@@ -683,3 +685,4 @@ class Project(object):
             collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(mongodb_queue, collection_job_results)
         return self._job_queue
+

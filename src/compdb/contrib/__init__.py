@@ -12,6 +12,36 @@ def get_project(project_path = None):
     project.get_id()
     return project
 
+def get_basic_project_from_id(project_id):
+    from .project import BasicProject
+    from ..core.config import load_config
+    config = load_config()
+    config['project'] = project_id
+    return BasicProject(config)
+
+def get_all_project_ids():
+    from .project import Project
+    from ..core.config import load_config
+    from ..core.dbclient_connector import DBClientConnector
+    config = load_config()
+    connector = DBClientConnector(config, prefix = 'database_')
+    connector.connect()
+    connector.authenticate()
+    for dbname in connector.client.database_names():
+        config['project'] = dbname
+        project = Project(config)
+        try:
+            next(project.find_job_ids())
+        except StopIteration:
+            continue
+        else:
+            yield dbname
+
+def get_all_active_jobs():
+    for project_id in get_all_project_ids():
+        project = get_basic_project_from_id(project_id)
+        yield from project.active_jobs()
+
 def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
     raise PendingDeprecationWarning()
     project = get_project()
