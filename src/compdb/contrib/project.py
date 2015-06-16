@@ -659,6 +659,7 @@ class Project(object):
     def get_logs(self, level = logging.INFO, limit = 0):
         from . logging import record_from_doc
         log_collection = self._get_logging_collection()
+        log_collection.create_index('created')
         try:
             levelno = int(level)
         except ValueError:
