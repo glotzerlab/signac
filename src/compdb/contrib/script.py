@@ -8,7 +8,11 @@ def has_active_jobs(project):
 
 def info(args):
     from compdb.contrib import get_project
-    project = get_project()
+    project = get_project(args.project)
+    if args.regex:
+        args.separator = '|'
+        args.no_title = True
+        args.jobs = True
     if args.all:
         args.status = True
         args.jobs = True
@@ -22,7 +26,9 @@ def info(args):
         print("{} registered job(s)".format(len(list(project.find_job_ids()))))
         print("{} active job(s)".format(len(list(project.active_jobs()))))
     if args.jobs:
-        if args.only_open:
+        if args.regex:
+            print('(', end='')
+        if args.open_only:
             legit_ids = project.active_jobs()
         else:
             legit_ids = project.find_job_ids()
@@ -35,16 +41,26 @@ def info(args):
             if unknown_ids:
                 print("Unknown ids: {}".format(','.join(unknown_ids)))
         if args.status:
-            print("Job ID{}".format(' ' * 26), "Open Instances")
+            if args.separator == '\n':
+                print("Job ID{}".format(' ' * 26), "Open Instances")
+            else:
+                print("JobID OpenInstances")
+        sep = None
         for known in known_ids:
+            if sep:
+                print(sep, end='')
             job = project.get_job(known)
             if args.status:
-                print(job, job.num_open_instances())
+                print(job, job.num_open_instances(), end='')
             else:
-                print(job)
+                print(job, end='')
             if args.more:
                 from bson.json_util import dumps
-                print(dumps(job.spec['parameters'], sort_keys = True))
+                print('\n' + dumps(job.spec['parameters'], sort_keys = True), end='')
+            sep = args.separator
+        if args.regex:
+            print(')', end='')
+        print()
     if args.pulse:
         from datetime import datetime
         from compdb.contrib.job import PULSE_PERIOD
@@ -83,7 +99,7 @@ def view(args):
     from . utility import query_yes_no
     from os.path import join, exists
     from os import listdir
-    project = get_project()
+    project = get_project(args.project)
     if args.url:
         url = join(args.prefix, args.url)
     else:
@@ -106,7 +122,7 @@ def check(args):
     from .errors import ConnectionFailure
     import pymongo
     from compdb.contrib import get_project
-    project = get_project()
+    project = get_project(args.project)
     encountered_error = False
     checks = [
         ('global configuration',
@@ -186,7 +202,7 @@ def show_log(args):
         fmt = args.format,
         #datefmt = "%Y-%m-%d %H:%M:%S",
         style = '{')
-    project = get_project()
+    project = get_project(args.project)
     showed_log = False
     for record in project.get_logs(
             level = args.level, limit = args.lines):
@@ -205,7 +221,7 @@ def store_snapshot(args):
             pass
         else:
             return
-    project = get_project()
+    project = get_project(args.project)
     try:
         if args.database_only:
             print("Creating project database snapshot.")
@@ -223,7 +239,7 @@ def restore_snapshot(args):
     from . import get_project
     from . utility import query_yes_no
     from . project import RollBackupExistsError
-    project = get_project()
+    project = get_project(args.project)
     print("Trying to restore from: {}".format(args.snapshot))
     try:
         project.restore_snapshot(args.snapshot)
@@ -251,7 +267,7 @@ def restore_snapshot(args):
 
 def clean_up(args):
     from . import get_project
-    project = get_project()
+    project = get_project(args.project)
     msg = "Killing all jobs without sign of life for more than {} seconds."
     print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
@@ -259,7 +275,7 @@ def clean_up(args):
 def clear(args):
     from . import get_project
     from . utility import query_yes_no
-    project = get_project()
+    project = get_project(args.project)
     question = "Are you sure you want to clear project '{}'?"
     if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
         try:
@@ -276,7 +292,7 @@ def clear(args):
 def remove(args):
     from . import get_project
     from . utility import query_yes_no
-    project = get_project()
+    project = get_project(args.project)
     if args.project:
         question = "Are you sure you want to remove project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
@@ -340,6 +356,10 @@ def main():
     parser = ArgumentParser(
         description = "CompDB - Computational Database",
         formatter_class = SmartFormatter)
+    parser.add_argument(
+        '-p', '--project',
+        type = str,
+        help = "The path to the project directory, defaults to the current working directory.")
     parser.add_argument(
         '-y', '--yes',
         action = 'store_true',
@@ -448,9 +468,14 @@ def main():
         help = "Lists the jobs of this project. Provide a comma-separated list to show only a subset.",
         )
     parser_info.add_argument(
-        '--only-open',
+        '--open-only',
         action = 'store_true',
         help = "Only list open jobs.")
+    parser_info.add_argument(
+        '--separator',
+        type = str,
+        default = '\n',
+        help = "Character with which to seperate job ids.")
     parser_info.add_argument(
         '-s', '--status',
         action = 'store_true',
@@ -475,6 +500,10 @@ def main():
         '--no-title',
         action = 'store_true',
         help = "Do not print the title. Useful for parsing scripts.")
+    parser_info.add_argument(
+        '--regex',
+        action = 'store_true',
+        help = "Print job ids as regex expression.")
     parser_info.set_defaults(func = info)
     
     parser_view = subparsers.add_parser('view')
