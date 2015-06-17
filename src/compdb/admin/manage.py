@@ -63,12 +63,14 @@ def display_status(args):
         print()
 
 def display_info(args):
+    from ..contrib import get_all_project_ids, get_basic_project_from_id
     client = connect_and_authenticate(args)
-    dbs = client.database_names()
-    print(client)
-    print()
-    print("Databases:")
-    print(dbs)
+    for project_id in get_all_project_ids(client):
+        project = get_basic_project_from_id(project_id, client=client)
+        n_jobs = len(list(project.active_jobs()))
+        print(project_id)
+        print("Active jobs: {num}".format(num=n_jobs))
+        print()
 
 def manage_user(args):
     client = connect_and_authenticate(args)

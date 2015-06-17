@@ -34,7 +34,7 @@ class RollBackupExistsError(RuntimeError):
 
 class BasicProject(object):
     
-    def __init__(self, config = None):
+    def __init__(self, config = None, client = None):
         if config is None:
             from compdb.core.config import load_config
             config = load_config()
@@ -44,7 +44,7 @@ class BasicProject(object):
         self._logging_queue = Queue()
         self._logging_queue_handler = QueueHandler(self._logging_queue)
         self._logging_listener = None
-        self._client = None
+        self._client = client
         self._job_queue = None
 
     def __str__(self):

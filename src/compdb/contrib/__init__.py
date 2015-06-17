@@ -12,22 +12,24 @@ def get_project(project_path = None):
     project.get_id()
     return project
 
-def get_basic_project_from_id(project_id):
+def get_basic_project_from_id(project_id, client = None):
     from .project import BasicProject
     from ..core.config import load_config
     config = load_config()
     config['project'] = project_id
-    return BasicProject(config)
+    return BasicProject(config=config, client=client)
 
-def get_all_project_ids():
+def get_all_project_ids(client = None):
     from .project import Project
     from ..core.config import load_config
     from ..core.dbclient_connector import DBClientConnector
     config = load_config()
-    connector = DBClientConnector(config, prefix = 'database_')
-    connector.connect()
-    connector.authenticate()
-    for dbname in connector.client.database_names():
+    if client is None:
+        connector = DBClientConnector(config, prefix = 'database_')
+        connector.connect()
+        connector.authenticate()
+        client = connector.client
+    for dbname in client.database_names():
         config['project'] = dbname
         project = Project(config)
         try:
