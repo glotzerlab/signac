@@ -1,4 +1,4 @@
-# PYTHON_ARGCOMPLETE_OK
+# PYTHON_ARGCOMPLETE_NOT_OK
 import logging
 logger = logging.getLogger(__name__)
 
@@ -268,7 +268,7 @@ def restore_snapshot(args):
 def clean_up(args):
     from . import get_project
     project = get_project(args.project)
-    msg = "Killing all jobs without sign of life for more than {} seconds."
+    msg = "Clearing database for all jobs without sign of life for more than {} seconds."
     print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
