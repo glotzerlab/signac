@@ -12,14 +12,12 @@ def welcome_msg(project):
 
 def get_project(args):
     #from . import get_project
-    from ..core.config import load_config
-    from . import project
-    config = load_config()
-    try:
-        config['project'] = args.project
-    except AttributeError:
-        pass
-    return project.Project(config = config)
+    from compdb.contrib import get_project
+    from compdb.contrib import get_basic_project_from_id
+    if args.project:
+        return get_basic_project_from_id(args.project)
+    else:
+        return get_project()
 
 def get_client(project):
     return project._get_client()
