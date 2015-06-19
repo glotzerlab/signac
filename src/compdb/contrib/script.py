@@ -8,7 +8,11 @@ def has_active_jobs(project):
 
 def info(args):
     from compdb.contrib import get_project
-    project = get_project(args.project)
+    from compdb.contrib import get_basic_project_from_id
+    if args.project:
+        project = get_basic_project_from_id(args.project)
+    else:
+        project = get_project()
     if args.regex:
         args.separator = '|'
         args.no_title = True
@@ -23,8 +27,25 @@ def info(args):
     if args.more:
         print(project.root_directory())
     if args.status:
-        print("{} registered job(s)".format(len(list(project.find_job_ids()))))
-        print("{} active job(s)".format(len(list(project.active_jobs()))))
+        from compdb.contrib.job import PULSE_PERIOD
+        from datetime import datetime
+        n_registered = len(list(project.find_job_ids()))
+        n_active = len(list(project.active_jobs()))
+        n_pot_dead = 0
+        n_w_pulse = 0
+        for uid, age in project.job_pulse():
+            n_w_pulse += 1
+            delta = datetime.utcnow() - age
+            if delta.total_seconds() > PULSE_PERIOD:
+                n_pot_dead += 1
+        print("{} registered job(s)".format(n_registered))
+        print("{} active job(s)".format(n_active))
+        if n_pot_dead:
+            print("{} potentially dead job(s)".format(n_pot_dead))
+            if not args.pulse:
+                print("Use 'compdb info -p' to check job status and 'compdb cleanup' to remove dead jobs from the database.")
+        if n_w_pulse != n_active:
+            print("The database records for the number of active jobs and the number of pulse processes deviates. Inform the DB administrator.")
     if args.jobs:
         if args.regex:
             print('(', end='')
@@ -49,12 +70,13 @@ def info(args):
         for known in known_ids:
             if sep:
                 print(sep, end='')
-            job = project.get_job(known)
             if args.status:
+                job = project.get_job(known)
                 print(job, job.num_open_instances(), end='')
             else:
-                print(job, end='')
+                print(known, end='')
             if args.more:
+                job = project.get_job(known)
                 from bson.json_util import dumps
                 print('\n' + dumps(job.spec['parameters'], sort_keys = True), end='')
             sep = args.separator
