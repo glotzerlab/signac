@@ -162,17 +162,19 @@ class Job(object):
             'collection': self._project.get_jobs_collection(),
             'job_id': self.get_id(),
             'unique_id': self._unique_id}
-        try:
-            self._pulse_stop_event = multiprocessing.Event()
-            kwargs['stop_event'] = self._pulse_stop_event
-            self._pulse = Process(target = pulse_worker, kwargs = kwargs, daemon = True)
-            self._pulse.start()
-        except AssertionError as error:
-            logger.debug("Failed to start pulse process, falling back to pulse thread.")
-            self._pulse_stop_event = threading.Event()
-            kwargs['stop_event'] = self._pulse_stop_event
-            self._pulse = Thread(target = pulse_worker, kwargs = kwargs)
-            self._pulse.start()
+        if not _self._project.config.get('noforking', False):
+            try:
+                self._pulse_stop_event = multiprocessing.Event()
+                kwargs['stop_event'] = self._pulse_stop_event
+                self._pulse = Process(target = pulse_worker, kwargs = kwargs, daemon = True)
+                self._pulse.start()
+                return
+            except AssertionError as error:
+                logger.debug("Failed to start pulse process, falling back to pulse thread.")
+        self._pulse_stop_event = threading.Event()
+        kwargs['stop_event'] = self._pulse_stop_event
+        self._pulse = Thread(target = pulse_worker, kwargs = kwargs)
+        self._pulse.start()
 
     def _stop_pulse(self):
         if self._pulse is not None:

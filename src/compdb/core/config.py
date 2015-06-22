@@ -35,6 +35,7 @@ DEFAULTS = {
     'database_meta':            'compdb',
     'database_compmatdb':       'compmatdb',
     'connect_timeout_ms':       5000,
+    'noforking':                False,
 }
 
 from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
