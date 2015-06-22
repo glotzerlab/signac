@@ -162,7 +162,7 @@ class Job(object):
             'collection': self._project.get_jobs_collection(),
             'job_id': self.get_id(),
             'unique_id': self._unique_id}
-        if not _self._project.config.get('noforking', False):
+        if not self._project.config.get('noforking', False):
             try:
                 self._pulse_stop_event = multiprocessing.Event()
                 kwargs['stop_event'] = self._pulse_stop_event
