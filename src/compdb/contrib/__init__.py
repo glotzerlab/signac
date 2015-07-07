@@ -1,3 +1,5 @@
+import warnings
+
 def get_project(project_path = None):
     from . project import Project
     open_job.project = None
@@ -44,8 +46,17 @@ def get_all_active_jobs():
         project = get_basic_project_from_id(project_id)
         yield from project.active_jobs()
 
+def sleep_random(time = 1.0):
+    from random import uniform
+    from time import sleep
+    sleep(uniform(0, time))
+
+#
+# All functions beyond this point are deprecated.
+#
+
 def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
-    raise PendingDeprecationWarning()
+    warnings.warn("The module-wide 'open_job' function is deprecated. Use 'project.open_job' instead.", DeprecationWarning)
     project = get_project()
     return project.open_job(
         parameters = parameters,
@@ -53,16 +64,12 @@ def open_job(parameters = None, blocking = True, timeout = -1, rank = 0):
         rank = rank)
 
 def find_jobs(job_spec = {}, spec = None):
-    raise PendingDeprecationWarning()
+    warnings.warn("The module-wide 'find_jobs' function is deprecated. Use 'project.find_jobs' instead.", DeprecationWarning)
     project = get_project()
     yield from project.find_jobs(job_spec, spec)
 
 def find(job_spec = {}, spec = {}):
+    warnings.warn("The module-wide 'find' function is deprecated. Use 'project.find' instead.", DeprecationWarning)
     raise PendingDeprecationWarning()
     project = get_project()
     yield from project.find(job_spec, spec)
-
-def sleep_random(time = 1.0):
-    from random import uniform
-    from time import sleep
-    sleep(uniform(0, time))

@@ -12,6 +12,8 @@ JOB_DOCS = 'compdb_job_docs'
 JOB_META_DOCS = 'compdb_jobs'
 from . job import PULSE_PERIOD
 
+COMPDB_PREFIX = 'compdb_'
+
 FN_DUMP_JOBS = 'compdb_jobs.json'
 FN_DUMP_STORAGE = 'storage'
 FN_DUMP_DB = 'dump'
@@ -29,69 +31,51 @@ PYMONGO_3 = pymongo.version_tuple[0] == 3
 from ..core.mongodb_queue import Empty
 
 def valid_name(name):
-    return not name.startswith('compdb')
-
-class RollBackupExistsError(RuntimeError):
-    pass
+    return not name.startswith(COMPDB_PREFIX)
 
 class BaseProject(object):
     """Base class for all project classes.
 
-    All properties and methods in this class do not require a online database connection."""
+    All properties and methods in this class do not require a online database connection.
+    Application developers should usually not need to instantiate this class.
+    See ``Project`` instead.
+    """
     
     def __init__(self, config = None):
+        """Initializes a BaseProject instance.
+
+        Application developers should usually not need to instantiate this class.
+        See ``Project`` instead.
+        """
         if config is None:
             from compdb.core.config import load_config
             config = load_config()
         config.verify()
         self._config = config
-        self._loggers = [logging.getLogger('compdb')]
-        self._logging_queue = Queue()
-        self._logging_queue_handler = QueueHandler(self._logging_queue)
-        self._logging_listener = None
         self._job_queue = None
         self._job_queue_ = None
 
     def _str__(self):
-        """Returns the project's id."""
+        "Returns the project's id."
         return self.get_id()
 
     @property 
     def config(self):
-        """The project's configuration."""
+        "The project's configuration."
         return self._config
 
     def root_directory(self):
+        "Returns the project's root directory as determined from the configuration."
         return self._config['project_dir']
 
-    def _get_db(self, db_name):
-        import pymongo.errors
-        host = self.config['database_host']
-        try:
-            return self._get_client()[db_name]
-        except pymongo.errors.ConnectionFailure as error:
-            from . errors import ConnectionFailure
-            msg = "Failed to connect to database '{}' at '{}'."
-            #logger.error(msg.format(db_name, host))
-            raise ConnectionFailure(msg.format(db_name, host)) from error
-
-    def get_db(self, db_name = None):
-        if db_name is None:
-            return self.get_project_db()
-        else:
-            assert valid_name(db_name)
-            return self._get_db(db_name)
-
-    def get_project_db(self):
-        return self.get_db(self.get_id())
-
-    def _get_meta_db(self):
-        return self.get_project_db()
-
-    def get_jobs_collection(self):
-        return self._get_meta_db()[JOB_META_DOCS]
-
     def get_id(self):
+        """"Returns the project's id as determiend from the configuration.
+
+        :returns: str - The project id.
+        :raises: KeyError
+
+        This method raises ``KeyError`` if no project id could be determined.
+        """
         try:
             return self.config['project']
         except KeyError:
@@ -100,202 +84,77 @@ class BaseProject(object):
             msg += "Are you sure '{}' is a compDB project path?"
             raise LookupError(msg.format(os.path.realpath(os.getcwd())))
 
-    @property
-    def collection(self):
-        return self.get_project_db()[JOB_DOCS]
+    def open_offline_job(self, parameters = None):
+        """Open an offline job, specified by its parameters.
+
+        :param parameters: A dictionary specifying the job parameters.
+        :returns: An instance of OfflineJob.
+        """
+        from .job import OfflineJob
+        return OfflineJob(
+            project = self,
+            parameters = parameters)
+
+    def _filestorage_dir(self):
+        return self.config['filestorage_dir']
+
+    def _workspace_dir(self):
+        return self.config['workspace_dir']
+
 
     def get_milestones(self, job_id):
+        warnings.warn("The milestone API will be deprecated in the future.", PendingDeprecationWarning)
         from . milestones import Milestones
         return Milestones(self, job_id)
 
     def get_cache(self):
+        warnings.warn("The cache API may be deprecated in the future.", PendingDeprecationWarning)
         from . cache import Cache
         return Cache(self)
 
     def develop_mode(self):
+        warnings.warn("The develop_mode API may be deprecated in the future.", PendingDeprecationWarning)
         return bool(self.config.get('develop', False))
 
     def activate_develop_mode(self):
+        warnings.warn("The develop_mode API may be deprecated in the future.", PendingDeprecationWarning)
         msg = "{}: Activating develop mode!"
         logger.warning(msg.format(self.get_id()))
         self.config['develop'] = True
 
-    def _job_spec(self, parameters):
-        spec = dict()
-        #if not len(parameters):
-        #    msg = "Parameters dictionary cannot be empty!"
-        #    raise ValueError(msg)
-        if parameters is None:
-            parameters = dict()
-        spec.update({JOB_PARAMETERS_KEY: parameters})
-        if self.develop_mode():
-            spec.update({'develop': True})
-        warnings.warn("The project id will be removed from the job spec!", UserWarning)
-        spec.update({
-            'project': self.get_id(),
-        })
-        return spec
+    def filestorage_dir(self):
+        warnings.warn("The method 'filestorage_dir' is deprecated.", DeprecationWarning)
+        return self._filestorage_dir()
 
-    def _job_spec_modifier(self, job_spec = {}, develop = None):
-        raise DeprecationWarning("Method '_job_spec_modifier' is deprecated.")
-        #from copy import copy
-        #job_spec_ = copy(job_spec)
-        #if 'project' in job_spec_:
-        #    raise ValueError("You cannot provide a value for 'project' using this search method.")
-        #job_spec_.update({'project': self.get_id()})
-        #if develop or (develop is None and self.develop_mode()):
-        #    job_spec_.update({'develop': True})
-        #return job_spec_
-
-    def _find_jobs(self, job_spec, * args, **kwargs):
-        yield from self.get_jobs_collection().find(job_spec, *args, **kwargs)
-            #self._job_spec_modifier(job_spec), * args, ** kwargs)
-
-    def find_job_ids(self, spec = {}):
-        if PYMONGO_3:
-            docs = self._find_jobs(spec, projection = ['_id'])
-        else:
-            docs = self._find_jobs(spec, fields = ['_id'])
-        for doc in docs:
-            yield doc['_id']
-    
-    def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
-        job_ids = self.find_job_ids(job_spec)
-        spec.update({'_id': {'$in': list(job_ids)}})
-        yield from self.collection.find(spec, * args, ** kwargs)
-
-    def active_jobs(self):
-        spec = {
-            'executing': {'$exists': True},
-            '$where': 'this.executing.length > 0'}
-        yield from self.find_job_ids(spec)
-
-    def _unique_jobs_from_pulse(self):
-        docs = self.get_jobs_collection().find(
-            {'pulse': {'$exists': True}},
-            ['pulse'])
-        beats = [doc['pulse'] for doc in docs]
-        for beat in beats:
-            for uid, timestamp in beat.items():
-                yield uid
-
-    def job_pulse(self):
-        uids = self._unique_jobs_from_pulse()
-        for uid in uids:
-            hb_key = 'pulse.{}'.format(uid)
-            doc = self.get_jobs_collection().find_one(
-                {hb_key: {'$exists': True}})
-            yield uid, doc['pulse'][uid]
-
-    def _aggregate_parameters(self, job_spec = None):
-        pipe = [
-            {'$match': job_spec or dict()},
-            {'$group': {
-                '_id': False,
-                'parameters': { '$addToSet': '$parameters'}}},
-            ]
-        result = self.get_jobs_collection().aggregate(pipe)
-        if PYMONGO_3:
-            return set([k for r in result for p in r['parameters'] for k in p.keys()])
-        else:
-            assert result['ok']
-            if len(result['result']):
-                return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
-            else:
-                return set()
-
-    def _walk_jobs(self, parameters, job_spec = None, * args, ** kwargs):
-        yield from self._find_jobs(
-            job_spec = job_spec or dict(),
-            sort = [('parameters.{}'.format(p), 1) for p in parameters],
-            * args, ** kwargs)
-    
-    def _get_links(self, url, parameters, fs):
-        import os
-        for w in self._walk_jobs(parameters):
-            src = os.path.join(fs, w['_id'])
-            try:
-                from collections import defaultdict
-                dd = defaultdict(lambda: 'None')
-                dd.update(w['parameters'])
-                dst = url.format(** dd)
-            except KeyError as error:
-                msg = "Unknown parameter: {}"
-                raise KeyError(msg.format(error)) from error
-            yield src, dst
-
-    def dump_db_snapshot(self):
-        from bson.json_util import dumps
-        job_docs = self.get_jobs_collection().find()
-        for doc in job_docs:
-            print(dumps(doc))
-        docs = self.find()
-        for doc in docs:
-            print(dumps(doc))
-
-    def _get_logging_collection(self):
-        return self.get_project_db()[COLLECTION_LOGGING]
-
-    def clear_logs(self):
-        self._get_logging_collection().drop()
-
-    def _logging_db_handler(self, lock_id = None):
-        from . logging import MongoDBHandler
-        return MongoDBHandler(
-            collection = self._get_logging_collection(),
-            lock_id = lock_id)
-
-    def logging_handler(self):
-        return self._logging_queue_handler
-
-    def start_logging(self, level = logging.INFO):
-        for logger in self._loggers:
-            logger.addHandler(self.logging_handler())
-        if self._logging_listener is None:
-            self._logging_listener = QueueListener(
-                self._logging_queue, self._logging_db_handler())
-        self._logging_listener.start()
-
-    def stop_logging(self):
-        self._logging_listener.stop()
-
-    def get_logs(self, level = logging.INFO, limit = 0):
-        from . logging import record_from_doc
-        log_collection = self._get_logging_collection()
-        log_collection.create_index('created')
-        try:
-            levelno = int(level)
-        except ValueError:
-            levelno = logging.getLevelName(level)
-        spec = {'levelno': {'$gte': levelno}}
-        sort = [('created', 1)]
-        if limit:
-            skip = max(0, log_collection.find(spec).count() - limit)
-        else:
-            skip = 0
-        docs = log_collection.find(spec).sort(sort).skip(skip)
-        for doc in docs:
-            yield record_from_doc(doc)
+class RollBackupExistsError(RuntimeError):
+    pass
 
 class OnlineProject(BaseProject):
     """OnlineProject extends BaseProject with properties and methods that require a database connection."""
 
     def __init__(self, config = None, client = None):
-        """Initialize a online project.
+        """Initialize a Onlineproject.
 
-        Args:
-            config:     A compdb configuration instance.
-            client:     A pymongo client instance.
+        :param config:     A compdb configuration instance.
+        :param client:     A pymongo client instance.
             
         Both arguments are optional.
         If no config is provided, it will be fetched from the environment.
         If no client is provided, the client will be instantiated from the configuration when needed.
+
+        .. note::
+           Some methods in this class requires an online connection to a database!
         """
         super(OnlineProject, self).__init__(config=config)
         self._client = client
+        # Online logging
+        self._loggers = [logging.getLogger('compdb')]
+        self._logging_queue = Queue()
+        self._logging_queue_handler = QueueHandler(self._logging_queue)
+        self._logging_listener = None
 
     def _get_client(self):
-        """Attempt to connect to the database and store the client instance."""
+        "Attempt to connect to the database host and store the client instance."
         if self._client is None:
             from ..core.dbclient_connector import DBClientConnector
             prefix = 'database_'
@@ -312,18 +171,143 @@ class OnlineProject(BaseProject):
             self._client = connector.client
         return self._client
 
-    def filestorage_dir(self):
-        return self.config['filestorage_dir']
+    def _get_db(self, db_name):
+        "Return a database with name :param db_name: from the database host."
+        import pymongo.errors
+        host = self.config['database_host']
+        try:
+            return self._get_client()[db_name]
+        except pymongo.errors.ConnectionFailure as error:
+            from . errors import ConnectionFailure
+            msg = "Failed to connect to database '{}' at '{}'."
+            #logger.error(msg.format(db_name, host))
+            raise ConnectionFailure(msg.format(db_name, host)) from error
 
-    def _workspace_dir(self):
-        return self.config['workspace_dir']
+    def get_db(self, db_name = None):
+        """Return a database from the project's database host.
+
+        :param db_name: The name of the database.
+        :returns: The datbase with :param db_name: or the project's root database.
+        """
+        if db_name is None:
+            return self.get_project_db()
+        else:
+            assert valid_name(db_name)
+            return self._get_db(db_name)
+
+    def get_project_db(self):
+        "Return the project's root database."
+        warnings.warn("The method 'get_project_db' will be deprecated in the future. Use 'get_db' instead.", PendingDeprecationWarning)
+        return self.get_db(self.get_id())
+
+    def _get_meta_db(self):
+        return self.get_project_db()
+
+    def get_jobs_collection(self):
+        warnings.warn("The method 'get_jobs_collection' is no longer part of the public API.", DeprecationWarning)
+        return self._get_jobs_collection()
+
+    def _get_jobs_collection(self):
+        return self._get_meta_db()[JOB_META_DOCS]
+
+    @property
+    def _collection(self):
+        return self.get_project_db()[JOB_DOCS]
+
+    @property
+    def collection(self):
+        warnings.warn("The property 'collection' is no longer part of the public API.", DeprecationWarning)
+        return self._collection
+
+    def _parameters_from_id(self, job_id):
+        "Determine a job's parameters from the job id."
+        result = self._get_jobs_collection().find_one(job_id, [JOB_PARAMETERS_KEY])
+        if result is None:
+            raise KeyError(job_id)
+        return result[JOB_PARAMETERS_KEY]
+
+    def open_job(self, parameters = None, blocking = True, timeout = -1):
+        """Open an online job, specified by its parameters.
+
+        :param parameters: A dictionary specifying the job parameters.
+        :param blocking: Block until the job is openend.
+        :param timeout: Wait a maximum of :param timeout: seconds. A value -1 specifies to wait infinitely.
+        :returns: An instance of OnlineJob.
+        :raises: DocumentLockError
+
+        .. note::
+           This method will raise a DocumentLockError if it was impossible to open the job within the specified timeout.
+        """
+        from . job import OnlineJob
+        return OnlineJob(
+            project = self,
+            parameters = parameters,
+            blocking = blocking,
+            timeout = timeout)
+
+    def _open_job(self, *args, **kwargs):
+        warnings.warn("The private method '_open_job' is deprecated.", DeprecationWarning)
+        return self.open_job(*args, **kwargs)
+
+    def _open_job_by_id(self, job_id, blocking = True, timeout = -1):
+        "Open a job by job_id, determining the job's parameters first."
+        from . job import OnlineJob
+        return OnlineJob(
+            project = self,
+            parameters = self._parameters_from_id(job_id),
+            blocking = blocking, timeout = timeout)
+
+    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
+        """Find job documents, specified by the job's parameters and/or the job's document.
+
+        :param job_spec: The filter for the job parameters.
+        :param spec: The filter for the job document.
+        :returns: A generator of OnlineJob instances, that match the criteria.
+        """
+        if job_spec is None:
+            job_spec = {}
+        else:
+            job_spec = {JOB_PARAMETERS_KEY+'.{}'.format(k): v for k,v in job_spec.items()}
+        job_ids = list(self.find_job_ids(job_spec))
+        if spec is not None:
+            spec.update({'_id': {'$in': job_ids}})
+            docs = self._collection.find(spec)
+            job_ids = (doc['_id'] for doc in docs)
+        for _id in job_ids:
+            yield self._open_job_by_id(_id, blocking, timeout)
+
+    def active_jobs(self):
+        "Returns a generator for all job_ids of active online jobs."
+        spec = {
+            'executing': {'$exists': True},
+            '$where': 'this.executing.length > 0'}
+        yield from self.find_job_ids(spec)
+
+    def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
+        """Find job documents, specified by the job's parameters and/or the job's document.
+
+        :param job_spec: The filter for the job parameters.
+        :param spec: The filter for the job document.
+        :returns: Documents matching all specifications.
+        """
+        job_ids = self.find_job_ids(job_spec)
+        spec.update({'_id': {'$in': list(job_ids)}})
+        yield from self._collection.find(spec, * args, ** kwargs)
 
     def clear(self, force = False):
+        """Clear the project jobs and logs.
+        
+        .. note::
+           Clearing the project is permanent. Use with caution!"""
         self.clear_logs()
         for job in self.find_jobs():
             job.remove(force = force)
 
     def remove(self, force = False):
+        """Remove all jobs, logs and the complete project database.
+        
+          .. note::
+             The removal is permanent. Use with caution!"""
         import pymongo.errors
         self.clear(force = force)
         try:
@@ -334,63 +318,40 @@ class OnlineProject(BaseProject):
             msg = "{}: Failed to remove project database on '{}'."
             raise ConnectionFailure(msg.format(self.get_id(), host)) from error
 
-    def lock_job(self, job_id, blocking = True, timeout = -1):
+    def _lock_job(self, job_id, blocking = True, timeout = -1):
+        "Lock the job document of job with ``job_id``."
         from . concurrency import DocumentLock
         return DocumentLock(
-            self.get_jobs_collection(), job_id,
+            self._get_jobs_collection(), job_id,
             blocking = blocking, timeout = timeout)
 
-    def _parameters_from_id(self, job_id):
-        result = self.get_jobs_collection().find_one(job_id, [JOB_PARAMETERS_KEY])
-        return result[JOB_PARAMETERS_KEY]
+    def lock_job(self, *args, **kwargs):
+        warnings.warn("The method 'lock_job' will be no longer part of the public API in the future.", PendingDeprecationWarning)
+        return self._lock_job(*args, **kwargs)
 
-    def get_job(self, job_id, blocking = True, timeout = -1):
-        warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
-        return self._open_job_by_id(job_id, blocking=blocking, timeout=timeout)
+    def _unique_jobs_from_pulse(self):
+        docs = self._get_jobs_collection().find(
+            {'pulse': {'$exists': True}},
+            ['pulse'])
+        beats = [doc['pulse'] for doc in docs]
+        for beat in beats:
+            for uid, timestamp in beat.items():
+                yield uid
 
-    def _open_job_by_id(self, job_id, blocking = True, timeout = -1):
-        from . job import Job
-        return Job(
-            project = self,
-            parameters = self._parameters_from_id(job_id),
-            blocking = blocking, timeout = timeout)
-
-    def _open_job(self, parameters, blocking = True, timeout = -1):
-        warnings.warn("The private method '_open_job' is deprecated.", DeprecationWarning)
-        from . job import Job
-        return Job(
-            project = self,
-            parameters = parameters,
-            blocking = blocking,
-            timeout = timeout)
-
-    def open_job(self, parameters = None, blocking = True, timeout = -1):
-        from . job import Job
-        return Job(
-            project = self,
-            parameters = parameters,
-            blocking = blocking,
-            timeout = timeout)
-
-    def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
-        if job_spec is None:
-            job_spec = {}
-        else:
-            job_spec = {JOB_PARAMETERS_KEY+'.{}'.format(k): v for k,v in job_spec.items()}
-        job_ids = list(self.find_job_ids(job_spec))
-        if spec is not None:
-            spec.update({'_id': {'$in': job_ids}})
-            docs = self.collection.find(spec)
-            job_ids = (doc['_id'] for doc in docs)
-        for _id in job_ids:
-            yield self._open_job_by_id(_id, blocking, timeout)
+    def job_pulse(self):
+        uids = self._unique_jobs_from_pulse()
+        for uid in uids:
+            hb_key = 'pulse.{}'.format(uid)
+            doc = self._get_jobs_collection().find_one(
+                {hb_key: {'$exists': True}})
+            yield uid, doc['pulse'][uid]
 
     def clear_develop(self, force = True):
         spec = {'develop': True}
         job_ids = self.find_job_ids(spec)
         for develop_job in self.find_jobs(spec):
             develop_job.remove(force = force)
-        self.collection.remove({'id': {'$in': list(job_ids)}})
+        self._collection.remove({'id': {'$in': list(job_ids)}})
 
     def kill_dead_jobs(self, seconds = 5 * PULSE_PERIOD):
         import datetime
@@ -399,12 +360,26 @@ class OnlineProject(BaseProject):
         uids = self._unique_jobs_from_pulse()
         for uid in uids:
             hbkey = 'pulse.{}'.format(uid)
-            doc = self.get_jobs_collection().update(
+            doc = self._get_jobs_collection().update(
                 #{'pulse.{}'.format(uid): {'$exists': True},
                 {hbkey: {'$lt': cut_off}},
                 {   '$pull': {'executing': uid},
                     '$unset': {hbkey: ''},
                 })
+
+    def _get_links(self, url, parameters, fs):
+        import os
+        for w in self._walk_job_docs(parameters):
+            src = os.path.join(fs, w['_id'])
+            try:
+                from collections import defaultdict
+                dd = defaultdict(lambda: 'None')
+                dd.update(w['parameters'])
+                dst = url.format(** dd)
+            except KeyError as error:
+                msg = "Unknown parameter: {}"
+                raise KeyError(msg.format(error)) from error
+            yield src, dst
 
     def get_storage_links(self, url = None):
         import re
@@ -412,7 +387,7 @@ class OnlineProject(BaseProject):
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
         yield from self._get_links(
-            url, parameters, self.filestorage_dir())
+            url, parameters, self._filestorage_dir())
 
     def get_workspace_links(self, url = None):
         import re
@@ -421,6 +396,23 @@ class OnlineProject(BaseProject):
         parameters = re.findall('\{\w+\}', url)
         yield from self._get_links(
             url, parameters, self.workspace_dir())
+
+    def _aggregate_parameters(self, job_spec = None):
+        pipe = [
+            {'$match': job_spec or dict()},
+            {'$group': {
+                '_id': False,
+                'parameters': { '$addToSet': '$parameters'}}},
+            ]
+        result = self._get_jobs_collection().aggregate(pipe)
+        if PYMONGO_3:
+            return set([k for r in result for p in r['parameters'] for k in p.keys()])
+        else:
+            assert result['ok']
+            if len(result['result']):
+                return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
+            else:
+                return set()
 
     def get_default_view_url(self):
         import os
@@ -440,7 +432,7 @@ class OnlineProject(BaseProject):
         if workspace:
             links = self._get_links(url, parameters, self._workspace_dir())
         else:
-            links = self._get_links(url, parameters, self.filestorage_dir())
+            links = self._get_links(url, parameters, self._filestorage_dir())
         for src, dst in links:
             try:
                 os.makedirs(os.path.dirname(dst))
@@ -471,8 +463,8 @@ class OnlineProject(BaseProject):
         import os
         from bson.json_util import dumps
         from . snapshot import dump_db
-        job_docs = self.get_jobs_collection().find()
-        docs = self.collection.find()
+        job_docs = self._get_jobs_collection().find()
+        docs = self._collection.find()
         fn_dump_jobs = os.path.join(dst, FN_DUMP_JOBS)
         with open(fn_dump_jobs, 'wb') as file:
             for job_doc in job_docs:
@@ -496,7 +488,7 @@ class OnlineProject(BaseProject):
             file.write(RESTORE_SH.format(
                 project = self.get_id(),
                 db_host = self.config['database_host'],
-                fs_dir = self.filestorage_dir(),
+                fs_dir = self._filestorage_dir(),
                 db_meta = self.config['database_meta'],
                 compdb_docs = JOB_META_DOCS,
                 compdb_job_docs = JOB_DOCS,
@@ -546,7 +538,7 @@ class OnlineProject(BaseProject):
                     job.remove()
                 for line in file:
                     job_doc = loads(line.decode())
-                    self.get_jobs_collection().save(job_doc)
+                    self._get_jobs_collection().save(job_doc)
         except FileNotFoundError as error:
             logger.warning(error)
             if not force:
@@ -563,11 +555,11 @@ class OnlineProject(BaseProject):
         for root, dirs, files in os.walk(fn_storage):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                    shutil.rmtree(join(self._filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self.filestorage_dir())
-            assert exists(join(self.filestorage_dir(), dir))
+                shutil.move(join(root, dir), self._filestorage_dir())
+            assert exists(join(self._filestorage_dir(), dir))
             break
     
     def _restore_snapshot(self, src):
@@ -601,7 +593,7 @@ class OnlineProject(BaseProject):
                         tarfile.add(fn, os.path.relpath(fn, tmp))
                     if full:
                         for id_ in self.find_job_ids():
-                            src_ = os.path.join(self.filestorage_dir(), id_)
+                            src_ = os.path.join(self._filestorage_dir(), id_)
                             dst_ = os.path.join(FN_DUMP_STORAGE, id_)
                             tarfile.add(src_, dst_)
             except Exception:
@@ -628,7 +620,7 @@ class OnlineProject(BaseProject):
         for job_id in self.find_job_ids():
             try:
                 shutil.move(
-                    os.path.join(self.filestorage_dir(), job_id), 
+                    os.path.join(self._filestorage_dir(), job_id), 
                     os.path.join(fn_storage_backup, job_id))
             except FileNotFoundError as error:
                 pass
@@ -642,10 +634,10 @@ class OnlineProject(BaseProject):
         for root, dirs, files in os.walk(fn_storage_backup):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                    shutil.rmtree(join(self._filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self.filestorage_dir())
+                shutil.move(join(root, dir), self._filestorage_dir())
                 self._restore_snapshot(fn_db_backup)
     
     def _remove_rollbackup(self, dst):
@@ -702,7 +694,10 @@ class OnlineProject(BaseProject):
 
     def job_pool(self, parameter_set, include = None, exclude = None):
         from . job_pool import JobPool
+        from .job import OnlineJob
         from copy import copy
+        for p in parameter_set:
+            OnlineJob(self, p, timeout = 1)._register_online()
         return JobPool(self, parameter_set, copy(include), copy(exclude))
 
     @property
@@ -719,6 +714,110 @@ class OnlineProject(BaseProject):
             collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
+
+    def _find_job_docs(self, job_spec, * args, **kwargs):
+        yield from self._get_jobs_collection().find(job_spec, *args, **kwargs)
+            #self._job_spec_modifier(job_spec), * args, ** kwargs)
+
+    def _walk_job_docs(self, parameters, job_spec = None, * args, ** kwargs):
+        yield from self._find_job_docs(
+            job_spec = job_spec or dict(),
+            sort = [('parameters.{}'.format(p), 1) for p in parameters],
+            * args, ** kwargs)
+
+    def dump_db_snapshot(self):
+        from bson.json_util import dumps
+        job_docs = self._get_jobs_collection().find()
+        for doc in job_docs:
+            print(dumps(doc))
+        docs = self.find()
+        for doc in docs:
+            print(dumps(doc))
+
+    def _get_logging_collection(self):
+        return self.get_project_db()[COLLECTION_LOGGING]
+
+    def clear_logs(self):
+        self._get_logging_collection().drop()
+
+    def _logging_db_handler(self, lock_id = None):
+        from . logging import MongoDBHandler
+        return MongoDBHandler(
+            collection = self._get_logging_collection(),
+            lock_id = lock_id)
+
+    def logging_handler(self):
+        return self._logging_queue_handler
+
+    def start_logging(self, level = logging.INFO):
+        for logger in self._loggers:
+            logger.addHandler(self.logging_handler())
+        if self._logging_listener is None:
+            self._logging_listener = QueueListener(
+                self._logging_queue, self._logging_db_handler())
+        self._logging_listener.start()
+
+    def stop_logging(self):
+        self._logging_listener.stop()
+
+    def get_logs(self, level = logging.INFO, limit = 0):
+        from . logging import record_from_doc
+        log_collection = self._get_logging_collection()
+        log_collection.create_index('created')
+        try:
+            levelno = int(level)
+        except ValueError:
+            levelno = logging.getLevelName(level)
+        spec = {'levelno': {'$gte': levelno}}
+        sort = [('created', 1)]
+        if limit:
+            skip = max(0, log_collection.find(spec).count() - limit)
+        else:
+            skip = 0
+        docs = log_collection.find(spec).sort(sort).skip(skip)
+        for doc in docs:
+            yield record_from_doc(doc)
+
+    #
+    # All methods of this class beyond this point are deprecated.
+    #
+
+    def get_job(self, job_id, blocking = True, timeout = -1):
+        warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
+        return self._open_job_by_id(job_id, blocking=blocking, timeout=timeout)
+
+    def _job_spec(self, parameters):
+        warnings.warn("Method '_job_spec' is deprecated.", DeprecationWarning)
+        spec = dict()
+        #if not len(parameters):
+        #    msg = "Parameters dictionary cannot be empty!"
+        #    raise ValueError(msg)
+        if parameters is None:
+            parameters = dict()
+        spec.update({JOB_PARAMETERS_KEY: parameters})
+        if self.develop_mode():
+            spec.update({'develop': True})
+        warnings.warn("The project id will be removed from the job spec!", UserWarning)
+        spec.update({
+            'project': self.get_id(),
+        })
+        return spec
+
+    def _job_spec_modifier(self, job_spec = {}, develop = None):
+        raise DeprecationWarning("Method '_job_spec_modifier' is deprecated.")
+
+    def find_job_ids(self, spec = {}):
+        warnings.warn("Method 'find_job_ids' is no longer part of the public API.", DeprecationWarning)
+        yield from self._find_job_ids(spec=spec)
+
+    def _find_job_ids(self, spec = {}):
+        warnings.warn("Method '_find_job_ids' is under consideration for removal.", PendingDeprecationWarning)
+        if PYMONGO_3:
+            docs = self._find_job_docs(spec, projection = ['_id'])
+        else:
+            docs = self._find_job_docs(spec, fields = ['_id'])
+        for doc in docs:
+            yield doc['_id']
 
 class Project(OnlineProject):
     pass
