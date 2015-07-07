@@ -36,6 +36,9 @@ if sys.version_info[0] < 3 or sys.version_info[1] < 3:
     msg = "This module requires Python version 3.3 or higher."
     raise ImportError(msg)
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -170,13 +173,12 @@ class DocumentLock(DocumentBaseLock):
             timeout = timeout)
 
     def _acquire(self):
-        result = self._collection.find_and_modify(
-            query = {
-                '_id': self._document_id,
-                LOCK_ID_FIELD: {'$exists': False}},
-            update = {
-                '$set': {
-                    LOCK_ID_FIELD: self._lock_id}})
+        filter = {'_id': self._document_id, LOCK_ID_FIELD: {'$exists': False}}
+        update = {'$set': {LOCK_ID_FIELD: self._lock_id}}
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(filter, update)
+        else:
+            result = self._collection.find_one_and_modify(filter, update)
         acquired = result is not None
         if acquired:
             logger.debug("Acquired.")
@@ -184,13 +186,12 @@ class DocumentLock(DocumentBaseLock):
 
     def _release(self):
         logger.debug("Releasing lock.")
-        result = self._collection.find_and_modify(
-            query = {
-                '_id': self._document_id,
-                LOCK_ID_FIELD: self._lock_id},
-            update = {
-                '$unset': {LOCK_ID_FIELD: ''}},
-                )
+        filter = {'_id': self._document_id, LOCK_ID_FIELD: self._lock_id}
+        update = {'$unset': {LOCK_ID_FIELD: ''}}
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(filter, update)
+        else:
+            result = self._collection.find_and_modify(filter, update)
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))

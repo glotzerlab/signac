@@ -70,16 +70,6 @@ class JobOpenAndClosingTest(JobTest):
             self.assertEqual(job.get_id(), job_id)
         job.remove()
 
-    def test_job_doc_retrieval(self):
-        from compdb.contrib import get_project
-        project = get_project()
-        with project.open_job(test_token) as test_job:
-            jobs_collection = project.get_jobs_collection()
-            self.assertEqual(test_job.spec, test_job._spec)
-            job_doc = jobs_collection.find_one(test_job.spec)
-            self.assertIsNotNone(job_doc)
-        test_job.remove()
-
 class JobStorageTest(JobTest):
     
     def test_store_and_get(self):

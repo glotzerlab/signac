@@ -13,7 +13,7 @@ MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 1
 
 FN_MANIFEST = '.compdb.json'
-MANIFEST_KEYS = ['_id', 'project', 'parameters']
+MANIFEST_KEYS = ['project', 'parameters']
 
 from . project import JOB_DOCS
 
@@ -40,15 +40,13 @@ class BaseJob(object):
 
     All properties and methods in this class do not require a online database connection."""
     
-    def __init__(self, project, spec):
+    def __init__(self, project, parameters):
         import uuid, os
         self._unique_id = str(uuid.uuid4())
         self._project = project
-        assert not '_id' in spec # opening with id is no longer allowed
-        self._spec = spec
+        self._parameters = parameters
         self._id = None
         self._cwd = None
-        self._with_id()
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
@@ -58,7 +56,7 @@ class BaseJob(object):
         if self._id is None:
             # Cache the id calcuation.
             from .hashing import generate_hash_from_spec
-            self._id = generate_hash_from_spec(self._spec)
+            self._id = generate_hash_from_spec(self._parameters)
         return self._id
 
     def __str__(self):
@@ -66,23 +64,18 @@ class BaseJob(object):
         return self.get_id()
 
     def get_workspace_directory(self):
-        self._with_id()
         return self._wd
 
     def get_filestorage_directory(self):
-        self._with_id()
         return self._fs
+
+    def _get_manifest(self):
+        return dict(project = self.get_project().get_id(), parameters = self.parameters())
 
     def _create_directories(self):
         import os
         import json as serializer
-        self._with_id()
-        manifest = dict()
-        for key in MANIFEST_KEYS:
-            try:
-                manifest[key] = self._spec[key]
-            except KeyError:
-                logger.warning("Failed to write '{}' to manifest.".format(key))
+        manifest = self._get_manifest()
         for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
             try:
                 os.makedirs(dir_name)
@@ -100,7 +93,7 @@ class BaseJob(object):
                 raise RuntimeError(msg.format(fn_manifest)) from error
 
     def parameters(self):
-        return self._spec.get('parameters', None)
+        return self._parameters
 
     def get_project(self):
         return self._project
@@ -143,7 +136,6 @@ class BaseJob(object):
         return self._storage
 
     def __enter__(self):
-        self._obtain_id_online()
         self.open()
         return self
 
@@ -166,11 +158,10 @@ class BaseJob(object):
         from os.path import join
         return join(self.get_filestorage_directory(), filename)
 
-class OnlineJob(object):
+class OnlineJob(BaseJob):
     
-    def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
-        super(OnlineJob, self).__init__(project=project, spec=spec, rank=rank)
-        self._rank = rank or self._determine_rank()
+    def __init__(self, project, parameters, blocking = True, timeout = -1):
+        super(OnlineJob, self).__init__(project=project, parameters=parameters)
         self._collection = None
         self._timeout = timeout
         self._blocking = blocking
@@ -178,32 +169,15 @@ class OnlineJob(object):
         self._dbdocument = None
         self._pulse = None
         self._pulse_stop_event = None
-
-    def _determine_rank(self):
-        warnings.warning("Auto-determination of ranks is deprecated.", DeprecationWarning)
-        try:
-            from mpi4py import MPI
-        except ImportError:
-            from .. import raise_no_mpi4py_error
-            raise_no_mpi4py_error()
-        else:
-            comm = MPI.COMM_WORLD
-            if comm.Get_rank() > 0:
-                return comm.Get_rank()
-            else:
-                return self.num_open_instances()
+        self._register_online()
 
     def _get_jobs_doc_collection(self):
         return self._project.get_project_db()[str(self.get_id())]
 
     @property
     def spec(self):
-        return {'_id': self.get_id()}
+        raise DeprecationWarning("The 'spec' property is deprecated.")
         #return self._spec
-
-    def get_rank(self):
-        warnings.warn("The get_rank() function is deprecated.", DeprecationWarning)
-        return self._rank
 
     def _with_id(self):
         warnings.warn("The job's id is calculated offline, which makes this function obsolete.", DeprecationWarning)
@@ -211,22 +185,23 @@ class OnlineJob(object):
         #    raise JobNoIdError()
         #assert self.get_id() is not None
     
-    def _job_doc_spec(self):
-        warnings.warn("This function should be covered by 'spec'.", DeprecationWarning)
-        self._with_id()
-        return self.spec
-        #return {'_id': self._spec['_id']}
+    def _filter(self):
+        return {'_id': self.get_id()}
 
     def _add_instance(self):
-        self._project.get_jobs_collection().update(
-            spec = self._job_doc_spec(),
-            document = {'$push': {'executing': self._unique_id}})
+        doc = {'$push': {'executing': self._unique_id}}
+        if PYMONGO_3:
+            self._project.get_jobs_collection().update_one(self._filter(), doc)
+        else:
+            self._project.get_jobs_collection().update(self._filter(), doc)
 
     def _remove_instance(self):
-        result = self._project.get_jobs_collection().find_and_modify(
-            query = self._job_doc_spec(),
-            update = {'$pull': {'executing': self._unique_id}},
-            new = True)
+        update = {'$pull': {'executing': self._unique_id}}
+        if PYMONGO_3:
+            result = self._project.get_jobs_collection().find_one_and_update(
+                self._filter(), update=update, return_document = pymongo.ReturnDocument.AFTER)
+        else:
+            result = self._project.get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
         return len(result['executing'])
 
     def _start_pulse(self, process = True):
@@ -259,16 +234,16 @@ class OnlineJob(object):
             self._pulse_stop_event.set()
             self._pulse.join(2 * PULSE_PERIOD)
             assert not self._pulse.is_alive()
-            self._project.get_jobs_collection().update(
-                {'_id': self.get_id()},
-                {'$unset': 
-                    {'pulse.{}'.format(self._unique_id): ''}})
+            doc = {'$unset': {'pulse.{}'.format(self._unique_id): ''}}
+            if PYMONGO_3:
+                self._project.get_jobs_collection().update_one(self._filter(), doc)
+            else:
+                self._project.get_jobs_collection().update(self._filter(), doc)
             self._pulse = None
             self._pulse_stop_event = None
 
     def _open(self):
         super(OnlineJob, self)._open()
-        self._with_id()
         self._start_pulse()
         self._add_instance()
         #self._dbdocument.open()
@@ -300,91 +275,21 @@ class OnlineJob(object):
     def _obtain_id(self):
         msg = "This function is obsolete, as the id is always(!) calculate offline!"
         raise DeprecationWarning(msg)
-   #     #from pymongo.errors import ConnectionFailure
-   #     from . errors import ConnectionFailure
-   #     from . hashing import generate_hash_from_spec
-   #     if not 'parameters' in self._spec:
-   #         try:
-   #             self._obtain_id_online()
-   #         except ConnectionFailure:
-   #             try:
-   #                 _id = generate_hash_from_spec(self._spec)
-   #             except TypeError:
-   #                 logger.error(self._spec)
-   #                 raise TypeError("Unable to hash specs.")
-   #     else:
-   #         self._spec['_id'] = generate_hash_from_spec(self._spec)
 
-   # def _obtain_id_online(self):
-   #     if PYMONGO_3:
-   #         self._obtain_id_online_pymongo3()
-   #     else:
-   #         self._obtain_id_online_pymongo2()
-
-   # def _obtain_id_online_pymongo3(self):
-   #     import os
-   #     from pymongo.errors import DuplicateKeyError
-   #     from . hashing import generate_hash_from_spec
-   #     if not '_id' in self._spec:
-   #         try:
-   #             _id = generate_hash_from_spec(self._spec)
-   #         except TypeError:
-   #             logger.error(self._spec)
-   #             raise TypeError("Unable to hash specs.")
-   #         self._spec['_id'] = _id
-   #         logger.debug("Opening with spec: {}".format(self._spec))
-   #     else:
-   #         _id = self._spec['_id']
-   #     try:
-   #         #result = self._project.get_jobs_collection().update(
-   #         #    self._spec, {'$setOnInsert': self._spec}, upsert = True)
-   #         self._spec = self._project.get_jobs_collection().find_one_and_update(
-   #             filter = self._spec,
-   #             update = {'$setOnInsert': self._spec},
-   #             upsert = True,
-   #             return_document = pymongo.ReturnDocument.AFTER)
-   #     except DuplicateKeyError as error:
-   #         pass
-   #     else:
-   #         #assert result['ok']
-   #         #if result['updatedExisting']:
-   #         #    _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
-   #         #else:
-   #         #    _id = result['upserted']
-   #         _id = self._spec['_id']
-   #     self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
-   #     assert self.get_id() == _id
-
-   # def _obtain_id_online_pymongo2(self):
-   #     import os
-   #     from pymongo.errors import DuplicateKeyError
-   #     from . hashing import generate_hash_from_spec
-   #     if not '_id' in self._spec:
-   #         try:
-   #             _id = generate_hash_from_spec(self._spec)
-   #         except TypeError:
-   #             logger.error(self._spec)
-   #             raise TypeError("Unable to hash specs.")
-   #         try:
-   #             self._spec.update({'_id': _id})
-   #             logger.debug("Opening with spec: {}".format(self._spec))
-   #             result = self._project.get_jobs_collection().update(
-   #                 spec = self._spec,
-   #                 document = {'$setOnInsert': self._spec},
-   #                 upsert = True)
-   #         except DuplicateKeyError as error:
-   #             pass
-   #         else:
-   #             assert result['ok']
-   #             if result['updatedExisting']:
-   #                 _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
-   #             else:
-   #                 _id = result['upserted']
-   #     else:
-   #         _id = self._spec['_id']
-   #     self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
-   #     assert self._spec is not None
-   #     assert self.get_id() == _id
+    def _register_online(self):
+        from . errors import ConnectionFailure
+        from pymongo.errors import DuplicateKeyError
+        try:
+            doc = dict(parameters = self._parameters, _id = self.get_id())
+            result = self._project.get_jobs_collection().find_one_and_update(
+                filter = self._filter(),
+                update = {'$setOnInsert': doc},
+                upsert = True,
+                return_document = pymongo.ReturnDocument.AFTER)
+        except DuplicateKeyError as error:
+            warnings.warn(error)
+        else:
+            assert str(result['_id']) == str(self.get_id())
 
     def __exit__(self, err_type, err_value, traceback):
         import os
@@ -395,7 +300,7 @@ class OnlineJob(object):
             else:
                 err_doc = '{}:{}'.format(err_type, err_value)
                 self._project.get_jobs_collection().update(
-                    self.spec, {'$push': {JOB_ERROR_KEY: err_doc}})
+                    self._filter(), {'$push': {JOB_ERROR_KEY: err_doc}})
                 self._close_stage_one()
                 return False
     
@@ -406,7 +311,6 @@ class OnlineJob(object):
         self._get_jobs_doc_collection().drop()
 
     def remove(self, force = False):
-        self._with_id()
         if not force:
             if not self.num_open_instances() == 0:
                 msg = "You are trying to remove a job, which has {} open instance(s). Use 'force=True' to ignore this."
@@ -422,17 +326,17 @@ class OnlineJob(object):
             shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
             pass
-        self._project.get_jobs_collection().remove(self._job_doc_spec())
-        del self.spec['_id']
+        if PYMONGO_3:
+            self._project.get_jobs_collection().delete_one(self._filter())
+        else:
+            self._project.get_jobs_collection().remove(self._filter())
 
     @property
     def collection(self):
-        self._obtain_id_online()
         return self._get_jobs_doc_collection()
 
     def _open_instances(self):
-        self._with_id()
-        job_doc = self._project.get_jobs_collection().find_one(self._job_doc_spec())
+        job_doc = self._project.get_jobs_collection().find_one(self._filter())
         if job_doc is None:
             return list()
         else:
@@ -452,7 +356,6 @@ class OnlineJob(object):
     @property
     def document(self):
         if self._dbdocument is None:
-            self._obtain_id_online()
             from ..core.mongodbdict import MongoDBDict as DBDocument
             self._dbdocument = DBDocument(
                 self._project.collection,

@@ -100,7 +100,13 @@ class MongoDBDict(ReadOnlyMongoDBDict):
             assert result['ok']
 
     def clear(self):
-        self._get_collection().save(self._spec())
+        if PYMONGO_3:
+            self._get_collection().replace_one(self._spec(), self._spec())
+        else:
+            self._get_collection().save(self._spec())
 
     def remove(self):
-        self._get_collection().remove(self._spec())
+        if PYMONGO_3:
+            self._get_collection().delete_one(self._spec())
+        else:
+            self._get_collection().remove(self._spec())

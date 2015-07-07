@@ -4,6 +4,8 @@ logger = logging.getLogger(__name__)
 from queue import Queue
 from logging.handlers import QueueHandler, QueueListener
 
+import warnings
+
 JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_DOCS = 'compdb_job_docs'
@@ -128,24 +130,26 @@ class BaseProject(object):
         spec.update({JOB_PARAMETERS_KEY: parameters})
         if self.develop_mode():
             spec.update({'develop': True})
+        warnings.warn("The project id will be removed from the job spec!", UserWarning)
         spec.update({
             'project': self.get_id(),
         })
         return spec
 
     def _job_spec_modifier(self, job_spec = {}, develop = None):
-        from copy import copy
-        job_spec_ = copy(job_spec)
-        if 'project' in job_spec_:
-            raise ValueError("You cannot provide a value for 'project' using this search method.")
-        job_spec_.update({'project': self.get_id()})
-        if develop or (develop is None and self.develop_mode()):
-            job_spec_.update({'develop': True})
-        return job_spec_
+        raise DeprecationWarning("Method '_job_spec_modifier' is deprecated.")
+        #from copy import copy
+        #job_spec_ = copy(job_spec)
+        #if 'project' in job_spec_:
+        #    raise ValueError("You cannot provide a value for 'project' using this search method.")
+        #job_spec_.update({'project': self.get_id()})
+        #if develop or (develop is None and self.develop_mode()):
+        #    job_spec_.update({'develop': True})
+        #return job_spec_
 
     def _find_jobs(self, job_spec, * args, **kwargs):
-        yield from self.get_jobs_collection().find(
-            self._job_spec_modifier(job_spec), * args, ** kwargs)
+        yield from self.get_jobs_collection().find(job_spec, *args, **kwargs)
+            #self._job_spec_modifier(job_spec), * args, ** kwargs)
 
     def find_job_ids(self, spec = {}):
         if PYMONGO_3:
@@ -183,9 +187,9 @@ class BaseProject(object):
                 {hb_key: {'$exists': True}})
             yield uid, doc['pulse'][uid]
 
-    def _aggregate_parameters(self, job_spec = {}):
+    def _aggregate_parameters(self, job_spec = None):
         pipe = [
-            {'$match': self._job_spec_modifier(job_spec)},
+            {'$match': job_spec or dict()},
             {'$group': {
                 '_id': False,
                 'parameters': { '$addToSet': '$parameters'}}},
@@ -200,16 +204,15 @@ class BaseProject(object):
             else:
                 return set()
 
-    def _walk_jobs(self, parameters, job_spec = {}, * args, ** kwargs):
+    def _walk_jobs(self, parameters, job_spec = None, * args, ** kwargs):
         yield from self._find_jobs(
-            job_spec,
+            job_spec = job_spec or dict(),
             sort = [('parameters.{}'.format(p), 1) for p in parameters],
             * args, ** kwargs)
     
     def _get_links(self, url, parameters, fs):
         import os
-        walk = self._walk_jobs(parameters)
-        for w in walk:
+        for w in self._walk_jobs(parameters):
             src = os.path.join(fs, w['_id'])
             try:
                 from collections import defaultdict
@@ -223,8 +226,7 @@ class BaseProject(object):
 
     def dump_db_snapshot(self):
         from bson.json_util import dumps
-        spec = self._job_spec_modifier(develop = False)
-        job_docs = self.get_jobs_collection().find(spec)
+        job_docs = self.get_jobs_collection().find()
         for doc in job_docs:
             print(dumps(doc))
         docs = self.find()
@@ -338,42 +340,50 @@ class OnlineProject(BaseProject):
             self.get_jobs_collection(), job_id,
             blocking = blocking, timeout = timeout)
 
+    def _parameters_from_id(self, job_id):
+        result = self.get_jobs_collection().find_one(job_id, [JOB_PARAMETERS_KEY])
+        return result[JOB_PARAMETERS_KEY]
+
     def get_job(self, job_id, blocking = True, timeout = -1):
+        warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
+        return self._open_job_by_id(job_id, blocking=blocking, timeout=timeout)
+
+    def _open_job_by_id(self, job_id, blocking = True, timeout = -1):
         from . job import Job
         return Job(
             project = self,
-            spec = {'_id': job_id},
+            parameters = self._parameters_from_id(job_id),
             blocking = blocking, timeout = timeout)
 
-    def _open_job(self, spec, blocking = True, timeout = -1, rank = 0):
+    def _open_job(self, parameters, blocking = True, timeout = -1):
+        warnings.warn("The private method '_open_job' is deprecated.", DeprecationWarning)
         from . job import Job
         return Job(
             project = self,
-            spec = spec,
+            parameters = parameters,
             blocking = blocking,
-            timeout = timeout,
-            rank = rank)
+            timeout = timeout)
 
-    def open_job(self, parameters = None, blocking = True, timeout = -1, rank = 0):
-        spec = self._job_spec(parameters = parameters)
-        return self._open_job(
-            spec = spec,
+    def open_job(self, parameters = None, blocking = True, timeout = -1):
+        from . job import Job
+        return Job(
+            project = self,
+            parameters = parameters,
             blocking = blocking,
-            timeout = timeout,
-            rank = rank)
+            timeout = timeout)
 
     def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
         if job_spec is None:
             job_spec = {}
         else:
-            job_spec = {'parameters.{}'.format(k): v for k,v in job_spec.items()}
+            job_spec = {JOB_PARAMETERS_KEY+'.{}'.format(k): v for k,v in job_spec.items()}
         job_ids = list(self.find_job_ids(job_spec))
         if spec is not None:
             spec.update({'_id': {'$in': job_ids}})
             docs = self.collection.find(spec)
             job_ids = (doc['_id'] for doc in docs)
         for _id in job_ids:
-            yield self._open_job({'_id': _id}, blocking, timeout)
+            yield self._open_job_by_id(_id, blocking, timeout)
 
     def clear_develop(self, force = True):
         spec = {'develop': True}
@@ -461,8 +471,7 @@ class OnlineProject(BaseProject):
         import os
         from bson.json_util import dumps
         from . snapshot import dump_db
-        spec = self._job_spec_modifier(develop = False)
-        job_docs = self.get_jobs_collection().find(spec)
+        job_docs = self.get_jobs_collection().find()
         docs = self.collection.find()
         fn_dump_jobs = os.path.join(dst, FN_DUMP_JOBS)
         with open(fn_dump_jobs, 'wb') as file:
@@ -537,7 +546,6 @@ class OnlineProject(BaseProject):
                     job.remove()
                 for line in file:
                     job_doc = loads(line.decode())
-                    assert job_doc['project'] == self.get_id()
                     self.get_jobs_collection().save(job_doc)
         except FileNotFoundError as error:
             logger.warning(error)

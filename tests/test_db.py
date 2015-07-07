@@ -26,8 +26,8 @@ def draw_network(network):
 
 DB = None
 def get_db():
+    global DB
     if DB is None:
-        global DB
         from compdb.db.database import Database
         from compdb.core.config import load_config
         from compdb.core.dbclient_connector import DBClientConnector

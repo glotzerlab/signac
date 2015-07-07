@@ -13,11 +13,11 @@ def get_project(project_path = None):
     return project
 
 def get_basic_project_from_id(project_id, client = None):
-    from .project import BasicProject
+    from .project import BaseProject
     from ..core.config import load_config
     config = load_config()
     config['project'] = project_id
-    return BasicProject(config=config, client=client)
+    return BaseProject(config=config, client=client)
 
 def get_all_project_ids(client = None):
     from .project import Project
