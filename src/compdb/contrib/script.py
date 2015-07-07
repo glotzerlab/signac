@@ -568,6 +568,10 @@ def main():
     parser_server = subparsers.add_parser('server')
     server.setup_parser(parser_server)
 
+    from compdb.contrib import run
+    parser_run = subparsers.add_parser('run')
+    run.setup_parser(parser_run)
+
     parser_log = subparsers.add_parser('log')
     parser_log.add_argument(
         '-l', '--level',

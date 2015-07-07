@@ -46,6 +46,7 @@ class BasicProject(object):
         self._logging_listener = None
         self._client = client
         self._job_queue = None
+        self._job_queue_ = None
 
     def __str__(self):
         return self.get_id()
@@ -677,12 +678,16 @@ class Project(BasicProject):
         return JobPool(self, parameter_set, copy(include), copy(exclude))
 
     @property
+    def job_queue_(self):
+        if self._job_queue_ is None:
+            from ..core.mongodb_queue import MongoDBQueue
+            self._job_queue_ = MongoDBQueue(self.get_project_db()[COLLECTION_JOB_QUEUE])
+        return self._job_queue_
+
+    @property
     def job_queue(self):
         if self._job_queue is None:
             from ..core.mongodb_executor import MongoDBExecutor
-            from ..core.mongodb_queue import MongoDBQueue
-            mongodb_queue = MongoDBQueue(self.get_project_db()[COLLECTION_JOB_QUEUE])
             collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
-            self._job_queue = MongoDBExecutor(mongodb_queue, collection_job_results)
+            self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
-

@@ -58,6 +58,7 @@ def execution_worker(stop_event, job_queue, result_collection, timeout, comm = N
         if comm is not None:
             comm.bcast(item, root = MPI_ROOT)
         execute_callable(job_queue, result_collection, item, reload = reload)
+        job_queue.task_done()
 
 class MongoDBExecutor(object):
 

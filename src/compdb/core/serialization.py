@@ -23,7 +23,10 @@ def reload_module(modulename):
         from importlib import reload
     else:
         assert False
-    reload(module)
+    try:
+        reload(module)
+    except AttributeError:
+        pass
 
 def hash_module(c):
     import inspect
