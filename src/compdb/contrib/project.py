@@ -32,9 +32,12 @@ def valid_name(name):
 class RollBackupExistsError(RuntimeError):
     pass
 
-class BasicProject(object):
+class BaseProject(object):
+    """Base class for all project classes.
+
+    All properties and methods in this class do not require a online database connection."""
     
-    def __init__(self, config = None, client = None):
+    def __init__(self, config = None):
         if config is None:
             from compdb.core.config import load_config
             config = load_config()
@@ -44,36 +47,20 @@ class BasicProject(object):
         self._logging_queue = Queue()
         self._logging_queue_handler = QueueHandler(self._logging_queue)
         self._logging_listener = None
-        self._client = client
         self._job_queue = None
         self._job_queue_ = None
 
-    def __str__(self):
+    def _str__(self):
+        """Returns the project's id."""
         return self.get_id()
 
     @property 
     def config(self):
+        """The project's configuration."""
         return self._config
 
     def root_directory(self):
         return self._config['project_dir']
-
-    def _get_client(self):
-        if self._client is None:
-            from ..core.dbclient_connector import DBClientConnector
-            prefix = 'database_'
-            connector = DBClientConnector(self.config, prefix = prefix)
-            logger.debug("Connecting to database.")
-            try:
-                connector.connect()
-                connector.authenticate()
-            except:
-                logger.error("Connection failed.")
-                raise
-            else:
-                logger.debug("Connected and authenticated.")
-            self._client = connector.client
-        return self._client
 
     def _get_db(self, db_name):
         import pymongo.errors
@@ -288,7 +275,40 @@ class BasicProject(object):
         for doc in docs:
             yield record_from_doc(doc)
 
-class Project(BasicProject):
+class OnlineProject(BaseProject):
+    """OnlineProject extends BaseProject with properties and methods that require a database connection."""
+
+    def __init__(self, config = None, client = None):
+        """Initialize a online project.
+
+        Args:
+            config:     A compdb configuration instance.
+            client:     A pymongo client instance.
+            
+        Both arguments are optional.
+        If no config is provided, it will be fetched from the environment.
+        If no client is provided, the client will be instantiated from the configuration when needed.
+        """
+        super(OnlineProject, self).__init__(config=config)
+        self._client = client
+
+    def _get_client(self):
+        """Attempt to connect to the database and store the client instance."""
+        if self._client is None:
+            from ..core.dbclient_connector import DBClientConnector
+            prefix = 'database_'
+            connector = DBClientConnector(self.config, prefix = prefix)
+            logger.debug("Connecting to database.")
+            try:
+                connector.connect()
+                connector.authenticate()
+            except:
+                logger.error("Connection failed.")
+                raise
+            else:
+                logger.debug("Connected and authenticated.")
+            self._client = connector.client
+        return self._client
 
     def filestorage_dir(self):
         return self.config['filestorage_dir']
@@ -691,3 +711,6 @@ class Project(BasicProject):
             collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
+
+class Project(OnlineProject):
+    pass

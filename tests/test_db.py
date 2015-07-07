@@ -24,15 +24,28 @@ def draw_network(network):
     plot = nx.draw(basic_network(), with_labels = True)
     plt.show()
 
+DB = None
 def get_db():
-    from compdb.core.config import load_config
-    from pymongo import MongoClient
-    from compdb.db.database import Database
-    config = load_config()
-    client = MongoClient(config['database_host'])
-    db = Database(db = client[TESTING_DB])
-    db.adapter_network = basic_network()
-    return db
+    if DB is None:
+        global DB
+        from compdb.db.database import Database
+        from compdb.core.config import load_config
+        from compdb.core.dbclient_connector import DBClientConnector
+        config = load_config()
+        connector = DBClientConnector(config, prefix = 'database_')
+        connector.connect()
+        connector.authenticate()
+        CLIENT = connector.client
+        DB = Database(db = connector.client[TESTING_DB])
+    return DB
+    #from compdb.core.config import load_config
+    #from pymongo import MongoClient
+    #from compdb.db.database import Database
+    #config = load_config()
+    #client = MongoClient(config['database_host'])
+    #db = Database(db = client[TESTING_DB])
+    #db.adapter_network = basic_network()
+    #return db
 
 def get_test_data():
     import uuid

@@ -35,76 +35,35 @@ def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIO
 class JobNoIdError(RuntimeError):
     pass
 
-class Job(object):
-    
-    def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
-        import uuid, os
+class BaseJob(object):
+    """Base class for all jobs classes.
 
+    All properties and methods in this class do not require a online database connection."""
+    
+    def __init__(self, project, spec):
+        import uuid, os
         self._unique_id = str(uuid.uuid4())
         self._project = project
+        assert not '_id' in spec # opening with id is no longer allowed
         self._spec = spec
-        self._collection = None
+        self._id = None
         self._cwd = None
-        self._timeout = timeout
-        self._blocking = blocking
-        self._lock = None
-        self._obtain_id()
         self._with_id()
-        if rank is None:
-            self._rank = self._determine_rank()
-        else:
-            self._rank = rank
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
-        self._dbdocument = None
-        self._pulse = None
-        self._pulse_stop_event = None
-
-    def _determine_rank(self):
-        try:
-            from mpi4py import MPI
-        except ImportError:
-            from .. import raise_no_mpi4py_error
-            raise_no_mpi4py_error()
-        else:
-            comm = MPI.COMM_WORLD
-            if comm.Get_rank() > 0:
-                return comm.Get_rank()
-            else:
-                return self.num_open_instances()
-
-    def _get_jobs_doc_collection(self):
-        return self._project.get_project_db()[str(self.get_id())]
-
-    def __str__(self):
-        return self.get_id()
-
-    @property
-    def spec(self):
-        return self._spec
-
-    def parameters(self):
-        return self._spec.get('parameters', None)
 
     def get_id(self):
-        return self.spec.get('_id', None)
+        """Returns the job's id."""
+        if self._id is None:
+            # Cache the id calcuation.
+            from .hashing import generate_hash_from_spec
+            self._id = generate_hash_from_spec(self._spec)
+        return self._id
 
-    def get_rank(self):
-        warnings.warn("The get_rank() function is highly experimental.", Warning)
-        return self._rank
-
-    def get_project(self):
-        return self._project
-
-    def _with_id(self):
-        if self.get_id() is None:
-            raise JobNoIdError()
-        assert self.get_id() is not None
-    
-    def _job_doc_spec(self):
-        self._with_id()
-        return {'_id': self._spec['_id']}
+    def __str__(self):
+        """Returns the job's id."""
+        return self.get_id()
 
     def get_workspace_directory(self):
         self._with_id()
@@ -139,6 +98,124 @@ class Job(object):
             except FileNotFoundError as error:
                 msg = "Unable to write manifest file to '{}'."
                 raise RuntimeError(msg.format(fn_manifest)) from error
+
+    def parameters(self):
+        return self._spec.get('parameters', None)
+
+    def get_project(self):
+        return self._project
+
+    def _open(self):
+        import os
+        msg = "Opened job with id: '{}'."
+        logger.info(msg.format(self.get_id()))
+        self._cwd = os.getcwd()
+        self._create_directories()
+        os.chdir(self.get_workspace_directory())
+
+    def _close_stage_one(self):
+        import os
+        os.chdir(self._cwd)
+        self._cwd = None
+
+    def _close_stage_two(self):
+        # The working directory is no longer removed so this function does nothing.
+        #import shutil, os
+        #if self.num_open_instances() == 0:
+        #    shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
+        msg = "Closing job with id: '{}'."
+        logger.info(msg.format(self.get_id()))
+
+    def open(self):
+        return self._open()
+
+    def close(self):
+        return self._close_stage_two()
+
+    @property
+    def storage(self):
+        from ..core.storage import Storage
+        if self._storage is None:
+            self._create_directories()
+            self._storage = Storage(
+                fs_path = self._fs,
+                wd_path = self._wd)
+        return self._storage
+
+    def __enter__(self):
+        self._obtain_id_online()
+        self.open()
+        return self
+
+    def __exit__(self, err_type, err_value, traceback):
+        self._close_stage_one() # always executed
+        if err_type is None:
+            self._close_stage_two() # only executed if no error occurd
+        return False
+
+    def clear_workspace_directory(self):
+        import shutil
+        try:
+            shutil.rmtree(self.get_workspace_directory())
+        except FileNotFoundError:
+            pass
+        self._create_directories()
+
+    def storage_filename(self, filename):
+        warnings.warn("This function may be deprecated in future releases.", PendingDeprecationWarning)
+        from os.path import join
+        return join(self.get_filestorage_directory(), filename)
+
+class OnlineJob(object):
+    
+    def __init__(self, project, spec, blocking = True, timeout = -1, rank = None):
+        super(OnlineJob, self).__init__(project=project, spec=spec, rank=rank)
+        self._rank = rank or self._determine_rank()
+        self._collection = None
+        self._timeout = timeout
+        self._blocking = blocking
+        self._lock = None
+        self._dbdocument = None
+        self._pulse = None
+        self._pulse_stop_event = None
+
+    def _determine_rank(self):
+        warnings.warning("Auto-determination of ranks is deprecated.", DeprecationWarning)
+        try:
+            from mpi4py import MPI
+        except ImportError:
+            from .. import raise_no_mpi4py_error
+            raise_no_mpi4py_error()
+        else:
+            comm = MPI.COMM_WORLD
+            if comm.Get_rank() > 0:
+                return comm.Get_rank()
+            else:
+                return self.num_open_instances()
+
+    def _get_jobs_doc_collection(self):
+        return self._project.get_project_db()[str(self.get_id())]
+
+    @property
+    def spec(self):
+        return {'_id': self.get_id()}
+        #return self._spec
+
+    def get_rank(self):
+        warnings.warn("The get_rank() function is deprecated.", DeprecationWarning)
+        return self._rank
+
+    def _with_id(self):
+        warnings.warn("The job's id is calculated offline, which makes this function obsolete.", DeprecationWarning)
+        #if self.get_id() is None:
+        #    raise JobNoIdError()
+        #assert self.get_id() is not None
+    
+    def _job_doc_spec(self):
+        warnings.warn("This function should be covered by 'spec'.", DeprecationWarning)
+        self._with_id()
+        return self.spec
+        #return {'_id': self._spec['_id']}
 
     def _add_instance(self):
         self._project.get_jobs_collection().update(
@@ -190,32 +267,17 @@ class Job(object):
             self._pulse_stop_event = None
 
     def _open(self):
-        import os
+        super(OnlineJob, self)._open()
         self._with_id()
         self._start_pulse()
-        self._cwd = os.getcwd()
-        self._create_directories()
-        os.chdir(self.get_workspace_directory())
         self._add_instance()
         #self._dbdocument.open()
-        msg = "Opened job with id: '{}'."
-        logger.info(msg.format(self.get_id()))
 
     def _close_stage_one(self):
-        import shutil, os
-        self._with_id()
+        super(OnlineJob, self)._close_stage_one()
         #self._dbdocument.close()
-        os.chdir(self._cwd)
-        self._cwd = None
         self._stop_pulse()
         self._remove_instance()
-
-    def _close_stage_two(self):
-        import shutil, os
-        if self.num_open_instances() == 0:
-            shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
-        msg = "Closing job with id: '{}'."
-        logger.info(msg.format(self.get_id()))
 
     def _get_lock(self, blocking = None, timeout = None):
         from . concurrency import DocumentLock
@@ -235,107 +297,94 @@ class Job(object):
     def force_release(self):
         self._get_lock().force_release()
 
-    @property
-    def storage(self):
-        from ..core.storage import Storage
-        if self._storage is None:
-            self._create_directories()
-            self._storage = Storage(
-                fs_path = self._fs,
-                wd_path = self._wd)
-        return self._storage
-
     def _obtain_id(self):
-        #from pymongo.errors import ConnectionFailure
-        from . errors import ConnectionFailure
-        from . hashing import generate_hash_from_spec
-        if not 'parameters' in self._spec:
-            try:
-                self._obtain_id_online()
-            except ConnectionFailure:
-                try:
-                    _id = generate_hash_from_spec(self._spec)
-                except TypeError:
-                    logger.error(self._spec)
-                    raise TypeError("Unable to hash specs.")
-        else:
-            self._spec['_id'] = generate_hash_from_spec(self._spec)
+        msg = "This function is obsolete, as the id is always(!) calculate offline!"
+        raise DeprecationWarning(msg)
+   #     #from pymongo.errors import ConnectionFailure
+   #     from . errors import ConnectionFailure
+   #     from . hashing import generate_hash_from_spec
+   #     if not 'parameters' in self._spec:
+   #         try:
+   #             self._obtain_id_online()
+   #         except ConnectionFailure:
+   #             try:
+   #                 _id = generate_hash_from_spec(self._spec)
+   #             except TypeError:
+   #                 logger.error(self._spec)
+   #                 raise TypeError("Unable to hash specs.")
+   #     else:
+   #         self._spec['_id'] = generate_hash_from_spec(self._spec)
 
-    def _obtain_id_online(self):
-        if PYMONGO_3:
-            self._obtain_id_online_pymongo3()
-        else:
-            self._obtain_id_online_pymongo2()
+   # def _obtain_id_online(self):
+   #     if PYMONGO_3:
+   #         self._obtain_id_online_pymongo3()
+   #     else:
+   #         self._obtain_id_online_pymongo2()
 
-    def _obtain_id_online_pymongo3(self):
-        import os
-        from pymongo.errors import DuplicateKeyError
-        from . hashing import generate_hash_from_spec
-        if not '_id' in self._spec:
-            try:
-                _id = generate_hash_from_spec(self._spec)
-            except TypeError:
-                logger.error(self._spec)
-                raise TypeError("Unable to hash specs.")
-            self._spec['_id'] = _id
-            logger.debug("Opening with spec: {}".format(self._spec))
-        else:
-            _id = self._spec['_id']
-        try:
-            #result = self._project.get_jobs_collection().update(
-            #    self._spec, {'$setOnInsert': self._spec}, upsert = True)
-            self._spec = self._project.get_jobs_collection().find_one_and_update(
-                filter = self._spec,
-                update = {'$setOnInsert': self._spec},
-                upsert = True,
-                return_document = pymongo.ReturnDocument.AFTER)
-        except DuplicateKeyError as error:
-            pass
-        else:
-            #assert result['ok']
-            #if result['updatedExisting']:
-            #    _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
-            #else:
-            #    _id = result['upserted']
-            _id = self._spec['_id']
-        self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
-        assert self.get_id() == _id
+   # def _obtain_id_online_pymongo3(self):
+   #     import os
+   #     from pymongo.errors import DuplicateKeyError
+   #     from . hashing import generate_hash_from_spec
+   #     if not '_id' in self._spec:
+   #         try:
+   #             _id = generate_hash_from_spec(self._spec)
+   #         except TypeError:
+   #             logger.error(self._spec)
+   #             raise TypeError("Unable to hash specs.")
+   #         self._spec['_id'] = _id
+   #         logger.debug("Opening with spec: {}".format(self._spec))
+   #     else:
+   #         _id = self._spec['_id']
+   #     try:
+   #         #result = self._project.get_jobs_collection().update(
+   #         #    self._spec, {'$setOnInsert': self._spec}, upsert = True)
+   #         self._spec = self._project.get_jobs_collection().find_one_and_update(
+   #             filter = self._spec,
+   #             update = {'$setOnInsert': self._spec},
+   #             upsert = True,
+   #             return_document = pymongo.ReturnDocument.AFTER)
+   #     except DuplicateKeyError as error:
+   #         pass
+   #     else:
+   #         #assert result['ok']
+   #         #if result['updatedExisting']:
+   #         #    _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
+   #         #else:
+   #         #    _id = result['upserted']
+   #         _id = self._spec['_id']
+   #     self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
+   #     assert self.get_id() == _id
 
-    def _obtain_id_online_pymongo2(self):
-        import os
-        from pymongo.errors import DuplicateKeyError
-        from . hashing import generate_hash_from_spec
-        if not '_id' in self._spec:
-            try:
-                _id = generate_hash_from_spec(self._spec)
-            except TypeError:
-                logger.error(self._spec)
-                raise TypeError("Unable to hash specs.")
-            try:
-                self._spec.update({'_id': _id})
-                logger.debug("Opening with spec: {}".format(self._spec))
-                result = self._project.get_jobs_collection().update(
-                    spec = self._spec,
-                    document = {'$setOnInsert': self._spec},
-                    upsert = True)
-            except DuplicateKeyError as error:
-                pass
-            else:
-                assert result['ok']
-                if result['updatedExisting']:
-                    _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
-                else:
-                    _id = result['upserted']
-        else:
-            _id = self._spec['_id']
-        self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
-        assert self._spec is not None
-        assert self.get_id() == _id
-
-    def __enter__(self):
-        self._obtain_id_online()
-        self.open()
-        return self
+   # def _obtain_id_online_pymongo2(self):
+   #     import os
+   #     from pymongo.errors import DuplicateKeyError
+   #     from . hashing import generate_hash_from_spec
+   #     if not '_id' in self._spec:
+   #         try:
+   #             _id = generate_hash_from_spec(self._spec)
+   #         except TypeError:
+   #             logger.error(self._spec)
+   #             raise TypeError("Unable to hash specs.")
+   #         try:
+   #             self._spec.update({'_id': _id})
+   #             logger.debug("Opening with spec: {}".format(self._spec))
+   #             result = self._project.get_jobs_collection().update(
+   #                 spec = self._spec,
+   #                 document = {'$setOnInsert': self._spec},
+   #                 upsert = True)
+   #         except DuplicateKeyError as error:
+   #             pass
+   #         else:
+   #             assert result['ok']
+   #             if result['updatedExisting']:
+   #                 _id = self._project.get_jobs_collection().find_one(self._spec)['_id']
+   #             else:
+   #                 _id = result['upserted']
+   #     else:
+   #         _id = self._spec['_id']
+   #     self._spec = self._project.get_jobs_collection().find_one({'_id': _id})
+   #     assert self._spec is not None
+   #     assert self.get_id() == _id
 
     def __exit__(self, err_type, err_value, traceback):
         import os
@@ -350,14 +399,6 @@ class Job(object):
                 self._close_stage_one()
                 return False
     
-    def clear_workspace_directory(self):
-        import shutil
-        try:
-            shutil.rmtree(self.get_workspace_directory())
-        except FileNotFoundError:
-            pass
-        self._create_directories()
-
     def clear(self):
         self.clear_workspace_directory()
         self.storage.clear()
@@ -418,10 +459,6 @@ class Job(object):
                 self.get_id())
         return self._dbdocument
 
-    def storage_filename(self, filename):
-        from os.path import join
-        return join(self.get_filestorage_directory(), filename)
-
     @property
     def cache(self):
         return self._project.get_cache()
@@ -438,3 +475,6 @@ class Job(object):
                     dst.write(src.read())
         for doc in other.collection.find():
             self.collection.insert_one(doc)
+
+class Job(OnlineJob):
+    pass
