@@ -22,6 +22,7 @@ ENVIRONMENT_VARIABLES = {
     'connect_timeout_ms':        'COMPDB_CONNECT_TIMEOUT',
     'compmatdb_host':            'COMPDB_COMPMATDB_HOST',
     'database_auth_mechanism':   'COMPDB_DATABASE_AUTH_MECHANISM',
+    'compdb_version':            'COMPDB_VERSION',
 }
 
 REQUIRED_KEYS = [
@@ -49,6 +50,7 @@ DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
 FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
 
 LEGAL_ARGS = REQUIRED_KEYS\
+    + list(ENVIRONMENT_VARIABLES.keys())\
     + list(DEFAULTS.keys())\
     + list(CHOICES.keys())\
     + DIRS + FILES\

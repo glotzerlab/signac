@@ -15,7 +15,7 @@ PULSE_PERIOD = 1
 FN_MANIFEST = '.compdb.json'
 MANIFEST_KEYS = ['project', 'parameters']
 
-from . project import JOB_DOCS
+from . project import JOB_DOCS, JOB_PARAMETERS_KEY
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     from datetime import datetime
@@ -54,11 +54,22 @@ class BaseJob(object):
         self._storage = None
 
     def get_id(self):
-        "Returns the job's id."
+        """Returns the job's id.
+
+        .. note::
+           This function respects the project's version key."""
         if self._id is None:
             # Cache the id calcuation.
             from .hashing import generate_hash_from_spec
-            self._id = generate_hash_from_spec(self._parameters)
+            compdb_version = self.get_project().config.get('compdb_version')
+            if compdb_version is None:  # id_calculation until 0.1
+                warnings.warn("Using old-style id.", UserWarning)
+                logger.warning("Using old-style id.")
+                spec = dict(JOB_PARAMETERS_KEY = self._parameters, project = self.get_project().get_id())
+                print("get_id spec", spec)
+                self._id = generate_hash_from_spec(spec)
+            else: # id_calculation after 0.1
+                self._id = generate_hash_from_spec(self._parameters)
         return self._id
 
     def __str__(self):
@@ -218,15 +229,24 @@ class OnlineJob(OfflineJob):
         self._pulse_stop_event = None
         self._registered_flag = False
 
+    def _filter(self):
+        "Returns a filter, to identify job documents by id."
+        return {'_id': self.get_id()}
+
+    def _make_doc(self):
+        "Create the job document for this job."
+        doc = dict(self._filter())
+        doc[JOB_PARAMETERS_KEY] = self._parameters
+        return doc
+
     def _register_online(self):
         "Register this job in the project database."
         from . errors import ConnectionFailure
         from pymongo.errors import DuplicateKeyError
         try:
-            doc = dict(parameters = self._parameters, _id = self.get_id())
             result = self._project._get_jobs_collection().find_one_and_update(
                 filter = self._filter(),
-                update = {'$setOnInsert': doc},
+                update = {'$setOnInsert': self._make_doc()},
                 upsert = True,
                 return_document = pymongo.ReturnDocument.AFTER)
         except DuplicateKeyError as error:
@@ -243,10 +263,6 @@ class OnlineJob(OfflineJob):
     def _get_jobs_doc_collection(self):
         "Return the job's document collection."
         return self._project.get_project_db()[str(self.get_id())]
-
-    def _filter(self):
-        "Returns a filter, to identify job documents by id."
-        return {'_id': self.get_id()}
 
     def _add_instance(self):
         "Add the job's unique id to the executing list in the database."

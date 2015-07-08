@@ -4,6 +4,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from .. import VERSION as DEFAULT_VERSION
+
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
@@ -51,6 +53,7 @@ def generate_config(args):
         args.storage = DEFAULT_STORAGE
     c_args = {
          'project':  args.project_name,
+         'compdb_version': args.version,
     }
     if args.workspace:
         make_dir(args.workspace)
@@ -147,6 +150,11 @@ def setup_parser(parser):
         '-f', '--force',
         action = 'store_true',
         help = "Ignore warnings that prevent project creation. This might lead to potential data loss!")
+    parser.add_argument(
+        '--version',
+        type = str,
+        default = DEFAULT_VERSION,
+        help = "The compdb version, to use for this new project. Defaults to '{}'.".format(DEFAULT_VERSION))
 
 def main(arguments = None):
     logging.basicConfig(level = logging.DEBUG)
