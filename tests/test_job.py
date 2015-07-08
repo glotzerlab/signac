@@ -54,6 +54,13 @@ class BaseJobTest(unittest.TestCase):
         self._project.remove(force = True)
         self._tmp_dir.cleanup()
 
+class NewIDJobTest(BaseJobTest):
+
+    def setUp(self):
+        import os
+        os.environ['COMPDB_VERSION'] = '0.2'
+        super(NewIDJobTest, self).setUp()
+
 class OnlineJobTest(BaseJobTest):
 
     def open_job(self, *args, **kwargs):
@@ -101,6 +108,9 @@ class JobOpenAndClosingTest(OfflineJobTest):
             pass
 
 class OnlineJobOpenAndClosingTest(OnlineJobTest, JobOpenAndClosingTest):
+    pass
+
+class NewIDJobOpenAndClosingTest(NewIDJobTest, JobOpenAndClosingTest):
     pass
 
 class JobStorageTest(OnlineJobTest):
