@@ -7,6 +7,10 @@ test_token = {'test_token': str(uuid.uuid4())}
 
 import warnings
 warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 @contextmanager
 def safe_open_job(* parameters):
@@ -24,7 +28,7 @@ def open_job(*args, **kwargs):
     project = get_project()
     return project.open_job(*args, **kwargs)
 
-class JobTest(unittest.TestCase):
+class BaseJobTest(unittest.TestCase):
     
     def setUp(self):
         import os, tempfile
@@ -50,64 +54,99 @@ class JobTest(unittest.TestCase):
         self._project.remove(force = True)
         self._tmp_dir.cleanup()
 
-class ConfigTest(JobTest):
+class OnlineJobTest(BaseJobTest):
+
+    def open_job(self, *args, **kwargs):
+        from compdb.contrib import get_project
+        project = get_project()
+        return project.open_job(*args, **kwargs)
+
+class OfflineJobTest(BaseJobTest):
+
+    def open_job(self, *args, **kwargs):
+        from compdb.contrib import get_project
+        project = get_project()
+        return project.open_offline_job(*args, **kwargs)
+
+class JobTest(BaseJobTest):
+    pass
+
+class ConfigTest(OfflineJobTest):
     
     def test_config_verification(self):
         import compdb
 
-class JobOpenAndClosingTest(JobTest):
+class OnlineConfigTest(OnlineJobTest, ConfigTest):
+    pass
+
+class JobOpenAndClosingTest(OfflineJobTest):
 
     def test_open_job_close(self):
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             pass
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
     def test_reopen_job(self):
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             job_id = job.get_id()
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             self.assertEqual(job.get_id(), job_id)
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
-class JobStorageTest(JobTest):
+class OnlineJobOpenAndClosingTest(OnlineJobTest, JobOpenAndClosingTest):
+    pass
+
+class JobStorageTest(OnlineJobTest):
     
     def test_store_and_get(self):
         import uuid
         key = 'my_test_key'
         value = uuid.uuid4()
-        with open_job(test_token) as test_job:
+        with self.open_job(test_token) as test_job:
             test_job.document[key] = value
             self.assertTrue(key in test_job.document)
             self.assertEqual(test_job.document[key], value)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
 
-        with open_job(test_token) as test_job:
+        with self.open_job(test_token) as test_job:
             self.assertTrue(key in test_job.document)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
             self.assertEqual(test_job.document[key], value)
-        test_job.remove()
+        try:
+            test_job.remove()
+        except AttributeError:
+            pass
 
     def test_store_and_retrieve_value_in_job_collection(self):
         import compdb.contrib
         import uuid
         doc = {'a': uuid.uuid4()}
-        with open_job(test_token) as test_job:
+        with self.open_job(test_token) as test_job:
             test_job.collection.save(doc)
             job_id = test_job.get_id()
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             self.assertEqual(job.get_id(), job_id)
             self.assertIsNotNone(job.collection.find_one(doc))
-        job.remove()
+        try:
+            test_job.remove()
+        except AttributeError:
+            pass
 
     def test_open_file(self):
         import uuid
         data = str(uuid.uuid4())
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
 
@@ -116,14 +155,17 @@ class JobStorageTest(JobTest):
 
             job.storage.remove_file('_my_file')
         self.assertEqual(data, read_back)
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
     def test_store_and_restore_file(self):
         import os, uuid
         data = str(uuid.uuid4())
         fn = '_my_file'
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             with open(fn, 'wb') as file:
                 file.write(data.encode())
             self.assertTrue(os.path.exists(fn))
@@ -134,14 +176,17 @@ class JobStorageTest(JobTest):
             with open(fn, 'rb') as file:
                 read_back = file.read().decode()
         self.assertEqual(data, read_back)
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
     def test_store_all_and_restore_all(self):
         import os, uuid
         data = str(uuid.uuid4())
         fns = ('_my_file', '_my_second_file')
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             for fn in fns:
                 with open(fn, 'wb') as file:
                     file.write(data.encode())
@@ -155,7 +200,10 @@ class JobStorageTest(JobTest):
                 with open(fn, 'rb') as file:
                     read_back = file.read().decode()
                 self.assertEqual(data, read_back)
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
     def test_job_clearing(self):
         from os.path import isfile
@@ -163,12 +211,15 @@ class JobStorageTest(JobTest):
         data = str(uuid.uuid4())
         doc = {'a': uuid.uuid4()}
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'wb') as file:
                 file.write(data.encode())
-            job.collection.save(doc)
+            if PYMONGO_3:
+                job.collection.insert_one(doc)
+            else:
+                job.collection.save(doc)
             
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             with job.storage.open_file('_my_file', 'rb') as file:
                 read_back = file.read().decode()
             self.assertEqual(data, read_back)
@@ -177,14 +228,17 @@ class JobStorageTest(JobTest):
             with self.assertRaises(IOError):
                 job.storage.open_file('_my_file', 'rb')
             self.assertIsNone(job.collection.find_one(doc))
-        job.remove()
+        try:
+            job.remove()
+        except AttributeError:
+            pass
 
 def open_and_lock_and_release_job(token):
     with open_job(test_token, timeout = 30) as job:
         pass
     return True
 
-class JobConcurrencyTest(JobTest):
+class JobConcurrencyTest(OnlineJobTest):
 
     def test_recursive_job_opening(self):
         from compdb.contrib import get_project
@@ -275,7 +329,7 @@ def open_cache(unittest, data_type):
     unittest.assertFalse(ex)
     job.remove()
 
-class TestJobCache(JobTest):
+class TestJobCache(OnlineJobTest):
     
     def test_cache_native(self):
         open_cache(self, int)
@@ -304,7 +358,7 @@ class TestJobCache(JobTest):
 
         expected_result = foo(a, b = b, c = c)
         ex = False
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             result = job.cached(foo, a, b = b, c = c)
             #print(result, expected_result)
             self.assertEqual(result, expected_result)
@@ -316,13 +370,13 @@ class TestJobCache(JobTest):
             return int(b+a)
 
         ex = False
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             result = job.cached(foo, a, b = b, c = c)
         self.assertEqual(result, expected_result)
         self.assertTrue(ex)
         job.remove()
 
-class TestJobImport(JobTest):
+class TestJobImport(OnlineJobTest):
 
     def test_import_document(self):
         import uuid
@@ -330,13 +384,13 @@ class TestJobImport(JobTest):
         test_token_clone['clone'] = True
         key = 'my_test_key'
         value = uuid.uuid4()
-        with open_job(test_token) as test_job:
+        with self.open_job(test_token) as test_job:
             test_job.document[key] = value
             self.assertTrue(key in test_job.document)
             self.assertEqual(test_job.document[key], value)
             self.assertIsNotNone(test_job.document.get(key))
             self.assertEqual(test_job.document.get(key), value)
-            with open_job(test_token_clone) as job_clone:
+            with self.open_job(test_token_clone) as job_clone:
                 job_clone.import_job(test_job)
                 self.assertTrue(key in job_clone.document)
                 self.assertEqual(job_clone.document[key], value)
@@ -350,13 +404,13 @@ class TestJobImport(JobTest):
         test_token_clone = dict(test_token)
         test_token_clone['clone'] = True
 
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             with open(fn, 'wb') as file:
                 file.write(data.encode())
             self.assertTrue(os.path.exists(fn))
             job.storage.store_file(fn)
             self.assertFalse(os.path.exists(fn))
-            with open_job(test_token_clone) as job_clone:
+            with self.open_job(test_token_clone) as job_clone:
                 job_clone.import_job(job)
                 job_clone.storage.restore_file(fn)
                 self.assertTrue(os.path.exists(fn))
@@ -371,9 +425,9 @@ class TestJobImport(JobTest):
         key = 'my_test_key'
         value = uuid.uuid4()
         doc = {key: value}
-        with open_job(test_token) as job:
+        with self.open_job(test_token) as job:
             job.collection.insert_one(doc)
-            with open_job(test_token_clone) as job_clone:
+            with self.open_job(test_token_clone) as job_clone:
                 job_clone.import_job(job)
                 doc_check = job_clone.collection.find_one()
                 self.assertIsNotNone(doc_check)

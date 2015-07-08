@@ -4,6 +4,12 @@ logger = logging.getLogger(__name__)
 CACHE_KEY = 'compdb_cache'
 CACHE_DIR = '.cache'
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
+class CacheFailWarning(UserWarning):
+    pass
+
 class Cache(object):
     
     def __init__(self, project):
@@ -26,13 +32,21 @@ class Cache(object):
         try:
             logger.debug("Trying to cache results.")
             blob = pickle.dumps(data)
-            id_ = self._collection().save(doc)
+            assert not '_id' in doc
+            if PYMONGO_3:
+                id_ = self._collection().insert_one(doc).inserted_id
+            else:
+                id_ = self._collection().save(doc)
             logger.debug('id_: {}'.format(id_))
             if not os.path.isdir(self._cache_dir()):
                 os.mkdir(self._cache_dir())
             logger.debug("Storing in '{}'.".format(self._fn(str(id_))))
             with open(self._fn(str(id_)), 'wb') as cachefile:
                 pickle.dump(data, cachefile)
+        except Exception as error:
+            import warnings
+            warnings.warn("Caching failed.", CacheFailWarning)
+            logger.warning("Caching failed: {}".format(error))
         finally:
             return data
 

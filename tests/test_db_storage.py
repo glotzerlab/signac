@@ -1,6 +1,10 @@
 import unittest
 from contextlib import contextmanager
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 # Make sure the storages created for this test are unique.
 import uuid
 test_token = {'test_token': str(uuid.uuid4())}

@@ -5,6 +5,10 @@ from contextlib import contextmanager
 import uuid
 test_token = {'test_token': str(uuid.uuid4())}
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 from test_job import safe_open_job, JobTest
 
 class ProjectBackupTest(JobTest):

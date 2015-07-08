@@ -5,6 +5,10 @@ import uuid
 TESTING_DB = 'testing_compmatdb'
 TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 def basic_network():
     import uuid
     from compdb.db.conversion import add_adapter_to_network, make_adapter

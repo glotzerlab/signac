@@ -7,6 +7,10 @@ from compdb.core.mongodb_executor import MongoDBExecutor
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 def testdata():
     import uuid
     return uuid.uuid4()

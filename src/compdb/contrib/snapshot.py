@@ -3,6 +3,9 @@ logger = logging.getLogger(__name__)
 
 COLLECTIONS_EXCLUDE = ['system']
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 def dump_db(db, dst):
     import os
     from bson import json_util as serializer
@@ -43,6 +46,9 @@ def restore_db(db, dst):
                 db[collection].drop()
                 for line in file:
                     doc = serializer.loads(line.decode())
-                    db[collection].save(doc)
+                    if PYMONGO_3:
+                        db[collection].insert_one(doc)
+                    else:
+                        db[collection].save(doc)
         except FileNotFoundError:
             pass

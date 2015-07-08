@@ -6,6 +6,10 @@ from compdb.core.storage import ReadOnlyStorage, Storage
 import os
 CWD = os.getcwd()
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 def make_test_data():
     import uuid
     return str(uuid.uuid4())

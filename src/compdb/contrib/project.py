@@ -96,11 +96,20 @@ class BaseProject(object):
             parameters = parameters)
 
     def _filestorage_dir(self):
+        warnings.warn("The method '_filestorage_dir' is deprecated.", DeprecationWarning)
         return self.config['filestorage_dir']
 
     def _workspace_dir(self):
+        warnings.warn("The method '_workspace_dir' is deprecated.", DeprecationWarning)
         return self.config['workspace_dir']
 
+    def filestorage_dir(self):
+        "Return the project's filestorage directory."
+        return self.config['filestorage_dir']
+
+    def workspace_dir(self):
+        "Return the project's workspace directory."
+        return self.config['workspace_dir']
 
     def get_milestones(self, job_id):
         warnings.warn("The milestone API will be deprecated in the future.", PendingDeprecationWarning)
@@ -121,10 +130,6 @@ class BaseProject(object):
         msg = "{}: Activating develop mode!"
         logger.warning(msg.format(self.get_id()))
         self.config['develop'] = True
-
-    def filestorage_dir(self):
-        warnings.warn("The method 'filestorage_dir' is deprecated.", DeprecationWarning)
-        return self._filestorage_dir()
 
 class RollBackupExistsError(RuntimeError):
     pass
@@ -249,8 +254,20 @@ class OnlineProject(BaseProject):
         warnings.warn("The private method '_open_job' is deprecated.", DeprecationWarning)
         return self.open_job(*args, **kwargs)
 
-    def _open_job_by_id(self, job_id, blocking = True, timeout = -1):
-        "Open a job by job_id, determining the job's parameters first."
+    def open_job_from_id(self, job_id, blocking = True, timeout = -1):
+        """Open an online job, specified by its job id.
+
+        :param job_id: The job's job_id.
+        :param blocking: Block until the job is openend.
+        :param timeout: Wait a maximum of :param timeout: seconds. A value -1 specifies to wait infinitely.
+        :returns: An instance of OnlineJob.
+        :raises: DocumentLockError
+
+        .. warning: The job must be registered in the database, otherwise it is impossible to determine the parameters.
+
+        .. note::
+           This method will raise a DocumentLockError if it was impossible to open the job within the specified timeout.
+        """
         from . job import OnlineJob
         return OnlineJob(
             project = self,
@@ -268,20 +285,20 @@ class OnlineProject(BaseProject):
             job_spec = {}
         else:
             job_spec = {JOB_PARAMETERS_KEY+'.{}'.format(k): v for k,v in job_spec.items()}
-        job_ids = list(self.find_job_ids(job_spec))
+        job_ids = list(self._find_job_ids(job_spec))
         if spec is not None:
             spec.update({'_id': {'$in': job_ids}})
             docs = self._collection.find(spec)
             job_ids = (doc['_id'] for doc in docs)
         for _id in job_ids:
-            yield self._open_job_by_id(_id, blocking, timeout)
+            yield self.open_job_from_id(_id, blocking, timeout)
 
     def active_jobs(self):
         "Returns a generator for all job_ids of active online jobs."
         spec = {
             'executing': {'$exists': True},
             '$where': 'this.executing.length > 0'}
-        yield from self.find_job_ids(spec)
+        yield from self._find_job_ids(spec)
 
     def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
         """Find job documents, specified by the job's parameters and/or the job's document.
@@ -290,7 +307,7 @@ class OnlineProject(BaseProject):
         :param spec: The filter for the job document.
         :returns: Documents matching all specifications.
         """
-        job_ids = self.find_job_ids(job_spec)
+        job_ids = self._find_job_ids(job_spec)
         spec.update({'_id': {'$in': list(job_ids)}})
         yield from self._collection.find(spec, * args, ** kwargs)
 
@@ -348,7 +365,7 @@ class OnlineProject(BaseProject):
 
     def clear_develop(self, force = True):
         spec = {'develop': True}
-        job_ids = self.find_job_ids(spec)
+        job_ids = self._find_job_ids(spec)
         for develop_job in self.find_jobs(spec):
             develop_job.remove(force = force)
         self._collection.remove({'id': {'$in': list(job_ids)}})
@@ -387,7 +404,7 @@ class OnlineProject(BaseProject):
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
         yield from self._get_links(
-            url, parameters, self._filestorage_dir())
+            url, parameters, self.filestorage_dir())
 
     def get_workspace_links(self, url = None):
         import re
@@ -430,9 +447,9 @@ class OnlineProject(BaseProject):
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
         if workspace:
-            links = self._get_links(url, parameters, self._workspace_dir())
+            links = self._get_links(url, parameters, self.workspace_dir())
         else:
-            links = self._get_links(url, parameters, self._filestorage_dir())
+            links = self._get_links(url, parameters, self.filestorage_dir())
         for src, dst in links:
             try:
                 os.makedirs(os.path.dirname(dst))
@@ -488,7 +505,7 @@ class OnlineProject(BaseProject):
             file.write(RESTORE_SH.format(
                 project = self.get_id(),
                 db_host = self.config['database_host'],
-                fs_dir = self._filestorage_dir(),
+                fs_dir = self.filestorage_dir(),
                 db_meta = self.config['database_meta'],
                 compdb_docs = JOB_META_DOCS,
                 compdb_job_docs = JOB_DOCS,
@@ -538,7 +555,10 @@ class OnlineProject(BaseProject):
                     job.remove()
                 for line in file:
                     job_doc = loads(line.decode())
-                    self._get_jobs_collection().save(job_doc)
+                    if PYMONGO_3:
+                        self._get_jobs_collection().insert_one(job_doc)
+                    else:
+                        self._get_jobs_collection().save(job_doc)
         except FileNotFoundError as error:
             logger.warning(error)
             if not force:
@@ -555,11 +575,11 @@ class OnlineProject(BaseProject):
         for root, dirs, files in os.walk(fn_storage):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self._filestorage_dir(), dir))
+                    shutil.rmtree(join(self.filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self._filestorage_dir())
-            assert exists(join(self._filestorage_dir(), dir))
+                shutil.move(join(root, dir), self.filestorage_dir())
+            assert exists(join(self.filestorage_dir(), dir))
             break
     
     def _restore_snapshot(self, src):
@@ -592,8 +612,8 @@ class OnlineProject(BaseProject):
                         logger.debug("Storing '{}'...".format(fn))
                         tarfile.add(fn, os.path.relpath(fn, tmp))
                     if full:
-                        for id_ in self.find_job_ids():
-                            src_ = os.path.join(self._filestorage_dir(), id_)
+                        for id_ in self._find_job_ids():
+                            src_ = os.path.join(self.filestorage_dir(), id_)
                             dst_ = os.path.join(FN_DUMP_STORAGE, id_)
                             tarfile.add(src_, dst_)
             except Exception:
@@ -617,10 +637,10 @@ class OnlineProject(BaseProject):
         fn_storage_backup = join(dst, FN_STORAGE_BACKUP)
 
         self.create_snapshot(fn_db_backup, full = False)
-        for job_id in self.find_job_ids():
+        for job_id in self._find_job_ids():
             try:
                 shutil.move(
-                    os.path.join(self._filestorage_dir(), job_id), 
+                    os.path.join(self.filestorage_dir(), job_id),
                     os.path.join(fn_storage_backup, job_id))
             except FileNotFoundError as error:
                 pass
@@ -634,10 +654,10 @@ class OnlineProject(BaseProject):
         for root, dirs, files in os.walk(fn_storage_backup):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self._filestorage_dir(), dir))
+                    shutil.rmtree(join(self.filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self._filestorage_dir())
+                shutil.move(join(root, dir), self.filestorage_dir())
                 self._restore_snapshot(fn_db_backup)
     
     def _remove_rollbackup(self, dst):
@@ -656,7 +676,7 @@ class OnlineProject(BaseProject):
             raise RuntimeError(msg.format(num_active))
         self._check_snapshot(src)
         dst_rollbackup = join(
-            self._workspace_dir(), 
+            self.workspace_dir(),
             'restore_rollback_{}'.format(self.get_id()))
         try:
             self._create_rollbackup(dst_rollbackup)
@@ -784,7 +804,7 @@ class OnlineProject(BaseProject):
 
     def get_job(self, job_id, blocking = True, timeout = -1):
         warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
-        return self._open_job_by_id(job_id, blocking=blocking, timeout=timeout)
+        return self.open_job_from_id(job_id, blocking=blocking, timeout=timeout)
 
     def _job_spec(self, parameters):
         warnings.warn("Method '_job_spec' is deprecated.", DeprecationWarning)

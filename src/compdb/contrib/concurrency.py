@@ -20,7 +20,7 @@ Example:
 
   # The lock can be used as a context manager
   with lock:
-      # lock is defnitely aquired
+      # lock is definitely aquired
       pass
 
   # How to use reentrant locks
@@ -213,40 +213,43 @@ class DocumentRLock(DocumentBaseLock):
             timeout = timeout)
 
     def _acquire(self):
-        result = self._collection.find_and_modify(
-            query = {
-                '_id':  self._document_id,
-                '$or': [
-                    {LOCK_ID_FIELD: {'$exists': False}},
-                    {LOCK_ID_FIELD: self._lock_id}]},
-            update = {
-                '$set': {LOCK_ID_FIELD: self._lock_id},
-                '$inc': {LOCK_COUNTER_FIELD: 1}},
-            new = True,
-                )
-        if result is not None:
-            return True
+        filter = {
+            '_id':  self._document_id,
+            '$or': [
+                {LOCK_ID_FIELD: {'$exists': False}},
+                {LOCK_ID_FIELD: self._lock_id}]}
+        update = {
+            '$set': {LOCK_ID_FIELD: self._lock_id},
+            '$inc': {LOCK_COUNTER_FIELD: 1}}
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(filter, update)
         else:
-            return False
+            result = self._collection.find_and_modify(filter, update, new = True)
+        return result is not None
 
     def _release(self):
         # Trying full release
-        result = self._collection.find_and_modify(
-            query = {
-                '_id': self._document_id,
-                LOCK_ID_FIELD: self._lock_id,
-                LOCK_COUNTER_FIELD: 1},
-            update = {'$unset': {LOCK_ID_FIELD: '', 'lock_level': ''}})
+        filter = {
+            '_id': self._document_id,
+            LOCK_ID_FIELD: self._lock_id,
+            LOCK_COUNTER_FIELD: 1}
+        update = {'$unset': {LOCK_ID_FIELD: '', 'lock_level': ''}}
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(filter, update)
+        else:
+            result = self._collection.find_and_modify(filter, update)
         if result is not None:
             return
 
         # Trying partial release 
-        result = self._collection.find_and_modify(
-            query = {
-                '_id':  self._document_id,
-                LOCK_ID_FIELD: self._lock_id},
-            update = {'$inc': {LOCK_COUNTER_FIELD: -1}},
-            new = True)
+        filter = {
+            '_id':  self._document_id,
+            LOCK_ID_FIELD: self._lock_id}
+        update = {'$inc': {LOCK_COUNTER_FIELD: -1}}
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(filter, update)
+        else:
+            result = self._collection.find_and_modify(filter, update, new = True)
         if result is None:
             msg = "Failed to remove lock from document with id='{}', lock field was manipulated or lock was released too many times. Document state is undefined!"
             raise DocumentLockError(msg.format(self._document_id))

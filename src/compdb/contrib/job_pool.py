@@ -127,7 +127,7 @@ class JobPool(object):
                             msg = "Skipping '{}' due to exclude condition."
                             logger.debug(msg.format(job_id))
                             continue
-                    job(self._project.get_job(
+                    job(self._project.open_job_from_id(
                         job_id = job_id,
                         blocking = blocking, timeout = timeout))
             except:

@@ -3,8 +3,11 @@ from contextlib import contextmanager
 
 from compdb.core.dbdocument import DBDocument
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def testdata():
     import uuid
@@ -17,16 +20,13 @@ def document(collection = None):
         collection = get_collection()
     _id = None
     try:
-        if PYMONGO_3:
-            _id = collection.insert_one({}).inserted_id
-        else:
-            _id = collection.save({}, new = True)
+        _id = collection.insert_one({}).inserted_id
         yield _id
     except Exception:
         raise
     finally:
         try:
-            collection.remove({'_id': _id})
+            collection.delete_one({'_id': _id})
         except OperationFailure:
             pass
 
@@ -56,6 +56,7 @@ def get_dbdoc(host = None, id_ = None):
             yield x
         x.remove()
 
+@unittest.skipIf(pymongo.version_tuple[0] < 3, "Test requires pymongo version >= 3.x")
 class TestDBDocument(unittest.TestCase):
     
     def test_construction(self):

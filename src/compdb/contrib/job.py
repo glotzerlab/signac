@@ -27,10 +27,12 @@ def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIO
             return
         else:
             logger.debug("Pulsing...")
-            collection.update(
-                {'_id': job_id},
-                {'$set': {'pulse.{}'.format(unique_id): datetime.utcnow()}},
-                upsert = True)
+            filter = {'_id': job_id}
+            update = {'$set': {'pulse.{}'.format(unique_id): datetime.utcnow()}},
+            if PYMONGO_3:
+                collection.update_one(filter, update, upsert = True)
+            else:
+                collection.update(filter, update, upsert = True)
 
 class JobNoIdError(RuntimeError):
     pass
@@ -222,7 +224,7 @@ class OnlineJob(OfflineJob):
         from pymongo.errors import DuplicateKeyError
         try:
             doc = dict(parameters = self._parameters, _id = self.get_id())
-            result = self._project.get_jobs_collection().find_one_and_update(
+            result = self._project._get_jobs_collection().find_one_and_update(
                 filter = self._filter(),
                 update = {'$setOnInsert': doc},
                 upsert = True,
@@ -250,18 +252,18 @@ class OnlineJob(OfflineJob):
         "Add the job's unique id to the executing list in the database."
         doc = {'$push': {'executing': self._unique_id}}
         if PYMONGO_3:
-            self._project.get_jobs_collection().update_one(self._filter(), doc)
+            self._project._get_jobs_collection().update_one(self._filter(), doc)
         else:
-            self._project.get_jobs_collection().update(self._filter(), doc)
+            self._project._get_jobs_collection().update(self._filter(), doc)
 
     def _remove_instance(self):
         "Remove the job's unique id from the executing list in the database."
         update = {'$pull': {'executing': self._unique_id}}
         if PYMONGO_3:
-            result = self._project.get_jobs_collection().find_one_and_update(
+            result = self._project._get_jobs_collection().find_one_and_update(
                 self._filter(), update=update, return_document = pymongo.ReturnDocument.AFTER)
         else:
-            result = self._project.get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
+            result = self._project._get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
         return len(result['executing'])
 
     def _start_pulse(self, process = True):
@@ -272,7 +274,7 @@ class OnlineJob(OfflineJob):
         assert self._pulse is None
         assert self._pulse_stop_event is None
         kwargs = {
-            'collection': self._project.get_jobs_collection(),
+            'collection': self._project._get_jobs_collection(),
             'job_id': self.get_id(),
             'unique_id': self._unique_id}
         if not self._project.config.get('noforking', False):
@@ -298,9 +300,9 @@ class OnlineJob(OfflineJob):
             assert not self._pulse.is_alive()
             doc = {'$unset': {'pulse.{}'.format(self._unique_id): ''}}
             if PYMONGO_3:
-                self._project.get_jobs_collection().update_one(self._filter(), doc)
+                self._project._get_jobs_collection().update_one(self._filter(), doc)
             else:
-                self._project.get_jobs_collection().update(self._filter(), doc)
+                self._project._get_jobs_collection().update(self._filter(), doc)
             self._pulse = None
             self._pulse_stop_event = None
 
@@ -320,7 +322,7 @@ class OnlineJob(OfflineJob):
         from . concurrency import DocumentLock
         self._registered()
         return DocumentLock(
-                self._project.get_jobs_collection(), self.get_id(),
+                self._project._get_jobs_collection(), self.get_id(),
                 blocking = blocking or self._blocking,
                 timeout = timeout or self._timeout,)
 
@@ -347,8 +349,12 @@ class OnlineJob(OfflineJob):
                 self._close_stage_two() # only executed if no error occurd
             else:
                 err_doc = '{}:{}'.format(err_type, err_value)
-                self._project.get_jobs_collection().update(
-                    self._filter(), {'$push': {JOB_ERROR_KEY: err_doc}})
+                if PYMONGO_3:
+                    self._project._get_jobs_collection().update_one(
+                        self._filter(), {'$push': {JOB_ERROR_KEY: err_doc}})
+                else:
+                    self._project._get_jobs_collection().update(
+                        self._filter(), {'$push': {JOB_ERROR_KEY: err_doc}})
                 self._close_stage_one()
                 return False
 
@@ -358,7 +364,7 @@ class OnlineJob(OfflineJob):
         if self._dbdocument is None:
             from ..core.mongodbdict import MongoDBDict as DBDocument
             self._dbdocument = DBDocument(
-                self._project.collection,
+                self._project._collection,
                 self.get_id())
         return self._dbdocument
 
@@ -385,9 +391,9 @@ class OnlineJob(OfflineJob):
         except FileNotFoundError:
             pass
         if PYMONGO_3:
-            self._project.get_jobs_collection().delete_one(self._filter())
+            self._project._get_jobs_collection().delete_one(self._filter())
         else:
-            self._project.get_jobs_collection().remove(self._filter())
+            self._project._get_jobs_collection().remove(self._filter())
 
     def remove(self, force = False):
         """"Remove all content and registration of this job with the project.
@@ -405,7 +411,7 @@ class OnlineJob(OfflineJob):
 
     def _open_instances(self):
         "Return the unique id's of open instances."
-        job_doc = self._project.get_jobs_collection().find_one(self._filter())
+        job_doc = self._project._get_jobs_collection().find_one(self._filter())
         if job_doc is None:
             return list()
         else:

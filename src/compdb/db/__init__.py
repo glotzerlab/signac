@@ -8,6 +8,9 @@ from .conversion import make_db_method
 from .conversion import Adapter, BasicFormat, DBMethod
 from . import methods
 
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 def access_compmatdb(host = None, config = None):
     from ..core.dbclient_connector import DBClientConnector
     if config is None:
@@ -53,7 +56,10 @@ class Storage(object):
             '_fs_dir': self._storage_path,
             '_fs_timestamp': datetime.now(),
         })
-        file_id = self._collection.insert(kwargs)
+        if PYMONGO_3:
+            file_id = self._collection.insert_one(kwargs).inserted_id
+        else:
+            file_id = self._collection.insert(kwargs)
         return self.open(file_id, 'wb')
 
     def find(self, spec = {}, *args, ** kwargs):
@@ -78,4 +84,7 @@ class Storage(object):
     def delete(self, file_id):
         import os
         os.remove(self._filename(file_id))
-        self._collection.remove({'_id': file_id})
+        if PYMONGO_3:
+            self._collection.delete_one({'_id': file_id})
+        else:
+            self._collection.remove({'_id': file_id})

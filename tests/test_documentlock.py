@@ -1,6 +1,11 @@
 import unittest
 
+import warnings
+warnings.simplefilter('default')
+warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+
 from compdb.contrib.concurrency import DocumentLockError, DocumentLock, DocumentRLock, LOCK_ID_FIELD
+import pymongo
 
 def acquire_and_release(doc_id, wait):
     """Testing function, to test process concurrency this must be available on module level."""
@@ -17,6 +22,7 @@ def acquire_and_release(doc_id, wait):
     lock.release()
     return True
 
+@unittest.skipIf(pymongo.version_tuple[0] < 3, "Test requires pymongo version >= 3.x")
 class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):
@@ -28,7 +34,7 @@ class TestDocumentLocks(unittest.TestCase):
         self.mc = db['document_lock']
 
     def test_basic(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         try:
             lock = DocumentLock(self.mc, doc_id)
             assert lock.acquire()
@@ -48,13 +54,13 @@ class TestDocumentLocks(unittest.TestCase):
         except DocumentLockError as error:
             raise
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     # Check locks as context manager
 
     # Check nested locks
     def test_nested_locks(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         try:
             with DocumentLock(self.mc, doc_id):
                 with DocumentLock(self.mc, doc_id, blocking = False):
@@ -64,27 +70,25 @@ class TestDocumentLocks(unittest.TestCase):
         else:
             assert False
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     # Check illegal modification during lock
     def test_document_corruption(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         try:
             with DocumentLock(self.mc, doc_id):
                 # modify lock attribute
-                self.mc.update(
-                    {'_id': doc_id},
-                    {'$set': {LOCK_ID_FIELD: 0}})
+                self.mc.update_one({'_id': doc_id}, {'$set': {LOCK_ID_FIELD: 0}})
         except DocumentLockError as error:
             pass # expected
         else:
             assert False
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     def test_nested_locks_with_timeout(self):
         timeout = 1
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         try:
             with DocumentLock(self.mc, doc_id):
                 with DocumentLock(self.mc, doc_id, timeout = timeout):
@@ -94,10 +98,10 @@ class TestDocumentLocks(unittest.TestCase):
         else:
             assert False
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     def test_process_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         try:
             num_processes = 10
             num_locks = 100
@@ -111,10 +115,10 @@ class TestDocumentLocks(unittest.TestCase):
         except DocumentLockError as error:
             raise
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     def test_thread_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         num_workers = 5
         num_locks = 20
         from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -132,10 +136,10 @@ class TestDocumentLocks(unittest.TestCase):
         except DocumentLockError as error:
             raise
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
     def test_process_concurrency(self):
-        doc_id = self.mc.insert({'a': 0})
+        doc_id = self.mc.insert_one({'a': 0}).inserted_id
         num_workers = 5
         num_locks = 20
         from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -147,7 +151,7 @@ class TestDocumentLocks(unittest.TestCase):
         except DocumentLockError as error:
             raise
         finally:
-            self.mc.remove(doc_id)
+            self.mc.delete_one({'_id': doc_id})
 
 def lock_and_release(doc_id):
     from pymongo import MongoClient
