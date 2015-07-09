@@ -43,6 +43,10 @@ def query_yes_no(question, default="yes"):
 
 def prompt_password(prompt = 'Password: '):
     import getpass
+    return getpass.getpass(prompt)
+
+def prompt_new_password(prompt = 'Password: '):
+    import getpass
     pwd = getpass.getpass(prompt)
     pwd2 = getpass.getpass("Confirm password: ")
     if pwd != pwd2:

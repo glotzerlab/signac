@@ -62,6 +62,9 @@ def add(args):
 
 def check(key, value):
     import re
+    from compdb.core.config import is_legal_key, IllegalKeyError
+    if not is_legal_key(key):
+        raise IllegalKeyError(key)
     if key.endswith('email'):
         if not re.match(RE_EMAIL, value.strip()):
             msg = "Invalid email address: '{}'."

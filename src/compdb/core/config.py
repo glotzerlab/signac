@@ -66,9 +66,12 @@ class IllegalKeyError(ValueError):
 class IllegalArgumentError(ValueError):
     pass
 
+def is_legal_key(key):
+    return key in LEGAL_ARGS
+
 def process_set(key, value):
     from os.path import abspath, expanduser
-    if not key in LEGAL_ARGS:
+    if not is_legal_key(key):
         raise IllegalKeyError(key)
     if key in DIRS or key in FILES:
         return abspath(expanduser(value))
@@ -86,6 +89,8 @@ def process_get(key, value):
     if key.endswith('password'):
         import base64
         return base64.standard_b64decode(value.encode()).decode()
+    if key.endswith('version'):
+        return tuple(value)
     return value
 
 class Config(object):   
