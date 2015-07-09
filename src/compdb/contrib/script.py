@@ -8,11 +8,7 @@ def has_active_jobs(project):
 
 def info(args):
     from compdb.contrib import get_project
-    from compdb.contrib import get_basic_project_from_id
-    if args.project:
-        project = get_basic_project_from_id(args.project)
-    else:
-        project = get_project()
+    project = get_project()
     if args.regex:
         args.separator = '|'
         args.no_title = True
@@ -121,7 +117,7 @@ def view(args):
     from . utility import query_yes_no
     from os.path import join, exists
     from os import listdir
-    project = get_project(args.project)
+    project = get_project()
     if args.url:
         url = join(args.prefix, args.url)
     else:
@@ -144,7 +140,7 @@ def check(args):
     from .errors import ConnectionFailure
     import pymongo
     from compdb.contrib import get_project
-    project = get_project(args.project)
+    project = get_project()
     encountered_error = False
     checks = [
         ('global configuration',
@@ -224,7 +220,7 @@ def show_log(args):
         fmt = args.format,
         #datefmt = "%Y-%m-%d %H:%M:%S",
         style = '{')
-    project = get_project(args.project)
+    project = get_project()
     showed_log = False
     for record in project.get_logs(
             level = args.level, limit = args.lines):
@@ -243,7 +239,7 @@ def store_snapshot(args):
             pass
         else:
             return
-    project = get_project(args.project)
+    project = get_project()
     try:
         if args.database_only:
             print("Creating project database snapshot.")
@@ -289,7 +285,7 @@ def restore_snapshot(args):
 
 def clean_up(args):
     from . import get_project
-    project = get_project(args.project)
+    project = get_project()
     msg = "Clearing database for all jobs without sign of life for more than {} seconds."
     print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
@@ -314,7 +310,7 @@ def clear(args):
 def remove(args):
     from . import get_project
     from . utility import query_yes_no
-    project = get_project(args.project)
+    project = get_project()
     if args.project:
         question = "Are you sure you want to remove project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
@@ -378,10 +374,6 @@ def main():
     parser = ArgumentParser(
         description = "CompDB - Computational Database",
         formatter_class = SmartFormatter)
-    parser.add_argument(
-        '-p', '--project',
-        type = str,
-        help = "The path to the project directory, defaults to the current working directory.")
     parser.add_argument(
         '-y', '--yes',
         action = 'store_true',
@@ -596,6 +588,10 @@ def main():
     from compdb.contrib import admin
     parser_admin = subparsers.add_parser('user')
     admin.setup_parser(parser_admin)
+
+    from compdb.contrib import update
+    parser_update = subparsers.add_parser('update')
+    update.setup_parser(parser_update)
 
     try:
         import argcomplete

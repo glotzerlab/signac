@@ -69,7 +69,7 @@ class BaseProject(object):
         return self._config['project_dir']
 
     def get_id(self):
-        """"Returns the project's id as determiend from the configuration.
+        """"Returns the project's id as determined from the configuration.
 
         :returns: str - The project id.
         :raises: KeyError
@@ -84,6 +84,10 @@ class BaseProject(object):
             msg += "Are you sure '{}' is a compDB project path?"
             raise LookupError(msg.format(os.path.realpath(os.getcwd())))
 
+    def __str__(self):
+        """Returns the project's id."""
+        return str(self.get_id())
+
     def open_offline_job(self, parameters = None):
         """Open an offline job, specified by its parameters.
 
@@ -95,6 +99,14 @@ class BaseProject(object):
             project = self,
             parameters = parameters)
 
+    def filestorage_dir(self):
+        "Return the project's filestorage directory."
+        return self.config['filestorage_dir']
+
+    def workspace_dir(self):
+        "Return the project's workspace directory."
+        return self.config['workspace_dir']
+
     def _filestorage_dir(self):
         warnings.warn("The method '_filestorage_dir' is deprecated.", DeprecationWarning)
         return self.config['filestorage_dir']
@@ -103,13 +115,6 @@ class BaseProject(object):
         warnings.warn("The method '_workspace_dir' is deprecated.", DeprecationWarning)
         return self.config['workspace_dir']
 
-    def filestorage_dir(self):
-        "Return the project's filestorage directory."
-        return self.config['filestorage_dir']
-
-    def workspace_dir(self):
-        "Return the project's workspace directory."
-        return self.config['workspace_dir']
 
     def get_milestones(self, job_id):
         warnings.warn("The milestone API will be deprecated in the future.", PendingDeprecationWarning)
@@ -250,9 +255,9 @@ class OnlineProject(BaseProject):
             blocking = blocking,
             timeout = timeout)
 
-    def _open_job(self, *args, **kwargs):
-        warnings.warn("The private method '_open_job' is deprecated.", DeprecationWarning)
-        return self.open_job(*args, **kwargs)
+    def _open_job(self, **kwargs):
+        from . job import OnlineJob
+        return OnlineJob(project=self, **kwargs)
 
     def open_job_from_id(self, job_id, blocking = True, timeout = -1):
         """Open an online job, specified by its job id.
@@ -275,7 +280,7 @@ class OnlineProject(BaseProject):
             blocking = blocking, timeout = timeout)
 
     def find_jobs(self, job_spec = None, spec = None, blocking = True, timeout = -1):
-        """Find job documents, specified by the job's parameters and/or the job's document.
+        """Find jobs, specified by the job's parameters and/or the job's document.
 
         :param job_spec: The filter for the job parameters.
         :param spec: The filter for the job document.

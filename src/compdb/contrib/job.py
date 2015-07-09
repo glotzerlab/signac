@@ -15,6 +15,7 @@ PULSE_PERIOD = 1
 FN_MANIFEST = '.compdb.json'
 MANIFEST_KEYS = ['project', 'parameters']
 
+from .. import VERSION, VERSION_TUPLE
 from . project import JOB_DOCS, JOB_PARAMETERS_KEY
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
@@ -42,10 +43,11 @@ class BaseJob(object):
 
     All properties and methods in this class do not require a online database connection."""
     
-    def __init__(self, project, parameters):
+    def __init__(self, project, parameters, version=None):
         import uuid, os
         self._unique_id = str(uuid.uuid4())
         self._project = project
+        self._version = version or project.config.get('compdb_version', (0,1))
         self._parameters = parameters
         self._id = None
         self._cwd = None
@@ -58,18 +60,21 @@ class BaseJob(object):
 
         .. note::
            This function respects the project's version key."""
-        if self._id is None:
-            # Cache the id calcuation.
+        if self._id is None: # The id calculation is cached
             from .hashing import generate_hash_from_spec
-            compdb_version = self.get_project().config.get('compdb_version')
-            if compdb_version is None:  # id_calculation until 0.1
-                warnings.warn("Using old-style id.", UserWarning)
-                logger.warning("Using old-style id.")
+            # The ID calculation was changed after version 0.1.
+            # This is why we need to check the project version, to calculate it in the correct way.
+            if self._version == (0,1):
                 spec = dict(JOB_PARAMETERS_KEY = self._parameters, project = self.get_project().get_id())
-                print("get_id spec", spec)
                 self._id = generate_hash_from_spec(spec)
-            else: # id_calculation after 0.1
+            else:  # new style
                 self._id = generate_hash_from_spec(self._parameters)
+            if VERSION_TUPLE < self._version:
+                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
+                raise RuntimeError(msg.format(self._version, VERSION_TUPLE))
+            if VERSION_TUPLE > self._version:
+                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Use `compdb update` to update your project and get rid of this warning."
+                warnings.warn(msg.format(self._version, VERSION_TUPLE))
         return self._id
 
     def __str__(self):
@@ -207,7 +212,7 @@ class OnlineJob(OfflineJob):
        Instances of OnlineJob should only be used with reliable database connection. See also :class OfflineJob:.
     """
     
-    def __init__(self, project, parameters, blocking = True, timeout = -1):
+    def __init__(self, project, parameters, blocking = True, timeout = -1, version=None):
         """Initialize a job, specified by its parameters.
 
         :param parameters: A dictionary specifying the job parameters.
@@ -219,7 +224,7 @@ class OnlineJob(OfflineJob):
         .. note::
            The constructor will raise a DocumentLockError if it was impossible to instantiate the job within the specified timeout.
         """
-        super(OnlineJob, self).__init__(project=project, parameters=parameters)
+        super(OnlineJob, self).__init__(project=project, parameters=parameters, version=version)
         self._collection = None
         self._timeout = timeout
         self._blocking = blocking

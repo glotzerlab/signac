@@ -4,7 +4,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from .utility import prompt_password
+from .utility import prompt_new_password
 
 def welcome_msg(project):
     msg = "Administrating project '{project}' on '{host}':"
@@ -82,7 +82,7 @@ def update_user(args):
     if args.password:
         db_auth = client.admin
         msg = "Enter new password for user '{}': "
-        pwd = prompt_password(msg.format(username))
+        pwd = prompt_new_password(msg.format(username))
         result = db_auth.command('updateUser', username, pwd = pwd)
         if result ['ok']:
             print('OK.')
@@ -101,7 +101,7 @@ def add_user_to_db(project, client, username, args):
     else:
         from ..admin.manage import add_scram_sha1_user
         msg = "Enter password for new user '{}': "
-        password = prompt_password(msg.format(username))
+        password = prompt_new_password(msg.format(username))
         print("Adding user '{}' to database.".format(username))
         result = add_scram_sha1_user(client, username, password, dbs, roles)
         if result['ok']:
