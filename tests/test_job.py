@@ -54,12 +54,12 @@ class BaseJobTest(unittest.TestCase):
         self._project.remove(force = True)
         self._tmp_dir.cleanup()
 
-class NewIDJobTest(BaseJobTest):
+class OldIDJobTest(BaseJobTest):
 
     def setUp(self):
         import os
-        os.environ['COMPDB_VERSION'] = '0.2'
-        super(NewIDJobTest, self).setUp()
+        os.environ['COMPDB_VERSION'] = '0.1'
+        super(OldIDJobTest, self).setUp()
 
 class OnlineJobTest(BaseJobTest):
 
@@ -89,28 +89,32 @@ class OnlineConfigTest(OnlineJobTest, ConfigTest):
 class JobOpenAndClosingTest(OfflineJobTest):
 
     def test_open_job_close(self):
-        with self.open_job(test_token) as job:
-            pass
-        try:
-            job.remove()
-        except AttributeError:
-            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with self.open_job(test_token) as job:
+                pass
+            try:
+                job.remove()
+            except AttributeError:
+                pass
 
     def test_reopen_job(self):
-        with self.open_job(test_token) as job:
-            job_id = job.get_id()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with self.open_job(test_token) as job:
+                job_id = job.get_id()
 
-        with self.open_job(test_token) as job:
-            self.assertEqual(job.get_id(), job_id)
-        try:
-            job.remove()
-        except AttributeError:
-            pass
+            with self.open_job(test_token) as job:
+                self.assertEqual(job.get_id(), job_id)
+            try:
+                job.remove()
+            except AttributeError:
+                pass
 
 class OnlineJobOpenAndClosingTest(OnlineJobTest, JobOpenAndClosingTest):
     pass
 
-class NewIDJobOpenAndClosingTest(NewIDJobTest, JobOpenAndClosingTest):
+class OldIDJobOpenAndClosingTest(OldIDJobTest, JobOpenAndClosingTest):
     pass
 
 class JobStorageTest(OnlineJobTest):

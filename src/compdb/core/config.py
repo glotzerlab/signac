@@ -81,6 +81,9 @@ def process_set(key, value):
     if key.endswith('password'):
         import base64
         return base64.standard_b64encode(value.encode()).decode()
+    if key.endswith('version'):
+        if isinstance(value, tuple):
+            return '.'.join((str(v) for v in value))
     return value
 
 def process_get(key, value):
@@ -90,7 +93,8 @@ def process_get(key, value):
         import base64
         return base64.standard_b64decode(value.encode()).decode()
     if key.endswith('version'):
-        return tuple(value)
+        if isinstance(value, str):
+            return tuple((int(v) for v in value.split('.')))
     return value
 
 class Config(object):   

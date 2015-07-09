@@ -20,18 +20,20 @@ def update_version_key(project, version):
 def update_01_to_02(project):
     from .hashing import generate_hash_from_spec
     print("Updating project '{}' from version 0.1 to 0.2 ...".format(project.get_id()))
-    jobs = project.find_jobs()
     msg = "Updating job with old id {} to new id {}."
-    for old_job in jobs:
-        old_id = old_job.get_id()
-        new_id = generate_hash_from_spec(old_job.parameters())
+    old_jobs = set()
+    for job in project.find_jobs():
+        old_id = job.get_id()
+        new_id = generate_hash_from_spec(job.parameters())
         if old_id != new_id:
             print(msg.format(old_id, new_id))
-            new_job = project._open_job(parameters=old_job.parameters(), version=(0,2))
+            new_job = project._open_job(parameters=job.parameters(), version=(0,2))
             assert new_job.get_id() == new_id
             with new_job:
-                new_job.import_job(old_job)
-            old_job.remove()
+                new_job.import_job(job)
+            old_jobs.add(job)
+    for job in old_jobs:
+        job.remove()
     update_version_key(project, (0,2))
     print("Done")
 

@@ -211,7 +211,7 @@ class OnlineProject(BaseProject):
         return self.get_db(self.get_id())
 
     def _get_meta_db(self):
-        return self.get_project_db()
+        return self.get_db()
 
     def get_jobs_collection(self):
         warnings.warn("The method 'get_jobs_collection' is no longer part of the public API.", DeprecationWarning)
@@ -222,7 +222,7 @@ class OnlineProject(BaseProject):
 
     @property
     def _collection(self):
-        return self.get_project_db()[JOB_DOCS]
+        return self.get_db()[JOB_DOCS]
 
     @property
     def collection(self):
@@ -492,7 +492,7 @@ class OnlineProject(BaseProject):
             for job_doc in job_docs:
                 file.write("{}\n".format(dumps(job_doc)).encode())
         fn_dump_db = os.path.join(dst, FN_DUMP_DB)
-        dump_db(self.get_project_db(), fn_dump_db)
+        dump_db(self.get_db(), fn_dump_db)
         return [fn_dump_jobs, fn_dump_db]
 
     def _create_config_snapshot(self, dst):
@@ -572,7 +572,7 @@ class OnlineProject(BaseProject):
             fn_dump_db = join(src, FN_DUMP_DB)
             if not exists(fn_dump_db):
                 raise NotADirectoryError(fn_dump_db)
-            restore_db(self.get_project_db(), fn_dump_db)
+            restore_db(self.get_db(), fn_dump_db)
         except NotADirectoryError as error:
             logger.warning(error)
             if not force:
@@ -729,14 +729,14 @@ class OnlineProject(BaseProject):
     def job_queue_(self):
         if self._job_queue_ is None:
             from ..core.mongodb_queue import MongoDBQueue
-            self._job_queue_ = MongoDBQueue(self.get_project_db()[COLLECTION_JOB_QUEUE])
+            self._job_queue_ = MongoDBQueue(self.get_db()[COLLECTION_JOB_QUEUE])
         return self._job_queue_
 
     @property
     def job_queue(self):
         if self._job_queue is None:
             from ..core.mongodb_executor import MongoDBExecutor
-            collection_job_results = self.get_project_db()[COLLECTION_JOB_QUEUE_RESULTS]
+            collection_job_results = self.get_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
 
@@ -760,7 +760,7 @@ class OnlineProject(BaseProject):
             print(dumps(doc))
 
     def _get_logging_collection(self):
-        return self.get_project_db()[COLLECTION_LOGGING]
+        return self.get_db()[COLLECTION_LOGGING]
 
     def clear_logs(self):
         self._get_logging_collection().drop()
@@ -803,9 +803,14 @@ class OnlineProject(BaseProject):
         for doc in docs:
             yield record_from_doc(doc)
 
-    #
-    # All methods of this class beyond this point are deprecated.
-    #
+    def _find_job_ids(self, spec = {}):
+        #warnings.warn("Method '_find_job_ids' is under consideration for removal.", PendingDeprecationWarning)
+        if PYMONGO_3:
+            docs = self._find_job_docs(spec, projection = ['_id'])
+        else:
+            docs = self._find_job_docs(spec, fields = ['_id'])
+        for doc in docs:
+            yield doc['_id']
 
     def get_job(self, job_id, blocking = True, timeout = -1):
         warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
@@ -834,15 +839,6 @@ class OnlineProject(BaseProject):
     def find_job_ids(self, spec = {}):
         warnings.warn("Method 'find_job_ids' is no longer part of the public API.", DeprecationWarning)
         yield from self._find_job_ids(spec=spec)
-
-    def _find_job_ids(self, spec = {}):
-        warnings.warn("Method '_find_job_ids' is under consideration for removal.", PendingDeprecationWarning)
-        if PYMONGO_3:
-            docs = self._find_job_docs(spec, projection = ['_id'])
-        else:
-            docs = self._find_job_docs(spec, fields = ['_id'])
-        for doc in docs:
-            yield doc['_id']
 
 class Project(OnlineProject):
     pass

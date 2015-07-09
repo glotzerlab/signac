@@ -203,7 +203,16 @@ class BaseJob(object):
         return join(self.get_filestorage_directory(), filename)
 
 class OfflineJob(BaseJob):
-    pass
+
+    @property
+    def document(self):
+        msg = "Access to the job's document requires a database connection! Use 'open_job' instead."
+        raise AttributeError(msg)
+
+    @property
+    def collection(self):
+        msg = "Access to the job's collection requires a database connection! Use 'open_job' instead."
+        raise AttributeError(msg)
 
 class OnlineJob(OfflineJob):
     """A OnlineJob is a job with active database connection.
@@ -492,7 +501,7 @@ class OnlineJob(OfflineJob):
         #return self._spec
 
     def _obtain_id(self):
-        msg = "This function is obsolete, as the id is always(!) calculate offline!"
+        msg = "This function is obsolete, as the id is always(!) calculated offline!"
         raise DeprecationWarning(msg)
 
 class Job(OnlineJob):
