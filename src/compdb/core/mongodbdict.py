@@ -99,6 +99,10 @@ class MongoDBDict(ReadOnlyMongoDBDict):
                 })
             assert result['ok']
 
+    def update(self, mapping):
+        for key, value in mapping:
+            self[key] = value
+
     def clear(self):
         if PYMONGO_3:
             self._get_collection().replace_one(self._spec(), self._spec())
