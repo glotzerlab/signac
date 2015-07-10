@@ -236,6 +236,15 @@ class OnlineProject(BaseProject):
             raise KeyError(job_id)
         return result[JOB_PARAMETERS_KEY]
 
+    def register_job(self, parameters = None):
+        """Register a job for this project.
+
+        :param parameters: A dictionary specifying the job parameters.
+        """
+        from . job import OnlineJob
+        job = OnlineJob(self, parameters=parameters)
+        job._register_online()
+
     def open_job(self, parameters = None, blocking = True, timeout = -1):
         """Open an online job, specified by its parameters.
 
