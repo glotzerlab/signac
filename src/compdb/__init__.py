@@ -5,8 +5,8 @@ from . import contrib
 from . import core
 from . import db
 
-VERSION = '0.2'
-VERSION_TUPLE = 0,2
+VERSION = '0.1.1'
+VERSION_TUPLE = 0,1,1
 
 def check_mpi_support_or_raise():
     logger.debug("Checking MPI support.")

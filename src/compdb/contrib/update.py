@@ -17,9 +17,9 @@ def update_version_key(project, version):
     config.verify()
     config.write(fn_config)
 
-def update_01_to_02(project):
+def update_010_to_011(project):
     from .hashing import generate_hash_from_spec
-    print("Updating project '{}' from version 0.1 to 0.2 ...".format(project.get_id()))
+    print("Updating project '{}' from version 0.1.0 to 0.1.1 ...".format(project.get_id()))
     msg = "Updating job with old id {} to new id {}."
     old_jobs = set()
     for job in project.find_jobs():
@@ -34,26 +34,27 @@ def update_01_to_02(project):
             old_jobs.add(job)
     for job in old_jobs:
         job.remove()
-    update_version_key(project, (0,2))
+    update_version_key(project, (0,1,1))
     print("Done")
 
 def update(args):
     from . import get_project
     from .. import VERSION_TUPLE, VERSION
     project = get_project()
-    project_version = project.config.get('compdb_version', (0,1))
-    if project_version == VERSION_TUPLE:
+    project_version_tuple = project.config.get('compdb_version', (0,1,0))
+    project_version = '.'.join((str(v) for v in project_version_tuple))
+    if project_version_tuple == VERSION_TUPLE:
         print("Project alrady up-to-date. ({}).".format(VERSION))
         return
     msg = "Updating project '{}' with version {} to {}."
     print(msg.format(project.get_id(), project_version, VERSION))
-    if project_version > VERSION_TUPLE:
+    if project_version_tuple > VERSION_TUPLE:
         msg = "Unable to update project. Project has newer version than the installed version."
         raise RuntimeError(msg)
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=UserWarning)
-        if project_version == (0,1):
-            update_01_to_02(project)
+        if project_version_tuple == (0,1):
+            update_010_to_011(project)
 
 def setup_parser(parser):
     parser.set_defaults(func = update)
