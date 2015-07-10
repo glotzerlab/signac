@@ -13,7 +13,7 @@ MILESTONE_KEY = '_milestones'
 PULSE_PERIOD = 1
 
 FN_MANIFEST = '.compdb.json'
-MANIFEST_KEYS = ['project', 'parameters']
+FN_OPEN_FLAG = '.compdb.{uid}.OPEN'
 
 from .. import VERSION, VERSION_TUPLE
 from . project import JOB_DOCS, JOB_PARAMETERS_KEY
@@ -77,6 +77,10 @@ class BaseJob(object):
                 warnings.warn(msg.format(self._version, VERSION_TUPLE))
         return self._id
 
+    def get_uid(self):
+        """Returns the job's unique id."""
+        return self._unique_id
+
     def __str__(self):
         "Returns the job's id."
         return str(self.get_id())
@@ -133,6 +137,25 @@ class BaseJob(object):
                 msg = "Unable to write manifest file to '{}'."
                 raise RuntimeError(msg.format(fn_manifest)) from error
 
+    def _fn_open_flag(self):
+        "Return the job's unique open flag filename."
+        from os.path import join
+        return join(self.get_workspace_directory(), FN_OPEN_FLAG.format(uid=self.get_uid()))
+
+    def _flag_open(self):
+        "Mark job as active."
+        from os.path import join
+        with open(self._fn_open_flag(), 'wb') as file:
+            pass
+
+    def _remove_open_flag(self):
+        "Remove active flag from job."
+        import os
+        try:
+            os.remove(self._fn_open_flag())
+        except FileNotFoundError:
+            pass
+
     def _open(self):
         import os
         msg = "Opened job with id: '{}'."
@@ -140,6 +163,7 @@ class BaseJob(object):
         self._cwd = os.getcwd()
         self._create_directories()
         os.chdir(self.get_workspace_directory())
+        self._flag_open()
 
     def open(self):
         """Open the job.
@@ -155,10 +179,11 @@ class BaseJob(object):
         self._cwd = None
 
     def _close_stage_two(self):
-        # The working directory is no longer removed so this function does nothing.
+        # The automatic removal is deactivated since 0.1.1
         #import shutil, os
         #if self.num_open_instances() == 0:
         #    shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
+        self._remove_open_flag()
         msg = "Closing job with id: '{}'."
         logger.info(msg.format(self.get_id()))
 

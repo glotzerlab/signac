@@ -111,6 +111,14 @@ class JobOpenAndClosingTest(OfflineJobTest):
             except AttributeError:
                 pass
 
+    def test_open_flag(self):
+        import os
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with self.open_job(test_token) as job:
+                self.assertTrue(os.path.isfile(job._fn_open_flag()))
+            self.assertFalse(os.path.isfile(job._fn_open_flag()))
+
 class OnlineJobOpenAndClosingTest(OnlineJobTest, JobOpenAndClosingTest):
     pass
 
