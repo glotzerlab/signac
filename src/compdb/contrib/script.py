@@ -95,8 +95,8 @@ def info(args):
             print("No active jobs found.")
     if args.queue:
         queue = project.job_queue
-        s = "Queued/Active/Aborted/Completed: {}/{}/{}/{}"
-        print(s.format(queue.num_queued(), len(list(project.active_jobs())), queue.num_aborted(), queue.num_completed()))
+        s = "Queued/Fetched/Active/Aborted/Completed: {}/{}/{}/{}/{}"
+        print(s.format(queue.num_queued(), len(project.fetched_set), len(list(project.active_jobs())), queue.num_aborted(), queue.num_completed()))
         if args.more:
             print("Queued:")
             for q in queue.get_queued():
@@ -359,6 +359,7 @@ def remove(args):
         question = "Are you sure you want to clear the job queue results of project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id()), 'no'):
             project.job_queue.clear_results()
+            project.fetched_set.clear()
     if args.queued:
         if has_active_jobs(project):
             print("Project has indication of active jobs!")

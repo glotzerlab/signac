@@ -9,7 +9,6 @@ KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_CALLABLE_CHECKSUM = 'checksum'
 
 import hashlib
-import pickle as serializer
 
 def reload_module(modulename):
     import sys, importlib
@@ -73,37 +72,40 @@ def decode(binary):
     import jsonpickle
     return jsonpickle.decode(binary.decode())
 
+def encode_callable_filter(fn, args, kwargs):
+    b = encode_callable(fn, args, kwargs)
+    return {KEY_CALLABLE_CHECKSUM: b[KEY_CALLABLE_CHECKSUM]}
+
 def encode_callable(fn, args, kwargs):
+    import json, jsonpickle
     checksum_src = hash_source(fn)
-    binary = serializer.dumps(
-        {'fn': fn, 'args': args, 'kwargs': kwargs,
-         'module': fn.__module__,
-         'src': checksum_src},
-         protocol = serializer.HIGHEST_PROTOCOL)
-    checksum = hashlib.sha1()
-    checksum.update(binary)
-    return {
-        KEY_CALLABLE: binary,
-        KEY_CALLABLE_CHECKSUM: checksum.hexdigest()}
+    doc = dict(
+        fn=fn, args=args, kwargs=kwargs,
+        module=fn.__module__, checksum_src=checksum_src)
+    # we need jsonpickle to encode the functions and
+    # json to ensure key sorting
+    binary = json.dumps(json.loads(jsonpickle.dumps(doc)), sort_keys=True).encode()
+    m = hashlib.sha1()
+    m.update(binary)
+    checksum = m.hexdigest()
+    return {KEY_CALLABLE: binary, KEY_CALLABLE_CHECKSUM : checksum}
 
 def decode_callable(doc, reload = True):
     import sys
+    import jsonpickle
     sys.path.append('')
-    import warnings
-    binary = doc['callable']
-    checksum = doc[KEY_CALLABLE_CHECKSUM]
+    binary = doc[KEY_CALLABLE]
     m = hashlib.sha1()
     m.update(binary)
-    if not checksum == m.hexdigest():
-        msg = "Checksum deviation! Possible security breach!"
+    if m.hexdigest() != doc[KEY_CALLABLE_CHECKSUM]:
+        msg = "Checksum deviation!"
         raise RuntimeError(msg)
-    c_doc = serializer.loads(binary)
+    try:
+        c_doc = jsonpickle.loads(binary.decode())
+    except AttributeError as error:
+        msg = "Unable to retrieve callable. Executing from different script? Error: {}"
+        raise AttributeError(msg.format(error))
     if reload:
         reload_module(c_doc['module'])
-        c_doc = serializer.loads(binary)
-    else:
-        fn = c_doc['fn']
-        if not hash_source(c_doc['fn']) == c_doc['src']:
-            msg = "Source checksum deviates. Source code was changed."
-            warnings.warn(msg, RuntimeWarning)
+        c_doc = jsonpickle.loads(binary.decode())
     return c_doc['fn'], c_doc['args'], c_doc['kwargs']

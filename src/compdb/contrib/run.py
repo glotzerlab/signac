@@ -21,13 +21,12 @@ def run_next(project = None, num_jobs = 1, timeout = None, file = sys.stdout, * 
     for i in range(num_jobs):
         try:
             b = project.job_queue_.get(timeout = timeout)
+            project.fetched_set.add(b)
             print(RUN_COMMAND.format(BINARY = pickle.dumps(b)))
         except Empty:
             logger.info("Queue is empty.")
-            print(RUN_EXIT.format(EXIT_CODE(1)))
+            print(RUN_EXIT.format(EXIT_CODE=1))
             break
-        else:
-            project.job_queue_.task_done()
 
 def run_next_with_args(args):
     return run_next(num_jobs = args.num_jobs, timeout = args.timeout)
@@ -59,7 +58,7 @@ def main(arguments = None):
         args = parser.parse_args(user_args)
     except ImportError:
         args = parser.parse_args(arguments)
-    return start_with_args(args)
+    return run_next_with_args(args)
 
 if __name__ == '__main__':
     import sys

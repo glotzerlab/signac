@@ -82,8 +82,8 @@ class MongoDBExecutor(object):
         queued = lambda: item in self._job_queue
         in_results = lambda: self._fetch_result(item) is not None
         if queued() or in_results():
-            msg = "Item '{}' already submitted."
-            raise ValueError(msg.format(item))
+            msg = "Item '{}({}, {})' already submitted."
+            raise ValueError(msg.format(fn, args, kwargs))
         return self._put(item)
 
     def resubmit(self, fn, * args, ** kwargs):

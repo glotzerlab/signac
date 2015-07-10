@@ -24,6 +24,7 @@ FN_STORAGE_BACKUP = '_fs_backup'
 COLLECTION_LOGGING = 'logging'
 COLLECTION_JOB_QUEUE = 'compdb_job_queue'
 COLLECTION_JOB_QUEUE_RESULTS = 'compdb_job_results'
+COLLECTION_FETCHED_SET = 'compdbfetched_set'
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
@@ -54,6 +55,7 @@ class BaseProject(object):
         self._config = config
         self._job_queue = None
         self._job_queue_ = None
+        self._fetched_set = None
 
     def _str__(self):
         "Returns the project's id."
@@ -748,6 +750,37 @@ class OnlineProject(BaseProject):
             collection_job_results = self.get_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
+
+    @property
+    def fetched_set(self):
+        if self._fetched_set is None:
+            from ..core.mongodb_set import MongoDBSet
+            self._fetched_set = MongoDBSet(self.get_db()[COLLECTION_FETCHED_SET])
+        return self._fetched_set
+
+    def _submit(self, function, *args, **kwargs):
+        return self.job_queue.submit(function, *args, **kwargs)
+
+    def submit(self, function, *args, **kwargs):
+        from ..core.serialization import encode_callable_filter
+        f = encode_callable_filter(function, args, kwargs)
+        if f in self.fetched_set:
+            msg = "Job was already submitted and is currently fetched. Use 'resubmit' to ignore this warning."
+            raise ValueError(msg)
+        try:
+            return self._submit(function, *args, **kwargs)
+        except ValueError as error:
+            msg = "Job was already submitted and is currently queued. Use 'resubmit' to ignore this warning."
+            raise ValueError(msg) from error
+
+    def resubmit(self, function, *args, **kwargs):
+        return self._submit(function, args, kwargs)
+
+    def fetched_task_done(self, function, *args, **kwargs):
+        from ..core.serialization import encode_callable_filter
+        f = encode_callable_filter(function, args, kwargs)
+        self.fetched_set.remove(f)
+        self.job_queue_.task_done()
 
     def _find_job_docs(self, job_spec, * args, **kwargs):
         yield from self._get_jobs_collection().find(job_spec, *args, **kwargs)
