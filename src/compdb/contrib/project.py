@@ -862,6 +862,42 @@ class OnlineProject(BaseProject):
         for doc in docs:
             yield doc['_id']
 
+    def _check_version(self):
+        """Check the project version
+
+        returns: True if the version matches, otherwise False.
+        raises: UserWarning, RuntimeError
+
+        The function will raise a UserWarning if the compdb version is higher than the project version.
+        The function will raise a RuntimeError if the compdb version is less than the project version, because correct behaviour can't be guaranteed in this case.
+        """
+        from ..import VERSION, VERSION_TUPLE
+        version = self.config.get('compdb_version', (0,1,0))
+        if VERSION_TUPLE < version:
+            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
+            raise RuntimeError(msg.format(version, VERSION_TUPLE))
+        if VERSION_TUPLE > version:
+            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Use `compdb update` to update your project and get rid of this warning."
+            raise UserWarning(msg.format(version, VERSION_TUPLE))
+            warnings.warn(msg.format(version, VERSION_TUPLE))
+            return False
+        return True
+
+    def check_version(self):
+        """Check the project version against the compdb version.
+
+        returns: True if the version matches, otherwise False.
+        raises: RuntimeError
+
+        The function will issue a warning if the compdb version is higher than the project version.
+        The function will raise a RuntimeError if the compdb version is less than the project version, because correct behaviour can't be guaranteed in this case.
+        """
+        try:
+            return self._check_version()
+        except UserWarning as warning:
+            warnings.warn(warning)
+
+
     def get_job(self, job_id, blocking = True, timeout = -1):
         warnings.warn("Method get_job() is deprecated.", DeprecationWarning)
         return self.open_job_from_id(job_id, blocking=blocking, timeout=timeout)

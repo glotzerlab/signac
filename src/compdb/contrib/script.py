@@ -152,16 +152,16 @@ def check(args):
         print("Found project: '{}'.".format(project_id))
         checks.extend([
             ('project configuration (offline)',
-            check.check_project_config_offline),
-            ])
+            check.check_project_config_offline)])
         checks.extend([
             ('project configuration (online, readonly)',
-            check.check_project_config_online_readonly),
-            ])
+            check.check_project_config_online_readonly)])
         checks.extend([
             ('project configuration (online)',
-            check.check_project_config_online),
-            ])
+            check.check_project_config_online)])
+        checks.extend([
+            ('project version',
+            check.check_project_version)])
     for msg, check in checks:
         print()
         print("Checking {} ... ".format(msg), end='', flush=True)

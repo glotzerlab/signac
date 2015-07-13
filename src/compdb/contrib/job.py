@@ -47,7 +47,7 @@ class BaseJob(object):
         import uuid, os
         self._unique_id = str(uuid.uuid4())
         self._project = project
-        self._version = version or project.config.get('compdb_version', (0,1,1))
+        self._version = version or project.config.get('compdb_version', (0,1,0))
         self._parameters = parameters
         self._id = None
         self._cwd = None

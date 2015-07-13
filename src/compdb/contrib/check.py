@@ -107,3 +107,9 @@ def check_project_config_offline():
             del os.environ['COMPDB_CONNECT_TIMEOUT']
         else:
             os.environ['COMPDB_CONNECT_TIMEOUT'] = original_timeout
+
+def check_project_version():
+    import warnings
+    from compdb.contrib import get_project
+    project = get_project()
+    return project._check_version()
