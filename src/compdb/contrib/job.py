@@ -301,7 +301,7 @@ class OnlineJob(OfflineJob):
 
     def _get_jobs_doc_collection(self):
         "Return the job's document collection."
-        return self._project.get_project_db()[str(self.get_id())]
+        return self._project.get_db()[str(self.get_id())]
 
     def _add_instance(self):
         "Add the job's unique id to the executing list in the database."

@@ -198,7 +198,7 @@ class OnlineProject(BaseProject):
         :returns: The datbase with :param db_name: or the project's root database.
         """
         if db_name is None:
-            return self.get_project_db()
+            return self.get_db(self.get_id())
         else:
             assert valid_name(db_name)
             return self._get_db(db_name)

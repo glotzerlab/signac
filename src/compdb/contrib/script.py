@@ -1,6 +1,7 @@
 # PYTHON_ARGCOMPLETE_NOT_OK
 import logging
 logger = logging.getLogger(__name__)
+import warnings
 
 def info(args):
     from compdb.contrib import get_project
@@ -21,7 +22,7 @@ def info(args):
     if args.status:
         from compdb.contrib.job import PULSE_PERIOD
         from datetime import datetime
-        n_registered = len(list(project.find_job_ids()))
+        n_registered = len(list(project._find_job_ids()))
         n_active = project.num_active_jobs()
         n_pot_dead = 0
         n_w_pulse = 0
@@ -376,6 +377,12 @@ def main():
         action = 'store_true',
         help = "Assume yes to all questions.",)
     add_verbosity_argument(parser)
+    parser.add_argument(
+        '-W', '--warnings',
+        type = str,
+        default = 'ignore',
+        choices = ['ignore', 'default', 'all', 'module', 'once', 'error'],
+        help = "Control the handling of warnings. By default all warnings are ignored.")
 
     subparsers = parser.add_subparsers()
 
@@ -598,6 +605,7 @@ def main():
     
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
+    warnings.simplefilter(args.warnings)
     try:
         if 'func' in args:
             args.func(args)
