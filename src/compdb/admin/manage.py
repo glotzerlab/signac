@@ -67,7 +67,7 @@ def display_info(args):
     client = connect_and_authenticate(args)
     for project_id in get_all_project_ids(client):
         project = get_basic_project_from_id(project_id, client=client)
-        n_jobs = len(list(project.active_jobs()))
+        n_jobs = project.num_active_jobs()
         print(project_id)
         print("Active jobs: {num}".format(num=n_jobs))
         print()

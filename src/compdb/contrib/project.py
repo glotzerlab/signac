@@ -295,7 +295,7 @@ class OnlineProject(BaseProject):
 
         :param job_spec: The filter for the job parameters.
         :param spec: The filter for the job document.
-        :returns: A generator of OnlineJob instances, that match the criteria.
+        :returns: An iterator over all OnlineJob instances, that match the criteria.
         """
         if job_spec is None:
             job_spec = {}
@@ -309,12 +309,24 @@ class OnlineProject(BaseProject):
         for _id in job_ids:
             yield self.open_job_from_id(_id, blocking, timeout)
 
-    def active_jobs(self):
-        "Returns a generator for all job_ids of active online jobs."
+    def _active_job_ids(self):
+        "Returns an iterator over all job_ids of active online jobs."
         spec = {
             'executing': {'$exists': True},
             '$where': 'this.executing.length > 0'}
         yield from self._find_job_ids(spec)
+
+    def active_jobs(self, blocking = True, timeout = -1):
+        "Returns an iterator over all active jobs."
+        warnings.warn("This method returns actual jobs, not job ids now!")
+        for _id in self._active_job_ids():
+            yield self.open_job_from_id(_id, blocking, timeout)
+
+    def num_active_jobs(self):
+        spec = {
+            'executing': {'$exists': True},
+            '$where': 'this.executing.length > 0'}
+        return self._get_jobs_collection().find(spec).count()
 
     def find(self, job_spec = {}, spec = {}, * args, ** kwargs):
         """Find job documents, specified by the job's parameters and/or the job's document.
@@ -685,7 +697,7 @@ class OnlineProject(BaseProject):
         from tempfile import TemporaryDirectory
         from os.path import join
         logger.info("Trying to restore from '{}'.".format(src))
-        num_active = len(list(self.active_jobs()))
+        num_active = self.num_active_jobs()
         if num_active > 0:
             msg = "This project has indication of active jobs. "
             msg += "You can use 'compdb cleanup' to remove dead jobs."

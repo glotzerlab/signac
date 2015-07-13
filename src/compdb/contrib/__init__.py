@@ -41,11 +41,6 @@ def get_all_project_ids(client = None):
         else:
             yield dbname
 
-def get_all_active_jobs():
-    for project_id in get_all_project_ids():
-        project = get_basic_project_from_id(project_id)
-        yield from project.active_jobs()
-
 def sleep_random(time = 1.0):
     from random import uniform
     from time import sleep

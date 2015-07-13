@@ -2,10 +2,6 @@
 import logging
 logger = logging.getLogger(__name__)
 
-def has_active_jobs(project):
-    from itertools import islice
-    return len(list(islice(project.active_jobs(), 1)))
-
 def info(args):
     from compdb.contrib import get_project
     project = get_project()
@@ -26,7 +22,7 @@ def info(args):
         from compdb.contrib.job import PULSE_PERIOD
         from datetime import datetime
         n_registered = len(list(project.find_job_ids()))
-        n_active = len(list(project.active_jobs()))
+        n_active = project.num_active_jobs()
         n_pot_dead = 0
         n_w_pulse = 0
         for uid, age in project.job_pulse():
@@ -46,7 +42,7 @@ def info(args):
         if args.regex:
             print('(', end='')
         if args.open_only:
-            legit_ids = project.active_jobs()
+            legit_ids = project._active_job_ids()
         else:
             legit_ids = project.find_job_ids()
         if args.jobs is True:
@@ -96,7 +92,7 @@ def info(args):
     if args.queue:
         queue = project.job_queue
         s = "Queued/Fetched/Active/Aborted/Completed: {}/{}/{}/{}/{}"
-        print(s.format(queue.num_queued(), len(project.fetched_set), len(list(project.active_jobs())), queue.num_aborted(), queue.num_completed()))
+        print(s.format(queue.num_queued(), len(project.fetched_set), project.num_active_jobs(), queue.num_aborted(), queue.num_completed()))
         if args.more:
             print("Queued:")
             for q in queue.get_queued():
@@ -361,7 +357,7 @@ def remove(args):
             project.job_queue.clear_results()
             project.fetched_set.clear()
     if args.queued:
-        if has_active_jobs(project):
+        if project.num_active_jobs() > 0:
             print("Project has indication of active jobs!")
         q = "Are you sure you want to clear the job queue of project '{}'?"
         if args.yes or query_yes_no(q.format(project.get_id()), 'no'):
