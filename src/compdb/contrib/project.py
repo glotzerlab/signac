@@ -57,9 +57,9 @@ class BaseProject(object):
         self._job_queue_ = None
         self._fetched_set = None
 
-    def _str__(self):
+    def __str__(self):
         "Returns the project's id."
-        return self.get_id()
+        return str(self.get_id())
 
     @property 
     def config(self):
@@ -85,10 +85,6 @@ class BaseProject(object):
             msg = "Unable to determine project id. "
             msg += "Are you sure '{}' is a compDB project path?"
             raise LookupError(msg.format(os.path.realpath(os.getcwd())))
-
-    def __str__(self):
-        """Returns the project's id."""
-        return str(self.get_id())
 
     def open_offline_job(self, parameters = None):
         """Open an offline job, specified by its parameters.
@@ -210,7 +206,7 @@ class OnlineProject(BaseProject):
     def get_project_db(self):
         "Return the project's root database."
         warnings.warn("The method 'get_project_db' will be deprecated in the future. Use 'get_db' instead.", PendingDeprecationWarning)
-        return self.get_db(self.get_id())
+        return self.get_db(self.str(get_id()))
 
     def _get_meta_db(self):
         return self.get_db()
