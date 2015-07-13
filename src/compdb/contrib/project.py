@@ -79,7 +79,7 @@ class BaseProject(object):
         This method raises ``KeyError`` if no project id could be determined.
         """
         try:
-            return self.config['project']
+            return str(self.config['project'])
         except KeyError:
             import os
             msg = "Unable to determine project id. "
@@ -206,7 +206,7 @@ class OnlineProject(BaseProject):
     def get_project_db(self):
         "Return the project's root database."
         warnings.warn("The method 'get_project_db' will be deprecated in the future. Use 'get_db' instead.", PendingDeprecationWarning)
-        return self.get_db(self.str(get_id()))
+        return self.get_db(self.get_id())
 
     def _get_meta_db(self):
         return self.get_db()
