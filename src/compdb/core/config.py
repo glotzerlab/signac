@@ -222,15 +222,15 @@ def read_config_file(filename):
 
 def _search_tree():
     from os import getcwd
-    from os.path import realpath, join, isfile
+    from os.path import abspath, join, isfile
     cwd = os.getcwd()
     while(True):
         for filename in CONFIG_FILENAMES:
-            fn = realpath(join(cwd, filename))
+            fn = abspath(join(cwd, filename))
             if isfile(fn):
                 yield fn
                 #return
-        up = realpath(join(cwd, '..'))
+        up = abspath(join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
             logger.debug(msg)
@@ -246,10 +246,10 @@ def search_tree():
     #yield from tree
 
 def search_standard_dirs():
-    from os.path import realpath, join, isfile
+    from os.path import abspath, join, isfile
     for path in CONFIG_PATH:
         for filename in CONFIG_FILENAMES:
-            fn = realpath(join(path, filename))
+            fn = abspath(join(path, filename))
             if isfile(fn):
                 yield fn
                 return

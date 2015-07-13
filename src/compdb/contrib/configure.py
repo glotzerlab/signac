@@ -118,8 +118,8 @@ def verify(args):
         msg = "Invalid email address: '{}'."
         raise ValueError(msg.format(args.email))
     if args.config != '-':
-        from os.path import expanduser, realpath
-        args.config = realpath(expanduser(args.config))
+        from os.path import expanduser, abspath
+        args.config = abspath(expanduser(args.config))
 
 def configure(args):
     process(args)
