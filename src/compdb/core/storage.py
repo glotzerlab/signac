@@ -15,7 +15,7 @@ class ReadOnlyStorage(object):
 
     def _norm_path(self, path):
         import os
-        p = os.path.realpath(path)
+        p = os.path.abspath(path)
         if not os.path.isdir(p):
             raise NotADirectoryError(p)
         return p

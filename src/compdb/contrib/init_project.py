@@ -15,7 +15,7 @@ Execute `compdb check` to check your configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 
 def check_for_existing_project(args):
-    from os.path import realpath
+    from os.path import abspath
     from compdb.contrib import get_project
     try:
         project = get_project()
@@ -23,9 +23,9 @@ def check_for_existing_project(args):
     except (LookupError, FileNotFoundError, NotADirectoryError, KeyError):
         pass
     else:
-        if realpath(root_dir) == realpath(args.directory):
+        if abspath(root_dir) == abspath(args.directory):
             msg = "Project in directory '{}' already exists. Use '-f' or '--force' argument to ignore this warning and create a project anyways. This will lead to potential data loss!"
-            print(msg.format(realpath(args.directory)))
+            print(msg.format(abspath(args.directory)))
             return True
     return False
 
@@ -109,7 +109,7 @@ def init_project(args):
         config.write(os.path.join(args.directory, 'compdb.rc'))
         print(MSG_SUCCESS.format(
             project_name = args.project_name,
-            project_dir = os.path.realpath(args.directory)))
+            project_dir = os.path.abspath(args.directory)))
         config.load()
 
 def setup_parser(parser):

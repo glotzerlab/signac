@@ -84,7 +84,7 @@ class BaseProject(object):
             import os
             msg = "Unable to determine project id. "
             msg += "Are you sure '{}' is a compDB project path?"
-            raise LookupError(msg.format(os.path.realpath(os.getcwd())))
+            raise LookupError(msg.format(os.path.abspath(os.getcwd())))
 
     def open_offline_job(self, parameters = None):
         """Open an offline job, specified by its parameters.
