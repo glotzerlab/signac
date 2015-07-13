@@ -4,7 +4,12 @@ logger = logging.getLogger(__name__)
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-import ssl
+try:
+    import ssl
+except ImportError:
+    SSL_SUPPORT = False
+else:
+    SSL_SUPPORT = True
 
 AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
@@ -13,11 +18,16 @@ AUTH_SSL_x509 = 'SSL-x509'
 
 SUPPORTED_AUTH_MECHANISMS = [AUTH_NONE, AUTH_SCRAM_SHA_1, AUTH_SSL, AUTH_SSL_x509]
 
-SSL_CERT_REQS = {
-    'none': ssl.CERT_NONE,
-    'optional': ssl.CERT_OPTIONAL,
-    'required': ssl.CERT_REQUIRED
-}
+if SSL_SUPPORT:
+    SSL_CERT_REQS = {
+        'none': ssl.CERT_NONE,
+        'optional': ssl.CERT_OPTIONAL,
+        'required': ssl.CERT_REQUIRED
+    }
+
+def with_ssl_support():
+    if not SSL_SUPPORT:
+        raise EnvironmentError("Your python installation does not support SSL.")
 
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported. Supported mechanisms: {}."
@@ -62,6 +72,7 @@ class DBClientConnector(object):
                 host,
                 ** parameters)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
+            with_ssl_support()
             from os.path import expanduser
             client = MongoClient(
                 host, 
@@ -96,7 +107,6 @@ class DBClientConnector(object):
         self._client = client
 
     def connect(self, host = None):
-        import ssl
         msg = "Connecting with config '{}' and prefix '{}'."
         logger.debug(msg.format(self._config, self._prefix))
         logger.debug("Connecting to host '{host}'.".format(host=self._config_get('host')))
@@ -122,6 +132,7 @@ class DBClientConnector(object):
                 self._config_get('password'),
                 mechanism = AUTH_SCRAM_SHA_1)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
+            with_ssl_support()
             from os.path import expanduser
             from ..core.utility import get_subject_from_certificate
             certificate_subject = get_subject_from_certificate(expanduser(self._config_get('ssl_certfile')))

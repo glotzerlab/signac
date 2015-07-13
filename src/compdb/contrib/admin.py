@@ -11,13 +11,8 @@ def welcome_msg(project):
     print(msg.format(project=project, host=project.config['database_host']))
 
 def get_project(args):
-    #from . import get_project
     from compdb.contrib import get_project
-    from compdb.contrib import get_basic_project_from_id
-    if args.project:
-        return get_basic_project_from_id(args.project)
-    else:
-        return get_project()
+    return get_project()
 
 def get_client(project):
     return project._get_client()

@@ -39,11 +39,15 @@ DEFAULTS = {
     'noforking':                False,
 }
 
-from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
-CHOICES = {
-    'database_auth_mechanism': SUPPORTED_AUTH_MECHANISMS,
-    'database_ssl_cert_reqs': SSL_CERT_REQS.keys(),
-}
+CHOICES = dict()
+
+from . import SSL_SUPPORT
+if SSL_SUPPORT:
+    from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
+    CHOICES.update({
+        'database_auth_mechanism': SUPPORTED_AUTH_MECHANISMS,
+        'database_ssl_cert_reqs': SSL_CERT_REQS.keys(),
+    })
 
 # File and dir names are interpreted relative to the working directory and stored as absolute path.
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
