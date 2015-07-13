@@ -105,10 +105,10 @@ def show(args):
     msg = "{arg:<" + str(l_column0) + "}: {value}"
     for arg in legal_args:
         if arg.endswith('password'):
-            line = msg.format(arg = arg, value = '[not shown]')
+            value = '[not shown]'
         else:
-            line = msg.format(arg = arg, value = config.get(arg))
-        print(line)
+            value = config.get(arg)
+        print(msg.format(arg=arg, value=value))
 
 def verify(args):
     import re
