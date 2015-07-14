@@ -1,10 +1,21 @@
 import logging
-logger = logging.getLogger(__name__)
+import copy
+import uuid
+import hashlib
+import inspect
 
 import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
 import bson
-import uuid
+import jsonpickle
+import networkx as nx
+from gridfs import GridFS
+
+from ..core.config import load_config
+from . import conversion, formats
+
+logger = logging.getLogger(__name__)
+
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 COLLECTION_DATA = 'compdb_data'
 COLLECTION_CACHE = 'compdb_cache'
@@ -24,7 +35,6 @@ KEY_DOC_DATA = 'data'
 ILLEGAL_AGGREGATION_KEYS = ['$group', '$out']
 
 def hash_module(c):
-    import inspect, hashlib
     module = inspect.getmodule(c)
     src_file = inspect.getsourcefile(module)
     m = hashlib.md5()
@@ -33,7 +43,6 @@ def hash_module(c):
     return m.hexdigest()
 
 def hash_source(c):
-    import inspect, hashlib
     m = hashlib.md5()
     m.update(inspect.getsource(c).encode())
     return m.hexdigest()
@@ -45,7 +54,6 @@ def callable_name(c):
         return c.name()
 
 def callable_spec(c):
-    import inspect
     assert callable(c)
     try:
         spec = {
@@ -61,27 +69,20 @@ def callable_spec(c):
     return spec
 
 def encode(data):
-    import jsonpickle
     binary = jsonpickle.encode(data).encode()
-    #import json
     #binary = json.dumps(data).encode()
     return binary
 
 def decode(data):
-    import jsonpickle
     data = jsonpickle.decode(data.decode())
     if isinstance(data, dict):
         if 'py/object' in data:
             msg = "Missing format definition for: '{}'."
             logger.debug(msg.format(data['py/object']))
-    #import json
     #data = json.loads(binary.decode())
     return data
 
 def generate_auto_network():
-    from . import conversion
-    from . import formats
-    import networkx as nx
     network = nx.DiGraph()
     network.add_nodes_from(formats.BASICS)
     network.add_nodes_from(conversion.BasicFormat.registry.values())
@@ -102,7 +103,6 @@ class FileCursor(object):
         self._projection = projection
 
     def __call__(self, cursor):
-        from . import conversion
         try:
             return self._db._resolve_doc(cursor, self._call_dict, self._projection)
         except conversion.NoConversionPath:
@@ -116,9 +116,7 @@ class FileCursor(object):
 class Database(object):
 
     def __init__(self, db, config = None):
-        from gridfs import GridFS
         if config is None:
-            from ..core.config import load_config
             config = load_config()
         self._config = config
         self._db = db
@@ -137,7 +135,6 @@ class Database(object):
         self._formats_network = value
 
     def _convert_src(self, src, method):
-        from . import conversion
         if isinstance(method, conversion.DBMethod):
             try:
                 isinstance(src, method.expects)
@@ -168,7 +165,6 @@ class Database(object):
         return src
 
     def _update_cache(self, doc_ids, method):
-        from . import conversion
         docs = self._data.find({'_id': {'$in': list(doc_ids)}})
         records_skipped = docs.count()
         conversion_errors = 0
@@ -299,7 +295,6 @@ class Database(object):
             metadata['author_email'] = self._config['author_email']
 
     def _make_meta_document(self, metadata, data):
-        import copy
         meta = copy.copy(metadata)
         if data is not None:
             meta[KEY_FILE_TYPE] = str(type(data))
@@ -337,7 +332,6 @@ class Database(object):
         self._insert_one(document, data, * args, ** kwargs)
 
     def replace_one(self, filter, replacement_data = None, upsert = False, * args, ** kwargs):
-        import copy
         meta = self._make_meta_document(filter, replacement_data)
         to_be_replaced = self._data.find_one(meta)
         replacement = copy.copy(meta)
@@ -421,7 +415,6 @@ class Database(object):
             self._cache.remove({KEY_FILE_ID: doc['_id']})
 
     def add_adapter(self, adapter):
-        from . import conversion
         conversion.add_adapter_to_network(
             self._formats_network, adapter)
 

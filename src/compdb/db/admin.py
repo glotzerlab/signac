@@ -1,7 +1,8 @@
 import logging
-logger = logging.getLogger(__name__)
 
 from .database import PYMONGO_3
+
+logger = logging.getLogger(__name__)
 
 def _clear_cache(db, filter):
     if PYMONGO_3:

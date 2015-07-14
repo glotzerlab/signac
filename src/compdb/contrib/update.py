@@ -1,11 +1,15 @@
 import logging
-logger = logging.getLogger(__name__)
-
+import os
 import warnings
 
+from .. import VERSION_TUPLE, VERSION
+from ..core.config import Config
+from .hashing import generate_hash_from_spec
+from . import get_project
+
+logger = logging.getLogger(__name__)
+
 def update_version_key(project, version):
-    import os
-    from ..core.config import Config
     print("Updating version key to {}.".format(version))
     config = Config()
     fn_config = os.path.join(project.root_directory(), 'compdb.rc')
@@ -18,7 +22,6 @@ def update_version_key(project, version):
     config.write(fn_config)
 
 def update_010_to_011(project):
-    from .hashing import generate_hash_from_spec
     print("Updating project '{}' from version 0.1.0 to 0.1.1 ...".format(project.get_id()))
     msg = "Updating job with old id {} to new id {}."
     old_jobs = set()
@@ -38,8 +41,6 @@ def update_010_to_011(project):
     print("Done")
 
 def update(args):
-    from . import get_project
-    from .. import VERSION_TUPLE, VERSION
     project = get_project()
     project_version_tuple = project.config.get('compdb_version', (0,1,0))
     project_version = '.'.join((str(v) for v in project_version_tuple))

@@ -1,5 +1,8 @@
-from abc import ABCMeta, abstractmethod
+import random
+import ctypes
 from six import with_metaclass
+from abc import ABCMeta, abstractmethod
+from threading import Timer
 
 """Increase robustness of jobs by adding stress tests."""
 
@@ -35,13 +38,11 @@ class RandomSegfault(BaseRandomFailure):
     
     def _fail(self):
         print("RandomSegfault: Crashing!")
-        import ctypes
         ctypes.string_at(1)
 
 class RandomFailureHere(BaseRandomFailure):
     
     def test(self):
-        import random
         if random.random() <= self._p:
             self._fail()
 
@@ -62,7 +63,6 @@ class RandomFailureFuture(RandomFailureHere):
         self._timer = None
 
     def __enter__(self):
-        from threading import Timer
         def test_periodic():
             self.test()
             self._timer = Timer(self._interval, test_periodic)

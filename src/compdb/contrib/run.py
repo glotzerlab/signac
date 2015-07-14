@@ -1,22 +1,25 @@
 import logging
+import pickle
+import sys
+import argparse
+
+from ..core.mongodb_queue import Empty
+from ..core.serialization import decode_callable
+from . import get_project
+
 logger = logging.getLogger(__name__)
 
 DESCR_RUN = "Fetch a job from the compDB job queue and execute."
-
-import sys, pickle
 
 RUN_COMMAND = "from compdb.contrib.run import execute_job; print(execute_job({BINARY}));"
 RUN_EXIT = "import sys; sys.exit({EXIT_CODE});"
 
 def execute_job(binary):
-    from ..core.serialization import decode_callable
     c, args, kwargs = decode_callable(pickle.loads(binary))
     return c(* args, ** kwargs)
 
 def run_next(project = None, num_jobs = 1, timeout = None, file = sys.stdout, * args, **kwargs):
-    from ..core.mongodb_queue import Empty
     if project is None:
-        from compdb.contrib import get_project
         project = get_project()
     for i in range(num_jobs):
         try:
@@ -49,8 +52,7 @@ def setup_parser(parser):
     parser.set_defaults(func = run_next_with_args)
 
 def main(arguments = None):
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description = DESCR_SERVER)
+    parser = argparse.ArgumentParser(description = DESCR_SERVER)
     setup_parser(parser)
     try:
         from hoomd_script import option
@@ -61,6 +63,5 @@ def main(arguments = None):
     return run_next_with_args(args)
 
 if __name__ == '__main__':
-    import sys
     logging.basicConfig(level = logging.INFO)
     sys.exit(main())

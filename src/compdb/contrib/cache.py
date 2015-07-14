@@ -1,10 +1,20 @@
+import os
 import logging
+import warnings
+import pickle
+import hashlib
+import inspect
+
+import pymongo
+from bson.errors import InvalidDocument
+
+from . hashing import generate_hash_from_spec
+
 logger = logging.getLogger(__name__)
 
 CACHE_KEY = 'compdb_cache'
 CACHE_DIR = '.cache'
 
-import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 class CacheFailWarning(UserWarning):
@@ -20,15 +30,12 @@ class Cache(object):
         return self._project.get_project_db()[CACHE_KEY]
 
     def _cache_dir(self):
-        from os.path import join
-        return join(self._project.filestorage_dir(), CACHE_DIR)
+        return os.path.join(self._project.filestorage_dir(), CACHE_DIR)
 
     def _fn(self, name):
-        from os.path import join
-        return join(self._cache_dir(), name)
+        return os.path.join(self._cache_dir(), name)
 
     def _store_in_cache(self, doc, data):
-        import pickle, os
         try:
             logger.debug("Trying to cache results.")
             blob = pickle.dumps(data)
@@ -44,14 +51,12 @@ class Cache(object):
             with open(self._fn(str(id_)), 'wb') as cachefile:
                 pickle.dump(data, cachefile)
         except Exception as error:
-            import warnings
             warnings.warn("Caching failed.", CacheFailWarning)
             logger.warning("Caching failed: {}".format(error))
         finally:
             return data
 
     def _hash_function(self, function):
-        import hashlib, inspect
         code = inspect.getsource(function)
         m = hashlib.md5()
         m.update(code.encode())
@@ -62,7 +67,6 @@ class Cache(object):
         return self._hash_function(function) == doc['code']
 
     def _load_from_cache(self, name):
-        import pickle
         logger.debug("Loading from '{}'.".format(self._fn(name)))
         with open(self._fn(name), 'rb') as cachefile:
             return pickle.load(cachefile)
@@ -76,10 +80,6 @@ class Cache(object):
             return doc is not None
 
     def run(self, function, * args, ** kwargs):
-        import inspect, pickle
-        from bson.errors import InvalidDocument
-        from . hashing import generate_hash_from_spec
-
         signature = str(inspect.signature(function))
         arguments = inspect.getcallargs(function, *args, ** kwargs)
         code = inspect.getsource(function)
@@ -110,7 +110,6 @@ class Cache(object):
         return self._store_in_cache(spec, result)
             
     def _check(self):
-        import os
         docs = self._collection().find()
         remove = []
         for doc in docs:
@@ -124,7 +123,6 @@ class Cache(object):
             logger.warning(msg.format([str(i) for i in remove]))
 
     def clear(self):
-        import os
         docs = self._collection().find()
         for doc in docs:
             try: 

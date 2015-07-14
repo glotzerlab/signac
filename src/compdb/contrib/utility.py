@@ -1,4 +1,8 @@
 import logging
+import sys
+import getpass
+import argparse
+
 logger = logging.getLogger(__name__)
 
 def query_yes_no(question, default="yes"):
@@ -11,7 +15,6 @@ def query_yes_no(question, default="yes"):
 
     The "answer" return value is one of "yes" or "no".
     """
-    import sys
     valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     if default is None:
         prompt = " [y/n] "
@@ -42,11 +45,9 @@ def query_yes_no(question, default="yes"):
 #>>> True
 
 def prompt_password(prompt = 'Password: '):
-    import getpass
     return getpass.getpass(prompt)
 
 def prompt_new_password(prompt = 'Password: '):
-    import getpass
     pwd = getpass.getpass(prompt)
     pwd2 = getpass.getpass("Confirm password: ")
     if pwd != pwd2:
@@ -99,13 +100,11 @@ def set_verbosity_level(verbosity, default = None, increment = 10):
       verbosity: The verbosity level as integer.
       default: The default verbosity level, defaults to logging.ERROR.
     """
-    import logging
     if default is None:
         default = logging.ERROR
     logging.basicConfig(
         level = default - increment * verbosity)
 
-import argparse
 class VerbosityAction(argparse.Action):
     def __call__(self, parser, args, values, option_string = None):
         if values == None:
@@ -119,7 +118,6 @@ class VerbosityAction(argparse.Action):
 class VerbosityLoggingConfigAction(VerbosityAction):
     def __call__(self, parser, args, values, option_string = None):
         super(VerbosityLoggingConfigAction, self).__call__(parser, args, values, option_string)
-        import logging
         v_level = getattr(args, self.dest)
         set_verbosity_level(v_level)
 

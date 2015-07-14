@@ -1,7 +1,14 @@
 import logging
-logger = logging.getLogger(__name__)
-
+import time
+from math import tanh
+from itertools import count
 from queue import Queue
+
+from pymongo import ASCENDING
+
+from . utility import fetch
+
+logger = logging.getLogger(__name__)
 
 ID_COUNTER = 0
 KEY_COUNTER = 'counter'
@@ -30,7 +37,6 @@ class MongoDBQueue(object):
         return False # There is no limit on the queue size implemented.
 
     def _get(self):
-        from pymongo import ASCENDING
         return self._collection.find_one_and_delete(FILTER_NOT_COUNTER, sort = [('_id', ASCENDING)])
 
     def __contains__(self, item):
@@ -55,7 +61,6 @@ class MongoDBQueue(object):
 
     def get(self, block = True, timeout = None, stop_event = None):
         if block:
-            from . utility import fetch
             try:
                 return fetch(
                     target = self._get,
@@ -79,9 +84,6 @@ class MongoDBQueue(object):
             raise ValueError()
 
     def join(self):
-        from math import tanh
-        from itertools import count
-        import time
         w = (tanh(0.05 * i) for i in count())
         while True:
             if self._num_open_tasks() == 0:

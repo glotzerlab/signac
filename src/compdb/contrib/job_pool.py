@@ -1,8 +1,12 @@
 import logging
-logger = logging.getLogger(__name__)
-
 from weakref import WeakValueDictionary
+from itertools import chain
 from queue import Queue
+
+from ..util import raise_no_mpi4py_error
+from . hashing import generate_hash_from_spec
+
+logger = logging.getLogger(__name__)
 
 _executors = WeakValueDictionary()
 
@@ -36,7 +40,6 @@ class JobPool(object):
         self._job_queue_failed = Queue()
 
     def get_id(self):
-        from . hashing import generate_hash_from_spec
         pool_spec = {
             'project_id': self._project.get_id(),
             'set':  self._parameter_set}
@@ -46,7 +49,6 @@ class JobPool(object):
         try:
             from mpi4py import MPI
         except ImportError:
-            from .. import raise_no_mpi4py_error
             raise_no_mpi4py_error()
         else:
             return MPI.COMM_WORLD
@@ -141,7 +143,6 @@ class JobPool(object):
                 self._job_queue.task_done()
 
     def reset_queue(self):
-        from itertools import chain
         for queue in chain((self._job_queue_done, self._job_queue_failed)):
             while not queue.empty():
                 self._job_queue.put(queue.get())

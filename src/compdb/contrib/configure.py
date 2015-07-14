@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger(__name__)
+import textwrap
+import re
+import argparse
+from os.path import abspath, expanduser
 
-from os.path import expanduser
+from ..core import config
 from . utility import prompt_password
+
+logger = logging.getLogger(__name__)
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
@@ -14,91 +19,84 @@ USER_GLOBAL = expanduser('~/compdb.rc')
 USER_LOCAL = expanduser('./compdb.rc')
 
 def process(args):
-    from compdb.core.config import DIRS, FILES
-    from os.path import abspath, expanduser
     if args.name: 
-        if args.name in DIRS or args.name in FILES:
+        if args.name in config.DIRS or args.name in config.FILES:
             args.value = abspath(expanduser(args.value))
         if args.name.endswith('password'):
             if not args.value:
                 args.value = prompt_password()
 
 def get_config(args, for_writing = False):
-    from compdb.core.config import Config, load_config
-    config = Config()
+    config_ = config.Config()
     try:
         if args._global:
-            config.read(USER_GLOBAL)
+            config_.read(USER_GLOBAL)
         elif args.config:
-            config.read(args.config)
+            config_.read(args.config)
         elif for_writing:
-            config.read(USER_LOCAL)
+            config_.read(USER_LOCAL)
         else:
-            config = load_config()
-            #config.read(expanduser('./compdb.rc'))
+            config_ = config.load_config()
+            #config_.read(expanduser('./compdb.rc'))
     except FileNotFoundError:
         pass
-    return config
+    return config_
 
-def write_config(config, args):
+def write_config(config_, args):
     if args._global:
-        config.write(USER_GLOBAL)
+        config_.write(USER_GLOBAL)
     elif args.config == '-':
-        config.dump()
+        config_.dump()
     elif args.config:
-        config.write(args.config)
+        config_.write(args.config)
     else:
-        config.write(USER_LOCAL)
+        config_.write(USER_LOCAL)
         #msg = "You need to use option '--global' or '--config' to specify which config file to write to."
         #raise ValueError(msg)
 
 def add(args):
-    config = get_config(args, for_writing = True)
-    if args.name in config:
+    config_ = get_config(args, for_writing = True)
+    if args.name in config_:
         msg = "Value for '{}' is already set. Use 'set' instead of 'add' to overwrite."
         raise RuntimeError(msg.format(args.name))
     else:
         set_value(args)
 
 def check(key, value):
-    import re
-    from compdb.core.config import is_legal_key, IllegalKeyError
-    if not is_legal_key(key):
-        raise IllegalKeyError(key)
+    if not config.is_legal_key(key):
+        raise config.IllegalKeyError(key)
     if key.endswith('email'):
         if not re.match(RE_EMAIL, value.strip()):
             msg = "Invalid email address: '{}'."
             raise ValueError(msg.format(value))
 
 def set_value(args):
-    from ..core.config import IllegalKeyError, IllegalArgumentError
-    config = get_config(args, for_writing = True)
+    config_ = get_config(args, for_writing = True)
     try:
         if not args.force:
             check(args.name, args.value)
-        config.__setitem__(args.name, args.value, args.force)
-    except IllegalKeyError as error:
+        config_.__setitem__(args.name, args.value, args.force)
+    except config.IllegalKeyError as error:
         msg = "'{}' does not seem to be a valid configuration key. Use '-f' or '--force' to ignore this warning."
         raise ValueError(msg.format(args.name))
-    except IllegalArgumentError as error:
+    except config.IllegalArgumentError as error:
         msg = "Value '{value}' for '{key}' is illegal. Possible values: '{choices}'."
         key, value, choices = error.args
         raise ValueError(msg.format(key=args.name, value=args.value, choices=choices))
-    write_config(config, args)
+    write_config(config_, args)
 
 def remove(args):
-    config = get_config(args, for_writing = True)
-    del config[args.name]
-    write_config(config, args)
+    config_ = get_config(args, for_writing = True)
+    del config_[args.name]
+    write_config(config_, args)
 
 def dump(args):
-    config = get_config(args)
-    config.dump(indent = 1)
+    config_ = get_config(args)
+    config_.dump(indent = 1)
 
 def show(args):
-    from ..core.config import LEGAL_ARGS, DEFAULTS
-    config = get_config(args)
-    legal_args = sorted(LEGAL_ARGS)
+    config_ = get_config(args)
+    legal_args = sorted(config.LEGAL_ARGS)
     l_column0 = max(len(arg) for arg in legal_args)
     print("Current configuration:")
     print()
@@ -107,18 +105,16 @@ def show(args):
         if arg.endswith('password'):
             value = '[not shown]'
         else:
-            value = config.get(arg)
+            value = config_.get(arg)
         print(msg.format(arg=arg, value=value))
 
 def verify(args):
-    import re
     args.name = args.name.strip()
     args.email = args.email.strip()
     if not re.match(RE_EMAIL, args.email):
         msg = "Invalid email address: '{}'."
         raise ValueError(msg.format(args.email))
     if args.config != '-':
-        from os.path import expanduser, abspath
         args.config = abspath(expanduser(args.config))
 
 def configure(args):
@@ -153,7 +149,6 @@ HELP_OPERATION = """\
                 including default values.
 
     """
-import textwrap
 
 def setup_parser(parser):
         parser.add_argument(
@@ -188,8 +183,7 @@ def setup_parser(parser):
             help = "Ignore all warnings.")
 
 def main(arguments = None):
-        from argparse import ArgumentParser
-        parser = ArgumentParser(
+        parser = argparse.ArgumentParser(
             description = "Change the compDB configuration.",
             )
         setup_parser(parser)

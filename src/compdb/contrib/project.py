@@ -1,35 +1,45 @@
+import datetime
 import logging
-logger = logging.getLogger(__name__)
-
-from queue import Queue
-from logging.handlers import QueueHandler, QueueListener
-
+import os
+import re
+import shutil
+import tarfile
 import warnings
-
-JOB_PARAMETERS_KEY = 'parameters'
-JOB_NAME_KEY = 'name'
-JOB_DOCS = 'compdb_job_docs'
-JOB_META_DOCS = 'compdb_jobs'
-from . job import PULSE_PERIOD
-
-COMPDB_PREFIX = 'compdb_'
-
-FN_DUMP_JOBS = 'compdb_jobs.json'
-FN_DUMP_STORAGE = 'storage'
-FN_DUMP_DB = 'dump'
-FN_RESTORE_SCRIPT_SH = 'restore.sh'
-FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
-FN_STORAGE_BACKUP = '_fs_backup'
-
-COLLECTION_LOGGING = 'logging'
-COLLECTION_JOB_QUEUE = 'compdb_job_queue'
-COLLECTION_JOB_QUEUE_RESULTS = 'compdb_job_results'
-COLLECTION_FETCHED_SET = 'compdbfetched_set'
+import collections
+import copy
+import itertools
+from queue import Queue
+from tempfile import TemporaryDirectory
+from logging.handlers import QueueHandler, QueueListener
+from datetime import datetime, timedelta
 
 import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
+import pymongo.errors
+from bson.json_util import dumps
+from bson.json_util import loads
 
+from .. import VERSION, VERSION_TUPLE
+from ..core.config import load_config
+from ..core.dbclient_connector import DBClientConnector
+from ..core.mongodb_executor import MongoDBExecutor
 from ..core.mongodb_queue import Empty
+from ..core.mongodb_queue import MongoDBQueue
+from ..core.mongodb_set import MongoDBSet
+from ..core.serialization import encode_callable_filter
+from .cache import Cache
+from .concurrency import DocumentLock
+from .errors import ConnectionFailure
+from .job_pool import JobPool
+from .logging import MongoDBHandler, record_from_doc
+from .milestones import Milestones
+from .snapshot import dump_db, restore_db
+from .templates import RESTORE_SH
+from .job import OnlineJob, OfflineJob, PULSE_PERIOD
+from .constants import *
+
+logger = logging.getLogger(__name__)
+
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def valid_name(name):
     return not name.startswith(COMPDB_PREFIX)
@@ -49,7 +59,6 @@ class BaseProject(object):
         See ``Project`` instead.
         """
         if config is None:
-            from compdb.core.config import load_config
             config = load_config()
         config.verify()
         self._config = config
@@ -81,7 +90,6 @@ class BaseProject(object):
         try:
             return str(self.config['project'])
         except KeyError:
-            import os
             msg = "Unable to determine project id. "
             msg += "Are you sure '{}' is a compDB project path?"
             raise LookupError(msg.format(os.path.abspath(os.getcwd())))
@@ -92,7 +100,6 @@ class BaseProject(object):
         :param parameters: A dictionary specifying the job parameters.
         :returns: An instance of OfflineJob.
         """
-        from .job import OfflineJob
         return OfflineJob(
             project = self,
             parameters = parameters)
@@ -116,12 +123,10 @@ class BaseProject(object):
 
     def get_milestones(self, job_id):
         warnings.warn("The milestone API will be deprecated in the future.", PendingDeprecationWarning)
-        from . milestones import Milestones
         return Milestones(self, job_id)
 
     def get_cache(self):
         warnings.warn("The cache API may be deprecated in the future.", PendingDeprecationWarning)
-        from . cache import Cache
         return Cache(self)
 
     def develop_mode(self):
@@ -164,7 +169,6 @@ class OnlineProject(BaseProject):
     def _get_client(self):
         "Attempt to connect to the database host and store the client instance."
         if self._client is None:
-            from ..core.dbclient_connector import DBClientConnector
             prefix = 'database_'
             connector = DBClientConnector(self.config, prefix = prefix)
             logger.debug("Connecting to database.")
@@ -181,12 +185,10 @@ class OnlineProject(BaseProject):
 
     def _get_db(self, db_name):
         "Return a database with name :param db_name: from the database host."
-        import pymongo.errors
         host = self.config['database_host']
         try:
             return self._get_client()[db_name]
         except pymongo.errors.ConnectionFailure as error:
-            from . errors import ConnectionFailure
             msg = "Failed to connect to database '{}' at '{}'."
             #logger.error(msg.format(db_name, host))
             raise ConnectionFailure(msg.format(db_name, host)) from error
@@ -239,7 +241,6 @@ class OnlineProject(BaseProject):
 
         :param parameters: A dictionary specifying the job parameters.
         """
-        from . job import OnlineJob
         job = OnlineJob(self, parameters=parameters)
         job._register_online()
 
@@ -255,7 +256,6 @@ class OnlineProject(BaseProject):
         .. note::
            This method will raise a DocumentLockError if it was impossible to open the job within the specified timeout.
         """
-        from . job import OnlineJob
         return OnlineJob(
             project = self,
             parameters = parameters,
@@ -263,7 +263,6 @@ class OnlineProject(BaseProject):
             timeout = timeout)
 
     def _open_job(self, **kwargs):
-        from . job import OnlineJob
         return OnlineJob(project=self, **kwargs)
 
     def open_job_from_id(self, job_id, blocking = True, timeout = -1):
@@ -280,7 +279,6 @@ class OnlineProject(BaseProject):
         .. note::
            This method will raise a DocumentLockError if it was impossible to open the job within the specified timeout.
         """
-        from . job import OnlineJob
         return OnlineJob(
             project = self,
             parameters = self._parameters_from_id(job_id),
@@ -349,7 +347,6 @@ class OnlineProject(BaseProject):
         
           .. note::
              The removal is permanent. Use with caution!"""
-        import pymongo.errors
         self.clear(force = force)
         try:
             host = self.config['database_host']
@@ -361,7 +358,6 @@ class OnlineProject(BaseProject):
 
     def _lock_job(self, job_id, blocking = True, timeout = -1):
         "Lock the job document of job with ``job_id``."
-        from . concurrency import DocumentLock
         return DocumentLock(
             self._get_jobs_collection(), job_id,
             blocking = blocking, timeout = timeout)
@@ -395,8 +391,6 @@ class OnlineProject(BaseProject):
         self._collection.remove({'id': {'$in': list(job_ids)}})
 
     def kill_dead_jobs(self, seconds = 5 * PULSE_PERIOD):
-        import datetime
-        from datetime import datetime, timedelta
         cut_off = datetime.utcnow() - timedelta(seconds = seconds)
         uids = self._unique_jobs_from_pulse()
         for uid in uids:
@@ -409,12 +403,10 @@ class OnlineProject(BaseProject):
                 })
 
     def _get_links(self, url, parameters, fs):
-        import os
         for w in self._walk_job_docs(parameters):
             src = os.path.join(fs, w['_id'])
             try:
-                from collections import defaultdict
-                dd = defaultdict(lambda: 'None')
+                dd = collections.defaultdict(lambda: 'None')
                 dd.update(w['parameters'])
                 dst = url.format(** dd)
             except KeyError as error:
@@ -423,7 +415,6 @@ class OnlineProject(BaseProject):
             yield src, dst
 
     def get_storage_links(self, url = None):
-        import re
         if url is None:
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
@@ -431,7 +422,6 @@ class OnlineProject(BaseProject):
             url, parameters, self.filestorage_dir())
 
     def get_workspace_links(self, url = None):
-        import re
         if url is None:
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
@@ -456,17 +446,14 @@ class OnlineProject(BaseProject):
                 return set()
 
     def get_default_view_url(self):
-        import os
-        from itertools import chain
         params = sorted(self._aggregate_parameters())
         if len(params):
-            return str(os.path.join(* chain.from_iterable(
+            return str(os.path.join(* itertools.chain.from_iterable(
                 (str(p), '{'+str(p)+'}') for p in params)))
         else:
             return str()
 
-    def create_view(self, url = None, copy = False, workspace = False):
-        import os, re, shutil
+    def create_view(self, url = None, make_copy = False, workspace = False):
         if url is None:
             url = self.get_default_view_url()
         parameters = re.findall('\{\w+\}', url)
@@ -480,7 +467,7 @@ class OnlineProject(BaseProject):
             except FileExistsError:
                 pass
             try:
-                if copy:
+                if make_copy:
                     shutil.copytree(src, dst)
                 else:
                     os.symlink(src, dst, target_is_directory = True)
@@ -490,7 +477,6 @@ class OnlineProject(BaseProject):
                 raise RuntimeError(msg)
 
     def create_view_script(self, url = None, cmd = None, fs = None):
-        import os, re
         if cmd is None:
             cmd = 'mkdir -p {head}\nln -s {src} {head}/{tail}'
         if url is None:
@@ -501,9 +487,6 @@ class OnlineProject(BaseProject):
             yield cmd.format(src = src, head = head, tail = tail)
 
     def _create_db_snapshot(self, dst):
-        import os
-        from bson.json_util import dumps
-        from . snapshot import dump_db
         job_docs = self._get_jobs_collection().find()
         docs = self._collection.find()
         fn_dump_jobs = os.path.join(dst, FN_DUMP_JOBS)
@@ -515,14 +498,11 @@ class OnlineProject(BaseProject):
         return [fn_dump_jobs, fn_dump_db]
 
     def _create_config_snapshot(self, dst):
-        from os.path import join
-        fn_config = join(dst, 'compdb.rc')
+        fn_config = os.path.join(dst, 'compdb.rc')
         self.config.write(fn_config)
         return [fn_config]
 
     def _create_restore_scripts(self, dst):
-        import os
-        from . templates import RESTORE_SH
         fn_restore_script_sh = os.path.join(dst, FN_RESTORE_SCRIPT_SH)
         with open(fn_restore_script_sh, 'wb') as file:
             file.write("#/usr/bin/env sh\n# -*- coding: utf-8 -*-\n".encode())
@@ -538,14 +518,12 @@ class OnlineProject(BaseProject):
         return [fn_restore_script_sh]
 
     def _create_config_snapshot(self, dst):
-        from os.path import join
-        fn_config = join(dst, 'compdb.rc')
+        fn_config = os.path.join(dst, 'compdb.rc')
         self.config.write(fn_config)
         return [fn_config]
 
     def _create_snapshot_view_script(self, dst):
-        from os.path import join
-        fn_script = join(dst, 'link_view.sh')
+        fn_script = os.path.join(dst, 'link_view.sh')
         with open(fn_script, 'wb') as file:
             file.write("CMD_LINK='ln -s'\n".encode())
             file.write("CMD_MKDIR='mkdir -p'\n".encode())
@@ -556,25 +534,19 @@ class OnlineProject(BaseProject):
         return [fn_script]
 
     def _check_snapshot(self, src):
-        from os.path import isfile, isdir
-        import tarfile
         # TODO Implement check of content routine!
-        if isfile(src):
+        if os.path.isfile(src):
             with tarfile.open(src, 'r') as tarfile:
                 pass
-        elif isdir(src):
+        elif os.path.isdir(src):
             pass
         else:
             raise FileNotFoundError(src)
 
     def _restore_snapshot_from_src(self, src, force = False):
-        import shutil, os
-        from os.path import join, isdir, dirname, exists
-        from bson.json_util import loads
-        from . snapshot import restore_db
-        fn_storage = join(src, FN_DUMP_STORAGE)
+        fn_storage = os.path.join(src, FN_DUMP_STORAGE)
         try:
-            with open(join(src, FN_DUMP_JOBS), 'rb') as file:
+            with open(os.path.join(src, FN_DUMP_JOBS), 'rb') as file:
                 for job in self.find_jobs():
                     job.remove()
                 for line in file:
@@ -588,8 +560,8 @@ class OnlineProject(BaseProject):
             if not force:
                 raise
         try:
-            fn_dump_db = join(src, FN_DUMP_DB)
-            if not exists(fn_dump_db):
+            fn_dump_db = os.path.join(src, FN_DUMP_DB)
+            if not os.path.exists(fn_dump_db):
                 raise NotADirectoryError(fn_dump_db)
             restore_db(self.get_db(), fn_dump_db)
         except NotADirectoryError as error:
@@ -599,36 +571,29 @@ class OnlineProject(BaseProject):
         for root, dirs, files in os.walk(fn_storage):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                    shutil.rmtree(os.path.join(self.filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self.filestorage_dir())
-            assert exists(join(self.filestorage_dir(), dir))
+                shutil.move(os.path.join(root, dir), self.filestorage_dir())
+            assert os.path.exists(os.path.join(self.filestorage_dir(), dir))
             break
     
     def _restore_snapshot(self, src):
-        from os.path import isfile, isdir, join
-        import tarfile
-        from tempfile import TemporaryDirectory
-        if isfile(src):
+        if os.path.isfile(src):
             with TemporaryDirectory() as tmp_dir:
                 with tarfile.open(src, 'r') as tarfile:
                     tarfile.extractall(tmp_dir)
                     self._restore_snapshot_from_src(tmp_dir)
-        elif isdir(src):
+        elif os.path.isdir(src):
             self._restore_snapshot_from_src(src)
         else:
             raise FileNotFoundError(src)
 
     def _create_snapshot(self, dst, full = True, mode = 'w'):
-        import os
-        import tarfile
-        from tempfile import TemporaryDirectory
-        from itertools import chain
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             try:
                 with tarfile.open(dst, mode) as tarfile:
-                    for fn in chain(
+                    for fn in itertools.chain(
                             self._create_db_snapshot(tmp),
                             self._create_restore_scripts(tmp),
                             self._create_config_snapshot(tmp),
@@ -645,7 +610,6 @@ class OnlineProject(BaseProject):
                 raise
 
     def create_snapshot(self, dst, full = True):
-        import os
         fn, ext = os.path.splitext(dst)
         mode = 'w:'
         if ext in ['.gz', '.bz2']:
@@ -653,12 +617,10 @@ class OnlineProject(BaseProject):
         return self._create_snapshot(dst, full = full, mode = mode)
 
     def _create_rollbackup(self, dst):
-        import os, shutil
-        from os.path import join
         logger.debug("Creating rollback backup...")
         os.mkdir(dst)
         fn_db_backup = os.path.join(dst, 'db_backup.tar')
-        fn_storage_backup = join(dst, FN_STORAGE_BACKUP)
+        fn_storage_backup = os.path.join(dst, FN_STORAGE_BACKUP)
 
         self.create_snapshot(fn_db_backup, full = False)
         for job_id in self._find_job_ids():
@@ -670,28 +632,22 @@ class OnlineProject(BaseProject):
                 pass
     
     def _restore_rollbackup(self, dst):
-        import os, shutil
-        from os.path import join
-        fn_storage_backup = join(dst, FN_STORAGE_BACKUP)
+        fn_storage_backup = os.path.join(dst, FN_STORAGE_BACKUP)
         fn_db_backup = os.path.join(dst, 'db_backup.tar')
 
         for root, dirs, files in os.walk(fn_storage_backup):
             for dir in dirs:
                 try:
-                    shutil.rmtree(join(self.filestorage_dir(), dir))
+                    shutil.rmtree(os.path.join(self.filestorage_dir(), dir))
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-                shutil.move(join(root, dir), self.filestorage_dir())
+                shutil.move(os.path.join(root, dir), self.filestorage_dir())
                 self._restore_snapshot(fn_db_backup)
     
     def _remove_rollbackup(self, dst):
-        import shutil
         shutil.rmtree(dst)
 
     def restore_snapshot(self, src):
-        import os, shutil
-        from tempfile import TemporaryDirectory
-        from os.path import join
         logger.info("Trying to restore from '{}'.".format(src))
         num_active = self.num_active_jobs()
         if num_active > 0:
@@ -699,7 +655,7 @@ class OnlineProject(BaseProject):
             msg += "You can use 'compdb cleanup' to remove dead jobs."
             raise RuntimeError(msg.format(num_active))
         self._check_snapshot(src)
-        dst_rollbackup = join(
+        dst_rollbackup = os.path.join(
             self.workspace_dir(),
             'restore_rollback_{}'.format(self.get_id()))
         try:
@@ -737,24 +693,19 @@ class OnlineProject(BaseProject):
                 logger.info("Restored snapshot '{}'.".format(src))
 
     def job_pool(self, parameter_set, include = None, exclude = None):
-        from . job_pool import JobPool
-        from .job import OnlineJob
-        from copy import copy
         for p in parameter_set:
             OnlineJob(self, p, timeout = 1)._register_online()
-        return JobPool(self, parameter_set, copy(include), copy(exclude))
+        return JobPool(self, parameter_set, copy.copy(include), copy.copy(exclude))
 
     @property
     def job_queue_(self):
         if self._job_queue_ is None:
-            from ..core.mongodb_queue import MongoDBQueue
             self._job_queue_ = MongoDBQueue(self.get_db()[COLLECTION_JOB_QUEUE])
         return self._job_queue_
 
     @property
     def job_queue(self):
         if self._job_queue is None:
-            from ..core.mongodb_executor import MongoDBExecutor
             collection_job_results = self.get_db()[COLLECTION_JOB_QUEUE_RESULTS]
             self._job_queue = MongoDBExecutor(self.job_queue_, collection_job_results)
         return self._job_queue
@@ -762,7 +713,6 @@ class OnlineProject(BaseProject):
     @property
     def fetched_set(self):
         if self._fetched_set is None:
-            from ..core.mongodb_set import MongoDBSet
             self._fetched_set = MongoDBSet(self.get_db()[COLLECTION_FETCHED_SET])
         return self._fetched_set
 
@@ -770,7 +720,6 @@ class OnlineProject(BaseProject):
         return self.job_queue.submit(function, *args, **kwargs)
 
     def submit(self, function, *args, **kwargs):
-        from ..core.serialization import encode_callable_filter
         f = encode_callable_filter(function, args, kwargs)
         if f in self.fetched_set:
             msg = "Job was already submitted and is currently fetched. Use 'resubmit' to ignore this warning."
@@ -785,7 +734,6 @@ class OnlineProject(BaseProject):
         return self._submit(function, args, kwargs)
 
     def fetched_task_done(self, function, *args, **kwargs):
-        from ..core.serialization import encode_callable_filter
         f = encode_callable_filter(function, args, kwargs)
         self.fetched_set.remove(f)
         self.job_queue_.task_done()
@@ -801,7 +749,6 @@ class OnlineProject(BaseProject):
             * args, ** kwargs)
 
     def dump_db_snapshot(self):
-        from bson.json_util import dumps
         job_docs = self._get_jobs_collection().find()
         for doc in job_docs:
             print(dumps(doc))
@@ -816,7 +763,6 @@ class OnlineProject(BaseProject):
         self._get_logging_collection().drop()
 
     def _logging_db_handler(self, lock_id = None):
-        from . logging import MongoDBHandler
         return MongoDBHandler(
             collection = self._get_logging_collection(),
             lock_id = lock_id)
@@ -836,7 +782,6 @@ class OnlineProject(BaseProject):
         self._logging_listener.stop()
 
     def get_logs(self, level = logging.INFO, limit = 0):
-        from . logging import record_from_doc
         log_collection = self._get_logging_collection()
         log_collection.create_index('created')
         try:
@@ -871,7 +816,6 @@ class OnlineProject(BaseProject):
         The function will raise a UserWarning if the compdb version is higher than the project version.
         The function will raise a RuntimeError if the compdb version is less than the project version, because correct behaviour can't be guaranteed in this case.
         """
-        from ..import VERSION, VERSION_TUPLE
         version = self.config.get('compdb_version', (0,1,0))
         if VERSION_TUPLE < version:
             msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."

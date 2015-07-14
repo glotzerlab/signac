@@ -1,5 +1,6 @@
-from compdb.db import DBMethod
 import freud
+
+from compdb.db import DBMethod
 
 class CalcNumFrames(DBMethod):
     expects = freud.trajectory.Trajectory

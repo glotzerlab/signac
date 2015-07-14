@@ -2,28 +2,36 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger(__name__)
+import sys
+import os
+import argparse
+import textwrap
 
-from .utility import prompt_new_password
+from . import get_project
+from . import utility
+from ..core.utility import get_subject_from_certificate
+from ..admin.manage import add_x509_user
+from ..admin.manage import add_scram_sha1_user
+from ..admin.manage import grant_roles_to_user
+from ..admin.manage import revoke_roles_from_user
+
+logger = logging.getLogger(__name__)
 
 def welcome_msg(project):
     msg = "Administrating project '{project}' on '{host}':"
     print(msg.format(project=project, host=project.config['database_host']))
 
 def get_project(args):
-    from compdb.contrib import get_project
     return get_project()
 
 def get_client(project):
     return project._get_client()
 
 def get_username(args):
-    from os.path import isfile
     if args.user is None:
         return None
     if args.ssl:
-        if isfile(args.user):
-            from ..core.utility import get_subject_from_certificate
+        if os.path.isfile(args.user):
             username = get_subject_from_certificate
             return get_subject_from_certificate(args.user)
     else:
@@ -77,7 +85,7 @@ def update_user(args):
     if args.password:
         db_auth = client.admin
         msg = "Enter new password for user '{}': "
-        pwd = prompt_new_password(msg.format(username))
+        pwd = utility.prompt_new_password(msg.format(username))
         result = db_auth.command('updateUser', username, pwd = pwd)
         if result ['ok']:
             print('OK.')
@@ -91,12 +99,10 @@ def add_user_to_db(project, client, username, args):
     dbs = [project.get_id()]
     roles = get_roles(args)
     if args.ssl:
-        from ..admin.manage import add_x509_user 
         add_x509_user(client, username, dbs, roles)
     else:
-        from ..admin.manage import add_scram_sha1_user
         msg = "Enter password for new user '{}': "
-        password = prompt_new_password(msg.format(username))
+        password = utility.prompt_new_password(msg.format(username))
         print("Adding user '{}' to database.".format(username))
         result = add_scram_sha1_user(client, username, password, dbs, roles)
         if result['ok']:
@@ -105,7 +111,6 @@ def add_user_to_db(project, client, username, args):
             raise RuntimeError(result)
 
 def remove_user(args):
-    from . utility import query_yes_no
     project = get_project(args)
     welcome_msg(project)
     client = get_client(project)
@@ -115,7 +120,7 @@ def remove_user(args):
         msg = "User with username '{}', not found."
         raise ValueError(msg.format(username))
     q = "Are you sure that you want to remove user '{}' from the database?"
-    if args.yes or query_yes_no(q.format(username), 'no'):
+    if args.yes or utility.query_yes_no(q.format(username), 'no'):
         db_auth.remove_user(username)
         print("OK.")
 
@@ -131,8 +136,6 @@ def grant_revoke_roles(args, revoke):
     return _grant_revoke_roles(args, revoke, project)
 
 def _grant_revoke_roles(args, revoke, project):
-    from ..admin.manage import grant_roles_to_user
-    from ..admin.manage import revoke_roles_from_user
     client = get_client(project)
     db_auth = get_db_auth(client, args)
     username = get_username(args)
@@ -226,7 +229,6 @@ def setup_subparser(subparser):
         help = "Use SSL certificates for authentication.")
 
 def setup_parser(parser):
-    import textwrap
     subparsers = parser.add_subparsers()
 
     parser_add = subparsers.add_parser('add')
@@ -272,9 +274,7 @@ def setup_parser(parser):
     parser_show.set_defaults(func = show_users)
 
 def main(arguments = None):
-        from argparse import ArgumentParser
-        from ..contrib.utility import add_verbosity_argument, set_verbosity_level
-        parser = ArgumentParser(
+        parser = argparse.ArgumentParser(
             description = "Administrate compdb.",
             )
         setup_parser(parser)
@@ -282,9 +282,9 @@ def main(arguments = None):
             '-y', '--yes',
             action = 'store_true',
             help = "Assume yes to all questions.",)
-        add_verbosity_argument(parser)
+        utility.add_verbosity_argument(parser)
         args = parser.parse_args(arguments)
-        set_verbosity_level(args.verbosity)
+        utility.set_verbosity_level(args.verbosity)
         try:
             if 'func' in args:
                 args.func(args, get_project(args))
@@ -303,6 +303,5 @@ def main(arguments = None):
             return 0
 
 if __name__ == '__main__':
-    import sys
     logging.basicConfig(level = logging.INFO)
     sys.exit(main())

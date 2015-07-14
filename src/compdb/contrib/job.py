@@ -1,26 +1,29 @@
-import logging, threading
-logger = logging.getLogger(__name__)
+import logging
+import os
+import shutil
 import warnings
+import threading
+import datetime
+import uuid
+import multiprocessing
+import json as serializer
+from threading import Thread
+from multiprocessing import Process
 
 import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-import multiprocessing
-import threading
-
-JOB_ERROR_KEY = 'error'
-MILESTONE_KEY = '_milestones'
-PULSE_PERIOD = 1
-
-FN_MANIFEST = '.compdb.json'
-FN_OPEN_FLAG = '.compdb.{uid}.OPEN'
+from pymongo.errors import DuplicateKeyError
 
 from .. import VERSION, VERSION_TUPLE
-from . project import JOB_DOCS, JOB_PARAMETERS_KEY
+from ..core.storage import Storage
+from ..core.mongodbdict import MongoDBDict as DBDocument
+from .concurrency import DocumentLock
+from .hashing import generate_hash_from_spec
+from .errors import ConnectionFailure
+from .constants import *
+
+logger = logging.getLogger(__name__)
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
-    from datetime import datetime
-    from time import sleep
     while(True):
         logger.debug("Pulse while loop.")
         if stop_event.wait(timeout = PULSE_PERIOD):
@@ -29,7 +32,7 @@ def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIO
         else:
             logger.debug("Pulsing...")
             filter = {'_id': job_id}
-            update = {'$set': {'pulse.{}'.format(unique_id): datetime.utcnow()}},
+            update = {'$set': {'pulse.{}'.format(unique_id): datetime.datetime.utcnow()}},
             if PYMONGO_3:
                 collection.update_one(filter, update, upsert = True)
             else:
@@ -44,7 +47,6 @@ class BaseJob(object):
     All properties and methods in this class do not require a online database connection."""
     
     def __init__(self, project, parameters, version=None):
-        import uuid, os
         self._unique_id = str(uuid.uuid4())
         self._project = project
         self._version = version or project.config.get('compdb_version', (0,1,0))
@@ -61,7 +63,6 @@ class BaseJob(object):
         .. note::
            This function respects the project's version key."""
         if self._id is None: # The id calculation is cached
-            from .hashing import generate_hash_from_spec
             # The ID calculation was changed after version 0.1.
             # This is why we need to check the project version, to calculate it in the correct way.
             if self._version == (0,1):
@@ -104,7 +105,6 @@ class BaseJob(object):
     @property
     def storage(self):
         "Return the storage, associated with this job."
-        from ..core.storage import Storage
         if self._storage is None:
             self._create_directories()
             self._storage = Storage(
@@ -118,8 +118,6 @@ class BaseJob(object):
 
     def _create_directories(self):
         "Create the job's associated directories."
-        import os
-        import json as serializer
         manifest = self._make_manifest()
         for dir_name in (self.get_workspace_directory(), self.get_filestorage_directory()):
             try:
@@ -139,25 +137,21 @@ class BaseJob(object):
 
     def _fn_open_flag(self):
         "Return the job's unique open flag filename."
-        from os.path import join
-        return join(self.get_workspace_directory(), FN_OPEN_FLAG.format(uid=self.get_uid()))
+        return os.path.join(self.get_workspace_directory(), FN_OPEN_FLAG.format(uid=self.get_uid()))
 
     def _flag_open(self):
         "Mark job as active."
-        from os.path import join
         with open(self._fn_open_flag(), 'wb') as file:
             pass
 
     def _remove_open_flag(self):
         "Remove active flag from job."
-        import os
         try:
             os.remove(self._fn_open_flag())
         except FileNotFoundError:
             pass
 
     def _open(self):
-        import os
         msg = "Opened job with id: '{}'."
         logger.info(msg.format(self.get_id()))
         self._cwd = os.getcwd()
@@ -174,13 +168,11 @@ class BaseJob(object):
         return self._open()
 
     def _close_stage_one(self):
-        import os
         os.chdir(self._cwd)
         self._cwd = None
 
     def _close_stage_two(self):
         # The automatic removal is deactivated since 0.1.1
-        #import shutil, os
         #if self.num_open_instances() == 0:
         #    shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
         self._remove_open_flag()
@@ -215,7 +207,6 @@ class BaseJob(object):
 
     def clear_workspace_directory(self):
         "Remove all content from the job's working directory."
-        import shutil
         try:
             shutil.rmtree(self.get_workspace_directory())
         except FileNotFoundError:
@@ -224,8 +215,7 @@ class BaseJob(object):
 
     def storage_filename(self, filename):
         warnings.warn("This function is deprecated.", DeprecationWarning)
-        from os.path import join
-        return join(self.get_filestorage_directory(), filename)
+        return os.path.join(self.get_filestorage_directory(), filename)
 
 class OfflineJob(BaseJob):
 
@@ -280,8 +270,6 @@ class OnlineJob(OfflineJob):
 
     def _register_online(self):
         "Register this job in the project database."
-        from . errors import ConnectionFailure
-        from pymongo.errors import DuplicateKeyError
         try:
             result = self._project._get_jobs_collection().find_one_and_update(
                 filter = self._filter(),
@@ -323,8 +311,6 @@ class OnlineJob(OfflineJob):
 
     def _start_pulse(self, process = True):
         "Start the job pulse, used for identifying 'dead' jobs."
-        from multiprocessing import Process
-        from threading import Thread
         logger.debug("Starting pulse.")
         assert self._pulse is None
         assert self._pulse_stop_event is None
@@ -374,7 +360,6 @@ class OnlineJob(OfflineJob):
 
     def _get_lock(self, blocking = None, timeout = None):
         "Obtain a lock for the job's database document."
-        from . concurrency import DocumentLock
         self._registered()
         return DocumentLock(
                 self._project._get_jobs_collection(), self.get_id(),
@@ -397,7 +382,6 @@ class OnlineJob(OfflineJob):
 
     def __exit__(self, err_type, err_value, traceback):
         "Exit the context manager."
-        import os
         with self._get_lock():
             if err_type is None:
                 self._close_stage_one() # always executed
@@ -417,7 +401,6 @@ class OnlineJob(OfflineJob):
     def document(self):
         "Return the document, associated with this job."
         if self._dbdocument is None:
-            from ..core.mongodbdict import MongoDBDict as DBDocument
             self._dbdocument = DBDocument(
                 self._project._collection,
                 self.get_id())
@@ -437,7 +420,6 @@ class OnlineJob(OfflineJob):
 
     def _remove(self):
         "Remove all content from this job, including the registration."
-        import shutil
         self.clear()
         self.storage.remove()
         self.document.remove()

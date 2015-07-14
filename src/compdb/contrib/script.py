@@ -1,10 +1,26 @@
 # PYTHON_ARGCOMPLETE_NOT_OK
+
 import logging
-logger = logging.getLogger(__name__)
+import sys
 import warnings
+import datetime
+import os
+import argparse
+
+import pymongo
+from bson.json_util import dumps
+
+from . import admin, update, get_project, check, init_project, configure, server, run
+from .job import PULSE_PERIOD
+from .job_submit import find_all_pools, submit_mpi
+from .errors import ConnectionFailure
+from .logging import record_from_doc
+from .project import RollBackupExistsError
+from .utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter, query_yes_no
+
+logger = logging.getLogger(__name__)
 
 def info(args):
-    from compdb.contrib import get_project
     project = get_project()
     if args.regex:
         args.separator = '|'
@@ -20,15 +36,13 @@ def info(args):
     if args.more:
         print(project.root_directory())
     if args.status:
-        from compdb.contrib.job import PULSE_PERIOD
-        from datetime import datetime
         n_registered = len(list(project._find_job_ids()))
         n_active = project.num_active_jobs()
         n_pot_dead = 0
         n_w_pulse = 0
         for uid, age in project.job_pulse():
             n_w_pulse += 1
-            delta = datetime.utcnow() - age
+            delta = datetime.datetime.utcnow() - age
             if delta.total_seconds() > PULSE_PERIOD:
                 n_pot_dead += 1
         print("{} registered job(s)".format(n_registered))
@@ -70,20 +84,17 @@ def info(args):
                 print(known, end='')
             if args.more:
                 job = project.get_job(known)
-                from bson.json_util import dumps
                 print('\n' + dumps(job.spec['parameters'], sort_keys = True), end='')
             sep = args.separator
         if args.regex:
             print(')', end='')
         print()
     if args.pulse:
-        from datetime import datetime
-        from compdb.contrib.job import PULSE_PERIOD
         jobs = list(project.job_pulse())
         if jobs:
             print("Pulse period (expected): {}s.".format(PULSE_PERIOD))
             for uid, age in jobs:
-                delta = datetime.utcnow() - age
+                delta = datetime.datetime.utcnow() - age
                 msg = "UID: {uid}, last signal: {age:.2f} seconds"
                 print(msg.format(
                     uid = uid, 
@@ -110,15 +121,11 @@ def info(args):
                 print(a['traceback'])
 
 def view(args):
-    from compdb.contrib import get_project
-    from . utility import query_yes_no
-    from os.path import join, exists
-    from os import listdir
     project = get_project()
     if args.url:
-        url = join(args.prefix, args.url)
+        url = os.path.join(args.prefix, args.url)
     else:
-        url = join(args.prefix, project.get_default_view_url())
+        url = os.path.join(args.prefix, project.get_default_view_url())
     if args.copy:
         q = "Are you sure you want to create copy of the whole dataset? This might create extremely high network load!"
         if not(args.yes or query_yes_no(q, 'no')):
@@ -127,16 +134,12 @@ def view(args):
         for line in project.create_view_script(url = url, cmd = args.script):
             print(line)
     else:
-        if exists(args.prefix) and listdir(args.prefix):
+        if os.path.exists(args.prefix) and os.path.listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
         project.create_view(url = url, copy = args.copy, workspace = args.workspace)
 
 def check(args):
-    from . import check
-    from .errors import ConnectionFailure
-    import pymongo
-    from compdb.contrib import get_project
     project = get_project()
     encountered_error = False
     checks = [
@@ -205,14 +208,10 @@ def check(args):
         print("All tests passed. No errors.")
 
 def run_pools(args):
-    from os.path import abspath
-    from . job_submit import find_all_pools, submit_mpi
-    for pool in find_all_pools(abspath(args.module)):
+    for pool in find_all_pools(os.path.abspath(args.module)):
         submit_mpi(pool)
 
 def show_log(args):
-    from . import get_project
-    from . logging import record_from_doc
     formatter = logging.Formatter(
         fmt = args.format,
         #datefmt = "%Y-%m-%d %H:%M:%S",
@@ -227,10 +226,7 @@ def show_log(args):
         print("No logs available.")
 
 def store_snapshot(args):
-    from . import get_project
-    from . utility import query_yes_no
-    from os.path import exists
-    if not args.overwrite and exists(args.snapshot):
+    if not args.overwrite and os.path.exists(args.snapshot):
         q = "File with name '{}' already exists. Overwrite?"
         if args.yes or query_yes_no(q.format(args.snapshot), 'no'):
             pass
@@ -251,9 +247,6 @@ def store_snapshot(args):
         print("Success.")
 
 def restore_snapshot(args):
-    from . import get_project
-    from . utility import query_yes_no
-    from . project import RollBackupExistsError
     project = get_project(args.project)
     print("Trying to restore from: {}".format(args.snapshot))
     try:
@@ -281,15 +274,12 @@ def restore_snapshot(args):
         print("Success.")
 
 def clean_up(args):
-    from . import get_project
     project = get_project()
     msg = "Clearing database for all jobs without sign of life for more than {} seconds."
     print(msg.format(args.tolerance_time))
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
 def clear(args):
-    from . import get_project
-    from . utility import query_yes_no
     project = get_project(args.project)
     question = "Are you sure you want to clear project '{}'?"
     if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
@@ -305,8 +295,6 @@ def clear(args):
 
 
 def remove(args):
-    from . import get_project
-    from . utility import query_yes_no
     project = get_project()
     if args.project:
         question = "Are you sure you want to remove project '{}'?"
@@ -367,9 +355,7 @@ def remove(args):
         print("Nothing selected for removal.")
 
 def main():
-    from . utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter
-    from argparse import ArgumentParser
-    parser = ArgumentParser(
+    parser = argparse.ArgumentParser(
         description = "CompDB - Computational Database",
         formatter_class = SmartFormatter)
     parser.add_argument(
@@ -386,12 +372,10 @@ def main():
 
     subparsers = parser.add_subparsers()
 
-    from compdb.contrib import init_project
     parser_init = subparsers.add_parser('init')
     init_project.setup_parser(parser_init)
     parser_init.set_defaults(func = init_project.init_project)
     
-    from compdb.contrib import configure
     parser_config = subparsers.add_parser('config',
         description = "Configure compdb for your environment.",
         formatter_class = SmartFormatter)
@@ -465,7 +449,6 @@ def main():
     parser_restore.set_defaults(func = restore_snapshot)
 
     parser_cleanup = subparsers.add_parser('cleanup')
-    from . job import PULSE_PERIOD
     default_wait = int(20 *  PULSE_PERIOD)
     parser_cleanup.add_argument(
         '-t', '--tolerance-time',
@@ -560,11 +543,9 @@ def main():
     #    help = 'Perform offline checks.',)
     parser_check.set_defaults(func = check)
 
-    from compdb.contrib import server
     parser_server = subparsers.add_parser('server')
     server.setup_parser(parser_server)
 
-    from compdb.contrib import run
     parser_run = subparsers.add_parser('run')
     run.setup_parser(parser_run)
 
@@ -589,11 +570,9 @@ def main():
         )
     parser_log.set_defaults(func = show_log)
 
-    from compdb.contrib import admin
     parser_admin = subparsers.add_parser('user')
     admin.setup_parser(parser_admin)
 
-    from compdb.contrib import update
     parser_update = subparsers.add_parser('update')
     update.setup_parser(parser_update)
 
@@ -630,5 +609,4 @@ def main():
         return 0
 
 if __name__ == '__main__':
-    import sys
     sys.exit(main())

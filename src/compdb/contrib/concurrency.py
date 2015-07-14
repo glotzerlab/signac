@@ -30,17 +30,24 @@ Example:
           pass
 """
 
-# version check
+import logging
 import sys
+import contextlib
+import time
+import itertools
+from threading import Thread, Event, Lock
+from math import tanh
+
+import pymongo
+
+logger = logging.getLogger(__name__)
+
+# version check
 if sys.version_info[0] < 3 or sys.version_info[1] < 3:
     msg = "This module requires Python version 3.3 or higher."
     raise ImportError(msg)
 
-import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-import logging
-logger = logging.getLogger(__name__)
 
 try:
     from threading import TIMEOUT_MAX
@@ -50,8 +57,7 @@ except ImportError:
 LOCK_ID_FIELD = '_lock_id'
 LOCK_COUNTER_FIELD = '_lock_counter'
 
-from contextlib import contextmanager
-@contextmanager
+@contextlib.contextmanager
 def acquire_timeout(lock, blocking, timeout):
     """Helping contextmanager to acquire a lock with timeout and release it on exit."""
     result = lock.acquire(blocking = blocking, timeout = timeout)
@@ -70,9 +76,7 @@ class DocumentBaseLock(object):
     """
 
     def __init__(self, collection, document_id, blocking = True, timeout = -1):
-        from uuid import uuid4
-        from threading import Lock
-        self._lock_id = uuid4()
+        self._lock_id = uuid.uuid4()
         self._collection = collection
         self._document_id = document_id
         self._blocking = blocking
@@ -95,7 +99,6 @@ class DocumentBaseLock(object):
         Returns:
             Returns true when lock was successfully acquired, otherwise false.
         """
-        from math import tanh
         logger.debug("Acquiring lock.")
         if not blocking and timeout != -1:
             raise ValueError("Cannot set timeout if blocking is False.")
@@ -103,14 +106,9 @@ class DocumentBaseLock(object):
             raise OverflowError("Maxmimum timeout is: {}".format(TIMEOUT_MAX))
         with acquire_timeout(self._lock, blocking, timeout) as lock:
             if blocking:
-                #from multiprocessing import Process
-                from threading import Thread, Event
-                import time
                 stop_event = Event()
                 def try_to_acquire():
-                    from math import tanh
-                    from itertools import count
-                    w = (tanh(0.05 * i) for i in count())
+                    w = (tanh(0.05 * i) for i in itertools.count())
                     while(not stop_event.is_set()):
                         if self._acquire():
                             return True

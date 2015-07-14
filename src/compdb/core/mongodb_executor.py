@@ -1,4 +1,13 @@
 import logging
+import traceback
+import sys
+from multiprocessing import Event, Process
+
+from ..util import raise_no_mpi4py_error
+from . utility import mongodb_fetch_find_one
+from . serialization import encode, decode, encode_callable, decode_callable, KEY_CALLABLE_CHECKSUM
+from . utility import mongodb_fetch_find_one
+
 logger = logging.getLogger(__name__)
 
 MPI_ROOT = 0
@@ -8,7 +17,6 @@ KEY_ITEM = 'item'
 KEY_RESULT_RESULT = 'result'
 KEY_RESULT_ERROR = 'error'
 
-from . serialization import encode, decode, encode_callable, decode_callable, KEY_CALLABLE_CHECKSUM
 
 class Future(object):
 
@@ -26,8 +34,6 @@ def execute_callable(job_queue, result_collection, item, reload):
     try:
         result = fn(*args, ** kwargs)
     except Exception as error:
-        import traceback
-        import sys
         exc = traceback.format_exc()
         logger.warning("Execution of job with id={} aborted with error: {}\n{}".format(_id, error, exc))
         error_doc = {'error': error, 'traceback': exc}
@@ -63,7 +69,6 @@ def execution_worker(stop_event, job_queue, result_collection, timeout, comm = N
 class MongoDBExecutor(object):
 
     def __init__(self, job_queue, result_collection):
-        from multiprocessing import Event, Process
         self._job_queue = job_queue
         self._result_collection = result_collection
         self._stop_event = Event()
@@ -99,7 +104,6 @@ class MongoDBExecutor(object):
         try:
             from mpi4py import MPI
         except ImportError:
-            from .. import raise_no_mpi4py_error
             raise_no_mpi4py_error()
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
@@ -127,14 +131,12 @@ class MongoDBExecutor(object):
                     try:
                         execute_callable(self._job_queue, self._result_collection, item, reload = reload)
                     except Exception:
-                        import sys
                         sys.exit(1)
     
     def stop(self):
         self._stop_event.set()
 
     def _get_result(self, _id, timeout):
-        from . utility import mongodb_fetch_find_one
         spec = {
             '_id': _id,
             '$or': [
@@ -151,7 +153,6 @@ class MongoDBExecutor(object):
     def _fetch_result(self, item, block = False, timeout = None):
         spec = {'{}.{}'.format(KEY_ITEM, KEY_CALLABLE_CHECKSUM): item[KEY_CALLABLE_CHECKSUM]}
         if block:
-            from . utility import mongodb_fetch_find_one
             return mongodb_fetch_find_one(self._result_collection, spec, timeout = timeout)
         else:
             return self._result_collection.find_one(spec)

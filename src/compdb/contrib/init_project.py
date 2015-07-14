@@ -2,9 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger(__name__)
+import os
+import stat
+import warnings
+import arpgarse
 
+from ..core.config import Config, load_config
 from .. import VERSION as DEFAULT_VERSION
+from .templates import TEMPLATES
+from . import get_project, check
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
@@ -15,37 +23,31 @@ Execute `compdb check` to check your configuration."""
 MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
 
 def check_for_existing_project(args):
-    from os.path import abspath
-    from compdb.contrib import get_project
     try:
         project = get_project()
         root_dir = project.root_directory()
     except (LookupError, FileNotFoundError, NotADirectoryError, KeyError):
         pass
     else:
-        if abspath(root_dir) == abspath(args.directory):
+        if os.path.abspath(root_dir) == os.path.abspath(args.directory):
             msg = "Project in directory '{}' already exists. Use '-f' or '--force' argument to ignore this warning and create a project anyways. This will lead to potential data loss!"
-            print(msg.format(abspath(args.directory)))
+            print(msg.format(os.path.abspath(args.directory)))
             return True
     return False
 
 def adjust_args(args):
-    from os.path import abspath
     if args.workspace:
-        args['workspace_dir'] = abspath(args.workspace)
+        args['workspace_dir'] = os.path.abspath(args.workspace)
     if args.storage:
-        args['filestorage_dir'] = abspath(args.storage)
+        args['filestorage_dir'] = os.path.abspath(args.storage)
 
 def make_dir(dirname):
-    import os
     try:
         os.makedirs(dirname)
     except OSError:
         pass
     
 def generate_config(args):
-    from compdb.core.config import Config, load_config
-    import os
     global_config = load_config()
     if not args.workspace and global_config.get('workspace_dir') is None:
         args.workspace = DEFAULT_WORKSPACE
@@ -73,12 +75,9 @@ def generate_config(args):
     return config
 
 def get_templates():
-    from compdb.contrib.templates import TEMPLATES
     return TEMPLATES.keys()
 
 def copy_templates(args):
-    import os, stat, warnings
-    from compdb.contrib.templates import TEMPLATES
     template = TEMPLATES[args.template]
     for filename, content in template.items():
         fn = os.path.join(args.directory, filename)
@@ -94,7 +93,6 @@ def copy_templates(args):
             os.chmod(fn, os.stat(fn).st_mode | stat.S_IEXEC)
 
 def init_project(args):
-    from . import check
     try:
         adjust_args(args)
         if not args.force:
@@ -105,7 +103,6 @@ def init_project(args):
     except Exception as error:
         raise
     else:
-        import os
         config.write(os.path.join(args.directory, 'compdb.rc'))
         print(MSG_SUCCESS.format(
             project_name = args.project_name,
@@ -158,8 +155,7 @@ def setup_parser(parser):
 
 def main(arguments = None):
     logging.basicConfig(level = logging.DEBUG)
-    from argparse import ArgumentParser
-    parser = ArgumentParser(
+    parser = argparse.ArgumentParser(
         description = "Make a new mock compdb project.",
         )
     setup_parser(parser)

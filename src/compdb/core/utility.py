@@ -1,5 +1,10 @@
+import subprocess
+import queue
+import itertools
+from threading import Thread, Event
+from math import tanh
+
 def get_subject_from_certificate(fn_certificate):
-    import subprocess
     try:
         cert_txt = subprocess.check_output(
             ['openssl', 'x509', '-in', fn_certificate,
@@ -13,15 +18,11 @@ def get_subject_from_certificate(fn_certificate):
         return lines[0][len('subject='):].strip()
 
 def fetch(target, timeout = None, stop_event = None):
-    from threading import Thread, Event
-    import queue
     tmp_queue = queue.Queue()
     if stop_event is None:
         stop_event = Event()
     def inner_loop():
-        from math import tanh
-        from itertools import count
-        w = (tanh(0.05 * i) for i in count())
+        w = (tanh(0.05 * i) for i in itertools.count())
         while(not stop_event.is_set()):
             result = target()
             if result is not None:

@@ -1,4 +1,12 @@
 import logging
+import sys
+import argparse
+
+from ..contrib import admin
+from ..contrib.admin import setup_parser as setup_user_parser
+from ..contrib.utility import add_verbosity_argument, set_verbosity_level
+from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
+
 logger = logging.getLogger(__name__)
 
 def setup_parser(parser):
@@ -8,15 +16,10 @@ def setup_parser(parser):
         help = "The project to administrate.")
     subparsers = parser.add_subparsers()
 
-    from ..contrib import admin
-    from ..contrib.admin import setup_parser as setup_user_parser
     parser_user = subparsers.add_parser('user')
     setup_user_parser(parser_user)
 
 def main():
-    import argparse, sys
-    from ..contrib.utility import add_verbosity_argument, set_verbosity_level
-    from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
     parser = argparse.ArgumentParser(
         description = "Administrate compdb projects.")
     parser.add_argument(

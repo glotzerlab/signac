@@ -1,20 +1,23 @@
 import logging
-logger = logging.getLogger(__name__)
-
-from compdb.core.config import load_config
-
-from .database import Database
-from .conversion import make_db_method
-from .conversion import Adapter, BasicFormat, DBMethod
-from . import methods
+import os
+import datetime
 
 import pymongo
+
+from ..core.config import load_config
+from ..core.dbclient_connector import DBClientConnector
+from . import database
+
+# namespace extension
+from .conversion import DBMethod, BasicFormat, Adapter
+from . import formats
+
+logger = logging.getLogger(__name__)
+
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def access_compmatdb(host = None, config = None):
-    from ..core.dbclient_connector import DBClientConnector
     if config is None:
-        from ..core.config import load_config
         config = load_config()
     if host is None:
         host = config['compmatdb_host']
@@ -22,7 +25,7 @@ def access_compmatdb(host = None, config = None):
     connector.connect(host)
     connector.authenticate()
     db = connector.client[config['database_compmatdb']]
-    return Database(db = db, config = config)
+    return database.Database(db = db, config = config)
 
 class StorageFileCursor(object):
 
@@ -44,17 +47,15 @@ class Storage(object):
         self._storage_path = fs_dir
 
     def _filename(self, file_id):
-        from os.path import join
-        return join(self._storage_path, str(file_id))
+        return os.path.join(self._storage_path, str(file_id))
     
     def open(self, file_id, *args, ** kwargs):
         return open(self._filename(file_id), * args, ** kwargs)
 
     def new_file(self, ** kwargs):
-        from datetime import datetime
         kwargs.update({
             '_fs_dir': self._storage_path,
-            '_fs_timestamp': datetime.now(),
+            '_fs_timestamp': datetime.datetime.now(),
         })
         if PYMONGO_3:
             file_id = self._collection.insert_one(kwargs).inserted_id
@@ -63,7 +64,6 @@ class Storage(object):
         return self.open(file_id, 'wb')
 
     def find(self, spec = {}, *args, ** kwargs):
-        import os
         docs = self._collection.find(spec, ['_id'], * args, ** kwargs)
         for doc in docs:
             file_id = doc['_id']
@@ -82,7 +82,6 @@ class Storage(object):
 #        return find
 
     def delete(self, file_id):
-        import os
         os.remove(self._filename(file_id))
         if PYMONGO_3:
             self._collection.delete_one({'_id': file_id})

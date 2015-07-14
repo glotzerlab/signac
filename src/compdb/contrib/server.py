@@ -1,4 +1,11 @@
 import logging
+import sys
+import signal
+import argparse
+
+from ..core.mongodb_queue import Empty
+from . import get_project
+
 logger = logging.getLogger(__name__)
 
 DESCR_SERVER = "Start a compDB job queue execution server."
@@ -11,15 +18,12 @@ def start_with_args(args):
         logtodb = not args.no_logging)
 
 def start(timeout = 300, reload = False, combine = False, logtodb = True):
-    from compdb.contrib import get_project
-    from compdb.core.mongodb_queue import Empty
 
     project = get_project()
     if logtodb:
         project.start_logging()
 
     # Catch SIGTERM logic
-    import signal, sys
     def signal_term_handler(signal, frame):
         project.job_queue.stop_event.set()
         sys.exit(0)
@@ -66,8 +70,7 @@ def setup_parser(parser):
     parser.set_defaults(func = start_with_args)
 
 def main(arguments = None):
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description = DESCR_SERVER)
+    parser = argparse.ArgumentParser(description = DESCR_SERVER)
     setup_parser(parser)
     try:
         from hoomd_script import option
@@ -78,6 +81,5 @@ def main(arguments = None):
     return start_with_args(args)
 
 if __name__ == '__main__':
-    import sys
     logging.basicConfig(level = logging.INFO)
     sys.exit(main())

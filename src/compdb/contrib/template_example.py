@@ -2,6 +2,7 @@ EXAMPLE = {
 # job.py
     'job.py': """
 import logging
+
 from compdb.contrib import get_project
 
 # This list defines the parameter space.
@@ -28,7 +29,10 @@ if __name__ == '__main__':
 # submit.py
     'submit.py': """
 import logging
+import argparse
+
 from compdb.contrib import get_project
+
 from job import run_job, state_points
 
 def main(args):
@@ -37,7 +41,6 @@ def main(args):
         project.job_queue.submit(run_job, state_point)
 
 if __name__ == '__main__':
-    import argparse
     parser = argparse.ArgumentParser(
         description = "Submit jobs to the project job queue.")
     args = parser.parse_args()

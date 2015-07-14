@@ -1,10 +1,13 @@
 import logging
-logger = logging.getLogger(__name__)
+import hashlib
+import json
+
+import jsonpickle
+from pymongo.errors import DuplicateKeyError
 
 from .mongodb_queue import MongoDBQueue
 
-import jsonpickle, json
-import hashlib
+logger = logging.getLogger(__name__)
 
 KEY_CHECKSUM = 'checksum'
 KEY_ELEMENT = 'element'
@@ -43,7 +46,6 @@ class MongoDBSet(object):
     
     def add(self, elem):
         """Add element to the set, if not already present."""
-        from pymongo.errors import DuplicateKeyError
         binary = encode_element(elem)
         try:
             decoded = decode_element(binary)

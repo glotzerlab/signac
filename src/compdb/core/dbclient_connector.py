@@ -1,8 +1,10 @@
 import logging
-logger = logging.getLogger(__name__)
+from os.path import expanduser
+from os.path import expanduser
 
 import pymongo
-PYMONGO_3 = pymongo.version_tuple[0] == 3
+
+from ..core.utility import get_subject_from_certificate
 
 try:
     import ssl
@@ -10,6 +12,10 @@ except ImportError:
     SSL_SUPPORT = False
 else:
     SSL_SUPPORT = True
+
+logger = logging.getLogger(__name__)
+
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
@@ -61,20 +67,18 @@ class DBClientConnector(object):
             return result
 
     def _connect_pymongo3(self, host):
-        from pymongo import MongoClient
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
 
         auth_mechanism = self._config_get('auth_mechanism')
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
-            client = MongoClient(
+            client = pymongo.MongoClient(
                 host,
                 ** parameters)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
             with_ssl_support()
-            from os.path import expanduser
-            client = MongoClient(
+            client = pymongo.MongoClient(
                 host, 
                 ssl = True,
                 ssl_keyfile = expanduser(self._config_get_required('ssl_keyfile')),
@@ -88,14 +92,13 @@ class DBClientConnector(object):
         self._client = client
 
     def _connect_pymongo2(self, host):
-        from pymongo import MongoClient
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
 
         auth_mechanism = self._config_get('auth_mechanism')
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
-            client = MongoClient(
+            client = pymongo.MongoClient(
                 host,
                 ** parameters)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
@@ -132,8 +135,6 @@ class DBClientConnector(object):
                 mechanism = AUTH_SCRAM_SHA_1)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
             with_ssl_support()
-            from os.path import expanduser
-            from ..core.utility import get_subject_from_certificate
             certificate_subject = get_subject_from_certificate(expanduser(self._config_get_required('ssl_certfile')))
             logger.debug("Authenticating: user={}".format(certificate_subject))
             db_external = self.client['$external']

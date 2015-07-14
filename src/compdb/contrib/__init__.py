@@ -1,10 +1,15 @@
+import os
 import warnings
+from random import uniform
+from time import sleep
+
+from ..core.config import load_config
+from ..core.dbclient_connector import DBClientConnector
+from .project import Project
 
 def get_project(project_path = None):
-    from . project import Project
     open_job.project = None
     if project_path is not None:
-        import os
         cwd = os.getcwd()
         os.chdir(project_path)
         project = Project()
@@ -15,16 +20,11 @@ def get_project(project_path = None):
     return project
 
 def get_basic_project_from_id(project_id, client = None):
-    from .project import Project
-    from ..core.config import load_config
     config = load_config()
     config['project'] = project_id
     return Project(config=config, client=client)
 
 def get_all_project_ids(client = None):
-    from .project import Project
-    from ..core.config import load_config
-    from ..core.dbclient_connector import DBClientConnector
     config = load_config()
     if client is None:
         connector = DBClientConnector(config, prefix = 'database_')
@@ -42,8 +42,6 @@ def get_all_project_ids(client = None):
             yield dbname
 
 def sleep_random(time = 1.0):
-    from random import uniform
-    from time import sleep
     sleep(uniform(0, time))
 
 #

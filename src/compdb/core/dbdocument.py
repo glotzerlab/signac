@@ -1,12 +1,18 @@
 import logging
-logger = logging.getLogger(__name__)
+import os
+from queue import Queue, Empty
+from threading import Thread, Event, Condition
 
-from queue import Queue
+import pymongo
+from pymongo.errors import ConnectionFailure
+from sqlitedict import SqliteDict
+
+from . mongodbdict import MongoDBDict
+
+logger = logging.getLogger(__name__)
 
 def sync_worker(stop_event, synced_or_failed_event,
                 error_condition, queue, src, dst):
-    from pymongo.errors import ConnectionFailure
-    from queue import Empty
     while(not stop_event.is_set()):
         #src.sync()
         try:
@@ -46,13 +52,10 @@ def sync_worker(stop_event, synced_or_failed_event,
 class ReadOnlyDBDocument(object):
 
     def __init__(self, host, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
-        from threading import Event, Condition
-        from . mongodbdict import MongoDBDict
-        from pymongo import MongoClient
         self._id = _id
         self._rank = rank
         self._buffer = None
-        client = MongoClient(host)
+        client = pymongo.MongoClient(host)
         collection = client[db_name][collection_name]
         self._mongodict = MongoDBDict(collection, _id)
         self._sync_queue = Queue()
@@ -85,8 +88,6 @@ class ReadOnlyDBDocument(object):
             return self._synced_or_failed_event.wait(timeout = timeout)
 
     def open(self):
-        from sqlitedict import SqliteDict
-        from threading import Thread
         logger.debug("Opening buffer...")
         self._buffer = SqliteDict(
             filename = self._buffer_fn(),
@@ -181,8 +182,6 @@ class DBDocument(ReadOnlyDBDocument):
                 self._sync_queue.put(('clr', None))
 
     def remove(self):
-        from pymongo.errors import ConnectionFailure
-        import os
         try:
             self._mongodict.remove()
         except ConnectionFailure as error:

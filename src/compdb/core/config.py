@@ -1,8 +1,16 @@
 import logging
-logger = logging.getLogger(__name__)
-
+import warnings
 import os
+import shutil
+import base64
+import tempfile
 import json as serializer
+from copy import copy
+
+from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
+from . import SSL_SUPPORT
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_FILENAME = 'compdb.rc'
 CONFIG_FILENAMES = ['compdb.rc',]
@@ -41,9 +49,7 @@ DEFAULTS = {
 
 CHOICES = dict()
 
-from . import SSL_SUPPORT
 if SSL_SUPPORT:
-    from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
     CHOICES.update({
         'database_auth_mechanism': SUPPORTED_AUTH_MECHANISMS,
         'database_ssl_cert_reqs': SSL_CERT_REQS.keys(),
@@ -74,16 +80,14 @@ def is_legal_key(key):
     return key in LEGAL_ARGS
 
 def process_set(key, value):
-    from os.path import abspath, expanduser
     if not is_legal_key(key):
         raise IllegalKeyError(key)
     if key in DIRS or key in FILES:
-        return abspath(expanduser(value))
+        return os.path.abspath(os.path.expanduser((value)))
     if key in CHOICES:
         if not value in CHOICES[key]:
             raise IllegalArgumentError(key, value, CHOICES[key])
     if key.endswith('password'):
-        import base64
         return base64.standard_b64encode(value.encode()).decode()
     if key.endswith('version'):
         if isinstance(value, tuple):
@@ -94,7 +98,6 @@ def process_get(key, value):
     if value is None:
         return None
     if key.endswith('password'):
-        import base64
         return base64.standard_b64decode(value.encode()).decode()
     if key.endswith('version'):
         if isinstance(value, str):
@@ -104,7 +107,6 @@ def process_get(key, value):
 class Config(object):   
 
     def __init__(self, args = None):
-        from copy import copy
         self._args = {}
         if args is not None:
             self.update(args)
@@ -126,7 +128,6 @@ class Config(object):
             return is_root
 
     def _read_files(self):
-        from os.path import dirname
         root_directory = None
         args_chain = []
         try:
@@ -135,7 +136,7 @@ class Config(object):
                 args_chain.append(args)
                 is_root = 'project' in args
                 if is_root:
-                    root_directory = dirname(fn)
+                    root_directory = os.path.dirname(fn)
                     break
             for fn in search_standard_dirs():
                 args = read_config_file(fn)
@@ -165,7 +166,6 @@ class Config(object):
         verify(self._args, strict = strict)
 
     def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
-        import tempfile, shutil
         if keys is None:
             args = self._args
         else:
@@ -221,16 +221,14 @@ def read_config_file(filename):
         return serializer.loads(file.read())
 
 def _search_tree():
-    from os import getcwd
-    from os.path import abspath, join, isfile
     cwd = os.getcwd()
     while(True):
         for filename in CONFIG_FILENAMES:
-            fn = abspath(join(cwd, filename))
-            if isfile(fn):
+            fn = os.path.abspath(os.path.join(cwd, filename))
+            if os.path.isfile(fn):
                 yield fn
                 #return
-        up = abspath(join(cwd, '..'))
+        up = os.path.abspath(os.path.join(cwd, '..'))
         if up == cwd:
             msg = "Did not find project configuration file."
             logger.debug(msg)
@@ -246,17 +244,15 @@ def search_tree():
     #yield from tree
 
 def search_standard_dirs():
-    from os.path import abspath, join, isfile
     for path in CONFIG_PATH:
         for filename in CONFIG_FILENAMES:
-            fn = abspath(join(path, filename))
-            if isfile(fn):
+            fn = os.path.abspath(os.path.join(path, filename))
+            if os.path.isfile(fn):
                 yield fn
                 return
 
 def read_environment():
     logger.debug("Reading environment variables.")
-    import os
     args = dict()
     for key, var in ENVIRONMENT_VARIABLES.items():
         try:
@@ -267,7 +263,6 @@ def read_environment():
     return args
 
 def verify(args, strict = False):
-    import os, warnings
     for key in args.keys():
         if not key in LEGAL_ARGS:
             msg = "Config key '{}' not recognized. Possible version conflict."

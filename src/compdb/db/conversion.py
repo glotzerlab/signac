@@ -1,5 +1,8 @@
-import networkx as nx
 import logging
+import inspect
+
+import networkx as nx
+
 logger = logging.getLogger(__name__)
 
 ATTRIBUTE_ADAPTER = 'adapter'
@@ -112,7 +115,6 @@ def _get_converter(network, source_type, target_type):
         raise NoConversionPath(source_type, target_type) from error
 
 def get_converter(network, source_type, target_type):
-    import inspect
     mro = inspect.getmro(source_type)
     for src_type in mro:
         try:

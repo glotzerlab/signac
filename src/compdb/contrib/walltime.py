@@ -1,9 +1,10 @@
 import logging
+import sys
+import time
+
 logger = logging.getLogger(__name__)
 
 STANDARD_TOLERANCE = 0.05
-
-import time
 
 time_start = time.time()
 clock_start = time.clock()
@@ -25,7 +26,6 @@ def check_walltime(max_walltime, tolerance = None):
 
 def exit_by(max_walltime, tolerance = None):
     if not check_walltime(max_walltime, tolerance):
-        import sys
         sys.exit(2)
 
 def raise_by(max_walltime, tolerance = None):

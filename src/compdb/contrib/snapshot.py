@@ -1,14 +1,16 @@
 import logging
+import os
+
+import pymongo
+from bson import json_util as serializer
+
 logger = logging.getLogger(__name__)
 
 COLLECTIONS_EXCLUDE = ['system']
 
-import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def dump_db(db, dst):
-    import os
-    from bson import json_util as serializer
     try:
         os.makedirs(dst)
     except Exception:
@@ -29,8 +31,6 @@ def dump_db(db, dst):
                     serializer.dumps(doc)).encode())
 
 def restore_db(db, dst):
-    from os.path import join
-    from bson import json_util as serializer
     for collection in db.collection_names():
         skip = False
         for exclude in COLLECTIONS_EXCLUDE:
@@ -40,7 +40,7 @@ def restore_db(db, dst):
         if skip:
             continue
         logger.debug("Trying to restore '{}'.".format(collection))
-        fn = join(dst, collection) + '.json'
+        fn = os.path.join(dst, collection) + '.json'
         try:
             with open(fn, 'rb') as file:
                 db[collection].drop()

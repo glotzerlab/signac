@@ -1,9 +1,18 @@
 import logging
+import sys
+import code
+import getpass
+
+from ..core.config import load_config
+from ..core.dbclient_connector import DBClientConnector
+from ..core.utility import get_subject_from_certificate
+from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
+from ..contrib import get_all_project_ids, get_basic_project_from_id
+from ..contrib.utility import add_verbosity_argument, set_verbosity_level
+
 logger = logging.getLogger(__name__)
 
 def connect_and_authenticate(args):
-    from ..core.config import load_config
-    from ..core.dbclient_connector import DBClientConnector
     config = load_config()
     prefix = 'database_'
     if args.certificate is not None:
@@ -38,7 +47,6 @@ def revoke_roles_from_user(db_auth, user, databases, roles):
     return db_auth.command('revokeRolesFromUser', user, ** values)
 
 def get_username(args, default = None):
-    from ..core.utility import get_subject_from_certificate
     if args.username and args.usercertificate:
         raise ValueError("Either supply user name or user certificate, not both.")
     if args.username is not None:
@@ -49,7 +57,6 @@ def get_username(args, default = None):
         return default
 
 def manage_shell(args):
-    import code
     client = connect_and_authenticate(args)
     banner = "Use the 'client' variable to interact with the pymongo client."
     code.interact(banner = banner, local = {'client': client})
@@ -63,7 +70,6 @@ def display_status(args):
         print()
 
 def display_info(args):
-    from ..contrib import get_all_project_ids, get_basic_project_from_id
     client = connect_and_authenticate(args)
     for project_id in get_all_project_ids(client):
         project = get_basic_project_from_id(project_id, client=client)
@@ -92,7 +98,6 @@ def manage_user(args):
         if args.database is None:
             raise ValueError("Specify database to manage.")
         if args.username is not None:
-            import getpass
             password = getpass.getpass("Password for new user: ")
             password2 = getpass.getpass("Confirm password: ")
             if password != password2:
@@ -133,9 +138,6 @@ def manage_user(args):
         raise ValueError("Invalid command '{}'.".format(args.command))
 
 def main():
-    import argparse, sys
-    from ..contrib.utility import add_verbosity_argument, set_verbosity_level
-    from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
     parser = argparse.ArgumentParser(
         description = "Administrative management of compdb.")
     add_verbosity_argument(parser)

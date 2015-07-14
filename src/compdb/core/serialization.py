@@ -1,4 +1,12 @@
 import logging
+import sys
+import importlib
+import hashlib
+import inspect
+import json
+
+import jsonpickle
+
 logger = logging.getLogger(__name__)
 
 KEY_CALLABLE = 'callable'
@@ -8,10 +16,7 @@ KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_CALLABLE_CHECKSUM = 'checksum'
 
-import hashlib
-
 def reload_module(modulename):
-    import sys, importlib
     module = importlib.import_module(modulename)
     logger.debug("Reloading module '{}'.".format(module))
     if sys.version_info[0] != 3:
@@ -28,7 +33,6 @@ def reload_module(modulename):
         pass
 
 def hash_module(c):
-    import inspect
     module = inspect.getmodule(c)
     src_file = inspect.getsourcefile(module)
     m = hashlib.md5()
@@ -37,7 +41,6 @@ def hash_module(c):
     return m.hexdigest()
 
 def hash_source(c):
-    import inspect
     m = hashlib.md5()
     m.update(inspect.getsource(c).encode())
     return m.hexdigest()
@@ -49,7 +52,6 @@ def callable_name(c):
         return c.name()
 
 def callable_spec(c):
-    import inspect
     assert callable(c)
     try:
         spec = {
@@ -65,11 +67,9 @@ def callable_spec(c):
     return spec
 
 def encode(item):
-    import jsonpickle
     return jsonpickle.encode(item).encode()
 
 def decode(binary):
-    import jsonpickle
     return jsonpickle.decode(binary.decode())
 
 def encode_callable_filter(fn, args, kwargs):
@@ -77,7 +77,6 @@ def encode_callable_filter(fn, args, kwargs):
     return {KEY_CALLABLE_CHECKSUM: b[KEY_CALLABLE_CHECKSUM]}
 
 def encode_callable(fn, args, kwargs):
-    import json, jsonpickle
     checksum_src = hash_source(fn)
     doc = dict(
         fn=fn, args=args, kwargs=kwargs,
@@ -91,8 +90,6 @@ def encode_callable(fn, args, kwargs):
     return {KEY_CALLABLE: binary, KEY_CALLABLE_CHECKSUM : checksum}
 
 def decode_callable(doc, reload = True):
-    import sys
-    import jsonpickle
     sys.path.append('')
     binary = doc[KEY_CALLABLE]
     m = hashlib.sha1()

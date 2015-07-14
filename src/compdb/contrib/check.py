@@ -1,14 +1,19 @@
 import logging
+import os
+import uuid
+import warnings
+import tempfile
+
+from compdb.contrib import get_project
+from compdb.contrib.errors import ConnectionFailure
+
 logger = logging.getLogger(__name__)
 
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'."
 MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"
 
 def check_database_connection():
-    from compdb.contrib import get_project
     project = get_project()
-    from pymongo import MongoClient
-    from pymongo.errors import ConnectionFailure
     try:
         db = project._get_meta_db()
     except ConnectionFailure:
@@ -18,9 +23,7 @@ def check_database_connection():
         return True
 
 def check_global_config():
-    from compdb.contrib import get_project
     project = get_project()
-
     keys = ['author_name', 'author_email', 'workspace_dir', 'filestorage_dir']
     missing = []
     for key in keys:
@@ -36,10 +39,6 @@ def check_global_config():
         return True
 
 def check_project_config_online():
-    from compdb.contrib import get_project
-    from tempfile import TemporaryDirectory
-    import uuid, os
-
     project = get_project()
     project.get_id()
     checktoken = {'checktoken': str(uuid.uuid4())}
@@ -72,18 +71,12 @@ def check_project_config_online():
         job.remove()
 
 def check_project_config_online_readonly():
-    from . import get_project
     project = get_project()
     project.get_id()
     list(project.find(limit = 1))
     return True
 
 def check_project_config_offline():
-    from compdb.contrib import get_project
-    from compdb.contrib.errors import ConnectionFailure
-    from tempfile import TemporaryDirectory
-    import uuid, os
-
     original_host = os.environ.get('COMPDB_DATABASE_HOST')
     original_timeout = os.environ.get('COMPDB_CONNECT_TIMEOUT')
     os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
@@ -92,7 +85,7 @@ def check_project_config_offline():
         project = get_project()
         checktoken = {'checktoken': str(uuid.uuid4())}
         checkvalue = str(uuid.uuid4())
-        with TemporaryDirectory() as tmp_dir:
+        with tempfile.TemporaryDirectory() as tmp_dir:
             job = project.open_job(checktoken)
     except:
         raise
@@ -109,7 +102,5 @@ def check_project_config_offline():
             os.environ['COMPDB_CONNECT_TIMEOUT'] = original_timeout
 
 def check_project_version():
-    import warnings
-    from compdb.contrib import get_project
     project = get_project()
     return project._check_version()
