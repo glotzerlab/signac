@@ -536,7 +536,7 @@ class OnlineProject(BaseProject):
     def _check_snapshot(self, src):
         # TODO Implement check of content routine!
         if os.path.isfile(src):
-            with tarfile.open(src, 'r') as tarfile:
+            with tarfile.open(src, 'r') as file:
                 pass
         elif os.path.isdir(src):
             pass
@@ -581,8 +581,8 @@ class OnlineProject(BaseProject):
     def _restore_snapshot(self, src):
         if os.path.isfile(src):
             with TemporaryDirectory() as tmp_dir:
-                with tarfile.open(src, 'r') as tarfile:
-                    tarfile.extractall(tmp_dir)
+                with tarfile.open(src, 'r') as file:
+                    file.extractall(tmp_dir)
                     self._restore_snapshot_from_src(tmp_dir)
         elif os.path.isdir(src):
             self._restore_snapshot_from_src(src)
@@ -592,22 +592,25 @@ class OnlineProject(BaseProject):
     def _create_snapshot(self, dst, full = True, mode = 'w'):
         with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
             try:
-                with tarfile.open(dst, mode) as tarfile:
+                with tarfile.open(dst, mode) as file:
                     for fn in itertools.chain(
                             self._create_db_snapshot(tmp),
                             self._create_restore_scripts(tmp),
                             self._create_config_snapshot(tmp),
                             self._create_snapshot_view_script(tmp)):
                         logger.debug("Storing '{}'...".format(fn))
-                        tarfile.add(fn, os.path.relpath(fn, tmp))
+                        file.add(fn, os.path.relpath(fn, tmp))
                     if full:
                         for id_ in self._find_job_ids():
                             src_ = os.path.join(self.filestorage_dir(), id_)
                             dst_ = os.path.join(FN_DUMP_STORAGE, id_)
-                            tarfile.add(src_, dst_)
-            except Exception:
-                os.remove(dst)
-                raise
+                            file.add(src_, dst_)
+            except Exception as error:
+                try:
+                    os.remove(dst)
+                except FileNotFoundError:
+                    pass
+                raise error
 
     def create_snapshot(self, dst, full = True):
         fn, ext = os.path.splitext(dst)

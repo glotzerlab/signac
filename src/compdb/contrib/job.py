@@ -23,6 +23,8 @@ from .constants import *
 
 logger = logging.getLogger(__name__)
 
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     while(True):
         logger.debug("Pulse while loop.")
@@ -32,7 +34,7 @@ def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIO
         else:
             logger.debug("Pulsing...")
             filter = {'_id': job_id}
-            update = {'$set': {'pulse.{}'.format(unique_id): datetime.datetime.utcnow()}},
+            update = {'$set': {'pulse.{}'.format(unique_id): datetime.datetime.utcnow()}}
             if PYMONGO_3:
                 collection.update_one(filter, update, upsert = True)
             else:
@@ -468,7 +470,7 @@ class OnlineJob(OfflineJob):
         :param blocking: Block until the lock was aquired if True.
         :param timeout: Maximum number of seconds to block, before timeout.
         """
-        return self._project.lock_job(
+        return self._project._lock_job(
             self.get_id(),
             blocking = blocking, timeout = timeout)
 

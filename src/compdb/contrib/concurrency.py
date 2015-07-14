@@ -35,6 +35,7 @@ import sys
 import contextlib
 import time
 import itertools
+import uuid
 from threading import Thread, Event, Lock
 from math import tanh
 

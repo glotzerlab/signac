@@ -2,6 +2,7 @@ import logging
 import glob
 import os
 import itertools
+import shutil
 from shutil import copy2 as copy
 
 logger = logging.getLogger(__name__)
