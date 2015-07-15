@@ -39,6 +39,8 @@ class TestDocumentLocks(unittest.TestCase):
             lock = DocumentLock(self.mc, doc_id)
             assert lock.acquire()
             lock.release()
+            assert lock.acquire()
+            lock.force_release()
             rlock = DocumentRLock(self.mc, doc_id)
             num_levels = 3
             for i in range(num_levels):

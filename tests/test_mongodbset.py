@@ -46,6 +46,7 @@ def get_mongoset(id_set = None):
     with get_collection(id_set) as collection:
         yield MongoDBSet(collection)
 
+@unittest.skipIf(not PYMONGO_3, 'skip requires pymongo version >= 3.0.x')
 class MongoDBSetTest(unittest.TestCase):
 
     def test_init(self):

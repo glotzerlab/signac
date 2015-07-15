@@ -95,8 +95,6 @@ def process_set(key, value):
     return value
 
 def process_get(key, value):
-    if value is None:
-        return None
     if key.endswith('password'):
         return base64.standard_b64decode(value.encode()).decode()
     if key.endswith('version'):
@@ -110,9 +108,6 @@ class Config(object):
         self._args = {}
         if args is not None:
             self.update(args)
-
-    def __str__(self):
-        return str(self._args)
 
     def read(self, filename = DEFAULT_FILENAME):
         is_root = False
@@ -130,6 +125,7 @@ class Config(object):
     def _read_files(self):
         root_directory = None
         args_chain = []
+        fn = None
         try:
             for fn in search_tree():
                 args = read_config_file(fn)
@@ -142,8 +138,10 @@ class Config(object):
                 args = read_config_file(fn)
                 args_chain.append(args)
         except Exception as error:
-            msg = "Error while reading config file '{}': {}."
-            logger.error(msg.format(fn, error))
+            if fn is not None:
+                msg = "Error while reading config file '{}': {}."
+                logger.error(msg.format(fn, error))
+            raise
         for args in reversed(args_chain):
             self._args.update(args)
         if root_directory is not None:
@@ -215,6 +213,12 @@ class Config(object):
     def __delitem__(self, key):
         del self._args[key]
 
+    def __len__(self):
+        return len(self._args)
+
+    def clear(self):
+        self._args.clear()
+
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     with open(filename) as file:
@@ -268,19 +272,9 @@ def verify(args, strict = False):
             msg = "Config key '{}' not recognized. Possible version conflict."
             logger.warning(msg.format(key))
             if strict:
-                raise ValueError(msg.format(key))
+                raise IllegalKeyError(msg.format(key))
             else:
                 warnings.warn(msg.format(key), UserWarning)
-
-    #for key in REQUIRED_KEYS:
-    #    if not key in args.keys():
-    #        msg = "Missing required config key: '{}'."
-    #        logger.warning(msg.format(key))
-    #        #raise KeyError(msg.format(key))
-
-    # sanity check
-    #assert set(args.keys()).issubset(set(LEGAL_ARGS))
-    #assert set(REQUIRED_KEYS).issubset(set(args.keys()))
 
     dirs = [dir for dir in DIRS if dir in args]
     for dir_key in dirs:

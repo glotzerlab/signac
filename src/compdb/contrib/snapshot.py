@@ -11,10 +11,7 @@ COLLECTIONS_EXCLUDE = ['system']
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def dump_db(db, dst):
-    try:
-        os.makedirs(dst)
-    except Exception:
-        raise
+    os.makedirs(dst)
     for collection in db.collection_names():
         skip = False
         for exclude in COLLECTIONS_EXCLUDE:

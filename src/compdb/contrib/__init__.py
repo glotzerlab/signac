@@ -41,9 +41,6 @@ def get_all_project_ids(client = None):
         else:
             yield dbname
 
-def sleep_random(time = 1.0):
-    sleep(uniform(0, time))
-
 #
 # All functions beyond this point are deprecated.
 #

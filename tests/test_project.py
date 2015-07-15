@@ -9,9 +9,16 @@ import warnings
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
 
-from test_job import safe_open_job, JobTest
+import pymongo
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-class ProjectBackupTest(JobTest):
+from test_job import JobTest
+
+@unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
+class ProjectTest(JobTest):
+    pass
+
+class ProjectBackupTest(ProjectTest):
     
     def test_dump_db_snapshot(self):
         from compdb.contrib import get_project
@@ -74,7 +81,7 @@ class ProjectBackupTest(JobTest):
         fn_tmp = '_dump.tar'
         self.assertRaises(FileNotFoundError, project.restore_snapshot, '_bullshit.tar')
 
-class ProjectViewTest(JobTest):
+class ProjectViewTest(ProjectTest):
     
     def test_get_links(self):
         from compdb.contrib import get_project
@@ -124,7 +131,7 @@ def start_pool(state_points, exclude_condition, rank, size, jobs = []):
     with tempfile.NamedTemporaryFile() as jobfile:
         job_pool.start(rank, size, jobfile = jobfile.name)
 
-class ProjectPoolTest(JobTest):
+class ProjectPoolTest(ProjectTest):
     
     def test_start(self):
         from compdb.contrib import get_project
@@ -139,8 +146,8 @@ class ProjectPoolTest(JobTest):
             pool.start()
         except EnvironmentError:
             import warnings
-            msg = "Cannot test MPI support, due to missing mpi4py package."
-            warnings.warn(msg)
+            msg = "requires mpi4py"
+            raise unittest.SkipTest(msg)
 
     def test_pool_concurrency(self):
         from multiprocessing import Pool
@@ -189,7 +196,7 @@ class ProjectPoolTest(JobTest):
 def simple_function(x):
     return x*x
 
-class ProjectQueueTest(JobTest):
+class ProjectQueueTest(ProjectTest):
 
     def test_queue(self):
         from compdb.contrib import get_project

@@ -5,7 +5,7 @@ import logging
 import os
 import stat
 import warnings
-import arpgarse
+import argparse
 
 from ..core.config import Config, load_config
 from .. import VERSION as DEFAULT_VERSION

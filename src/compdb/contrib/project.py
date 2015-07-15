@@ -28,7 +28,7 @@ from ..core.mongodb_set import MongoDBSet
 from ..core.serialization import encode_callable_filter
 from .cache import Cache
 from .concurrency import DocumentLock
-from .errors import ConnectionFailure
+from .errors import ConnectionFailure, DatabaseError
 from .job_pool import JobPool
 from .logging import MongoDBHandler, record_from_doc
 from .milestones import Milestones
@@ -119,7 +119,6 @@ class BaseProject(object):
     def _workspace_dir(self):
         warnings.warn("The method '_workspace_dir' is deprecated.", DeprecationWarning)
         return self.config['workspace_dir']
-
 
     def get_milestones(self, job_id):
         warnings.warn("The milestone API will be deprecated in the future.", PendingDeprecationWarning)
@@ -234,7 +233,11 @@ class OnlineProject(BaseProject):
         result = self._get_jobs_collection().find_one(job_id, [JOB_PARAMETERS_KEY])
         if result is None:
             raise KeyError(job_id)
-        return result[JOB_PARAMETERS_KEY]
+        try:
+            return result[JOB_PARAMETERS_KEY]
+        except KeyError as error:
+            msg = "Unable to retrieve parameters for job '{}'. Database corrupted."
+            raise DatabaseError(msg.format(job_id))
 
     def register_job(self, parameters = None):
         """Register a job for this project.
@@ -292,7 +295,7 @@ class OnlineProject(BaseProject):
         :returns: An iterator over all OnlineJob instances, that match the criteria.
         """
         if job_spec is None:
-            job_spec = {}
+            job_spec = {JOB_PARAMETERS_KEY: {'$exists': True}}
         else:
             job_spec = {JOB_PARAMETERS_KEY+'.{}'.format(k): v for k,v in job_spec.items()}
         job_ids = list(self._find_job_ids(job_spec))

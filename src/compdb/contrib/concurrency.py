@@ -136,9 +136,14 @@ class DocumentBaseLock(object):
 
     def force_release(self):
         logger.debug("Force releasing lock.")
-        result = self._collection.find_and_modify(
-            query = {'_id': self._document_id},
-            update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
+        if PYMONGO_3:
+            result = self._collection.find_one_and_update(
+                filter = {'_id': self._document_id},
+                update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
+        else:
+            result = self._collection.find_and_modify(
+                query = {'_id': self._document_id},
+                update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
 
     def __enter__(self):
         """Use the lock as context manager.
@@ -177,7 +182,7 @@ class DocumentLock(DocumentBaseLock):
         if PYMONGO_3:
             result = self._collection.find_one_and_update(filter, update)
         else:
-            result = self._collection.find_one_and_modify(filter, update)
+            result = self._collection.find_and_modify(filter, update)
         acquired = result is not None
         if acquired:
             logger.debug("Acquired.")

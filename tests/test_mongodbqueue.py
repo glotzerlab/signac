@@ -58,7 +58,11 @@ def get_executor_no_drop(id_queue = None, id_results = None):
     result_collection = get_collection_handle(id_results)
     return MongoDBExecutor(job_queue, result_collection)
 
-class MongoDBQueueTest(unittest.TestCase):
+@unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
+class MongoDBTest(unittest.TestCase):
+    pass
+
+class MongoDBQueueTest(MongoDBTest):
 
     def test_init(self):
         with get_collection() as collection:
@@ -171,7 +175,7 @@ def execution_enter_loop(id_queue, id_results, timeout):
         pass
     return True
 
-class MongoDBExecutorTest(unittest.TestCase):
+class MongoDBExecutorTest(MongoDBTest):
     
     def test_init(self):
         with get_executor() as executor:

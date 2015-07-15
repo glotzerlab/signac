@@ -182,7 +182,8 @@ class BaseJob(object):
         logger.info(msg.format(self.get_id()))
 
     def close(self):
-        return self._close_stage_two()
+        self._close_stage_one()
+        self._close_stage_two()
 
     def __enter__(self):
         """Open the job as context manager.
@@ -273,15 +274,23 @@ class OnlineJob(OfflineJob):
     def _register_online(self):
         "Register this job in the project database."
         try:
-            result = self._project._get_jobs_collection().find_one_and_update(
-                filter = self._filter(),
-                update = {'$setOnInsert': self._make_doc()},
-                upsert = True,
-                return_document = pymongo.ReturnDocument.AFTER)
+            if PYMONGO_3:
+                result = self._project._get_jobs_collection().find_one_and_update(
+                    filter = self._filter(),
+                    update = {'$setOnInsert': self._make_doc()},
+                    upsert = True,
+                    return_document = pymongo.ReturnDocument.AFTER)
+                assert str(result['_id']) == str(self.get_id())
+            else:
+                f = self._filter()
+                result = self._project._get_jobs_collection().update(
+                    f, 
+                    document = {'$setOnInsert': self._make_doc()},
+                    upsert = True,
+                    new = True)
+                assert f['_id'] == str(self.get_id())
         except DuplicateKeyError as error:
             warnings.warn(error)
-        else:
-            assert str(result['_id']) == str(self.get_id())
 
     def _registered(self):
         "Register the job, if not already registered."
@@ -309,7 +318,6 @@ class OnlineJob(OfflineJob):
                 self._filter(), update=update, return_document = pymongo.ReturnDocument.AFTER)
         else:
             result = self._project._get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
-        return len(result['executing'])
 
     def _start_pulse(self, process = True):
         "Start the job pulse, used for identifying 'dead' jobs."
@@ -376,6 +384,7 @@ class OnlineJob(OfflineJob):
     def close(self):
         "Try to lock the job and then close."
         with self._get_lock():
+            self._close_stage_one()
             self._close_stage_two()
 
     def force_release(self):
@@ -483,7 +492,10 @@ class OnlineJob(OfflineJob):
                 with self.storage.open_file(fn, 'wb') as dst:
                     dst.write(src.read())
         for doc in other.collection.find():
-            self.collection.insert_one(doc)
+            if PYMONGO_3:
+                self.collection.insert_one(doc)
+            else:
+                self.collection.save(doc)
 
     @property
     def cache(self):

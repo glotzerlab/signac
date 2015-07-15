@@ -27,7 +27,7 @@ class Cache(object):
         #self._check()
 
     def _collection(self):
-        return self._project.get_project_db()[CACHE_KEY]
+        return self._project.get_db()[CACHE_KEY]
 
     def _cache_dir(self):
         return os.path.join(self._project.filestorage_dir(), CACHE_DIR)
