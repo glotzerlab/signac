@@ -137,11 +137,12 @@ def view(args):
         if os.path.exists(args.prefix) and os.path.listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
-        project.create_view(url = url, copy = args.copy, workspace = args.workspace)
+        project.create_view(url = url, make_copy = args.copy, workspace = args.workspace)
 
-def check(args):
+def run_checks(args):
     project = get_project()
     encountered_error = False
+    from . import check
     checks = [
         ('global configuration',
         check.check_global_config),
@@ -165,11 +166,11 @@ def check(args):
         checks.extend([
             ('project version',
             check.check_project_version)])
-    for msg, check in checks:
+    for msg, check_ in checks:
         print()
         print("Checking {} ... ".format(msg), end='', flush=True)
         try:
-            ok = check()
+            ok = check_()
         except ConnectionFailure as error:
             print()
             print("Error: {}".format(error))
@@ -247,7 +248,7 @@ def store_snapshot(args):
         print("Success.")
 
 def restore_snapshot(args):
-    project = get_project(args.project)
+    project = get_project()
     print("Trying to restore from: {}".format(args.snapshot))
     try:
         project.restore_snapshot(args.snapshot)
@@ -280,7 +281,7 @@ def clean_up(args):
     project.kill_dead_jobs(seconds = args.tolerance_time)
 
 def clear(args):
-    project = get_project(args.project)
+    project = get_project()
     question = "Are you sure you want to clear project '{}'?"
     if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
         try:
@@ -541,7 +542,7 @@ def main():
     #    '--offline',
     #    action = 'store_true',
     #    help = 'Perform offline checks.',)
-    parser_check.set_defaults(func = check)
+    parser_check.set_defaults(func = run_checks)
 
     parser_server = subparsers.add_parser('server')
     server.setup_parser(parser_server)

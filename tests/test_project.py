@@ -1,4 +1,7 @@
 import unittest
+import os
+import tempfile
+import subprocess
 from contextlib import contextmanager
 
 # Make sure the jobs created for this test are unique.
@@ -212,6 +215,50 @@ class ProjectQueueTest(ProjectTest):
         for i, future in enumerate(futures):
             result = future.result(0.1)
             self.assertEqual(result, simple_function(i))
+
+class BaseProjectConsoleTest(unittest.TestCase):
+    
+    def setUp(self):
+        self._cwd = os.getcwd()
+        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        os.chdir(self._tmp_dir.name)
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.addCleanup(self.return_to_cwd)
+        subprocess.check_output(['compdb', 'init', '--template', 'testing', 'testing'])
+
+    def return_to_cwd(self):
+        os.chdir(self._cwd)
+
+    def tearDown(self):
+        subprocess.check_output(['compdb', '--yes', 'remove', '--project', '--force'])
+
+class ProjectConsoleTest(BaseProjectConsoleTest):
+
+    def test_create_and_remove(self):    
+        pass
+
+    def test_example_scripts(self):
+        subprocess.check_output(['python3', 'job.py'])
+        subprocess.check_output(['python3', 'analyze.py'])
+
+    def test_clear_and_removal(self):
+        subprocess.check_output(['python3', 'job.py'])
+        subprocess.check_output(['compdb', '--yes', 'clear'])
+        subprocess.check_output(['python3', 'job.py'])
+        subprocess.check_output(['compdb', '--yes', 'remove', '-j', 'all'])
+
+    def test_snapshot_and_restore(self):
+        subprocess.check_output(['python3', 'job.py'])
+        subprocess.check_output(['compdb', 'snapshot', 'test.tar'])
+        subprocess.check_output(['compdb', 'restore', 'test.tar'])
+        subprocess.check_output(['compdb', 'snapshot', 'test.tar.gz'])
+        subprocess.check_output(['compdb', 'restore', 'test.tar.gz'])
+
+    def test_view(self):
+        subprocess.check_output(['python3', 'job.py'])
+        subprocess.check_output(['compdb', 'view'])
+        self.assertTrue(os.path.isdir('view/a/0/b/0'))
+        self.assertTrue(os.path.isfile('view/a/0/b/0/my_result.txt'))
 
 if __name__ == '__main__':
     unittest.main()

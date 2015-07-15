@@ -1,9 +1,11 @@
 from .template_example import EXAMPLE
 from .template_minimal import MINIMAL
+from .template_testing import TESTING
 
 TEMPLATES = {
     'minimal': MINIMAL,
     'example': EXAMPLE,
+    'testing': TESTING,
 }
 
 RESTORE_SH = """PROJECT={project}
