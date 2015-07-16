@@ -111,6 +111,51 @@ def generate_auto_network():
             network, adapter)
     return network
 
+def is_standard_expression(expr):
+    """Return True if expr is a standard expression, otherwise False."""
+    def search_callable(expr):
+        if isinstance(expr, dict):
+            return {search_callable(k): search_callable(v)
+                for k, v in expr.items()}
+        elif isinstance(expr, list):
+            return [search_callable(v) for v in expr]
+        elif callable(expr):
+            raise ValueError()
+        else:
+            return expr
+    try:
+        search_callable(expr)
+    except ValueError:
+        return False
+    else:
+        return True
+
+def split_standard_nonstandard(expr):
+    """Split expression into standard and non-standard as far as possible."""
+    if isinstance(expr, dict):
+        s = dict()
+        ns = dict()
+        for k, v in expr.items():
+            if is_standard_expression(k) and is_standard_expression(v):
+                s[k] = v
+            else:
+                ns[k] = v
+        return s, ns
+    if isinstance(expr, list):
+        s = list()
+        ns = list()
+        for v in expr:
+            if is_standard_expression(v):
+                s.append(v)
+            else:
+                ns.append(v)
+        return s, ns
+    else:
+        if is_standard_expression(expr):
+            return expr, None
+        else:
+            return None, expr
+
 class UnsupportedExpressionError(ValueError):
     """This exception is raised when a legal MongoDB expression is not supported."""
     pass
@@ -299,7 +344,7 @@ class Database(object):
             return standard_filter, methods_filter
 
     def _filter_by_method(self, doc_ids, method, expression):
-        """Apply :param method: to data in documents with :param doc_ids: and filter by :param expression:.
+        """Apply method to data in document with doc_ds and filter by expression.
 
         :param doc_ids: Documents to apply the filter to.
         :param method: The method to apply.
@@ -340,7 +385,7 @@ class Database(object):
             return set(doc['_id'] for doc in result['result'])
 
     def _filter_by_methods(self, docs, methods_filter):
-        """Apply the :param methods_filter: to all :param docs:.
+        """Apply all methods in methods_filter to all docs.
 
         See also: _filter_by_method(..)
         """
@@ -489,7 +534,7 @@ class Database(object):
 
         :param filter: The filter to match documents with.
         :type filter: A mappable, that may contain callables as keys or values.
-        :param projection: A iterable of field names that the returned records contain.
+        :param projection: An iterable of field names that the returned records contain.
         :type projection: Iterable of str.
         :raises UnsupportedExpressionError
         
@@ -497,10 +542,17 @@ class Database(object):
             - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find
         """
+        # The call_dict keeps track of all calls required to resolve in this query
         call_dict = dict()
+        # The plain_filter is a pymongo conform filter, where all callables have been
+        # replaced with place_holders
         plain_filter = self._resolve(filter, call_dict)
+        logger.debug("Resolved find query: '{}'.".format(plain_filter))
+        # Return all documents that match the plain filter
         docs = self._data.find(
             plain_filter, projection, * args, ** kwargs)
+        # The FileCursor is an iterator over the resulting records
+        # and resolves all callables
         return map(FileCursor(self, call_dict, projection), docs)
 
     def find_one(self, filter_or_id, projection = None, * args, ** kwargs):
@@ -515,7 +567,7 @@ class Database(object):
         See also: find()
         """
         call_dict = dict()
-        plain_filter_or_id = self._resolve(filter_or_id, call_dict)
+        plain_filter_or_id = self._resolve_expr(filter_or_id, call_dict)
         doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
         if doc is not None:
             return self._resolve_doc(doc, call_dict, projection)
@@ -589,40 +641,59 @@ class Database(object):
             result = self._data.remove(filter)
         return result
 
-    def _resolve_dict(self, d, call_dict, * args, ** kwargs):
+    def _resolve(self, expr, call_dict, *args, **kwargs):
+        """First resolve stage, trying to resolve standard filters first."""
+        standard, nonstandard = split_standard_nonstandard(expr)
+        doc_ids = list()
+        if standard:
+            doc_ids = [doc['_id'] for doc in self._data.find(standard, *args, **kwargs)]
+            if '_id' in standard:
+                nonstandard['_id'] = {'$and': [standard['_id'], {'$in': doc_ids}]}
+            else:
+                nonstandard['_id'] = {'$in': doc_ids}
+        return self._resolve_expr(nonstandard, call_dict, doc_ids, *args, **kwargs)
+
+    def _resolve_dict(self, d, call_dict, doc_ids, * args, ** kwargs):
         "Resolve the dictionary for callables and other operators."
         standard = dict()
         methods_filter = dict()
-        #methods_projection = dict()
         for key, value in d.items():
             if callable(key):
                 assert not callable(value)
-                methods_filter[key] = self._resolve(value, call_dict)
+                methods_filter[key] = self._resolve_expr(value, call_dict, doc_ids)
             elif key == '$project':
                 value[KEY_FILE_ID] = '$'+KEY_FILE_ID
                 standard[key] = value
             elif key.startswith('$') and key in ILLEGAL_AGGREGATION_KEYS:
                 raise UnsupportedExpressionError(key)
             else:
-                standard[key] = self._resolve(value, call_dict)
-        if PYMONGO_3:
-            docs = self._data.find(filter=standard,projection=['_id'])
-        else:
-            docs = self._data.find(spec = standard, fields = ['_id'])
+                standard[key] = self._resolve_expr(value, call_dict, doc_ids)
         if methods_filter:
+            if doc_ids and not '_id' in standard:
+                standard['_id'] = {'$in': doc_ids}
+            if PYMONGO_3:
+                docs = self._data.find(filter=standard,projection=['_id'])
+            else:
+                docs = self._data.find(spec = standard, fields = ['_id'])
+            logger.debug("# docs to filter by method: {}".format(docs.count()))
             filtered = self._filter_by_methods(docs, methods_filter)
             return {'_id': {'$in': list(filtered)}}
         else:
             return d
 
-    def _resolve(self, expr, call_dict, *args, **kwargs):
-        "Resolve expression containing callables."
+    def _resolve_expr(self, expr, call_dict, doc_ids = None, *args, **kwargs):
+        """"Resolve expr into a pymongo readable form.
+
+        All callables are replaced with placeholders, that link to the call_dict.
+        """
         if isinstance(expr, dict):
-            plain = {k: self._resolve(v, call_dict, * args, ** kwargs)
-                    for k,v in expr.items()}
-            return self._resolve_dict(plain, call_dict, * args, ** kwargs)
+            plain = {k: self._resolve_expr(v, call_dict, doc_ids, * args, ** kwargs)
+                        for k,v in expr.items()}
+            #return self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
+            _rd = self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
+            return _rd
         elif isinstance(expr, list):
-            return [self._resolve(v, call_dict, *args, **kwargs) for v in expr]
+            return [self._resolve_expr(v, call_dict, doc_ids, *args, **kwargs) for v in expr]
         elif callable(expr):
             call_id = str(uuid.uuid4())
             call_dict[call_id] = expr
@@ -632,7 +703,7 @@ class Database(object):
 
     def _resolve_stage(self, stage, call_dict):
         "Resolve a stage, which is part of a pipeline."
-        return self._resolve(stage, call_dict)
+        return self._resolve_expr(stage, call_dict)
 
     def _resolve_pipeline(self, pipeline, call_dict):
         "Resolve a pipeline."
