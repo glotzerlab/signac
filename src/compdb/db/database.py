@@ -139,10 +139,10 @@ class FileCursor(object):
         return {}
 
 class Database(object):
-"""The CompMatDB base class.
+    """The CompMatDB base class.
 
-This object provides the CompMatDB API.
-"""
+    This object provides the CompMatDB API.
+    """
 
     def __init__(self, db, config = None):
         """Create a new Database object.
