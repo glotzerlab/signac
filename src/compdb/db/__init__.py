@@ -10,7 +10,7 @@ from . import database
 
 # namespace extension
 from .conversion import DBMethod, BasicFormat, Adapter
-from . import formats
+from . import formats, methods
 
 logger = logging.getLogger(__name__)
 

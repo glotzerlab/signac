@@ -284,7 +284,10 @@ class Database(object):
             matching = self._filter_by_method(matching, method, value)
         msg = "Record methods coverage: {:.2%} (records skipped: {})"
         skipped = docs.count() - len(matching)
-        coverage = float(len(matching) / docs.count())
+        if docs.count():
+            coverage = float(len(matching) / docs.count())
+        else:
+            coverage = 0
         logger.info(msg.format(coverage, skipped))
         return matching
 
