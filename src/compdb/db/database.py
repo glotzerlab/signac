@@ -40,6 +40,7 @@ KEY_DOC_META = 'meta'
 KEY_DOC_DATA = 'data'
 
 ILLEGAL_AGGREGATION_KEYS = ['$group', '$out']
+USER_KEYS = ('author_name', 'author_email')
 
 def hash_module(c):
     "Calculate hash value for the module of c."
@@ -207,6 +208,11 @@ class Database(object):
         self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
         self.debug_mode = False
+
+    @property
+    def config(self):
+        "Returns the config instance associated with this database."
+        return self._config
 
     @property
     def formats_network(self):
@@ -401,8 +407,25 @@ class Database(object):
         logger.info(msg.format(coverage, skipped))
         return matching
 
+    def _metadata_from_context(self):
+        return {
+            'author_name': self._config['author_name'],
+            'author_email': self._config['author_email'],
+            }
+
+    def _filter_by_user(self, filter):
+        """Make the filter user-specific to protect against global data manipulation."""
+        if self._config.get('compmatdb_admin', False):
+            warnings.warn("Working with compmatdb admin role!")
+        msg = "The value for '{key}' cannot be modified without admin rights!"
+        for key in USER_KEYS:
+            if key in filter:
+                if filter[key] != self._config[key]:
+                    raise KeyError(msg.format(key=key))
+            filter[key] = self._config[key]
+
     def _add_metadata_from_context(self, metadata):
-        "Add implicit meta data. to the explicitely provided meta data."
+        "Add implicit meta data to the explicitely provided meta data."
         if not 'author_name' in metadata:
             metadata['author_name'] = self._config['author_name']
         if not 'author_email' in metadata:
@@ -457,6 +480,7 @@ class Database(object):
             - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.insert_one
         """
+        self._filter_by_user(document)
         self._insert_one(document, data, * args, ** kwargs)
 
     def replace_one(self, filter, replacement_data = None, upsert = False, * args, ** kwargs):
@@ -473,6 +497,7 @@ class Database(object):
             - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_one
         """
+        self._filter_by_user(filter) # Modify the filter to only match user documents
         meta = self._make_meta_document(filter, replacement_data)
         to_be_replaced = self._data.find_one(meta)
         replacement = copy.copy(meta)
@@ -488,7 +513,9 @@ class Database(object):
             else:
                 if to_be_replaced is not None:
                     replacement['_id'] = to_be_replaced['_id']
-                result = self._data.save(to_save = replacement)
+                    result = self._data.save(to_save = replacement)
+                else:
+                    result = None
         except:
             if replacement_data is not None:
                 self._gridfs.delete(file_id)
@@ -511,6 +538,7 @@ class Database(object):
             - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.update_one
         """
+        self._filter_by_user(document) # Modify the document to only match user documents
         meta = self._make_meta_document(document, data)
         if data is not None:
             file_id = self._put_file(data)
@@ -518,9 +546,9 @@ class Database(object):
         to_be_updated = self._data.find_one(meta)
         try:
             if PYMONGO_3:
-                self._data.update_one(meta, update, * args, ** kwargs)
+                result = self._data.update_one(meta, update, * args, ** kwargs)
             else:
-                self._data.update(meta, update, * args, ** kwargs)
+                result = self._data.update(meta, update, * args, ** kwargs)
         except:
             if data is not None:
                 self._gridfs.delete(file_id)
@@ -528,6 +556,7 @@ class Database(object):
             if to_be_updated is not None:
                 if KEY_FILE_ID in to_be_updated:
                     self._gridfs.delete(to_be_updated[KEY_FILE_ID])
+            return result
 
     def find(self, filter = None, projection = None, * args, ** kwargs):
         """Find all records that match filter.
@@ -555,7 +584,7 @@ class Database(object):
         # and resolves all callables
         return map(FileCursor(self, call_dict, projection), docs)
 
-    def find_one(self, filter_or_id, projection = None, * args, ** kwargs):
+    def find_one(self, filter_or_id = None, projection = None, * args, ** kwargs):
         """Like find(), but returns the first matching document or None if no document matches.
         
         :param filter_or_id: A filter or a document id.
@@ -618,10 +647,14 @@ class Database(object):
         
         See also: delete_many()
         """
-        #doc = self._data.find_one_and_delete(filter, *args, **kwargs)
+        self._filter_by_user(filter) # Modify the filter to only match user documents
         doc = self._data.find_one(filter, *args, **kwargs)
-        self._data.remove({'_id': doc['_id']})
-        self._delete_doc(doc)
+        if doc is not None:
+            if PYMONGO_3:
+                self._data.delete_one({'_id': doc['_id']})
+            else:
+                self._data.remove({'_id': doc['_id']})
+            self._delete_doc(doc)
 
     def delete_many(self, filter, * args, ** kwargs):
         """Delete all documents matching filter.
@@ -632,6 +665,7 @@ class Database(object):
 
         See also: delete_one()
         """
+        self._filter_by_user(filter) # Modify the filter to only match user documents
         docs = self._data.find(filter, *args, ** kwargs)
         for doc in docs:
             self._delete_doc(doc)

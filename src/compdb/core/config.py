@@ -67,6 +67,7 @@ LEGAL_ARGS = REQUIRED_KEYS\
     + [
     'develop', 'compmatdb_host',
     'database_username', 'database_password',
+    'compmatdb_admin',
     ]
 LEGAL_ARGS = list(set(LEGAL_ARGS))
 
