@@ -21,11 +21,11 @@ def welcome_msg(project):
     msg = "Administrating project '{project}' on '{host}':"
     print(msg.format(project=project, host=project.config['database_host']))
 
-def get_project(args):
-    return get_project()
-
 def get_client(project):
     return project._get_client()
+
+def get_project_(args):
+    return get_project()
 
 def get_username(args):
     if args.user is None:
@@ -65,7 +65,7 @@ def user_exists(client, args, db_auth = None):
     return bool(info['users'])
 
 def add_user(args):
-    project = get_project(args)
+    project = get_project_(args)
     welcome_msg(project)
     client = get_client(project)
     #dbs = [project.get_id()]
@@ -76,7 +76,7 @@ def add_user(args):
         add_user_to_db(project, client, username, args)
 
 def update_user(args):
-    project = get_project(args)
+    project = get_project_(args)
     client = get_client(project)
     username = get_username(args)
     if args.password and args.ssl:
@@ -111,7 +111,7 @@ def add_user_to_db(project, client, username, args):
             raise RuntimeError(result)
 
 def remove_user(args):
-    project = get_project(args)
+    project = get_project_(args)
     welcome_msg(project)
     client = get_client(project)
     db_auth = get_db_auth(client, args)
@@ -131,7 +131,7 @@ def revoke_roles(args):
     return grant_revoke_roles(args, revoke = True)
 
 def grant_revoke_roles(args, revoke):
-    project = get_project(args)
+    project = get_project_(args)
     welcome_msg(project)
     return _grant_revoke_roles(args, revoke, project)
 
@@ -172,7 +172,7 @@ def collect_roles(info, dbs, username):
                     yield entry['role']
 
 def show_users(args):
-    project = get_project(args)
+    project = get_project_(args)
     welcome_msg(project)
     client = get_client(project)
     username = get_username(args)
@@ -287,7 +287,7 @@ def main(arguments = None):
         utility.set_verbosity_level(args.verbosity)
         try:
             if 'func' in args:
-                args.func(args, get_project(args))
+                args.func(args, get_project_(args))
             else:
                 parser.print_usage()
         except Exception as error:
