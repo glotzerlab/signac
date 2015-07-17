@@ -355,7 +355,7 @@ def remove(args):
     if not (args.project or args.job or args.logs or args.queue or args.queued):
         print("Nothing selected for removal.")
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(
         description = "CompDB - Computational Database",
         formatter_class = SmartFormatter)
@@ -583,7 +583,7 @@ def main():
     except ImportError:
         pass
     
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     set_verbosity_level(args.verbosity)
     warnings.simplefilter(args.warnings)
     try:
