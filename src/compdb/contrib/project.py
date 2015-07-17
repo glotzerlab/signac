@@ -827,7 +827,7 @@ class OnlineProject(BaseProject):
             msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
             raise RuntimeError(msg.format(version, VERSION_TUPLE))
         if VERSION_TUPLE > version:
-            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Use `compdb update` to update your project and get rid of this warning."
+            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Execute `compdb update` to update your project and get rid of this warning."
             raise UserWarning(msg.format(version, VERSION_TUPLE))
             warnings.warn(msg.format(version, VERSION_TUPLE))
             return False
