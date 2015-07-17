@@ -84,7 +84,7 @@ def info(args):
                 print(known, end='')
             if args.more:
                 job = project.get_job(known)
-                print('\n' + dumps(job.spec['parameters'], sort_keys = True), end='')
+                print('\n' + dumps(job.parameters(), sort_keys = True), end='')
             sep = args.separator
         if args.regex:
             print(')', end='')
