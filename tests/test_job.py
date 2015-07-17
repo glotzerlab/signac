@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 import pymongo
 
+import compdb
 from compdb.contrib import get_project
 
 # Make sure the jobs created for this test are unique.
@@ -49,7 +50,7 @@ class BaseJobTest(unittest.TestCase):
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
-        os.environ['COMPDB_VERSION'] = '0.1.1'
+        os.environ['COMPDB_VERSION'] = compdb.VERSION
         os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
         os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         self._project = get_project()

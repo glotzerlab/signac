@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'compdb',
-    version = '0.1.1',
+    version = '0.1.2',
     package_dir = {'': 'src'},
     packages = find_packages('src'),
 

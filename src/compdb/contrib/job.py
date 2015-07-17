@@ -76,7 +76,7 @@ class BaseJob(object):
                 msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
                 raise RuntimeError(msg.format(self._version, VERSION_TUPLE))
             if VERSION_TUPLE > self._version:
-                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Use `compdb update` to update your project and get rid of this warning."
+                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Execute `compdb update` to update your project and get rid of this warning."
                 warnings.warn(msg.format(self._version, VERSION_TUPLE))
         return self._id
 
