@@ -6,6 +6,7 @@ See also: https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb
 """
 
 import logging
+import warnings
 import copy
 import uuid
 import hashlib
@@ -33,6 +34,7 @@ KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_FILE_ID = '_file_id'
 KEY_FILE_TYPE = '_file_type'
 KEY_PROJECT_ID = 'project'
+LEGACY_RECORD = 'legacy_file'
 #KEY_GROUP_FILES = '_file_ids'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
@@ -228,7 +230,11 @@ class Database(object):
         self._formats_network = value
 
     def _get_gridfs(self, project_id):
-        return self._gridfs_callback(project_id)
+        if project_id == LEGACY_RECORD:
+            warnings.warn("Encountered legacy record!")
+            return GridFS(self._db)
+        else:
+            return self._gridfs_callback(project_id)
 
     def _convert_src(self, src, method):
         """Convert the :param src: object to a type expected by :param method:.
@@ -473,7 +479,7 @@ class Database(object):
         "Resolve the file data associated with doc."
         result = dict(doc)
         if KEY_FILE_ID in result:
-            result[KEY_DOC_DATA] = self._get_file(result[KEY_FILE_ID], result[KEY_PROJECT_ID])
+            result[KEY_DOC_DATA] = self._get_file(result[KEY_FILE_ID], result.get(KEY_PROJECT_ID, LEGACY_RECORD))
             del result[KEY_FILE_ID]
         #if KEY_GROUP_FILES in result:
         #    result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
@@ -509,7 +515,7 @@ class Database(object):
         """
         self._filter_by_user(filter) # Modify the filter to only match user documents
         meta = self._make_meta_document(filter, replacement_data)
-        to_be_replaced = self._data.find_one(meta)
+        to_be_replaced = self._data.find_one(filter)
         replacement = copy.copy(meta)
         if replacement_data is not None:
             file_id = self._put_file(replacement_data, meta[KEY_PROJECT_ID])
@@ -517,7 +523,7 @@ class Database(object):
         try:
             if PYMONGO_3:
                 result = self._data.replace_one(
-                    filter = meta,
+                    filter = filter,
                     replacement = replacement,
                     * args, ** kwargs)
             else:
@@ -559,10 +565,11 @@ class Database(object):
                 result = self._data.update_one(meta, update, * args, ** kwargs)
             else:
                 result = self._data.update(meta, update, * args, ** kwargs)
-        except:
+        except Exception:
             if data is not None:
                 self._get_gridfs(meta[KEY_PROJECT_ID]).delete(file_id)
                 #self._gridfs.delete(file_id)
+            raise
         else:
             if to_be_updated is not None:
                 if KEY_FILE_ID in to_be_updated:
