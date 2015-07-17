@@ -54,7 +54,7 @@ def update(args):
         raise RuntimeError(msg)
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=UserWarning)
-        if project_version_tuple == (0,1):
+        if project_version_tuple == (0,1,0):
             update_010_to_011(project)
 
 def setup_parser(parser):
