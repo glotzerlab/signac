@@ -565,7 +565,7 @@ class Database(object):
                 result = self._data.update_one(meta, update, * args, ** kwargs)
             else:
                 result = self._data.update(meta, update, * args, ** kwargs)
-        except Exception:
+        except:
             if data is not None:
                 self._get_gridfs(meta[KEY_PROJECT_ID]).delete(file_id)
                 #self._gridfs.delete(file_id)
