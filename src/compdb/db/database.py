@@ -528,12 +528,12 @@ class Database(object):
                     result = None
         except:
             if replacement_data is not None:
-                self._gridfs.delete(file_id)
+                self._get_gridfs(meta[KEY_PROJECT_ID]).delete(file_id)
             raise
         else:
             if to_be_replaced is not None:
                 if KEY_FILE_ID in to_be_replaced:
-                    self._gridfs.delete(to_be_replaced[KEY_FILE_ID])
+                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(to_be_replaced[KEY_FILE_ID])
             return result
 
     def update_one(self, document, data = None, * args, ** kwargs):
@@ -561,11 +561,13 @@ class Database(object):
                 result = self._data.update(meta, update, * args, ** kwargs)
         except:
             if data is not None:
-                self._gridfs.delete(file_id)
+                self._get_gridfs(meta[KEY_PROJECT_ID]).delete(file_id)
+                #self._gridfs.delete(file_id)
         else:
             if to_be_updated is not None:
                 if KEY_FILE_ID in to_be_updated:
-                    self._gridfs.delete(to_be_updated[KEY_FILE_ID])
+                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(to_be_updated[KEY_FILE_ID])
+                    #self._gridfs.delete(to_be_updated[KEY_FILE_ID])
             return result
 
     def find(self, filter = None, projection = None, * args, ** kwargs):
@@ -637,7 +639,8 @@ class Database(object):
         This function removes both the metadata document as well as the filedata in the gridfs collection.
         """
         if KEY_FILE_ID in doc:
-            self._gridfs.delete(doc[KEY_FILE_ID])
+            self._get_gridfs(doc[KEY_PROJECT_ID]).delete(doc[KEY_FILE_ID])
+            #self._gridfs.delete(doc[KEY_FILE_ID])
         if PYMONGO_3:
             self._cache.delete_many({KEY_FILE_ID: doc['_id']})
         else:
@@ -707,6 +710,7 @@ class Database(object):
                 methods_filter[key] = self._resolve_expr(value, call_dict, doc_ids)
             elif key == '$project':
                 value[KEY_FILE_ID] = '$'+KEY_FILE_ID
+                value[KEY_PROJECT_ID] = '$'+KEY_PROJECT_ID
                 standard[key] = value
             elif key.startswith('$') and key in ILLEGAL_AGGREGATION_KEYS:
                 raise UnsupportedExpressionError(key)
