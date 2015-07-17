@@ -7,6 +7,8 @@ from math import sqrt
 
 import networkx as nx
 import pymongo
+import gridfs
+
 import compdb
 from compdb.db import conversion
 from compdb.db.conversion import add_adapter_to_network, make_adapter
@@ -47,7 +49,9 @@ def _get_db(config = None):
     connector = DBClientConnector(config, prefix = 'database_')
     connector.connect()
     connector.authenticate()
-    return Database(db = connector.client[TESTING_DB])
+    def get_gridfs(project_id):
+        return gridfs.GridFS(connector.client[TESTING_DB])
+    return Database(db=connector.client[TESTING_DB], get_gridfs=get_gridfs)
 
 def get_db(config=None):
     if config is not None:
@@ -81,6 +85,7 @@ class BaseDBTest(unittest.TestCase):
     def setUp(self):
         os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
+        os.environ['COMPDB_PROJECT'] = 'compdb_db_test_project'
         self.config = compdb.core.config.load_config()
         self.db = get_db(config=self.config)
         metadata, data = get_test_record()

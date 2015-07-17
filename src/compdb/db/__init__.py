@@ -3,6 +3,7 @@ import os
 import datetime
 
 import pymongo
+import gridfs
 
 from ..core.config import load_config
 from ..core.dbclient_connector import DBClientConnector
@@ -25,7 +26,9 @@ def access_compmatdb(host = None, config = None):
     connector.connect(host)
     connector.authenticate()
     db = connector.client[config['database_compmatdb']]
-    return database.Database(db = db, config = config)
+    def gridfs_callback(project_id):
+        return gridfs.GridFS(connector.client[project_id])
+    return database.Database(db=db, get_gridfs=gridfs_callback, config=config)
 
 class StorageFileCursor(object):
 

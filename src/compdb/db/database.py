@@ -32,6 +32,7 @@ KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_FILE_ID = '_file_id'
 KEY_FILE_TYPE = '_file_type'
+KEY_PROJECT_ID = 'project'
 #KEY_GROUP_FILES = '_file_ids'
 KEY_CACHE_DOC_ID = 'doc_id'
 KEY_CACHE_RESULT = 'result'
@@ -190,7 +191,7 @@ class Database(object):
     This object provides the CompMatDB API.
     """
 
-    def __init__(self, db, config = None):
+    def __init__(self, db, get_gridfs, config = None):
         """Create a new Database object.
 
         :param db: The MongoDB backend database object.
@@ -202,10 +203,12 @@ class Database(object):
         if config is None:
             config = load_config()
         self._config = config
+        self._client = None
         self._db = db
         self._data = self._db['data']
         self._cache = self._db['cache']
-        self._gridfs = GridFS(self._db)
+        self._gridfs_callback = get_gridfs
+        #self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
         self.debug_mode = False
 
@@ -223,6 +226,9 @@ class Database(object):
     def formats_network(self, value):
         "Set the formats and adapter network."
         self._formats_network = value
+
+    def _get_gridfs(self, project_id):
+        return self._gridfs_callback(project_id)
 
     def _convert_src(self, src, method):
         """Convert the :param src: object to a type expected by :param method:.
@@ -278,7 +284,7 @@ class Database(object):
             try:
                 if not KEY_FILE_ID in doc:
                     continue
-                src = self._get(doc[KEY_FILE_ID])
+                src = self._get_file(doc[KEY_FILE_ID], doc[KEY_PROJECT_ID])
                 src = self._convert_src(src, method)
                 try:
                     result = method(src)
@@ -430,6 +436,8 @@ class Database(object):
             metadata['author_name'] = self._config['author_name']
         if not 'author_email' in metadata:
             metadata['author_email'] = self._config['author_email']
+        if not KEY_PROJECT_ID in metadata:
+            metadata[KEY_PROJECT_ID] = self._config[KEY_PROJECT_ID]
 
     def _make_meta_document(self, metadata, data):
         "Generate the records document from metadata and data."
@@ -439,31 +447,33 @@ class Database(object):
         self._add_metadata_from_context(meta)
         return meta
 
-    def _put_file(self, data):
+    def _put_file(self, data, project_id):
         "Store :param data: in a gridfs file."
-        return self._gridfs.put(encode(data))
+        return self._get_gridfs(project_id).put(encode(data))
+        #return self._gridfs.put(encode(data))
 
     def _insert_one(self, metadata, data):
         "Insert a record associating metadata and data."
         meta = self._make_meta_document(metadata, data)
         if data is not None:
-            file_id = self._put_file(data)
+            file_id = self._put_file(data, meta[KEY_PROJECT_ID])
             meta[KEY_FILE_ID] = file_id
         if PYMONGO_3:
             return self._data.insert_one(meta)
         else:
             return self._data.insert(meta)
 
-    def _get(self, file_id):
+    def _get_file(self, file_id, project_id):
         "Retrieve file with :param file_id: from the gridfs collection."
-        grid_file = self._gridfs.get(file_id)
+        grid_file = self._get_gridfs(project_id).get(file_id)
+        #grid_file = self._gridfs.get(file_id)
         return decode(grid_file.read())
 
     def _resolve_files(self, doc):
         "Resolve the file data associated with doc."
         result = dict(doc)
         if KEY_FILE_ID in result:
-            result[KEY_DOC_DATA] = self._get(result[KEY_FILE_ID])
+            result[KEY_DOC_DATA] = self._get_file(result[KEY_FILE_ID], result[KEY_PROJECT_ID])
             del result[KEY_FILE_ID]
         #if KEY_GROUP_FILES in result:
         #    result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
@@ -502,7 +512,7 @@ class Database(object):
         to_be_replaced = self._data.find_one(meta)
         replacement = copy.copy(meta)
         if replacement_data is not None:
-            file_id = self._put_file(replacement_data)
+            file_id = self._put_file(replacement_data, meta[KEY_PROJECT_ID])
             replacement[KEY_FILE_ID] = file_id
         try:
             if PYMONGO_3:
@@ -541,7 +551,7 @@ class Database(object):
         self._filter_by_user(document) # Modify the document to only match user documents
         meta = self._make_meta_document(document, data)
         if data is not None:
-            file_id = self._put_file(data)
+            file_id = self._put_file(data, meta[KEY_PROJECT_ID])
             update = {'$set': {KEY_FILE_ID: file_id}}
         to_be_updated = self._data.find_one(meta)
         try:
@@ -748,7 +758,7 @@ class Database(object):
         "Resolve all calls in result."
         if isinstance(result, dict):
             if KEY_FILE_ID in result:
-                data = self._get(result[KEY_FILE_ID])
+                data = self._get_file(result[KEY_FILE_ID], result[KEY_PROJECT_ID])
             elif KEY_DOC_DATA in result:
                 data = result[KEY_DOC_DATA]
             #elif KEY_GROUP_FILES in result:
