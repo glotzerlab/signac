@@ -2,14 +2,13 @@ import sys
 IS_PYTHON3 = sys.version_info[0] == 3
 if not IS_PYTHON3:
     print("Error: CompDB requires python version >= 3.x.")
-    print("Exiting.")
     sys.exit(1)
 
 from setuptools import setup, find_packages
 
 setup(
     name = 'compdb',
-    version = '0.1.2',
+    version = '0.1.3dev',
     package_dir = {'': 'src'},
     packages = find_packages('src'),
 
@@ -25,8 +24,11 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo', 'jsonpickle','networkx'],
+    install_requires=['pymongo>=2.8', 'jsonpickle','networkx'],
 
+    extras_require = {
+        'mpi': ['mpi4py'],
+        },
     entry_points = {
         'console_scripts': [
             'compdb = compdb.contrib.script:main',
