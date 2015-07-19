@@ -5,35 +5,14 @@
 The Computational Database (CompDB) aids in the management, access and analysis of large-scale computational investigations.
 The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaboratos.
 
-## Requirements
-  
-The computational material's database needs to connect to a MongoDB instance as database backend.
-You can obtain a copy at [MongoDB](http://www.mongodb.org).
-You will also need the python MongoDB driver `pymongo`, which should be installed automatically.
-If not try `pip install pymongo` or `port install py3X-pymongo` on mac to install the package.
-
-The package requires Python 3 and is tested with version 3.3 and 3.4.
-
 ## Installation
 
-To install the package, you first need to clone the repository, either with
+The recommeded method of installation is using *pip*:
 
-    $ git clone https://USERNAME@bitbucket.org/glotzer/compdb.git
+    $ pip3 install git+https://$USER@bitbucket.org/glotzer/compdb.git#egg=compdb --user
 
-or 
-
-    $ git clone git@bitbucket.org:glotzer/compdb.git
-
-and then execute
-
-    $ cd compdb
-    $ sudo python setup.py install
-
-On system's without root access you can install the package with
-  
-    $ python setup.py install --user
-
-into your home directory.
+To upgrade, the package, simply append the `--upgrade` option to this command.
+For more information on installation, upgrade and removal, please see the [wiki](https://bitbucket.org/glotzer/compdb/wiki/latest/Setup).
 
 ## Testing
 
