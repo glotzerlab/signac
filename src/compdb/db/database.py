@@ -182,7 +182,7 @@ class FileCursor(object):
         except conversion.NoConversionPath:
             pass
         except conversion.ConversionError as error:
-            msg = "Conversion error for doc with '{}': {}"
+            msg = "Conversion error for doc with id '{}': {}"
             logger.warning(msg.format(cursor['_id'], error))
             raise
         return {}
@@ -597,11 +597,15 @@ class Database(object):
         plain_filter = self._resolve(filter, call_dict)
         logger.debug("Resolved find query: '{}'.".format(plain_filter))
         # Return all documents that match the plain filter
-        docs = self._data.find(
-            plain_filter, projection, * args, ** kwargs)
-        # The FileCursor is an iterator over the resulting records
-        # and resolves all callables
-        return map(FileCursor(self, call_dict, projection), docs)
+        try:
+            docs = self._data.find(
+                plain_filter, projection, * args, ** kwargs)
+            # The FileCursor is an iterator over the resulting records
+            # and resolves all callables
+            return map(FileCursor(self, call_dict, projection), docs)
+        except pymongo.errors.PyMongoError as error:
+            logger.error("Error during find operation from expression: '{}'.".format(filter))
+            raise
 
     def find_one(self, filter_or_id = None, projection = None, * args, ** kwargs):
         """Like find(), but returns the first matching document or None if no document matches.
@@ -616,11 +620,16 @@ class Database(object):
         """
         call_dict = dict()
         plain_filter_or_id = self._resolve_expr(filter_or_id, call_dict)
-        doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
-        if doc is not None:
-            return self._resolve_doc(doc, call_dict, projection)
-        else:
-            return None
+        try:
+            doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
+            if doc is not None:
+                return self._resolve_doc(doc, call_dict, projection)
+            else:
+                return None
+        except pymongo.errors.PyMongoError as error:
+            if filter_or_id is not None:
+                logger.error("Error during find_one operation from expression: '{}'.".format(filter_or_id))
+            raise
 
     def _resolve_doc(self, doc, call_dict, projection = None):
         "Resolve a document containing callables."
@@ -744,9 +753,7 @@ class Database(object):
         if isinstance(expr, dict):
             plain = {k: self._resolve_expr(v, call_dict, doc_ids, * args, ** kwargs)
                         for k,v in expr.items()}
-            #return self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
-            _rd = self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
-            return _rd
+            return self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
         elif isinstance(expr, list):
             return [self._resolve_expr(v, call_dict, doc_ids, *args, **kwargs) for v in expr]
         elif callable(expr):
@@ -810,8 +817,12 @@ class Database(object):
         call_dict = dict()
         plain_pipeline = list(self._resolve_pipeline(pipeline, call_dict))
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
-        result = self._data.aggregate(plain_pipeline, ** kwargs)
-        if PYMONGO_3:
-            return filter(len, map(FileCursor(self, call_dict), result))
-        else:
-            return filter(len, map(FileCursor(self, call_dict), result['result']))
+        try:
+            result = self._data.aggregate(plain_pipeline, ** kwargs)
+            if PYMONGO_3:
+                return filter(len, map(FileCursor(self, call_dict), result))
+            else:
+                return filter(len, map(FileCursor(self, call_dict), result['result']))
+        except pymongo.errors.PyMongoError as error:
+            logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
+            raise
