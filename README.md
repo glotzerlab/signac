@@ -9,7 +9,7 @@ The framework provides a simple data model, which helps to organize data product
 
 The recommeded method of installation is using *pip*:
 
-    $ pip3 install git+https://$USER@bitbucket.org/glotzer/compdb.git#egg=compdb --user
+    pip3 install git+https://$USER@bitbucket.org/glotzer/compdb.git#egg=compdb --user
 
 To upgrade, the package, simply append the `--upgrade` option to this command.
 For more information on installation, upgrade and removal, please see the [wiki](https://bitbucket.org/glotzer/compdb/wiki/latest/Setup).
