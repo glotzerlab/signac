@@ -370,6 +370,10 @@ def main(argv=None):
         default = 'ignore',
         choices = ['ignore', 'default', 'all', 'module', 'once', 'error'],
         help = "Control the handling of warnings. By default all warnings are ignored.")
+    parser.add_argument(
+        '--version',
+        action = 'store_true',
+        help = "Print the compdb version and exit.")
 
     subparsers = parser.add_subparsers()
 
@@ -584,6 +588,10 @@ def main(argv=None):
         pass
     
     args = parser.parse_args(argv)
+    if args.version:
+        from .. import VERSION
+        print("CompDB {}".format(VERSION))
+        return 0
     set_verbosity_level(args.verbosity)
     warnings.simplefilter(args.warnings)
     try:
