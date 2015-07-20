@@ -24,6 +24,7 @@ from .constants import *
 logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
+JOB_FN_JOB_DOCUMENT = 'compdb_job_document.json'
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     while(True):
@@ -224,12 +225,29 @@ class OfflineJob(BaseJob):
 
     @property
     def document(self):
-        msg = "Access to the job's document requires a database connection! Use 'open_job' instead."
+        msg = "Access to the job's document requires a database connection!"
+        raise AttributeError(msg)
+
+    def _load_document(self):
+        "Load the job document from a file stored on disk."
+        with job.storage.open_file(FN_DOCUMENT, 'rb') as file:
+            return serializer.loads(file.read().decode())
+
+    def load_document(self):
+        """Attempt to load the job document from disk.
+
+        Raises FileNotFoundError if the file does not exist.
+        """
+        return self._load_document()
+
+    def store_document(self):
+        "Store the job's document on disk."
+        msg = "Access to the job's document requires a database connection!"
         raise AttributeError(msg)
 
     @property
     def collection(self):
-        msg = "Access to the job's collection requires a database connection! Use 'open_job' instead."
+        msg = "Access to the job's collection requires a database connection!"
         raise AttributeError(msg)
 
 class OnlineJob(OfflineJob):
@@ -416,6 +434,15 @@ class OnlineJob(OfflineJob):
                 self._project._collection,
                 self.get_id())
         return self._dbdocument
+
+    def _store_document(self):
+        "Store the job's document on disk."
+        with job.storage.open_file(FN_DOCUMENT, 'wb') as file:
+            file.write(serializer.dumps(job.document).encode())
+
+    def store_document(self):
+        """Store the job's document on disk."""
+        return self._store_document()
 
     @property
     def collection(self):

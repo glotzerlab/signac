@@ -413,6 +413,26 @@ class JobStorageTest(BaseOnlineJobTest):
         except AttributeError:
             pass
 
+    def test_job_document_on_disk(self):
+        key = 'test_job_document_on_disk'
+        data = str(uuid.uuid49)
+        job = self.open_job(test_token)
+        with self.assertRaises(FileNotFoundError):
+            job.load_document()
+        job.store_document()
+        doc = job.load_document()
+        self.assertEqual(len(doc), 0)
+        job.document[key] = data
+        job.store_document()
+        doc = job.load_document()
+        self.assertEqual(len(doc), 1)
+        self.assertEqual(doc[key], data)
+        del job.document[key]
+        self.assertEqual(len(job.document), 0)
+        job.store_document()
+        doc = job.load_document()
+        self.assertEqual(len(doc), 0)
+
 def open_and_lock_and_release_job(token):
     with open_job(test_token, timeout = 30) as job:
         pass
