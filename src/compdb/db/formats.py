@@ -18,6 +18,9 @@ class FileFormat(conversion.BasicFormat):
     def data(self):
         return self._data
 
+    def read(self):
+        return self._data
+
 class TextFile(FileFormat):
     pass
 
