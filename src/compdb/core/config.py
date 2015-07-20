@@ -9,6 +9,7 @@ from copy import copy
 
 from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
 from . import SSL_SUPPORT
+from . import utility
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +101,9 @@ def process_get(key, value):
         return base64.standard_b64decode(value.encode()).decode()
     if key.endswith('version'):
         if isinstance(value, str):
-            from pkg_resources import parse_version
-            version = parse_version(value)
-            return tuple((int(v) for v in version.base_version))
-            return version
-            return StrictVersion(value)
-            return tuple((int(v) for v in value.split('.')))
+            version = utility.parse_version(value)
+            # we ignore developer versions here
+            return tuple((version['major'], version['minor'], version['change']))
     return value
 
 class Config(object):   

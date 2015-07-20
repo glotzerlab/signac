@@ -50,7 +50,7 @@ class BaseJobTest(unittest.TestCase):
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
-        os.environ['COMPDB_VERSION'] = compdb.VERSION
+        #os.environ['COMPDB_VERSION'] = compdb.VERSION
         os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
         os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         self._project = get_project()
@@ -415,7 +415,7 @@ class JobStorageTest(BaseOnlineJobTest):
 
     def test_job_document_on_disk(self):
         key = 'test_job_document_on_disk'
-        data = str(uuid.uuid49)
+        data = str(uuid.uuid4)
         job = self.open_job(test_token)
         with self.assertRaises(FileNotFoundError):
             job.load_document()
@@ -428,7 +428,7 @@ class JobStorageTest(BaseOnlineJobTest):
         self.assertEqual(len(doc), 1)
         self.assertEqual(doc[key], data)
         del job.document[key]
-        self.assertEqual(len(job.document), 0)
+        self.assertNotIn(key, job.document)
         job.store_document()
         doc = job.load_document()
         self.assertEqual(len(doc), 0)

@@ -24,7 +24,7 @@ from .constants import *
 logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-JOB_FN_JOB_DOCUMENT = 'compdb_job_document.json'
+FN_JOB_DOCUMENT = 'compdb_job_document.json'
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     while(True):
@@ -230,7 +230,7 @@ class OfflineJob(BaseJob):
 
     def _load_document(self):
         "Load the job document from a file stored on disk."
-        with job.storage.open_file(FN_DOCUMENT, 'rb') as file:
+        with self.storage.open_file(FN_JOB_DOCUMENT, 'rb') as file:
             return serializer.loads(file.read().decode())
 
     def load_document(self):
@@ -437,8 +437,11 @@ class OnlineJob(OfflineJob):
 
     def _store_document(self):
         "Store the job's document on disk."
-        with job.storage.open_file(FN_DOCUMENT, 'wb') as file:
-            file.write(serializer.dumps(job.document).encode())
+        doc = dict()
+        for key in self.document:
+            doc[key] = self.document[key]
+        with self.storage.open_file(FN_JOB_DOCUMENT, 'wb') as file:
+            file.write(serializer.dumps(doc).encode())
 
     def store_document(self):
         """Store the job's document on disk."""

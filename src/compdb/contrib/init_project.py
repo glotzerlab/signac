@@ -8,7 +8,7 @@ import warnings
 import argparse
 
 from ..core.config import Config, load_config
-from .. import VERSION as DEFAULT_VERSION
+from .. import VERSION_TUPLE
 from .templates import TEMPLATES
 from . import get_project, check
 
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
+DEFAULT_VERSION = '.'.join((str(v) for v in VERSION_TUPLE))
 
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
 Execute `compdb check` to check your configuration."""
