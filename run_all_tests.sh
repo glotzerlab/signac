@@ -6,6 +6,7 @@ function run_tests {
   echo "-----------------------------------------------------------"
   echo "Run tests for environment '${1}'."
   source ~/.virtualenvs/$1/bin/activate
+  python setup.py develop
   nosetests --with-coverage --cover-package=compdb  ${@:2}
   ret_code=${?}
   echo "return code: ${ret_code}"
