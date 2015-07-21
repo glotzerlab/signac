@@ -15,6 +15,7 @@ from pymongo.errors import DuplicateKeyError
 
 from .. import VERSION, VERSION_TUPLE
 from ..core.storage import Storage
+from ..core.jsondict import JSonDict
 from ..core.mongodbdict import MongoDBDict as DBDocument
 from .concurrency import DocumentLock
 from .hashing import generate_hash_from_spec
@@ -59,6 +60,8 @@ class BaseJob(object):
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
+        self._fn_dict = os.path.join(self._fs, FN_JOB_DOCUMENT)
+        self._on_disk_document = None
 
     def get_id(self):
         """Returns the job's id.
@@ -114,6 +117,13 @@ class BaseJob(object):
                 fs_path = self._fs,
                 wd_path = self._wd)
         return self._storage
+
+    def _get_on_disk_document(self):
+        "Return the on-disk document."
+        if self._on_disk_document is None:
+            self._create_directories()
+            self._on_disk_document = JSonDict(self._fn_dict, synchronized=True, write_concern=True)
+        return self._on_disk_document
 
     def _make_manifest(self):
         "Create the manifest, to be stored within the job's directories."
@@ -223,34 +233,20 @@ class BaseJob(object):
 
 class OfflineJob(BaseJob):
 
+    def __init__(self, project, parameters, version=None):
+        super(OfflineJob, self).__init__(project=project,parameters=parameters,version=version)
+
     @property
     def document(self):
-        msg = "Access to the job's document requires a database connection!"
-        raise AttributeError(msg)
-
-    def _load_document(self):
-        "Load the job document from a file stored on disk."
-        with self.storage.open_file(FN_JOB_DOCUMENT, 'rb') as file:
-            return serializer.loads(file.read().decode())
-
-    def load_document(self):
-        """Attempt to load the job document from disk.
-
-        Raises FileNotFoundError if the file does not exist.
-        """
-        return self._load_document()
-
-    def store_document(self):
-        "Store the job's document on disk."
-        msg = "Access to the job's document requires a database connection!"
-        raise AttributeError(msg)
+        "Access the job's disk document."
+        return self._get_on_disk_document()
 
     @property
     def collection(self):
         msg = "Access to the job's collection requires a database connection!"
         raise AttributeError(msg)
 
-class OnlineJob(OfflineJob):
+class OnlineJob(BaseJob):
     """A OnlineJob is a job with active database connection.
 
     .. note::
@@ -426,6 +422,18 @@ class OnlineJob(OfflineJob):
                 self._close_stage_one()
                 return False
 
+    def load_document(self):
+        """Load a on-disk document to the online document.
+
+        After successful loading, the disk document is cleared.
+        """
+        self.document.update(self._get_on_disk_document())
+        self._get_on_disk_document().clear()
+
+    def save_document(self):
+        "Save the online document on disk."
+        self._get_on_disk_document().update(self.document)
+
     @property
     def document(self):
         "Return the document, associated with this job."
@@ -434,18 +442,6 @@ class OnlineJob(OfflineJob):
                 self._project._collection,
                 self.get_id())
         return self._dbdocument
-
-    def _store_document(self):
-        "Store the job's document on disk."
-        doc = dict()
-        for key in self.document:
-            doc[key] = self.document[key]
-        with self.storage.open_file(FN_JOB_DOCUMENT, 'wb') as file:
-            file.write(serializer.dumps(doc).encode())
-
-    def store_document(self):
-        """Store the job's document on disk."""
-        return self._store_document()
 
     @property
     def collection(self):
