@@ -10,56 +10,58 @@ some other weaknesses in implementation.
 
 import os
 import tempfile
+import collections
 
 import bson.json_util as json
 
-class JSonDict(object):
+class JSonDict(collections.UserDict):
 
-    def __init__(self, filename, synchronized=False, write_concern = False):
-        self._dict = dict()
-        self._synchronized = synchronized
+    def __init__(self, filename, synchronized=False, write_concern=False):
+        self.data = dict()
         self._filename = filename
+        self._synchronized = synchronized
         self._write_concern = write_concern
 
     def __setitem__(self, key, value):
-        self._dict[key] = value
+        self.data[key] = value
         if self._synchronized:
             self.save()
 
     def __getitem__(self, key):
         if self._synchronized:
             self.load()
-        return self._dict[key]
+        return self.data[key]
 
     def get(self, key, default=None):
         if self._synchronized:
             self.load()
-        return self._dict.get(key, default)
+        return self.data.get(key, default)
 
     def __delitem__(self, key):
-        del self._dict[key]
+        del self.data[key]
         if self._synchronized:
             self.save()
 
     def clear(self):
-        self._dict.clear()
+        self.data.clear()
         if self._synchronized:
             self.save()
 
-    def update(self, *args, **kwargs):
-        self._dict.update(*args, **kwargs)
+    def update(self, mapping):
+        for key in mapping:
+            self.data[key] = mapping[key]
         if self._synchronized:
             self.save()
 
     def load(self):
         try:
             with open(self._filename, 'rb') as file:
-                self._dict.update(json.loads(file.read().decode()))
+                self.data.update(json.loads(file.read().decode()))
         except FileNotFoundError:
             pass
 
     def _dump(self):
-        return json.dumps(self._dict)
+        return json.dumps(self.data)
 
     def _save(self):
         with open(self._filename, 'wb') as file:
@@ -81,4 +83,14 @@ class JSonDict(object):
     def __len__(self):
         if self._synchronized:
             self.load()
-        return len(self._dict)
+        return len(self.data)
+
+    def __contains__(self, key):
+        if self._synchronized:
+            self.load()
+        return key in self.data
+
+    def __iter__(self):
+        if self._synchronized:
+            self.load()
+        yield from self.data

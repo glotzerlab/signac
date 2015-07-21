@@ -31,11 +31,30 @@ class JSonDictTest(BaseJSonDictTest):
         d = testdata()
         self.assertFalse(bool(jsd))
         self.assertEqual(len(jsd), 0)
+        self.assertNotIn(key, jsd)
+        self.assertFalse(key in jsd)
         jsd[key] = d
         self.assertTrue(bool(jsd))
         self.assertEqual(len(jsd), 1)
+        self.assertIn(key, jsd)
+        self.assertTrue(key in jsd)
         self.assertEqual(jsd[key], d)
         self.assertEqual(jsd.get(key), d)
+
+    def test_iter(self):
+        jsd = self.get_json_dict()
+        key1 = 'iter1'
+        key2 = 'iter2'
+        d1 = testdata()
+        d2 = testdata()
+        d = {key1:d1, key2: d2}
+        jsd.update(d)
+        self.assertIn(key1, jsd)
+        self.assertIn(key2, jsd)
+        for i, key in enumerate(jsd):
+            self.assertIn(key, d)
+            self.assertEqual(d[key], jsd[key])
+        self.assertEqual(i, 1)
 
     def test_delete(self):
         jsd = self.get_json_dict()
