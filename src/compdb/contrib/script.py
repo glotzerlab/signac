@@ -134,7 +134,7 @@ def view(args):
         for line in project.create_view_script(url = url, cmd = args.script):
             print(line)
     else:
-        if os.path.exists(args.prefix) and os.path.listdir(args.prefix):
+        if os.path.exists(args.prefix) and os.listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
         project.create_view(url = url, make_copy = args.copy, workspace = args.workspace)
