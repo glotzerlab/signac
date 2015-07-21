@@ -42,7 +42,7 @@ class ReadOnlyMongoDBDict(object):
     def __iter__(self):
         doc = self._get_collection().find_one(self._spec())
         if doc is None:
-            return
+            raise StopIteration()
         else:
             for key in doc:
                 if key == '_id':
@@ -100,8 +100,8 @@ class MongoDBDict(ReadOnlyMongoDBDict):
             assert result['ok']
 
     def update(self, mapping):
-        for key, value in mapping:
-            self[key] = value
+        for key in mapping:
+            self[key] = mapping[key]
 
     def clear(self):
         if PYMONGO_3:

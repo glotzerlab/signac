@@ -142,6 +142,16 @@ class TestDBDocument(unittest.TestCase):
             dbdoc.update(dict(key=data))
             self.assertEqual(dbdoc.get(key), data)
 
+    def test_update_from(self):
+        key = 'test_update_from'
+        data = testdata()
+        with get_dbdoc() as dbdoc:
+            mydict = dict()
+            dbdoc[key] = data
+            self.assertIn(dbdoc, key)
+            mydict.update(dbdoc)
+            self.assertIn(mydict, key)
+
     #def test_bad_host(self):
     #    import os
     #    import tempfile
