@@ -33,6 +33,13 @@ def open_job(*args, **kwargs):
     project = get_project()
     return project.open_job(*args, **kwargs)
 
+def open_offline_job(*args, **kwargs):
+    project = get_project()
+    return project.open_offline_job(*args, **kwargs)
+
+def testdata():
+    return str(uuid.uuid4())
+
 class BaseJobTest(unittest.TestCase):
     
     def setUp(self):
@@ -50,7 +57,7 @@ class BaseJobTest(unittest.TestCase):
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
-        #os.environ['COMPDB_VERSION'] = compdb.VERSION
+        os.environ['COMPDB_VERSION'] = '.'.join((str(v) for v in compdb.VERSION_TUPLE))
         os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
         os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         self._project = get_project()
@@ -262,8 +269,6 @@ class APIOfflineJobTest(OfflineJobTest):
     def test_access_online_job_properties(self):
         with self.open_job(test_token) as job:
             with self.assertRaises(AttributeError):
-                job.document
-            with self.assertRaises(AttributeError):
                 job.collection
 
 class OnlineJobTest(BaseOnlineJobTest):
@@ -412,26 +417,6 @@ class JobStorageTest(BaseOnlineJobTest):
             job.remove()
         except AttributeError:
             pass
-
-    def test_job_document_on_disk(self):
-        key = 'test_job_document_on_disk'
-        data = str(uuid.uuid4)
-        job = self.open_job(test_token)
-        with self.assertRaises(FileNotFoundError):
-            job.load_document()
-        job.store_document()
-        doc = job.load_document()
-        self.assertEqual(len(doc), 0)
-        job.document[key] = data
-        job.store_document()
-        doc = job.load_document()
-        self.assertEqual(len(doc), 1)
-        self.assertEqual(doc[key], data)
-        del job.document[key]
-        self.assertNotIn(key, job.document)
-        job.store_document()
-        doc = job.load_document()
-        self.assertEqual(len(doc), 0)
 
 def open_and_lock_and_release_job(token):
     with open_job(test_token, timeout = 30) as job:
@@ -636,6 +621,73 @@ class TestJobImport(BaseOnlineJobTest):
                 doc_check = job_clone.collection.find_one()
                 self.assertIsNotNone(doc_check)
                 self.assertEqual(doc, doc_check)
+
+class OfflineJobDocumentTest(OfflineJobTest):
+
+    def test_get_set(self):
+        key = 'get_set'
+        d = testdata()
+        job = self.open_job(test_token)
+        self.assertFalse(bool(job.document))
+        self.assertEqual(len(job.document), 0)
+        self.assertNotIn(key, job.document)
+        job.document[key] = d
+        self.assertTrue(bool(job.document))
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key, job.document)
+        self.assertEqual(job.document[key], d)
+        self.assertEqual(job.document.get(key), d)
+        self.assertEqual(job.document.get('bs', d), d)
+
+    def test_update(self):
+        key = 'get_set'
+        d = testdata()
+        job = self.open_job(test_token)
+        job.document.update({key: d})
+        self.assertIn(key, job.document)
+
+    def test_clear(self):
+        key = 'clear'
+        d = testdata()
+        job = self.open_job(test_token)
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        job.document.clear()
+        self.assertNotIn(key, job.document)
+        self.assertEqual(len(job.document), 0)
+
+    def test_reopen(self):
+        key = 'clear'
+        d = testdata()
+        job = self.open_job(test_token)
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        job2 = self.open_job(test_token)
+        self.assertIn(key, job2.document)
+        self.assertEqual(len(job2.document), 1)
+
+class OfflineOnlineSynchronizeDocumentTest(BaseJobTest):
+
+    def test_synchronization(self):
+        key = 'sync1'
+        d = testdata()
+        offline_job = open_offline_job(test_token)
+        offline_job.document[key] = d
+        self.assertIn(key, offline_job.document)
+        self.assertEqual(len(offline_job.document), 1)
+        online_job = open_job(test_token)
+        self.assertNotIn(key, online_job.document)
+        online_job.load_document()
+        self.assertIn(key, online_job.document)
+        key2 = 'sync2'
+        d2 = testdata()
+        online_job.document[key2] = d2
+        self.assertIn(key2, online_job.document)
+        online_job.save_document()
+        self.assertIn(key, offline_job.document)
+        self.assertIn(key2, offline_job.document)
 
 if __name__ == '__main__':
     unittest.main()

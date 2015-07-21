@@ -25,7 +25,7 @@ from .constants import *
 logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-FN_JOB_DOCUMENT = 'compdb_job_document_{uid}.json'
+FN_JOB_DOCUMENT = 'compdb_job_document.json'
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     while(True):
@@ -60,8 +60,8 @@ class BaseJob(object):
         self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
         self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
-        self._fn_dict = os.path.join(self._fs, FN_JOB_DOCUMENT.format(self._get_uid()))
-        self._document = jsondict.JSonDict(self._fn_dict, synchronized=True, write_concern=True)
+        self._fn_dict = os.path.join(self._fs, FN_JOB_DOCUMENT)
+        self._on_disk_document = None
 
     def get_id(self):
         """Returns the job's id.
@@ -117,6 +117,13 @@ class BaseJob(object):
                 fs_path = self._fs,
                 wd_path = self._wd)
         return self._storage
+
+    def _get_on_disk_document(self):
+        "Return the on-disk document."
+        if self._on_disk_document is None:
+            self._create_directories()
+            self._on_disk_document = JSonDict(self._fn_dict, synchronized=True, write_concern=True)
+        return self._on_disk_document
 
     def _make_manifest(self):
         "Create the manifest, to be stored within the job's directories."
@@ -232,7 +239,7 @@ class OfflineJob(BaseJob):
     @property
     def document(self):
         "Access the job's disk document."
-        return self._document
+        return self._get_on_disk_document()
 
     @property
     def collection(self):
@@ -420,12 +427,12 @@ class OnlineJob(BaseJob):
 
         After successful loading, the disk document is cleared.
         """
-        self.document.update(self._document)
-        self._document.clear()
+        self.document.update(self._get_on_disk_document())
+        self._get_on_disk_document().clear()
 
     def save_document(self):
         "Save the online document on disk."
-        self._document.update(self.document)
+        self._get_on_disk_document().update(self.document)
 
     @property
     def document(self):
