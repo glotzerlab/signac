@@ -24,7 +24,7 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo>=2.8', 'jsonpickle','networkx', 'jsondict>=1.0'],
+    install_requires=['pymongo>=2.8', 'jsonpickle','networkx'],
 
     extras_require = {
         'mpi': ['mpi4py'],
