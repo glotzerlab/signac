@@ -431,7 +431,7 @@ class OnlineProject(BaseProject):
         yield from self._get_links(
             url, parameters, self.workspace_dir())
 
-    def _aggregate_parameters(self, job_spec = None):
+    def _aggregate_parameters(self, job_spec = None, uniqueonly=False):
         pipe = [
             {'$match': job_spec or dict()},
             {'$group': {
@@ -439,17 +439,21 @@ class OnlineProject(BaseProject):
                 'parameters': { '$addToSet': '$parameters'}}},
             ]
         result = self._get_jobs_collection().aggregate(pipe)
+        parameters = collections.defaultdict(set)
         if PYMONGO_3:
-            return set([k for r in result for p in r['parameters'] for k in p.keys()])
+            for doc in result:
+                for p in doc['parameters']:
+                    for k, v in p.items():
+                        parameters[k].add(v)
         else:
             assert result['ok']
-            if len(result['result']):
-                return set([k for r in result['result'][0]['parameters'] for k in r.keys()])
-            else:
-                return set()
+            for p in result['result'][0]['parameters']:
+                for k, v in p.items():
+                    parameters[k].add(v)
+        return set(k for k,v in parameters.items() if not uniqueonly or len(v) > 1)
 
     def get_default_view_url(self):
-        params = sorted(self._aggregate_parameters())
+        params = sorted(self._aggregate_parameters(uniqueonly=True))
         if len(params):
             return str(os.path.join(* itertools.chain.from_iterable(
                 (str(p), '{'+str(p)+'}') for p in params)))
