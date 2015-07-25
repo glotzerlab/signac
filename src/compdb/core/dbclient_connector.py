@@ -36,8 +36,8 @@ def with_ssl_support():
         raise EnvironmentError("Your python installation does not support SSL.")
 
 def raise_unsupported_auth_mechanism(mechanism):
-    msg = "Auth mechanism '{}' not supported. Supported mechanisms: {}."
-    raise ValueError(msg.format(mechanism, SUPPORTED_AUTH_MECHANISMS))
+    msg = "Auth mechanism '{}' not supported."
+    raise ValueError(msg.format(mechanism))
 
 class DBClientConnector(object):
 
