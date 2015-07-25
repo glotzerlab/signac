@@ -103,7 +103,28 @@ class ProjectViewTest(ProjectTest):
             len(A) * len(B))
         list(project.get_storage_links(url+'/{c}'))
 
-    def test_create_view(self):
+    def test_create_view_default_url(self):
+        import os
+        from compdb.contrib import get_project
+        from tempfile import TemporaryDirectory
+        project = get_project()
+        A = ['a_{}'.format(i) for i in range(2)]
+        B = ['b_{}'.format(i) for i in range(2)]
+        for a in A:
+            for b in B:
+                p = dict(test_token)
+                p.update({'a': a, 'b': b, 'c': 'C'})
+                with project.open_job(p) as test_job:
+                    test_job.document['result'] = True
+        with TemporaryDirectory(prefix = 'comdb_') as tmp:
+            project.create_view(prefix=tmp)
+            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_0')))
+            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_1')))
+            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_1/b/b_0')))
+            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_1/b/b_1')))
+            self.assertFalse(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_0/c/C')))
+
+    def test_create_view_custom_url(self):
         import os
         from compdb.contrib import get_project
         from tempfile import TemporaryDirectory
