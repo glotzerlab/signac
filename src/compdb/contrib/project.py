@@ -447,9 +447,10 @@ class OnlineProject(BaseProject):
                         parameters[k].add(v)
         else:
             assert result['ok']
-            for p in result['result'][0]['parameters']:
-                for k, v in p.items():
-                    parameters[k].add(v)
+            if len(result['result']):
+                for p in result['result'][0]['parameters']:
+                    for k, v in p.items():
+                        parameters[k].add(v)
         return set(k for k,v in parameters.items() if not uniqueonly or len(v) > 1)
 
     def get_default_view_url(self):
@@ -460,9 +461,11 @@ class OnlineProject(BaseProject):
         else:
             return str()
 
-    def create_view(self, url = None, make_copy = False, workspace = False):
+    def create_view(self, url = None, make_copy = False, workspace = False, prefix = None):
         if url is None:
             url = self.get_default_view_url()
+        if prefix is not None:
+            url = os.path.join(prefix, url)
         parameters = re.findall('\{\w+\}', url)
         if workspace:
             links = self._get_links(url, parameters, self.workspace_dir())
