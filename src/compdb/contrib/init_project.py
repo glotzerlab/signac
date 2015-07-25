@@ -56,7 +56,7 @@ def generate_config(args):
         args.storage = DEFAULT_STORAGE
     c_args = {
          'project':  args.project_name,
-         'compdb_version': args.version,
+         'compdb_version': args.compdb_version,
     }
     if args.workspace:
         make_dir(args.workspace)
@@ -149,7 +149,7 @@ def setup_parser(parser):
         action = 'store_true',
         help = "Ignore warnings that prevent project creation. This might lead to potential data loss!")
     parser.add_argument(
-        '--version',
+        '--compdb-version',
         type = str,
         default = DEFAULT_VERSION,
         help = "The compdb version, to use for this new project. Defaults to '{}'.".format(DEFAULT_VERSION))
