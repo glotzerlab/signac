@@ -11,8 +11,11 @@ some other weaknesses in implementation.
 import os
 import tempfile
 import collections
+import logging
 
 import bson.json_util as json
+
+logger = logging.getLogger(__name__)
 
 class JSonDict(collections.UserDict):
 
@@ -55,6 +58,7 @@ class JSonDict(collections.UserDict):
 
     def load(self):
         try:
+            logger.debug("Loading from file '{}'.".format(self._filename))
             with open(self._filename, 'rb') as file:
                 self.data.update(json.loads(file.read().decode()))
         except FileNotFoundError:
@@ -68,6 +72,7 @@ class JSonDict(collections.UserDict):
             file.write(self._dump().encode())
 
     def _save_with_concern(self):
+        logger.debug("Storing with write concern to '{}'.".format(self._filename))
         dirname, filename = os.path.split(self._filename)
         fn_tmp = os.path.join(dirname, '.' + filename)
         with open(fn_tmp, 'xb') as tmpfile:
@@ -94,3 +99,13 @@ class JSonDict(collections.UserDict):
         if self._synchronized:
             self.load()
         yield from self.data
+
+    def __str__(self):
+        if self._synchronized:
+            self.load()
+        return super(JSonDict, self).__str__()
+
+    def __repr__(self):
+        if self._synchronized:
+            self.load()
+        return super(JSonDict, self).__repr__()
