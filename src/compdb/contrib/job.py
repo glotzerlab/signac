@@ -94,7 +94,7 @@ class BaseJob(object):
 
     def parameters(self):
         "Returns the job's parameters."
-        return self._parameters
+        return dict(self._parameters)
 
     def get_project(self):
         "Returns the job's associated project."
