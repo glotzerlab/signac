@@ -75,7 +75,7 @@ class JSonDict(collections.UserDict):
         logger.debug("Storing with write concern to '{}'.".format(self._filename))
         dirname, filename = os.path.split(self._filename)
         fn_tmp = os.path.join(dirname, '.' + filename)
-        with open(fn_tmp, 'xb') as tmpfile:
+        with open(fn_tmp, 'wb') as tmpfile:
             tmpfile.write(self._dump().encode())
         os.replace(fn_tmp, self._filename)
 
