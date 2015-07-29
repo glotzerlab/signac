@@ -26,9 +26,12 @@ class JSonDict(collections.UserDict):
         self._write_concern = write_concern
 
     def __setitem__(self, key, value):
-        self.data[key] = value
         if self._synchronized:
+            self.load()
+            self.data[key] = value
             self.save()
+        else:
+            self.data[key] = value
 
     def __getitem__(self, key):
         if self._synchronized:
@@ -41,9 +44,12 @@ class JSonDict(collections.UserDict):
         return self.data.get(key, default)
 
     def __delitem__(self, key):
-        del self.data[key]
         if self._synchronized:
+            self.load()
+            del self.data[key]
             self.save()
+        else:
+            del self.data[key]
 
     def clear(self):
         self.data.clear()
@@ -51,10 +57,14 @@ class JSonDict(collections.UserDict):
             self.save()
 
     def update(self, mapping):
-        for key in mapping:
-            self.data[key] = mapping[key]
         if self._synchronized:
+            self.load()
+            for key in mapping:
+                self.data[key] = mapping[key]
             self.save()
+        else:
+            for key in mapping:
+                self.data[key] = mapping[key]
 
     def load(self):
         try:

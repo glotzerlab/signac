@@ -41,6 +41,23 @@ class JSonDictTest(BaseJSonDictTest):
         self.assertEqual(jsd[key], d)
         self.assertEqual(jsd.get(key), d)
 
+    def test_copy_value(self):
+        jsd = self.get_json_dict()
+        key = 'copy_value'
+        key2 = 'copy_value2'
+        d = testdata()
+        self.assertNotIn(key, jsd)
+        self.assertNotIn(key2, jsd)
+        jsd[key] = d
+        self.assertIn(key, jsd)
+        self.assertEqual(jsd[key], d)
+        self.assertNotIn(key2, jsd)
+        jsd[key2] = jsd[key]
+        self.assertIn(key, jsd)
+        self.assertEqual(jsd[key], d)
+        self.assertIn(key2, jsd)
+        self.assertEqual(jsd[key2], d)
+
     def test_iter(self):
         jsd = self.get_json_dict()
         key1 = 'iter1'
