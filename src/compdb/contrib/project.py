@@ -35,6 +35,7 @@ from .milestones import Milestones
 from .snapshot import dump_db, restore_db
 from .templates import RESTORE_SH
 from .job import OnlineJob, OfflineJob, PULSE_PERIOD
+from .hashing import generate_hash_from_spec
 from .constants import *
 
 logger = logging.getLogger(__name__)
@@ -444,14 +445,17 @@ class OnlineProject(BaseProject):
             for doc in result:
                 for p in doc['parameters']:
                     for k, v in p.items():
-                        parameters[k].add(v)
+                        try:
+                            parameters[k].add(v)
+                        except TypeError:
+                            parameters[k].add(generate_hash_from_spec(v))
         else:
             assert result['ok']
             if len(result['result']):
                 for p in result['result'][0]['parameters']:
                     for k, v in p.items():
                         parameters[k].add(v)
-        return set(k for k,v in parameters.items() if not uniqueonly or len(v) > 1)
+        return set(k for k,v in sorted(parameters.items(), key=lambda i:len(i[1])) if not uniqueonly or len(v) > 1)
 
     def get_default_view_url(self):
         params = sorted(self._aggregate_parameters(uniqueonly=True))
