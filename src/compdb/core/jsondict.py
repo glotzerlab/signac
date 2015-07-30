@@ -12,6 +12,7 @@ import os
 import tempfile
 import collections
 import logging
+import uuid
 
 import bson.json_util as json
 
@@ -71,6 +72,9 @@ class JSonDict(collections.UserDict):
             logger.debug("Loading from file '{}'.".format(self._filename))
             with open(self._filename, 'rb') as file:
                 self.data.update(json.loads(file.read().decode()))
+        except ValueError:
+            logger.critical("Document file '{}' seems to be corrupted! Unable to load document.".format(self._filename))
+            raise
         except FileNotFoundError:
             pass
 
@@ -84,7 +88,7 @@ class JSonDict(collections.UserDict):
     def _save_with_concern(self):
         logger.debug("Storing with write concern to '{}'.".format(self._filename))
         dirname, filename = os.path.split(self._filename)
-        fn_tmp = os.path.join(dirname, '.' + filename)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
             tmpfile.write(self._dump().encode())
         os.replace(fn_tmp, self._filename)
