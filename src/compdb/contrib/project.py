@@ -490,12 +490,15 @@ class OnlineProject(BaseProject):
                 msg += "Possible causes: A view with the same path exists already or you are not using enough parameters for uniqueness."
                 raise RuntimeError(msg)
 
-    def create_view_script(self, url = None, cmd = None, fs = None):
+    def create_view_script(self, url=None, cmd=None, workspace=False, prefix=None):
         if cmd is None:
             cmd = 'mkdir -p {head}\nln -s {src} {head}/{tail}'
         if url is None:
             url = self.get_default_view_url()
+        if prefix is not None:
+            url = os.path.join(prefix, url)
         parameters = re.findall('\{\w+\}', url)
+        fs = self.workspace_dir() if workspace else self.filestorage_dir()
         for src, dst in self._get_links(url, parameters, fs):
             head, tail = os.path.split(dst)
             yield cmd.format(src = src, head = head, tail = tail)

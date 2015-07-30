@@ -122,22 +122,18 @@ def info(args):
 
 def view(args):
     project = get_project()
-    if args.url:
-        url = os.path.join(args.prefix, args.url)
-    else:
-        url = os.path.join(args.prefix, project.get_default_view_url())
     if args.copy:
         q = "Are you sure you want to create copy of the whole dataset? This might create extremely high network load!"
         if not(args.yes or query_yes_no(q, 'no')):
             return
     if args.script:
-        for line in project.create_view_script(url = url, cmd = args.script):
+        for line in project.create_view_script(url=args.url, prefix=args.prefix, cmd=args.script, workspace=args.workspace):
             print(line)
     else:
         if os.path.exists(args.prefix) and os.listdir(args.prefix):
             print("Path '{}' is not empty.".format(args.prefix))
             return
-        project.create_view(url = url, make_copy = args.copy, workspace = args.workspace)
+        project.create_view(url=args.url, make_copy=args.copy, workspace=args.workspace, prefix=args.prefix)
 
 def run_checks(args):
     project = get_project()
