@@ -475,20 +475,23 @@ class OnlineProject(BaseProject):
             links = self._get_links(url, parameters, self.workspace_dir())
         else:
             links = self._get_links(url, parameters, self.filestorage_dir())
-        for src, dst in links:
-            try:
-                os.makedirs(os.path.dirname(dst))
-            except FileExistsError:
-                pass
-            try:
-                if make_copy:
-                    shutil.copytree(src, dst)
-                else:
-                    os.symlink(src, dst, target_is_directory = True)
-            except FileExistsError as error:
-                msg = "Failed to create view for url '{url}'. "
-                msg += "Possible causes: A view with the same path exists already or you are not using enough parameters for uniqueness."
-                raise RuntimeError(msg)
+            for src, dst in links:
+                self._make_link(src, dst, make_copy=make_copy)
+
+    def _make_link(self, src, dst, make_copy=False):
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except FileExistsError:
+            pass
+        try:
+            if make_copy:
+                shutil.copytree(src, dst)
+            else:
+                os.symlink(src, dst, target_is_directory = True)
+        except FileExistsError as error:
+            msg = "Failed to create view for url '{url}'. "
+            msg += "Possible causes: A view with the same path exists already or you are not using enough parameters for uniqueness."
+            raise RuntimeError(msg)
 
     def create_view_script(self, url=None, cmd=None, workspace=False, prefix=None):
         if cmd is None:
@@ -502,6 +505,16 @@ class OnlineProject(BaseProject):
         for src, dst in self._get_links(url, parameters, fs):
             head, tail = os.path.split(dst)
             yield cmd.format(src = src, head = head, tail = tail)
+
+    def create_flat_view(self, job_spec=None, prefix=None):
+        if prefix is None:
+            prefix = os.getcwd()
+        for fs_dst, fs_src in [ ('workspace', self.workspace_dir()),
+                                ('storage', self.filestorage_dir())]:
+            for job_id in self._find_job_ids():
+                src = os.path.join(fs_src, job_id)
+                dst = os.path.join(prefix, fs_dst, job_id)
+                self._make_link(src, dst)
 
     def _create_db_snapshot(self, dst):
         job_docs = self._get_jobs_collection().find()

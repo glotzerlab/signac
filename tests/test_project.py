@@ -141,6 +141,31 @@ class ProjectViewTest(ProjectTest):
             url = os.path.join(tmp,'a/{a}/b/{b}')
             project.create_view(url)
 
+    def test_create_flat_view(self):
+        import os
+        from compdb.contrib import get_project
+        from tempfile import TemporaryDirectory
+        project = get_project()
+        A = ['a_{}'.format(i) for i in range(2)]
+        B = ['b_{}'.format(i) for i in range(2)]
+        for a in A:
+            for b in B:
+                p = dict(test_token)
+                p.update({'a': a, 'b': b})
+                with project.open_job(p) as test_job:
+                    test_job.document['result'] = True
+                    with open('testfile_w', 'w') as file:
+                        file.write('abc')
+                    with test_job.storage.open_file('testfile_s', 'w') as file:
+                        file.write('abc')
+        with TemporaryDirectory(prefix = 'comdb_') as tmp:
+            project.create_flat_view(prefix=tmp)
+            for job in project.find_jobs():
+                self.assertTrue(os.path.isdir(os.path.join(tmp, 'storage', job.get_id())))
+                self.assertTrue(os.path.isdir(os.path.join(tmp, 'workspace', job.get_id())))
+                self.assertTrue(os.path.isfile(os.path.join(tmp, 'storage', job.get_id(), 'testfile_s')))
+                self.assertTrue(os.path.isfile(os.path.join(tmp, 'workspace', job.get_id(), 'testfile_w')))
+
 def set_check_true(job):
     with job:
         job.document['check'] = True

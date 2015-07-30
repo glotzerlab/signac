@@ -122,6 +122,11 @@ def info(args):
 
 def view(args):
     project = get_project()
+    if args.flat:
+        if args.url or args.workspace or args.copy or args.script:
+            raise ValueError("Illegal combination of arguments: '--flat' can only be combined with prefix argument.")
+        project.create_flat_view(prefix=args.prefix)
+        return
     if args.copy:
         q = "Are you sure you want to create copy of the whole dataset? This might create extremely high network load!"
         if not(args.yes or query_yes_no(q, 'no')):
@@ -535,6 +540,10 @@ def main(argv=None):
         action = 'store_true',
         help = "Generate a view of the workspace instead of the filestorage.",
         )
+    parser_view.add_argument(
+        '--flat',
+        action = 'store_true',
+        help = "Generate a flat view of workspace and storage.")
     parser_view.set_defaults(func = view)
 
     parser_check = subparsers.add_parser('check')
