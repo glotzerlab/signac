@@ -1,5 +1,7 @@
 import unittest
 import os
+import sys
+import io
 import tempfile
 import subprocess
 from contextlib import contextmanager
@@ -28,7 +30,12 @@ class ProjectBackupTest(ProjectTest):
         project = get_project()
         with project.open_job(test_token) as job:
             job.document['result'] = 123
-        project.dump_db_snapshot()
+        self.stdout = sys.stdout
+        sys.stdout=io.StringIO()
+        try:
+            project.dump_db_snapshot()
+        finally:
+            sys.stdout=self.stdout
 
     def test_create_db_snapshot(self):
         from compdb.contrib import get_project
@@ -162,7 +169,9 @@ class ProjectViewTest(ProjectTest):
             project.create_flat_view(prefix=tmp)
             for job in project.find_jobs():
                 self.assertTrue(os.path.isdir(os.path.join(tmp, 'storage', job.get_id())))
+                self.assertTrue(os.path.islink(os.path.join(tmp, 'storage', job.get_id())))
                 self.assertTrue(os.path.isdir(os.path.join(tmp, 'workspace', job.get_id())))
+                self.assertTrue(os.path.islink(os.path.join(tmp, 'workspace', job.get_id())))
                 self.assertTrue(os.path.isfile(os.path.join(tmp, 'storage', job.get_id(), 'testfile_s')))
                 self.assertTrue(os.path.isfile(os.path.join(tmp, 'workspace', job.get_id(), 'testfile_w')))
 

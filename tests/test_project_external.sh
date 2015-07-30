@@ -13,4 +13,10 @@ compdb --yes clear
 python job.py
 compdb --yes remove -j all
 python job.py
+compdb view
+rm -r view
+compdb view -w
+rm -r view
+compdb view -s
+compdb view --flat
 compdb --yes remove --project
