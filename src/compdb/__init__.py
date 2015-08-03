@@ -10,4 +10,4 @@ VERSION_TUPLE = 0,1,4
 
 from . import core
 from . import contrib
-#from . import db
+from . import db

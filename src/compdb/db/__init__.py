@@ -7,7 +7,6 @@ import gridfs
 
 from ..core.config import load_config
 from ..core.dbclient_connector import DBClientConnector
-from . import database
 
 # namespace extension
 from .conversion import DBMethod, BasicFormat, Adapter
@@ -18,6 +17,8 @@ logger = logging.getLogger(__name__)
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def access_compmatdb(host = None, config = None):
+    # local import to load modules only if required
+    from . import database
     if config is None:
         config = load_config()
     if host is None:
