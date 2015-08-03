@@ -164,6 +164,10 @@ class UnsupportedExpressionError(ValueError):
     """This exception is raised when a legal MongoDB expression is not supported."""
     pass
 
+class AuthorizationError(RuntimeError):
+    """This exception is raised when a database entries are unaccessable with the authorized user's access rights."""
+    pass
+
 class FileCursor(object):
     """Iterator over database result cursors.
     
@@ -600,9 +604,23 @@ class Database(object):
         try:
             docs = self._data.find(
                 plain_filter, projection, * args, ** kwargs)
+            num_total = 0
+            num_skipped= 0
+            non_authorized_for = set()
             # The FileCursor is an iterator over the resulting records
             # and resolves all callables
-            return map(FileCursor(self, call_dict, projection), docs)
+            cursor = FileCursor(self, call_dict, projection)
+            for doc in docs:
+                num_total += 1
+                try:
+                    yield cursor(doc)
+                except AuthorizationError as error:
+                    non_authorized_for.add(str(error))
+                    num_skipped += 1
+                    continue
+            if num_skipped:
+                logger.warning("Unauthorized for {}/{} result records.".format(num_skipped, num_total))
+                logger.debug(non_authorized_for)
         except pymongo.errors.PyMongoError as error:
             logger.error("Error during find operation from expression: '{}'.".format(filter))
             raise
@@ -620,20 +638,24 @@ class Database(object):
         """
         call_dict = dict()
         plain_filter_or_id = self._resolve_expr(filter_or_id, call_dict)
-        try:
-            doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
-            if doc is not None:
+        doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
+        if doc is not None:
+            try:
                 return self._resolve_doc(doc, call_dict, projection)
-            else:
+            except AuthorizationError as error:
+                logger.warning("Unauthorized for result: {}.".format(error))
                 return None
-        except pymongo.errors.PyMongoError as error:
-            if filter_or_id is not None:
-                logger.error("Error during find_one operation from expression: '{}'.".format(filter_or_id))
-            raise
+        else:
+            return None
 
     def _resolve_doc(self, doc, call_dict, projection = None):
         "Resolve a document containing callables."
-        return self._resolve_projection(self._resolve_calls(self._resolve_files(doc), call_dict), projection)
+        try:
+            return self._resolve_projection(self._resolve_calls(self._resolve_files(doc), call_dict), projection)
+        except pymongo.errors.OperationFailure as error:
+            if 'not authorized' in str(error):
+                raise AuthorizationError(error)
+            raise error
 
     def _resolve_projection(self, doc, projection):
         "Resolve a projection document for callables."
@@ -709,7 +731,12 @@ class Database(object):
         standard, nonstandard = split_standard_nonstandard(expr)
         doc_ids = list()
         if standard:
-            doc_ids = [doc['_id'] for doc in self._data.find(standard, *args, **kwargs)]
+            try:
+                doc_ids = [doc['_id'] for doc in self._data.find(standard, *args, **kwargs)]
+            except pymongo.errors.OperationFailure as error:
+                if 'not authorized' in str(error):
+                    raise AuthorizationError("Not authorized to access database.")
+                raise
             if '_id' in standard:
                 nonstandard['_id'] = {'$and': [standard['_id'], {'$in': doc_ids}]}
             else:
@@ -819,10 +846,16 @@ class Database(object):
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         try:
             result = self._data.aggregate(plain_pipeline, ** kwargs)
+            cursor = FileCursor(self, call_dict)
+            def fetch(doc):
+                try:
+                    return cursor(doc)
+                except AuthorizationError:
+                    return []
             if PYMONGO_3:
-                return filter(len, map(FileCursor(self, call_dict), result))
+                return filter(len, map(fetch, result))
             else:
-                return filter(len, map(FileCursor(self, call_dict), result['result']))
+                return filter(len, map(fetch, result['result']))
         except pymongo.errors.PyMongoError as error:
             logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
             raise
