@@ -868,7 +868,10 @@ class Database(object):
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         try:
             result = self._data.aggregate(plain_pipeline, ** kwargs)
-            cursor = CommandCursor(self, result, call_dict)
+            if PYMONGO_3:
+                cursor = CommandCursor(self, result, call_dict)
+            else:
+                cursor = CommandCursor(self, iter(result['result']), call_dict)
             return cursor
         except pymongo.errors.PyMongoError as error:
             logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
