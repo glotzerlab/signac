@@ -11,6 +11,7 @@ import copy
 import uuid
 import hashlib
 import inspect
+import collections
 
 import pymongo
 import bson
@@ -168,28 +169,62 @@ class AuthorizationError(RuntimeError):
     """This exception is raised when a database entries are unaccessable with the authorized user's access rights."""
     pass
 
-class FileCursor(object):
-    """Iterator over database result cursors.
-    
+class _BaseCursor(object):
+
+    def __init__(self, db, mongo_cursor, call_dict, projection = None):
+        self._db = db
+        self._mongo_cursor = mongo_cursor
+        self._call_dict = call_dict
+        self._projection = projection
+        self._skipped_auth = collections.defaultdict(int)
+
+    def next(self):
+        try:
+            doc = next(self._mongo_cursor)
+        except pymongo.errors.OperationFailure as error:
+            if 'not authorized' in str(error):
+                raise AuthorizationError("Not authorized to query database.")
+        else:
+            try:
+                return self._db._resolve_doc(doc, self._call_dict, self._projection)
+            except conversion.NoConversionPath:
+                pass
+            except conversion.ConversionError as error:
+                msg = "Conversion error for doc with id '{}': {}"
+                logger.warning(msg.format(doc['_id'], error))
+                raise
+            except AuthorizationError as error:
+                self._skipped_auth[doc['project']] += 1
+                msg = "Skipping record from project '{project}': {cause}"
+                logger.warn(msg.format(project=doc['project'], cause='not authorized'))
+                return next(self)
+
+    __next__ = next
+
+    def __iter__(self):
+        return self
+
+class Cursor(_BaseCursor):
+    """Iterator over database results.
+
     This class should not be instantiated by developers directly.
     See find() and aggregate() instead.
     """
 
-    def __init__(self, db, call_dict, projection = None):
-        self._db = db
-        self._call_dict = call_dict
-        self._projection = projection
+    def count(self):
+        return self._mongo_cursor.count()
 
-    def __call__(self, cursor):
-        try:
-            return self._db._resolve_doc(cursor, self._call_dict, self._projection)
-        except conversion.NoConversionPath:
-            pass
-        except conversion.ConversionError as error:
-            msg = "Conversion error for doc with id '{}': {}"
-            logger.warning(msg.format(cursor['_id'], error))
-            raise
-        return {}
+    def rewind(self):
+        "Reset the cursor to its unevaluated state."
+        return self._mongo_cursor.rewind()
+
+class CommandCursor(_BaseCursor):
+    """Iterator over database command results.
+
+    This class should not be instantiated by developers directrly.
+    See aggregate() instead.
+    """
+    pass
 
 class Database(object):
     """The CompMatDB base class.
@@ -604,23 +639,10 @@ class Database(object):
         try:
             docs = self._data.find(
                 plain_filter, projection, * args, ** kwargs)
-            num_total = 0
-            num_skipped= 0
-            non_authorized_for = set()
-            # The FileCursor is an iterator over the resulting records
+            # The Cursor is an iterator over the resulting records
             # and resolves all callables
-            cursor = FileCursor(self, call_dict, projection)
-            for doc in docs:
-                num_total += 1
-                try:
-                    yield cursor(doc)
-                except AuthorizationError as error:
-                    non_authorized_for.add(str(error))
-                    num_skipped += 1
-                    continue
-            if num_skipped:
-                logger.warning("Unauthorized for {}/{} result records.".format(num_skipped, num_total))
-                logger.debug(non_authorized_for)
+            cursor = Cursor(self, docs, call_dict, projection)
+            return cursor
         except pymongo.errors.PyMongoError as error:
             logger.error("Error during find operation from expression: '{}'.".format(filter))
             raise
@@ -846,16 +868,8 @@ class Database(object):
         logger.debug("Pipeline expression: '{}'.".format(plain_pipeline))
         try:
             result = self._data.aggregate(plain_pipeline, ** kwargs)
-            cursor = FileCursor(self, call_dict)
-            def fetch(doc):
-                try:
-                    return cursor(doc)
-                except AuthorizationError:
-                    return []
-            if PYMONGO_3:
-                return filter(len, map(fetch, result))
-            else:
-                return filter(len, map(fetch, result['result']))
+            cursor = CommandCursor(self, result, call_dict)
+            return cursor
         except pymongo.errors.PyMongoError as error:
             logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
             raise
