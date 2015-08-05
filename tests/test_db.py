@@ -101,6 +101,35 @@ class DBTest(BaseDBTest):
         data = db.find_one(get_test_metadata())
         self.assertIsNotNone(data)
 
+    def test_find(self):
+        db = get_db()
+        docs = db.find(get_test_metadata())
+        self.assertGreaterEqual(docs.count(), 1)
+        iterated = False
+        for doc in docs:
+            iterated=True
+            self.assertIsNotNone(doc)
+        self.assertTrue(iterated)
+    
+    def test_find_rewind(self):
+        db = get_db()
+        docs = db.find(get_test_metadata())
+        self.assertGreaterEqual(docs.count(), 1)
+        iterated = False
+        for doc in docs:
+            iterated = True
+            self.assertIsNotNone(doc)
+        self.assertTrue(iterated)
+        iterated = False
+        for doc in docs:
+            iterated=True
+        self.assertFalse(iterated)
+        docs.rewind()
+        for doc in docs:
+            iterated=True
+            self.assertIsNotNone(doc)
+        self.assertTrue(iterated)
+
     def test_insert_without_data(self):
         db = get_db()
         meta = get_test_metadata()
