@@ -1,6 +1,7 @@
 import logging
 import warnings
 import os
+import stat
 import shutil
 import base64
 import tempfile
@@ -78,6 +79,9 @@ class IllegalKeyError(ValueError):
 class IllegalArgumentError(ValueError):
     pass
 
+class PermissionsError(RuntimeError):
+    pass
+
 def is_legal_key(key):
     return key in LEGAL_ARGS
 
@@ -141,6 +145,8 @@ class Config(object):
             for fn in search_standard_dirs():
                 args = read_config_file(fn)
                 args_chain.append(args)
+        except PermissionsError:
+            raise
         except Exception as error:
             if fn is not None:
                 msg = "Error while reading config file '{}': {}."
@@ -172,6 +178,9 @@ class Config(object):
             args = self._args
         else:
             args = {k: self._args[k] for k in keys if k in self._args}
+        for key in args:
+            if key.endswith('password'):
+                check_permissions(filename)
         blob = serializer.dumps(args, indent=indent, sort_keys=True)
         with tempfile.NamedTemporaryFile() as file:
             file.write((blob + '\n').encode())
@@ -223,10 +232,20 @@ class Config(object):
     def clear(self):
         self._args.clear()
 
+def check_permissions(filename):
+    st = os.stat(filename)
+    if (st.st_mode & stat.S_IROTH):
+        msg = "Permissions of configuration file '{fn}' allow it to be read by others than the user. Unable to read/write password."
+        raise PermissionsError(msg.format(fn=filename))
+
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     with open(filename) as file:
-        return serializer.loads(file.read())
+        result = serializer.loads(file.read())
+    for key in result:
+        if key.endswith('password'):
+            check_permissions(filename)
+    return result
 
 def _search_tree():
     cwd = os.getcwd()
