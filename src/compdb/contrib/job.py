@@ -424,11 +424,8 @@ class OnlineJob(BaseJob):
 
     def load_document(self):
         """Load a on-disk document to the online document.
-
-        After successful loading, the disk document is cleared.
         """
         self.document.update(self._get_on_disk_document())
-        self._get_on_disk_document().clear()
 
     def save_document(self):
         "Save the online document on disk."
