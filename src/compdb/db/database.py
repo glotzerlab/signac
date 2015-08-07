@@ -188,7 +188,7 @@ class _BaseCursor(object):
             try:
                 return self._db._resolve_doc(doc, self._call_dict, self._projection)
             except conversion.NoConversionPath:
-                pass
+                return next(self)
             except conversion.ConversionError as error:
                 msg = "Conversion error for doc with id '{}': {}"
                 logger.warning(msg.format(doc['_id'], error))
@@ -294,20 +294,28 @@ class Database(object):
                 msg = "Trying to convert from '{}' to '{}'."
                 logger.debug(msg.format(type(src), method.expects))
                 try:
-                    converter = conversion.get_converter(
+                    converters = conversion.get_converters(
                         self._formats_network,
                         type(src), method.expects)
-                    msg = "Found conversion path: {} nodes."
-                    logger.debug(msg.format(len(converter)))
-                    src_converted = converter.convert(src)
-                #except conversion.ConversionError as error:
+                    for i, converter in enumerate(converters):
+                        msg = "Attempting conversion path # {}: {} nodes."
+                        logger.debug(msg.format(i+1, len(converter)))
+                        try:
+                            src_converted = converter.convert(src)
+                            break
+                        except conversion.ConversionError as error:
+                            msg = "Conversion attempt with '{}' failed."
+                            logger.warning(msg.format(converter))
+                    else:
+                        raise conversion.ConversionError(src, method.expects)
+                except conversion.ConversionError as error:
+                    msg = "Conversion failed."
+                    logger.warning(msg)
+                    raise
                 except conversion.NoConversionPath as error:
-                    msg = "No path found. Trying implicit conversion."
+                    msg = "No path found."
                     logger.debug(msg)
-                    try:
-                        src_converted = method.expects(src)
-                    except:
-                        raise error
+                    raise
                 else:
                     src = src_converted
                 logger.debug('Success.')
