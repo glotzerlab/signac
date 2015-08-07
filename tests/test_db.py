@@ -23,7 +23,6 @@ TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
 
-
 def basic_network():
     an = nx.DiGraph()
     an.add_nodes_from([int, float, str, uuid.UUID])
@@ -235,10 +234,6 @@ class DBTest(BaseDBTest):
         self.assertTrue(docs)
         docs_foo = list(db.find(f))
         self.assertEqual(len(docs_foo), len(data))
-        f_implicit_conversion = {foo: {'$lt': 7}}
-        f_implicit_conversion.update(TEST_TOKEN)
-        docs_foo_nc = list(db.find(f_implicit_conversion))
-        self.assertEqual(len(docs_foo_nc), 1)
         bullshit = {'bullshit': True}
         f_logic = {'$and': [{'$or': [f, bullshit]}, f]}
         docs_logic = list(db.find(f_logic))
@@ -247,6 +242,58 @@ class DBTest(BaseDBTest):
         self.assertIsNotNone(doc_logic)
         doc_logic = db.find_one({'$and': [bullshit, f_logic]})
         self.assertIsNone(doc_logic)
+
+    def test_multiple_conversion_paths(self):
+        db = get_db()
+        metadata = get_test_metadata()
+
+        class Intermediate(object):
+            def __init__(self, value):
+                self._value = value
+
+        custom_adapter = conversion.make_adapter(
+            CustomFloat, float, custom_to_float)
+        def custom_to_float_defunct(custom):
+            assert 0
+        custom_defunct_adapter = conversion.make_adapter(
+            CustomFloat, float, custom_to_float_defunct, w=conversion.WEIGHT_DISCOURAGED)
+        def custom_to_intermediate(custom):
+            return Intermediate(custom)
+        custom_to_intermediate_adapter = conversion.make_adapter(
+            CustomFloat, Intermediate, custom_to_intermediate)
+        def intermediate_to_float(intermediate):
+            intermediate_to_float.num_called += 1
+            return float(intermediate._value._value)
+        intermediate_to_float.num_called=0
+        intermediate_to_float_adapter = conversion.make_adapter(
+            Intermediate, float, intermediate_to_float)
+
+        db.add_adapter(custom_defunct_adapter)
+
+        data = [42, 42.0, '42', CustomFloat(42.0)]
+        for d in data:
+            db.insert_one(metadata, d)
+
+        def foo(x):
+            assert isinstance(x, int)
+            return sqrt(x)
+        foo_method = conversion.make_db_method(foo, int)
+
+        f = {foo_method: {'$lt': 7}}
+        f.update(TEST_TOKEN)
+        docs = list(db.find(TEST_TOKEN))
+        self.assertTrue(docs)
+        docs_foo = list(db.find(f))
+        self.assertEqual(len(docs_foo), len(data)-1)
+        db.add_adapter(custom_to_intermediate_adapter)
+        db.add_adapter(intermediate_to_float_adapter)
+        docs_foo = list(db.find(f))
+        self.assertEqual(len(docs_foo), len(data))
+        self.assertEqual(intermediate_to_float.num_called, 1)
+        db.add_adapter(custom_adapter)
+        docs_foo = list(db.find(f))
+        self.assertEqual(len(docs_foo), len(data))
+        self.assertEqual(intermediate_to_float.num_called, 1)
 
     def test_filter_logic(self):
         db = get_db()
