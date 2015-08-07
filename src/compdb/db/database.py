@@ -179,6 +179,12 @@ class _BaseCursor(object):
         self._skipped_auth = collections.defaultdict(int)
 
     def next(self):
+        """Iterates to the next entry of the database cursor and tries to
+        acess and convert associated data.
+
+        If access is not authorized or conversion to desired formats is
+        not possible, the iterator skips that record.
+        """
         try:
             doc = next(self._mongo_cursor)
         except pymongo.errors.OperationFailure as error:
@@ -208,10 +214,19 @@ class Cursor(_BaseCursor):
     """Iterator over database results.
 
     This class should not be instantiated by developers directly.
-    See find() and aggregate() instead.
+    See find() instead.
     """
 
     def count(self):
+        """Return the number of maximal accessable documents with this iterator.
+
+        Note:   The actual number of documents that are accessable, that means
+                the result of len(list(iterator)) may be smaller, as underlying
+                data is first accessed during iteration.
+                Records that contain data, for which the user has no access 
+                authorization or that cannot be converted into desired formats
+                are skipped.
+        """
         return self._mongo_cursor.count()
 
     def rewind(self):
@@ -221,7 +236,7 @@ class Cursor(_BaseCursor):
 class CommandCursor(_BaseCursor):
     """Iterator over database command results.
 
-    This class should not be instantiated by developers directrly.
+    This class should not be instantiated by developers directly.
     See aggregate() instead.
     """
     pass
@@ -229,7 +244,7 @@ class CommandCursor(_BaseCursor):
 class Database(object):
     """The CompMatDB base class.
 
-    This object provides the CompMatDB API.
+    This object provides access to the CompMatDB database functions.
     """
 
     def __init__(self, db, get_gridfs, config = None):
@@ -720,7 +735,7 @@ class Database(object):
             self._formats_network, adapter)
 
     def delete_one(self, filter, * args, ** kwargs):
-        """Delete the first document matching filter.
+        """Delete the first of the user's documents matching filter.
 
         :param filter: The filter that the document to be deleted matches.
         :type filter: A mapping type.
@@ -738,7 +753,7 @@ class Database(object):
             self._delete_doc(doc)
 
     def delete_many(self, filter, * args, ** kwargs):
-        """Delete all documents matching filter.
+        """Delete all of the user's documents matching filter.
 
         :param filter: The filter that all documents to be deleted match.
         :type filter: A mapping type.
