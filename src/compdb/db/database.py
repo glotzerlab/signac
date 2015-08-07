@@ -305,12 +305,12 @@ class Database(object):
                             break
                         except conversion.ConversionError as error:
                             msg = "Conversion attempt with '{}' failed."
-                            logger.warning(msg.format(converter))
+                            logger.debug(msg.format(converter))
                     else:
                         raise conversion.ConversionError(src, method.expects)
                 except conversion.ConversionError as error:
-                    msg = "Conversion failed."
-                    logger.warning(msg)
+                    msg = "Conversion from '{}' to '{}' through available conversion path failed."
+                    logger.debug(msg.format(type(src), method.expects))
                     raise
                 except conversion.NoConversionPath as error:
                     msg = "No path found."
