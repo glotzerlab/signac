@@ -20,6 +20,9 @@ def update_version_key(project, version):
     config.verify()
     config.write(fn_config)
 
+def get_version_key(project):
+    return project.config.get('compdb_version', (0,1,0))
+
 def version_str(version_tuple):
     return '.'.join((str(v) for v in version_tuple))
 
@@ -48,7 +51,7 @@ def update_010_to_011(project):
 
 def update(args):
     project = get_project()
-    project_version_tuple = project.config.get('compdb_version', (0,1,0))
+    project_version_tuple = get_version_key(project)
     project_version = '.'.join((str(v) for v in project_version_tuple))
     if project_version_tuple == VERSION_TUPLE:
         print("Project alrady up-to-date. ({}).".format(VERSION))
@@ -62,7 +65,7 @@ def update(args):
         warnings.filterwarnings('ignore', category=UserWarning)
         if project_version_tuple == (0,1,0):
             update_010_to_011(project)
-    update_dummy(project, (0,1,1), VERSION_TUPLE)
+    update_dummy(project, get_version_key(project), VERSION_TUPLE)
     print("Done")
 
 def setup_parser(parser):
