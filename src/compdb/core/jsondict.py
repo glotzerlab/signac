@@ -71,6 +71,7 @@ class JSonDict(collections.UserDict):
         try:
             logger.debug("Loading from file '{}'.".format(self._filename))
             with open(self._filename, 'rb') as file:
+                self.data.clear()
                 self.data.update(json.loads(file.read().decode()))
         except ValueError:
             logger.critical("Document file '{}' seems to be corrupted! Unable to load document.".format(self._filename))
