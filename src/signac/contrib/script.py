@@ -50,7 +50,7 @@ def info(args):
         if n_pot_dead:
             print("{} potentially dead job(s)".format(n_pot_dead))
             if not args.pulse:
-                print("Use 'compdb info -p' to check job status and 'compdb cleanup' to remove dead jobs from the database.")
+                print("Use 'signac info -p' to check job status and 'signac cleanup' to remove dead jobs from the database.")
         if n_w_pulse != n_active:
             print("The database records for the number of active jobs and the number of pulse processes deviates. Inform the DB administrator.")
     if args.jobs:
@@ -175,7 +175,7 @@ def run_checks(args):
         except ConnectionFailure as error:
             print()
             print("Error: {}".format(error))
-            print("You can set a different host with 'compdb config set database_host $YOURHOST'.")
+            print("You can set a different host with 'signac config set database_host $YOURHOST'.")
             if args.verbosity > 0:
                 raise
             encountered_error = True
@@ -185,7 +185,7 @@ def run_checks(args):
             auth_mechanism = project.config['database_auth_mechanism']
             print("Your current auth mechanism is set to '{}'. Is that correct?".format(auth_mechanism))
             print("Configure the auth mechanism with:")
-            print("compdb config set database_auth_mechanism [none|SCRAM-SHA-1|SSL-x509]")
+            print("signac config set database_auth_mechanism [none|SCRAM-SHA-1|SSL-x509]")
             if args.verbosity > 0:
                 raise
             encountered_error = True
@@ -205,7 +205,7 @@ def run_checks(args):
     if encountered_error:
         print("Not all checks passed.")
         v = '-' + 'v' * (args.verbosity + 1)
-        print("Use 'compdb {} check' to increase verbosity of messages.".format(v))
+        print("Use 'signac {} check' to increase verbosity of messages.".format(v))
     else:
         print("All tests passed. No errors.")
 
@@ -291,7 +291,7 @@ def clear(args):
             print("Error during project clearance.")
             if not args.force:
                 print("This can be caused by currently executed jobs.")
-                print("Try 'compdb cleanup'.")
+                print("Try 'signac cleanup'.")
                 if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                     project.clear(force = True)
 
@@ -307,7 +307,7 @@ def remove(args):
                 print("Error during project removal.")
                 if not args.force:
                     print("This can be caused by currently executed jobs.")
-                    print("Try 'compdb cleanup'.")
+                    print("Try 'signac cleanup'.")
                     if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                         project.remove(force = True)
             else:
@@ -374,7 +374,7 @@ def main(argv=None):
     parser.add_argument(
         '--version',
         action = 'store_true',
-        help = "Print the compdb version and exit.")
+        help = "Print the signac version and exit.")
 
     subparsers = parser.add_subparsers()
 
@@ -383,7 +383,7 @@ def main(argv=None):
     parser_init.set_defaults(func = init_project.init_project)
     
     parser_config = subparsers.add_parser('config',
-        description = "Configure compdb for your environment.",
+        description = "Configure signac for your environment.",
         formatter_class = SmartFormatter)
     configure.setup_parser(parser_config)
     parser_config.set_defaults(func = configure.configure)
@@ -610,7 +610,7 @@ def main(argv=None):
         else:
             print("Error: {}".format(error))
             v = '-' + 'v' * (args.verbosity + 1)
-            print("Use compdb {} to increase verbosity of messages.".format(v))
+            print("Use signac {} to increase verbosity of messages.".format(v))
             return 1
     except KeyboardInterrupt:
         if args.verbosity > 1:

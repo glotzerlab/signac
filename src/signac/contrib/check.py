@@ -4,8 +4,8 @@ import uuid
 import warnings
 import tempfile
 
-from compdb.contrib import get_project
-from compdb.contrib.errors import ConnectionFailure
+from signac.contrib import get_project
+from signac.contrib.errors import ConnectionFailure
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def check_global_config():
         print()
         print(MSG_ENV_INCOMPLETE.format(missing))
         for key in missing:
-            print("compdb config add {key} [your_value]".format(key = key))
+            print("signac config add {key} [your_value]".format(key = key))
         return False
     else:
         return True

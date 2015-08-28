@@ -12,7 +12,7 @@ test_token = {'test_token': str(uuid.uuid4())}
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
@@ -26,7 +26,7 @@ class ProjectTest(JobTest):
 class ProjectBackupTest(ProjectTest):
     
     def test_dump_db_snapshot(self):
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         with project.open_job(test_token) as job:
             job.document['result'] = 123
@@ -38,7 +38,7 @@ class ProjectBackupTest(ProjectTest):
             sys.stdout=self.stdout
 
     def test_create_db_snapshot(self):
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from os import remove
         project = get_project()
         with project.open_job(test_token) as job:
@@ -49,7 +49,7 @@ class ProjectBackupTest(ProjectTest):
 
     def test_create_and_restore_db_snapshot(self):
         from os import remove
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryFile
         project = get_project()
         with project.open_job(test_token) as job:
@@ -61,7 +61,7 @@ class ProjectBackupTest(ProjectTest):
 
     def test_create_and_restore_snapshot(self):
         from os import remove
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryFile
         project = get_project()
         A = ['a_{}'.format(i) for i in range(2)]
@@ -83,7 +83,7 @@ class ProjectBackupTest(ProjectTest):
         remove(fn_tmp)
 
     def test_bad_restore(self):
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryFile
         project = get_project()
         with project.open_job(test_token) as job:
@@ -94,7 +94,7 @@ class ProjectBackupTest(ProjectTest):
 class ProjectViewTest(ProjectTest):
     
     def test_get_links(self):
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -112,7 +112,7 @@ class ProjectViewTest(ProjectTest):
 
     def test_create_view_default_url(self):
         import os
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryDirectory
         project = get_project()
         A = ['a_{}'.format(i) for i in range(2)]
@@ -133,7 +133,7 @@ class ProjectViewTest(ProjectTest):
 
     def test_create_view_custom_url(self):
         import os
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryDirectory
         project = get_project()
         A = ['a_{}'.format(i) for i in range(2)]
@@ -150,7 +150,7 @@ class ProjectViewTest(ProjectTest):
 
     def test_create_flat_view(self):
         import os
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         from tempfile import TemporaryDirectory
         project = get_project()
         A = ['a_{}'.format(i) for i in range(2)]
@@ -181,7 +181,7 @@ def set_check_true(job):
 
 def start_pool(state_points, exclude_condition, rank, size, jobs = []):
     import tempfile
-    from compdb.contrib import get_project
+    from signac.contrib import get_project
     project = get_project()
     job_pool = project.job_pool(state_points, exclude_condition)
     for job in jobs:
@@ -192,7 +192,7 @@ def start_pool(state_points, exclude_condition, rank, size, jobs = []):
 class ProjectPoolTest(ProjectTest):
     
     def test_start(self):
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         def dummy_function(job):
@@ -209,7 +209,7 @@ class ProjectPoolTest(ProjectTest):
 
     def test_pool_concurrency(self):
         from multiprocessing import Pool
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         job_pool = project.job_pool(state_points)
@@ -225,7 +225,7 @@ class ProjectPoolTest(ProjectTest):
 
     def test_pool_condition(self):
         from multiprocessing import Pool
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(4) for b in range(4)]
         condition = {'check': True}
@@ -234,7 +234,7 @@ class ProjectPoolTest(ProjectTest):
 
     def test_pool_concurrency_with_condition(self):
         from multiprocessing import Pool
-        from compdb.contrib import get_project
+        from signac.contrib import get_project
         project = get_project()
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         condition = {'check': True}
@@ -257,8 +257,8 @@ def simple_function(x):
 class ProjectQueueTest(ProjectTest):
 
     def test_queue(self):
-        from compdb.contrib import get_project
-        from compdb.contrib.project import Empty
+        from signac.contrib import get_project
+        from signac.contrib.project import Empty
         project = get_project()
         queue = project.job_queue
         num_jobs = 10
@@ -275,17 +275,17 @@ class BaseProjectConsoleTest(unittest.TestCase):
     
     def setUp(self):
         self._cwd = os.getcwd()
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'signac_')
         os.chdir(self._tmp_dir.name)
         self.addCleanup(self._tmp_dir.cleanup)
         self.addCleanup(self.return_to_cwd)
-        subprocess.check_output(['compdb', 'init', '--template', 'testing', 'testing'])
+        subprocess.check_output(['signac', 'init', '--template', 'testing', 'testing'])
 
     def return_to_cwd(self):
         os.chdir(self._cwd)
 
     def tearDown(self):
-        subprocess.check_output(['compdb', '--yes', 'remove', '--project', '--force'])
+        subprocess.check_output(['signac', '--yes', 'remove', '--project', '--force'])
 
 class ProjectConsoleTest(BaseProjectConsoleTest):
 
@@ -298,20 +298,20 @@ class ProjectConsoleTest(BaseProjectConsoleTest):
 
     def test_clear_and_removal(self):
         subprocess.check_output(['python3', 'job.py'])
-        subprocess.check_output(['compdb', '--yes', 'clear'])
+        subprocess.check_output(['signac', '--yes', 'clear'])
         subprocess.check_output(['python3', 'job.py'])
-        subprocess.check_output(['compdb', '--yes', 'remove', '-j', 'all'])
+        subprocess.check_output(['signac', '--yes', 'remove', '-j', 'all'])
 
     def test_snapshot_and_restore(self):
         subprocess.check_output(['python3', 'job.py'])
-        subprocess.check_output(['compdb', 'snapshot', 'test.tar'])
-        subprocess.check_output(['compdb', 'restore', 'test.tar'])
-        subprocess.check_output(['compdb', 'snapshot', 'test.tar.gz'])
-        subprocess.check_output(['compdb', 'restore', 'test.tar.gz'])
+        subprocess.check_output(['signac', 'snapshot', 'test.tar'])
+        subprocess.check_output(['signac', 'restore', 'test.tar'])
+        subprocess.check_output(['signac', 'snapshot', 'test.tar.gz'])
+        subprocess.check_output(['signac', 'restore', 'test.tar.gz'])
 
     def test_view(self):
         subprocess.check_output(['python3', 'job.py'])
-        subprocess.check_output(['compdb', 'view'])
+        subprocess.check_output(['signac', 'view'])
         self.assertTrue(os.path.isdir('view/a/0/b/0'))
         self.assertTrue(os.path.isfile('view/a/0/b/0/my_result.txt'))
 

@@ -2,16 +2,16 @@ import unittest
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
-from compdb.contrib.concurrency import DocumentLockError, DocumentLock, DocumentRLock, LOCK_ID_FIELD
+from signac.contrib.concurrency import DocumentLockError, DocumentLock, DocumentRLock, LOCK_ID_FIELD
 import pymongo
 
 def acquire_and_release(doc_id, wait):
     """Testing function, to test process concurrency this must be available on module level."""
     import time
     from pymongo import MongoClient
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     config = load_config()
     client = MongoClient(config['database_host'])
     db = client['testing']
@@ -27,7 +27,7 @@ class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):
         from pymongo import MongoClient 
-        from compdb.core.config import load_config
+        from signac.core.config import load_config
         config = load_config()
         client = MongoClient(config['database_host'])
         db = client['testing']
@@ -157,7 +157,7 @@ class TestDocumentLocks(unittest.TestCase):
 
 def lock_and_release(doc_id):
     from pymongo import MongoClient
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     config = load_config()
     client = MongoClient(config['database_host'])
     db = client['testing']

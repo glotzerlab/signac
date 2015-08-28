@@ -21,7 +21,7 @@ def setup_parser(parser):
 
 def main():
     parser = argparse.ArgumentParser(
-        description = "Administrate compdb projects.")
+        description = "Administrate signac projects.")
     parser.add_argument(
         '-y', '--yes',
         action = 'store_true',

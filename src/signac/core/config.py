@@ -14,8 +14,8 @@ from . import utility
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_FILENAME = 'compdb.rc'
-CONFIG_FILENAMES = ['compdb.rc',]
+DEFAULT_FILENAME = 'signac.rc'
+CONFIG_FILENAMES = ['signac.rc',]
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
 CWD = os.getcwd()
@@ -30,9 +30,9 @@ ENVIRONMENT_VARIABLES = {
     'database_host':             'COMPDB_DATABASE_HOST',
     'develop':                   'COMPDB_DEVELOP',
     'connect_timeout_ms':        'COMPDB_CONNECT_TIMEOUT',
-    'compmatdb_host':            'COMPDB_COMPMATDB_HOST',
+    'signacdb_host':            'COMPDB_COMPMATDB_HOST',
     'database_auth_mechanism':   'COMPDB_DATABASE_AUTH_MECHANISM',
-    'compdb_version':            'COMPDB_VERSION',
+    'signac_version':            'COMPDB_VERSION',
 }
 
 REQUIRED_KEYS = [
@@ -43,8 +43,8 @@ REQUIRED_KEYS = [
 DEFAULTS = {
     'database_host':            'localhost',
     'database_auth_mechanism':  'none',
-    'database_meta':            'compdb',
-    'database_compmatdb':       'compmatdb',
+    'database_meta':            'signac',
+    'database_signacdb':       'signacdb',
     'connect_timeout_ms':       5000,
     'noforking':                False,
 }
@@ -67,9 +67,9 @@ LEGAL_ARGS = REQUIRED_KEYS\
     + list(CHOICES.keys())\
     + DIRS + FILES\
     + [
-    'develop', 'compmatdb_host',
+    'develop', 'signacdb_host',
     'database_username', 'database_password',
-    'compmatdb_admin',
+    'signacdb_admin',
     ]
 LEGAL_ARGS = list(set(LEGAL_ARGS))
 
@@ -207,7 +207,7 @@ class Config(object):
                 key, DEFAULTS[key] if v is None else v)
         except KeyError as error:
             msg = "Missing config key: '{key}'. "
-            msg += "Try 'compdb config add {key} [your_value]"
+            msg += "Try 'signac config add {key} [your_value]"
             raise KeyError(msg.format(key = key)) from error
 
     def get(self, key, default = None):

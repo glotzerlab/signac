@@ -148,7 +148,7 @@ class OnlineProject(BaseProject):
     def __init__(self, config = None, client = None):
         """Initialize a Onlineproject.
 
-        :param config:     A compdb configuration instance.
+        :param config:     A signac configuration instance.
         :param client:     A pymongo client instance.
             
         Both arguments are optional.
@@ -161,7 +161,7 @@ class OnlineProject(BaseProject):
         super(OnlineProject, self).__init__(config=config)
         self._client = client
         # Online logging
-        self._loggers = [logging.getLogger('compdb')]
+        self._loggers = [logging.getLogger('signac')]
         self._logging_queue = Queue()
         self._logging_queue_handler = QueueHandler(self._logging_queue)
         self._logging_listener = None
@@ -529,7 +529,7 @@ class OnlineProject(BaseProject):
         return [fn_dump_jobs, fn_dump_db]
 
     def _create_config_snapshot(self, dst):
-        fn_config = os.path.join(dst, 'compdb.rc')
+        fn_config = os.path.join(dst, 'signac.rc')
         self.config.write(fn_config)
         return [fn_config]
 
@@ -542,14 +542,14 @@ class OnlineProject(BaseProject):
                 db_host = self.config['database_host'],
                 fs_dir = self.filestorage_dir(),
                 db_meta = self.config['database_meta'],
-                compdb_docs = JOB_META_DOCS,
-                compdb_job_docs = JOB_DOCS,
+                signac_docs = JOB_META_DOCS,
+                signac_job_docs = JOB_DOCS,
                 sn_storage_dir= FN_DUMP_STORAGE,
                     ).encode())
         return [fn_restore_script_sh]
 
     def _create_config_snapshot(self, dst):
-        fn_config = os.path.join(dst, 'compdb.rc')
+        fn_config = os.path.join(dst, 'signac.rc')
         self.config.write(fn_config)
         return [fn_config]
 
@@ -621,7 +621,7 @@ class OnlineProject(BaseProject):
             raise FileNotFoundError(src)
 
     def _create_snapshot(self, dst, full = True, mode = 'w'):
-        with TemporaryDirectory(prefix = 'compdb_dump_') as tmp:
+        with TemporaryDirectory(prefix = 'signac_dump_') as tmp:
             try:
                 with tarfile.open(dst, mode) as file:
                     for fn in itertools.chain(
@@ -686,7 +686,7 @@ class OnlineProject(BaseProject):
         num_active = self.num_active_jobs()
         if num_active > 0:
             msg = "This project has indication of active jobs. "
-            msg += "You can use 'compdb cleanup' to remove dead jobs."
+            msg += "You can use 'signac cleanup' to remove dead jobs."
             raise RuntimeError(msg.format(num_active))
         self._check_snapshot(src)
         dst_rollbackup = os.path.join(
@@ -847,28 +847,28 @@ class OnlineProject(BaseProject):
         returns: True if the version matches, otherwise False.
         raises: UserWarning, RuntimeError
 
-        The function will raise a UserWarning if the compdb version is higher than the project version.
-        The function will raise a RuntimeError if the compdb version is less than the project version, because correct behaviour can't be guaranteed in this case.
+        The function will raise a UserWarning if the signac version is higher than the project version.
+        The function will raise a RuntimeError if the signac version is less than the project version, because correct behaviour can't be guaranteed in this case.
         """
-        version = self.config.get('compdb_version', (0,1,0))
+        version = self.config.get('signac_version', (0,1,0))
         if VERSION_TUPLE < version:
-            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
+            msg = "The project is configured for signac version {}, but the current signac version is {}. Update signac to use this project."
             raise RuntimeError(msg.format(version, VERSION_TUPLE))
         if VERSION_TUPLE > version:
-            msg = "The project is configured for compdb version {}, but the current compdb version is {}. Execute `compdb update` to update your project and get rid of this warning."
+            msg = "The project is configured for signac version {}, but the current signac version is {}. Execute `signac update` to update your project and get rid of this warning."
             raise UserWarning(msg.format(version, VERSION_TUPLE))
             warnings.warn(msg.format(version, VERSION_TUPLE))
             return False
         return True
 
     def check_version(self):
-        """Check the project version against the compdb version.
+        """Check the project version against the signac version.
 
         returns: True if the version matches, otherwise False.
         raises: RuntimeError
 
-        The function will issue a warning if the compdb version is higher than the project version.
-        The function will raise a RuntimeError if the compdb version is less than the project version, because correct behaviour can't be guaranteed in this case.
+        The function will issue a warning if the signac version is higher than the project version.
+        The function will raise a RuntimeError if the signac version is less than the project version, because correct behaviour can't be guaranteed in this case.
         """
         try:
             return self._check_version()

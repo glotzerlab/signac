@@ -7,7 +7,7 @@ if not IS_PYTHON3:
 from setuptools import setup, find_packages
 
 setup(
-    name = 'compdb',
+    name = 'signac',
     version = '0.1.6dev1',
     package_dir = {'': 'src'},
     packages = find_packages('src'),
@@ -31,13 +31,13 @@ setup(
         },
     entry_points = {
         'console_scripts': [
-            'compdb = compdb.contrib.script:main',
-            'compdb_init = compdb.contrib.init_project:main',
-            'compdb_configure = compdb.contrib.configure:main',
-            'compdb_admin = compdb.admin.manage:main',
-            'compdb_server = compdb.contrib.server:main',
-            'compdb_user = compdb.contrib.admin:main',
-            'compdb_admin_project = compdb.admin.manage_project:main',
+            'signac = signac.contrib.script:main',
+            'signac_init = signac.contrib.init_project:main',
+            'signac_configure = signac.contrib.configure:main',
+            'signac_admin = signac.admin.manage:main',
+            'signac_server = signac.contrib.server:main',
+            'signac_user = signac.contrib.admin:main',
+            'signac_admin_project = signac.admin.manage_project:main',
         ],
     },
 )

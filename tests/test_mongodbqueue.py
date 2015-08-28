@@ -1,15 +1,15 @@
 import unittest
 from contextlib import contextmanager
 
-from compdb.core.mongodb_queue import MongoDBQueue, Empty
-from compdb.core.mongodb_executor import MongoDBExecutor
+from signac.core.mongodb_queue import MongoDBQueue, Empty
+from signac.core.mongodb_executor import MongoDBExecutor
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 def testdata():
     import uuid
@@ -19,7 +19,7 @@ def get_item():
     return {'my_item': testdata()}
 
 def get_collection_handle(_id):
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     from pymongo import MongoClient
     config = load_config()
     client = MongoClient(config['database_host'])
@@ -182,7 +182,7 @@ class MongoDBExecutorTest(MongoDBTest):
             pass
 
     def test_encode_integrity(self):
-        from compdb.core.mongodb_executor import encode_callable, decode_callable
+        from signac.core.mongodb_executor import encode_callable, decode_callable
         fn = my_function
         args = (1, )
         kwargs = {'y': 2}
@@ -192,7 +192,7 @@ class MongoDBExecutorTest(MongoDBTest):
         self.assertEqual(encoded, encoded2)
 
     def test_encode_decode(self):
-        from compdb.core.mongodb_executor import encode_callable, decode_callable
+        from signac.core.mongodb_executor import encode_callable, decode_callable
         fn = my_function
         args = (1, )
         kwargs = {'y': 2}
@@ -226,7 +226,7 @@ class MongoDBExecutorTest(MongoDBTest):
             self.assertEqual(my_function(x = 2, y = 4), result)
 
     def test_submit_execute_and_fetch(self):
-        from compdb.core.mongodb_executor import encode_callable, decode_callable, encode, decode
+        from signac.core.mongodb_executor import encode_callable, decode_callable, encode, decode
         args = ()
         kwargs = {'x': 2, 'y': 4}
         expected_result = my_function(*args, **kwargs)

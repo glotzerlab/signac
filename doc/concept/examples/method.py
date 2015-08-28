@@ -1,5 +1,5 @@
 def standard_methods_minimal_example():
-    from compdb.methods import StandardMethod
+    from signac.methods import StandardMethod
     method = StandardMethod()
 
     # Standard methods are canonicalized in the collection.
@@ -16,7 +16,7 @@ def standard_methods_minimal_example():
         'class':    'polyehedron',
         'facets':   12
         }
-    tetrahedrons = compdb.db.find(spec)
+    tetrahedrons = signac.db.find(spec)
     parameters = {'a': 0, 'b': 1}
 
     # Iterate through the structures and apply the method
@@ -29,10 +29,10 @@ def standard_methods_minimal_example():
 
 def standard_method_concurrent_example():
     # Using python3 concurrent library to apply methods concurrently
-    from compdb.methods import StandardMethod
+    from signac.methods import StandardMethod
     method = StandardMethod()
 
-    tetrahedrons = compdb.db.find({'class': 'polyhedron', 'facets': 12})
+    tetrahedrons = signac.db.find({'class': 'polyhedron', 'facets': 12})
     import concrurrent.futures
     with concurrent.futures.ProcessPoolExecutor() as executor:
         # The method's results will either be fetched from the database
@@ -48,10 +48,10 @@ def standard_method_concurrent_example():
 
 def standard_expensive_method_example():
     # For very expensive methods, we need to refine our behaviour.
-    from compdb.methods import StandardMethod
+    from signac.methods import StandardMethod
     method = StandardMethod()
 
-    tetrahedrons = compdb.db.find({'class': 'polyhedron', 'facets': 12})
+    tetrahedrons = signac.db.find({'class': 'polyhedron', 'facets': 12})
 
     futures = {StandardMethod().result(tetrahedrons, {'a': 0, 'b': 1}) for tetrahedron in tetrahedrons}
     for future in futures:
@@ -61,7 +61,7 @@ def standard_expensive_method_example():
         # We can prevent blocking and react with exception handling.
         try:
             result = future.result(blocking = False)
-        except compdb.methods.MethodInExecutionWarning as warning:
+        except signac.methods.MethodInExecutionWarning as warning:
             # We can now either decide to wait or skip this.
             continue
 
@@ -69,7 +69,7 @@ def standard_expensive_method_example():
         # in case they are already available, we use this argument.
         try:
             result = future.result(execute = False, blocking = False):
-        except compdb.methods.MethodInExecutionWarning as warning:
+        except signac.methods.MethodInExecutionWarning as warning:
             pass
-        except compdb.methods.NoResultsAvailableError as error:
+        except signac.methods.NoResultsAvailableError as error:
             pass

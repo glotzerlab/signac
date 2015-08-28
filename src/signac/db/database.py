@@ -2,7 +2,7 @@
 
 This module contains the implementation of the CompMatDB API.
 
-See also: https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb
+See also: https://bitbucket.org/glotzer/signac/wiki/latest/signacdb
 """
 
 import logging
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-COLLECTION_DATA = 'compdb_data'
-COLLECTION_CACHE = 'compdb_cache'
+COLLECTION_DATA = 'signac_data'
+COLLECTION_CACHE = 'signac_cache'
 KEY_CALLABLE_NAME = 'name'
 KEY_CALLABLE_MODULE = 'module'
 KEY_CALLABLE_SOURCE_HASH = 'source_hash'
@@ -251,10 +251,10 @@ class Database(object):
         """Create a new Database object.
 
         :param db: The MongoDB backend database object.
-        :param config: A compdb config object.
+        :param config: A signac config object.
 
         This function should not be called directly.
-        See compdb.db.access_compmatdb() instead.
+        See signac.db.access_signacdb() instead.
         """
         if config is None:
             config = load_config()
@@ -489,8 +489,8 @@ class Database(object):
 
     def _filter_by_user(self, filter):
         """Make the filter user-specific to protect against global data manipulation."""
-        if self._config.get('compmatdb_admin', False):
-            warnings.warn("Working with compmatdb admin role!")
+        if self._config.get('signacdb_admin', False):
+            warnings.warn("Working with signacdb admin role!")
         msg = "The value for '{key}' cannot be modified without admin rights!"
         for key in USER_KEYS:
             if key in filter:
@@ -555,7 +555,7 @@ class Database(object):
         :param data: The data to associate with this record.
 
         See also: 
-            - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
+            - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.insert_one
         """
         self._filter_by_user(document)
@@ -572,7 +572,7 @@ class Database(object):
         :type upsert: Boolean
 
         See also: 
-            - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
+            - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_one
         """
         self._filter_by_user(filter) # Modify the filter to only match user documents
@@ -613,7 +613,7 @@ class Database(object):
         :type data: Arbitrary binary data.
         
         See also: 
-            - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
+            - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.update_one
         """
         self._filter_by_user(document) # Modify the document to only match user documents
@@ -649,7 +649,7 @@ class Database(object):
         :raises UnsupportedExpressionError
         
         See also:
-            - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part2
+            - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find
         """
         # The call_dict keeps track of all calls required to resolve in this query
@@ -883,7 +883,7 @@ class Database(object):
         :raises UnsupportedExpressionError
 
         See also:
-            - https://bitbucket.org/glotzer/compdb/wiki/latest/compmatdb_part3
+            - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part3
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.aggregate
         """
         call_dict = dict()

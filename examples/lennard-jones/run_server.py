@@ -1,3 +1,3 @@
 #!/usr/bin/env hoomd
-from compdb.contrib import server
+from signac.contrib import server
 server.main()

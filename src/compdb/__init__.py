@@ -1,13 +1,6 @@
-"""
-The Computational Database (CompDB) aids in the management, access and analysis of large-scale computational investigations.
-The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaboratos.
-"""
+import warnings
 
-# The VERSION string represents the actual (development) version of the package.
-VERSION = '0.1.5'
-# The VERSION_TUPLE is used to identify whether compdb projects, are required to be updated and can therefore lag behind the actual version.
-VERSION_TUPLE = 0,1,5
+from signac import *
 
-from . import core
-from . import contrib
-from . import db
+msg = "compdb was renamed to signac. Please import signac in the future."
+warnings.warn(DeprecationWarning, msg)

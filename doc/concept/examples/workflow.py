@@ -1,17 +1,17 @@
 def minimal_job_example():
     # The end-users' workflow should be as undisturbed as possible,
     # which is why the bare minimum example to execute code in the
-    # context of the compdb does not require any additional boiler-code,
+    # context of the signac does not require any additional boiler-code,
     # but the enclosing manager.
-    import compdb
-    with compdb.contrib.open_job('example_job') as job:
+    import signac
+    with signac.contrib.open_job('example_job') as job:
         job.restore_files()
         # Execution code here.
         job.store_files()
 
 def job_concurrency_example():
-    import compdb
-    with compdb.contrib.open_job('example_job') as job:
+    import signac
+    with signac.contrib.open_job('example_job') as job:
         
         # Check for multiple execution
         if job.is_running():
@@ -27,10 +27,10 @@ def job_concurrency_example():
 
 def complete_job_execution_example():
     for params in parameter_set:
-        with compdb.contrib.open_job(
+        with signac.contrib.open_job(
             name = 'example_job',
             project = 'example_project',
-            author = compdb.get_author('johndoe'),
+            author = signac.get_author('johndoe'),
             parameters = params) as job:
             # Some of the arguments should be more conventiently provided by 
             #   *) environment variables, 
@@ -84,13 +84,13 @@ def complete_job_execution_example():
 
             # Example on how to store natively supported data.
             # 
-            snapshot = compdb.data.Snapshot(filename = '_dump.xml', fileformat = 'hoomd_blue_xml')
+            snapshot = signac.data.Snapshot(filename = '_dump.xml', fileformat = 'hoomd_blue_xml')
             job.store('snapshot', snapshot)
-            job.store('hoomd_snapshot', compdb.hoomd.snapshot(vis = True)) 
+            job.store('hoomd_snapshot', signac.hoomd.snapshot(vis = True)) 
 
             # Storing very large datafiles might result in extensive storage loads.
             # If we do not need a copy in the working directory anymore we should move the file instead.
-            trajectory = compdb.data.Trajectory('_dump.xml', '_dump.dcd')
+            trajectory = signac.data.Trajectory('_dump.xml', '_dump.dcd')
             job.store('trajectory', trajectory, move = True) 
 
             # Job completed
@@ -99,10 +99,10 @@ def complete_job_execution_example():
 
 def complete_job_post_processing_example():
     for params in parameter_set:
-        with compdb.contrib.open_job(
+        with signac.contrib.open_job(
             name = 'example_job',
             project = 'example_project',
-            author = compdb.get_author('johndoe'),
+            author = signac.get_author('johndoe'),
             parameters = params) as job:
 
             # Do not execute if job is running, post_processing or already executed or no
@@ -132,15 +132,15 @@ def complete_job_post_processing_example():
 
 def complete_job_post_processing_as_own_job_example():
     for params in parameter_set:
-        with compdb.contrib.open_job(
+        with signac.contrib.open_job(
             name = 'pp_example_job',
             project = 'example_project',
-            author = compdb.get_author('johndoe'),
+            author = signac.get_author('johndoe'),
             parameters = params) as pp_job:
-            with compdb.contrib.open_job(
+            with signac.contrib.open_job(
                 name = 'example_job',
                 project = 'example_project',
-                author = compdb.get_author('johndoe'),
+                author = signac.get_author('johndoe'),
                 parameters = params,
                 read_only = True) as sim_job:
                     my_data = job.find_one('my_data')
@@ -152,30 +152,30 @@ def complete_job_post_processing_as_own_job_example():
 def low_level_access():
     # Sometimes you want to have more control over your workflow,
     # which is why the following resources are available.
-    with compdb.contrib.open_job(
+    with signac.contrib.open_job(
         name = 'example_job',
         project = 'example_project',
-        author = compdb.get_author('johndoe'),
+        author = signac.get_author('johndoe'),
         parameters = params) as job:
         
         # The unique job id
         _id = job.get_id()
 
         # The project database
-        db = compdb.job.get_project_db()
+        db = signac.job.get_project_db()
 
         # The project directory
-        project_dir = compdb.job.get_project_dir()
+        project_dir = signac.job.get_project_dir()
 
         # The filestorage directory
-        filestorage = compdb.job.get_filestorage_dir()
+        filestorage = signac.job.get_filestorage_dir()
 
         # The working directory
         job_wd = job.get_working_dir() # Usually equal to os.cwd()
 
 
 def config():
-    import compdb
+    import signac
 
     # Upon import the package tries to determine your configuration.
     #
@@ -192,8 +192,8 @@ def config():
 
     # Any of the following functions will raise an exception, 
     # if it could not be determined.
-    author = compdb.get_author() # Your author information.
-    project = compdb.get_project() # Project meta data.
+    author = signac.get_author() # Your author information.
+    project = signac.get_project() # Project meta data.
 
     # These functions are accessed, when opening a job, which
     # is why an exception will be raised, if they are not 
@@ -201,13 +201,13 @@ def config():
 
 def import_and_export_structures_example():
     # How to import structures from the database
-    import compdb
+    import signac
 
     # This will give you all tetrahedron structures in the database
-    all_tetrahedrons = compdb.import_structure(name = 'tetrahedron')
+    all_tetrahedrons = signac.import_structure(name = 'tetrahedron')
 
     # Use filters and order arguments to get a more specified result.
-    tetrahedrons = compdb.import_structure(name = 'tetrahedron'
+    tetrahedrons = signac.import_structure(name = 'tetrahedron'
         filter = {'project_id': 'example_project'},
         order_by = {'uploaded': - 1})
 
@@ -218,35 +218,35 @@ def import_and_export_structures_example():
     tetrahedron.write('_tmp_structure.xml', fileformat = 'hoomd_blue_xml')
 
     init_xml('_tmp_structure.xml')        # Initialize a hoomd simulation from this file
-    compdb.hoomd.init(tetrahedron)     # Or init directly from the structure instance
+    signac.hoomd.init(tetrahedron)     # Or init directly from the structure instance
 
     # Writing into a spcific fileformat is only possible,
     # if the structure is in a native format.
-    # This means `compdb` knows how to parse and write this format.
+    # This means `signac` knows how to parse and write this format.
     # It is always possible to write the file in its original format.
 
     # You can also use an external database to import structures
-    protein = compdb.import_structure('2MQS', source = 'PDB')    # Protein database
-    crystal = compdb.import_structure('as34234', source = 'CSD') # Cambridge Structural Database
+    protein = signac.import_structure('2MQS', source = 'PDB')    # Protein database
+    crystal = signac.import_structure('as34234', source = 'CSD') # Cambridge Structural Database
 
     # How to export structures to the database
     #
 
     # From file with native fileformat
-    result_structure = compdb.parse(
+    result_structure = signac.parse(
         filename = '_my_structure.xml',
         fileformat = 'hoomd_blue_xml')
 
     # From file without native fileformat
-    result_structure = compdb.read_structure('_my_structure.pos')        # Only one of these patterns 
-    result_structure = compdb.Structure().parse('_my_structure.pos')     # will survive.
+    result_structure = signac.read_structure('_my_structure.pos')        # Only one of these patterns 
+    result_structure = signac.Structure().parse('_my_structure.pos')     # will survive.
 
     # Be more specific
-    molecule_structure = compdb.read_structure('_my_structure.pos')
-    molecule = compdb.MoleculeStructure(
+    molecule_structure = signac.read_structure('_my_structure.pos')
+    molecule = signac.MoleculeStructure(
         result_molecule,
         IUPAC_name = '7-(Phenylsulfonyl)quinoline')
 
-    export_id = compdb.export_structure(
+    export_id = signac.export_structure(
         molecule,
         project = 'example_project')

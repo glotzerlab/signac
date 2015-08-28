@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 DESCR_RUN = "Fetch a job from the compDB job queue and execute."
 
-RUN_COMMAND = "from compdb.contrib.run import execute_job; print(execute_job({BINARY}));"
+RUN_COMMAND = "from signac.contrib.run import execute_job; print(execute_job({BINARY}));"
 RUN_EXIT = "import sys; sys.exit({EXIT_CODE});"
 
 def execute_job(binary):

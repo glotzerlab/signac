@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from compdb.contrib import get_project
+from signac.contrib import get_project
 
 # This list defines the parameter space.
 def get_state_points(debug = False):

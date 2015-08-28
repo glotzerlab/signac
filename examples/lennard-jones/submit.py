@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from compdb.contrib import get_project
+from signac.contrib import get_project
 from job import run_job, state_points
 
 def main(args):

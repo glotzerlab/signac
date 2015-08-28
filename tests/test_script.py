@@ -7,8 +7,8 @@ import tempfile
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-import compdb
-import compdb.contrib.script
+import signac
+import signac.contrib.script
 
 class DummyFile(object):
     "We redirect sys stdout into this file during console tests."
@@ -30,20 +30,20 @@ class ExitCodeError(RuntimeError): pass
 class BaseScriptConsoleTest(unittest.TestCase):
     
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'signac_')
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         self._tmp_fs = os.path.join(self._tmp_dir.name, 'fs')
-        os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
+        os.environ['COMPDB_AUTHOR_NAME'] = 'signac_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
-        os.environ['COMPDB_PROJECT'] = 'testing_compdb_test_project'
+        os.environ['COMPDB_PROJECT'] = 'testing_signac_test_project'
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
         os.environ['COMPDB_VERSION'] = '0.1.1'
         os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
         os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
-        self._project = compdb.contrib.get_project()
+        self._project = signac.contrib.get_project()
         # supress any output
         self.stdout = sys.stdout
         self.cwd = os.getcwd()
@@ -59,7 +59,7 @@ class BaseScriptConsoleTest(unittest.TestCase):
         output = DummyFile()
         sys.stdout = output
         try:
-            ret = compdb.contrib.script.main(command.split(' '))
+            ret = signac.contrib.script.main(command.split(' '))
             if ret != 0:
                 raise ExitCodeError(ret)
             return output.read()
@@ -81,8 +81,8 @@ class ScriptConsoleTest(BaseScriptConsoleTest):
         with self.assertRaises(ExitCodeError):
             self.script('config set bullshit abc')
         self.script('config set author_name impostor')
-        config = compdb.core.config.Config()
-        config.read('compdb.rc')
+        config = signac.core.config.Config()
+        config.read('signac.rc')
         self.assertEqual(config['author_name'], 'impostor')
 
     def test_clear(self):

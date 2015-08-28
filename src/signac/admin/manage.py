@@ -140,7 +140,7 @@ def manage_user(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description = "Administrative management of compdb.")
+        description = "Administrative management of signac.")
     add_verbosity_argument(parser)
     parser.add_argument(
         '-c', '--certificate',

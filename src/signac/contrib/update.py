@@ -11,17 +11,17 @@ logger = logging.getLogger(__name__)
 
 def update_version_key(project, version):
     config = Config()
-    fn_config = os.path.join(project.root_directory(), 'compdb.rc')
+    fn_config = os.path.join(project.root_directory(), 'signac.rc')
     try:
         config.read(fn_config)
     except FileNotFoundError:
         pass
-    config['compdb_version'] = version
+    config['signac_version'] = version
     config.verify()
     config.write(fn_config)
 
 def get_version_key(project):
-    return project.config.get('compdb_version', (0,1,0))
+    return project.config.get('signac_version', (0,1,0))
 
 def version_str(version_tuple):
     return '.'.join((str(v) for v in version_tuple))

@@ -12,7 +12,7 @@ from . hashing import generate_hash_from_spec
 
 logger = logging.getLogger(__name__)
 
-CACHE_KEY = 'compdb_cache'
+CACHE_KEY = 'signac_cache'
 CACHE_DIR = '.cache'
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3

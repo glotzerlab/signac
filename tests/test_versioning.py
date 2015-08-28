@@ -1,7 +1,7 @@
 import unittest
 
-import compdb
-from compdb.core.utility import parse_version, Version
+import signac
+from signac.core.utility import parse_version, Version
 
 # ordered by release time
 TEST_VERSIONS = [

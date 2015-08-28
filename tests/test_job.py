@@ -10,14 +10,14 @@ from contextlib import contextmanager
 
 import pymongo
 
-import compdb
-from compdb.contrib import get_project
+import signac
+from signac.contrib import get_project
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
 
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 warnings.filterwarnings('ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
@@ -43,7 +43,7 @@ def testdata():
 class BaseJobTest(unittest.TestCase):
     
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'compdb_')
+        self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'signac_')
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         self._tmp_fs = os.path.join(self._tmp_dir.name, 'fs')
@@ -51,13 +51,13 @@ class BaseJobTest(unittest.TestCase):
         os.mkdir(self._tmp_pr)
         os.mkdir(self._tmp_wd)
         os.mkdir(self._tmp_fs)
-        os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
+        os.environ['COMPDB_AUTHOR_NAME'] = 'signac_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
-        os.environ['COMPDB_PROJECT'] = 'testing_compdb_test_project'
+        os.environ['COMPDB_PROJECT'] = 'testing_signac_test_project'
         os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
         os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
         os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
-        os.environ['COMPDB_VERSION'] = '.'.join((str(v) for v in compdb.VERSION_TUPLE))
+        os.environ['COMPDB_VERSION'] = '.'.join((str(v) for v in signac.VERSION_TUPLE))
         os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
         os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
         self._project = get_project()
@@ -93,7 +93,7 @@ class JobTest(BaseJobTest):
 class ConfigTest(OfflineJobTest):
     
     def test_config_verification(self):
-        from compdb.core.config import IllegalKeyError
+        from signac.core.config import IllegalKeyError
         self._project.config.verify() 
         with self.assertRaises(IllegalKeyError):
             self._project.config['illegal_key'] = 'abc'
@@ -129,12 +129,12 @@ class ConfigTest(OfflineJobTest):
         self.assertIn(key, config)
 
     def test_illegal_argument(self):
-        from compdb.core.config import IllegalArgumentError, CHOICES
+        from signac.core.config import IllegalArgumentError, CHOICES
         with self.assertRaises(IllegalArgumentError):
             self._project.config[list(CHOICES.keys())[0]] = 'invalid'
 
     def test_config_files_and_dirs(self):
-        from compdb.core.config import FILES, DIRS
+        from signac.core.config import FILES, DIRS
         key_file = FILES[0]
         key_dir = DIRS[0]
         cwd = os.getcwd()
@@ -158,10 +158,10 @@ class ConfigTest(OfflineJobTest):
 
     def test_set_and_retrieve_version(self):
         fake_version = 0,0,0
-        self._project.config['compdb_version'] = fake_version
-        self.assertEqual(self._project.config['compdb_version'], fake_version)
-        self._project.config['compdb_version'] = '.'.join((str(v) for v in fake_version))
-        self.assertEqual(self._project.config['compdb_version'], fake_version)
+        self._project.config['signac_version'] = fake_version
+        self.assertEqual(self._project.config['signac_version'], fake_version)
+        self._project.config['signac_version'] = '.'.join((str(v) for v in fake_version))
+        self.assertEqual(self._project.config['signac_version'], fake_version)
 
     def test_str(self): 
         str(self._project.config)
@@ -174,7 +174,7 @@ class ConfigTest(OfflineJobTest):
         self.assertEqual(self._project.config['test_token'], list(test_token.values())[0])
 
     def test_read_bad_file(self):    
-        from compdb.core.config import IllegalKeyError
+        from signac.core.config import IllegalKeyError
         with tempfile.NamedTemporaryFile() as tmp:
             with self.assertRaises(RuntimeError):
                 self._project.config.read(tmp.name)
@@ -446,7 +446,7 @@ class JobConcurrencyTest(BaseOnlineJobTest):
         job0.remove()
 
     def test_acquire_and_release(self):
-        from compdb.contrib.concurrency import DocumentLockError
+        from signac.contrib.concurrency import DocumentLockError
         with open_job(test_token, timeout = 1) as job:
             with job.lock(timeout = 1):
                 def lock_it():

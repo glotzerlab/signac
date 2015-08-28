@@ -43,7 +43,7 @@ def simulate(max_walltime, N, density, epsilon, sigma, r_cut, T, random_seed, nu
     # run for 20k steps
     restart_callback = make_write_restart_file_callback('restart.xml')
     def callback(num_steps):
-        from compdb.contrib import walltime
+        from signac.contrib import walltime
         restart_callback(num_steps)
         walltime.exit_by(max_walltime)
 

@@ -25,7 +25,7 @@ from .constants import *
 logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-FN_JOB_DOCUMENT = 'compdb_job_document.json'
+FN_JOB_DOCUMENT = 'signac_job_document.json'
 
 def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
     while(True):
@@ -53,7 +53,7 @@ class BaseJob(object):
     def __init__(self, project, parameters, version=None):
         self._unique_id = str(uuid.uuid4())
         self._project = project
-        self._version = version or project.config.get('compdb_version', (0,1,0))
+        self._version = version or project.config.get('signac_version', (0,1,0))
         self._parameters = parameters
         self._id = None
         self._cwd = None
@@ -77,10 +77,10 @@ class BaseJob(object):
             else:  # new style
                 self._id = generate_hash_from_spec(self._parameters)
             if VERSION_TUPLE < self._version:
-                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Update compdb to use this project."
+                msg = "The project is configured for signac version {}, but the current signac version is {}. Update signac to use this project."
                 raise RuntimeError(msg.format(self._version, VERSION_TUPLE))
             if VERSION_TUPLE > self._version:
-                msg = "The project is configured for compdb version {}, but the current compdb version is {}. Execute `compdb update` to update your project and get rid of this warning."
+                msg = "The project is configured for signac version {}, but the current signac version is {}. Execute `signac update` to update your project and get rid of this warning."
                 warnings.warn(msg.format(self._version, VERSION_TUPLE))
         return self._id
 

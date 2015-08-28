@@ -1,11 +1,11 @@
 import unittest
 from contextlib import contextmanager
 
-from compdb.core.dbdocument import DBDocument
+from signac.core.dbdocument import DBDocument
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 import pymongo
 
@@ -32,7 +32,7 @@ def document(collection = None):
 
 def get_collection():
     from pymongo import MongoClient
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     config = load_config()
     client = MongoClient(config['database_host'])
     db = client['testing']
@@ -40,7 +40,7 @@ def get_collection():
 
 @contextmanager
 def get_dbdoc(host = None, id_ = None):
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     config = load_config()
     if host is None:
         host = config['database_host']

@@ -20,8 +20,8 @@ SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 DEFAULT_VERSION = '.'.join((str(v) for v in VERSION_TUPLE))
 
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
-Execute `compdb check` to check your configuration."""
-MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `compdb config` to create missing author information."
+Execute `signac check` to check your configuration."""
+MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `signac config` to create missing author information."
 
 def check_for_existing_project(args):
     try:
@@ -56,7 +56,7 @@ def generate_config(args):
         args.storage = DEFAULT_STORAGE
     c_args = {
          'project':  args.project_name,
-         'compdb_version': args.compdb_version,
+         'signac_version': args.signac_version,
     }
     if args.workspace:
         make_dir(args.workspace)
@@ -68,7 +68,7 @@ def generate_config(args):
          c_args['database_host'] = args.db_host
     config = Config()
     try:
-        config.read(os.path.join(args.directory, 'compdb.rc'))
+        config.read(os.path.join(args.directory, 'signac.rc'))
     except FileNotFoundError:
         pass
     config.update(c_args)
@@ -104,7 +104,7 @@ def init_project(args):
     except Exception as error:
         raise
     else:
-        config.write(os.path.join(args.directory, 'compdb.rc'))
+        config.write(os.path.join(args.directory, 'signac.rc'))
         print(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.abspath(args.directory)))
@@ -149,15 +149,15 @@ def setup_parser(parser):
         action = 'store_true',
         help = "Ignore warnings that prevent project creation. This might lead to potential data loss!")
     parser.add_argument(
-        '--compdb-version',
+        '--signac-version',
         type = str,
         default = DEFAULT_VERSION,
-        help = "The compdb version, to use for this new project. Defaults to '{}'.".format(DEFAULT_VERSION))
+        help = "The signac version, to use for this new project. Defaults to '{}'.".format(DEFAULT_VERSION))
 
 def main(arguments = None):
     logging.basicConfig(level = logging.DEBUG)
     parser = argparse.ArgumentParser(
-        description = "Make a new mock compdb project.",
+        description = "Make a new mock signac project.",
         )
     setup_parser(parser)
     args = parser.parse_args(arguments)

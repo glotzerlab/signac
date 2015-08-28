@@ -8,6 +8,6 @@ This example is a parameter study over a lennard-jones molecular simulation usin
 
 Use the following commands to execute this project.
 
-    $ compdb init example-lj
+    $ signac init example-lj
     $ ./submit.py
     $ ./run_server.py

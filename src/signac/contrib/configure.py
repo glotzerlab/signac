@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
 OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
-USER_GLOBAL = expanduser('~/compdb.rc')
-USER_LOCAL = expanduser('./compdb.rc')
+USER_GLOBAL = expanduser('~/signac.rc')
+USER_LOCAL = expanduser('./signac.rc')
 
 def process(args):
     if args.name: 
@@ -37,7 +37,7 @@ def get_config(args, for_writing = False):
             config_.read(USER_LOCAL)
         else:
             config_ = config.load_config()
-            #config_.read(expanduser('./compdb.rc'))
+            #config_.read(expanduser('./signac.rc'))
     except FileNotFoundError:
         pass
     return config_
@@ -133,7 +133,7 @@ def configure(args):
         raise ValueError("Unknown operation: {}".format(args.operation))
 
 HELP_OPERATION = """\
-    R|Configure compdb for your local environment.
+    R|Configure signac for your local environment.
     You can perform one of the following operations:
         
         set:    Set value of 'name' to 'value'.
@@ -170,7 +170,7 @@ def setup_parser(parser):
         parser.add_argument(
             '-c', '--config',
             type = str,
-            #default = expanduser('./compdb.rc'),
+            #default = expanduser('./signac.rc'),
             help = "The config file to read and write from. Use '-' to print to standard output.")
         parser.add_argument(
             '-g', '--global',

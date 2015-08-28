@@ -1,14 +1,14 @@
 import unittest
 from contextlib import contextmanager
 
-from compdb.core.mongodb_set import MongoDBSet
+from signac.core.mongodb_set import MongoDBSet
 
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 def testdata():
     import uuid
@@ -18,7 +18,7 @@ def get_item():
     return {'my_item': testdata()}
 
 def get_collection_handle(_id):
-    from compdb.core.config import load_config
+    from signac.core.config import load_config
     from pymongo import MongoClient
     config = load_config()
     client = MongoClient(config['database_host'])

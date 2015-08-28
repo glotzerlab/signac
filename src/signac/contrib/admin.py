@@ -275,7 +275,7 @@ def setup_parser(parser):
 
 def main(arguments = None):
         parser = argparse.ArgumentParser(
-            description = "Administrate compdb.",
+            description = "Administrate signac.",
             )
         setup_parser(parser)
         parser.add_argument(

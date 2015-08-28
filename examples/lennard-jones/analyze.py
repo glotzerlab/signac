@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from compdb.contrib import get_project
+from signac.contrib import get_project
 
 def main():
     project = get_project()

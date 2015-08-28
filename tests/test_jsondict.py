@@ -3,7 +3,7 @@ import unittest
 import tempfile
 import uuid
 
-from compdb.core.jsondict import JSonDict
+from signac.core.jsondict import JSonDict
 
 FN_DICT = 'jsondict.json'
 

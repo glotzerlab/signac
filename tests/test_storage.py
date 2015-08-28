@@ -1,14 +1,14 @@
 import unittest
 from contextlib import contextmanager
 
-from compdb.core.storage import ReadOnlyStorage, Storage
+from signac.core.storage import ReadOnlyStorage, Storage
 
 import os
 CWD = os.getcwd()
 
 import warnings
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 def make_test_data():
     import uuid
@@ -48,8 +48,8 @@ class GetStorage(object):
     def __enter__(self):
         import os
         from tempfile import TemporaryDirectory as TempDir
-        self._fs_dir = TempDir(prefix = 'compdb')
-        self._wd_dir = TempDir(prefix = 'compdb')
+        self._fs_dir = TempDir(prefix = 'signac')
+        self._wd_dir = TempDir(prefix = 'signac')
         self._cwd = os.getcwd()
         os.chdir(self._wd_dir.name)
         return self._storage_type(self._fs_dir.name, self._wd_dir.name) 

@@ -9,19 +9,19 @@ import networkx as nx
 import pymongo
 import gridfs
 
-import compdb
-from compdb.db import conversion
-from compdb.db.conversion import add_adapter_to_network, make_adapter
-from compdb.db.database import Database
-from compdb.core.config import load_config
-from compdb.core.dbclient_connector import DBClientConnector
+import signac
+from signac.db import conversion
+from signac.db.conversion import add_adapter_to_network, make_adapter
+from signac.db.database import Database
+from signac.core.config import load_config
+from signac.core.dbclient_connector import DBClientConnector
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-TESTING_DB = 'testing_compmatdb'
+TESTING_DB = 'testing_signacdb'
 TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 
 warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='compdb')
+warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 def basic_network():
     an = nx.DiGraph()
@@ -82,10 +82,10 @@ def custom_to_float(custom):
 class BaseDBTest(unittest.TestCase):
 
     def setUp(self):
-        os.environ['COMPDB_AUTHOR_NAME'] = 'compdb_test_author'
+        os.environ['COMPDB_AUTHOR_NAME'] = 'signac_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
-        os.environ['COMPDB_PROJECT'] = 'compdb_db_test_project'
-        self.config = compdb.core.config.load_config()
+        os.environ['COMPDB_PROJECT'] = 'signac_db_test_project'
+        self.config = signac.core.config.load_config()
         self.db = get_db(config=self.config)
         metadata, data = get_test_record()
         self.db.insert_one(metadata, data)
@@ -313,7 +313,7 @@ class DBTest(BaseDBTest):
         self.assertIsNotNone(data)
 
     def test_aggregate(self):
-        from compdb.db import conversion
+        from signac.db import conversion
         db = get_db()
         metadata = get_test_metadata()
         custom_adapter = conversion.make_adapter(

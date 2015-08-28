@@ -63,7 +63,7 @@ These are examples for meta-data, that should be stored automatically with each 
   * a unique id per opening, used for
   * open/close/error protocol
   * git sha1 if available
-  * compdb config ?
+  * signac config ?
 
 ## Heart beat
 

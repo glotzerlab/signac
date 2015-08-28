@@ -2,21 +2,21 @@
 
 set -e
 
-compdb init testing --template=example
-compdb check
+signac init testing --template=example
+signac check
 python job.py
-compdb snapshot test.tar
-compdb restore test.tar
-compdb snapshot test.tar.gz
-compdb restore test.tar.gz
-compdb --yes clear
+signac snapshot test.tar
+signac restore test.tar
+signac snapshot test.tar.gz
+signac restore test.tar.gz
+signac --yes clear
 python job.py
-compdb --yes remove -j all
+signac --yes remove -j all
 python job.py
-compdb view
+signac view
 rm -r view
-compdb view -w
+signac view -w
 rm -r view
-compdb view -s
-compdb view --flat
-compdb --yes remove --project
+signac view -s
+signac view --flat
+signac --yes remove --project
