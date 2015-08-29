@@ -15,7 +15,7 @@ from . import utility
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILENAME = 'signac.rc'
-CONFIG_FILENAMES = ['signac.rc',]
+CONFIG_FILENAMES = [DEFAULT_FILENAME, 'compdb.rc']
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
 CWD = os.getcwd()
@@ -67,7 +67,7 @@ LEGAL_ARGS = REQUIRED_KEYS\
     + list(CHOICES.keys())\
     + DIRS + FILES\
     + [
-    'develop', 'signacdb_host',
+    'develop', 'signacdb_host', 'compmatdb_host',
     'database_username', 'database_password',
     'signacdb_admin',
     ]
