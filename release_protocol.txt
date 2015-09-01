@@ -1,0 +1,34 @@
+# Release Protocol
+
+NEW_VERSION=${MAJOR}.${MINOR}.${UPDATE}
+
+# --- Update framework ---
+
+# Commit or discard/branch changes on developer systems
+# Push develop branch on all developer systems
+# Go to release system (fredlynn-vm)
+git checkout master
+git pull
+git checkout develop
+git pull
+git merge master
+# Review and commit all changes
+# Update version number in setup.py, src/compdb/__init__.py
+git add -u .
+./run_all_tests.sh
+git commit -m 'Bump up to version ${NEW_VERSION}.'
+git tag v${NEW_VERSION}
+git checkout master
+git merge develop
+git push --all
+git push --tags
+
+# --- Update wiki ---
+
+git pull
+cp -r latest ${NEW_VERSION}
+# Update ${NEW_VERSION}/Home.md
+# Update Home.md
+git commit -m "Update to version ${NEW_VERSION}."
+git push
+# Check wiki
