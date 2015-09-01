@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'signac',
-    version = '0.1.6dev1',
+    version = '0.1.6',
     package_dir = {'': 'src'},
     packages = find_packages('src'),
 
