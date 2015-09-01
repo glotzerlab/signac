@@ -14,7 +14,7 @@ from .conversion import DBMethod, BasicFormat, Adapter
 from . import formats, methods
 
 def connect(host = None, config = None):
-    """Access the CompMatDB database:
+    """Access the signac database:
         
     :param host: The mongoDB database backend host url, defaults to the configured host.
     :type host: str
@@ -24,25 +24,16 @@ def connect(host = None, config = None):
     Access the database with:
         
         import signac
-        db = signac.db.access_signacdb()
+        db = signac.db.connect()
 
-    To get more information on how to search and modify database entries, use:
-
-        help(db)
-
-    or visit:
-    
-        https://bitbucket.org/glotzer/signac/wiki/latest/signacdb
+    .. seealso:: To get more information on how to search and modify database entries, use help(db) or visit https://bitbucket.org/glotzer/signac/wiki/latest/signacdb
     """
     # local import to load modules only if required
     from . import database
     if config is None:
         config = load_config()
     if host is None:
-        try:
-            host = config['signacdb_host']
-        except KeyError:
-            host = config['compmatdb_host']
+        host = config.get('signacdb_host', config.get('compmatdb_host', config['database_host']))
     connector = DBClientConnector(config)
     connector.connect(host)
     connector.authenticate()

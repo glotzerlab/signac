@@ -254,12 +254,11 @@ class Database(object):
         :param config: A signac config object.
 
         This function should not be called directly.
-        See signac.db.access_signacdb() instead.
+        See signac.db.connect() instead.
         """
         if config is None:
             config = load_config()
         self._config = config
-        self._client = None
         self._db = db
         self._data = self._db['data']
         self._cache = self._db['cache']
@@ -267,6 +266,12 @@ class Database(object):
         #self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
         self.debug_mode = False
+
+    def __str__(self):
+        return "signac.db.Database(db={})".format(self._db)
+
+    def __repr__(self):
+        return str(self)
 
     @property
     def config(self):
