@@ -244,15 +244,39 @@ class DBTest(BaseDBTest):
         self.assertIsNone(doc_logic)
 
     def test_multiple_conversion_paths(self):
-        db = get_db()
         metadata = get_test_metadata()
 
         class Intermediate(object):
             def __init__(self, value):
                 self._value = value
 
-        custom_adapter = conversion.make_adapter(
-            CustomFloat, float, custom_to_float)
+        def foo(x):
+            assert isinstance(x, int)
+            return sqrt(x)
+        foo_method = conversion.make_db_method(foo, int)
+
+        # We need to potentially remove the custom adapter from previous tests.
+        try:
+            name = "<class 'test_db.CustomFloat'>_to_<class 'float'>"
+            del signac.db.conversion.Adapter.registry[name]
+        except KeyError:
+            pass
+
+        db = _get_db()
+        data = [42, 42.0, '42', CustomFloat(42.0)]
+        for d in data:
+            db.insert_one(metadata, d)
+
+        f = {foo_method: {'$lt': 7}}
+        f.update(TEST_TOKEN)
+        docs = list(db.find(TEST_TOKEN))
+        self.assertTrue(docs)
+        docs_foo = list(db.find(f))
+        self.assertEqual(len(docs_foo), len(data)-1)
+
+        for key in signac.db.conversion.Adapter.registry.keys():
+            print(key)
+
         def custom_to_float_defunct(custom):
             assert 0
         custom_defunct_adapter = conversion.make_adapter(
@@ -269,27 +293,14 @@ class DBTest(BaseDBTest):
             Intermediate, float, intermediate_to_float)
 
         db.add_adapter(custom_defunct_adapter)
-
-        data = [42, 42.0, '42', CustomFloat(42.0)]
-        for d in data:
-            db.insert_one(metadata, d)
-
-        def foo(x):
-            assert isinstance(x, int)
-            return sqrt(x)
-        foo_method = conversion.make_db_method(foo, int)
-
-        f = {foo_method: {'$lt': 7}}
-        f.update(TEST_TOKEN)
-        docs = list(db.find(TEST_TOKEN))
-        self.assertTrue(docs)
-        docs_foo = list(db.find(f))
-        self.assertEqual(len(docs_foo), len(data)-1)
         db.add_adapter(custom_to_intermediate_adapter)
         db.add_adapter(intermediate_to_float_adapter)
+
         docs_foo = list(db.find(f))
         self.assertEqual(len(docs_foo), len(data))
         self.assertEqual(intermediate_to_float.num_called, 1)
+        custom_adapter = conversion.make_adapter(
+            CustomFloat, float, custom_to_float)
         db.add_adapter(custom_adapter)
         docs_foo = list(db.find(f))
         self.assertEqual(len(docs_foo), len(data))
