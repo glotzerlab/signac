@@ -1,9 +1,9 @@
-# Computational Database
+# signac - computational materials database framework
 
 ## About
 
-The Computational Database (CompDB) aids in the management, access and analysis of large-scale computational investigations.
-The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaboratos.
+signac aids in the management, access and analysis of large-scale computational investigations.
+The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaborators.
 
 ## Installation
 
@@ -46,18 +46,6 @@ This will create the basic configuration for a project named "MyProject" within 
 In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
 
 To test if everything is correctly setup, you can then execute `$ signac check` which will check your configuration, the connectivity and permissions on the database.
-
-Add a job to the job queue:
-
-    project.job_queue.submit(my_job, state_point)
-
-Execute jobs from the queue in serial:
-
-    $ signac server
-
-and in parallel:
-
-    $ mpirun -np 8 signac server
 
 ## Get help:
 
