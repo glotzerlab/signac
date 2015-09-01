@@ -68,6 +68,9 @@ class Adapter(metaclass = AdapterMetaType):
             f = self.expects,
             t = self.returns)
 
+    def __repr__(self):
+        return str(self)
+
 def make_adapter(src, dst, convert = None, w = None):
     class BasicAdapter(Adapter):
         expects = src
@@ -108,6 +111,7 @@ class Converter(object):
         for adapters in self._adapter_chain:
             for adapter in sorted(adapters, key=lambda a: a.weight):
                 try:
+                    logger.debug("Attempting conversion with adapter '{}'.".format(adapter()))
                     data = adapter()(data)
                     break
                 except Exception as error:
