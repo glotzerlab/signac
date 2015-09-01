@@ -6,7 +6,8 @@ function run_tests {
   echo "-----------------------------------------------------------"
   echo "Run tests for environment '${1}'."
   source ~/.virtualenvs/$1/bin/activate
-  python setup.py develop
+  #pip install --upgrade pip
+  python setup.py install
   pip install nose coverage sqlitedict
   nosetests --with-coverage --cover-package=signac  ${@:2}
   ret_code=${?}
@@ -15,9 +16,9 @@ function run_tests {
   echo "-----------------------------------------------------------"
 }
 
-run_tests signac-dev-pymongo-2.8 ${@}
+run_tests signac-dev-pymongo-2.8.0 ${@}
 run_tests signac-dev-pymongo-3.0.0 ${@}
-run_tests signac-dev-pymongo-3.0.1 ${@}
-run_tests signac-dev-pymongo-3.0.2 ${@}
+#run_tests signac-dev-pymongo-3.0.1 ${@}
+#run_tests signac-dev-pymongo-3.0.2 ${@}
 run_tests signac-dev-pymongo-3.0.3 ${@}
 exit $?
