@@ -26,9 +26,10 @@ git push --tags
 # --- Update wiki ---
 
 git pull
-cp -r latest ${NEW_VERSION}
+cp -r latest v${NEW_VERSION}
 # Update ${NEW_VERSION}/Home.md
 # Update Home.md
+git add .
 git commit -m "Update to version ${NEW_VERSION}."
 git push
 # Check wiki
