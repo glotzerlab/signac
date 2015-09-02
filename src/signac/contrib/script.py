@@ -358,7 +358,7 @@ def remove(args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description = "CompDB - Computational Database",
+        description = "signac - computational database",
         formatter_class = SmartFormatter)
     parser.add_argument(
         '-y', '--yes',
@@ -595,7 +595,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.version:
         from .. import VERSION
-        print("CompDB {}".format(VERSION))
+        print("signac {}".format(VERSION))
         return 0
     set_verbosity_level(args.verbosity)
     warnings.simplefilter(args.warnings)

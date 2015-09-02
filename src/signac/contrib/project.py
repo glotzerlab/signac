@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 def valid_name(name):
-    return not name.startswith(COMPDB_PREFIX)
+    return not name.startswith(SIGNAC_PREFIX)
 
 class BaseProject(object):
     """Base class for all project classes.
@@ -351,7 +351,13 @@ class OnlineProject(BaseProject):
         
           .. note::
              The removal is permanent. Use with caution!"""
-        self.clear(force = force)
+        try:
+            self.clear(force = force)
+        except Exception as error:
+            if force:
+                logger.error("Error during clearing. Forced to ignore.")
+            else:
+                raise
         try:
             host = self.config['database_host']
             client = self._get_client()

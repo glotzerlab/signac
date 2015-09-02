@@ -3,7 +3,7 @@ JOB_PARAMETERS_KEY = 'parameters'
 JOB_NAME_KEY = 'name'
 JOB_META_DOCS = 'signac_jobs'
 
-COMPDB_PREFIX = 'signac_'
+SIGNAC_PREFIX = 'signac_'
 
 FN_DUMP_JOBS = 'signac_jobs.json'
 FN_DUMP_STORAGE = 'storage'

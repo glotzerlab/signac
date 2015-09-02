@@ -77,10 +77,10 @@ def check_project_config_online_readonly():
     return True
 
 def check_project_config_offline():
-    original_host = os.environ.get('COMPDB_DATABASE_HOST')
-    original_timeout = os.environ.get('COMPDB_CONNECT_TIMEOUT')
-    os.environ['COMPDB_DATABASE_HOST'] = 'example.com'
-    os.environ['COMPDB_CONNECT_TIMEOUT'] = '100'
+    original_host = os.environ.get('SIGNAC_DATABASE_HOST')
+    original_timeout = os.environ.get('SIGNAC_CONNECT_TIMEOUT')
+    os.environ['SIGNAC_DATABASE_HOST'] = 'example.com'
+    os.environ['SIGNAC_CONNECT_TIMEOUT'] = '100'
     try:
         project = get_project()
         checktoken = {'checktoken': str(uuid.uuid4())}
@@ -93,13 +93,13 @@ def check_project_config_offline():
         return True
     finally:
         if original_host is None:
-            del os.environ['COMPDB_DATABASE_HOST']
+            del os.environ['SIGNAC_DATABASE_HOST']
         else:
-            os.environ['COMPDB_DATABASE_HOST'] = original_host
+            os.environ['SIGNAC_DATABASE_HOST'] = original_host
         if original_timeout is None:
-            del os.environ['COMPDB_CONNECT_TIMEOUT']
+            del os.environ['SIGNAC_CONNECT_TIMEOUT']
         else:
-            os.environ['COMPDB_CONNECT_TIMEOUT'] = original_timeout
+            os.environ['SIGNAC_CONNECT_TIMEOUT'] = original_timeout
 
 def check_project_version():
     project = get_project()
