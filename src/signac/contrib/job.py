@@ -54,6 +54,10 @@ class BaseJob(object):
         self._unique_id = str(uuid.uuid4())
         self._project = project
         self._version = version or project.config.get('signac_version', (0,1,0))
+        try:
+            dict(parameters)
+        except ValueError:
+            raise TypeError("Illegal parameter type.")
         self._parameters = parameters
         self._id = None
         self._cwd = None

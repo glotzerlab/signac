@@ -1,6 +1,6 @@
 """Main module for the Database implementation.
 
-This module contains the implementation of the CompMatDB API.
+This module contains the implementation of the signac.db API.
 
 See also: https://bitbucket.org/glotzer/signac/wiki/latest/signacdb
 """
@@ -242,9 +242,9 @@ class CommandCursor(_BaseCursor):
     pass
 
 class Database(object):
-    """The CompMatDB base class.
+    """The signac.db base class.
 
-    This object provides access to the CompMatDB database functions.
+    This object provides access to the signac.db database functions.
     """
 
     def __init__(self, db, get_gridfs, config = None):

@@ -13,7 +13,7 @@ git checkout develop
 git pull
 git merge master
 # Review and commit all changes
-# Update version number in setup.py, src/compdb/__init__.py
+# Update version number in setup.py, src/signac/__init__.py
 git add -u .
 ./run_all_tests.sh
 git commit -m 'Bump up to version ${NEW_VERSION}.'

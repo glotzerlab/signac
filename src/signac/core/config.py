@@ -21,18 +21,18 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 
 ENVIRONMENT_VARIABLES = {
-    'author_name' :              'COMPDB_AUTHOR_NAME',
-    'author_email':              'COMPDB_AUTHOR_EMAIL',
-    'project':                   'COMPDB_PROJECT',
-    'project_dir' :              'COMPDB_PROJECT_DIR',
-    'filestorage_dir':           'COMPDB_FILESTORAGE_DIR',
-    'workspace_dir':             'COMPDB_WORKING_DIR',
-    'database_host':             'COMPDB_DATABASE_HOST',
-    'develop':                   'COMPDB_DEVELOP',
-    'connect_timeout_ms':        'COMPDB_CONNECT_TIMEOUT',
-    'signacdb_host':            'COMPDB_COMPMATDB_HOST',
-    'database_auth_mechanism':   'COMPDB_DATABASE_AUTH_MECHANISM',
-    'signac_version':            'COMPDB_VERSION',
+    'author_name' :              'SIGNAC_AUTHOR_NAME',
+    'author_email':              'SIGNAC_AUTHOR_EMAIL',
+    'project':                   'SIGNAC_PROJECT',
+    'project_dir' :              'SIGNAC_PROJECT_DIR',
+    'filestorage_dir':           'SIGNAC_FILESTORAGE_DIR',
+    'workspace_dir':             'SIGNAC_WORKING_DIR',
+    'database_host':             'SIGNAC_DATABASE_HOST',
+    'develop':                   'SIGNAC_DEVELOP',
+    'connect_timeout_ms':        'SIGNAC_CONNECT_TIMEOUT',
+    'signacdb_host':             'SIGNAC_DB_HOST',
+    'database_auth_mechanism':   'SIGNAC_DATABASE_AUTH_MECHANISM',
+    'signac_version':            'SIGNAC_VERSION',
 }
 
 REQUIRED_KEYS = [

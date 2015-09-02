@@ -1,6 +1,6 @@
-"""This package contains the CompMatDB database implementation.
+"""This package contains the signac.db database implementation.
 
-The computation materials database (CompMatDB) is a database system to support and encourage the collaboration in the context of computational and experimental data.
+signac.db is designed to support and encourage the collaboration in the context of computational and experimental data.
 """
 import warnings
 
@@ -43,7 +43,7 @@ def connect(host = None, config = None):
     return database.Database(db=db, get_gridfs=gridfs_callback, config=config)
 
 def access_compmatdb(host = None, config = None):
-    """Access the CompMatDB database:
+    """Access the signac.db database:
         
     :param host: The mongoDB database backend host url, defaults to the configured host.
     :type host: str
@@ -55,7 +55,7 @@ def access_compmatdb(host = None, config = None):
     Access the database with:
         
         import signac
-        db = signac.db.access_signacdb()
+        db = signac.db.connect()
 
     To get more information on how to search and modify database entries, use:
 

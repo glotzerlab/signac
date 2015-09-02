@@ -1,14 +1,14 @@
 import sys
 IS_PYTHON3 = sys.version_info[0] == 3
 if not IS_PYTHON3:
-    print("Error: CompDB requires python version >= 3.x.")
+    print("Error: signac requires python version >= 3.x.")
     sys.exit(1)
 
 from setuptools import setup, find_packages
 
 setup(
     name = 'signac',
-    version = '0.1.6',
+    version = '0.1.7dev1',
     package_dir = {'': 'src'},
     packages = find_packages('src'),
 
