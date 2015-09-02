@@ -1,9 +1,14 @@
 import logging
 import os
 import warnings
+import json
+import glob
+from itertools import chain
+
+import pymongo
 
 from .. import VERSION_TUPLE, VERSION
-from ..core.config import Config
+from ..core.config import Config, search_tree, search_standard_dirs
 from .hashing import generate_hash_from_spec
 from . import get_project
 
@@ -49,12 +54,49 @@ def update_010_to_011(project):
         job.remove()
     update_version_key(project, (0,1,1))
 
+def update_016_to_017(project):
+    print("Updating project '{}' from version 0.1.6 to 0.1.7 ...".format(project.get_id()))
+    msg = "Updating configuration file '{}'."
+    for fn_config in chain(search_tree(), search_standard_dirs()):
+        print(msg.format(fn_config))
+        with open(fn_config, 'rb') as file:
+            config = json.loads(file.read().decode())
+        new_config = dict()
+        for key, value in config.items():
+            new_config[key.replace('compdb', 'signac').replace('compmatdb', 'signacdb')] = value
+        Config(new_config).write(fn_config)
+    print("Renaming collections.")
+    for name in ('compdb_jobs', 'compdb_job_queue', 'compdb_job_results', 'compdbfetched_set',):
+        try:
+            project.get_db()[name].rename(name.replace('compdb', 'signac'))
+        except pymongo.errors.OperationFailure as error:
+            if 'source namespace does not exist' in str(error) or \
+                'target namespace exists' in str(error):
+                pass
+            else:
+                raise
+        else:
+            print("Rename database collection '{}' to '{}'.".format(name, name.replace('compdb', 'signac')))
+    print("Renaming job files.")
+    for job in project.find_jobs():
+        for dir in (job.get_workspace_directory(), job.get_filestorage_directory()):
+            for fn in chain(('compdb_jobs.json', '.compdb.json'), glob.glob(os.path.join(dir, '.compdb.*.OPEN'))):
+                try:
+                    fn_0 = os.path.join(dir, fn)
+                    fn_1 = os.path.join(dir, fn.replace('compdb', 'signac'))
+                    os.rename(fn_0, fn_1)
+                except FileNotFoundError:
+                    pass
+                else:
+                    print("Rename file '{}' to '{}'.".format(fn_0, fn_1))
+    update_version_key(project, (0,1,7))
+
 def update(args):
     project = get_project()
     project_version_tuple = get_version_key(project)
     project_version = '.'.join((str(v) for v in project_version_tuple))
     if project_version_tuple == VERSION_TUPLE:
-        print("Project alrady up-to-date. ({}).".format(VERSION))
+        print("Project already up-to-date. ({}).".format(VERSION))
         return
     msg = "Updating project '{}'."
     print(msg.format(project.get_id(), project_version, VERSION))
@@ -65,7 +107,11 @@ def update(args):
         warnings.filterwarnings('ignore', category=UserWarning)
         if project_version_tuple == (0,1,0):
             update_010_to_011(project)
-    update_dummy(project, get_version_key(project), VERSION_TUPLE)
+            update_dummy(project, get_version_key(project), (0,1,6))
+        if project_version_tuple <= (0,1,7):
+            update_016_to_017(project)
+    if get_version_key(project) < VERSION_TUPLE:
+        update_dummy(project, get_version_key(project), VERSION_TUPLE)
     print("Done")
 
 def setup_parser(parser):
