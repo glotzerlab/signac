@@ -11,6 +11,7 @@ FN_DUMP_DB = 'dump'
 FN_RESTORE_SCRIPT_SH = 'restore.sh'
 FN_DUMP_FILES = [FN_DUMP_JOBS, FN_DUMP_STORAGE, FN_DUMP_DB, FN_RESTORE_SCRIPT_SH]
 FN_STORAGE_BACKUP = '_fs_backup'
+FN_JOB_DOCUMENT = 'signac_job_document.json'
 
 COLLECTION_LOGGING = 'logging'
 COLLECTION_JOB_QUEUE = 'signac_job_queue'
