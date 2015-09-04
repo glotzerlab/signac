@@ -94,7 +94,7 @@ def add_adapter_to_network(network, adapter):
         adapter.returns,
         data)
 
-class ConversionError(Exception):
+class ConversionError(RuntimeError):
     pass
 
 class NoConversionPath(ConversionError):
@@ -107,15 +107,19 @@ class Converter(object):
         self._target_type = target_type
         self._adapter_chain = adapter_chain
 
-    def convert(self, data):
+    def convert(self, data, debug=False):
         for adapters in self._adapter_chain:
             for adapter in sorted(adapters, key=lambda a: a.weight):
                 try:
                     logger.debug("Attempting conversion with adapter '{}'.".format(adapter()))
                     data = adapter()(data)
                     break
+                except LinkError as error:
+                    raise
                 except Exception as error:
-                    logger.debug("Conversion failed due to error: '{}'.".format(error))
+                    logger.debug("Conversion failed due to error: {}: '{}'.".format(type(error), error))
+                    if debug:
+                        raise
             else:
                 raise ConversionError(self._source_type, self._target_type)
         return data
@@ -147,9 +151,15 @@ def _get_converters(network, source_type, target_type):
 
 def get_converters(network, source_type, target_type):
     mro = inspect.getmro(source_type)
+    found_converter=False
     for src_type in mro:
-        yield from _get_converters(network, src_type, target_type)
-    else:
+        try:
+            yield from _get_converters(network, src_type, target_type)
+        except NoConversionPath:
+            pass
+        else:
+            found_converter=True
+    if not found_converter:
         raise NoConversionPath(source_type, target_type)
 
 class FormatMetaType(type):
@@ -164,3 +174,70 @@ class FormatMetaType(type):
 
 class BasicFormat(metaclass = FormatMetaType):
     pass
+
+class LinkMetaType(FormatMetaType):
+    """This is the meta class for all link types.
+    
+    Do not derive from this class directly, but derive
+    from BaseLink.
+
+    This meta class defines the required adapter to convert
+    from the link type to the linked type.
+    """
+    def __init__(cls, name, bases, dct):
+        if cls.linked_format is not None:
+            # create adapter
+            class LinkAdapter(Adapter):
+                expects=cls
+                returns=cls.linked_format
+                def convert(self, x):
+                    return x.data
+
+class LinkError(EnvironmentError):
+    "Unable to fetch linked resource."
+    pass
+
+class BaseLink(metaclass=LinkMetaType):
+    """BaseLink allows to create a generic link to an object.
+
+    Derive from this class and implement the fetch method
+    to retrieve the data that this link is associated with.
+    The linked format will automatically add an adapter to
+    allow for automatic conversion. To make this possible
+    you need to specify the class attribute `linked_format`.
+
+    The constructor of `linked_format` needs to accept a
+    single argument, the return value of `fetch()`.
+
+    .. example::
+
+        class SimpleFileLink(BaseLink):
+            def fetch(self):
+                return open(self.url, 'rb').read()
+
+        class SimpleTextFileLink(SimpleFileLink):
+            linked_format=TextFile
+    """
+    linked_format=None
+    def __init__(self, url):
+        if self.linked_format is None:
+            raise TypeError("The class attribute linked_format cannot be None!")
+        self._url=url
+
+    @property
+    def url(self):
+        "The url of the linked data object."
+        return self._url
+
+    def fetch(self):
+        """"Fetch the linked resource.
+
+        Returns: A value which is passed to the linked type's
+                 constructor.
+        """
+        raise NotImplementedError("This is an abstract base class.")
+
+    @property
+    def data(self):
+        "Return the data of the linked object in the linked format."
+        return self.linked_format(self.fetch())
