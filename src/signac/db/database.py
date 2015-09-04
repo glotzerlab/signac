@@ -192,12 +192,15 @@ class _BaseCursor(object):
         else:
             try:
                 return self._db._resolve_doc(doc, self._call_dict, self._projection)
+            except conversion.LinkError as error:
+                logger.warning("Link error: {}".format(error))#raise
+                return next(self)
             except conversion.NoConversionPath:
                 return next(self)
             except conversion.ConversionError as error:
                 msg = "Conversion error for doc with id '{}': {}"
                 logger.warning(msg.format(doc['_id'], error))
-                raise
+                return next(self)
             except AuthorizationError as error:
                 self._skipped_auth[doc['project']] += 1
                 msg = "Skipping record from project '{project}': {cause}"
