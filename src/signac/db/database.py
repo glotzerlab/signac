@@ -267,7 +267,7 @@ class Database(object):
         self._gridfs_callback = get_gridfs
         #self._gridfs = GridFS(self._db)
         self._formats_network = generate_auto_network()
-        self.debug_mode = False
+        self._debug_mode = False
 
     def __str__(self):
         return "signac.db.Database(db={})".format(self._db)
@@ -279,6 +279,19 @@ class Database(object):
     def config(self):
         "Returns the config instance associated with this database."
         return self._config
+
+    @property
+    def debug_mode(self):
+        """If true, errors during conversion will be propagated to the user.
+
+        This property should be set to True during the development and
+        debugging of adapters routines.
+        """
+        return self._debug_mode
+
+    @debug_mode.setter
+    def debug_mode(self, value):
+        self._debug_mode = bool(value)
 
     @property
     def formats_network(self):
@@ -323,7 +336,7 @@ class Database(object):
                         msg = "Attempting conversion path # {}: {} nodes."
                         logger.debug(msg.format(i+1, len(converter)))
                         try:
-                            src_converted = converter.convert(src)
+                            src_converted = converter.convert(src, debug=self.debug_mode)
                             break
                         except conversion.ConversionError as error:
                             msg = "Conversion attempt with '{}' failed."
