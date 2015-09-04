@@ -100,7 +100,6 @@ def decode(data):
         if 'py/object' in data:
             msg = "Missing format definition for: '{}'."
             logger.debug(msg.format(data['py/object']))
-    #data = json.loads(binary.decode())
     return data
 
 def generate_auto_network():
@@ -328,13 +327,13 @@ class Database(object):
                             logger.debug(msg.format(converter))
                     else:
                         raise conversion.ConversionError(src, method.expects)
-                except conversion.ConversionError as error:
-                    msg = "Conversion from '{}' to '{}' through available conversion path failed."
-                    logger.debug(msg.format(type(src), method.expects))
-                    raise
                 except conversion.NoConversionPath as error:
                     msg = "No path found."
                     logger.debug(msg)
+                    raise
+                except conversion.ConversionError as error:
+                    msg = "Conversion from '{}' to '{}' through available conversion path failed."
+                    logger.debug(msg.format(type(src), method.expects))
                     raise
                 else:
                     src = src_converted
@@ -539,7 +538,7 @@ class Database(object):
     def _get_file(self, file_id, project_id):
         "Retrieve file with :param file_id: from the gridfs collection."
         grid_file = self._get_gridfs(project_id).get(file_id)
-        #grid_file = self._gridfs.get(file_id)
+        #grid_file = self._gridfs.get(file_id)  # <- legacy code
         return decode(grid_file.read())
 
     def _resolve_files(self, doc):
