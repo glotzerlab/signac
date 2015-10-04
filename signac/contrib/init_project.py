@@ -7,7 +7,7 @@ import stat
 import warnings
 import argparse
 
-from ..core.config import Config, load_config
+from ..common.config import Config, load_config
 from .. import VERSION_TUPLE
 from .templates import TEMPLATES
 from . import get_project, check

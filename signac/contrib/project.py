@@ -19,8 +19,8 @@ from bson.json_util import dumps
 from bson.json_util import loads
 
 from .. import VERSION, VERSION_TUPLE
-from ..core.config import load_config
-from ..core.dbclient_connector import DBClientConnector
+from ..common.config import load_config
+from ..common.host import get_connector
 from ..core.mongodb_executor import MongoDBExecutor
 from ..core.mongodb_queue import Empty
 from ..core.mongodb_queue import MongoDBQueue
@@ -169,8 +169,7 @@ class OnlineProject(BaseProject):
     def _get_client(self):
         "Attempt to connect to the database host and store the client instance."
         if self._client is None:
-            prefix = 'database_'
-            connector = DBClientConnector(self.config, prefix = prefix)
+            connector = get_connector(config=self.config)
             logger.debug("Connecting to database.")
             try:
                 connector.connect()
@@ -856,7 +855,7 @@ class OnlineProject(BaseProject):
         The function will raise a UserWarning if the signac version is higher than the project version.
         The function will raise a RuntimeError if the signac version is less than the project version, because correct behaviour can't be guaranteed in this case.
         """
-        version = self.config.get('signac_version', (0,1,0))
+        version = tuple(self.config.get('signac_version', (0,1,0)))
         if VERSION_TUPLE < version:
             msg = "The project is configured for signac version {}, but the current signac version is {}. Update signac to use this project."
             raise RuntimeError(msg.format(version, VERSION_TUPLE))

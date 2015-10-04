@@ -1,24 +1,14 @@
 import logging
 import warnings
 import os
-import stat
-import shutil
-import base64
-import tempfile
-import json as serializer
-from copy import copy
 
-from .dbclient_connector import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
 from . import SSL_SUPPORT
 from . import utility
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_FILENAME = 'signac.rc'
-CONFIG_FILENAMES = [DEFAULT_FILENAME, 'compdb.rc']
-HOME = os.path.expanduser('~')
-CONFIG_PATH = [HOME]
-CWD = os.getcwd()
+    
+from ..common.connection import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
+from ..common.config import load_config, read_config_file
 
 ENVIRONMENT_VARIABLES = {
     'author_name' :              'SIGNAC_AUTHOR_NAME',
@@ -82,202 +72,6 @@ class IllegalArgumentError(ValueError):
 class PermissionsError(RuntimeError):
     pass
 
-def is_legal_key(key):
-    return key in LEGAL_ARGS
-
-def process_set(key, value):
-    if not is_legal_key(key):
-        raise IllegalKeyError(key)
-    if key in DIRS or key in FILES:
-        return os.path.abspath(os.path.expanduser((value)))
-    if key in CHOICES:
-        if not value in CHOICES[key]:
-            raise IllegalArgumentError(key, value, CHOICES[key])
-    if key.endswith('password'):
-        return base64.standard_b64encode(value.encode()).decode()
-    if key.endswith('version'):
-        if isinstance(value, tuple):
-            return '.'.join((str(v) for v in value))
-    return value
-
-def process_get(key, value):
-    if key.endswith('password'):
-        return base64.standard_b64decode(value.encode()).decode()
-    if key.endswith('version'):
-        if isinstance(value, str):
-            version = utility.parse_version(value)
-            # we ignore developer versions here
-            return tuple((version['major'], version['minor'], version['change']))
-    return value
-
-class Config(object):   
-
-    def __init__(self, args = None):
-        self._args = {}
-        if args is not None:
-            self.update(args)
-
-    def read(self, filename = DEFAULT_FILENAME):
-        is_root = False
-        try:
-            args = read_config_file(filename)
-            logger.debug("Read: {}".format(args))
-            is_root = 'project' in args
-            self._args.update(args)
-        except ValueError as error:
-            msg = "Failed to read config file '{}'."
-            raise RuntimeError(msg.format(filename))
-        else:
-            return is_root
-
-    def _read_files(self):
-        root_directory = None
-        args_chain = []
-        fn = None
-        try:
-            for fn in search_tree():
-                args = read_config_file(fn)
-                args_chain.append(args)
-                is_root = 'project' in args
-                if is_root:
-                    root_directory = os.path.dirname(fn)
-                    break
-            for fn in search_standard_dirs():
-                args = read_config_file(fn)
-                args_chain.append(args)
-        except PermissionsError:
-            raise
-        except Exception as error:
-            if fn is not None:
-                msg = "Error while reading config file '{}': {}."
-                logger.error(msg.format(fn, error))
-            raise
-        for args in reversed(args_chain):
-            self._args.update(args)
-        if root_directory is not None:
-            logger.debug("Found root: {}".format(root_directory))
-            self['project_dir'] = root_directory
-
-    def update(self, args):
-        for key, value in args.items():
-            self[key] = value
-
-    def load(self):
-        logger.debug('Reading config...')
-        self._read_files()
-        self._args.update(read_environment())
-        logger.debug('Verifying config...')
-        self.verify()
-        logger.debug('OK')
-
-    def verify(self, strict = False):
-        verify(self._args, strict = strict)
-
-    def write(self, filename = DEFAULT_FILENAME, indent = 2, keys = None):
-        if keys is None:
-            args = self._args
-        else:
-            args = {k: self._args[k] for k in keys if k in self._args}
-        for key in args:
-            if key.endswith('password'):
-                check_permissions(filename)
-        blob = serializer.dumps(args, indent=indent, sort_keys=True)
-        with tempfile.NamedTemporaryFile() as file:
-            file.write((blob + '\n').encode())
-            file.flush()
-            shutil.copy(file.name, filename)
-
-    def _dump(self, indent = 2, keys = None):
-        if keys is None:
-            args = self._args
-        else:
-            args = {k: self._args[k] for k in keys if k in self._args}
-        return serializer.dumps(args, indent = indent, sort_keys = True)
-
-    def dump(self, indent = 2, keys = None):
-        print(self._dump(indent, keys))
-
-    def __str__(self):
-        return self._dump(indent = 1)
-
-    def __getitem__(self, key):
-        try:
-            v = self._args.get(key)
-            return process_get(
-                key, DEFAULTS[key] if v is None else v)
-        except KeyError as error:
-            msg = "Missing config key: '{key}'. "
-            msg += "Try 'signac config add {key} [your_value]"
-            raise KeyError(msg.format(key = key)) from error
-
-    def get(self, key, default = None):
-        return process_get(
-            key, self._args.get(key, DEFAULTS.get(key, default)))
-
-    def __setitem__(self, key, value, force = False):
-        if force:
-            self._args[key] = value
-        else:
-            self._args[key] = process_set(key, value)
-
-    def __contains__(self, key):
-        return key in self._args
-
-    def __delitem__(self, key):
-        del self._args[key]
-
-    def __len__(self):
-        return len(self._args)
-
-    def clear(self):
-        self._args.clear()
-
-def check_permissions(filename):
-    st = os.stat(filename)
-    if (st.st_mode & stat.S_IROTH):
-        msg = "Permissions of configuration file '{fn}' allow it to be read by others than the user. Unable to read/write password."
-        raise PermissionsError(msg.format(fn=filename))
-
-def read_config_file(filename):
-    logger.debug("Reading config file '{}'.".format(filename))
-    with open(filename) as file:
-        result = serializer.loads(file.read())
-    for key in result:
-        if key.endswith('password'):
-            check_permissions(filename)
-    return result
-
-def _search_tree():
-    cwd = os.getcwd()
-    while(True):
-        for filename in CONFIG_FILENAMES:
-            fn = os.path.abspath(os.path.join(cwd, filename))
-            if os.path.isfile(fn):
-                yield fn
-                #return
-        up = os.path.abspath(os.path.join(cwd, '..'))
-        if up == cwd:
-            msg = "Did not find project configuration file."
-            logger.debug(msg)
-            return
-            #raise FileNotFoundError(msg)
-        else:
-            cwd = up
-
-def search_tree():
-    yield from _search_tree()
-    #tree = list(_search_tree())
-    #tree.reverse()
-    #yield from tree
-
-def search_standard_dirs():
-    for path in CONFIG_PATH:
-        for filename in CONFIG_FILENAMES:
-            fn = os.path.abspath(os.path.join(path, filename))
-            if os.path.isfile(fn):
-                yield fn
-                return
-
 def read_environment():
     logger.debug("Reading environment variables.")
     args = dict()
@@ -290,6 +84,8 @@ def read_environment():
     return args
 
 def verify(args, strict = False):
+    warnings.warn("No verification.")
+    return
     for key in args.keys():
         if not key in LEGAL_ARGS:
             msg = "Config key '{}' not recognized. Possible version conflict."
@@ -304,8 +100,3 @@ def verify(args, strict = False):
         if not os.path.isabs(args[dir_key]):
             msg = "Directory specified for '{}': '{}' is not an absolute path."
             logger.warning(msg.format(dir_key, args[dir_key]))
-
-def load_config():
-    config = Config()
-    config.load()
-    return config
