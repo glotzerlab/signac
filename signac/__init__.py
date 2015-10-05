@@ -11,3 +11,4 @@ VERSION_TUPLE = 0,1,7
 from . import core
 from . import contrib
 from . import db
+from .common.host import get_db
