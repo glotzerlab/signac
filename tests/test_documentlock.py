@@ -4,17 +4,14 @@ import warnings
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
+import signac
 from signac.contrib.concurrency import DocumentLockError, DocumentLock, DocumentRLock, LOCK_ID_FIELD
 import pymongo
 
 def acquire_and_release(doc_id, wait):
     """Testing function, to test process concurrency this must be available on module level."""
     import time
-    from pymongo import MongoClient
-    from signac.core.config import load_config
-    config = load_config()
-    client = MongoClient(config['database_host'])
-    db = client['testing']
+    db = signac.get_db('testing')
     mc = db['document_lock']
     lock = DocumentLock(mc, doc_id)
     lock.acquire()
@@ -27,10 +24,7 @@ class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):
         from pymongo import MongoClient 
-        from signac.core.config import load_config
-        config = load_config()
-        client = MongoClient(config['database_host'])
-        db = client['testing']
+        db = signac.get_db('testing')
         self.mc = db['document_lock']
 
     def test_basic(self):
@@ -156,11 +150,7 @@ class TestDocumentLocks(unittest.TestCase):
             self.mc.delete_one({'_id': doc_id})
 
 def lock_and_release(doc_id):
-    from pymongo import MongoClient
-    from signac.core.config import load_config
-    config = load_config()
-    client = MongoClient(config['database_host'])
-    db = client['testing']
+    db = signac.get_db('testing')
     collection = db['document_lock']
     import time
     with DocumentLock(collection, doc_id):

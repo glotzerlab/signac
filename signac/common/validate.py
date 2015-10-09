@@ -16,9 +16,8 @@ fdict = {
     'version': version
     }
 
-def validator():
+def get_validator():
     return Validator(fdict)
-
 
 cfg="""
 author_name = string

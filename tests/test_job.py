@@ -1,6 +1,7 @@
 import unittest
 import sys
 import os
+import io
 import warnings
 import tempfile
 import uuid
@@ -11,7 +12,7 @@ from contextlib import contextmanager
 import pymongo
 
 import signac
-from signac.contrib import get_project
+#from signac.contrib import get_project
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -29,12 +30,18 @@ except ImportError:
 else:
     NUMPY = True
 
-def open_job(*args, **kwargs):
-    project = get_project()
+def config_from_cfg(cfg):
+    cfile = io.StringIO('\n'.join(cfg))
+    return signac.common.config.get_config(cfile)
+
+def open_job(cfg, *args, **kwargs):
+    config = config_from_cfg(cfg)
+    project = signac.contrib.project.Project(config=config)
     return project.open_job(*args, **kwargs)
 
-def open_offline_job(*args, **kwargs):
-    project = get_project()
+def open_offline_job(cfg, *args, **kwargs):
+    config = config_from_cfg(cfg)
+    project = signac.contrib.project.Project(config=config)
     return project.open_offline_job(*args, **kwargs)
 
 def testdata():
@@ -44,6 +51,7 @@ class BaseJobTest(unittest.TestCase):
     
     def setUp(self):
         self._tmp_dir = tempfile.TemporaryDirectory(prefix = 'signac_')
+        self.addCleanup(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         self._tmp_fs = os.path.join(self._tmp_dir.name, 'fs')
@@ -51,23 +59,20 @@ class BaseJobTest(unittest.TestCase):
         os.mkdir(self._tmp_pr)
         os.mkdir(self._tmp_wd)
         os.mkdir(self._tmp_fs)
-        os.environ['COMPDB_AUTHOR_NAME'] = 'signac_test_author'
-        os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
-        os.environ['COMPDB_PROJECT'] = 'testing_signac_test_project'
-        os.environ['COMPDB_PROJECT_DIR'] = self._tmp_pr
-        os.environ['COMPDB_FILESTORAGE_DIR'] = self._tmp_fs
-        os.environ['COMPDB_WORKING_DIR'] = self._tmp_wd
-        os.environ['COMPDB_VERSION'] = '.'.join((str(v) for v in signac.VERSION_TUPLE))
-        os.environ['COMPDB_DATABASE_AUTH_MECHANISM'] = 'none'
-        os.environ['COMPDB_DATABASE_HOST'] = 'localhost'
-        self._project = get_project()
-        self.addCleanup(self._tmp_dir.cleanup)
-        self.addCleanup(self._project.remove, force=True)
+        self.config = signac.common.config.load_config()
+        self.config['default_host'] = 'testing'
+        self.config['author'] = 'test_author'
+        self.config['author_email'] = 'testauthor@example.com'
+        self.config['project'] = 'testing_test_project'
+        self.config['project_dir'] = self._tmp_pr
+        self.config['workspace_dir'] = self._tmp_wd
+        self.config['filestorage_dir'] = self._tmp_fs
+        self.config['signac_version'] = signac.VERSION_TUPLE
+        self.project = signac.contrib.Project(config=self.config)
+        self.addCleanup(self.project.remove, force=True)
 
     def tearDown(self):
         pass
-        #self._project.remove(force = True)
-        #self._tmp_dir.cleanup()
 
 class OldIDJobTest(BaseJobTest):
 
@@ -78,13 +83,13 @@ class OldIDJobTest(BaseJobTest):
 class BaseOnlineJobTest(BaseJobTest):
 
     def open_job(self, *args, **kwargs):
-        project = get_project()
+        project = self.project
         return project.open_job(*args, **kwargs)
 
 class OfflineJobTest(BaseJobTest):
 
     def open_job(self, *args, **kwargs):
-        project = get_project()
+        project = self.project
         return project.open_offline_job(*args, **kwargs)
 
 class JobTest(BaseJobTest):
@@ -92,14 +97,15 @@ class JobTest(BaseJobTest):
 
 class ConfigTest(OfflineJobTest):
     
+    @unittest.skip("Verification is no longer this strict.")
     def test_config_verification(self):
         from signac.core.config import IllegalKeyError
-        self._project.config.verify() 
+        self.project.config.verify() 
         with self.assertRaises(IllegalKeyError):
-            self._project.config['illegal_key'] = 'abc'
+            self.project.config['illegal_key'] = 'abc'
         with self.assertRaises(IllegalKeyError):
-            self._project.config.update(dict(illegal_key = 'abc'))
-        self._project.config.__setitem__('illegal_key', 'abc', force=True)
+            self.project.config.update(dict(illegal_key = 'abc'))
+        self.project.config.__setitem__('illegal_key', 'abc', force=True)
         # Bug in the `warnings` module prevents the usage of the following clause.
         # Possibly related to: 
         #   https://bitbucket.org/gutworth/six/issues/68/assertwarns-and-six
@@ -107,14 +113,14 @@ class ConfigTest(OfflineJobTest):
         #with self.assertWarns(UserWarning): 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            self._project.config.verify() 
+            self.project.config.verify() 
         with self.assertRaises(ValueError):
-            self._project.config.verify(strict=True)
+            self.project.config.verify(strict=True)
 
     def test_set_get_delete(self):  
         key, value = list(test_token.items())[0]
         key, value = 'author_name', list(test_token.values())[0]
-        config = copy.deepcopy(self._project.config)
+        config = copy.deepcopy(self.project.config)
         config[key] = value
         self.assertEqual(config[key], value)
         self.assertIn(key, config)
@@ -123,16 +129,18 @@ class ConfigTest(OfflineJobTest):
 
     def test_update(self):
         key, value = 'author_name', list(test_token.values())[0]
-        config = copy.deepcopy(self._project.config)
+        config = copy.deepcopy(self.project.config)
         config.update({key: value})
         self.assertEqual(config[key], value)
         self.assertIn(key, config)
 
+    @unittest.skip("Verification is no longer this strict.")
     def test_illegal_argument(self):
         from signac.core.config import IllegalArgumentError, CHOICES
         with self.assertRaises(IllegalArgumentError):
-            self._project.config[list(CHOICES.keys())[0]] = 'invalid'
+            self.project.config[list(CHOICES.keys())[0]] = 'invalid'
 
+    @unittest.skip("Config logic changed.")
     def test_config_files_and_dirs(self):
         from signac.core.config import FILES, DIRS
         key_file = FILES[0]
@@ -142,61 +150,22 @@ class ConfigTest(OfflineJobTest):
             with tempfile.NamedTemporaryFile() as tmp:
                 head, tail = os.path.split(tmp.name)
                 os.chdir(head)
-                self._project.config[key_file] = tail
-                self.assertEqual(os.path.abspath(tmp.name), self._project.config[key_file])
-            self._project.config[key_dir] = self._tmp_dir.name
-            self.assertEqual(os.path.abspath(self._tmp_dir.name), self._project.config[key_dir])
+                self.project.config[key_file] = tail
+                self.assertEqual(os.path.abspath(tmp.name), self.project.config[key_file])
+            self.project.config[key_dir] = self._tmp_dir.name
+            self.assertEqual(os.path.abspath(self._tmp_dir.name), self.project.config[key_dir])
         except:
             raise
         finally:
             os.chdir(cwd)
 
-    def test_set_and_retrieve_pw(self): 
-        self._project.config['database_password'] = 'mypassword'
-        self.assertNotEqual(self._project.config._args['database_password'], 'mypassword')
-        self.assertEqual(self._project.config['database_password'], 'mypassword')
-
     def test_set_and_retrieve_version(self):
         fake_version = 0,0,0
-        self._project.config['signac_version'] = fake_version
-        self.assertEqual(self._project.config['signac_version'], fake_version)
-        self._project.config['signac_version'] = '.'.join((str(v) for v in fake_version))
-        self.assertEqual(self._project.config['signac_version'], fake_version)
+        self.project.config['signac_version'] = fake_version
+        self.assertEqual(self.project.config['signac_version'], fake_version)
 
     def test_str(self): 
-        str(self._project.config)
-
-    def test_read(self):    
-        with tempfile.NamedTemporaryFile() as tmp:
-            tmp.write(json.dumps(test_token).encode())
-            tmp.flush()
-            self._project.config.read(tmp.name)
-        self.assertEqual(self._project.config['test_token'], list(test_token.values())[0])
-
-    def test_read_bad_file(self):    
-        from signac.core.config import IllegalKeyError
-        with tempfile.NamedTemporaryFile() as tmp:
-            with self.assertRaises(RuntimeError):
-                self._project.config.read(tmp.name)
-            tmp.write(json.dumps(test_token).encode())
-            tmp.flush()
-            self._project.config.read(tmp.name)
-            self.assertEqual(self._project.config['test_token'], list(test_token.values())[0])
-            with self.assertRaises(IllegalKeyError):
-                self._project.config.verify(strict=True)
-
-    def test_clear(self):
-        config_copy = copy.deepcopy(self._project.config)
-        config_copy.clear()
-        self.assertEqual(len(config_copy), 0)
-
-    def test_write_and_read(self):
-        config_copy = copy.deepcopy(self._project.config)
-        with tempfile.NamedTemporaryFile() as tmp:
-            self._project.config.write(tmp.name)
-            self._project.config.clear()
-            self._project.config.read(tmp.name)
-        self.assertEqual(str(self._project.config), str(config_copy))
+        str(self.project.config)
 
 class OnlineConfigTest(BaseOnlineJobTest, ConfigTest):
     pass
@@ -418,15 +387,15 @@ class JobStorageTest(BaseOnlineJobTest):
         except AttributeError:
             pass
 
-def open_and_lock_and_release_job(token):
-    with open_job(test_token, timeout = 30) as job:
+def open_and_lock_and_release_job(cfg, token):
+    with open_job(cfg, test_token, timeout = 30) as job:
         pass
     return True
 
 class JobConcurrencyTest(BaseOnlineJobTest):
 
     def test_recursive_job_opening(self):
-        project = get_project()
+        project = self.project
         with project.open_job(test_token, timeout = 1) as job0:
             self.assertEqual(job0.num_open_instances(), 1)
             self.assertTrue(job0.is_exclusive_instance())
@@ -447,7 +416,7 @@ class JobConcurrencyTest(BaseOnlineJobTest):
 
     def test_acquire_and_release(self):
         from signac.contrib.concurrency import DocumentLockError
-        with open_job(test_token, timeout = 1) as job:
+        with self.project.open_job(test_token, timeout = 1) as job:
             with job.lock(timeout = 1):
                 def lock_it():
                     with job.lock(blocking=False):
@@ -464,14 +433,14 @@ class JobConcurrencyTest(BaseOnlineJobTest):
             with Pool(processes = num_processes) as pool:
                 result = pool.starmap_async(
                     open_and_lock_and_release_job,
-                    [(test_token) for i in range(num_locks)])
+                    [(self.config.write(), test_token) for i in range(num_locks)])
                 result = result.get(timeout = 60)
                 self.assertEqual(result, [True] * num_locks)
         except Exception:
             raise
         finally:
             # clean up
-            with open_job(test_token, timeout = 60) as job:
+            with self.project.open_job(test_token, timeout = 60) as job:
                 pass
             job.remove(force = True)
 
@@ -494,7 +463,7 @@ class MyCustomHeavyClass(MyCustomClass):
         return self._a == rhs._a and self._b == rhs._b and np.array_equal(self._c, rhs._c)
 
 ex = False
-def open_cache(unittest, data_type):
+def open_cache(test, data_type):
 
     a,b,c = range(3)
     global ex
@@ -505,17 +474,17 @@ def open_cache(unittest, data_type):
 
     expected_result = foo(a, b = b, c = c)
     ex = False
-    with open_job(test_token) as job:
+    with open_job(test.config.write(), test_token) as job:
         result = job.cached(foo, a, b = b, c = c)
         #print(result, expected_result)
-        unittest.assertEqual(result, expected_result)
-    unittest.assertTrue(ex)
+        test.assertEqual(result, expected_result)
+    test.assertTrue(ex)
 
     ex = False
-    with open_job(test_token) as job:
+    with open_job(test.config.write(), test_token) as job:
         result = job.cached(foo, a, b = b, c = c)
-    unittest.assertEqual(result, expected_result)
-    unittest.assertFalse(ex)
+    test.assertEqual(result, expected_result)
+    test.assertFalse(ex)
     job.remove()
 
 @unittest.skipIf(not NUMPY, 'requires numpy')
@@ -531,7 +500,7 @@ class TestJobCache(BaseOnlineJobTest):
         open_cache(self, MyCustomHeavyClass)
 
     def test_cache_clear(self):
-        project = get_project()
+        project = self.project
         open_cache(self, int)
         project.get_cache().clear()
         open_cache(self, int)
@@ -673,11 +642,11 @@ class OfflineOnlineSynchronizeDocumentTest(BaseJobTest):
     def test_synchronization(self):
         key = 'sync1'
         d = testdata()
-        offline_job = open_offline_job(test_token)
+        offline_job = open_offline_job(self.project.config.write(), test_token)
         offline_job.document[key] = d
         self.assertIn(key, offline_job.document)
         self.assertEqual(len(offline_job.document), 1)
-        online_job = open_job(test_token)
+        online_job = open_job(self.project.config.write(), test_token)
         self.assertNotIn(key, online_job.document)
         online_job.load_document()
         self.assertIn(key, online_job.document)

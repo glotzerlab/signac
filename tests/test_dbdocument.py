@@ -1,6 +1,7 @@
 import unittest
 from contextlib import contextmanager
 
+import signac
 from signac.core.dbdocument import DBDocument
 
 import warnings
@@ -31,27 +32,19 @@ def document(collection = None):
             pass
 
 def get_collection():
-    from pymongo import MongoClient
-    from signac.core.config import load_config
-    config = load_config()
-    client = MongoClient(config['database_host'])
-    db = client['testing']
+    db = signac.get_db('testing', hostname='testing')
     return db['test_dbdocument']
 
 @contextmanager
-def get_dbdoc(host = None, id_ = None):
-    from signac.core.config import load_config
-    config = load_config()
-    if host is None:
-        host = config['database_host']
+def get_dbdoc(hostname = 'testing', id_ = None):
     if id_ is None:
         with document() as id_:
-            dbdoc = DBDocument(host, 'testing', 'dbdocument', id_, connect_timeout_ms = config['connect_timeout_ms'])
+            dbdoc = DBDocument(hostname, 'testing', 'dbdocument', id_, connect_timeout_ms = 1000)
             with dbdoc as x:
                 yield x
             x.remove()
     else:
-        dbdoc = DBDocument(host, 'testing', 'dbdocument', id_, connect_timeout_ms = config['connect_timeout_ms'])
+        dbdoc = DBDocument(hostname, 'testing', 'dbdocument', id_, connect_timeout_ms = 1000)
         with dbdoc as x:
             yield x
         x.remove()
@@ -74,8 +67,7 @@ class TestDBDocument(unittest.TestCase):
 
     def test_not_open(self):
         with document() as id_:
-            dbdoc = DBDocument(
-                'localhost', 'testing', 'dbdocument', id_)
+            dbdoc = DBDocument('testing', 'testing', 'test_dbdocument', id_)
             with self.assertRaises(RuntimeError):
                 dbdoc['key'] = 'data'
             with self.assertRaises(RuntimeError):
@@ -88,8 +80,7 @@ class TestDBDocument(unittest.TestCase):
 
     def test_open_closing(self):
         with document() as id_:
-            dbdoc = DBDocument(
-                'localhost', 'testing', 'dbdocument', id_)
+            dbdoc = DBDocument('testing', 'testing', 'test_dbdocument', id_)
             dbdoc.open()
             dbdoc.clear()
             dbdoc.close()

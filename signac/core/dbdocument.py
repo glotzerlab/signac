@@ -3,11 +3,11 @@ import os
 from queue import Queue, Empty
 from threading import Thread, Event, Condition
 
-import pymongo
 from pymongo.errors import ConnectionFailure
 from sqlitedict import SqliteDict
 
 from . mongodbdict import MongoDBDict
+from ..common.host import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +51,11 @@ def sync_worker(stop_event, synced_or_failed_event,
 
 class ReadOnlyDBDocument(object):
 
-    def __init__(self, host, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
+    def __init__(self, hostname, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
         self._id = _id
         self._rank = rank
         self._buffer = None
-        client = pymongo.MongoClient(host)
-        collection = client[db_name][collection_name]
+        collection = get_db(db_name, hostname=hostname)[collection_name]
         self._mongodict = MongoDBDict(collection, _id)
         self._sync_queue = Queue()
         self._stop_event = Event()

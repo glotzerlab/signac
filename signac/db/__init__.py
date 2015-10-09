@@ -7,7 +7,7 @@ import warnings
 import gridfs
 
 from ..common.config import load_config
-from ..common.host import get_connector
+from ..common.host import get_client
 
 # namespace extension
 from .conversion import DBMethod, BasicFormat, Adapter
@@ -32,12 +32,10 @@ def connect(host = None, config = None):
     from . import database
     if config is None:
         config = load_config()
-    connector = get_connector()
-    connector.connect()
-    connector.authenticate()
-    db = connector.client[config['signacdb']['database']]
+    client = get_client(hostname=host, config=config)
+    db = client[config['signacdb']['database']]
     def gridfs_callback(project_id):
-        return gridfs.GridFS(connector.client[project_id])
+        return gridfs.GridFS(client[project_id])
     return database.Database(db=db, get_gridfs=gridfs_callback, config=config)
 
 def access_compmatdb(host = None, config = None):

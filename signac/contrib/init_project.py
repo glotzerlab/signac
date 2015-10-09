@@ -7,7 +7,7 @@ import stat
 import warnings
 import argparse
 
-from ..common.config import Config, load_config
+from ..common.config import load_config, get_config, read_config_file
 from .. import VERSION_TUPLE
 from .templates import TEMPLATES
 from . import get_project, check
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_WORKSPACE = 'workspace'
 DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
-DEFAULT_VERSION = '.'.join((str(v) for v in VERSION_TUPLE))
+DEFAULT_VERSION = VERSION_TUPLE
 
 MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
 Execute `signac check` to check your configuration."""
@@ -66,11 +66,11 @@ def generate_config(args):
         c_args['filestorage_dir'] = args.storage
     if args.db_host:
          c_args['database_host'] = args.db_host
-    config = Config()
+    fn_config = os.path.join(args.directory, 'signac.rc')
     try:
-        config.read(os.path.join(args.directory, 'signac.rc'))
+        config = read_config_file(fn_config)
     except FileNotFoundError:
-        pass
+        config = get_config()
     config.update(c_args)
     config.verify()
     return config
@@ -104,11 +104,11 @@ def init_project(args):
     except Exception as error:
         raise
     else:
-        config.write(os.path.join(args.directory, 'signac.rc'))
+        config.filename = os.path.join(args.directory, 'signac.rc')
+        config.write()
         print(MSG_SUCCESS.format(
             project_name = args.project_name,
             project_dir = os.path.abspath(args.directory)))
-        config.load()
 
 def setup_parser(parser):
     parser.add_argument(

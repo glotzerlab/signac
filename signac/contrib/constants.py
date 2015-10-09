@@ -25,3 +25,4 @@ PULSE_PERIOD = 1
 FN_MANIFEST = '.signac.json'
 FN_OPEN_FLAG = '.signac.{uid}.OPEN'
 
+ENCODING = 'utf-8'

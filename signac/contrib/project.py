@@ -20,7 +20,7 @@ from bson.json_util import loads
 
 from .. import VERSION, VERSION_TUPLE
 from ..common.config import load_config
-from ..common.host import get_connector
+from ..common import host
 from ..core.mongodb_executor import MongoDBExecutor
 from ..core.mongodb_queue import Empty
 from ..core.mongodb_queue import MongoDBQueue
@@ -169,28 +169,8 @@ class OnlineProject(BaseProject):
     def _get_client(self):
         "Attempt to connect to the database host and store the client instance."
         if self._client is None:
-            connector = get_connector(config=self.config)
-            logger.debug("Connecting to database.")
-            try:
-                connector.connect()
-                connector.authenticate()
-            except:
-                logger.error("Connection failed.")
-                raise
-            else:
-                logger.debug("Connected and authenticated.")
-            self._client = connector.client
+            self._client = host.get_client(config=self.config)
         return self._client
-
-    def _get_db(self, db_name):
-        "Return a database with name :param db_name: from the database host."
-        host = self.config['database_host']
-        try:
-            return self._get_client()[db_name]
-        except pymongo.errors.ConnectionFailure as error:
-            msg = "Failed to connect to database '{}' at '{}'."
-            #logger.error(msg.format(db_name, host))
-            raise ConnectionFailure(msg.format(db_name, host)) from error
 
     def get_db(self, db_name = None):
         """Return a database from the project's database host.
@@ -199,10 +179,10 @@ class OnlineProject(BaseProject):
         :returns: The datbase with :param db_name: or the project's root database.
         """
         if db_name is None:
-            return self.get_db(self.get_id())
+            return self._get_client()[self.get_id()]
         else:
             assert valid_name(db_name)
-            return self._get_db(db_name)
+            return self._get_client()[db_name]
 
     def get_project_db(self):
         "Return the project's root database."
@@ -358,12 +338,11 @@ class OnlineProject(BaseProject):
             else:
                 raise
         try:
-            host = self.config['database_host']
             client = self._get_client()
             client.drop_database(self.get_id())
         except pymongo.errors.ConnectionFailure as error:
             msg = "{}: Failed to remove project database on '{}'."
-            raise ConnectionFailure(msg.format(self.get_id(), host)) from error
+            raise ConnectionFailure(msg.format(self.get_id(), client.address)) from error
 
     def _lock_job(self, job_id, blocking = True, timeout = -1):
         "Lock the job document of job with ``job_id``."
@@ -544,9 +523,9 @@ class OnlineProject(BaseProject):
             file.write("#/usr/bin/env sh\n# -*- coding: utf-8 -*-\n".encode())
             file.write(RESTORE_SH.format(
                 project = self.get_id(),
-                db_host = self.config['database_host'],
+                db_host = self._client.address,
                 fs_dir = self.filestorage_dir(),
-                db_meta = self.config['database_meta'],
+                db_meta = self.get_id(),
                 signac_docs = JOB_META_DOCS,
                 signac_job_docs = JOB_DOCS,
                 sn_storage_dir= FN_DUMP_STORAGE,
@@ -555,7 +534,9 @@ class OnlineProject(BaseProject):
 
     def _create_config_snapshot(self, dst):
         fn_config = os.path.join(dst, 'signac.rc')
-        self.config.write(fn_config)
+        with open(fn_config, 'wb') as file:
+            for line in self.config.write():
+                file.write('{}\n'.format(line).encode(ENCODING))
         return [fn_config]
 
     def _create_snapshot_view_script(self, dst):
