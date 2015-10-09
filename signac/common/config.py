@@ -1,11 +1,11 @@
 import os
 import stat
-import itertools
 import logging
 import warnings
 
 from .configobj import ConfigObj
-from .validate import validator, cfg
+from .validate import get_validator, cfg
+from .errors import ConfigError
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +16,7 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 FN_CONFIG = os.path.expanduser('~/.signacrc')
 
-class IllegalKeyError(ValueError): pass
-class IllegalArgumentError(ValueError): pass
-class PermissionsError(RuntimeError): pass
+class PermissionsError(ConfigError): pass
 
 def search_tree():
     cwd = os.getcwd()
@@ -52,14 +50,29 @@ def check_permissions(filename):
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     config = Config(filename, configspec=cfg.split('\n'))
-    config.validate(validator())
+    config.validate(get_validator())
     for key in config:
         if key.endswith('password'):
             check_permissions(filename)
     return config
 
+def write_config(config, filename):
+    fn = config.filename
+    config.filename = None
+    try:
+        with open(filename, 'wb') as file:
+            for line in config.write():
+                file.write((line+'\n').encode(type(config).encoding))
+    finally:
+        config.filename = fn
+
+def get_config(infile=None, configspec=None, * args, **kwargs):
+    if configspec is None:
+        configspec = cfg.split('\n')
+    return Config(infile, configspec=configspec, *args, **kwargs)
+
 def load_config():
-    config = Config()
+    config = Config(configspec=cfg.split('\n'))
     for fn in search_standard_dirs():
         tmp = read_config_file(fn)
         config.merge(tmp)
@@ -75,8 +88,10 @@ def load_config():
 class Config(ConfigObj):
     encoding='utf-8'
 
-    def verify(self):
-        warnings.warn("No verification.")
+    def verify(self, validator = None, *args, **kwargs):
+        if validator is None:
+            validator = get_validator()
+        super(Config, self).validate(validator, *args, **kwargs)
 
     def dump(self):
         warnings.warn("Do not use dump.", DeprecationWarning)
