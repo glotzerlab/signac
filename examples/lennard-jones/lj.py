@@ -1,5 +1,4 @@
 from hoomd_script import *
-import random
 from math import pi
 from hoomd_util import try_restart, make_write_restart_file_callback
 
@@ -12,9 +11,9 @@ def simulate(max_walltime, N, density, epsilon, sigma, r_cut, T, random_seed, nu
     phi_p = 4.0 / 3 * pi * pow(r, 3) * density
 
     try:
-        system = try_restart('restart.xml')
+        try_restart('restart.xml')
     except FileNotFoundError:
-        system = init.create_random(
+        init.create_random(
             N = N, phi_p = phi_p, seed = int(random_seed))
         dump.xml('init.xml', vis = True)
 
