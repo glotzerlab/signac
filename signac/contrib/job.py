@@ -13,47 +13,51 @@ from multiprocessing import Process
 import pymongo
 from pymongo.errors import DuplicateKeyError
 
-from .. import VERSION, VERSION_TUPLE
+from .. import VERSION_TUPLE
 from ..core.storage import Storage
 from ..core.jsondict import JSonDict
 from ..core.mongodbdict import MongoDBDict as DBDocument
 from .concurrency import DocumentLock
 from .hashing import generate_hash_from_spec
-from .errors import ConnectionFailure
 from .constants import *
 
 logger = logging.getLogger(__name__)
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-def pulse_worker(collection, job_id, unique_id, stop_event, period = PULSE_PERIOD):
+
+def pulse_worker(collection, job_id, unique_id, stop_event, period=PULSE_PERIOD):
     while(True):
         logger.debug("Pulse while loop.")
-        if stop_event.wait(timeout = PULSE_PERIOD):
+        if stop_event.wait(timeout=PULSE_PERIOD):
             logger.debug("Stop pulse.")
             return
         else:
             logger.debug("Pulsing...")
             filter = {'_id': job_id}
-            update = {'$set': {'pulse.{}'.format(unique_id): datetime.datetime.utcnow()}}
+            update = {'$set': {'pulse.{}'.format(
+                unique_id): datetime.datetime.utcnow()}}
             if PYMONGO_3:
-                collection.update_one(filter, update, upsert = True)
+                collection.update_one(filter, update, upsert=True)
             else:
-                collection.update(filter, update, upsert = True)
+                collection.update(filter, update, upsert=True)
+
 
 class JobNoIdError(RuntimeError):
     pass
+
 
 class BaseJob(object):
     """Base class for all jobs classes.
 
     All properties and methods in this class do not require a online database connection."""
-    
+
     def __init__(self, project, parameters, version=None):
         self._unique_id = str(uuid.uuid4())
         self._project = project
         if version is None:
-            version = tuple((int(v) for v in project.config.get('signac_version', (0,1,0))))
+            version = tuple(
+                (int(v) for v in project.config.get('signac_version', (0, 1, 0))))
         self._version = version
         try:
             dict(parameters)
@@ -62,8 +66,10 @@ class BaseJob(object):
         self._parameters = parameters
         self._id = None
         self._cwd = None
-        self._wd = os.path.join(self._project.config['workspace_dir'], str(self.get_id()))
-        self._fs = os.path.join(self._project.filestorage_dir(), str(self.get_id()))
+        self._wd = os.path.join(self._project.config[
+                                'workspace_dir'], str(self.get_id()))
+        self._fs = os.path.join(
+            self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
         self._fn_dict = os.path.join(self._fs, FN_JOB_DOCUMENT)
         self._on_disk_document = None
@@ -73,11 +79,13 @@ class BaseJob(object):
 
         .. note::
            This function respects the project's version key."""
-        if self._id is None: # The id calculation is cached
+        if self._id is None:  # The id calculation is cached
             # The ID calculation was changed after version 0.1.
-            # This is why we need to check the project version, to calculate it in the correct way.
-            if self._version == (0,1):
-                spec = dict(JOB_PARAMETERS_KEY = self._parameters, project = self.get_project().get_id())
+            # This is why we need to check the project version, to calculate it
+            # in the correct way.
+            if self._version == (0, 1):
+                spec = dict(JOB_PARAMETERS_KEY=self._parameters,
+                            project=self.get_project().get_id())
                 self._id = generate_hash_from_spec(spec)
             else:  # new style
                 self._id = generate_hash_from_spec(self._parameters)
@@ -119,20 +127,21 @@ class BaseJob(object):
         if self._storage is None:
             self._create_directories()
             self._storage = Storage(
-                fs_path = self._fs,
-                wd_path = self._wd)
+                fs_path=self._fs,
+                wd_path=self._wd)
         return self._storage
 
     def _get_on_disk_document(self):
         "Return the on-disk document."
         if self._on_disk_document is None:
             self._create_directories()
-            self._on_disk_document = JSonDict(self._fn_dict, synchronized=True, write_concern=True)
+            self._on_disk_document = JSonDict(
+                self._fn_dict, synchronized=True, write_concern=True)
         return self._on_disk_document
 
     def _make_manifest(self):
         "Create the manifest, to be stored within the job's directories."
-        return dict(project = self.get_project().get_id(), parameters = self.parameters())
+        return dict(project=self.get_project().get_id(), parameters=self.parameters())
 
     def _create_directories(self):
         "Create the job's associated directories."
@@ -147,7 +156,7 @@ class BaseJob(object):
             logger.debug(msg.format(fn=fn_manifest))
             try:
                 with open(fn_manifest, 'wb') as file:
-                    blob = serializer.dumps(manifest)+'\n'
+                    blob = serializer.dumps(manifest) + '\n'
                     file.write(blob.encode())
             except FileNotFoundError as error:
                 msg = "Unable to write manifest file to '{}'."
@@ -159,7 +168,7 @@ class BaseJob(object):
 
     def _flag_open(self):
         "Mark job as active."
-        with open(self._fn_open_flag(), 'wb') as file:
+        with open(self._fn_open_flag(), 'wb'):
             pass
 
     def _remove_open_flag(self):
@@ -191,7 +200,7 @@ class BaseJob(object):
 
     def _close_stage_two(self):
         # The automatic removal is deactivated since 0.1.1
-        #if self.num_open_instances() == 0:
+        # if self.num_open_instances() == 0:
         #    shutil.rmtree(self.get_workspace_directory(), ignore_errors = True)
         self._remove_open_flag()
         msg = "Closing job with id: '{}'."
@@ -219,9 +228,9 @@ class BaseJob(object):
 
     def __exit__(self, err_type, err_value, traceback):
         "Close the job."
-        self._close_stage_one() # always executed
+        self._close_stage_one()  # always executed
         if err_type is None:
-            self._close_stage_two() # only executed if no error occurd
+            self._close_stage_two()  # only executed if no error occurd
         return False
 
     def clear_workspace_directory(self):
@@ -236,10 +245,12 @@ class BaseJob(object):
         warnings.warn("This function is deprecated.", DeprecationWarning)
         return os.path.join(self.get_filestorage_directory(), filename)
 
+
 class OfflineJob(BaseJob):
 
     def __init__(self, project, parameters, version=None):
-        super(OfflineJob, self).__init__(project=project,parameters=parameters,version=version)
+        super(OfflineJob, self).__init__(project=project,
+                                         parameters=parameters, version=version)
 
     @property
     def document(self):
@@ -251,14 +262,15 @@ class OfflineJob(BaseJob):
         msg = "Access to the job's collection requires a database connection!"
         raise AttributeError(msg)
 
+
 class OnlineJob(BaseJob):
     """A OnlineJob is a job with active database connection.
 
     .. note::
        Instances of OnlineJob should only be used with reliable database connection. See also :class OfflineJob:.
     """
-    
-    def __init__(self, project, parameters, blocking = True, timeout = -1, version=None):
+
+    def __init__(self, project, parameters, blocking=True, timeout=-1, version=None):
         """Initialize a job, specified by its parameters.
 
         :param parameters: A dictionary specifying the job parameters.
@@ -270,7 +282,8 @@ class OnlineJob(BaseJob):
         .. note::
            The constructor will raise a DocumentLockError if it was impossible to instantiate the job within the specified timeout.
         """
-        super(OnlineJob, self).__init__(project=project, parameters=parameters, version=version)
+        super(OnlineJob, self).__init__(project=project,
+                                        parameters=parameters, version=version)
         self._collection = None
         self._timeout = timeout
         self._blocking = blocking
@@ -295,18 +308,18 @@ class OnlineJob(BaseJob):
         try:
             if PYMONGO_3:
                 result = self._project._get_jobs_collection().find_one_and_update(
-                    filter = self._filter(),
-                    update = {'$setOnInsert': self._make_doc()},
-                    upsert = True,
-                    return_document = pymongo.ReturnDocument.AFTER)
+                    filter=self._filter(),
+                    update={'$setOnInsert': self._make_doc()},
+                    upsert=True,
+                    return_document=pymongo.ReturnDocument.AFTER)
                 assert str(result['_id']) == str(self.get_id())
             else:
                 f = self._filter()
                 result = self._project._get_jobs_collection().update(
-                    f, 
-                    document = {'$setOnInsert': self._make_doc()},
-                    upsert = True,
-                    new = True)
+                    f,
+                    document={'$setOnInsert': self._make_doc()},
+                    upsert=True,
+                    new=True)
                 assert f['_id'] == str(self.get_id())
         except DuplicateKeyError as error:
             warnings.warn(error)
@@ -333,12 +346,13 @@ class OnlineJob(BaseJob):
         "Remove the job's unique id from the executing list in the database."
         update = {'$pull': {'executing': self._unique_id}}
         if PYMONGO_3:
-            result = self._project._get_jobs_collection().find_one_and_update(
-                self._filter(), update=update, return_document = pymongo.ReturnDocument.AFTER)
+            self._project._get_jobs_collection().find_one_and_update(
+                self._filter(), update=update, return_document=pymongo.ReturnDocument.AFTER)
         else:
-            result = self._project._get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
+            self._project._get_jobs_collection().find_and_modify(
+                self._filter(), update=update, new=True)
 
-    def _start_pulse(self, process = True):
+    def _start_pulse(self, process=True):
         "Start the job pulse, used for identifying 'dead' jobs."
         logger.debug("Starting pulse.")
         assert self._pulse is None
@@ -351,14 +365,16 @@ class OnlineJob(BaseJob):
             try:
                 self._pulse_stop_event = multiprocessing.Event()
                 kwargs['stop_event'] = self._pulse_stop_event
-                self._pulse = Process(target = pulse_worker, kwargs = kwargs, daemon = True)
+                self._pulse = Process(
+                    target=pulse_worker, kwargs=kwargs, daemon=True)
                 self._pulse.start()
                 return
-            except AssertionError as error:
-                logger.debug("Failed to start pulse process, falling back to pulse thread.")
+            except AssertionError:
+                logger.debug(
+                    "Failed to start pulse process, falling back to pulse thread.")
         self._pulse_stop_event = threading.Event()
         kwargs['stop_event'] = self._pulse_stop_event
-        self._pulse = Thread(target = pulse_worker, kwargs = kwargs)
+        self._pulse = Thread(target=pulse_worker, kwargs=kwargs)
         self._pulse.start()
 
     def _stop_pulse(self):
@@ -387,13 +403,13 @@ class OnlineJob(BaseJob):
         self._stop_pulse()
         self._remove_instance()
 
-    def _get_lock(self, blocking = None, timeout = None):
+    def _get_lock(self, blocking=None, timeout=None):
         "Obtain a lock for the job's database document."
         self._registered()
         return DocumentLock(
-                self._project._get_jobs_collection(), self.get_id(),
-                blocking = blocking or self._blocking,
-                timeout = timeout or self._timeout,)
+            self._project._get_jobs_collection(), self.get_id(),
+            blocking=blocking or self._blocking,
+            timeout=timeout or self._timeout,)
 
     def open(self):
         "Try to lock the job and then open."
@@ -414,8 +430,8 @@ class OnlineJob(BaseJob):
         "Exit the context manager."
         with self._get_lock():
             if err_type is None:
-                self._close_stage_one() # always executed
-                self._close_stage_two() # only executed if no error occurd
+                self._close_stage_one()  # always executed
+                self._close_stage_two()  # only executed if no error occurd
             else:
                 err_doc = '{}:{}'.format(err_type, err_value)
                 if PYMONGO_3:
@@ -449,7 +465,7 @@ class OnlineJob(BaseJob):
     def collection(self):
         "Return the database collection, associated with this job."
         return self._get_jobs_doc_collection()
-    
+
     def clear(self):
         "Remove all content from this job, but not the registration."
         self.clear_workspace_directory()
@@ -471,7 +487,7 @@ class OnlineJob(BaseJob):
         else:
             self._project._get_jobs_collection().remove(self._filter())
 
-    def remove(self, force = False):
+    def remove(self, force=False):
         """"Remove all content and registration of this job with the project.
 
         :param force: Set to True, to ignore warnings about open instances.
@@ -501,7 +517,7 @@ class OnlineJob(BaseJob):
         "Returns True when this is the only unqiue instance of this job."
         return self.num_open_instances() <= 1
 
-    def lock(self, blocking = True, timeout = -1):
+    def lock(self, blocking=True, timeout=-1):
         """Try to lock this job.
 
         :param blocking: Block until the lock was aquired if True.
@@ -509,7 +525,7 @@ class OnlineJob(BaseJob):
         """
         return self._project._lock_job(
             self.get_id(),
-            blocking = blocking, timeout = timeout)
+            blocking=blocking, timeout=timeout)
 
     def import_job(self, other):
         "Import the storage and job document from :param other:."
@@ -525,33 +541,6 @@ class OnlineJob(BaseJob):
             else:
                 self.collection.save(doc)
 
-    @property
-    def cache(self):
-        "Return the project cache."
-        warnings.warn("The cache API may be deprecated in the future.", PendingDeprecationWarning)
-        return self._project.get_cache()
-
-    def cached(self, function, * args, ** kwargs):
-        """Execute a cached function.
-
-        :param function: The function or callable to execute cached.
-        :param args: An arbitrary number of arguments.
-        :param kwargs: An arbitrary number of keyword arguments.
-        :return The result of the cached function.
-
-        .. note::
-           The function will only be executed *once*, after that the result will be fetched from the project's cache."""
-        warnings.warn("The cache API is under consideration for deprecation in the future.", PendingDeprecationWarning)
-        return self.cache.run(function, * args, ** kwargs)
-
-    @property
-    def spec(self):
-        raise DeprecationWarning("The 'spec' property is deprecated.")
-        #return self._spec
-
-    def _obtain_id(self):
-        msg = "This function is obsolete, as the id is always(!) calculated offline!"
-        raise DeprecationWarning(msg)
 
 class Job(OnlineJob):
     pass

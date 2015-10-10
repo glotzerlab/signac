@@ -1,13 +1,10 @@
 import unittest
-import sys
 import os
 import io
 import warnings
 import tempfile
 import uuid
-import json
 import copy
-from contextlib import contextmanager
 
 import pymongo
 
@@ -22,13 +19,6 @@ warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 warnings.filterwarnings('ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-try:
-    import numpy as np
-except ImportError:
-    NUMPY = False
-else:
-    NUMPY = True
 
 def config_from_cfg(cfg):
     cfile = io.StringIO('\n'.join(cfg))
@@ -388,7 +378,7 @@ class JobStorageTest(BaseOnlineJobTest):
             pass
 
 def open_and_lock_and_release_job(cfg, token):
-    with open_job(cfg, test_token, timeout = 30) as job:
+    with open_job(cfg, test_token, timeout = 30):
         pass
     return True
 
@@ -443,96 +433,6 @@ class JobConcurrencyTest(BaseOnlineJobTest):
             with self.project.open_job(test_token, timeout = 60) as job:
                 pass
             job.remove(force = True)
-
-class MyCustomClass(object):
-    def __init__(self, a):
-        self._a = a
-        self._b = a
-    def __add__(self, rhs):
-        return MyCustomClass(self._a + rhs._a)
-    def bar(self):
-        return 'bar'
-    def __eq__(self, rhs):
-        return self._a == rhs._a and self._b == rhs._b
-
-class MyCustomHeavyClass(MyCustomClass):
-    def __init__(self, a):
-        super().__init__(a)
-        self._c = np.ones(int(2e7))
-    def __eq__(self, rhs):
-        return self._a == rhs._a and self._b == rhs._b and np.array_equal(self._c, rhs._c)
-
-ex = False
-def open_cache(test, data_type):
-
-    a,b,c = range(3)
-    global ex
-    def foo(a, b, ** kwargs):
-        global ex
-        ex = True
-        return data_type(a+b)
-
-    expected_result = foo(a, b = b, c = c)
-    ex = False
-    with open_job(test.config.write(), test_token) as job:
-        result = job.cached(foo, a, b = b, c = c)
-        #print(result, expected_result)
-        test.assertEqual(result, expected_result)
-    test.assertTrue(ex)
-
-    ex = False
-    with open_job(test.config.write(), test_token) as job:
-        result = job.cached(foo, a, b = b, c = c)
-    test.assertEqual(result, expected_result)
-    test.assertFalse(ex)
-    job.remove()
-
-@unittest.skipIf(not NUMPY, 'requires numpy')
-class TestJobCache(BaseOnlineJobTest):
-    
-    def test_cache_native(self):
-        open_cache(self, int)
-
-    def test_cache_custom(self):
-        open_cache(self, MyCustomClass)
-
-    def test_cache_custom_heavy(self):
-        open_cache(self, MyCustomHeavyClass)
-
-    def test_cache_clear(self):
-        project = self.project
-        open_cache(self, int)
-        project.get_cache().clear()
-        open_cache(self, int)
-        project.get_cache().clear()
-
-    def test_modify_code(self):
-        a,b,c = range(3)
-        global ex
-        def foo(a, b, ** kwargs):
-            global ex
-            ex = True
-            return int(a+b)
-
-        expected_result = foo(a, b = b, c = c)
-        ex = False
-        with self.open_job(test_token) as job:
-            result = job.cached(foo, a, b = b, c = c)
-            #print(result, expected_result)
-            self.assertEqual(result, expected_result)
-        self.assertTrue(ex)
-
-        def foo(a, b, ** kwargs):
-            global ex
-            ex = True
-            return int(b+a)
-
-        ex = False
-        with self.open_job(test_token) as job:
-            result = job.cached(foo, a, b = b, c = c)
-        self.assertEqual(result, expected_result)
-        self.assertTrue(ex)
-        job.remove()
 
 class TestJobImport(BaseOnlineJobTest):
 

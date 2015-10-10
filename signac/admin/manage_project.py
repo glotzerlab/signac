@@ -2,30 +2,30 @@ import logging
 import sys
 import argparse
 
-from ..contrib import admin
 from ..contrib.admin import setup_parser as setup_user_parser
 from ..contrib.utility import add_verbosity_argument, set_verbosity_level
-from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
 
 logger = logging.getLogger(__name__)
+
 
 def setup_parser(parser):
     parser.add_argument(
         'project',
-        type = str,
-        help = "The project to administrate.")
+        type=str,
+        help="The project to administrate.")
     subparsers = parser.add_subparsers()
 
     parser_user = subparsers.add_parser('user')
     setup_user_parser(parser_user)
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description = "Administrate signac projects.")
+        description="Administrate signac projects.")
     parser.add_argument(
         '-y', '--yes',
-        action = 'store_true',
-        help = "Assume yes to all questions.",)
+        action='store_true',
+        help="Assume yes to all questions.",)
     setup_parser(parser)
     add_verbosity_argument(parser)
     args = parser.parse_args()

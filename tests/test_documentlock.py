@@ -23,7 +23,6 @@ def acquire_and_release(doc_id, wait):
 class TestDocumentLocks(unittest.TestCase):
 
     def setUp(self):
-        from pymongo import MongoClient 
         db = signac.get_db('testing')
         self.mc = db['document_lock']
 
@@ -43,11 +42,11 @@ class TestDocumentLocks(unittest.TestCase):
                 rlock.release()
             try:
                 rlock.release()
-            except DocumentLockError as error:
+            except DocumentLockError:
                 pass # expected
             else:
                 assert False
-        except DocumentLockError as error:
+        except DocumentLockError:
             raise
         finally:
             self.mc.delete_one({'_id': doc_id})
@@ -61,7 +60,7 @@ class TestDocumentLocks(unittest.TestCase):
             with DocumentLock(self.mc, doc_id):
                 with DocumentLock(self.mc, doc_id, blocking = False):
                     pass # should raise
-        except DocumentLockError as error:
+        except DocumentLockError:
             pass # expected
         else:
             assert False
@@ -75,7 +74,7 @@ class TestDocumentLocks(unittest.TestCase):
             with DocumentLock(self.mc, doc_id):
                 # modify lock attribute
                 self.mc.update_one({'_id': doc_id}, {'$set': {LOCK_ID_FIELD: 0}})
-        except DocumentLockError as error:
+        except DocumentLockError:
             pass # expected
         else:
             assert False
@@ -89,27 +88,10 @@ class TestDocumentLocks(unittest.TestCase):
             with DocumentLock(self.mc, doc_id):
                 with DocumentLock(self.mc, doc_id, timeout = timeout):
                     pass # should fail
-        except DocumentLockError as error:
+        except DocumentLockError:
             pass # expected
         else:
             assert False
-        finally:
-            self.mc.delete_one({'_id': doc_id})
-
-    def test_process_concurrency(self):
-        doc_id = self.mc.insert_one({'a': 0}).inserted_id
-        try:
-            num_processes = 10
-            num_locks = 100
-            from multiprocessing import Pool
-            with Pool(processes = num_processes) as pool:
-                result = pool.starmap_async(
-                    acquire_and_release,
-                    [(doc_id, 0.01) for i in range(num_locks)])
-                result = result.get(timeout = 5)
-                assert result == [True] * num_locks
-        except DocumentLockError as error:
-            raise
         finally:
             self.mc.delete_one({'_id': doc_id})
 
@@ -129,7 +111,7 @@ class TestDocumentLocks(unittest.TestCase):
                 results = {executor.submit(lock_and_release) for i in range(num_locks)}
                 for future in as_completed(results):
                     assert future.result()
-        except DocumentLockError as error:
+        except DocumentLockError:
             raise
         finally:
             self.mc.delete_one({'_id': doc_id})
@@ -144,7 +126,7 @@ class TestDocumentLocks(unittest.TestCase):
                 results = {executor.submit(lock_and_release, doc_id) for i in range(num_locks)}
                 for future in as_completed(results):
                     assert future.result()
-        except DocumentLockError as error:
+        except DocumentLockError:
             raise
         finally:
             self.mc.delete_one({'_id': doc_id})

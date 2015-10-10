@@ -1,6 +1,5 @@
 import unittest
 
-import signac
 from signac.core.utility import parse_version, Version
 
 # ordered by release time

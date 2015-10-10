@@ -46,6 +46,7 @@ KEY_DOC_DATA = 'data'
 ILLEGAL_AGGREGATION_KEYS = ['$group', '$out']
 USER_KEYS = ('author_name', 'author_email')
 
+
 def hash_module(c):
     "Calculate hash value for the module of c."
     module = inspect.getmodule(c)
@@ -55,11 +56,13 @@ def hash_module(c):
         m.update(file.read())
     return m.hexdigest()
 
+
 def hash_source(c):
     "Calculate hash value for the source code of c."
     m = hashlib.md5()
     m.update(inspect.getsource(c).encode())
     return m.hexdigest()
+
 
 def callable_name(c):
     "Return a unique name for c."
@@ -67,6 +70,7 @@ def callable_name(c):
         return c.__name__
     except AttributeError:
         return c.name()
+
 
 def callable_spec(c):
     """Generate a mappable, which can be used as filter for c.
@@ -87,11 +91,13 @@ def callable_spec(c):
         }
     return spec
 
+
 def encode(data):
     "Encode data in JSON."
     binary = jsonpickle.encode(data).encode()
     #binary = json.dumps(data).encode()
     return binary
+
 
 def decode(data):
     "Decode data, which is expected to be in JSON format."
@@ -101,6 +107,7 @@ def decode(data):
             msg = "Missing format definition for: '{}'."
             logger.debug(msg.format(data['py/object']))
     return data
+
 
 def generate_auto_network():
     """Generate a formats network from all registered formats and adapters.
@@ -115,12 +122,13 @@ def generate_auto_network():
             network, adapter)
     return network
 
+
 def is_standard_expression(expr):
     """Return True if expr is a standard expression, otherwise False."""
     def search_callable(expr):
         if isinstance(expr, dict):
             return {search_callable(k): search_callable(v)
-                for k, v in expr.items()}
+                    for k, v in expr.items()}
         elif isinstance(expr, list):
             return [search_callable(v) for v in expr]
         elif callable(expr):
@@ -133,6 +141,7 @@ def is_standard_expression(expr):
         return False
     else:
         return True
+
 
 def split_standard_nonstandard(expr):
     """Split expression into standard and non-standard as far as possible."""
@@ -160,17 +169,20 @@ def split_standard_nonstandard(expr):
         else:
             return None, expr
 
+
 class UnsupportedExpressionError(ValueError):
     """This exception is raised when a legal MongoDB expression is not supported."""
     pass
+
 
 class AuthorizationError(RuntimeError):
     """This exception is raised when a database entries are unaccessable with the authorized user's access rights."""
     pass
 
+
 class _BaseCursor(object):
 
-    def __init__(self, db, mongo_cursor, call_dict, projection = None):
+    def __init__(self, db, mongo_cursor, call_dict, projection=None):
         self._db = db
         self._mongo_cursor = mongo_cursor
         self._call_dict = call_dict
@@ -193,7 +205,7 @@ class _BaseCursor(object):
             try:
                 return self._db._resolve_doc(doc, self._call_dict, self._projection)
             except conversion.LinkError as error:
-                logger.warning("Link error: {}".format(error))#raise
+                logger.warning("Link error: {}".format(error))  # raise
                 return next(self)
             except conversion.NoConversionPath:
                 return next(self)
@@ -204,13 +216,15 @@ class _BaseCursor(object):
             except AuthorizationError as error:
                 self._skipped_auth[doc['project']] += 1
                 msg = "Skipping record from project '{project}': {cause}"
-                logger.warn(msg.format(project=doc['project'], cause='not authorized'))
+                logger.warn(msg.format(
+                    project=doc['project'], cause='not authorized'))
                 return next(self)
 
     __next__ = next
 
     def __iter__(self):
         return self
+
 
 class Cursor(_BaseCursor):
     """Iterator over database results.
@@ -235,6 +249,7 @@ class Cursor(_BaseCursor):
         "Reset the cursor to its unevaluated state."
         return self._mongo_cursor.rewind()
 
+
 class CommandCursor(_BaseCursor):
     """Iterator over database command results.
 
@@ -243,13 +258,14 @@ class CommandCursor(_BaseCursor):
     """
     pass
 
+
 class Database(object):
     """The signac.db base class.
 
     This object provides access to the signac.db database functions.
     """
 
-    def __init__(self, db, get_gridfs, config = None):
+    def __init__(self, db, get_gridfs, config=None):
         """Create a new Database object.
 
         :param db: The MongoDB backend database object.
@@ -334,20 +350,21 @@ class Database(object):
                         type(src), method.expects)
                     for i, converter in enumerate(converters):
                         msg = "Attempting conversion path # {}: {} nodes."
-                        logger.debug(msg.format(i+1, len(converter)))
+                        logger.debug(msg.format(i + 1, len(converter)))
                         try:
-                            src_converted = converter.convert(src, debug=self.debug_mode)
+                            src_converted = converter.convert(
+                                src, debug=self.debug_mode)
                             break
-                        except conversion.ConversionError as error:
+                        except conversion.ConversionError:
                             msg = "Conversion attempt with '{}' failed."
                             logger.debug(msg.format(converter))
                     else:
                         raise conversion.ConversionError(src, method.expects)
-                except conversion.NoConversionPath as error:
+                except conversion.NoConversionPath:
                     msg = "No path found."
                     logger.debug(msg)
                     raise
-                except conversion.ConversionError as error:
+                except conversion.ConversionError:
                     msg = "Conversion from '{}' to '{}' through available conversion path failed."
                     logger.debug(msg.format(type(src), method.expects))
                     raise
@@ -404,30 +421,30 @@ class Database(object):
                     }
                     if PYMONGO_3:
                         self._cache.update_one(
-                            filter = cache_doc,
-                            update = update,
-                            upsert = True)
+                            filter=cache_doc,
+                            update=update,
+                            upsert=True)
                     else:
                         self._cache.update(
-                            spec = cache_doc,
-                            document = update,
-                            upsert = True)
+                            spec=cache_doc,
+                            document=update,
+                            upsert=True)
                 except bson.errors.InvalidDocument as error:
                     msg = "Caching error: {}"
                     logger.warning(msg.format(error))
                     raise TypeError(error) from error
         if conversion_errors or records_skipped or no_conversion_path:
             msg = "{m}:"
-            logger.debug(msg.format(m = method))
+            logger.debug(msg.format(m=method))
         if no_conversion_path > 0:
             msg = "# no conversion paths: {n}"
-            logger.debug(msg.format(m = method, n = records_skipped))
+            logger.debug(msg.format(m=method, n=records_skipped))
         if conversion_errors > 0:
             msg = "# failed conversions: {n}"
-            logger.debug(msg.format(m = method, n = records_skipped))
+            logger.debug(msg.format(m=method, n=records_skipped))
         if records_skipped > 0:
             msg = "# records skipped: {n}"
-            logger.debug(msg.format(m = method, n = records_skipped))
+            logger.debug(msg.format(m=method, n=records_skipped))
 
     def _split_filter(self, filter):
         "Split filter into a standard MongoDB filter and a methods filter, which is locally resolved."
@@ -454,10 +471,10 @@ class Database(object):
         cache_spec[KEY_CACHE_DOC_ID] = {'$in': list(doc_ids)}
         if PYMONGO_3:
             cached_docs = self._cache.find(
-                filter = cache_spec, projection = [KEY_CACHE_DOC_ID])
+                filter=cache_spec, projection=[KEY_CACHE_DOC_ID])
         else:
             cached_docs = self._cache.find(
-                spec = cache_spec, fields = [KEY_CACHE_DOC_ID])
+                spec=cache_spec, fields=[KEY_CACHE_DOC_ID])
         cached_ids = [doc[KEY_CACHE_DOC_ID] for doc in cached_docs]
         non_cached_ids = doc_ids.difference(cached_ids)
         try:
@@ -465,8 +482,8 @@ class Database(object):
         except TypeError as error:
             msg = "Failed to process filter '{f}': {e}"
             f = {method: expression}
-            raise TypeError(msg.format(f = f,e = error)) from error
-        pipe = [ 
+            raise TypeError(msg.format(f=f, e=error)) from error
+        pipe = [
             {'$match': cache_spec},
             {'$project': {
                 '_id': '$' + KEY_CACHE_DOC_ID,
@@ -474,7 +491,7 @@ class Database(object):
             }},
             {'$match': {KEY_CACHE_RESULT: expression}},
             {'$project': {'_id': '$_id'}},
-            ]
+        ]
         result = self._cache.aggregate(pipe)
         counter_update = {'$inc': {KEY_CACHE_COUNTER: 1}}
         if PYMONGO_3:
@@ -505,7 +522,7 @@ class Database(object):
         return {
             'author_name': self._config['author_name'],
             'author_email': self._config['author_email'],
-            }
+        }
 
     def _filter_by_user(self, filter):
         """Make the filter user-specific to protect against global data manipulation."""
@@ -538,7 +555,7 @@ class Database(object):
     def _put_file(self, data, project_id):
         "Store :param data: in a gridfs file."
         return self._get_gridfs(project_id).put(encode(data))
-        #return self._gridfs.put(encode(data))
+        # return self._gridfs.put(encode(data))
 
     def _insert_one(self, metadata, data):
         "Insert a record associating metadata and data."
@@ -554,21 +571,22 @@ class Database(object):
     def _get_file(self, file_id, project_id):
         "Retrieve file with :param file_id: from the gridfs collection."
         grid_file = self._get_gridfs(project_id).get(file_id)
-        #grid_file = self._gridfs.get(file_id)  # <- legacy code
+        # grid_file = self._gridfs.get(file_id)  # <- legacy code
         return decode(grid_file.read())
 
     def _resolve_files(self, doc):
         "Resolve the file data associated with doc."
         result = dict(doc)
         if KEY_FILE_ID in result:
-            result[KEY_DOC_DATA] = self._get_file(result[KEY_FILE_ID], result.get(KEY_PROJECT_ID, LEGACY_RECORD))
+            result[KEY_DOC_DATA] = self._get_file(
+                result[KEY_FILE_ID], result.get(KEY_PROJECT_ID, LEGACY_RECORD))
             del result[KEY_FILE_ID]
-        #if KEY_GROUP_FILES in result:
+        # if KEY_GROUP_FILES in result:
         #    result[KEY_GROUP_FILES] = [self._get(k) for k in result[KEY_GROUP_FILES]]
         #    del result[KEY_GROUP_FILES]
         return result
 
-    def insert_one(self, document, data = None, * args, ** kwargs):
+    def insert_one(self, document, data=None, * args, ** kwargs):
         """Insert a new document into the database.
 
         :param document: The metadata to be inserted into the database.
@@ -581,9 +599,9 @@ class Database(object):
         self._filter_by_user(document)
         self._insert_one(document, data, * args, ** kwargs)
 
-    def replace_one(self, filter, replacement_data = None, upsert = False, * args, ** kwargs):
+    def replace_one(self, filter, replacement_data=None, upsert=False, * args, ** kwargs):
         """Replace a document in the database.
-        
+
         :param filter: The first document to match the filter will be replaced. The filter itself is the replacement metadata.
         :type filter: A mapping type.
         :param replacement_data: The replacement data.
@@ -595,7 +613,8 @@ class Database(object):
             - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_one
         """
-        self._filter_by_user(filter) # Modify the filter to only match user documents
+        self._filter_by_user(
+            filter)  # Modify the filter to only match user documents
         meta = self._make_meta_document(filter, replacement_data)
         to_be_replaced = self._data.find_one(filter)
         replacement = copy.copy(meta)
@@ -605,13 +624,13 @@ class Database(object):
         try:
             if PYMONGO_3:
                 result = self._data.replace_one(
-                    filter = filter,
-                    replacement = replacement,
+                    filter=filter,
+                    replacement=replacement,
                     * args, ** kwargs)
             else:
                 if to_be_replaced is not None:
                     replacement['_id'] = to_be_replaced['_id']
-                    result = self._data.save(to_save = replacement)
+                    result = self._data.save(to_save=replacement)
                 else:
                     result = None
         except:
@@ -621,22 +640,24 @@ class Database(object):
         else:
             if to_be_replaced is not None:
                 if KEY_FILE_ID in to_be_replaced:
-                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(to_be_replaced[KEY_FILE_ID])
+                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(
+                        to_be_replaced[KEY_FILE_ID])
             return result
 
-    def update_one(self, document, data = None, * args, ** kwargs):
+    def update_one(self, document, data=None, * args, ** kwargs):
         """Update document with new data.
 
         :param document: The document to update.
         :type document: A mappable type.
         :param data: The data to replace the old data with.
         :type data: Arbitrary binary data.
-        
+
         See also: 
             - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.update_one
         """
-        self._filter_by_user(document) # Modify the document to only match user documents
+        self._filter_by_user(
+            document)  # Modify the document to only match user documents
         meta = self._make_meta_document(document, data)
         if data is not None:
             file_id = self._put_file(data, meta[KEY_PROJECT_ID])
@@ -650,16 +671,17 @@ class Database(object):
         except:
             if data is not None:
                 self._get_gridfs(meta[KEY_PROJECT_ID]).delete(file_id)
-                #self._gridfs.delete(file_id)
+                # self._gridfs.delete(file_id)
             raise
         else:
             if to_be_updated is not None:
                 if KEY_FILE_ID in to_be_updated:
-                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(to_be_updated[KEY_FILE_ID])
-                    #self._gridfs.delete(to_be_updated[KEY_FILE_ID])
+                    self._get_gridfs(meta[KEY_PROJECT_ID]).delete(
+                        to_be_updated[KEY_FILE_ID])
+                    # self._gridfs.delete(to_be_updated[KEY_FILE_ID])
             return result
 
-    def find(self, filter = None, projection = None, * args, ** kwargs):
+    def find(self, filter=None, projection=None, * args, ** kwargs):
         """Find all records that match filter.
 
         :param filter: The filter to match documents with.
@@ -667,12 +689,13 @@ class Database(object):
         :param projection: An iterable of field names that the returned records contain.
         :type projection: Iterable of str.
         :raises UnsupportedExpressionError
-        
+
         See also:
             - https://bitbucket.org/glotzer/signac/wiki/latest/signacdb_part2
             - http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find
         """
-        # The call_dict keeps track of all calls required to resolve in this query
+        # The call_dict keeps track of all calls required to resolve in this
+        # query
         call_dict = dict()
         # The plain_filter is a pymongo conform filter, where all callables have been
         # replaced with place_holders
@@ -686,13 +709,14 @@ class Database(object):
             # and resolves all callables
             cursor = Cursor(self, docs, call_dict, projection)
             return cursor
-        except pymongo.errors.PyMongoError as error:
-            logger.error("Error during find operation from expression: '{}'.".format(filter))
+        except pymongo.errors.PyMongoError:
+            logger.error(
+                "Error during find operation from expression: '{}'.".format(filter))
             raise
 
-    def find_one(self, filter_or_id = None, projection = None, * args, ** kwargs):
+    def find_one(self, filter_or_id=None, projection=None, * args, ** kwargs):
         """Like find(), but returns the first matching document or None if no document matches.
-        
+
         :param filter_or_id: A filter or a document id.
         :type filter_or_id: A mapping, which may contain callables as key or value or a str or ObjectID.
         :param projection: A iterable of field names that the returned records contain.
@@ -703,7 +727,8 @@ class Database(object):
         """
         call_dict = dict()
         plain_filter_or_id = self._resolve_expr(filter_or_id, call_dict)
-        doc = self._data.find_one(plain_filter_or_id, projection, * args, ** kwargs)
+        doc = self._data.find_one(
+            plain_filter_or_id, projection, * args, ** kwargs)
         if doc is not None:
             try:
                 return self._resolve_doc(doc, call_dict, projection)
@@ -713,7 +738,7 @@ class Database(object):
         else:
             return None
 
-    def _resolve_doc(self, doc, call_dict, projection = None):
+    def _resolve_doc(self, doc, call_dict, projection=None):
         "Resolve a document containing callables."
         try:
             return self._resolve_projection(self._resolve_calls(self._resolve_files(doc), call_dict), projection)
@@ -727,14 +752,7 @@ class Database(object):
         if projection is None:
             return doc
         else:
-            return {k: v for k,v in doc.items() if k in projection}
-
-    def resolve(self, docs):
-        "Resolve the docs for file data."
-        warnings.warn("This function is obsolete.", DeprecationWarning)
-        raise Deprec
-        for doc in docs:
-            yield self._resolve_files(doc)
+            return {k: v for k, v in doc.items() if k in projection}
 
     def _delete_doc(self, doc):
         """Delete document :param doc:.
@@ -743,7 +761,7 @@ class Database(object):
         """
         if KEY_FILE_ID in doc:
             self._get_gridfs(doc[KEY_PROJECT_ID]).delete(doc[KEY_FILE_ID])
-            #self._gridfs.delete(doc[KEY_FILE_ID])
+            # self._gridfs.delete(doc[KEY_FILE_ID])
         if PYMONGO_3:
             self._cache.delete_many({KEY_FILE_ID: doc['_id']})
         else:
@@ -760,10 +778,11 @@ class Database(object):
         :param filter: The filter that the document to be deleted matches.
         :type filter: A mapping type.
         :raises UnsupportedExpressionError
-        
+
         See also: delete_many()
         """
-        self._filter_by_user(filter) # Modify the filter to only match user documents
+        self._filter_by_user(
+            filter)  # Modify the filter to only match user documents
         doc = self._data.find_one(filter, *args, **kwargs)
         if doc is not None:
             if PYMONGO_3:
@@ -781,7 +800,8 @@ class Database(object):
 
         See also: delete_one()
         """
-        self._filter_by_user(filter) # Modify the filter to only match user documents
+        self._filter_by_user(
+            filter)  # Modify the filter to only match user documents
         docs = self._data.find(filter, *args, ** kwargs)
         for doc in docs:
             self._delete_doc(doc)
@@ -797,13 +817,16 @@ class Database(object):
         doc_ids = list()
         if standard:
             try:
-                doc_ids = [doc['_id'] for doc in self._data.find(standard, *args, **kwargs)]
+                doc_ids = [doc['_id']
+                           for doc in self._data.find(standard, *args, **kwargs)]
             except pymongo.errors.OperationFailure as error:
                 if 'not authorized' in str(error):
-                    raise AuthorizationError("Not authorized to access database.")
+                    raise AuthorizationError(
+                        "Not authorized to access database.")
                 raise
             if '_id' in standard:
-                nonstandard['_id'] = {'$and': [standard['_id'], {'$in': doc_ids}]}
+                nonstandard['_id'] = {
+                    '$and': [standard['_id'], {'$in': doc_ids}]}
             else:
                 nonstandard['_id'] = {'$in': doc_ids}
         return self._resolve_expr(nonstandard, call_dict, doc_ids, *args, **kwargs)
@@ -815,10 +838,11 @@ class Database(object):
         for key, value in d.items():
             if callable(key):
                 assert not callable(value)
-                methods_filter[key] = self._resolve_expr(value, call_dict, doc_ids)
+                methods_filter[key] = self._resolve_expr(
+                    value, call_dict, doc_ids)
             elif key == '$project':
-                value[KEY_FILE_ID] = '$'+KEY_FILE_ID
-                value[KEY_PROJECT_ID] = '$'+KEY_PROJECT_ID
+                value[KEY_FILE_ID] = '$' + KEY_FILE_ID
+                value[KEY_PROJECT_ID] = '$' + KEY_PROJECT_ID
                 standard[key] = value
             elif key.startswith('$') and key in ILLEGAL_AGGREGATION_KEYS:
                 raise UnsupportedExpressionError(key)
@@ -828,24 +852,24 @@ class Database(object):
             if doc_ids and not '_id' in standard:
                 standard['_id'] = {'$in': doc_ids}
             if PYMONGO_3:
-                docs = self._data.find(filter=standard,projection=['_id'])
+                docs = self._data.find(filter=standard, projection=['_id'])
             else:
-                docs = self._data.find(spec = standard, fields = ['_id'])
+                docs = self._data.find(spec=standard, fields=['_id'])
             logger.debug("# docs to filter by method: {}".format(docs.count()))
             filtered = self._filter_by_methods(docs, methods_filter)
             return {'_id': {'$in': list(filtered)}}
         else:
             return d
 
-    def _resolve_expr(self, expr, call_dict, doc_ids = None, *args, **kwargs):
+    def _resolve_expr(self, expr, call_dict, doc_ids=None, *args, **kwargs):
         """"Resolve expr into a pymongo readable form.
 
         All callables are replaced with placeholders, that link to the call_dict.
         """
         if isinstance(expr, dict):
             plain = {k: self._resolve_expr(v, call_dict, doc_ids, * args, ** kwargs)
-                        for k,v in expr.items()}
-            return self._resolve_dict(plain, call_dict, doc_ids,* args, ** kwargs)
+                     for k, v in expr.items()}
+            return self._resolve_dict(plain, call_dict, doc_ids, * args, ** kwargs)
         elif isinstance(expr, list):
             return [self._resolve_expr(v, call_dict, doc_ids, *args, **kwargs) for v in expr]
         elif callable(expr):
@@ -864,18 +888,19 @@ class Database(object):
         for stage in pipeline:
             yield self._resolve_stage(stage, call_dict)
 
-    def _resolve_calls(self, result, call_dict, data = None):
+    def _resolve_calls(self, result, call_dict, data=None):
         "Resolve all calls in result."
         if isinstance(result, dict):
             if KEY_FILE_ID in result:
-                data = self._get_file(result[KEY_FILE_ID], result[KEY_PROJECT_ID])
+                data = self._get_file(
+                    result[KEY_FILE_ID], result[KEY_PROJECT_ID])
             elif KEY_DOC_DATA in result:
                 data = result[KEY_DOC_DATA]
-            #elif KEY_GROUP_FILES in result:
+            # elif KEY_GROUP_FILES in result:
             #    data = result[KEY_GROUP_FILES]
             return {self._resolve_calls(k, call_dict, data):
-                        self._resolve_calls(v, call_dict, data)
-                for k, v in result.items()}
+                    self._resolve_calls(v, call_dict, data)
+                    for k, v in result.items()}
         elif isinstance(result, list):
             return [self._resolve_calls(v, call_dict, data) for v in result]
         elif isinstance(result, str):
@@ -897,7 +922,7 @@ class Database(object):
 
     def aggregate(self, pipeline, ** kwargs):
         """Evaluate the aggregation pipeline.
-        
+
         :param pipeline: The aggregation pipeline.
         :type pipeline: An iterable of expressions.
         :raises UnsupportedExpressionError
@@ -916,6 +941,7 @@ class Database(object):
             else:
                 cursor = CommandCursor(self, iter(result['result']), call_dict)
             return cursor
-        except pymongo.errors.PyMongoError as error:
-            logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
+        except pymongo.errors.PyMongoError:
+            logger.error(
+                "Error during aggregation of pipeline expression: '{}'.".format(pipeline))
             raise

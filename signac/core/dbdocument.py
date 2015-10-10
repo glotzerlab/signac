@@ -1,7 +1,7 @@
 import logging
 import os
 from queue import Queue, Empty
-from threading import Thread, Event, Condition
+from threading import Thread, Event
 
 from pymongo.errors import ConnectionFailure
 from sqlitedict import SqliteDict
@@ -11,13 +11,14 @@ from ..common.host import get_db
 
 logger = logging.getLogger(__name__)
 
+
 def sync_worker(stop_event, synced_or_failed_event,
                 error_condition, queue, src, dst):
     while(not stop_event.is_set()):
-        #src.sync()
+        # src.sync()
         try:
             synced_or_failed_event.clear()
-            action, key = queue.get(timeout = 0.1)
+            action, key = queue.get(timeout=0.1)
             logger.debug("syncing: {} {}".format(action, key))
             if action == 'set':
                 dst[key] = src[key]
@@ -34,8 +35,8 @@ def sync_worker(stop_event, synced_or_failed_event,
                 raise RuntimeError("illegal sync action", action)
         except Empty:  # Only caught if we cleared the queue
             synced_or_failed_event.set()
-            continue # Continue loop skipping 'task_done()'
-        except KeyError: # This kind of error can be safely ignored
+            continue  # Continue loop skipping 'task_done()'
+        except KeyError:  # This kind of error can be safely ignored
             pass
         except ConnectionFailure as error:
             logger.warning(error)           # This is not a problem, but
@@ -46,12 +47,14 @@ def sync_worker(stop_event, synced_or_failed_event,
             error_condition.set()           # the user will need to handle it.
             synced_or_failed_event.set()
         else:
-            error_condition.clear()         # Handled the sync action without error.
+            # Handled the sync action without error.
+            error_condition.clear()
         queue.task_done()
+
 
 class ReadOnlyDBDocument(object):
 
-    def __init__(self, hostname, db_name, collection_name, _id, rank = 0, connect_timeout_ms = None):
+    def __init__(self, hostname, db_name, collection_name, _id, rank=0, connect_timeout_ms=None):
         self._id = _id
         self._rank = rank
         self._buffer = None
@@ -72,7 +75,7 @@ class ReadOnlyDBDocument(object):
         return "{}(buffer='{}')".format(
             type(self).__name__,
             self._buffer_fn(),
-            )
+        )
 
     def _get_buffer(self):
         if self._buffer is None:
@@ -80,41 +83,41 @@ class ReadOnlyDBDocument(object):
             raise RuntimeError(msg)
         return self._buffer
 
-    def _join(self, timeout = 5.0):
+    def _join(self, timeout=5.0):
         if self._sync_error_condition.is_set():
             return False
         else:
-            return self._synced_or_failed_event.wait(timeout = timeout)
+            return self._synced_or_failed_event.wait(timeout=timeout)
 
     def open(self):
         logger.debug("Opening buffer...")
         self._buffer = SqliteDict(
-            filename = self._buffer_fn(),
-            tablename = 'dbdocument',
-            autocommit = False)
+            filename=self._buffer_fn(),
+            tablename='dbdocument',
+            autocommit=False)
         self._buffer.sync()
-        #logger.debug(list(self._buffer.items()))
+        # logger.debug(list(self._buffer.items()))
         logger.debug("Syncing buffer...")
         for key in self._buffer.keys():
             self._sync_queue.put(('set', key))
         self._sync_thread = Thread(
-            target = sync_worker, 
-            args = (self._stop_event, self._synced_or_failed_event,
-                    self._sync_error_condition,
-                    self._sync_queue, self._buffer, self._mongodict))
+            target=sync_worker,
+            args=(self._stop_event, self._synced_or_failed_event,
+                  self._sync_error_condition,
+                  self._sync_queue, self._buffer, self._mongodict))
         self._stop_event.clear()
         self._sync_thread.start()
         return self
 
-    def close(self, timeout = None):
+    def close(self, timeout=None):
         logger.debug("Closing and syncing...")
-        #logger.debug(list(self._buffer.items()))
+        # logger.debug(list(self._buffer.items()))
         self._join()
         self._stop_event.set()
-        self._sync_thread.join(timeout = timeout)
+        self._sync_thread.join(timeout=timeout)
         self._buffer.sync()
         if self._sync_thread.is_alive() or \
-              self._sync_error_condition.is_set():
+                self._sync_error_condition.is_set():
             logger.warning("Unable to sync to database.")
             self._buffer.close()
         else:
@@ -122,13 +125,13 @@ class ReadOnlyDBDocument(object):
             self._buffer.close()
             # Deleting the underlying db file causes problems and
             # is probably unnecessary.
-            #self._buffer.terminate() # Deleting the file causes
+            # self._buffer.terminate() # Deleting the file causes
 
     def __enter__(self):
         self.open()
         return self
 
-    def __exit__(self, err_type, err_val, traceback):   
+    def __exit__(self, err_type, err_val, traceback):
         try:
             self.close()
         except:
@@ -140,7 +143,7 @@ class ReadOnlyDBDocument(object):
         self._sync_queue.put(('get', key))
         self._join()
         return self._get_buffer()[key]
-    
+
     def __iter__(self):
         self._join()
         return self._get_buffer().__iter__()
@@ -150,7 +153,7 @@ class ReadOnlyDBDocument(object):
         self._join()
         return self._get_buffer().__contains__(key)
 
-    def get(self, key, default = None):
+    def get(self, key, default=None):
         self._sync_queue.put(('get', key))
         self._join()
         return self._get_buffer().get(key, default)
@@ -159,8 +162,9 @@ class ReadOnlyDBDocument(object):
         self._join()
         return self._get_buffer().items()
 
+
 class DBDocument(ReadOnlyDBDocument):
-    
+
     def __setitem__(self, key, value):
         self._get_buffer()[key] = value
         self._sync_queue.put(('set', key))
@@ -190,4 +194,5 @@ class DBDocument(ReadOnlyDBDocument):
         except AttributeError:
             try:
                 os.remove(self._buffer_fn())
-            except OSError: pass
+            except OSError:
+                pass

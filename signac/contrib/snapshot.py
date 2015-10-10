@@ -10,6 +10,7 @@ COLLECTIONS_EXCLUDE = ['system']
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
+
 def dump_db(db, dst):
     os.makedirs(dst)
     for collection in db.collection_names():
@@ -26,6 +27,7 @@ def dump_db(db, dst):
             for doc in db[collection].find():
                 file.write("{}\n".format(
                     serializer.dumps(doc)).encode())
+
 
 def restore_db(db, dst):
     for collection in db.collection_names():

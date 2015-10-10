@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from signac.core.storage import ReadOnlyStorage, Storage
 
 import os
+from os.path import isfile
 CWD = os.getcwd()
 
 import warnings
@@ -23,7 +24,6 @@ def get_test_file():
 
 @contextmanager 
 def test_file(fn = None):
-    import uuid, os
     if fn is None:
         fn = make_test_fn()
     data = make_test_data().encode()
@@ -46,7 +46,6 @@ class GetStorage(object):
         pass
 
     def __enter__(self):
-        import os
         from tempfile import TemporaryDirectory as TempDir
         self._fs_dir = TempDir(prefix = 'signac')
         self._wd_dir = TempDir(prefix = 'signac')
@@ -55,7 +54,6 @@ class GetStorage(object):
         return self._storage_type(self._fs_dir.name, self._wd_dir.name) 
 
     def __exit__(self, err_type, err_value, traceback):
-        import os
         self._fs_dir.cleanup()
         self._wd_dir.cleanup()
         os.chdir(self._cwd)
@@ -72,14 +70,10 @@ def get_ro_storage(storage):
 class TestReadOnlyStorage(unittest.TestCase):
 
     def test_construction(self):
-        name = 'test_readonly_construction'
         with get_storage() as storage:
             get_ro_storage(storage)
 
     def test_download_file(self):
-        import os
-        from os.path import isfile
-        name = 'test_download_file'
         with get_storage() as storage:
             with get_ro_storage(storage) as rostorage:
                 with test_file() as (fn, data):
@@ -96,7 +90,6 @@ class TestStorage(unittest.TestCase):
         get_storage()
 
     def test_file_store_and_restore(self):
-        from os.path import isfile
         with get_storage() as storage:
             with test_file() as (fn, data):
                 self.assertTrue(isfile(fn))
@@ -109,7 +102,6 @@ class TestStorage(unittest.TestCase):
             self.assertEqual(read_back, data)
 
     def test_open_new_file(self):
-        from os.path import isfile
         fn, data = get_test_file()
         with get_storage() as storage:
             with storage.open_file(fn, 'wb') as file:
@@ -121,7 +113,6 @@ class TestStorage(unittest.TestCase):
             storage.store_file(fn)
 
     def test_reopen_file(self):
-        from os.path import isfile
         fn, data = get_test_file()
         with get_storage() as storage:
             with storage.open_file(fn, 'wb') as file:
@@ -130,7 +121,6 @@ class TestStorage(unittest.TestCase):
                 self.assertEqual(file.read().decode(), data)
 
     def test_remove_file(self):
-        from os.path import isfile
         fn, data = get_test_file()
         with get_storage() as storage:
             with storage.open_file(fn, 'wb') as file:
@@ -140,7 +130,6 @@ class TestStorage(unittest.TestCase):
                 storage.restore_file(fn)
 
     def test_list_files(self):
-        from os.path import isfile
         num_files = 20
         files = [get_test_file() for i in range(num_files)]
         with get_storage() as storage:
@@ -149,12 +138,10 @@ class TestStorage(unittest.TestCase):
                     file.write(data.encode())
 
             fn_i = [e[0] for e in files]
-            fn_s = storage.list_files()
+            storage.list_files()
             self.assertEqual(set(fn_i), set(fn_i))
 
     def test_store_files(self):
-        import os
-        from os.path import isfile
         num_files = 20
         files = [get_test_file() for i in range(num_files)]
         with get_storage() as storage:
@@ -164,12 +151,10 @@ class TestStorage(unittest.TestCase):
             fn_i = [e[0] for e in files]
             [self.assertTrue(isfile(fn)) for fn in fn_i]
             storage.store_files()
-            fn_s = storage.list_files()
+            storage.list_files()
             self.assertEqual(set(fn_i), set(fn_i))
 
     def test_store_and_restore_files(self):
-        import os
-        from os.path import isfile
         num_files = 20
         files = [get_test_file() for i in range(num_files)]
         with get_storage() as storage:
@@ -179,7 +164,7 @@ class TestStorage(unittest.TestCase):
             fn_i = [e[0] for e in files]
             [self.assertTrue(isfile(fn)) for fn in fn_i]
             storage.store_files()
-            fn_s = storage.list_files()
+            storage.list_files()
             self.assertEqual(set(fn_i), set(fn_i))
             storage.restore_files()
             [self.assertTrue(isfile(fn)) for fn in fn_i]
@@ -188,7 +173,6 @@ class TestStorage(unittest.TestCase):
 class TestNestedStorage(unittest.TestCase):
 
     def test_nested_storage(self):
-        from os.path import isfile
         with get_storage() as storage:
             with get_storage() as storage2:
                 with test_file() as (fn, data):
@@ -205,14 +189,12 @@ class TestNestedStorage(unittest.TestCase):
                 self.assertTrue(isfile(fn))
 
     def test_across_nested_storage(self):
-        from os.path import isfile
         with get_storage() as storage:
             with test_file() as (fn, data):
                 self.assertTrue(isfile(fn))
                 storage.store_file(fn)
                 self.assertFalse(isfile(fn))
-                with get_storage() as storage2:
-                    import os
+                with get_storage(): # nested storage
                     cwd = os.getcwd()
                     os.mkdir('tmp')
                     os.chdir('tmp')
@@ -223,21 +205,17 @@ class TestNestedStorage(unittest.TestCase):
                     os.rmdir('tmp')
 
     def test_download_file(self):
-        import os
-        from os.path import isfile
         with get_storage() as storage:
             with test_file() as (fn, data):
                 self.assertTrue(isfile(fn))
                 storage.store_file(fn)
                 self.assertFalse(isfile(fn))
-                with get_storage() as storage2:
+                with get_storage(): # nested storage
                     storage.download_file(fn)
                     self.assertTrue(isfile(fn))
                     os.remove(fn)
 
     def test_fetch_file(self):
-        import os
-        from os.path import isfile
         with get_storage() as storage:
             with test_file() as (fn, data):
                 self.assertTrue(isfile(fn))

@@ -7,11 +7,12 @@ import networkx as nx
 logger = logging.getLogger(__name__)
 
 ATTRIBUTE_ADAPTER = 'adapter'
-ATTRIBUTE_WEIGHT= 'weight'
+ATTRIBUTE_WEIGHT = 'weight'
 
 WEIGHT_DEFAULT = 1
 WEIGHT_DISCOURAGED = 10
 WEIGHT_STRONGLY_DISCOURAGED = 100
+
 
 class DBMethod(object):
     expects = None
@@ -25,19 +26,22 @@ class DBMethod(object):
 
     def __repr__(self):
         return "{m}.{t}(expects={e})".format(
-            m = self.__module__,
-            t = type(self),
-            e = self.expects)
+            m=self.__module__,
+            t=type(self),
+            e=self.expects)
 
     def name(self):
         return self.__repr__()
 
+
 def make_db_method(callable, expected_type):
     class Method(DBMethod):
         expects = expected_type
+
         def apply(self, arg):
             return callable(arg)
     return Method()
+
 
 class AdapterMetaType(type):
 
@@ -50,7 +54,8 @@ class AdapterMetaType(type):
 
         super().__init__(name, bases, dct)
 
-class Adapter(metaclass = AdapterMetaType):
+
+class Adapter(metaclass=AdapterMetaType):
     expects = None
     returns = None
     weight = WEIGHT_DEFAULT
@@ -64,14 +69,15 @@ class Adapter(metaclass = AdapterMetaType):
 
     def __str__(self):
         return "{n}(from={f},to={t})".format(
-            n = self.__class__,
-            f = self.expects,
-            t = self.returns)
+            n=self.__class__,
+            f=self.expects,
+            t=self.returns)
 
     def __repr__(self):
         return str(self)
 
-def make_adapter(src, dst, convert = None, w = None):
+
+def make_adapter(src, dst, convert=None, w=None):
     class BasicAdapter(Adapter):
         expects = src
         returns = dst
@@ -82,10 +88,11 @@ def make_adapter(src, dst, convert = None, w = None):
                 return convert(x)
     return BasicAdapter
 
+
 def add_adapter_to_network(network, adapter):
     data = network.get_edge_data(
         adapter.expects, adapter.returns,
-        default = collections.defaultdict(list))
+        default=collections.defaultdict(list))
     data[ATTRIBUTE_ADAPTER].append(adapter)
     weight = data.get(ATTRIBUTE_WEIGHT, adapter.weight)
     data[ATTRIBUTE_WEIGHT] = min(weight, adapter.weight)
@@ -94,14 +101,17 @@ def add_adapter_to_network(network, adapter):
         adapter.returns,
         data)
 
+
 class ConversionError(RuntimeError):
     pass
+
 
 class NoConversionPath(ConversionError):
     pass
 
+
 class Converter(object):
-    
+
     def __init__(self, adapter_chain, source_type, target_type):
         self._source_type = source_type
         self._target_type = target_type
@@ -111,13 +121,15 @@ class Converter(object):
         for adapters in self._adapter_chain:
             for adapter in sorted(adapters, key=lambda a: a.weight):
                 try:
-                    logger.debug("Attempting conversion with adapter '{}'.".format(adapter()))
+                    logger.debug(
+                        "Attempting conversion with adapter '{}'.".format(adapter()))
                     data = adapter()(data)
                     break
                 except LinkError as error:
                     raise
                 except Exception as error:
-                    logger.debug("Conversion failed due to error: {}: '{}'.".format(type(error), error))
+                    logger.debug("Conversion failed due to error: {}: '{}'.".format(
+                        type(error), error))
                     if debug:
                         raise
             else:
@@ -131,36 +143,42 @@ class Converter(object):
         return "Converter(adapter_chain={},source_type={},target_type={})".format(
             self._adapter_chain, self._source_type, self._target_type)
 
+
 def _get_adapter_chain_from_path(network, path):
-    for i in range(len(path)-1):
-        edge = network[path[i]][path[i+1]]
+    for i in range(len(path) - 1):
+        edge = network[path[i]][path[i + 1]]
         yield edge[ATTRIBUTE_ADAPTER]
 
+
 def _get_adapter_chains_from_network(network, source_type, target_type):
-    paths = nx.shortest_simple_paths(network, source_type, target_type, ATTRIBUTE_WEIGHT)
+    paths = nx.shortest_simple_paths(
+        network, source_type, target_type, ATTRIBUTE_WEIGHT)
     for path in paths:
         yield _get_adapter_chain_from_path(network, path)
+
 
 def _get_converters(network, source_type, target_type):
     try:
         for adapter_chain in _get_adapter_chains_from_network(
-            network, source_type, target_type):
+                network, source_type, target_type):
             yield Converter(list(adapter_chain), source_type, target_type)
     except (nx.exception.NetworkXNoPath, nx.exception.NetworkXError) as error:
         raise NoConversionPath(source_type, target_type) from error
 
+
 def get_converters(network, source_type, target_type):
     mro = inspect.getmro(source_type)
-    found_converter=False
+    found_converter = False
     for src_type in mro:
         try:
             yield from _get_converters(network, src_type, target_type)
         except NoConversionPath:
             pass
         else:
-            found_converter=True
+            found_converter = True
     if not found_converter:
         raise NoConversionPath(source_type, target_type)
+
 
 class FormatMetaType(type):
 
@@ -172,12 +190,14 @@ class FormatMetaType(type):
 
         super().__init__(name, bases, dct)
 
-class BasicFormat(metaclass = FormatMetaType):
+
+class BasicFormat(metaclass=FormatMetaType):
     pass
+
 
 class LinkMetaType(FormatMetaType):
     """This is the meta class for all link types.
-    
+
     Do not derive from this class directly, but derive
     from BaseLink.
 
@@ -188,14 +208,17 @@ class LinkMetaType(FormatMetaType):
         if cls.linked_format is not None:
             # create adapter
             class LinkAdapter(Adapter):
-                expects=cls
-                returns=cls.linked_format
+                expects = cls
+                returns = cls.linked_format
+
                 def convert(self, x):
                     return x.data
+
 
 class LinkError(EnvironmentError):
     "Unable to fetch linked resource."
     pass
+
 
 class BaseLink(metaclass=LinkMetaType):
     """BaseLink allows to create a generic link to an object.
@@ -218,11 +241,13 @@ class BaseLink(metaclass=LinkMetaType):
         class SimpleTextFileLink(SimpleFileLink):
             linked_format=TextFile
     """
-    linked_format=None
+    linked_format = None
+
     def __init__(self, url):
         if self.linked_format is None:
-            raise TypeError("The class attribute linked_format cannot be None!")
-        self._url=url
+            raise TypeError(
+                "The class attribute linked_format cannot be None!")
+        self._url = url
 
     @property
     def url(self):

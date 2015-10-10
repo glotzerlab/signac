@@ -1,101 +1,30 @@
 import unittest
 import os
-import sys
-import io
+import uuid
 import tempfile
 import subprocess
-from contextlib import contextmanager
+import warnings
+from tempfile import TemporaryDirectory
+
+import pymongo
+
+from test_job import JobTest
 
 # Make sure the jobs created for this test are unique.
-import uuid
 test_token = {'test_token': str(uuid.uuid4())}
 
-import warnings
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
-import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-import signac
-from test_job import JobTest, config_from_cfg
 
 @unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
 class ProjectTest(JobTest):
     pass
 
-class ProjectBackupTest(ProjectTest):
-    
-    def test_dump_db_snapshot(self):
-        from signac.contrib import get_project
-        project = self.project
-        with project.open_job(test_token) as job:
-            job.document['result'] = 123
-        self.stdout = sys.stdout
-        sys.stdout=io.StringIO()
-        try:
-            project.dump_db_snapshot()
-        finally:
-            sys.stdout=self.stdout
-
-    def test_create_db_snapshot(self):
-        from signac.contrib import get_project
-        from os import remove
-        project = self.project
-        with project.open_job(test_token) as job:
-            job.document['result'] = 123
-        fn_tmp = '_dump.tar'
-        project.create_snapshot(fn_tmp, full = False)
-        remove(fn_tmp)
-
-    def test_create_and_restore_db_snapshot(self):
-        from os import remove
-        from signac.contrib import get_project
-        from tempfile import TemporaryFile
-        project = self.project
-        with project.open_job(test_token) as job:
-            job.document['result'] = 123
-        fn_tmp = '_dump.tar'
-        project.create_snapshot(fn_tmp, full = False)
-        project.restore_snapshot(fn_tmp)
-        remove(fn_tmp)
-
-    def test_create_and_restore_snapshot(self):
-        from os import remove
-        from signac.contrib import get_project
-        from tempfile import TemporaryFile
-        project = self.project
-        A = ['a_{}'.format(i) for i in range(2)]
-        B = ['b_{}'.format(i) for i in range(2)]
-        def states():
-            for a in A:
-                for b in B:
-                    p = dict(test_token)
-                    p.update({'a': a, 'b': b})
-                    yield p
-        for state in states():
-            with project.open_job(state) as job:
-                job.document['result'] = 123
-                with job.storage.open_file('result.txt', 'wb') as file:
-                    file.write('123'.encode())
-        fn_tmp = '_full_dump.tar'
-        project.create_snapshot(fn_tmp)
-        project.restore_snapshot(fn_tmp)
-        remove(fn_tmp)
-
-    def test_bad_restore(self):
-        from signac.contrib import get_project
-        from tempfile import TemporaryFile
-        project = self.project
-        with project.open_job(test_token) as job:
-            job.document['result'] = 123
-        fn_tmp = '_dump.tar'
-        self.assertRaises(FileNotFoundError, project.restore_snapshot, '_bullshit.tar')
-
 class ProjectViewTest(ProjectTest):
     
     def test_get_links(self):
-        from signac.contrib import get_project
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -112,9 +41,6 @@ class ProjectViewTest(ProjectTest):
         list(project.get_storage_links(url+'/{c}'))
 
     def test_create_view_default_url(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -133,9 +59,6 @@ class ProjectViewTest(ProjectTest):
             self.assertFalse(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_0/c/C')))
 
     def test_create_view_custom_url(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -150,9 +73,6 @@ class ProjectViewTest(ProjectTest):
             project.create_view(url)
 
     def test_create_flat_view(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -175,103 +95,6 @@ class ProjectViewTest(ProjectTest):
                 self.assertTrue(os.path.islink(os.path.join(tmp, 'workspace', job.get_id())))
                 self.assertTrue(os.path.isfile(os.path.join(tmp, 'storage', job.get_id(), 'testfile_s')))
                 self.assertTrue(os.path.isfile(os.path.join(tmp, 'workspace', job.get_id(), 'testfile_w')))
-
-def set_check_true(job):
-    with job:
-        job.document['check'] = True
-
-def start_pool(cfg, state_points, exclude_condition, rank, size, jobs = []):
-    import tempfile
-    from signac.contrib import get_project
-    config = config_from_cfg(cfg)
-    project = signac.contrib.project.Project(config=config)
-    job_pool = project.job_pool(state_points, exclude_condition)
-    for job in jobs:
-        job_pool.submit(job)
-    with tempfile.NamedTemporaryFile() as jobfile:
-        job_pool.start(rank, size, jobfile = jobfile.name)
-
-class ProjectPoolTest(ProjectTest):
-    
-    def test_start(self):
-        from signac.contrib import get_project
-        project = self.project
-        state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
-        def dummy_function(job):
-            pass
-
-        pool = project.job_pool(state_points)
-        pool.submit(dummy_function)
-        try:
-            pool.start()
-        except EnvironmentError:
-            import warnings
-            msg = "requires mpi4py"
-            raise unittest.SkipTest(msg)
-
-    def test_pool_concurrency(self):
-        from multiprocessing import Pool
-        from signac.contrib import get_project
-        project = self.project
-        state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
-        job_pool = project.job_pool(state_points)
-        num_proc = min(len(state_points), 4)
-        jobs = []
-        condition = {}
-        with Pool(processes = num_proc) as pool:
-            result = pool.starmap_async(
-                start_pool,
-                [(project.config.write(), state_points, condition, rank, num_proc, jobs)
-                    for rank in range(num_proc)])
-            result.get(timeout = 20)
-
-    def test_pool_condition(self):
-        from multiprocessing import Pool
-        from signac.contrib import get_project
-        project = self.project
-        state_points = [{'a': a, 'b': b} for a in range(4) for b in range(4)]
-        condition = {'check': True}
-        pool = project.job_pool(state_points, exclude = condition)
-        self.assertEqual(len(pool), len(state_points))
-
-    def test_pool_concurrency_with_condition(self):
-        from multiprocessing import Pool
-        from signac.contrib import get_project
-        project = self.project
-        state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
-        condition = {'check': True}
-        job_pool = project.job_pool(state_points, exclude = condition)
-        self.assertEqual(len(job_pool), len(state_points))
-        num_proc = min(len(job_pool), 4)
-        jobs = [set_check_true]
-        with Pool(processes = num_proc) as pool:
-            result = pool.starmap_async(
-                start_pool,
-                [(project.config.write(), state_points, condition, rank, num_proc, jobs)
-                    for rank in range(num_proc)])
-            result.get(timeout = 20)
-        job_pool = project.job_pool(state_points, condition)
-        self.assertEqual(len(job_pool), 0)
-
-def simple_function(x):
-    return x*x
-
-class ProjectQueueTest(ProjectTest):
-
-    def test_queue(self):
-        from signac.contrib import get_project
-        from signac.contrib.project import Empty
-        project = self.project
-        queue = project.job_queue
-        num_jobs = 10
-        futures = [queue.submit(simple_function, i) for i in range(num_jobs)]
-        try:
-            queue.enter_loop(timeout = 0.1)
-        except Empty:
-            pass
-        for i, future in enumerate(futures):
-            result = future.result(0.1)
-            self.assertEqual(result, simple_function(i))
 
 class BaseProjectConsoleTest(unittest.TestCase):
     
@@ -303,13 +126,6 @@ class ProjectConsoleTest(BaseProjectConsoleTest):
         subprocess.check_output(['signac', '--yes', 'clear'])
         subprocess.check_output(['python3', 'job.py'])
         subprocess.check_output(['signac', '--yes', 'remove', '-j', 'all'])
-
-    def test_snapshot_and_restore(self):
-        subprocess.check_output(['python3', 'job.py'])
-        subprocess.check_output(['signac', 'snapshot', 'test.tar'])
-        subprocess.check_output(['signac', 'restore', 'test.tar'])
-        subprocess.check_output(['signac', 'snapshot', 'test.tar.gz'])
-        subprocess.check_output(['signac', 'restore', 'test.tar.gz'])
 
     def test_view(self):
         subprocess.check_output(['python3', 'job.py'])

@@ -9,7 +9,6 @@ some other weaknesses in implementation.
 """
 
 import os
-import tempfile
 import collections
 import logging
 import uuid
@@ -17,6 +16,7 @@ import uuid
 import bson.json_util as json
 
 logger = logging.getLogger(__name__)
+
 
 class JSonDict(collections.UserDict):
 
@@ -74,7 +74,8 @@ class JSonDict(collections.UserDict):
                 self.data.clear()
                 self.data.update(json.loads(file.read().decode()))
         except ValueError:
-            logger.critical("Document file '{}' seems to be corrupted! Unable to load document.".format(self._filename))
+            logger.critical(
+                "Document file '{}' seems to be corrupted! Unable to load document.".format(self._filename))
             raise
         except FileNotFoundError:
             pass
@@ -87,9 +88,11 @@ class JSonDict(collections.UserDict):
             file.write(self._dump().encode())
 
     def _save_with_concern(self):
-        logger.debug("Storing with write concern to '{}'.".format(self._filename))
+        logger.debug(
+            "Storing with write concern to '{}'.".format(self._filename))
         dirname, filename = os.path.split(self._filename)
-        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(uid=uuid.uuid4(), fn=filename))
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
             tmpfile.write(self._dump().encode())
         os.replace(fn_tmp, self._filename)

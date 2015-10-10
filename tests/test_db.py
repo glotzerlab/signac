@@ -1,20 +1,15 @@
 import unittest
 import os
 import uuid
-import unittest
 import warnings
 from math import sqrt
 
 import networkx as nx
 import pymongo
-import gridfs
 
 import signac
 from signac.db import conversion
 from signac.db.conversion import add_adapter_to_network, make_adapter
-from signac.db.database import Database
-from signac.core.config import load_config
-from signac.core.dbclient_connector import DBClientConnector
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 TESTING_DB = 'testing_signacdb'
@@ -34,11 +29,6 @@ def basic_network():
     add_adapter_to_network(an, make_adapter(float, str))
     add_adapter_to_network(an, make_adapter(uuid.UUID, str))
     return an
-
-def draw_network(network):
-    from matplotlib import pyplot as plt
-    plot = nx.draw(basic_network(), with_labels = True)
-    plt.show()
 
 DB = None
 

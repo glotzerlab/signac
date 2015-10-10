@@ -3,18 +3,28 @@ import warnings
 import os
 
 from . import SSL_SUPPORT
-from . import utility
 
 logger = logging.getLogger(__name__)
-    
+
 from ..common.connection import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
-from ..common.config import load_config, read_config_file
+
+
+def load_config(* args, **kwargs):
+    from ..common.config import load_config
+    warnings.warn(DeprecationWarning, "Use common library.")
+    return load_config(* args, **kwargs)
+
+
+def read_config_file(* args, **kwargs):
+    from ..common.config import read_config_file
+    warnings.warn(DeprecationWarning, "Use common library.")
+    return read_config_file(* args, **kwargs)
 
 ENVIRONMENT_VARIABLES = {
-    'author_name' :              'SIGNAC_AUTHOR_NAME',
+    'author_name':              'SIGNAC_AUTHOR_NAME',
     'author_email':              'SIGNAC_AUTHOR_EMAIL',
     'project':                   'SIGNAC_PROJECT',
-    'project_dir' :              'SIGNAC_PROJECT_DIR',
+    'project_dir':              'SIGNAC_PROJECT_DIR',
     'filestorage_dir':           'SIGNAC_FILESTORAGE_DIR',
     'workspace_dir':             'SIGNAC_WORKING_DIR',
     'database_host':             'SIGNAC_DATABASE_HOST',
@@ -28,7 +38,7 @@ ENVIRONMENT_VARIABLES = {
 REQUIRED_KEYS = [
     'author_name', 'author_email', 'project',
     'project_dir',  'filestorage_dir', 'workspace_dir',
-    ]
+]
 
 DEFAULTS = {
     'database_host':            'localhost',
@@ -47,9 +57,11 @@ if SSL_SUPPORT:
         'database_ssl_cert_reqs': SSL_CERT_REQS.keys(),
     })
 
-# File and dir names are interpreted relative to the working directory and stored as absolute path.
+# File and dir names are interpreted relative to the working directory and
+# stored as absolute path.
 DIRS = ['workspace_dir', 'project_dir', 'filestorage_dir', 'global_fs_dir']
-FILES = ['database_ssl_keyfile', 'database_ssl_certfile', 'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
+FILES = ['database_ssl_keyfile', 'database_ssl_certfile',
+         'database_ssl_ca_certs', 'database_ssl_cakeypemfile']
 
 LEGAL_ARGS = REQUIRED_KEYS\
     + list(ENVIRONMENT_VARIABLES.keys())\
@@ -57,20 +69,24 @@ LEGAL_ARGS = REQUIRED_KEYS\
     + list(CHOICES.keys())\
     + DIRS + FILES\
     + [
-    'develop', 'signacdb_host', 'compmatdb_host',
-    'database_username', 'database_password',
-    'signacdb_admin',
+        'develop', 'signacdb_host', 'compmatdb_host',
+        'database_username', 'database_password',
+        'signacdb_admin',
     ]
 LEGAL_ARGS = list(set(LEGAL_ARGS))
+
 
 class IllegalKeyError(ValueError):
     pass
 
+
 class IllegalArgumentError(ValueError):
     pass
 
+
 class PermissionsError(RuntimeError):
     pass
+
 
 def read_environment():
     logger.debug("Reading environment variables.")
@@ -83,7 +99,8 @@ def read_environment():
             pass
     return args
 
-def verify(args, strict = False):
+
+def verify(args, strict=False):
     warnings.warn("No verification.")
     return
     for key in args.keys():
