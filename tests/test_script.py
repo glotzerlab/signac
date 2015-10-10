@@ -95,27 +95,19 @@ class ScriptConsoleTest(BaseScriptConsoleTest):
         self.script('--yes remove --job all')
         self.assertEqual(len(list(self.project.find_jobs())), 0)
 
-    def test_snapshot_restore(self):
-        self.add_dummy_job()
-        self.assertEqual(len(list(self.project.find_jobs())), 1)
-        self.script('snapshot test.tar.gz')
-        self.script('--yes clear')
-        self.assertEqual(len(list(self.project.find_jobs())), 0)
-        self.script('restore test.tar.gz')
-        self.assertEqual(len(list(self.project.find_jobs())), 1)
-
     def test_check(self):
         self.script('check')
 
-    @unittest.skip("This does not work right now.")
     def test_log(self):
         self.project.start_logging()
         self.add_dummy_job()
+        self.project.clear()
+        self.assertEqual(self.script('log').strip(), 'No logs available.'.strip())
+        self.assertEqual(self.script('log -l INFO').strip(), 'No logs available.'.strip())
         for job in self.project.find_jobs():
             with self.project.open_job(job.parameters()):
                 pass
-        self.assertEqual(self.script('log'), 'No logs available.\n')
-        self.assertEqual(self.script('log -l INFO'), 'No logs available.')
+        #self.assertNotEqual(self.script('log').strip(), 'No logs available.'.strip())
 
 if __name__ == '__main__':
     unittest.main()

@@ -13,13 +13,12 @@ from multiprocessing import Process
 import pymongo
 from pymongo.errors import DuplicateKeyError
 
-from .. import VERSION, VERSION_TUPLE
+from .. import VERSION_TUPLE
 from ..core.storage import Storage
 from ..core.jsondict import JSonDict
 from ..core.mongodbdict import MongoDBDict as DBDocument
 from .concurrency import DocumentLock
 from .hashing import generate_hash_from_spec
-from .errors import ConnectionFailure
 from .constants import *
 
 logger = logging.getLogger(__name__)
@@ -524,34 +523,6 @@ class OnlineJob(BaseJob):
                 self.collection.insert_one(doc)
             else:
                 self.collection.save(doc)
-
-    @property
-    def cache(self):
-        "Return the project cache."
-        warnings.warn("The cache API may be deprecated in the future.", PendingDeprecationWarning)
-        return self._project.get_cache()
-
-    def cached(self, function, * args, ** kwargs):
-        """Execute a cached function.
-
-        :param function: The function or callable to execute cached.
-        :param args: An arbitrary number of arguments.
-        :param kwargs: An arbitrary number of keyword arguments.
-        :return The result of the cached function.
-
-        .. note::
-           The function will only be executed *once*, after that the result will be fetched from the project's cache."""
-        warnings.warn("The cache API is under consideration for deprecation in the future.", PendingDeprecationWarning)
-        return self.cache.run(function, * args, ** kwargs)
-
-    @property
-    def spec(self):
-        raise DeprecationWarning("The 'spec' property is deprecated.")
-        #return self._spec
-
-    def _obtain_id(self):
-        msg = "This function is obsolete, as the id is always(!) calculated offline!"
-        raise DeprecationWarning(msg)
 
 class Job(OnlineJob):
     pass

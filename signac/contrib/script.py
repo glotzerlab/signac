@@ -10,12 +10,9 @@ import argparse
 import pymongo
 from bson.json_util import dumps
 
-from . import admin, update, get_project, check, init_project, configure, server, run
+from . import admin, update, get_project, check, init_project, configure 
 from .job import PULSE_PERIOD
-from .job_submit import find_all_pools, submit_mpi
 from .errors import ConnectionFailure
-from .logging import record_from_doc
-from .project import RollBackupExistsError
 from .utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter, query_yes_no
 
 logger = logging.getLogger(__name__)
@@ -30,13 +27,12 @@ def info(args):
         args.status = True
         args.jobs = True
         args.pulse = True
-        args.queue = True
     if not args.no_title:
         print(project)
     if args.more:
         print(project.root_directory())
     if args.status:
-        n_registered = len(list(project._find_job_ids()))
+        n_registered = len(list(project.find_job_ids()))
         n_active = project.num_active_jobs()
         n_pot_dead = 0
         n_w_pulse = 0
@@ -78,12 +74,12 @@ def info(args):
             if sep:
                 print(sep, end='')
             if args.status:
-                job = project.get_job(known)
+                job = project.open_job_from_id(known)
                 print(job, job.num_open_instances(), end='')
             else:
                 print(known, end='')
             if args.more:
-                job = project.get_job(known)
+                job = project.open_job_from_id(known)
                 print('\n' + dumps(job.parameters(), sort_keys = True), end='')
             sep = args.separator
         if args.regex:
@@ -101,24 +97,6 @@ def info(args):
                     age = delta.total_seconds()))
         else:
             print("No active jobs found.")
-    if args.queue:
-        queue = project.job_queue
-        s = "Queued/Fetched/Active/Aborted/Completed: {}/{}/{}/{}/{}"
-        print(s.format(queue.num_queued(), len(project.fetched_set), project.num_active_jobs(), queue.num_aborted(), queue.num_completed()))
-        if args.more:
-            print("Queued:")
-            for q in queue.get_queued():
-                if q is None:
-                    print("Error on retrieval.")
-                else:
-                    print(q)
-            print("Completed:")
-            for c in queue.get_completed():
-                print(c)
-            print("Aborted:")
-            for a in queue.get_aborted():
-                print(a['error'])
-                print(a['traceback'])
 
 def view(args):
     project = get_project()
@@ -209,10 +187,6 @@ def run_checks(args):
     else:
         print("All tests passed. No errors.")
 
-def run_pools(args):
-    for pool in find_all_pools(os.path.abspath(args.module)):
-        submit_mpi(pool)
-
 def show_log(args):
     formatter = logging.Formatter(
         fmt = args.format,
@@ -226,54 +200,6 @@ def show_log(args):
         showed_log = True
     if not showed_log:
         print("No logs available.")
-
-def store_snapshot(args):
-    if not args.overwrite and os.path.exists(args.snapshot):
-        q = "File with name '{}' already exists. Overwrite?"
-        if args.yes or query_yes_no(q.format(args.snapshot), 'no'):
-            pass
-        else:
-            return
-    project = get_project()
-    try:
-        if args.database_only:
-            print("Creating project database snapshot.")
-        else:
-            print("Creating project snapshot.")
-        project.create_snapshot(args.snapshot, not args.database_only)
-    except Exception as error:
-        msg = "Failed to create snapshot."
-        print(msg)
-        raise
-    else:
-        print("Success.")
-
-def restore_snapshot(args):
-    project = get_project()
-    print("Trying to restore from: {}".format(args.snapshot))
-    try:
-        project.restore_snapshot(args.snapshot)
-    except FileNotFoundError as error:
-        raise RuntimeError("File not found: {}".format(error))
-    except RollBackupExistsError as dst:
-        q = "A backup from a previous restore attempt exists. "
-        q += "Do you want to try to recover from that?"
-        if query_yes_no(q, 'no'):
-            try:
-                project._restore_rollbackup(str(dst))
-            except Exception as error:
-                print("The recovery failed. The corrupted recovery backup lies in '{}'. It is probably safe to delete it after inspection.".format(dst))
-                raise
-            else:
-                print("Successfully recovered.")
-                project._remove_rollbackup(str(dst))
-        else:
-            q = "Do you want to delete it?"
-            if query_yes_no(q, 'no'):
-                project._remove_rollbackup(str(dst))
-                print("Removed.")
-    else:
-        print("Success.")
 
 def clean_up(args):
     project = get_project()
@@ -326,7 +252,7 @@ def remove(args):
         if args.release:
             print("{} job(s) selected for release.".format(len(match)))
             for id_ in match:
-                job = project.get_job(id_)
+                job = project.open_job_from_id(id_)
                 job.force_release()
             print("Released selected jobs.")
         else:
@@ -335,25 +261,14 @@ def remove(args):
             if not(args.yes or query_yes_no(q)):
                 return
             for id_ in match:
-                job = project.get_job(id_)
+                job = project.open_job_from_id(id_)
                 job.remove(force = args.force)
             print("Removed selected jobs.")
     if args.logs:
         question = "Are you sure you want to clear all logs from project '{}'?"
         if args.yes or query_yes_no(question.format(project.get_id())):
             project.clear_logs()
-    if args.queue:
-        question = "Are you sure you want to clear the job queue results of project '{}'?"
-        if args.yes or query_yes_no(question.format(project.get_id()), 'no'):
-            project.job_queue.clear_results()
-            project.fetched_set.clear()
-    if args.queued:
-        if project.num_active_jobs() > 0:
-            print("Project has indication of active jobs!")
-        q = "Are you sure you want to clear the job queue of project '{}'?"
-        if args.yes or query_yes_no(q.format(project.get_id()), 'no'):
-            project.job_queue.clear_queue()
-    if not (args.project or args.job or args.logs or args.queue or args.queued):
+    if not (args.project or args.job or args.logs):
         print("Nothing selected for removal.")
 
 def main(argv=None):
@@ -402,14 +317,6 @@ def main(argv=None):
         help = "Remove all jobs that match the provided ids. Use 'all' to select all jobs. Example: '-j ed05b' or '-j=ed05b,59255' or '-j all'.",
         )
     parser_remove.add_argument(
-        '-q', '--queue',
-        action = 'store_true',
-        help = "Clear the job queue results.")
-    parser_remove.add_argument(
-        '--queued',
-        action = 'store_true',
-        help = "Clear the queued jobs.")
-    parser_remove.add_argument(
         '-r', '--release',
         action = 'store_true',
         help = "Release locked jobs instead of removing them.",
@@ -429,30 +336,6 @@ def main(argv=None):
         action = 'store_true',
         help = "Ignore errors during removal. May lead to data loss!")
     parser_remove.set_defaults(func = remove)
-
-    parser_snapshot = subparsers.add_parser('snapshot')
-    parser_snapshot.add_argument(
-        'snapshot',
-        type = str,
-        help = "Name of the file used to create the snapshot.",)
-    parser_snapshot.add_argument(
-        '--database-only',
-        action = 'store_true',
-        help = "Create only a snapshot of the database, without a copy of the value storage.",)
-    parser_snapshot.add_argument(
-        '--overwrite',
-        action = 'store_true',
-        help = "Overwrite existing snapshots with the same name without asking.",
-        )
-    parser_snapshot.set_defaults(func = store_snapshot)
-
-    parser_restore = subparsers.add_parser('restore')
-    parser_restore.add_argument(
-        'snapshot',
-        type = str,
-        help = "Name of the snapshot file or directory, used for restoring.",
-        )
-    parser_restore.set_defaults(func = restore_snapshot)
 
     parser_cleanup = subparsers.add_parser('cleanup')
     default_wait = int(20 *  PULSE_PERIOD)
@@ -491,10 +374,6 @@ def main(argv=None):
         '-p', '--pulse',
         action = 'store_true',
         help = "Print job pulse status.")
-    parser_info.add_argument(
-        '-q', '--queue',
-        action = 'store_true',
-        help = "Print job queue status.")
     parser_info.add_argument(
         '-m', '--more',
         action = 'store_true',
@@ -552,12 +431,6 @@ def main(argv=None):
     #    action = 'store_true',
     #    help = 'Perform offline checks.',)
     parser_check.set_defaults(func = run_checks)
-
-    parser_server = subparsers.add_parser('server')
-    server.setup_parser(parser_server)
-
-    parser_run = subparsers.add_parser('run')
-    run.setup_parser(parser_run)
 
     parser_log = subparsers.add_parser('log')
     parser_log.add_argument(
