@@ -1,7 +1,5 @@
 import os
-import warnings
 
-from ..common.config import load_config
 from .project import Project
 
 def get_project(project_path = None):
@@ -12,5 +10,5 @@ def get_project(project_path = None):
         os.chdir(cwd)
     else:
         project = Project()
-    project.get_id()
+    project.get_id() # sanity check
     return project
