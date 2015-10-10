@@ -20,7 +20,7 @@ import networkx as nx
 from gridfs import GridFS
 
 from ..core.config import load_config
-from . import conversion, formats
+from ..contrib import conversion, formats
 
 logger = logging.getLogger(__name__)
 

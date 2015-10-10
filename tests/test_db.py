@@ -8,8 +8,8 @@ import networkx as nx
 import pymongo
 
 import signac
-from signac.db import conversion
-from signac.db.conversion import add_adapter_to_network, make_adapter
+from signac.contrib import conversion
+from signac.contrib.conversion import add_adapter_to_network, make_adapter
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 TESTING_DB = 'testing_signacdb'
@@ -306,7 +306,6 @@ class DBTest(BaseDBTest):
         self.assertIsNotNone(data)
 
     def test_aggregate(self):
-        from signac.db import conversion
         signac_db = get_signac_db_handle()
         metadata = get_test_metadata()
         custom_adapter = conversion.make_adapter(
@@ -318,7 +317,6 @@ class DBTest(BaseDBTest):
             signac_db.insert_one(metadata, d)
 
         def foo(x):
-            from math import sqrt
             assert isinstance(x, int)
             return sqrt(x)
         foo_method = conversion.make_db_method(foo, int)

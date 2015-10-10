@@ -10,8 +10,8 @@ from ..common.config import load_config
 from ..common.host import get_client
 
 # namespace extension
-from .conversion import DBMethod, BasicFormat, Adapter
-from . import formats, methods
+from ..contrib.conversion import DBMethod, BasicFormat, Adapter
+from ..contrib import formats, methods
 
 
 def connect(host=None, config=None):
