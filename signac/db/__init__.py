@@ -10,7 +10,8 @@ from ..common.config import load_config
 from ..common.host import get_client
 
 # namespace extension
-from ..contrib.conversion import DBMethod, BasicFormat, Adapter
+from ..contrib.conversion import DBMethod, Adapter
+from ..contrib.formats import BasicFormat
 from ..contrib import formats, methods
 
 

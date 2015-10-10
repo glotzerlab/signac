@@ -1,7 +1,5 @@
 import logging
 
-from . import conversion
-
 logger = logging.getLogger(__name__)
 
 BASICS = [int, float, str, bool]
@@ -110,7 +108,7 @@ class TextFile(FileFormat):
     pass
 
 
-class FileLink(conversion.BaseLink):
+class FileLink(BaseLink):
     """Link format for file system files.
 
     Derive from this class to specify link formats, that are accessible
@@ -139,7 +137,7 @@ class FileLink(conversion.BaseLink):
         except FileNotFoundError as error:
             msg = "Unable to open file '{}': {}. root='{}'"
             logger.warning(msg.format(fn, error, self.root))
-            raise conversion.LinkError(error)
+            raise LinkError(error)
 
     @classmethod
     def set_root(cls, path):

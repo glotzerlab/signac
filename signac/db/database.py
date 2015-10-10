@@ -115,7 +115,7 @@ def generate_auto_network():
     """
     network = nx.DiGraph()
     network.add_nodes_from(formats.BASICS)
-    network.add_nodes_from(conversion.BasicFormat.registry.values())
+    network.add_nodes_from(formats.BasicFormat.registry.values())
     for adapter in conversion.Adapter.registry.values():
         logger.debug("Adding '{}' to network.".format(adapter()))
         conversion.add_adapter_to_network(
