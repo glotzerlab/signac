@@ -8,7 +8,7 @@ from itertools import chain
 import pymongo
 
 from .. import VERSION_TUPLE, VERSION
-from ..core.config import Config, search_tree, search_standard_dirs
+from ..common.config import Config, search_tree, search_standard_dirs
 from .hashing import generate_hash_from_spec
 from . import get_project
 

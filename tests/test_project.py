@@ -17,7 +17,8 @@ warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-from test_job import JobTest
+import signac
+from test_job import JobTest, config_from_cfg
 
 @unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
 class ProjectTest(JobTest):
@@ -27,7 +28,7 @@ class ProjectBackupTest(ProjectTest):
     
     def test_dump_db_snapshot(self):
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         with project.open_job(test_token) as job:
             job.document['result'] = 123
         self.stdout = sys.stdout
@@ -40,7 +41,7 @@ class ProjectBackupTest(ProjectTest):
     def test_create_db_snapshot(self):
         from signac.contrib import get_project
         from os import remove
-        project = get_project()
+        project = self.project
         with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
@@ -51,7 +52,7 @@ class ProjectBackupTest(ProjectTest):
         from os import remove
         from signac.contrib import get_project
         from tempfile import TemporaryFile
-        project = get_project()
+        project = self.project
         with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
@@ -63,7 +64,7 @@ class ProjectBackupTest(ProjectTest):
         from os import remove
         from signac.contrib import get_project
         from tempfile import TemporaryFile
-        project = get_project()
+        project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
         def states():
@@ -85,7 +86,7 @@ class ProjectBackupTest(ProjectTest):
     def test_bad_restore(self):
         from signac.contrib import get_project
         from tempfile import TemporaryFile
-        project = get_project()
+        project = self.project
         with project.open_job(test_token) as job:
             job.document['result'] = 123
         fn_tmp = '_dump.tar'
@@ -95,7 +96,7 @@ class ProjectViewTest(ProjectTest):
     
     def test_get_links(self):
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
         for a in A:
@@ -114,7 +115,7 @@ class ProjectViewTest(ProjectTest):
         import os
         from signac.contrib import get_project
         from tempfile import TemporaryDirectory
-        project = get_project()
+        project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
         for a in A:
@@ -135,7 +136,7 @@ class ProjectViewTest(ProjectTest):
         import os
         from signac.contrib import get_project
         from tempfile import TemporaryDirectory
-        project = get_project()
+        project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
         for a in A:
@@ -152,7 +153,7 @@ class ProjectViewTest(ProjectTest):
         import os
         from signac.contrib import get_project
         from tempfile import TemporaryDirectory
-        project = get_project()
+        project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
         for a in A:
@@ -179,10 +180,11 @@ def set_check_true(job):
     with job:
         job.document['check'] = True
 
-def start_pool(state_points, exclude_condition, rank, size, jobs = []):
+def start_pool(cfg, state_points, exclude_condition, rank, size, jobs = []):
     import tempfile
     from signac.contrib import get_project
-    project = get_project()
+    config = config_from_cfg(cfg)
+    project = signac.contrib.project.Project(config=config)
     job_pool = project.job_pool(state_points, exclude_condition)
     for job in jobs:
         job_pool.submit(job)
@@ -193,7 +195,7 @@ class ProjectPoolTest(ProjectTest):
     
     def test_start(self):
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         def dummy_function(job):
             pass
@@ -210,7 +212,7 @@ class ProjectPoolTest(ProjectTest):
     def test_pool_concurrency(self):
         from multiprocessing import Pool
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         job_pool = project.job_pool(state_points)
         num_proc = min(len(state_points), 4)
@@ -219,14 +221,14 @@ class ProjectPoolTest(ProjectTest):
         with Pool(processes = num_proc) as pool:
             result = pool.starmap_async(
                 start_pool,
-                [(state_points, condition, rank, num_proc, jobs)
+                [(project.config.write(), state_points, condition, rank, num_proc, jobs)
                     for rank in range(num_proc)])
             result.get(timeout = 20)
 
     def test_pool_condition(self):
         from multiprocessing import Pool
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         state_points = [{'a': a, 'b': b} for a in range(4) for b in range(4)]
         condition = {'check': True}
         pool = project.job_pool(state_points, exclude = condition)
@@ -235,7 +237,7 @@ class ProjectPoolTest(ProjectTest):
     def test_pool_concurrency_with_condition(self):
         from multiprocessing import Pool
         from signac.contrib import get_project
-        project = get_project()
+        project = self.project
         state_points = [{'a': a, 'b': b} for a in range(3) for b in range(3)]
         condition = {'check': True}
         job_pool = project.job_pool(state_points, exclude = condition)
@@ -245,7 +247,7 @@ class ProjectPoolTest(ProjectTest):
         with Pool(processes = num_proc) as pool:
             result = pool.starmap_async(
                 start_pool,
-                [(state_points, condition, rank, num_proc, jobs)
+                [(project.config.write(), state_points, condition, rank, num_proc, jobs)
                     for rank in range(num_proc)])
             result.get(timeout = 20)
         job_pool = project.job_pool(state_points, condition)
@@ -259,7 +261,7 @@ class ProjectQueueTest(ProjectTest):
     def test_queue(self):
         from signac.contrib import get_project
         from signac.contrib.project import Empty
-        project = get_project()
+        project = self.project
         queue = project.job_queue
         num_jobs = 10
         futures = [queue.submit(simple_function, i) for i in range(num_jobs)]

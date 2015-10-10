@@ -7,34 +7,32 @@ import re
 import argparse
 from os.path import abspath, expanduser
 
-from ..core import config
+from ..common import config
 from . utility import prompt_password
 
 logger = logging.getLogger(__name__)
 
 RE_EMAIL = r"[^@]+@[^@]+\.[^@]+"
 
-OPERATIONS= ['add', 'set', 'remove', 'dump', 'show']
-USER_GLOBAL = expanduser('~/signac.rc')
+OPERATIONS= ['add', 'set', 'remove', 'show']
+USER_GLOBAL = expanduser('~/.signacrc')
 USER_LOCAL = expanduser('./signac.rc')
 
 def process(args):
     if args.name: 
-        if args.name in config.DIRS or args.name in config.FILES:
-            args.value = abspath(expanduser(args.value))
         if args.name.endswith('password'):
             if not args.value:
                 args.value = prompt_password()
 
 def get_config(args, for_writing = False):
-    config_ = config.Config()
+    #config_ = config.Config()
     try:
         if args._global:
-            config_.read(USER_GLOBAL)
+            config_ = config.read_config_file(USER_GLOBAL)
         elif args.config:
-            config_.read(args.config)
+            config_ = config.read_config_file(args.config)
         elif for_writing:
-            config_.read(USER_LOCAL)
+            config_ = config.read_config_file(USER_LOCAL)
         else:
             config_ = config.load_config()
             #config_.read(expanduser('./signac.rc'))
@@ -44,13 +42,14 @@ def get_config(args, for_writing = False):
 
 def write_config(config_, args):
     if args._global:
-        config_.write(USER_GLOBAL)
+        config.write_config(config_, USER_GLOBAL)
     elif args.config == '-':
-        config_.dump()
+        for line in config_.write():
+            print(line)
     elif args.config:
-        config_.write(args.config)
+        config.write_config(config_, args.config)
     else:
-        config_.write(USER_LOCAL)
+        config.write_config(config_, USER_LOCAL)
         #msg = "You need to use option '--global' or '--config' to specify which config file to write to."
         #raise ValueError(msg)
 
@@ -63,8 +62,8 @@ def add(args):
         set_value(args)
 
 def check(key, value):
-    if not config.is_legal_key(key):
-        raise config.IllegalKeyError(key)
+    #if not config.is_legal_key(key):
+        #raise config.IllegalKeyError(key)
     if key.endswith('email'):
         if not re.match(RE_EMAIL, value.strip()):
             msg = "Invalid email address: '{}'."
@@ -73,9 +72,10 @@ def check(key, value):
 def set_value(args):
     config_ = get_config(args, for_writing = True)
     try:
-        if not args.force:
-            check(args.name, args.value)
-        config_.__setitem__(args.name, args.value, args.force)
+        #if not args.force:
+            #check(args.name, args.value)
+        config_[args.name] = args.value
+        #config_.__setitem__(args.name, args.value, args.force)
     except config.IllegalKeyError as error:
         msg = "'{}' does not seem to be a valid configuration key. Use '-f' or '--force' to ignore this warning."
         raise ValueError(msg.format(args.name))
@@ -90,23 +90,10 @@ def remove(args):
     del config_[args.name]
     write_config(config_, args)
 
-def dump(args):
-    config_ = get_config(args)
-    config_.dump(indent = 1)
-
 def show(args):
     config_ = get_config(args)
-    legal_args = sorted(config.LEGAL_ARGS)
-    l_column0 = max(len(arg) for arg in legal_args)
-    print("Current configuration:")
-    print()
-    msg = "{arg:<" + str(l_column0) + "}: {value}"
-    for arg in legal_args:
-        if arg.endswith('password'):
-            value = '[not shown]'
-        else:
-            value = config_.get(arg)
-        print(msg.format(arg=arg, value=value))
+    for line in config_.write():
+        print(line)
 
 def verify(args):
     args.name = args.name.strip()
@@ -125,8 +112,6 @@ def configure(args):
         set_value(args)
     elif args.operation == 'remove':
         remove(args)
-    elif args.operation == 'dump':
-        dump(args)
     elif args.operation == 'show':
         show(args)
     else:

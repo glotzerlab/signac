@@ -9,8 +9,7 @@ from setuptools import setup, find_packages
 setup(
     name = 'signac',
     version = '0.1.7dev1',
-    package_dir = {'': 'src'},
-    packages = find_packages('src'),
+    packages = find_packages(),
 
     author = 'Carl Simon Adorf',
     author_email = 'csadorf@umich.edu',
@@ -24,7 +23,7 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
         ],
 
-    install_requires=['pymongo>=2.8', 'jsonpickle','networkx>=1.10'],
+    install_requires=['pymongo>=2.8', 'jsonpickle','networkx>=1.10', 'six'],
 
     extras_require = {
         'mpi': ['mpi4py'],

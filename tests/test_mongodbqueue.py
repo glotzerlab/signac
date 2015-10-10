@@ -1,6 +1,7 @@
 import unittest
 from contextlib import contextmanager
 
+import signac
 from signac.core.mongodb_queue import MongoDBQueue, Empty
 from signac.core.mongodb_executor import MongoDBExecutor
 
@@ -19,11 +20,7 @@ def get_item():
     return {'my_item': testdata()}
 
 def get_collection_handle(_id):
-    from signac.core.config import load_config
-    from pymongo import MongoClient
-    config = load_config()
-    client = MongoClient(config['database_host'])
-    db = client['testing']
+    db = signac.get_db('testing')
     if _id is None:
         _id = uuid.uuid4()
     collection_name = 'test_mongodb_queue_{}'.format(_id)

@@ -52,7 +52,9 @@ class BaseJob(object):
     def __init__(self, project, parameters, version=None):
         self._unique_id = str(uuid.uuid4())
         self._project = project
-        self._version = version or project.config.get('signac_version', (0,1,0))
+        if version is None:
+            version = tuple((int(v) for v in project.config.get('signac_version', (0,1,0))))
+        self._version = version
         try:
             dict(parameters)
         except ValueError:
