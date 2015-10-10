@@ -20,7 +20,7 @@ import networkx as nx
 from gridfs import GridFS
 
 from ..core.config import load_config
-from ..contrib import conversion, formats
+from ..contrib import conversion, formats, adapters
 
 logger = logging.getLogger(__name__)
 
@@ -335,42 +335,10 @@ class Database(object):
         If :param method: is of type conversion.DBMethod, this function 
         will attempt to convert :param src: to the :param method: expects type.
         """
-        if isinstance(method, conversion.DBMethod):
-            try:
-                isinstance(src, method.expects)
-            except TypeError:
-                msg = "Illegal expect type: '{}'."
-                raise TypeError(msg.format(method.expects))
-            if not isinstance(src, method.expects):
-                msg = "Trying to convert from '{}' to '{}'."
-                logger.debug(msg.format(type(src), method.expects))
-                try:
-                    converters = conversion.get_converters(
-                        self._formats_network,
-                        type(src), method.expects)
-                    for i, converter in enumerate(converters):
-                        msg = "Attempting conversion path # {}: {} nodes."
-                        logger.debug(msg.format(i + 1, len(converter)))
-                        try:
-                            src_converted = converter.convert(
-                                src, debug=self.debug_mode)
-                            break
-                        except conversion.ConversionError:
-                            msg = "Conversion attempt with '{}' failed."
-                            logger.debug(msg.format(converter))
-                    else:
-                        raise conversion.ConversionError(src, method.expects)
-                except conversion.NoConversionPath:
-                    msg = "No path found."
-                    logger.debug(msg)
-                    raise
-                except conversion.ConversionError:
-                    msg = "Conversion from '{}' to '{}' through available conversion path failed."
-                    logger.debug(msg.format(type(src), method.expects))
-                    raise
-                else:
-                    src = src_converted
-                logger.debug('Success.')
+        try:
+            return conversion.convert(src, method.expects, self._formats_network)
+        except AttributeError:
+            pass
         return src
 
     def _update_cache(self, doc_ids, method):

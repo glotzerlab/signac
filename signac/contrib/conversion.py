@@ -125,8 +125,6 @@ class Converter(object):
                         "Attempting conversion with adapter '{}'.".format(adapter()))
                     data = adapter()(data)
                     break
-                except LinkError as error:
-                    raise
                 except Exception as error:
                     logger.debug("Conversion failed due to error: {}: '{}'.".format(
                         type(error), error))
@@ -266,3 +264,42 @@ class BaseLink(metaclass=LinkMetaType):
     def data(self):
         "Return the data of the linked object in the linked format."
         return self.linked_format(self.fetch())
+
+def convert(src, target_format, formats_network, debug=False):
+    """Convert the :param src: object to the target_format.
+
+    :param src: Arbitrary source object
+    :param target_format: The format to convert to.
+    :param formats_network: The network of formats used for conversion.
+    """
+    if type(src) == target_format:
+        return src
+    converters = get_converters(formats_network, type(src),
+        target_format)
+    for i, converter in enumerate(converters):
+        msg = "Attempting conversion path # {}: {} nodes."
+        logger.debug(msg.format(i + 1, len(converter)))
+        try:
+            return converter.convert(src, debug=debug)
+        except ConversionError:
+            msg = "Conversion attempt with '{}' failed."
+            logger.debug(msg.format(converter))
+    else:
+        raise ConversionError(type(src), target_format)
+
+def converted(sources, target_format, formats_network, ignore_errors=True):
+    for src in sources:
+        try:
+            yield convert(src, target_format, formats_network)
+        except NoConversionPath:
+            msg = "No path found."
+            logger.debug(msg)
+            if not ignore_errors:
+                raise
+        except conversion.ConversionError:
+            msg = "Conversion from '{}' to '{}' through available conversion path failed."
+            logger.debug(msg.format(type(src), method.expects))
+            if not ignore_errros:
+                raise
+        else:
+            logger.debug('Success.')
