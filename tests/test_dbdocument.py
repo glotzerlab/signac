@@ -1,14 +1,13 @@
 import unittest
+import warnings
 from contextlib import contextmanager
 
+import pymongo
 import signac
 from signac.core.dbdocument import DBDocument
 
-import warnings
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
-
-import pymongo
 
 def testdata():
     import uuid
@@ -53,7 +52,7 @@ def get_dbdoc(hostname = 'testing', id_ = None):
 class TestDBDocument(unittest.TestCase):
     
     def test_construction(self):
-        dbdoc = get_dbdoc()
+        get_dbdoc()
 
     def test_save_and_load(self):
         key = "test_save_and_load"
@@ -71,7 +70,7 @@ class TestDBDocument(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 dbdoc['key'] = 'data'
             with self.assertRaises(RuntimeError):
-                data = dbdoc['key']
+                dbdoc['key']
             dbdoc.clear()
             #with self.assertRaises(RuntimeError):
             with self.assertRaises(AttributeError):
@@ -89,7 +88,7 @@ class TestDBDocument(unittest.TestCase):
     def test_get(self):
         key = "test_get"
         data = testdata()
-        with get_dbdoc():
+        with get_dbdoc() as dbdoc:
             dbdoc[key] = data
             self.assertEqual(dbdoc.get(key), data)
             self.assertIsNone(dbdoc.get('abc'))
@@ -100,7 +99,6 @@ class TestDBDocument(unittest.TestCase):
             self.assertEqual(dbdoc.get(key), data)
 
     def test_iteration(self):
-        key = 'test_iteration'
         num_entries = 100
         pairs = [(str(i), testdata()) for i in range(num_entries)]
         with get_dbdoc() as dbdoc:
@@ -113,7 +111,6 @@ class TestDBDocument(unittest.TestCase):
                     self.assertIn(k, set((k for k,v in pairs)))
 
     def test_clear(self):
-        key = 'test_clear'
         num_entries = 2
         pairs = [(str(i), testdata()) for i in range(num_entries)]
         with get_dbdoc() as dbdoc:

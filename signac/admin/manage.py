@@ -4,28 +4,14 @@ import sys
 import code
 import getpass
 
-from ..core.config import load_config
-from ..core.dbclient_connector import DBClientConnector
+from ..common.config import load_config
 from ..core.utility import get_subject_from_certificate
-from ..core.dbclient_connector import SUPPORTED_AUTH_MECHANISMS
-from ..contrib import get_all_project_ids, get_basic_project_from_id
 from ..contrib.utility import add_verbosity_argument, set_verbosity_level
 
 logger = logging.getLogger(__name__)
 
 def connect_and_authenticate(args):
-    config = load_config()
-    prefix = 'database_'
-    if args.certificate is not None:
-        config[prefix+'ssl_certfile'] = args.certificate
-    if args.cacertificate is not None:
-        config[prefix+'ssl_ca_certs'] = args.cacertificate
-    if args.auth is not None:
-        config[prefix+'auth_mechanism'] = args.auth
-    connector = DBClientConnector(config, prefix = prefix)
-    connector.connect()
-    connector.authenticate()
-    return connector.client
+    return host.get_client(args.hostname)
 
 def add_x509_user(client, username, databases, roles):
     db_auth = client['$external']
@@ -68,15 +54,6 @@ def display_status(args):
     for key, value in status.items():
         print(key)
         print(value)
-        print()
-
-def display_info(args):
-    client = connect_and_authenticate(args)
-    for project_id in get_all_project_ids(client):
-        project = get_basic_project_from_id(project_id, client=client)
-        n_jobs = project.num_active_jobs()
-        print(project_id)
-        print("Active jobs: {num}".format(num=n_jobs))
         print()
 
 def manage_user(args):
@@ -142,19 +119,9 @@ def main():
         description = "Administrative management of signac.")
     add_verbosity_argument(parser)
     parser.add_argument(
-        '-c', '--certificate',
+        'hostname',
         type = str,
-        help = "The certificate to be used for authentication.",
-        )
-    parser.add_argument(
-        '--cacertificate',
-        type = str,
-        help = "The ca certificate used for authentication.")
-    parser.add_argument(
-        '-a', '--auth',
-        type = str,
-        choices = SUPPORTED_AUTH_MECHANISMS,
-        help = "The auth mode to use.")
+        help = "The hostname of the configured host to manage.")
     parser.add_argument(
         '-d', '--database',
         type = str,
@@ -166,11 +133,6 @@ def main():
         'shell',
         description = "Enter an interactive mongo shell.")
     parser_shell.set_defaults(func = manage_shell)
-
-    parser_info = subparsers.add_parser(
-        'info',
-        description = "Print administrative information.")
-    parser_info.set_defaults(func = display_info)
 
     parser_user = subparsers.add_parser(
         'user',

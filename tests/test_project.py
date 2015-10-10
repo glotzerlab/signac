@@ -1,24 +1,22 @@
 import unittest
 import os
-import sys
-import io
+import uuid
 import tempfile
 import subprocess
-from contextlib import contextmanager
+import warnings
+from tempfile import TemporaryDirectory
+
+import pymongo
+
+from test_job import JobTest
 
 # Make sure the jobs created for this test are unique.
-import uuid
 test_token = {'test_token': str(uuid.uuid4())}
 
-import warnings
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
-import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-import signac
-from test_job import JobTest, config_from_cfg
 
 @unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
 class ProjectTest(JobTest):
@@ -27,7 +25,6 @@ class ProjectTest(JobTest):
 class ProjectViewTest(ProjectTest):
     
     def test_get_links(self):
-        from signac.contrib import get_project
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -44,9 +41,6 @@ class ProjectViewTest(ProjectTest):
         list(project.get_storage_links(url+'/{c}'))
 
     def test_create_view_default_url(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -65,9 +59,6 @@ class ProjectViewTest(ProjectTest):
             self.assertFalse(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_0/c/C')))
 
     def test_create_view_custom_url(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]
@@ -82,9 +73,6 @@ class ProjectViewTest(ProjectTest):
             project.create_view(url)
 
     def test_create_flat_view(self):
-        import os
-        from signac.contrib import get_project
-        from tempfile import TemporaryDirectory
         project = self.project
         A = ['a_{}'.format(i) for i in range(2)]
         B = ['b_{}'.format(i) for i in range(2)]

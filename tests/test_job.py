@@ -1,13 +1,10 @@
 import unittest
-import sys
 import os
 import io
 import warnings
 import tempfile
 import uuid
-import json
 import copy
-from contextlib import contextmanager
 
 import pymongo
 
@@ -22,13 +19,6 @@ warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 warnings.filterwarnings('ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-try:
-    import numpy as np
-except ImportError:
-    NUMPY = False
-else:
-    NUMPY = True
 
 def config_from_cfg(cfg):
     cfile = io.StringIO('\n'.join(cfg))
@@ -388,7 +378,7 @@ class JobStorageTest(BaseOnlineJobTest):
             pass
 
 def open_and_lock_and_release_job(cfg, token):
-    with open_job(cfg, test_token, timeout = 30) as job:
+    with open_job(cfg, test_token, timeout = 30):
         pass
     return True
 
