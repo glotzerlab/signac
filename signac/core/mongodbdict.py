@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 import pymongo
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 
+
 class ReadOnlyMongoDBDict(object):
 
     def __init__(self, collection, _id):
@@ -28,17 +29,17 @@ class ReadOnlyMongoDBDict(object):
         logger.debug("Getting '{}'".format(key))
         if PYMONGO_3:
             doc = self._get_collection().find_one(
-                filter = self._spec(),
-                projection = [key])
+                filter=self._spec(),
+                projection=[key])
         else:
             doc = self._get_collection().find_one(
                 self._spec(),
-                fields = [key])
+                fields=[key])
         if doc is None:
             raise KeyError(key)
         else:
             return doc[key]
-    
+
     def __iter__(self):
         doc = self._get_collection().find_one(self._spec())
         if doc is None:
@@ -53,22 +54,23 @@ class ReadOnlyMongoDBDict(object):
     def __contains__(self, key):
         if PYMONGO_3:
             doc = self._get_collection().find_one(
-                filter = self._spec(),
-                projection = [key])
+                filter=self._spec(),
+                projection=[key])
         else:
             doc = self._get_collection().find_one(
                 self._spec(),
-                fields = [key])
+                fields=[key])
         if doc is None:
             return False
         else:
             return key in doc
 
-    def get(self, key, default = None):
+    def get(self, key, default=None):
         try:
-            return self.__getitem__(key) 
+            return self.__getitem__(key)
         except KeyError:
             return default
+
 
 class MongoDBDict(ReadOnlyMongoDBDict):
 
@@ -77,24 +79,24 @@ class MongoDBDict(ReadOnlyMongoDBDict):
         logger.debug(msg.format(key))
         if PYMONGO_3:
             self._get_collection().update_one(
-                filter = self._spec(),
-                update = {'$set': {key: value}},
-                upsert = True)
+                filter=self._spec(),
+                update={'$set': {key: value}},
+                upsert=True)
         else:
             self._get_collection().update(
-                spec = self._spec(),
-                document = {'$set': {key: value}},
-                upsert = True)
+                spec=self._spec(),
+                document={'$set': {key: value}},
+                upsert=True)
 
     def __delitem__(self, key):
         if PYMONGO_3:
             result = self._get_collection().update_one(
-                filter = self._spec(),
-                update = {'$unset': {key: ''}})
+                filter=self._spec(),
+                update={'$unset': {key: ''}})
         else:
             result = self._get_collection().update(
-                spec = self._spec(),
-                document = {
+                spec=self._spec(),
+                document={
                     '$unset': {key: ''}
                 })
             assert result['ok']

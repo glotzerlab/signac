@@ -8,6 +8,7 @@ DEFAULT_HOST_CONFIG = {
     'url': 'localhost',
     'auth_mechanism': 'none'}
 
+
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(
@@ -37,7 +38,8 @@ AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
 AUTH_SSL = 'SSL'
 AUTH_SSL_x509 = 'SSL-x509'
 
-SUPPORTED_AUTH_MECHANISMS = [AUTH_NONE, AUTH_SCRAM_SHA_1, AUTH_SSL, AUTH_SSL_x509]
+SUPPORTED_AUTH_MECHANISMS = [AUTH_NONE,
+                             AUTH_SCRAM_SHA_1, AUTH_SSL, AUTH_SSL_x509]
 
 if SSL_SUPPORT:
     SSL_CERT_REQS = {
@@ -46,13 +48,17 @@ if SSL_SUPPORT:
         'required': ssl.CERT_REQUIRED
     }
 
+
 def with_ssl_support():
     if not SSL_SUPPORT:
-        raise EnvironmentError("Your python installation does not support SSL.")
+        raise EnvironmentError(
+            "Your python installation does not support SSL.")
+
 
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
+
 
 class DBClientConnector(object):
 
@@ -71,18 +77,19 @@ class DBClientConnector(object):
     def host(self):
         return self._config['url']
 
-    def _config_get(self, key, default = None):
+    def _config_get(self, key, default=None):
         return self._config.get(key, default)
-        #try:
+        # try:
         #    return self._config[self._prefix + key]
-        #except KeyError:
-            #return self._config.get(key, default)
+        # except KeyError:
+        # return self._config.get(key, default)
+
     def _config_get_required(self, key):
         return self._config[key]
         #result = self._config_get(key)
-        #if result is None:
+        # if result is None:
         #    self._config[key]
-        #else:
+        # else:
         #    return result
 
     def _connect_pymongo3(self, host):
@@ -99,12 +106,17 @@ class DBClientConnector(object):
             with_ssl_support()
             client = pymongo.MongoClient(
                 host,
-                ssl = True,
-                ssl_keyfile = expanduser(self._config_get_required('ssl_keyfile')),
-                ssl_certfile = expanduser(self._config_get_required('ssl_certfile')),
-                ssl_cert_reqs = SSL_CERT_REQS[self._config_get('ssl_cert_reqs', 'required')],
-                ssl_ca_certs = expanduser(self._config_get_required('ssl_ca_certs')),
-                ssl_match_hostname = self._config_get('ssl_match_hostname', True),
+                ssl=True,
+                ssl_keyfile=expanduser(
+                    self._config_get_required('ssl_keyfile')),
+                ssl_certfile=expanduser(
+                    self._config_get_required('ssl_certfile')),
+                ssl_cert_reqs=SSL_CERT_REQS[
+                    self._config_get('ssl_cert_reqs', 'required')],
+                ssl_ca_certs=expanduser(
+                    self._config_get_required('ssl_ca_certs')),
+                ssl_match_hostname=self._config_get(
+                    'ssl_match_hostname', True),
                 ** parameters)
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
@@ -128,10 +140,11 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    def connect(self, host = None):
+    def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
-        logger.debug("Connecting to host '{host}'.".format(host=self._config_get_required('url')))
+        logger.debug("Connecting to host '{host}'.".format(
+            host=self._config_get_required('url')))
 
         if PYMONGO_3:
             self._connect_pymongo3(host)
@@ -145,17 +158,19 @@ class DBClientConnector(object):
             db_admin = self.client['admin']
             username = self._config_get_required('username')
             msg = "Authenticating user '{user}' with database '{db}'."
-            logger.debug(msg.format(user=username,db=db_admin))
+            logger.debug(msg.format(user=username, db=db_admin))
             db_admin.authenticate(
                 username,
                 self._config_get_required('password'),
-                mechanism = AUTH_SCRAM_SHA_1)
+                mechanism=AUTH_SCRAM_SHA_1)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
             with_ssl_support()
-            certificate_subject = get_subject_from_certificate(expanduser(self._config_get_required('ssl_certfile')))
+            certificate_subject = get_subject_from_certificate(
+                expanduser(self._config_get_required('ssl_certfile')))
             logger.debug("Authenticating: user={}".format(certificate_subject))
             db_external = self.client['$external']
-            db_external.authenticate(certificate_subject, mechanism = 'MONGODB-X509')
+            db_external.authenticate(
+                certificate_subject, mechanism='MONGODB-X509')
 
     def logout(self):
         auth_mechanism = self._config_get_required('auth_mechanism')

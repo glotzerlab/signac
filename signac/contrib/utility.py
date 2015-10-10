@@ -5,6 +5,7 @@ import argparse
 
 logger = logging.getLogger(__name__)
 
+
 def query_yes_no(question, default="yes"):
     """Ask a yes/no question via input() and return their answer.
 
@@ -39,22 +40,25 @@ def query_yes_no(question, default="yes"):
 # Usage example
 #
 #>>> query_yes_no("Is cabbage yummier than cauliflower?")
-#Is cabbage yummier than cauliflower? [Y/n] oops
-#Please respond with 'yes' or 'no' (or 'y' or 'n').
-#Is cabbage yummier than cauliflower? [Y/n] y
+# Is cabbage yummier than cauliflower? [Y/n] oops
+# Please respond with 'yes' or 'no' (or 'y' or 'n').
+# Is cabbage yummier than cauliflower? [Y/n] y
 #>>> True
 
-def prompt_password(prompt = 'Password: '):
+
+def prompt_password(prompt='Password: '):
     return getpass.getpass(prompt)
 
-def prompt_new_password(prompt = 'Password: '):
+
+def prompt_new_password(prompt='Password: '):
     pwd = getpass.getpass(prompt)
     pwd2 = getpass.getpass("Confirm password: ")
     if pwd != pwd2:
         raise ValueError("Passwords do not match.")
     return pwd
 
-def add_verbosity_argument(parser, default = 0):
+
+def add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
     Note:
@@ -68,12 +72,13 @@ def add_verbosity_argument(parser, default = 0):
     """
     parser.add_argument(
         '-v', '--verbosity',
-        help = "Set level of verbosity.",
-        action = 'count',
-        default = default,
-        )
+        help="Set level of verbosity.",
+        action='count',
+        default=default,
+    )
 
-def add_verbosity_action_argument(parser, default = 0):
+
+def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
     Note:
@@ -87,13 +92,14 @@ def add_verbosity_action_argument(parser, default = 0):
     """
     parser.add_argument(
         '-v',
-        default = 0,
-        nargs = '?',
-        action = VerbosityLoggingConfigAction,
-        dest = 'verbosity',
-        )
+        default=0,
+        nargs='?',
+        action=VerbosityLoggingConfigAction,
+        dest='verbosity',
+    )
 
-def set_verbosity_level(verbosity, default = None, increment = 10):
+
+def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
     Args:
@@ -103,10 +109,12 @@ def set_verbosity_level(verbosity, default = None, increment = 10):
     if default is None:
         default = logging.ERROR
     logging.basicConfig(
-        level = default - increment * verbosity)
+        level=default - increment * verbosity)
+
 
 class VerbosityAction(argparse.Action):
-    def __call__(self, parser, args, values, option_string = None):
+
+    def __call__(self, parser, args, values, option_string=None):
         if values == None:
             values = '1'
         try:
@@ -115,17 +123,23 @@ class VerbosityAction(argparse.Action):
             values = values.count('v') + 1
         setattr(args, self.dest, values)
 
+
 class VerbosityLoggingConfigAction(VerbosityAction):
-    def __call__(self, parser, args, values, option_string = None):
-        super(VerbosityLoggingConfigAction, self).__call__(parser, args, values, option_string)
+
+    def __call__(self, parser, args, values, option_string=None):
+        super(VerbosityLoggingConfigAction, self).__call__(
+            parser, args, values, option_string)
         v_level = getattr(args, self.dest)
         set_verbosity_level(v_level)
 
+
 class EmptyIsTrue(argparse.Action):
+
     def __call__(self, parser, namespace, values, option_string=None):
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
+
 
 class SmartFormatter(argparse.HelpFormatter):
 

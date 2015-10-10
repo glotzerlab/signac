@@ -16,6 +16,7 @@ KEY_CALLABLE_SOURCE_HASH = 'source_hash'
 KEY_CALLABLE_MODULE_HASH = 'module_hash'
 KEY_CALLABLE_CHECKSUM = 'checksum'
 
+
 def reload_module(modulename):
     module = importlib.import_module(modulename)
     logger.debug("Reloading module '{}'.".format(module))
@@ -32,6 +33,7 @@ def reload_module(modulename):
     except AttributeError:
         pass
 
+
 def hash_module(c):
     module = inspect.getmodule(c)
     src_file = inspect.getsourcefile(module)
@@ -40,16 +42,19 @@ def hash_module(c):
         m.update(file.read())
     return m.hexdigest()
 
+
 def hash_source(c):
     m = hashlib.md5()
     m.update(inspect.getsource(c).encode())
     return m.hexdigest()
+
 
 def callable_name(c):
     try:
         return c.__name__
     except AttributeError:
         return c.name()
+
 
 def callable_spec(c):
     assert callable(c)
@@ -66,15 +71,19 @@ def callable_spec(c):
         }
     return spec
 
+
 def encode(item):
     return jsonpickle.encode(item).encode()
+
 
 def decode(binary):
     return jsonpickle.decode(binary.decode())
 
+
 def encode_callable_filter(fn, args, kwargs):
     b = encode_callable(fn, args, kwargs)
     return {KEY_CALLABLE_CHECKSUM: b[KEY_CALLABLE_CHECKSUM]}
+
 
 def encode_callable(fn, args, kwargs):
     checksum_src = hash_source(fn)
@@ -83,13 +92,15 @@ def encode_callable(fn, args, kwargs):
         module=fn.__module__, checksum_src=checksum_src)
     # we need jsonpickle to encode the functions and
     # json to ensure key sorting
-    binary = json.dumps(json.loads(jsonpickle.dumps(doc)), sort_keys=True).encode()
+    binary = json.dumps(json.loads(jsonpickle.dumps(doc)),
+                        sort_keys=True).encode()
     m = hashlib.sha1()
     m.update(binary)
     checksum = m.hexdigest()
-    return {KEY_CALLABLE: binary, KEY_CALLABLE_CHECKSUM : checksum}
+    return {KEY_CALLABLE: binary, KEY_CALLABLE_CHECKSUM: checksum}
 
-def decode_callable(doc, reload = True):
+
+def decode_callable(doc, reload=True):
     sys.path.append('')
     binary = doc[KEY_CALLABLE]
     m = hashlib.sha1()

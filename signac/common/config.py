@@ -16,7 +16,10 @@ CONFIG_PATH = [HOME]
 CWD = os.getcwd()
 FN_CONFIG = os.path.expanduser('~/.signacrc')
 
-class PermissionsError(ConfigError): pass
+
+class PermissionsError(ConfigError):
+    pass
+
 
 def search_tree():
     cwd = os.getcwd()
@@ -33,6 +36,7 @@ def search_tree():
         else:
             cwd = up
 
+
 def search_standard_dirs():
     for path in CONFIG_PATH:
         for filename in CONFIG_FILENAMES:
@@ -41,11 +45,13 @@ def search_standard_dirs():
                 yield fn
                 return
 
+
 def check_permissions(filename):
     st = os.stat(filename)
     if (st.st_mode & stat.S_IROTH):
         msg = "Permissions of configuration file '{fn}' allow it to be read by others than the user. Unable to read/write password."
         raise PermissionsError(msg.format(fn=filename))
+
 
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
@@ -56,20 +62,23 @@ def read_config_file(filename):
             check_permissions(filename)
     return config
 
+
 def write_config(config, filename):
     fn = config.filename
     config.filename = None
     try:
         with open(filename, 'wb') as file:
             for line in config.write():
-                file.write((line+'\n').encode(type(config).encoding))
+                file.write((line + '\n').encode(type(config).encoding))
     finally:
         config.filename = fn
+
 
 def get_config(infile=None, configspec=None, * args, **kwargs):
     if configspec is None:
         configspec = cfg.split('\n')
     return Config(infile, configspec=configspec, *args, **kwargs)
+
 
 def load_config():
     config = Config(configspec=cfg.split('\n'))
@@ -85,10 +94,11 @@ def load_config():
         logger.debug("Did not find a project configuration file.")
     return config
 
-class Config(ConfigObj):
-    encoding='utf-8'
 
-    def verify(self, validator = None, *args, **kwargs):
+class Config(ConfigObj):
+    encoding = 'utf-8'
+
+    def verify(self, validator=None, *args, **kwargs):
         if validator is None:
             validator = get_validator()
         super(Config, self).validate(validator, *args, **kwargs)

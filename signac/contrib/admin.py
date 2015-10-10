@@ -16,15 +16,19 @@ from ..admin.manage import revoke_roles_from_user
 
 logger = logging.getLogger(__name__)
 
+
 def welcome_msg(project):
     msg = "Administrating project '{project}' on '{host}':"
     print(msg.format(project=project, host=project.config['database_host']))
 
+
 def get_client(project):
     return project._get_client()
 
+
 def get_project_(args):
     return get_project()
+
 
 def get_username(args):
     if args.user is None:
@@ -34,6 +38,7 @@ def get_username(args):
             return get_subject_from_certificate(args.user)
     else:
         return args.user
+
 
 def get_roles(args):
     LEGAL_ROLES = ['read', 'readWrite']
@@ -49,18 +54,21 @@ def get_roles(args):
         raise ValueError(msg.format(LEGAL_ROLES))
     return [args.role]
 
+
 def get_db_auth(client, args):
     if args.ssl:
         return client['$external']
     else:
         return client['admin']
 
-def user_exists(client, args, db_auth = None):
+
+def user_exists(client, args, db_auth=None):
     if db_auth is None:
         db_auth = get_db_auth(client, args)
     username = get_username(args)
     info = db_auth.command('usersInfo', username)
     return bool(info['users'])
+
 
 def add_user(args):
     project = get_project_(args)
@@ -73,6 +81,7 @@ def add_user(args):
     else:
         add_user_to_db(project, client, username, args)
 
+
 def update_user(args):
     project = get_project_(args)
     client = get_client(project)
@@ -84,14 +93,15 @@ def update_user(args):
         db_auth = client.admin
         msg = "Enter new password for user '{}': "
         pwd = utility.prompt_new_password(msg.format(username))
-        result = db_auth.command('updateUser', username, pwd = pwd)
-        if result ['ok']:
+        result = db_auth.command('updateUser', username, pwd=pwd)
+        if result['ok']:
             print('OK.')
         else:
             raise RuntimeError(result)
     else:
         msg = "Nothing to update."
         raise ValueError(msg)
+
 
 def add_user_to_db(project, client, username, args):
     dbs = [project.get_id()]
@@ -108,6 +118,7 @@ def add_user_to_db(project, client, username, args):
         else:
             raise RuntimeError(result)
 
+
 def remove_user(args):
     project = get_project_(args)
     welcome_msg(project)
@@ -122,16 +133,20 @@ def remove_user(args):
         db_auth.remove_user(username)
         print("OK.")
 
+
 def grant_roles(args):
-    return grant_revoke_roles(args, revoke = False)
+    return grant_revoke_roles(args, revoke=False)
+
 
 def revoke_roles(args):
-    return grant_revoke_roles(args, revoke = True)
+    return grant_revoke_roles(args, revoke=True)
+
 
 def grant_revoke_roles(args, revoke):
     project = get_project_(args)
     welcome_msg(project)
     return _grant_revoke_roles(args, revoke, project)
+
 
 def _grant_revoke_roles(args, revoke, project):
     client = get_client(project)
@@ -155,6 +170,7 @@ def _grant_revoke_roles(args, revoke, project):
     else:
         raise RuntimeError(result)
 
+
 def collect_users(info, dbs):
     for entry in info['users']:
         for role in entry['roles']:
@@ -162,12 +178,14 @@ def collect_users(info, dbs):
                 yield entry['user']
                 break
 
+
 def collect_roles(info, dbs, username):
     for users in info['users']:
         if users['user'] == username:
             for entry in users['roles']:
                 if entry['db'] in dbs:
                     yield entry['role']
+
 
 def show_users(args):
     project = get_project_(args)
@@ -216,15 +234,17 @@ HELP_OPERATION = """\
         show:           Show all registered users for this project.
     """
 
+
 def setup_subparser(subparser):
     subparser.add_argument(
         'user',
-        type = str,
-        help = "A username or the path to a certificate file.")
+        type=str,
+        help="A username or the path to a certificate file.")
     subparser.add_argument(
         '--ssl',
-        action = 'store_true',
-        help = "Use SSL certificates for authentication.")
+        action='store_true',
+        help="Use SSL certificates for authentication.")
+
 
 def setup_parser(parser):
     subparsers = parser.add_subparsers()
@@ -233,73 +253,74 @@ def setup_parser(parser):
     setup_subparser(parser_add)
     parser_add.add_argument(
         '-r', '--readonly',
-        action = 'store_true',
-        help = "Grant only read permissions to new user.")
-    parser_add.set_defaults(func = add_user)
+        action='store_true',
+        help="Grant only read permissions to new user.")
+    parser_add.set_defaults(func=add_user)
 
     parser_update = subparsers.add_parser(
         'update',
-        description = "Update a user's credentials.")
+        description="Update a user's credentials.")
     setup_subparser(parser_update)
     parser_update.add_argument(
         '-p', '--password',
-        action = 'store_true',
-        help = "Update a user's password.")
-    parser_update.set_defaults(func = update_user)
+        action='store_true',
+        help="Update a user's password.")
+    parser_update.set_defaults(func=update_user)
 
     parser_remove = subparsers.add_parser('remove')
     setup_subparser(parser_remove)
-    parser_remove.set_defaults(func = remove_user)
+    parser_remove.set_defaults(func=remove_user)
 
     parser_grant = subparsers.add_parser('grant')
     setup_subparser(parser_grant)
     parser_grant.add_argument(
         'role',
-        type = str,
-        help = "The role to grant to this user. Choices: {read,readWrite}")
-    parser_grant.set_defaults(func = grant_roles)
+        type=str,
+        help="The role to grant to this user. Choices: {read,readWrite}")
+    parser_grant.set_defaults(func=grant_roles)
 
     parser_revoke = subparsers.add_parser('revoke')
     setup_subparser(parser_revoke)
     parser_revoke.add_argument(
         'role',
-        type = str,
-        help = "The role to revoke from this user. Choices: {read,readWrite}")
-    parser_revoke.set_defaults(func = revoke_roles)
+        type=str,
+        help="The role to revoke from this user. Choices: {read,readWrite}")
+    parser_revoke.set_defaults(func=revoke_roles)
 
     parser_show = subparsers.add_parser('show')
     setup_subparser(parser_show)
-    parser_show.set_defaults(func = show_users)
+    parser_show.set_defaults(func=show_users)
 
-def main(arguments = None):
-        parser = argparse.ArgumentParser(
-            description = "Administrate signac.",
-            )
-        setup_parser(parser)
-        parser.add_argument(
-            '-y', '--yes',
-            action = 'store_true',
-            help = "Assume yes to all questions.",)
-        utility.add_verbosity_argument(parser)
-        args = parser.parse_args(arguments)
-        utility.set_verbosity_level(args.verbosity)
-        try:
-            if 'func' in args:
-                args.func(args, get_project_(args))
-            else:
-                parser.print_usage()
-        except Exception as error:
-            if args.verbosity > 0:
-                raise
-            else:
-                print("Error: {}".format(error))
-                return 1
-        except KeyboardInterrupt as error:
-            print("Interrupted.")
-            return 1
+
+def main(arguments=None):
+    parser = argparse.ArgumentParser(
+        description="Administrate signac.",
+    )
+    setup_parser(parser)
+    parser.add_argument(
+        '-y', '--yes',
+        action='store_true',
+        help="Assume yes to all questions.",)
+    utility.add_verbosity_argument(parser)
+    args = parser.parse_args(arguments)
+    utility.set_verbosity_level(args.verbosity)
+    try:
+        if 'func' in args:
+            args.func(args, get_project_(args))
         else:
-            return 0
+            parser.print_usage()
+    except Exception as error:
+        if args.verbosity > 0:
+            raise
+        else:
+            print("Error: {}".format(error))
+            return 1
+    except KeyboardInterrupt as error:
+        print("Interrupted.")
+        return 1
+    else:
+        return 0
 
 if __name__ == '__main__':
-    logging.basicConfig(level = logging.INFO)
+    logging.basicConfig(level=logging.INFO)
     sys.exit(main())

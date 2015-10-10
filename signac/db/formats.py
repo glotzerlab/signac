@@ -15,9 +15,12 @@ conversion.make_adapter(str, float)
 conversion.make_adapter(int, bool)
 conversion.make_adapter(float, bool)
 
+
 class FileFormat(conversion.BasicFormat):
+
     def __init__(self, data):
         self._data = data
+
     @property
     def data(self):
         return self._data
@@ -25,8 +28,10 @@ class FileFormat(conversion.BasicFormat):
     def read(self):
         return self._data
 
+
 class TextFile(FileFormat):
     pass
+
 
 class FileLink(conversion.BaseLink):
     """Link format for file system files.
@@ -46,7 +51,7 @@ class FileLink(conversion.BaseLink):
             from os.path import expanduser
             root=expanduser('~')
     """
-    root=''
+    root = ''
 
     def fetch(self):
         "Load data from file at joined root and url path."
@@ -62,22 +67,28 @@ class FileLink(conversion.BaseLink):
     @classmethod
     def set_root(cls, path):
         "Change the root path of this file link type."
-        cls.root=path
+        cls.root = path
+
 
 class FileToBytesAdapter(conversion.Adapter):
     expects = FileFormat
     returns = bytes
+
     def convert(self, x):
         return x._data
+
 
 class BytesToStrAdapter(conversion.Adapter):
     expects = bytes
     returns = str
+
     def convert(self, x):
         return x.decode()
+
 
 class StrToBytesAdapter(conversion.Adapter):
     expects = str
     returns = bytes
+
     def convert(self, x):
         return x.encode()

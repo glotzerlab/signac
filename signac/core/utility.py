@@ -5,6 +5,7 @@ import itertools
 from threading import Thread, Event
 from math import tanh
 
+
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(
@@ -18,10 +19,12 @@ def get_subject_from_certificate(fn_certificate):
         assert lines[0].startswith('subject=')
         return lines[0][len('subject='):].strip()
 
-def fetch(target, timeout = None, stop_event = None):
+
+def fetch(target, timeout=None, stop_event=None):
     tmp_queue = queue.Queue()
     if stop_event is None:
         stop_event = Event()
+
     def inner_loop():
         w = (tanh(0.05 * i) for i in itertools.count())
         while(not stop_event.is_set()):
@@ -30,10 +33,10 @@ def fetch(target, timeout = None, stop_event = None):
                 tmp_queue.put(result)
                 return
         stop_event.wait(max(0.001, next(w)))
-    thread_fetch = Thread(target = inner_loop)
+    thread_fetch = Thread(target=inner_loop)
     thread_fetch.start()
     try:
-        thread_fetch.join(timeout = timeout)
+        thread_fetch.join(timeout=timeout)
     except KeyboardInterrupt:
         stop_event.set()
         thread_fetch.join()
@@ -46,10 +49,12 @@ def fetch(target, timeout = None, stop_event = None):
     except queue.Empty:
         raise TimeoutError()
 
-def mongodb_fetch_find_one(collection, spec, timeout = None):
+
+def mongodb_fetch_find_one(collection, spec, timeout=None):
     def target():
         return collection.find_one(spec)
-    return fetch(target = target, timeout = timeout)
+    return fetch(target=target, timeout=timeout)
+
 
 class Version(dict):
     """Utility class to manage revision control numbers."""
@@ -57,11 +62,12 @@ class Version(dict):
     def __init__(self, major=0, minor=0, change=0, postrelease='', prerelease='final'):
         if prerelease > 'final':
             raise ValueError('illegal pre-release tag', prerelease)
-        super(Version, self).__init__(major=major,minor=minor,change=change,postrelease=postrelease,prerelease=prerelease)
+        super(Version, self).__init__(major=major, minor=minor,
+                                      change=change, postrelease=postrelease, prerelease=prerelease)
 
     def to_tuple(self):
         return self['major'], self['minor'], self['change'], self['prerelease'], self['postrelease']
-    
+
     def __lt__(self, other):
         return self.to_tuple() < other.to_tuple()
 
@@ -72,11 +78,13 @@ class Version(dict):
         return '{major}.{minor}{postrelease}.{change}{prerelease}'.format(**self)
 
     def __repr__(self):
-        return "Version({})".format(','.join(('{}={}'.format(k,v) for  k,v in self.items())))
+        return "Version({})".format(','.join(('{}={}'.format(k, v) for k, v in self.items())))
+
 
 def parse_version(version_str):
     """Parse a version number into a version object."""
-    p = re.compile(r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)\.(?P<change>[0-9])(?P<prerelease>\w*))?")
+    p = re.compile(
+        r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)\.(?P<change>[0-9])(?P<prerelease>\w*))?")
     r = p.match(version_str)
     v = r.groupdict()
     version = Version(**{
@@ -85,6 +93,5 @@ def parse_version(version_str):
         'change': int(v.get('change') or 0),
         'postrelease': str(v.get('postrelease') or ''),
         'prerelease': str(v.get('prerelease') or 'final'),
-        })
+    })
     return version
-

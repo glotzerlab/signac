@@ -14,12 +14,13 @@ def version(value, *args, **kwargs):
 
 fdict = {
     'version': version
-    }
+}
+
 
 def get_validator():
     return Validator(fdict)
 
-cfg="""
+cfg = """
 author_name = string
 author_email = string
 filestorage_dir = string

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 MSG_NO_DB_ACCESS = "Unable to connect to database host '{}'."
 MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\nYou can use these commands to set them:"
 
+
 def check_database_connection():
     project = get_project()
     try:
@@ -19,6 +20,7 @@ def check_database_connection():
         return False
     else:
         return True
+
 
 def check_global_config():
     project = get_project()
@@ -31,10 +33,11 @@ def check_global_config():
         print()
         print(MSG_ENV_INCOMPLETE.format(missing))
         for key in missing:
-            print("signac config add {key} [your_value]".format(key = key))
+            print("signac config add {key} [your_value]".format(key=key))
         return False
     else:
         return True
+
 
 def check_project_config_online():
     project = get_project()
@@ -68,11 +71,13 @@ def check_project_config_online():
     finally:
         job.remove()
 
+
 def check_project_config_online_readonly():
     project = get_project()
     project.get_id()
-    list(project.find(limit = 1))
+    list(project.find(limit=1))
     return True
+
 
 def check_project_config_offline():
     original_host = os.environ.get('SIGNAC_DATABASE_HOST')
@@ -96,6 +101,7 @@ def check_project_config_offline():
             del os.environ['SIGNAC_CONNECT_TIMEOUT']
         else:
             os.environ['SIGNAC_CONNECT_TIMEOUT'] = original_timeout
+
 
 def check_project_version():
     project = get_project()

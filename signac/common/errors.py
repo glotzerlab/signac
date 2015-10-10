@@ -1,3 +1,6 @@
-class Error(Exception): pass
+class Error(Exception):
+    pass
 
-class ConfigError(Error, RuntimeError): pass
+
+class ConfigError(Error, RuntimeError):
+    pass

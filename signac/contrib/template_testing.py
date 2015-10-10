@@ -1,5 +1,5 @@
 TESTING = {
-# job.py
+    # job.py
     'job.py': """
 import logging
 
@@ -25,7 +25,7 @@ def main():
 if __name__ == '__main__':
     logging.basicConfig(level = logging.WARNING)
     main()""",
-# analyze.py
+    # analyze.py
     'analyze.py': """
 import logging
 from signac.contrib import get_project

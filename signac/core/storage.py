@@ -7,9 +7,10 @@ from shutil import copy2 as copy
 
 logger = logging.getLogger(__name__)
 
+
 class ReadOnlyStorage(object):
 
-    def __init__(self, fs_path, wd_path, allow_move = False):
+    def __init__(self, fs_path, wd_path, allow_move=False):
         self._wd_path = self._norm_path(wd_path)
         self._fs_path = self._norm_path(fs_path)
         self._allow_move = allow_move
@@ -31,16 +32,17 @@ class ReadOnlyStorage(object):
     def _fn_wd(self, filename):
         return os.path.join(self._wd_path, filename)
 
-    def list_files(self):   
+    def list_files(self):
         return os.listdir(self._fs_path)
 
-    def download_file(self, filename, overwrite = False):
+    def download_file(self, filename, overwrite=False):
         if not overwrite:
             if os.path.isfile(filename):
                 msg = "File '{}' already exists. Use overwrite=True to ignore."
                 raise FileExistsError(msg.format(filename))
         copy(self._fn_fs(filename), filename)
-    
+
+
 class Storage(ReadOnlyStorage):
 
     def open_file(self, filename, * args, ** kwargs):
@@ -86,7 +88,7 @@ class Storage(ReadOnlyStorage):
         except FileNotFoundError as error:
             raise FileNotFoundError(filename) from error
 
-    def store_files(self, pathname = '*', * args):
+    def store_files(self, pathname='*', * args):
         for pattern in itertools.chain([pathname], args):
             p = os.path.join(self._wd_path, pattern)
             logger.debug("Pattern '{}'.".format(p))
@@ -94,14 +96,14 @@ class Storage(ReadOnlyStorage):
                 base = os.path.split(fn)[1]
                 self.store_file(base)
 
-    def restore_files(self, pathname = '*', * args):
+    def restore_files(self, pathname='*', * args):
         for pattern in itertools.chain([pathname], args):
             p = os.path.join(self._fs_path, pattern)
             logger.debug("Pattern '{}'.".format(p))
             for fn in glob.glob(p):
                 base = os.path.split(fn)[1]
                 self.restore_file(base)
-                #self.restore_file(fn)
+                # self.restore_file(fn)
 
     def fetch_file(self, storage, fn):
         copy(storage._fn_fs(fn), self._fn_fs(fn))

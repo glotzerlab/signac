@@ -13,16 +13,17 @@ from ..common.host import get_client
 from .conversion import DBMethod, BasicFormat, Adapter
 from . import formats, methods
 
-def connect(host = None, config = None):
+
+def connect(host=None, config=None):
     """Access the signac database:
-        
+
     :param host: The mongoDB database backend host name, defaults to the configured default host.
     :type host: str
     :param config: The signac configuration, defaults to the local environment configuration.
     :type config: A signac configuration object.
 
     Access the database with:
-        
+
         import signac
         db = signac.db.connect()
 
@@ -34,13 +35,15 @@ def connect(host = None, config = None):
         config = load_config()
     client = get_client(hostname=host, config=config)
     db = client[config['signacdb']['database']]
+
     def gridfs_callback(project_id):
         return gridfs.GridFS(client[project_id])
     return database.Database(db=db, get_gridfs=gridfs_callback, config=config)
 
-def access_compmatdb(host = None, config = None):
+
+def access_compmatdb(host=None, config=None):
     """Access the signac.db database:
-        
+
     :param host: The mongoDB database backend host url, defaults to the configured host.
     :type host: str
     :param config: The signac configuration, defaults to the local environment configuration.
@@ -49,7 +52,7 @@ def access_compmatdb(host = None, config = None):
     .. warn:: This function is deprecated. Use: signac.db.connect()
 
     Access the database with:
-        
+
         import signac
         db = signac.db.connect()
 
@@ -58,8 +61,9 @@ def access_compmatdb(host = None, config = None):
         help(db)
 
     or visit:
-    
+
         https://bitbucket.org/glotzer/signac/wiki/latest/signacdb
     """
-    warnings.warn("This function is deprecated. Use signac.db.connect() instead.", DeprecationWarning)
+    warnings.warn(
+        "This function is deprecated. Use signac.db.connect() instead.", DeprecationWarning)
     return connect(host=host, config=config)

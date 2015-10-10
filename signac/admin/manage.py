@@ -10,32 +10,42 @@ from ..contrib.utility import add_verbosity_argument, set_verbosity_level
 
 logger = logging.getLogger(__name__)
 
+
 def connect_and_authenticate(args):
     return host.get_client(args.hostname)
 
+
 def add_x509_user(client, username, databases, roles):
     db_auth = client['$external']
-    kwargs = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
+    kwargs = {'roles': [{'role': role, 'db': db}]
+              for role in roles for db in databases}
     return db_auth.command('createUser', username, ** kwargs)
+
 
 def add_scram_sha1_user(client, username, password, databases, roles):
     db_auth = client['admin']
     kwargs = {
-        'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
+        'roles': [{'role': role, 'db': db}] for role in roles for db in databases}
     kwargs['pwd'] = password
     return db_auth.command('createUser', username, ** kwargs)
 
+
 def grant_roles_to_user(db_auth, user, databases, roles):
-    values = {'roles': [{'role': role, 'db': db} for role in roles for db in databases]}
+    values = {'roles': [{'role': role, 'db': db}
+                        for role in roles for db in databases]}
     return db_auth.command('grantRolesToUser', user, ** values)
 
+
 def revoke_roles_from_user(db_auth, user, databases, roles):
-    values = {'roles': [{'role': role, 'db': db} for role in roles for db in databases]}
+    values = {'roles': [{'role': role, 'db': db}
+                        for role in roles for db in databases]}
     return db_auth.command('revokeRolesFromUser', user, ** values)
 
-def get_username(args, default = None):
+
+def get_username(args, default=None):
     if args.username and args.usercertificate:
-        raise ValueError("Either supply user name or user certificate, not both.")
+        raise ValueError(
+            "Either supply user name or user certificate, not both.")
     if args.username is not None:
         return args.username
     elif args.usercertificate is not None:
@@ -43,10 +53,12 @@ def get_username(args, default = None):
     else:
         return default
 
+
 def manage_shell(args):
     client = connect_and_authenticate(args)
     banner = "Use the 'client' variable to interact with the pymongo client."
-    code.interact(banner = banner, local = {'client': client})
+    code.interact(banner=banner, local={'client': client})
+
 
 def display_status(args):
     client = connect_and_authenticate(args)
@@ -55,6 +67,7 @@ def display_status(args):
         print(key)
         print(value)
         print()
+
 
 def manage_user(args):
     client = connect_and_authenticate(args)
@@ -80,10 +93,13 @@ def manage_user(args):
             if password != password2:
                 raise ValueError("Passwords do not match.")
             db_auth = client['admin']
-            print(add_scram_sha1_user(client, username, password, [args.database], args.roles))
-            print(grant_roles_to_user(db_auth, username, [args.database], args.roles))
+            print(add_scram_sha1_user(client, username,
+                                      password, [args.database], args.roles))
+            print(grant_roles_to_user(
+                db_auth, username, [args.database], args.roles))
         elif args.usercertificate is not None:
-            result = add_x509_user(client, username, [args.database], args.roles)
+            result = add_x509_user(
+                client, username, [args.database], args.roles)
             print(result)
         else:
             raise ValueError("Specify username or user certificate.")
@@ -102,9 +118,11 @@ def manage_user(args):
         elif args.usercertificate is not None:
             db_auth = client['$external']
         if args.command == 'grant':
-            result = grant_roles_to_user(db_auth, username, [args.database], args.roles)
+            result = grant_roles_to_user(
+                db_auth, username, [args.database], args.roles)
         elif args.command == 'revoke':
-            result = revoke_roles_from_user(db_auth, username, [args.database], args.roles)
+            result = revoke_roles_from_user(
+                db_auth, username, [args.database], args.roles)
         else:
             assert 0
         if result['ok']:
@@ -114,59 +132,60 @@ def manage_user(args):
     else:
         raise ValueError("Invalid command '{}'.".format(args.command))
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description = "Administrative management of signac.")
+        description="Administrative management of signac.")
     add_verbosity_argument(parser)
     parser.add_argument(
         'hostname',
-        type = str,
-        help = "The hostname of the configured host to manage.")
+        type=str,
+        help="The hostname of the configured host to manage.")
     parser.add_argument(
         '-d', '--database',
-        type = str,
-        help = "The database to manage.")
+        type=str,
+        help="The database to manage.")
 
     subparsers = parser.add_subparsers()
 
     parser_shell = subparsers.add_parser(
         'shell',
-        description = "Enter an interactive mongo shell.")
-    parser_shell.set_defaults(func = manage_shell)
+        description="Enter an interactive mongo shell.")
+    parser_shell.set_defaults(func=manage_shell)
 
     parser_user = subparsers.add_parser(
         'user',
-        description = 'Show and manage user roles.')
+        description='Show and manage user roles.')
     parser_user.add_argument(
         'command',
-        type = str,
-        choices = ['show', 'add', 'remove', 'grant', 'revoke'],
-        )
+        type=str,
+        choices=['show', 'add', 'remove', 'grant', 'revoke'],
+    )
     parser_user.add_argument(
         '-u', '--username',
-        type = str,
-        help = "The name of the user to manage.")
+        type=str,
+        help="The name of the user to manage.")
     parser_user.add_argument(
         '-c', '--certificate',
-        type = str,
-        dest = 'usercertificate',
-        help = "The certificate of the user to manage.")
+        type=str,
+        dest='usercertificate',
+        help="The certificate of the user to manage.")
     parser_user.add_argument(
         '-r', '--roles',
-        type = str,
-        nargs = '+',
-        default = ['read'],
-        help = "The roles to be granted/ revoked.")
+        type=str,
+        nargs='+',
+        default=['read'],
+        help="The roles to be granted/ revoked.")
     parser_user.add_argument(
         '--external',
-        action = 'store_true',
-        help = "Use the external database for user management. Automatically used for certificates.")
-    parser_user.set_defaults(func = manage_user)
+        action='store_true',
+        help="Use the external database for user management. Automatically used for certificates.")
+    parser_user.set_defaults(func=manage_user)
 
     parser_status = subparsers.add_parser(
         'status',
-        description = "Display status information.")
-    parser_status.set_defaults(func = display_status)
+        description="Display status information.")
+    parser_status.set_defaults(func=display_status)
 
     args = parser.parse_args()
     set_verbosity_level(args.verbosity)
