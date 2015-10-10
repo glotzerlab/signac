@@ -4,13 +4,12 @@
 import logging
 import os
 import stat
-import warnings
 import argparse
 
 from ..common.config import load_config, get_config, read_config_file
 from .. import VERSION_TUPLE
 from .templates import TEMPLATES
-from . import get_project, check
+from . import get_project
 
 logger = logging.getLogger(__name__)
 
@@ -94,21 +93,17 @@ def copy_templates(args):
             os.chmod(fn, os.stat(fn).st_mode | stat.S_IEXEC)
 
 def init_project(args):
-    try:
-        adjust_args(args)
-        if not args.force:
-            if check_for_existing_project(args):
-                return
-        config = generate_config(args)
-        copy_templates(args)
-    except Exception as error:
-        raise
-    else:
-        config.filename = os.path.join(args.directory, 'signac.rc')
-        config.write()
-        print(MSG_SUCCESS.format(
-            project_name = args.project_name,
-            project_dir = os.path.abspath(args.directory)))
+    adjust_args(args)
+    if not args.force:
+        if check_for_existing_project(args):
+            return
+    config = generate_config(args)
+    copy_templates(args)
+    config.filename = os.path.join(args.directory, 'signac.rc')
+    config.write()
+    print(MSG_SUCCESS.format(
+        project_name = args.project_name,
+        project_dir = os.path.abspath(args.directory)))
 
 def setup_parser(parser):
     parser.add_argument(

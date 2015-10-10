@@ -158,7 +158,7 @@ class BaseJob(object):
 
     def _flag_open(self):
         "Mark job as active."
-        with open(self._fn_open_flag(), 'wb') as file:
+        with open(self._fn_open_flag(), 'wb'):
             pass
 
     def _remove_open_flag(self):
@@ -332,10 +332,10 @@ class OnlineJob(BaseJob):
         "Remove the job's unique id from the executing list in the database."
         update = {'$pull': {'executing': self._unique_id}}
         if PYMONGO_3:
-            result = self._project._get_jobs_collection().find_one_and_update(
+            self._project._get_jobs_collection().find_one_and_update(
                 self._filter(), update=update, return_document = pymongo.ReturnDocument.AFTER)
         else:
-            result = self._project._get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
+            self._project._get_jobs_collection().find_and_modify(self._filter(), update=update, new=True)
 
     def _start_pulse(self, process = True):
         "Start the job pulse, used for identifying 'dead' jobs."
@@ -353,7 +353,7 @@ class OnlineJob(BaseJob):
                 self._pulse = Process(target = pulse_worker, kwargs = kwargs, daemon = True)
                 self._pulse.start()
                 return
-            except AssertionError as error:
+            except AssertionError:
                 logger.debug("Failed to start pulse process, falling back to pulse thread.")
         self._pulse_stop_event = threading.Event()
         kwargs['stop_event'] = self._pulse_stop_event

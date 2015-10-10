@@ -4,8 +4,8 @@ logger = logging.getLogger(__name__)
 def check_mpi_support_or_raise():
     logger.debug("Checking MPI support.")
     try:
-        import mpi4py
-    except ImportError as error:
+        import mpi4py # test availability
+    except ImportError:
         msg = "Unable to determine MPI rank. Missing `mpi4py` package."
         raise EnvironmentError(msg)
 

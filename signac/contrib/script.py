@@ -10,7 +10,7 @@ import argparse
 import pymongo
 from bson.json_util import dumps
 
-from . import admin, update, get_project, check, init_project, configure 
+from . import admin, update, get_project, init_project, configure, check
 from .job import PULSE_PERIOD
 from .errors import ConnectionFailure
 from .utility import add_verbosity_argument, set_verbosity_level, EmptyIsTrue, SmartFormatter, query_yes_no
@@ -121,7 +121,6 @@ def view(args):
 def run_checks(args):
     project = get_project()
     encountered_error = False
-    from . import check
     checks = [
         ('global configuration',
         check.check_global_config),
@@ -213,13 +212,14 @@ def clear(args):
     if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
         try:
             project.clear(force = args.force)
-        except RuntimeError as error:
+        except RuntimeError:
             print("Error during project clearance.")
             if not args.force:
                 print("This can be caused by currently executed jobs.")
                 print("Try 'signac cleanup'.")
                 if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                     project.clear(force = True)
+            raise
 
 
 def remove(args):
@@ -229,13 +229,14 @@ def remove(args):
         if args.yes or query_yes_no(question.format(project.get_id()), default = 'no'):
             try:
                 project.remove(force = args.force)
-            except RuntimeError as error:
+            except RuntimeError:
                 print("Error during project removal.")
                 if not args.force:
                     print("This can be caused by currently executed jobs.")
                     print("Try 'signac cleanup'.")
                     if args.yes or query_yes_no("Ignore this warning and remove anyways?", default = 'no'):
                         project.remove(force = True)
+                raise
             else:
                 print("Project removed from database.")
     if args.job:

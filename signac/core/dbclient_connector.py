@@ -1,6 +1,5 @@
 import logging
 from os.path import expanduser
-from os.path import expanduser
 
 import pymongo
 

@@ -38,7 +38,7 @@ class Cache(object):
     def _store_in_cache(self, doc, data):
         try:
             logger.debug("Trying to cache results.")
-            blob = pickle.dumps(data)
+            pickle.dumps(data)  # test if pickling is possible
             assert not '_id' in doc
             if PYMONGO_3:
                 id_ = self._collection().insert_one(doc).inserted_id
@@ -82,7 +82,6 @@ class Cache(object):
     def run(self, function, * args, ** kwargs):
         signature = str(inspect.signature(function))
         arguments = inspect.getcallargs(function, *args, ** kwargs)
-        code = inspect.getsource(function)
         logger.debug("Cached function call for '{}{}'.".format(
             function.__name__, signature))
         spec = {
@@ -128,7 +127,7 @@ class Cache(object):
             try: 
                 fn = self._fn(str(doc['_id']))
                 os.remove(fn)
-            except FileNotFoundError as error:
+            except FileNotFoundError:
                 pass
         self._collection().drop()
 

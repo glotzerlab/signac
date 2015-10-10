@@ -27,7 +27,7 @@ def connect_and_authenticate(args):
     connector.authenticate()
     return connector.client
 
-def add_x509_user(client, subject, databases, roles):
+def add_x509_user(client, username, databases, roles):
     db_auth = client['$external']
     kwargs = {'roles' : [{'role': role, 'db': db}] for role in roles for db in databases}
     return db_auth.command('createUser', username, ** kwargs)
@@ -81,7 +81,6 @@ def display_info(args):
 
 def manage_user(args):
     client = connect_and_authenticate(args)
-    msg = "Managing user '{}'."
     username = get_username(args)
     if args.command == 'show':
         for db_auth in client['$external'], client['admin']:

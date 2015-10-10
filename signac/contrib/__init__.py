@@ -1,7 +1,5 @@
 import os
 import warnings
-from random import uniform
-from time import sleep
 
 from ..core.config import load_config
 from ..core.dbclient_connector import DBClientConnector

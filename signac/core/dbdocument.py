@@ -1,7 +1,7 @@
 import logging
 import os
 from queue import Queue, Empty
-from threading import Thread, Event, Condition
+from threading import Thread, Event
 
 from pymongo.errors import ConnectionFailure
 from sqlitedict import SqliteDict

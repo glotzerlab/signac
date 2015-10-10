@@ -1,8 +1,6 @@
 import logging
 import os
 import uuid
-import warnings
-import tempfile
 
 from signac.contrib import get_project
 from signac.contrib.errors import ConnectionFailure
@@ -15,9 +13,9 @@ MSG_ENV_INCOMPLETE = "The following configuration variables are not set: '{}'.\n
 def check_database_connection():
     project = get_project()
     try:
-        db = project._get_meta_db()
-    except ConnectionFailure:
-        print(MSG_NO_DB_ACCESS.format(db_host))
+        project._get_meta_db()
+    except ConnectionFailure as error:
+        print(error)
         return False
     else:
         return True
@@ -84,9 +82,7 @@ def check_project_config_offline():
     try:
         project = get_project()
         checktoken = {'checktoken': str(uuid.uuid4())}
-        checkvalue = str(uuid.uuid4())
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            job = project.open_job(checktoken)
+        project.open_job(checktoken)
     except:
         raise
     else:

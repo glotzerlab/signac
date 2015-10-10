@@ -5,7 +5,6 @@ import logging
 import sys
 import os
 import argparse
-import textwrap
 
 from . import get_project
 from . import utility
@@ -32,7 +31,6 @@ def get_username(args):
         return None
     if args.ssl:
         if os.path.isfile(args.user):
-            username = get_subject_from_certificate
             return get_subject_from_certificate(args.user)
     else:
         return args.user

@@ -338,16 +338,16 @@ class Database(object):
                         try:
                             src_converted = converter.convert(src, debug=self.debug_mode)
                             break
-                        except conversion.ConversionError as error:
+                        except conversion.ConversionError:
                             msg = "Conversion attempt with '{}' failed."
                             logger.debug(msg.format(converter))
                     else:
                         raise conversion.ConversionError(src, method.expects)
-                except conversion.NoConversionPath as error:
+                except conversion.NoConversionPath:
                     msg = "No path found."
                     logger.debug(msg)
                     raise
-                except conversion.ConversionError as error:
+                except conversion.ConversionError:
                     msg = "Conversion from '{}' to '{}' through available conversion path failed."
                     logger.debug(msg.format(type(src), method.expects))
                     raise
@@ -686,7 +686,7 @@ class Database(object):
             # and resolves all callables
             cursor = Cursor(self, docs, call_dict, projection)
             return cursor
-        except pymongo.errors.PyMongoError as error:
+        except pymongo.errors.PyMongoError:
             logger.error("Error during find operation from expression: '{}'.".format(filter))
             raise
 
@@ -728,13 +728,6 @@ class Database(object):
             return doc
         else:
             return {k: v for k,v in doc.items() if k in projection}
-
-    def resolve(self, docs):
-        "Resolve the docs for file data."
-        warnings.warn("This function is obsolete.", DeprecationWarning)
-        raise Deprec
-        for doc in docs:
-            yield self._resolve_files(doc)
 
     def _delete_doc(self, doc):
         """Delete document :param doc:.
@@ -916,6 +909,6 @@ class Database(object):
             else:
                 cursor = CommandCursor(self, iter(result['result']), call_dict)
             return cursor
-        except pymongo.errors.PyMongoError as error:
+        except pymongo.errors.PyMongoError:
             logger.error("Error during aggregation of pipeline expression: '{}'.".format(pipeline))
             raise

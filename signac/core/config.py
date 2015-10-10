@@ -3,12 +3,20 @@ import warnings
 import os
 
 from . import SSL_SUPPORT
-from . import utility
 
 logger = logging.getLogger(__name__)
     
 from ..common.connection import SUPPORTED_AUTH_MECHANISMS, SSL_CERT_REQS
-from ..common.config import load_config, read_config_file
+
+def load_config(* args, **kwargs):
+    from ..common.config import load_config
+    warnings.warn(DeprecationWarning, "Use common library.")
+    return load_config(* args, **kwargs)
+
+def read_config_file(* args, **kwargs):
+    from ..common.config import read_config_file
+    warnings.warn(DeprecationWarning, "Use common library.")
+    return read_config_file(* args, **kwargs)
 
 ENVIRONMENT_VARIABLES = {
     'author_name' :              'SIGNAC_AUTHOR_NAME',

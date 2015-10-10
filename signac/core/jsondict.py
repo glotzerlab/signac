@@ -9,7 +9,6 @@ some other weaknesses in implementation.
 """
 
 import os
-import tempfile
 import collections
 import logging
 import uuid

@@ -59,7 +59,7 @@ class Storage(ReadOnlyStorage):
     def remove(self):
         try:
             shutil.rmtree(self._fs_path)
-        except FileNotFoundError as error:
+        except FileNotFoundError:
             pass
 
     def _move_file(self, src, dst):

@@ -179,7 +179,7 @@ class OnlineProject(BaseProject):
             raise KeyError(job_id)
         try:
             return result[JOB_PARAMETERS_KEY]
-        except KeyError as error:
+        except KeyError:
             msg = "Unable to retrieve parameters for job '{}'. Database corrupted."
             raise DatabaseError(msg.format(job_id))
 
@@ -336,7 +336,7 @@ class OnlineProject(BaseProject):
         uids = self._unique_jobs_from_pulse()
         for uid in uids:
             hbkey = 'pulse.{}'.format(uid)
-            doc = self._get_jobs_collection().update(
+            self._get_jobs_collection().update(
                 #{'pulse.{}'.format(uid): {'$exists': True},
                 {hbkey: {'$lt': cut_off}},
                 {   '$pull': {'executing': uid},
@@ -425,7 +425,7 @@ class OnlineProject(BaseProject):
                 shutil.copytree(src, dst)
             else:
                 os.symlink(src, dst, target_is_directory = True)
-        except FileExistsError as error:
+        except FileExistsError:
             msg = "Failed to create view for url '{url}'. "
             msg += "Possible causes: A view with the same path exists already or you are not using enough parameters for uniqueness."
             raise RuntimeError(msg)

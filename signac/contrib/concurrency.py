@@ -33,7 +33,6 @@ Example:
 import logging
 import sys
 import contextlib
-import time
 import itertools
 import uuid
 from threading import Thread, Event, Lock
@@ -105,7 +104,7 @@ class DocumentBaseLock(object):
             raise ValueError("Cannot set timeout if blocking is False.")
         if timeout > TIMEOUT_MAX:
             raise OverflowError("Maxmimum timeout is: {}".format(TIMEOUT_MAX))
-        with acquire_timeout(self._lock, blocking, timeout) as lock:
+        with acquire_timeout(self._lock, blocking, timeout):
             if blocking:
                 stop_event = Event()
                 def try_to_acquire():
@@ -137,11 +136,11 @@ class DocumentBaseLock(object):
     def force_release(self):
         logger.debug("Force releasing lock.")
         if PYMONGO_3:
-            result = self._collection.find_one_and_update(
+            self._collection.find_one_and_update(
                 filter = {'_id': self._document_id},
                 update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
         else:
-            result = self._collection.find_and_modify(
+            self._collection.find_and_modify(
                 query = {'_id': self._document_id},
                 update = {'$unset': {LOCK_ID_FIELD: '', LOCK_COUNTER_FIELD: ''}})
 

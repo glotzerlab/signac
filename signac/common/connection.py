@@ -129,7 +129,6 @@ class DBClientConnector(object):
         self._client = client
 
     def connect(self, host = None):
-        msg = "Connecting with config '{}' and prefix '{}'."
         if host is None:
             host = self._config_get_required('url')
         logger.debug("Connecting to host '{host}'.".format(host=self._config_get_required('url')))
