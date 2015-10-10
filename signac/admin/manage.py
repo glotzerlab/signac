@@ -4,7 +4,7 @@ import sys
 import code
 import getpass
 
-from ..common.config import load_config
+from ..common import host
 from ..core.utility import get_subject_from_certificate
 from ..contrib.utility import add_verbosity_argument, set_verbosity_level
 
