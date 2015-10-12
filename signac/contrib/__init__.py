@@ -54,8 +54,11 @@ class SimpleCollection(object):
             raise NotImplementedError("Simple collection can only be queried for _id.")
         self._index[filter['_id']] = doc
 
-    def find(self):
-        yield from self._index.values()
+    def find(self, limit=0):
+        if limit != 0:
+            yield from itertools.islice(self._index.values(), limit)
+        else:
+            yield from self._index.values()
 
 
 class BaseCrawler(object):
