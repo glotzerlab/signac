@@ -98,14 +98,10 @@ class FileFormat(BasicFormat):
 
     @property
     def data(self):
-        return open(self._file_object, 'rb').read()
+        return self.read()
 
     def read(self):
-        return open(self._file_object, 'rb').read()
-
-    def open(self, *args, **kwargs):
-        return open(self._file_object, *args, **kwargs)
-
+        return self._file_object.read()
 
 class TextFile(FileFormat):
     pass
