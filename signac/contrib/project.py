@@ -18,7 +18,7 @@ from ..common.config import load_config
 from ..common import host
 from .concurrency import DocumentLock
 from .errors import ConnectionFailure, DatabaseError
-from .logging import MongoDBHandler, record_from_doc
+from .online_logging import MongoDBHandler, record_from_doc
 from .job import OnlineJob, OfflineJob, PULSE_PERIOD
 from .hashing import generate_hash_from_spec
 from .constants import *
