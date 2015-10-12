@@ -7,6 +7,7 @@ import itertools
 
 from .project import Project
 from . import conversion
+from . import formats
 from .utility import walkdepth
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,9 @@ logger = logging.getLogger(__name__)
 KEY_CRAWLER_PATH = 'signac_crawler_path'
 KEY_CRAWLER_MODULE = 'signac_crawler_module'
 KEY_CRAWLER_ID = 'signac_crawler_id'
+KEY_FORMAT = 'fileformat'
 KEY_PROJECT = 'project'
+KEY_FILENAME = 'signac_filename'
 FN_CRAWLER = 'signac_crawler.py'
 
 
@@ -82,7 +85,7 @@ class BaseCrawler(object):
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
                 for doc in self.docs_from_file(dirpath, fn):
-                    logger.debug("Generated document from file: '{}'.".format(
+                    logger.debug("doc from file: '{}'.".format(
                         os.path.join(dirpath, fn)))
                     _id = doc.setdefault(
                         '_id', self.calculate_hash(doc, dirpath, fn))
@@ -93,6 +96,27 @@ class BaseCrawler(object):
         for doc in docs:
             for data in self.fetch(doc):
                 yield doc, data
+
+
+class RegexFileCrawler(BaseCrawler):
+
+    def docs_from_file(self, dirpath, fn):
+        for regex, format_ in self.definitions:
+            m = regex.search(os.path.join(dirpath, fn))
+            if m:
+                doc = m.groupdict()
+                doc[KEY_FILENAME] = os.path.relpath(
+                    os.path.join(dirpath, fn), self.root)
+                yield doc
+
+    def fetch(self, doc):
+        fn = doc.get(KEY_FILENAME)
+        if fn:
+            for regex, format_ in self.definitions:
+                ffn = os.path.join(self.root, fn)
+                m = regex.search(ffn)
+                if m:
+                    yield format_(open(ffn))
 
 
 class JSONCrawler(BaseCrawler):
@@ -124,7 +148,8 @@ class ProjectCrawler(BaseCrawler):
             module = self._load_crawler(name)
             for crawler_id, crawler in module.get_crawlers(dirpath).items():
                 for _id, doc in crawler.crawl():
-                    doc.setdefault(KEY_PROJECT, dirpath)
+                    doc.setdefault(
+                        KEY_PROJECT, os.path.relpath(dirpath, self.root))
                     doc[KEY_CRAWLER_PATH] = dirpath
                     doc[KEY_CRAWLER_MODULE] = name
                     doc[KEY_CRAWLER_ID] = crawler_id
