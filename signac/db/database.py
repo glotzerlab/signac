@@ -539,8 +539,7 @@ class Database(object):
     def _get_file(self, file_id, project_id):
         "Retrieve file with :param file_id: from the gridfs collection."
         grid_file = self._get_gridfs(project_id).get(file_id)
-        # grid_file = self._gridfs.get(file_id)  # <- legacy code
-        return decode(grid_file.read())
+        return decode(grid_file)
 
     def _resolve_files(self, doc):
         "Resolve the file data associated with doc."

@@ -93,15 +93,18 @@ class BaseLink(metaclass=LinkMetaType):
 
 class FileFormat(BasicFormat):
 
-    def __init__(self, data):
-        self._data = data
+    def __init__(self, file_object):
+        self._file_object = file_object
 
     @property
     def data(self):
-        return self._data
+        return open(self._file_object, 'rb').read()
 
     def read(self):
-        return self._data
+        return open(self._file_object, 'rb').read()
+
+    def open(self, *args, **kwargs):
+        return open(self._file_object, *args, **kwargs)
 
 
 class TextFile(FileFormat):
