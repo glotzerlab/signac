@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 import getpass
 import argparse
 
@@ -147,3 +148,19 @@ class SmartFormatter(argparse.HelpFormatter):
         if text.startswith('R|'):
             return text[2:].splitlines()
         return argparse.HelpFormatter._split_lines(self, text, width)
+
+
+def walkdepth(path, depth=0):
+    if depth == 0:
+        yield from os.walk(path)
+    elif depth > 0:
+        path = path.rstrip(os.path.sep)
+        assert os.path.isdir(path)
+        num_sep = path.count(os.path.sep)
+        for root, dirs, files in os.walk(path):
+            yield root, dirs, files
+            num_sep_this = root.count(os.path.sep)
+            if num_sep + depth <= num_sep_this:
+                del dirs[:]
+    else:
+        raise ValueError("The value of depth must be non-negative.")
