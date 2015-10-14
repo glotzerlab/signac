@@ -4,6 +4,7 @@ import json
 import uuid
 import importlib
 import itertools
+import copy
 
 from .project import Project
 from . import conversion
@@ -12,13 +13,13 @@ from .utility import walkdepth
 
 logger = logging.getLogger(__name__)
 
-KEY_CRAWLER_PATH = 'signac_crawler_path'
-KEY_CRAWLER_MODULE = 'signac_crawler_module'
-KEY_CRAWLER_ID = 'signac_crawler_id'
-KEY_FORMAT = 'fileformat'
+KEY_CRAWLER_PATH = 'root'
+KEY_CRAWLER_MODULE = 'signac_access_module'
+KEY_CRAWLER_ID = 'signac_access_crawler_id'
 KEY_PROJECT = 'project'
-KEY_FILENAME = 'signac_filename'
-FN_CRAWLER = 'signac_crawler.py'
+KEY_FILENAME = 'filename'
+KEY_PAYLOAD = 'format'
+FN_CRAWLER = 'signac_access.py'
 
 
 def get_project(project_path=None):
@@ -58,6 +59,9 @@ class SimpleCollection(object):
         else:
             yield from self._index.values()
 
+    def find_one(self):
+        return next(self._index.values())
+
 
 class BaseCrawler(object):
 
@@ -67,8 +71,17 @@ class BaseCrawler(object):
     def docs_from_file(self, dirpath, fn):
         raise NotImplementedError()
 
+    def _expand_payload(self, document):
+        for payload in self.fetch(document):
+            doc = copy.deepcopy(document)
+            doc.setdefault(KEY_PAYLOAD, str(type(payload)))
+            yield doc
+        else:
+            yield document
+
     def fetch(self, doc):
         return
+        yield
 
     @classmethod
     def calculate_hash(cls, doc, dirpath, fn):
@@ -81,16 +94,18 @@ class BaseCrawler(object):
         return m.hexdigest()
 
     def crawl(self, depth=0):
-        logger.info("Starting crawl...")
+        logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
-                for doc in self.docs_from_file(dirpath, fn):
-                    logger.debug("doc from file: '{}'.".format(
-                        os.path.join(dirpath, fn)))
-                    _id = doc.setdefault(
-                        '_id', self.calculate_hash(doc, dirpath, fn))
-                    yield _id, doc
-        logger.info("Done.")
+                for document in self.docs_from_file(dirpath, fn):
+                    for doc in self._expand_payload(document):
+                        logger.debug("doc from file: '{}'.".format(
+                            os.path.join(dirpath, fn)))
+                        doc.setdefault(KEY_PAYLOAD, None)
+                        _id = doc.setdefault(
+                            '_id', self.calculate_hash(doc, dirpath, fn))
+                        yield _id, doc
+        logger.info("Crawl of '{}' done.".format(self.root))
 
     def fetched(self, docs):
         for doc in docs:
@@ -107,6 +122,7 @@ class RegexFileCrawler(BaseCrawler):
                 doc = m.groupdict()
                 doc[KEY_FILENAME] = os.path.relpath(
                     os.path.join(dirpath, fn), self.root)
+                doc[KEY_PAYLOAD] = str(format_)
                 yield doc
 
     def fetch(self, doc):
@@ -150,18 +166,28 @@ class ProjectCrawler(BaseCrawler):
                 for _id, doc in crawler.crawl():
                     doc.setdefault(
                         KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                    doc[KEY_CRAWLER_PATH] = dirpath
-                    doc[KEY_CRAWLER_MODULE] = name
+                    doc[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                    doc[KEY_CRAWLER_MODULE] = fn
                     doc[KEY_CRAWLER_ID] = crawler_id
                     yield doc
 
     def fetch(self, doc):
-        crawler_module = self._load_crawler(doc[KEY_CRAWLER_MODULE])
+        yield from fetch(doc)
+
+
+def _load_crawler(name):
+    return importlib.machinery.SourceFileLoader(name, name).load_module()
+
+
+def fetch(doc):
+    fn_module = os.path.join(doc[KEY_CRAWLER_PATH], doc[KEY_CRAWLER_MODULE])
+    try:
+        crawler_module = _load_crawler(fn_module)
         crawlers = crawler_module.get_crawlers(doc[KEY_CRAWLER_PATH])
-        try:
-            yield from crawlers[doc[KEY_CRAWLER_ID]].fetch(doc)
-        except KeyError:
-            raise KeyError("Unable to load associated crawler.")
+        yield from crawlers[doc[KEY_CRAWLER_ID]].fetch(doc)
+    except KeyError:
+        raise KeyError(
+            "Unable to load crawler, associated with this document.")
 
 
 class ConversionNetwork(object):
