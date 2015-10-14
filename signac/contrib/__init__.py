@@ -98,14 +98,13 @@ class BaseCrawler(object):
         logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
-                for document in self.docs_from_file(dirpath, fn):
-                    for doc in self._expand_payload(document):
-                        logger.debug("doc from file: '{}'.".format(
-                            os.path.join(dirpath, fn)))
-                        doc.setdefault(KEY_PAYLOAD, None)
-                        _id = doc.setdefault(
-                            '_id', self.calculate_hash(doc, dirpath, fn))
-                        yield _id, doc
+                for doc in self.docs_from_file(dirpath, fn):
+                    logger.debug("doc from file: '{}'.".format(
+                        os.path.join(dirpath, fn)))
+                    doc.setdefault(KEY_PAYLOAD, None)
+                    _id = doc.setdefault(
+                        '_id', self.calculate_hash(doc, dirpath, fn))
+                    yield _id, doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
 
