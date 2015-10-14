@@ -125,8 +125,6 @@ class Converter(object):
                         "Attempting conversion with adapter '{}'.".format(adapter()))
                     data = adapter()(data)
                     break
-                except LinkError as error:
-                    raise
                 except Exception as error:
                     logger.debug("Conversion failed due to error: {}: '{}'.".format(
                         type(error), error))
@@ -180,89 +178,41 @@ def get_converters(network, source_type, target_type):
         raise NoConversionPath(source_type, target_type)
 
 
-class FormatMetaType(type):
+def convert(src, target_format, formats_network, debug=False):
+    """Convert the :param src: object to the target_format.
 
-    def __init__(cls, name, bases, dct):
-        if not hasattr(cls, 'registry'):
-            cls.registry = dict()
+    :param src: Arbitrary source object
+    :param target_format: The format to convert to.
+    :param formats_network: The network of formats used for conversion.
+    """
+    if type(src) == target_format:
+        return src
+    converters = get_converters(formats_network, type(src),
+        target_format)
+    for i, converter in enumerate(converters):
+        msg = "Attempting conversion path # {}: {} nodes."
+        logger.debug(msg.format(i + 1, len(converter)))
+        try:
+            return converter.convert(src, debug=debug)
+        except ConversionError:
+            msg = "Conversion attempt with '{}' failed."
+            logger.debug(msg.format(converter))
+    else:
+        raise ConversionError(type(src), target_format)
+
+def converted(sources, target_format, formats_network, ignore_errors=True):
+    for src in sources:
+        try:
+            yield convert(src, target_format, formats_network)
+        except NoConversionPath:
+            msg = "No path found."
+            logger.debug(msg)
+            if not ignore_errors:
+                raise
+        except conversion.ConversionError:
+            msg = "Conversion from '{}' to '{}' through available conversion path failed."
+            logger.debug(msg.format(type(src), method.expects))
+            if not ignore_errros:
+                raise
         else:
-            cls.registry[name] = cls
-
-        super().__init__(name, bases, dct)
-
-
-class BasicFormat(metaclass=FormatMetaType):
-    pass
-
-
-class LinkMetaType(FormatMetaType):
-    """This is the meta class for all link types.
-
-    Do not derive from this class directly, but derive
-    from BaseLink.
-
-    This meta class defines the required adapter to convert
-    from the link type to the linked type.
-    """
-    def __init__(cls, name, bases, dct):
-        if cls.linked_format is not None:
-            # create adapter
-            class LinkAdapter(Adapter):
-                expects = cls
-                returns = cls.linked_format
-
-                def convert(self, x):
-                    return x.data
-
-
-class LinkError(EnvironmentError):
-    "Unable to fetch linked resource."
-    pass
-
-
-class BaseLink(metaclass=LinkMetaType):
-    """BaseLink allows to create a generic link to an object.
-
-    Derive from this class and implement the fetch method
-    to retrieve the data that this link is associated with.
-    The linked format will automatically add an adapter to
-    allow for automatic conversion. To make this possible
-    you need to specify the class attribute `linked_format`.
-
-    The constructor of `linked_format` needs to accept a
-    single argument, the return value of `fetch()`.
-
-    .. example::
-
-        class SimpleFileLink(BaseLink):
-            def fetch(self):
-                return open(self.url, 'rb').read()
-
-        class SimpleTextFileLink(SimpleFileLink):
-            linked_format=TextFile
-    """
-    linked_format = None
-
-    def __init__(self, url):
-        if self.linked_format is None:
-            raise TypeError(
-                "The class attribute linked_format cannot be None!")
-        self._url = url
-
-    @property
-    def url(self):
-        "The url of the linked data object."
-        return self._url
-
-    def fetch(self):
-        """"Fetch the linked resource.
-
-        Returns: A value which is passed to the linked type's
-                 constructor.
-        """
-        raise NotImplementedError("This is an abstract base class.")
-
-    @property
-    def data(self):
-        "Return the data of the linked object in the linked format."
-        return self.linked_format(self.fetch())
+            logger.debug('Success.')

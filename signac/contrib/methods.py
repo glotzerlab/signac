@@ -1,4 +1,4 @@
-from . import DBMethod
+from .conversion import DBMethod
 
 
 def make_converter(expected_format):

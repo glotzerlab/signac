@@ -8,12 +8,11 @@ import networkx as nx
 import pymongo
 
 import signac
-from signac.db import conversion
-from signac.db.conversion import add_adapter_to_network, make_adapter
+from signac.contrib import conversion
+from signac.contrib.conversion import add_adapter_to_network, make_adapter
 
 PYMONGO_3 = pymongo.version_tuple[0] == 3
 TESTING_DB = 'testing_signacdb'
-TEST_TOKEN = {'test_token': str(uuid.uuid4())}
 
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
@@ -32,12 +31,16 @@ def basic_network():
 
 DB = None
 
-def get_signac_db_handle(host='testing', config=None):
+def get_signac_db_handle(host='testing', config=None, clear=False):
     global DB
+    #if clear:
+    DB = None
     if config is None:
         config = signac.common.config.load_config()
         config['project'] = 'testing'
         config['signacdb']['database'] = 'signacdbtesting'
+        config['author_name'] = 'test_author'
+        config['author_email'] = 'testauthor@example.com'
         config.verify()
     if DB is None:
         DB = signac.db.connect(host='testing', config=config)
@@ -45,14 +48,6 @@ def get_signac_db_handle(host='testing', config=None):
 
 def get_test_data():
     return str(uuid.uuid4())
-
-def get_test_metadata():
-    ret = {'testing': 'test'}
-    ret.update(TEST_TOKEN)
-    return ret
-
-def get_test_record():
-    return get_test_metadata(), get_test_data()
 
 class CustomFloat(object): # Class for conversion testing.
     def __init__(self, value):
@@ -64,26 +59,37 @@ def custom_to_float(custom):
 class BaseDBTest(unittest.TestCase):
 
     def setUp(self):
+        self.test_token = {'test_token': str(uuid.uuid4())}
         os.environ['COMPDB_AUTHOR_NAME'] = 'signac_test_author'
         os.environ['COMPDB_AUTHOR_EMAIL'] = 'testauthor@example.com'
         os.environ['COMPDB_PROJECT'] = 'signac_db_test_project'
         self.signac_db = get_signac_db_handle()
-        metadata, data = get_test_record()
+        metadata, data = self.get_test_record()
         self.signac_db.insert_one(metadata, data)
+        self.addCleanup(self.clear_db)
 
-    def tearDown(self):
-        self.signac_db.delete_many(TEST_TOKEN)
+    def clear_db(self):
+        self.signac_db.delete_many(self.test_token)
+
+    def get_test_metadata(self):
+        ret = {'testing': 'test'}
+        ret.update(self.test_token)
+        return ret
+
+    def get_test_record(self):
+        return self.get_test_metadata(), get_test_data()
+
 
 class DBTest(BaseDBTest):
     
     def test_find_one(self):
         signac_db = get_signac_db_handle()
-        data = signac_db.find_one(get_test_metadata())
+        data = signac_db.find_one(self.get_test_metadata())
         self.assertIsNotNone(data)
 
     def test_find(self):
         signac_db = get_signac_db_handle()
-        docs = signac_db.find(get_test_metadata())
+        docs = signac_db.find(self.get_test_metadata())
         self.assertGreaterEqual(docs.count(), 1)
         iterated = False
         for doc in docs:
@@ -93,7 +99,7 @@ class DBTest(BaseDBTest):
     
     def test_find_rewind(self):
         signac_db = get_signac_db_handle()
-        docs = signac_db.find(get_test_metadata())
+        docs = signac_db.find(self.get_test_metadata())
         self.assertGreaterEqual(docs.count(), 1)
         iterated = False
         for doc in docs:
@@ -112,7 +118,7 @@ class DBTest(BaseDBTest):
 
     def test_insert_without_data(self):
         signac_db = get_signac_db_handle()
-        meta = get_test_metadata()
+        meta = self.get_test_metadata()
         data = get_test_data()
         meta['extra'] = data
         signac_db.insert_one(meta)
@@ -122,7 +128,7 @@ class DBTest(BaseDBTest):
 
     def test_insert_with_data(self):
         signac_db = get_signac_db_handle()
-        meta = get_test_metadata()
+        meta = self.get_test_metadata()
         meta['withdata'] = True
         data = get_test_data()
         signac_db.insert_one(meta, data)
@@ -138,7 +144,7 @@ class DBTest(BaseDBTest):
 
     def test_delete_one(self):
         signac_db = get_signac_db_handle()
-        meta = get_test_metadata()
+        meta = self.get_test_metadata()
         data = get_test_data()
         signac_db.delete_many(meta)
         signac_db.insert_one(meta)
@@ -156,21 +162,21 @@ class DBTest(BaseDBTest):
 
     def test_replace_one(self):
         signac_db = get_signac_db_handle()
-        data = signac_db.find_one(get_test_metadata())
+        data = signac_db.find_one(self.get_test_metadata())
         self.assertIsNotNone(data)
         test_data = get_test_data()
-        signac_db.replace_one(get_test_metadata(), test_data)
-        data2 = signac_db.find_one(get_test_metadata())
+        signac_db.replace_one(self.get_test_metadata(), test_data)
+        data2 = signac_db.find_one(self.get_test_metadata())
         self.assertIsNotNone(data2)
         self.assertEqual(data2['data'], test_data)
 
     def test_update_one(self):
         signac_db = get_signac_db_handle()
-        data = signac_db.find_one(get_test_metadata())
+        data = signac_db.find_one(self.get_test_metadata())
         self.assertIsNotNone(data)
         test_data = get_test_data()
-        signac_db.update_one(get_test_metadata(), test_data)
-        data2 = signac_db.find_one(get_test_metadata())
+        signac_db.update_one(self.get_test_metadata(), test_data)
+        data2 = signac_db.find_one(self.get_test_metadata())
         self.assertIsNotNone(data2)
         self.assertEqual(data2['data'], test_data)
 
@@ -180,21 +186,21 @@ class DBTest(BaseDBTest):
         def foo(x):
             return 'foo'
 
-        docs = list(signac_db.find(TEST_TOKEN))
+        docs = list(signac_db.find(self.test_token))
         f_foo = {foo: 'foo'}
-        f_foo.update(TEST_TOKEN)
+        f_foo.update(self.test_token)
         docs_foo = list(signac_db.find(f_foo))
         self.assertTrue(docs)
         self.assertEqual(len(docs), len(docs_foo))
 
         f_bar = {foo: 'bar'}
-        f_bar.update(TEST_TOKEN)
+        f_bar.update(self.test_token)
         docs_bar = list(signac_db.find(f_bar))
         self.assertEqual(len(docs_bar), 0)
 
     def test_method_adapter(self):
         signac_db = get_signac_db_handle()
-        metadata = get_test_metadata()
+        metadata = self.get_test_metadata()
 
         custom_adapter = conversion.make_adapter(
             CustomFloat, float, custom_to_float)
@@ -210,8 +216,8 @@ class DBTest(BaseDBTest):
         foo_method = conversion.make_db_method(foo, int)
 
         f = {foo_method: {'$lt': 7}}
-        f.update(TEST_TOKEN)
-        docs = list(signac_db.find(TEST_TOKEN))
+        f.update(self.test_token)
+        docs = list(signac_db.find(self.test_token))
         self.assertTrue(docs)
         docs_foo = list(signac_db.find(f))
         self.assertEqual(len(docs_foo), len(data))
@@ -224,9 +230,9 @@ class DBTest(BaseDBTest):
         doc_logic = signac_db.find_one({'$and': [bullshit, f_logic]})
         self.assertIsNone(doc_logic)
 
-    @unittest.skip("Currently defunct.")
+    #@unittest.skip("Currently defunct.")
     def test_multiple_conversion_paths(self):
-        metadata = get_test_metadata()
+        metadata = self.get_test_metadata()
 
         class Intermediate(object):
             def __init__(self, value):
@@ -238,26 +244,29 @@ class DBTest(BaseDBTest):
         foo_method = conversion.make_db_method(foo, int)
 
         # We need to potentially remove the custom adapter from previous tests.
-        try:
-            name = "<class 'test_signac_db.CustomFloat'>_to_<class 'float'>"
-            del signac.db.conversion.Adapter.registry[name]
-        except KeyError:
-            pass
+        def attempt_remove_adapter(name):
+            try:
+                del signac.contrib.conversion.Adapter.registry[name]
+            except KeyError:
+                pass
+        attempt_remove_adapter("<class '__main__.CustomFloat'>_to_<class 'float'>")
+        attempt_remove_adapter("<class 'test_db.CustomFloat'>_to_<class 'float'>")
 
-        signac_db = get_signac_db_handle()
+        signac_db = get_signac_db_handle(clear=True)
+        signac_db.delete_many({})
         data = [42, 42.0, '42', CustomFloat(42.0)]
         for d in data:
             signac_db.insert_one(metadata, d)
 
         f = {foo_method: {'$lt': 7}}
-        f.update(TEST_TOKEN)
-        docs = list(signac_db.find(TEST_TOKEN))
+        f.update(metadata)
+        f.update(self.test_token)
+        docs = list(signac_db.find(self.test_token))
         self.assertTrue(docs)
         docs_foo = list(signac_db.find(f))
+        for item in docs_foo:
+            print(item)
         self.assertEqual(len(docs_foo), len(data)-1)
-
-        for key in signac.db.conversion.Adapter.registry.keys():
-            print(key)
 
         def custom_to_float_defunct(custom):
             assert 0
@@ -292,23 +301,22 @@ class DBTest(BaseDBTest):
         signac_db = get_signac_db_handle()
         bullshit = {'bullshit': True}
         data = signac_db.find_one(
-            {'$or': [get_test_metadata(), bullshit]})
+            {'$or': [self.get_test_metadata(), bullshit]})
         self.assertIsNotNone(data)
         data = signac_db.find_one(
-            {'$and': [get_test_metadata(),
-                {'$or': [get_test_metadata(), bullshit]}]})
+            {'$and': [self.get_test_metadata(),
+                {'$or': [self.get_test_metadata(), bullshit]}]})
         self.assertIsNotNone(data)
         data = signac_db.find_one(
-            {'$and': [get_test_metadata(), bullshit]})
+            {'$and': [self.get_test_metadata(), bullshit]})
         self.assertIsNone(data)
         data = signac_db.find_one(
-            {'$and': [{'$or': [get_test_metadata(), bullshit]}]})
+            {'$and': [{'$or': [self.get_test_metadata(), bullshit]}]})
         self.assertIsNotNone(data)
 
     def test_aggregate(self):
-        from signac.db import conversion
         signac_db = get_signac_db_handle()
-        metadata = get_test_metadata()
+        metadata = self.get_test_metadata()
         custom_adapter = conversion.make_adapter(
             CustomFloat, float, custom_to_float)
         signac_db.add_adapter(custom_adapter)
@@ -318,13 +326,12 @@ class DBTest(BaseDBTest):
             signac_db.insert_one(metadata, d)
 
         def foo(x):
-            from math import sqrt
             assert isinstance(x, int)
             return sqrt(x)
         foo_method = conversion.make_db_method(foo, int)
 
         pipe = [
-            {'$match': TEST_TOKEN},
+            {'$match': self.test_token},
             {'$match': {foo_method: {'$lt': 7}}}]
         docs = list(signac_db.aggregate(pipe))
         self.assertTrue(docs)
@@ -342,7 +349,7 @@ class DBSecurityTest(BaseDBTest):
 
     def test_modify_user_filter(self):
         signac_db = get_signac_db_handle()
-        meta = get_test_metadata()
+        meta = self.get_test_metadata()
         #data = get_test_data()
         meta['author_name'] = 'impostor'
         with self.assertRaises(KeyError):
@@ -371,7 +378,7 @@ class DBSecurityTest(BaseDBTest):
     def test_modify_global_data(self):
         signac_db = get_signac_db_handle()
         author_name_original = signac_db.config['author_name']
-        meta = get_test_metadata()
+        meta = self.get_test_metadata()
         signac_db.insert_one(meta)
         doc_original = signac_db.find_one(meta)
         assert not doc_original is None

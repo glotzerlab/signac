@@ -20,7 +20,7 @@ import networkx as nx
 from gridfs import GridFS
 
 from ..core.config import load_config
-from . import conversion, formats
+from ..contrib import conversion, formats, adapters
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def generate_auto_network():
     """
     network = nx.DiGraph()
     network.add_nodes_from(formats.BASICS)
-    network.add_nodes_from(conversion.BasicFormat.registry.values())
+    network.add_nodes_from(formats.BasicFormat.registry.values())
     for adapter in conversion.Adapter.registry.values():
         logger.debug("Adding '{}' to network.".format(adapter()))
         conversion.add_adapter_to_network(
@@ -335,42 +335,10 @@ class Database(object):
         If :param method: is of type conversion.DBMethod, this function 
         will attempt to convert :param src: to the :param method: expects type.
         """
-        if isinstance(method, conversion.DBMethod):
-            try:
-                isinstance(src, method.expects)
-            except TypeError:
-                msg = "Illegal expect type: '{}'."
-                raise TypeError(msg.format(method.expects))
-            if not isinstance(src, method.expects):
-                msg = "Trying to convert from '{}' to '{}'."
-                logger.debug(msg.format(type(src), method.expects))
-                try:
-                    converters = conversion.get_converters(
-                        self._formats_network,
-                        type(src), method.expects)
-                    for i, converter in enumerate(converters):
-                        msg = "Attempting conversion path # {}: {} nodes."
-                        logger.debug(msg.format(i + 1, len(converter)))
-                        try:
-                            src_converted = converter.convert(
-                                src, debug=self.debug_mode)
-                            break
-                        except conversion.ConversionError:
-                            msg = "Conversion attempt with '{}' failed."
-                            logger.debug(msg.format(converter))
-                    else:
-                        raise conversion.ConversionError(src, method.expects)
-                except conversion.NoConversionPath:
-                    msg = "No path found."
-                    logger.debug(msg)
-                    raise
-                except conversion.ConversionError:
-                    msg = "Conversion from '{}' to '{}' through available conversion path failed."
-                    logger.debug(msg.format(type(src), method.expects))
-                    raise
-                else:
-                    src = src_converted
-                logger.debug('Success.')
+        try:
+            return conversion.convert(src, method.expects, self._formats_network)
+        except AttributeError:
+            pass
         return src
 
     def _update_cache(self, doc_ids, method):
@@ -571,8 +539,7 @@ class Database(object):
     def _get_file(self, file_id, project_id):
         "Retrieve file with :param file_id: from the gridfs collection."
         grid_file = self._get_gridfs(project_id).get(file_id)
-        # grid_file = self._gridfs.get(file_id)  # <- legacy code
-        return decode(grid_file.read())
+        return decode(grid_file)
 
     def _resolve_files(self, doc):
         "Resolve the file data associated with doc."
