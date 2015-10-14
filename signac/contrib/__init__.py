@@ -13,11 +13,12 @@ from .utility import walkdepth
 
 logger = logging.getLogger(__name__)
 
-KEY_CRAWLER_PATH = 'root'
+KEY_CRAWLER_PATH = 'signac_access_crawler_root'
 KEY_CRAWLER_MODULE = 'signac_access_module'
 KEY_CRAWLER_ID = 'signac_access_crawler_id'
 KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
+KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
 FN_CRAWLER = 'signac_access.py'
 
@@ -107,11 +108,6 @@ class BaseCrawler(object):
                         yield _id, doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
-    def fetched(self, docs):
-        for doc in docs:
-            for data in self.fetch(doc):
-                yield doc, data
-
 
 class RegexFileCrawler(BaseCrawler):
 
@@ -122,6 +118,7 @@ class RegexFileCrawler(BaseCrawler):
                 doc = m.groupdict()
                 doc[KEY_FILENAME] = os.path.relpath(
                     os.path.join(dirpath, fn), self.root)
+                doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
                 yield doc
 
@@ -188,6 +185,12 @@ def fetch(doc):
     except KeyError:
         raise KeyError(
             "Unable to load crawler, associated with this document.")
+
+
+def fetched(docs):
+    for doc in docs:
+        for data in fetch(doc):
+            yield doc, data
 
 
 class ConversionNetwork(object):
