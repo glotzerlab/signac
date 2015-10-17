@@ -71,7 +71,7 @@ class BaseJob(object):
         self._fs = os.path.join(
             self._project.filestorage_dir(), str(self.get_id()))
         self._storage = None
-        self._fn_dict = os.path.join(self._fs, FN_JOB_DOCUMENT)
+        self._fn_dict = os.path.join(self._wd, FN_JOB_DOCUMENT)
         self._on_disk_document = None
 
     def get_id(self):
