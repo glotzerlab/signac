@@ -1,15 +1,16 @@
 import os
+import re
 import logging
 import json
 import uuid
 import importlib
 import itertools
-import copy
 
 from .project import Project
 from . import conversion
 from . import formats
 from .utility import walkdepth
+from .hashing import generate_hash_from_spec
 
 logger = logging.getLogger(__name__)
 
@@ -72,14 +73,6 @@ class BaseCrawler(object):
     def docs_from_file(self, dirpath, fn):
         raise NotImplementedError()
 
-    def _expand_payload(self, document):
-        for payload in self.fetch(document):
-            doc = copy.deepcopy(document)
-            doc.setdefault(KEY_PAYLOAD, str(type(payload)))
-            yield doc
-        else:
-            yield document
-
     def fetch(self, doc):
         return
         yield
@@ -107,14 +100,22 @@ class BaseCrawler(object):
                     yield _id, doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
+    def process(self, doc, dirpath, fn):
+        return doc
+
 
 class RegexFileCrawler(BaseCrawler):
+    definitions = dict()
+
+    @classmethod
+    def define(cls, regex, format_):
+        cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
-        for regex, format_ in self.definitions:
+        for regex, format_ in self.definitions.items():
             m = regex.search(os.path.join(dirpath, fn))
             if m:
-                doc = m.groupdict()
+                doc = self.process(m.groupdict(), dirpath, fn)
                 doc[KEY_FILENAME] = os.path.relpath(
                     os.path.join(dirpath, fn), self.root)
                 doc[KEY_PATH] = os.path.abspath(self.root)
@@ -130,19 +131,65 @@ class RegexFileCrawler(BaseCrawler):
                 if m:
                     yield format_(open(ffn))
 
+    def process(self, doc, dirpath, fn):
+        result = dict()
+        types = (int, float)
+        for key, value in doc.items():
+            for t in types:
+                try:
+                    result[key] = t(value)
+                except ValueError:
+                    continue
+                else:
+                    break
+            else:
+                result[key] = value
+        return super().process(result, dirpath, fn)
+
 
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
+    fn_regex = '.*\.json'
 
     def docs_from_json(self, doc):
         yield doc
 
     def docs_from_file(self, dirpath, fn):
-        ext = os.path.splitext(fn)[1]
-        if ext == '.json':
+        if re.match(self.fn_regex):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
                 yield from self.docs_from_json(doc)
+
+
+class SignacProjectCrawler(RegexFileCrawler):
+    encoding = 'utf-8'
+    fn_statepoint = 'signac_statepoint.json'
+    re_jd = '.*signac_job_document\.json'
+
+    def get_statepoint(self, dirpath):
+        with open(os.path.join(dirpath, self.fn_statepoint), 'rb') as file:
+            doc = json.loads(file.read().decode(self.encoding))
+        signac_id = generate_hash_from_spec(doc)
+        assert dirpath.endswith(signac_id)
+        return signac_id, doc
+
+    def process(self, doc, dirpath, fn):
+        signac_id, statepoint = self.get_statepoint(dirpath)
+        doc.update(statepoint)
+        doc['signac_id'] = signac_id
+        return super().process(doc, dirpath, fn)
+
+    def docs_from_file(self, dirpath, fn):
+        if re.match(self.re_jd, fn):
+            with open(os.path.join(dirpath, fn), 'rb') as file:
+                job_doc = json.loads(file.read().decode(self.encoding))
+            signac_id, statepoint = self.get_statepoint(dirpath)
+            job_doc['_id'] = signac_id
+            job_doc['signac_id'] = signac_id
+            job_doc['statepoint'] = statepoint
+            job_doc[KEY_PAYLOAD] = 'signac_job_document'
+            yield job_doc
+        yield from super().docs_from_file(dirpath, fn)
 
 
 class ProjectCrawler(BaseCrawler):
