@@ -89,6 +89,7 @@ def load_config():
         tmp = read_config_file(fn)
         config.merge(tmp)
         if 'project' in tmp:
+            config['project_dir'] = os.path.split(fn)[0]
             break
     else:
         logger.debug("Did not find a project configuration file.")
