@@ -138,14 +138,14 @@ class RegexFileCrawler(BaseCrawler):
             if isinstance(value, bool):
                 result[key] = value
                 continue
+            for t in types:
+                try:
+                    result[key] = t(value)
+                    break
+                except ValueError:
+                    continue
             else:
-                for t in types:
-                    try:
-                        result[key] = t(value)
-                        break
-                    except ValueError:
-                        continue
-            result[key] = value
+                result[key] = value
         return super().process(result, dirpath, fn)
 
 
