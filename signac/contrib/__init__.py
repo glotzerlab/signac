@@ -125,7 +125,7 @@ class RegexFileCrawler(BaseCrawler):
     def fetch(self, doc):
         fn = doc.get(KEY_FILENAME)
         if fn:
-            for regex, format_ in self.definitions:
+            for regex, format_ in self.definitions.items():
                 ffn = os.path.join(self.root, fn)
                 m = regex.search(ffn)
                 if m:
@@ -135,15 +135,17 @@ class RegexFileCrawler(BaseCrawler):
         result = dict()
         types = (int, float)
         for key, value in doc.items():
-            for t in types:
-                try:
-                    result[key] = t(value)
-                except ValueError:
-                    continue
-                else:
-                    break
-            else:
+            if isinstance(value, bool):
                 result[key] = value
+                continue
+            else:
+                for t in types:
+                    try:
+                        result[key] = t(value)
+                        break
+                    except ValueError:
+                        continue
+            result[key] = value
         return super().process(result, dirpath, fn)
 
 
@@ -189,7 +191,11 @@ class SignacProjectJobDocumentCrawler(SignacProjectCrawlerBase):
     def docs_from_file(self, dirpath, fn):
         if re.match(self.re_job_document, fn):
             with open(os.path.join(dirpath, fn), 'rb') as file:
-                job_doc = json.loads(file.read().decode(self.encoding))
+                try:
+                    job_doc = json.loads(file.read().decode(self.encoding))
+                except ValueError as error:
+                    logger.error("Failed to load job document for job '{}'.".format(self.get_statepoint(dirpath)[0]))
+                    raise
             signac_id, statepoint = self.get_statepoint(dirpath)
             job_doc['_id'] = signac_id
             job_doc['statepoint'] = statepoint
