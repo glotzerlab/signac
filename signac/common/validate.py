@@ -57,4 +57,5 @@ ssl_keyfile = string
 username = string
 password = string
 connect_timeout_ms = integer(default=5000)
+db_auth = string
 """

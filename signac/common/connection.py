@@ -155,11 +155,11 @@ class DBClientConnector(object):
         auth_mechanism = self._config_get('auth_mechanism')
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
         if auth_mechanism == AUTH_SCRAM_SHA_1:
-            db_admin = self.client['admin']
+            db_auth = self.client[self._config_get_required('db_auth')]
             username = self._config_get_required('username')
             msg = "Authenticating user '{user}' with database '{db}'."
-            logger.debug(msg.format(user=username, db=db_admin))
-            db_admin.authenticate(
+            logger.debug(msg.format(user=username, db=db_auth))
+            db_auth.authenticate(
                 username,
                 self._config_get_required('password'),
                 mechanism=AUTH_SCRAM_SHA_1)
