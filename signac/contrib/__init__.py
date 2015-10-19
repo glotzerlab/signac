@@ -14,14 +14,17 @@ from .hashing import generate_hash_from_spec
 
 logger = logging.getLogger(__name__)
 
-KEY_CRAWLER_PATH = 'signac_access_crawler_root'
-KEY_CRAWLER_MODULE = 'signac_access_module'
-KEY_CRAWLER_ID = 'signac_access_crawler_id'
+FN_CRAWLER = 'signac_access.py'
 KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
-FN_CRAWLER = 'signac_access.py'
+KEY_LINK = 'signac_link'
+KEY_LINK_TYPE = 'link_type'
+KEY_CRAWLER_PATH = 'access_crawler_root'
+KEY_CRAWLER_MODULE = 'access_module'
+KEY_CRAWLER_ID = 'access_crawler_id'
+LINK_MODULE_FETCH = 'module_fetch'
 
 
 def get_project(project_path=None):
@@ -157,13 +160,13 @@ class JSONCrawler(BaseCrawler):
         yield doc
 
     def docs_from_file(self, dirpath, fn):
-        if re.match(self.fn_regex):
+        if re.match(self.fn_regex, os.path.join(dirpath, fn)):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
                 yield from self.docs_from_json(doc)
 
 
-class SignacProjectCrawlerBase(BaseCrawler):
+class SignacProjectBaseCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_statepoint = 'signac_statepoint.json'
 
@@ -181,11 +184,11 @@ class SignacProjectCrawlerBase(BaseCrawler):
         return super().process(doc, dirpath, fn)
 
 
-class SignacProjectRegexFileCrawler(SignacProjectCrawlerBase, RegexFileCrawler):
+class SignacProjectRegexFileCrawler(SignacProjectBaseCrawler, RegexFileCrawler):
     pass
 
 
-class SignacProjectJobDocumentCrawler(SignacProjectCrawlerBase):
+class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
     re_job_document = '.*signac_job_document\.json'
 
     def docs_from_file(self, dirpath, fn):
@@ -193,8 +196,9 @@ class SignacProjectJobDocumentCrawler(SignacProjectCrawlerBase):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 try:
                     job_doc = json.loads(file.read().decode(self.encoding))
-                except ValueError as error:
-                    logger.error("Failed to load job document for job '{}'.".format(self.get_statepoint(dirpath)[0]))
+                except ValueError:
+                    logger.error("Failed to load job document for job '{}'.".format(
+                        self.get_statepoint(dirpath)[0]))
                     raise
             signac_id, statepoint = self.get_statepoint(dirpath)
             job_doc['_id'] = signac_id
@@ -207,27 +211,41 @@ class SignacProjectCrawler(SignacProjectRegexFileCrawler, SignacProjectJobDocume
     pass
 
 
-class ProjectCrawler(BaseCrawler):
+class MasterCrawler(BaseCrawler):
 
     def __init__(self, root):
-        super(ProjectCrawler, self).__init__(root=root)
+        super(MasterCrawler, self).__init__(root=root)
         self._crawlers = dict()
 
     def _load_crawler(self, name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
+    def _docs_from_module(self, dirpath, fn):
+        name = os.path.join(dirpath, fn)
+        module = self._load_crawler(name)
+        for crawler_id, crawler in module.get_crawlers(dirpath).items():
+            for _id, doc in crawler.crawl():
+                doc.setdefault(
+                    KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                link = doc.setdefault(KEY_LINK, dict())
+                link[KEY_LINK_TYPE] = LINK_MODULE_FETCH
+                link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                link[KEY_CRAWLER_MODULE] = fn
+                link[KEY_CRAWLER_ID] = crawler_id
+                yield doc
+
     def docs_from_file(self, dirpath, fn):
         if fn == FN_CRAWLER:
-            name = os.path.join(dirpath, fn)
-            module = self._load_crawler(name)
-            for crawler_id, crawler in module.get_crawlers(dirpath).items():
-                for _id, doc in crawler.crawl():
-                    doc.setdefault(
-                        KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                    doc[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                    doc[KEY_CRAWLER_MODULE] = fn
-                    doc[KEY_CRAWLER_ID] = crawler_id
-                    yield doc
+            try:
+                yield from self._docs_from_module(dirpath, fn)
+            except AttributeError as error:
+                if str(error) == 'get_crawlers':
+                    logger.warning(
+                        "Module has no '{}' function.".format(error))
+            except Exception:
+                logger.error("Error while indexing from module '{}'.".format(
+                    os.path.join(dirpath, fn)))
+                raise
 
     def fetch(self, doc):
         yield from fetch(doc)
@@ -238,14 +256,20 @@ def _load_crawler(name):
 
 
 def fetch(doc):
-    fn_module = os.path.join(doc[KEY_CRAWLER_PATH], doc[KEY_CRAWLER_MODULE])
     try:
-        crawler_module = _load_crawler(fn_module)
-        crawlers = crawler_module.get_crawlers(doc[KEY_CRAWLER_PATH])
-        yield from crawlers[doc[KEY_CRAWLER_ID]].fetch(doc)
+        link = doc[KEY_LINK]
     except KeyError:
-        raise KeyError(
-            "Unable to load crawler, associated with this document.")
+        logger.error(
+            "This document is missing the '{}' key. Are you sure it is part of a signac index?".format(KEY_LINK))
+        raise
+    if link[KEY_LINK_TYPE] == LINK_MODULE_FETCH:
+        fn_module = os.path.join(
+            link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
+        crawler_module = _load_crawler(fn_module)
+        crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
+        yield from crawlers[link[KEY_CRAWLER_ID]].fetch(doc)
+        # raise KeyError(
+        #"Unable to load crawler, associated with this document.")
 
 
 def fetched(docs):
