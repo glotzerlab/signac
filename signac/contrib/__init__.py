@@ -290,7 +290,7 @@ class ConversionNetwork(object):
         yield from conversion.converted(sources, target_format, self.formats_network, ignore_errors=ignore_errors)
 
 
-def export_pymongo(crawler, collection, chunksize=1000, *args, **kwargs):
+def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
     import pymongo
     logger.info("Exporting index for pymongo.")
     operations = []
@@ -300,18 +300,18 @@ def export_pymongo(crawler, collection, chunksize=1000, *args, **kwargs):
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(operations) >= chunksize:
             logger.debug("Pushing chunk.")
-            collection.bulk_write(operations)
+            index.bulk_write(operations)
             operations.clear()
     if len(operations):
         logger.debug("Pushing final chunk.")
-        collection.bulk_write(operations)
+        index.bulk_write(operations)
 
 
-def export(crawler, collection, *args, **kwargs):
+def export(crawler, index, *args, **kwargs):
     logger.info("Exporting index.")
     for _id, doc in crawler.crawl(*args, **kwargs):
         f = {'_id': _id}
-        collection.replace_one(f, doc)
+        index.replace_one(f, doc)
 
 
 def get_formats_network():
