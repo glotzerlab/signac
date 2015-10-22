@@ -13,12 +13,38 @@ warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
 
-class ProjectTest(BaseJobTest):
+class BaseProjectTest(BaseJobTest):
     pass
 
 
+class ProjectTest(BaseProjectTest):
+
+    def test_get(self):
+        pass
+
+    def test_get_id(self):
+        self.assertEqual(self.project.get_id(), self.config['project'])
+        self.assertEqual(str(self.project), self.project.get_id())
+
+    def test_root_directory(self):
+        self.assertEqual(self._tmp_pr, self.project.root_directory())
+
+    def test_write_read_statepoint(self):
+        statepoints = [{'a': i} for i in range(5)]
+        self.project.dump_statepoints(statepoints)
+        self.project.write_statepoints(statepoints)
+        read = list(self.project.read_statepoints().values())
+        self.assertEqual(len(read), len(statepoints))
+        more_statepoints = [{'b': i} for i in range(5, 10)]
+        self.project.write_statepoints(more_statepoints)
+        read2 = list(self.project.read_statepoints())
+        self.assertEqual(len(read2), len(statepoints) + len(more_statepoints))
+        for id_ in self.project.read_statepoints().keys():
+            self.project.get_statepoint(id_)
+
+
 @unittest.skip("Views are currently not implemented.")
-class ProjectViewTest(ProjectTest):
+class ProjectViewTest(BaseProjectTest):
 
     def test_get_links(self):
         project = self.project
