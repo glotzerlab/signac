@@ -77,6 +77,10 @@ class DBClientConnector(object):
     def host(self):
         return self._config['url']
 
+    @property
+    def config(self):
+        return dict(self._config)
+
     def _config_get(self, key, default=None):
         return self._config.get(key, default)
         # try:
@@ -155,7 +159,7 @@ class DBClientConnector(object):
         auth_mechanism = self._config_get('auth_mechanism')
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
         if auth_mechanism == AUTH_SCRAM_SHA_1:
-            db_auth = self.client[self._config_get_required('db_auth')]
+            db_auth = self.client[self._config.get('db_auth', 'admin')]
             username = self._config_get_required('username')
             msg = "Authenticating user '{user}' with database '{db}'."
             logger.debug(msg.format(user=username, db=db_auth))
