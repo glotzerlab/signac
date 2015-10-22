@@ -6,7 +6,8 @@ import tempfile
 import uuid
 import copy
 
-import signac
+import signac.contrib
+import signac.common.config
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
