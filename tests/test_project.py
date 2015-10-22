@@ -4,8 +4,6 @@ import uuid
 import warnings
 from tempfile import TemporaryDirectory
 
-import pymongo
-
 from test_job import BaseJobTest
 
 # Make sure the jobs created for this test are unique.
@@ -14,10 +12,7 @@ test_token = {'test_token': str(uuid.uuid4())}
 warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 
-PYMONGO_3 = pymongo.version_tuple[0] == 3
 
-
-@unittest.skipIf(not PYMONGO_3, 'test requires pymongo version >= 3.0.x')
 class ProjectTest(BaseJobTest):
     pass
 

@@ -6,8 +6,6 @@ import tempfile
 import uuid
 import copy
 
-import pymongo
-
 import signac
 
 # Make sure the jobs created for this test are unique.
@@ -17,8 +15,6 @@ warnings.simplefilter('default')
 warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 warnings.filterwarnings(
     'ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
-
-PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 
 def config_from_cfg(cfg):
@@ -60,7 +56,7 @@ class BaseJobTest(unittest.TestCase):
         self.config['workspace_dir'] = self._tmp_wd
         self.config['signac_version'] = signac.VERSION_TUPLE
         self.project = signac.contrib.Project(config=self.config)
-        #self.addCleanup(self.project.remove, force=True)
+        # self.addCleanup(self.project.remove, force=True)
 
     def tearDown(self):
         pass
