@@ -3,8 +3,14 @@ import tempfile
 import uuid
 import os
 
-import signac.contrib.formats_network
+try:
+    import signac.contrib.formats_network
+except ImportError:
+    NETWORK_X_AVAILABLE = False
+else:
+    NETWORK_X_AVAILABLE = True
 
+@unittest.skipIf(not NETWORK_X_AVAILABLE, 'networkx not available')
 class ConversionTest(unittest.TestCase):
 
     def test_get_formats_network(self):
