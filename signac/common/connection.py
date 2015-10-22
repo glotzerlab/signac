@@ -1,15 +1,27 @@
 import subprocess
 import logging
 from os.path import expanduser
+import ssl
 
 import pymongo
 
-DEFAULT_HOST_CONFIG = {
-    'url': 'localhost',
-    'auth_mechanism': 'none'}
+
+logger = logging.getLogger(__name__)
+
+PYMONGO_3 = pymongo.version_tuple[0] == 3
+
+AUTH_NONE = 'none'
+AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
+AUTH_SSL = 'SSL'
+AUTH_SSL_x509 = 'SSL-x509'
+SSL_CERT_REQS = {
+    'none': ssl.CERT_NONE,
+    'optional': ssl.CERT_OPTIONAL,
+    'required': ssl.CERT_REQUIRED
+}
 
 
-def get_subject_from_certificate(fn_certificate):
+def get_subject_from_certificate(fn_certificate):  # pragma no cover
     try:
         cert_txt = subprocess.check_output(
             ['openssl', 'x509', '-in', fn_certificate,
@@ -21,38 +33,6 @@ def get_subject_from_certificate(fn_certificate):
         lines = cert_txt.split('\n')
         assert lines[0].startswith('subject=')
         return lines[0][len('subject='):].strip()
-
-try:
-    import ssl
-except ImportError:
-    SSL_SUPPORT = False
-else:
-    SSL_SUPPORT = True
-
-logger = logging.getLogger(__name__)
-
-PYMONGO_3 = pymongo.version_tuple[0] == 3
-
-AUTH_NONE = 'none'
-AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
-AUTH_SSL = 'SSL'
-AUTH_SSL_x509 = 'SSL-x509'
-
-SUPPORTED_AUTH_MECHANISMS = [AUTH_NONE,
-                             AUTH_SCRAM_SHA_1, AUTH_SSL, AUTH_SSL_x509]
-
-if SSL_SUPPORT:
-    SSL_CERT_REQS = {
-        'none': ssl.CERT_NONE,
-        'optional': ssl.CERT_OPTIONAL,
-        'required': ssl.CERT_REQUIRED
-    }
-
-
-def with_ssl_support():
-    if not SSL_SUPPORT:
-        raise EnvironmentError(
-            "Your python installation does not support SSL.")
 
 
 def raise_unsupported_auth_mechanism(mechanism):
@@ -97,8 +77,8 @@ class DBClientConnector(object):
             client = pymongo.MongoClient(
                 host,
                 ** parameters)
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-            with_ssl_support()
+        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma  no cover
+            # currently not officially supported
             client = pymongo.MongoClient(
                 host,
                 ssl=True,
@@ -117,7 +97,8 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    def _connect_pymongo2(self, host):
+    # not officially supported anymore
+    def _connect_pymongo2(self, host):  # pragma no cover
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
@@ -143,7 +124,7 @@ class DBClientConnector(object):
 
         if PYMONGO_3:
             self._connect_pymongo3(host)
-        else:
+        else:  # pragma no cover
             self._connect_pymongo2(host)
 
     def authenticate(self):
@@ -158,8 +139,7 @@ class DBClientConnector(object):
                 username,
                 self._config_get_required('password'),
                 mechanism=AUTH_SCRAM_SHA_1)
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-            with_ssl_support()
+        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma no cover
             certificate_subject = get_subject_from_certificate(
                 expanduser(self._config_get_required('ssl_certfile')))
             logger.debug("Authenticating: user={}".format(certificate_subject))
@@ -170,10 +150,12 @@ class DBClientConnector(object):
     def logout(self):
         auth_mechanism = self._config_get_required('auth_mechanism')
         if auth_mechanism == AUTH_SCRAM_SHA_1:
-            db_admin = self.client['admin']
-            db_admin.logout()
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
+            db_auth = self.client['admin']
+            db_auth.logout()
+        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma no cover
             db_external = self.client['$external']
             db_external.logout()
+        elif auth_mechanism == AUTH_NONE:
+            pass
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
