@@ -6,6 +6,7 @@ import networkx as nx
 
 from . import conversion
 from . import formats
+from . import adapters  # noqa required for automagick formats_network
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +20,13 @@ class ConversionNetwork(object):
         self.formats_network = formats_network
 
     def convert(self, src, target_format, debug=False):
-        return conversion.convert(src, target_format,
-                                  self.formats_network, debug=debug)
+        return convert(src, target_format,
+                       self.formats_network, debug=debug)
 
     def converted(self, sources, target_format, ignore_errors=True):
-        yield from conversion.converted(sources, target_format,
-                                        self.formats_network,
-                                        ignore_errors=ignore_errors)
+        yield from converted(sources, target_format,
+                             self.formats_network,
+                             ignore_errors=ignore_errors)
 
 
 def get_formats_network():
@@ -37,8 +38,7 @@ def get_formats_network():
     network.add_nodes_from(formats.BasicFormat.registry.values())
     for adapter in conversion.Adapter.registry.values():
         logger.debug("Adding '{}' to network.".format(adapter()))
-        conversion.add_adapter_to_network(
-            network, adapter)
+        add_adapter_to_network(network, adapter)
     return network
 
 
@@ -63,7 +63,7 @@ class ConversionError(RuntimeError):
     pass
 
 
-class NoConversionPath(ConversionError):
+class NoConversionPathError(ConversionError):
     pass
 
 
@@ -75,8 +75,8 @@ class Converter(object):
         self._adapter_chain = adapter_chain
 
     def convert(self, data, debug=False):
-        for adapters in self._adapter_chain:
-            for adapter in sorted(adapters, key=lambda a: a.weight):
+        for adapters_ in self._adapter_chain:
+            for adapter in sorted(adapters_, key=lambda a: a.weight):
                 try:
                     logger.debug(
                         "Attempting conversion with adapter '{}'.".format(
@@ -121,7 +121,7 @@ def _get_converters(network, source_type, target_type):
                 network, source_type, target_type):
             yield Converter(list(adapter_chain), source_type, target_type)
     except (nx.exception.NetworkXNoPath, nx.exception.NetworkXError) as error:
-        raise NoConversionPath(source_type, target_type) from error
+        raise NoConversionPathError(source_type, target_type) from error
 
 
 def get_converters(network, source_type, target_type):
@@ -130,12 +130,12 @@ def get_converters(network, source_type, target_type):
     for src_type in mro:
         try:
             yield from _get_converters(network, src_type, target_type)
-        except NoConversionPath:
+        except NoConversionPathError:
             pass
         else:
             found_converter = True
     if not found_converter:
-        raise NoConversionPath(source_type, target_type)
+        raise NoConversionPathError(source_type, target_type)
 
 
 def convert(src, target_format, formats_network, debug=False):
@@ -165,7 +165,7 @@ def converted(sources, target_format, formats_network, ignore_errors=False):
     for src in sources:
         try:
             yield convert(src, target_format, formats_network)
-        except NoConversionPath:
+        except NoConversionPathError:
             msg = "No path found."
             logger.debug(msg)
             if not ignore_errors:
