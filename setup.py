@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='signac',
-    version='0.1.7dev1',
+    version='0.1.7dev5',
     packages=find_packages(),
 
     author='Carl Simon Adorf',
@@ -28,17 +28,5 @@ setup(
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
         'conversion': ['networkx>=1.1.0'],
-    },
-
-    entry_points={
-        'console_scripts': [
-            'signac = signac.contrib.script:main',
-            'signac_init = signac.contrib.init_project:main',
-            'signac_configure = signac.contrib.configure:main',
-            'signac_admin = signac.admin.manage:main',
-            'signac_server = signac.contrib.server:main',
-            'signac_user = signac.contrib.admin:main',
-            'signac_admin_project = signac.admin.manage_project:main',
-        ],
     },
 )
