@@ -111,8 +111,9 @@ def decode_callable(doc, reload=True):
     try:
         c_doc = jsonpickle.loads(binary.decode())
     except AttributeError as error:
-        msg = "Unable to retrieve callable. Executing from different script? Error: {}"
-        raise AttributeError(msg.format(error))
+        raise AttributeError(
+            "Unable to retrieve callable. Executing from different script? "
+            "Error: {}".format(error))
     if reload:
         reload_module(c_doc['module'])
         c_doc = jsonpickle.loads(binary.decode())

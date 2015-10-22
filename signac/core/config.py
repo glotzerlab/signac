@@ -104,7 +104,7 @@ def verify(args, strict=False):
     warnings.warn("No verification.")
     return
     for key in args.keys():
-        if not key in LEGAL_ARGS:
+        if key not in LEGAL_ARGS:
             msg = "Config key '{}' not recognized. Possible version conflict."
             logger.warning(msg.format(key))
             if strict:

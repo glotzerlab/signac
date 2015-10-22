@@ -75,7 +75,8 @@ class JSonDict(collections.UserDict):
                 self.data.update(json.loads(file.read().decode()))
         except ValueError:
             logger.critical(
-                "Document file '{}' seems to be corrupted! Unable to load document.".format(self._filename))
+                "Document file '{}' seems to be corrupted! Unable "
+                "to load document.".format(self._filename))
             raise
         except FileNotFoundError:
             pass

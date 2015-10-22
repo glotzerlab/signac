@@ -59,14 +59,17 @@ def mongodb_fetch_find_one(collection, spec, timeout=None):
 class Version(dict):
     """Utility class to manage revision control numbers."""
 
-    def __init__(self, major=0, minor=0, change=0, postrelease='', prerelease='final'):
+    def __init__(self, major=0, minor=0, change=0,
+                 postrelease='', prerelease='final'):
         if prerelease > 'final':
             raise ValueError('illegal pre-release tag', prerelease)
         super(Version, self).__init__(major=major, minor=minor,
-                                      change=change, postrelease=postrelease, prerelease=prerelease)
+                                      change=change, postrelease=postrelease,
+                                      prerelease=prerelease)
 
     def to_tuple(self):
-        return self['major'], self['minor'], self['change'], self['prerelease'], self['postrelease']
+        return self['major'], self['minor'], self['change'],\
+            self['prerelease'], self['postrelease']
 
     def __lt__(self, other):
         return self.to_tuple() < other.to_tuple()
@@ -75,16 +78,19 @@ class Version(dict):
         return self.to_tuple() == other.to_tuple()
 
     def __str__(self):
-        return '{major}.{minor}{postrelease}.{change}{prerelease}'.format(**self)
+        return '{major}.{minor}{postrelease}.{change}{prerelease}'.format(
+            **self)
 
     def __repr__(self):
-        return "Version({})".format(','.join(('{}={}'.format(k, v) for k, v in self.items())))
+        return "Version({})".format(','.join(
+            ('{}={}'.format(k, v) for k, v in self.items())))
 
 
 def parse_version(version_str):
     """Parse a version number into a version object."""
     p = re.compile(
-        r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)\.(?P<change>[0-9])(?P<prerelease>\w*))?")
+        r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)"
+        "\.(?P<change>[0-9])(?P<prerelease>\w*))?")
     r = p.match(version_str)
     v = r.groupdict()
     version = Version(**{
