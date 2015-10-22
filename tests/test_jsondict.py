@@ -7,8 +7,10 @@ from signac.core.jsondict import JSonDict
 
 FN_DICT = 'jsondict.json'
 
+
 def testdata():
     return str(uuid.uuid4())
+
 
 class BaseJSonDictTest(unittest.TestCase):
 
@@ -16,6 +18,7 @@ class BaseJSonDictTest(unittest.TestCase):
         self._tmp_dir = tempfile.TemporaryDirectory(prefix='jsondict_')
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
         self.addCleanup(self._tmp_dir.cleanup)
+
 
 class JSonDictTest(BaseJSonDictTest):
 
@@ -64,7 +67,7 @@ class JSonDictTest(BaseJSonDictTest):
         key2 = 'iter2'
         d1 = testdata()
         d2 = testdata()
-        d = {key1:d1, key2: d2}
+        d = {key1: d1, key2: d2}
         jsd.update(d)
         self.assertIn(key1, jsd)
         self.assertIn(key2, jsd)
@@ -109,11 +112,12 @@ class JSonDictTest(BaseJSonDictTest):
         d = testdata()
         jsd[key] = d
         jsd.save()
-        del jsd # possibly unsafe
+        del jsd  # possibly unsafe
         jsd2 = self.get_json_dict()
         jsd2.load()
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
+
 
 class SynchronizedDictTest(JSonDictTest):
 
@@ -125,13 +129,14 @@ class SynchronizedDictTest(JSonDictTest):
         key = 'reopen'
         d = testdata()
         jsd[key] = d
-        del jsd # possibly unsafe
+        del jsd  # possibly unsafe
         jsd2 = self.get_json_dict()
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
 
+
 class SynchronizedWithWriteConcern(SynchronizedDictTest):
-    
+
     def get_json_dict(self):
         return JSonDict(self._fn_dict, synchronized=True, write_concern=True)
 
