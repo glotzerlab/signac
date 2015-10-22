@@ -83,18 +83,9 @@ class DBClientConnector(object):
 
     def _config_get(self, key, default=None):
         return self._config.get(key, default)
-        # try:
-        #    return self._config[self._prefix + key]
-        # except KeyError:
-        # return self._config.get(key, default)
 
     def _config_get_required(self, key):
         return self._config[key]
-        #result = self._config_get(key)
-        # if result is None:
-        #    self._config[key]
-        # else:
-        #    return result
 
     def _connect_pymongo3(self, host):
         parameters = {
@@ -137,8 +128,8 @@ class DBClientConnector(object):
                 host,
                 ** parameters)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-            msg = "SSL authentication not supported for pymongo versions <= 3.x ."
-            logger.critical(msg)
+            logger.critical("SSL authentication not supported for "
+                            "pymongo versions <= 3.x .")
             raise_unsupported_auth_mechanism(auth_mechanism)
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)

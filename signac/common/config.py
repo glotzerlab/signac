@@ -49,8 +49,10 @@ def search_standard_dirs():
 def check_permissions(filename):
     st = os.stat(filename)
     if (st.st_mode & stat.S_IROTH):
-        msg = "Permissions of configuration file '{fn}' allow it to be read by others than the user. Unable to read/write password."
-        raise PermissionsError(msg.format(fn=filename))
+        raise PermissionsError("Permissions of configuration file '{fn}'"
+                               "allow it to be read by others than the user. "
+                               "Unable to read/write password.".format(
+                                   fn=filename))
 
 
 def read_config_file(filename):
