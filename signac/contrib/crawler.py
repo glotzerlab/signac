@@ -2,7 +2,7 @@ import os
 import re
 import logging
 import json
-import importlib
+import importlib.machinery
 
 from .utility import walkdepth
 from .hashing import calc_id
@@ -71,7 +71,7 @@ class RegexFileCrawler(BaseCrawler):
 
     def docs_from_file(self, dirpath, fn):
         for regex, format_ in self.definitions.items():
-            m = regex.search(os.path.join(dirpath, fn))
+            m = regex.match(os.path.join(dirpath, fn))
             if m:
                 doc = self.process(m.groupdict(), dirpath, fn)
                 doc[KEY_FILENAME] = os.path.relpath(
@@ -85,7 +85,7 @@ class RegexFileCrawler(BaseCrawler):
         if fn:
             for regex, format_ in self.definitions.items():
                 ffn = os.path.join(self.root, fn)
-                m = regex.search(ffn)
+                m = regex.match(ffn)
                 if m:
                     yield format_(open(ffn))
 
@@ -177,12 +177,9 @@ class MasterCrawler(BaseCrawler):
         super(MasterCrawler, self).__init__(root=root)
         self._crawlers = dict()
 
-    def _load_crawler(self, name):
-        return importlib.machinery.SourceFileLoader(name, name).load_module()
-
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
-        module = self._load_crawler(name)
+        module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
             for _id, doc in crawler.crawl():
                 doc.setdefault(
@@ -202,10 +199,14 @@ class MasterCrawler(BaseCrawler):
                 if str(error) == 'get_crawlers':
                     logger.warning(
                         "Module has no '{}' function.".format(error))
+                else:
+                    raise
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
                 raise
+            else:
+                logger.debug("Executed slave crawlers.")
 
     def fetch(self, doc):
         yield from fetch(doc)
