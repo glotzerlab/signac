@@ -27,7 +27,6 @@ def process(args):
 
 
 def get_config(args, for_writing=False):
-    #config_ = config.Config()
     try:
         if args._global:
             config_ = config.read_config_file(USER_GLOBAL)
@@ -37,7 +36,6 @@ def get_config(args, for_writing=False):
             config_ = config.read_config_file(USER_LOCAL)
         else:
             config_ = config.load_config()
-            # config_.read(expanduser('./signac.rc'))
     except FileNotFoundError:
         pass
     return config_
@@ -53,22 +51,19 @@ def write_config(config_, args):
         config.write_config(config_, args.config)
     else:
         config.write_config(config_, USER_LOCAL)
-        #msg = "You need to use option '--global' or '--config' to specify which config file to write to."
-        #raise ValueError(msg)
 
 
 def add(args):
     config_ = get_config(args, for_writing=True)
     if args.name in config_:
-        msg = "Value for '{}' is already set. Use 'set' instead of 'add' to overwrite."
+        msg = "Value for '{}' is already set. "\
+              "Use 'set' instead of 'add' to overwrite."
         raise RuntimeError(msg.format(args.name))
     else:
         set_value(args)
 
 
 def check(key, value):
-    # if not config.is_legal_key(key):
-        #raise config.IllegalKeyError(key)
     if key.endswith('email'):
         if not re.match(RE_EMAIL, value.strip()):
             msg = "Invalid email address: '{}'."
@@ -78,15 +73,14 @@ def check(key, value):
 def set_value(args):
     config_ = get_config(args, for_writing=True)
     try:
-        # if not args.force:
-            #check(args.name, args.value)
         config_[args.name] = args.value
-        #config_.__setitem__(args.name, args.value, args.force)
     except config.IllegalKeyError as error:
-        msg = "'{}' does not seem to be a valid configuration key. Use '-f' or '--force' to ignore this warning."
+        msg = "'{}' does not seem to be a valid configuration key. "\
+              "Use '-f' or '--force' to ignore this warning."
         raise ValueError(msg.format(args.name))
     except config.IllegalArgumentError as error:
-        msg = "Value '{value}' for '{key}' is illegal. Possible values: '{choices}'."
+        msg = "Value '{value}' for '{key}' is illegal. "\
+              "Possible values: '{choices}'."
         key, value, choices = error.args
         raise ValueError(msg.format(
             key=args.name, value=args.value, choices=choices))
@@ -129,20 +123,20 @@ def configure(args):
         raise ValueError("Unknown operation: {}".format(args.operation))
 
 HELP_OPERATION = """\
-    R|Configure signac for your local environment.
-    You can perform one of the following operations:
-        
-        set:    Set value of 'name' to 'value'.
+R|Configure signac for your local environment.
+You can perform one of the following operations:
 
-        add:    Like 'set', but will not overwrite
-                any existing values.
+    set:    Set value of 'name' to 'value'.
 
-        remove: Remove configuration value 'name'.
+    add:    Like 'set', but will not overwrite
+            any existing values.
 
-        dump:   Dump the selected configuration.
+    remove: Remove configuration value 'name'.
 
-        show:   Show the complete configuration
-                including default values.
+    dump:   Dump the selected configuration.
+
+    show:   Show the complete configuration
+            including default values.
 
     """
 
@@ -167,8 +161,8 @@ def setup_parser(parser):
     parser.add_argument(
         '-c', '--config',
         type=str,
-        #default = expanduser('./signac.rc'),
-        help="The config file to read and write from. Use '-' to print to standard output.")
+        help="The config file to read and write from. Use '-'"
+             "to print to standard output.")
     parser.add_argument(
         '-g', '--global',
         dest='_global',

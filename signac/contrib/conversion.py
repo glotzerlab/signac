@@ -14,35 +14,6 @@ WEIGHT_DISCOURAGED = 10
 WEIGHT_STRONGLY_DISCOURAGED = 100
 
 
-class DBMethod(object):
-    expects = None
-
-    def apply(self, arg):
-        raise NotImplementedError()
-
-    def __call__(self, arg):
-        assert isinstance(arg, self.expects)
-        return self.apply(arg)
-
-    def __repr__(self):
-        return "{m}.{t}(expects={e})".format(
-            m=self.__module__,
-            t=type(self),
-            e=self.expects)
-
-    def name(self):
-        return self.__repr__()
-
-
-def make_db_method(callable, expected_type):
-    class Method(DBMethod):
-        expects = expected_type
-
-        def apply(self, arg):
-            return callable(arg)
-    return Method()
-
-
 class AdapterMetaType(type):
 
     def __init__(cls, name, bases, dct):
@@ -122,12 +93,14 @@ class Converter(object):
             for adapter in sorted(adapters, key=lambda a: a.weight):
                 try:
                     logger.debug(
-                        "Attempting conversion with adapter '{}'.".format(adapter()))
+                        "Attempting conversion with adapter '{}'.".format(
+                            adapter()))
                     data = adapter()(data)
                     break
                 except Exception as error:
-                    logger.debug("Conversion failed due to error: {}: '{}'.".format(
-                        type(error), error))
+                    logger.debug(
+                        "Conversion failed due to error: {}: '{}'.".format(
+                            type(error), error))
                     if debug:
                         raise
             else:
@@ -138,8 +111,9 @@ class Converter(object):
         return len(self._adapter_chain)
 
     def __str__(self):
-        return "Converter(adapter_chain={},source_type={},target_type={})".format(
-            self._adapter_chain, self._source_type, self._target_type)
+        return "Converter(adapter_chain={},"\
+               "source_type={},target_type={})".format(
+                   self._adapter_chain, self._source_type, self._target_type)
 
 
 def _get_adapter_chain_from_path(network, path):
@@ -188,7 +162,7 @@ def convert(src, target_format, formats_network, debug=False):
     if type(src) == target_format:
         return src
     converters = get_converters(formats_network, type(src),
-        target_format)
+                                target_format)
     for i, converter in enumerate(converters):
         msg = "Attempting conversion path # {}: {} nodes."
         logger.debug(msg.format(i + 1, len(converter)))
@@ -200,7 +174,8 @@ def convert(src, target_format, formats_network, debug=False):
     else:
         raise ConversionError(type(src), target_format)
 
-def converted(sources, target_format, formats_network, ignore_errors=True):
+
+def converted(sources, target_format, formats_network, ignore_errors=False):
     for src in sources:
         try:
             yield convert(src, target_format, formats_network)
@@ -209,10 +184,11 @@ def converted(sources, target_format, formats_network, ignore_errors=True):
             logger.debug(msg)
             if not ignore_errors:
                 raise
-        except conversion.ConversionError:
-            msg = "Conversion from '{}' to '{}' through available conversion path failed."
-            logger.debug(msg.format(type(src), method.expects))
-            if not ignore_errros:
+        except ConversionError:
+            msg = "Conversion from '{}' to '{}' "\
+                  "through available conversion path failed."
+            logger.debug(msg.format(type(src), target_format))
+            if not ignore_errors:
                 raise
         else:
-            logger.debug('Success.')
+            logger.debug("Success.")

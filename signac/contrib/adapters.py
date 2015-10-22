@@ -33,5 +33,3 @@ class StrToBytesAdapter(conversion.Adapter):
 
     def convert(self, x):
         return x.encode()
-
-

@@ -36,6 +36,7 @@ class MPIPool(object):
         one task to each cpu first and then sending out the rest
         as the cpus get done.
     """
+
     def __init__(self, comm=None, debug=False, loadbalance=False):
         self.comm = MPI.COMM_WORLD if comm is None else comm
         self.rank = self.comm.Get_rank()
@@ -182,7 +183,7 @@ class MPIPool(object):
             # Perform load-balancing. The order of the results are likely to
             # be different from the previous case.
             for i, task in enumerate(tasks[0:self.size]):
-                worker = i+1
+                worker = i + 1
                 if self.debug:
                     print("Sent task {0} to worker {1} with tag {2}."
                           .format(task, worker, i))
@@ -190,7 +191,7 @@ class MPIPool(object):
                 self.comm.isend(task, dest=worker, tag=i)
 
             ntasks_dispatched = self.size
-            results = [None]*ntask
+            results = [None] * ntask
             for itask in range(ntask):
                 status = MPI.Status()
                 # Receive input from workers.
@@ -245,11 +246,13 @@ class MPIPool(object):
 
 
 class _close_pool_message(object):
+
     def __repr__(self):
         return "<Close pool message>"
 
 
 class _function_wrapper(object):
+
     def __init__(self, function):
         self.function = function
 

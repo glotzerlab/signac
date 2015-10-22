@@ -29,7 +29,8 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        choice = raw_input().lower() if sys.hexversion < 0x03000000 else input().lower()
+        # Compatible with python 2.7 and 3.x
+        choice = raw_input().lower() if sys.hexversion < 0x03000000 else input().lower()  # NOQA
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -37,14 +38,6 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
-
-# Usage example
-#
-#>>> query_yes_no("Is cabbage yummier than cauliflower?")
-# Is cabbage yummier than cauliflower? [Y/n] oops
-# Please respond with 'yes' or 'no' (or 'y' or 'n').
-# Is cabbage yummier than cauliflower? [Y/n] y
-#>>> True
 
 
 def prompt_password(prompt='Password: '):
@@ -64,7 +57,7 @@ def add_verbosity_argument(parser, default=0):
 
     Note:
       The argument is '-v' or '--verbosity'.
-      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to 
+      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
       increase the level of verbosity.
 
     Args:
@@ -84,7 +77,7 @@ def add_verbosity_action_argument(parser, default=0):
 
     Note:
       The argument is '-v'.
-      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to 
+      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
       increase the level of verbosity.
 
     Args:
@@ -116,7 +109,7 @@ def set_verbosity_level(verbosity, default=None, increment=10):
 class VerbosityAction(argparse.Action):
 
     def __call__(self, parser, args, values, option_string=None):
-        if values == None:
+        if values is None:
             values = '1'
         try:
             values = int(values)

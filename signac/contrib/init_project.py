@@ -18,9 +18,13 @@ DEFAULT_STORAGE = 'storage'
 SCRIPT_HEADER = "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n"
 DEFAULT_VERSION = VERSION_TUPLE
 
-MSG_SUCCESS = """Successfully created project '{project_name}' in directory '{project_dir}'.
-Execute `signac check` to check your configuration."""
-MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. This will lead to problems during project execution. Execute `signac config` to create missing author information."
+MSG_SUCCESS = "Successfully created project '{project_name}'"\
+              "in directory '{project_dir}'.\n"\
+              "Execute `signac check` to check your configuration."
+MSG_AUTHOR_INCOMPLETE = "Author information is incomplete. "\
+                        "This will lead to problems during project execution."\
+                        " Execute `signac config` to create "\
+                        "missing author information."
 
 
 def check_for_existing_project(args):
@@ -31,8 +35,10 @@ def check_for_existing_project(args):
         pass
     else:
         if os.path.abspath(root_dir) == os.path.abspath(args.directory):
-            msg = "Project in directory '{}' already exists. Use '-f' or '--force' argument to ignore this warning and create a project anyways. This will lead to potential data loss!"
-            print(msg.format(os.path.abspath(args.directory)))
+            print("Project in directory '{}' already exists. "
+                  "Use '-f' or '--force' argument to ignore this warning and "
+                  "create a project anyways. This will lead to potential "
+                  "data loss!".format(os.path.abspath(args.directory)))
             return True
     return False
 
@@ -88,10 +94,8 @@ def copy_templates(args):
     for filename, content in template.items():
         fn = os.path.join(args.directory, filename)
         if os.path.isfile(fn):
-            msg = "Skipping template file '{}' because a file with the same name already exists."
-            logger.warning(msg.format(fn))
-            # warnings.warn(msg.format(fn), UserWarning)  # Too intimitading.
-            #raise FileExistsError(msg.format(fn))
+            logger.warning("Skipping template file '{}' because a file with "
+                           "the same name already exists.".format(fn))
         else:
             with open(fn, 'wb') as file:
                 c = SCRIPT_HEADER + content
@@ -123,19 +127,20 @@ def setup_parser(parser):
         '-d', '--directory',
         type=str,
         default='.',
-        help="The project's root directory. Defaults to the current working directory.",
+        help="The project's root directory. "
+             "Defaults to the current working directory.",
     )
     parser.add_argument(
         '-w', '--workspace',
         type=str,
-        help="The project's workspace directory. Defaults to directory '{}' within the project's root directory.".format(
-            DEFAULT_WORKSPACE),
+        help="The project's workspace directory. Defaults to directory '{}' "
+             "within the project's root directory.".format(DEFAULT_WORKSPACE),
     )
     parser.add_argument(
         '-s', '--storage',
         type=str,
-        help="The project's filestorage directory. Defaults to directory '{}' within the project's root directory.".format(
-            DEFAULT_STORAGE),
+        help="The project's filestorage directory. Defaults to directory '{}' "
+             "within the project's root directory.".format(DEFAULT_STORAGE),
     )
     parser.add_argument(
         '--db-host',
@@ -152,12 +157,16 @@ def setup_parser(parser):
     parser.add_argument(
         '-f', '--force',
         action='store_true',
-        help="Ignore warnings that prevent project creation. This might lead to potential data loss!")
+        help="Ignore warnings that prevent project creation. "
+             "This might lead to potential data loss!"
+    )
     parser.add_argument(
         '--signac-version',
         type=str,
         default=DEFAULT_VERSION,
-        help="The signac version, to use for this new project. Defaults to '{}'.".format(DEFAULT_VERSION))
+        help="The signac version, to use for this new project. "
+             "Defaults to '{}'.".format(DEFAULT_VERSION)
+    )
 
 
 def main(arguments=None):

@@ -1,9 +1,8 @@
 import hashlib
+import json
 
-import bson.json_util as json
 
-
-def generate_hash_from_spec(spec):
+def calc_id(spec):
     blob = json.dumps(spec, sort_keys=True)
     m = hashlib.md5()
     m.update(blob.encode())

@@ -1,10 +1,13 @@
 import logging
 
+from .conversion import Adapter
+
 logger = logging.getLogger(__name__)
 
 BASICS = [int, float, str, bool]
 
-class FormatMetaType(type):
+
+class _FormatMetaType(type):
 
     def __init__(cls, name, bases, dct):
         if not hasattr(cls, 'registry'):
@@ -15,11 +18,11 @@ class FormatMetaType(type):
         super().__init__(name, bases, dct)
 
 
-class BasicFormat(metaclass=FormatMetaType):
+class BasicFormat(metaclass=_FormatMetaType):
     pass
 
 
-class LinkMetaType(FormatMetaType):
+class _LinkMetaType(_FormatMetaType):
     """This is the meta class for all link types.
 
     Do not derive from this class directly, but derive
@@ -44,7 +47,7 @@ class LinkError(EnvironmentError):
     pass
 
 
-class BaseLink(metaclass=LinkMetaType):
+class BaseLink(metaclass=_LinkMetaType):
     """BaseLink allows to create a generic link to an object.
 
     Derive from this class and implement the fetch method
@@ -91,6 +94,7 @@ class BaseLink(metaclass=LinkMetaType):
         "Return the data of the linked object in the linked format."
         return self.linked_format(self.fetch())
 
+
 class FileFormat(BasicFormat):
 
     def __init__(self, file_object):
@@ -102,6 +106,7 @@ class FileFormat(BasicFormat):
 
     def read(self):
         return self._file_object.read()
+
 
 class TextFile(FileFormat):
     pass
