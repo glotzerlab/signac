@@ -13,7 +13,10 @@ import collections
 import logging
 import uuid
 
-import bson.json_util as json
+try:
+    import bson.json_util as json
+except ImportError:
+    import json
 
 logger = logging.getLogger(__name__)
 
