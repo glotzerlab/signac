@@ -10,7 +10,7 @@ from .errors import ConfigError
 logger = logging.getLogger(__name__)
 
 DEFAULT_FILENAME = '.signacrc'
-CONFIG_FILENAMES = [DEFAULT_FILENAME, 'signac.rc', 'compdb.rc']
+CONFIG_FILENAMES = [DEFAULT_FILENAME, 'signac.rc']
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
 CWD = os.getcwd()

@@ -35,6 +35,6 @@ def get_client(hostname=None, config=None):
     return connector.client
 
 
-def get_db(name, hostname=None, config=None):
+def get_database(name, hostname=None, config=None):
     client = get_client(hostname=hostname, config=config)
     return client[name]
