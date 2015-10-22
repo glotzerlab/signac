@@ -7,28 +7,30 @@ if not IS_PYTHON3:
 from setuptools import setup, find_packages
 
 setup(
-    name = 'signac',
-    version = '0.1.7dev1',
-    packages = find_packages(),
+    name='signac',
+    version='0.1.7dev1',
+    packages=find_packages(),
 
-    author = 'Carl Simon Adorf',
-    author_email = 'csadorf@umich.edu',
-    description = "Computational Database.",
-    keywords = 'simulation tools mc md monte-carlo mongodb jobmanagement materials database',
+    author='Carl Simon Adorf',
+    author_email='csadorf@umich.edu',
+    description="Computational Database.",
+    keywords='simulation tools mc md monte-carlo mongodb '
+             'jobmanagement materials database',
 
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Physics",
-        ],
+    ],
 
-    install_requires=['pymongo>=2.8', 'jsonpickle','networkx>=1.10', 'six'],
-
-    extras_require = {
+    extras_require={
+        'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
-        },
-    entry_points = {
+        'conversion': ['networkx>=1.1.0'],
+    },
+
+    entry_points={
         'console_scripts': [
             'signac = signac.contrib.script:main',
             'signac_init = signac.contrib.init_project:main',
