@@ -3,7 +3,7 @@ import errno
 import logging
 import json
 
-from ..core import JSonDict
+from ..core.jsondict import JSonDict
 from .hashing import calc_id
 
 logger = logging.getLogger(__name__)

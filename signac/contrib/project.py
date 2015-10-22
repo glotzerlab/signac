@@ -2,7 +2,7 @@ import os
 import logging
 import json
 
-from .common.config import load_config
+from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
 

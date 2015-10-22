@@ -13,7 +13,6 @@ VERSION = '0.1.7'
 # required to be updated and can therefore lag behind the actual version.
 VERSION_TUPLE = 0, 1, 7
 
-from . import contrib
 from .common.host import get_db
 
-__all__ = [contrib, get_db]
+__all__ = ['get_db']
