@@ -81,7 +81,7 @@ class BaseLink(metaclass=_LinkMetaType):
         "The url of the linked data object."
         return self._url
 
-    def fetch(self):
+    def fetch(self):  # pragma no coverage
         """"Fetch the linked resource.
 
         Returns: A value which is passed to the linked type's
@@ -137,7 +137,7 @@ class FileLink(BaseLink):
         import os
         fn = os.path.join(self.root, self.url)
         try:
-            return open(fn, 'rb').read()
+            return open(fn, 'rb')
         except FileNotFoundError as error:
             msg = "Unable to open file '{}': {}. root='{}'"
             logger.warning(msg.format(fn, error, self.root))
