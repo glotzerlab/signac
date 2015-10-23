@@ -31,7 +31,7 @@ class MPIPool(object):
         If ``True``, print out a lot of status updates at each step.
 
     loadbalance : bool (optional)
-        if ``True`` and the number of taskes is greater than the
+        if ``True`` and the number of tasks is greater than the
         number of processes, tries to loadbalance by sending out
         one task to each cpu first and then sending out the rest
         as the cpus get done.

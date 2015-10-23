@@ -4,8 +4,8 @@ import signac.common.connection
 import signac.common.host
 
 try:
-    signac.db.get_database('testing')
-except ImportError:
+    signac.db.get_database('testing', hostname='testing')
+except RuntimeError:
     DB_AVAILABLE=False
 else:
     DB_AVAILABLE=True

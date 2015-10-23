@@ -3,12 +3,18 @@ import logging
 from os.path import expanduser
 import ssl
 
-import pymongo
+try:
+    import pymongo
+    PYMONGO_AVAILABLE = True
+    PYMONGO_3 = pymongo.version_tuple[0] == 3
+except ImportError:
+    PYMONGO_AVAILABLE = False
+else:
+    PYMONGO_AVAILABLE = True
+    PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 
 logger = logging.getLogger(__name__)
-
-PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
@@ -68,6 +74,7 @@ class DBClientConnector(object):
         return self._config[key]
 
     def _connect_pymongo3(self, host):
+        import pymongo
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
@@ -99,6 +106,7 @@ class DBClientConnector(object):
 
     # not officially supported anymore
     def _connect_pymongo2(self, host):  # pragma no cover
+        import pymongo
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
@@ -122,10 +130,13 @@ class DBClientConnector(object):
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_3:
-            self._connect_pymongo3(host)
-        else:  # pragma no cover
-            self._connect_pymongo2(host)
+        if PYMONGO_AVAILABLE:
+            if PYMONGO_3:
+                self._connect_pymongo3(host)
+            else:  # pragma no cover
+                self._connect_pymongo2(host)
+        else:
+            raise RuntimeError("pymongo library required for this.")
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism')
