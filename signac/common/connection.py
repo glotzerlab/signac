@@ -1,18 +1,12 @@
 import subprocess
 import logging
-from os.path import expanduser
+import warnings
 import ssl
+from os.path import expanduser
 
-try:
-    import pymongo
-    PYMONGO_AVAILABLE = True
-    PYMONGO_3 = pymongo.version_tuple[0] == 3
-except ImportError:
-    PYMONGO_AVAILABLE = False
-else:
-    PYMONGO_AVAILABLE = True
-    PYMONGO_3 = pymongo.version_tuple[0] == 3
+import pymongo
 
+PYMONGO_3 = pymongo.version_tuple[0] == 3
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +68,7 @@ class DBClientConnector(object):
         return self._config[key]
 
     def _connect_pymongo3(self, host):
-        import pymongo
+        logger.debug("Connecting with pymongo3.")
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
@@ -106,7 +100,9 @@ class DBClientConnector(object):
 
     # not officially supported anymore
     def _connect_pymongo2(self, host):  # pragma no cover
-        import pymongo
+        logger.debug("Connecting with pymongo3.")
+        warnings.warn("pymongo version 2 is no longer supported!",
+                      DeprecationWarning)
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
@@ -130,13 +126,10 @@ class DBClientConnector(object):
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_AVAILABLE:
-            if PYMONGO_3:
-                self._connect_pymongo3(host)
-            else:  # pragma no cover
-                self._connect_pymongo2(host)
-        else:
-            raise RuntimeError("pymongo library required for this.")
+        if PYMONGO_3:
+            self._connect_pymongo3(host)
+        else:  # pragma no cover
+            self._connect_pymongo2(host)
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism')
