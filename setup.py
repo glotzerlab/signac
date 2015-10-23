@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='signac',
-    version='0.1.7dev5',
+    version='0.2rc1',
     packages=find_packages(),
 
     author='Carl Simon Adorf',
