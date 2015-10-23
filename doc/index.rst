@@ -6,10 +6,19 @@
 Welcome to signac's documentation!
 ==================================
 
+.. automodule:: signac
+   :members:
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
+
+   overview
+   installation
+   configuration
+   quickstart
+   tutorial
 
 Indices and tables
 ==================
@@ -17,9 +26,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-.. automodule:: signac
-   :members:
-
-.. automodule:: signac.contrib
-   :members:
