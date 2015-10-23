@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import uuid
 import os
+import sys
 
 try:
     import signac.contrib.formats_network
@@ -30,11 +31,14 @@ class ConversionTest(unittest.TestCase):
         cn.convert(a, float)
         cn.convert(a, int)
         cn.convert(a, bool)
-        b = '42.0'
+        b = '42.1'
         cn.convert(b, str)
         cn.convert(b, float)
         cn.convert(b, bool)
-        with self.assertRaises(signac.contrib.formats_network.ConversionError):
+        if sys.version_info.minor >= 4:
+            with self.assertRaises(signac.contrib.formats_network.ConversionError):
+                cn.convert(b, int)
+        else:
             cn.convert(b, int)
         class CustomInt(int): pass
         c = CustomInt(42)
