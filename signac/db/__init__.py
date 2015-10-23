@@ -1,6 +1,6 @@
 import warnings
 try:
-    import pymongo
+    import pymongo  # noqa
 except ImportError:
     warnings.warn("Failed to import pymongo. "
                   "get_database will not be available.", ImportWarning)
