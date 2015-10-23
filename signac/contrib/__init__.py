@@ -30,5 +30,5 @@ except ImportError:
     warnings.warn("Failed to import mpi4py. MPIPool will not be available.",
                   ImportWarning)
 else:
-    from .mpi_pool import MPIPool  # noqa
+    from .mpipool import MPIPool  # noqa
     __all__.extend(['MPIPool'])
