@@ -1,14 +1,14 @@
 import unittest
 
-import signac.common.host
 import signac.db
 
 try:
     signac.db.get_database('testing', hostname='testing')
-except RuntimeError:
+except AttributeError:
     DB_AVAILABLE=False
 else:
     DB_AVAILABLE=True
+    import signac.common.host
 
 @unittest.skipIf(not DB_AVAILABLE, "pymongo not available")
 class DBTest(unittest.TestCase):
