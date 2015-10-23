@@ -53,10 +53,8 @@ def add_adapter_to_network(network, adapter):
     data[ATTRIBUTE_ADAPTER].append(adapter)
     weight = data.get(ATTRIBUTE_WEIGHT, adapter.weight)
     data[ATTRIBUTE_WEIGHT] = min(weight, adapter.weight)
-    network.add_edge(
-        adapter.expects,
-        adapter.returns,
-        data)
+    network.add_nodes_from((adapter.expects, adapter.returns))
+    network.add_edge(adapter.expects, adapter.returns, data)
 
 
 class ConversionError(RuntimeError):
