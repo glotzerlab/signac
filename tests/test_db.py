@@ -1,7 +1,7 @@
 import unittest
 
-import signac.common.connection
 import signac.common.host
+import signac.db
 
 try:
     signac.db.get_database('testing', hostname='testing')
