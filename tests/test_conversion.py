@@ -35,11 +35,6 @@ class ConversionTest(unittest.TestCase):
         cn.convert(b, str)
         cn.convert(b, float)
         cn.convert(b, bool)
-        if sys.version_info >= (3,4,3):
-            with self.assertRaises(signac.contrib.formats_network.ConversionError):
-                cn.convert(b, int)
-        else:
-            cn.convert(b, int)
         class CustomInt(int): pass
         c = CustomInt(42)
         cn.convert(c, float)
