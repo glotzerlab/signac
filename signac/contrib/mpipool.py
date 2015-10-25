@@ -23,7 +23,7 @@ class MPIPool(object):
     Contributed initially by `Joe Zuntz <https://github.com/joezuntz>`_.
 
     Parameters
-    ----------
+
     comm : (optional)
         The ``mpi4py`` communicator.
 
@@ -108,7 +108,7 @@ class MPIPool(object):
         of the values in a list and return the list of results.
 
         Parameters
-        ----------
+
         function : callable
             The function to apply to each element in the list.
 
