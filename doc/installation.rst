@@ -4,21 +4,22 @@ Installation
 With pip
 --------
 
-To install the package with the package manager pip_, execute the following.
+To install the package with the package manager pip_, execute
 
 .. _pip: https://docs.python.org/3.5/installing/index.html
 
 .. code:: bash
 
-  pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
+    $ pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
 
-It is highly recommended to install the package into the user space and not as superuser.
+.. note::
+    It is highly recommended to install the package into the user space and not as superuser!
 
-To upgrade, simply execute the same command with the `--upgrade` option.
+To upgrade the package, simply execute the same command with the `--upgrade` option.
 
 .. code:: bash
 
-  pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user --upgrade
+    $ pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user --upgrade
 
 With git
 --------

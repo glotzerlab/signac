@@ -2,9 +2,9 @@
 Configuration
 =============
 
-In case that you want to use the database capabilities of signac you need to configure one or more multiple database hosts.
-
-You can either create a configuration file manually or use signac-gui_ for configuration.
+Signac is designed to be used with a MongoDB database as backend.
+Use signac-gui_ to configure one or more MongoDB database hosts.
+Alternatively you can also create configuration files manually.
 
 .. _signac-gui: https://bitbucket.org/glotzer/signac-gui 
 
@@ -40,7 +40,7 @@ You can configure one or multiple hosts in the `[hosts]` section, where each sub
 .. warning::
    Change the file permissions of your configuration file to user read-write only in case that you need to store authentication credentials within your configuration file.
 
-   On UNIX this is accomplished with: `chmod 600 .signacrc`
+   In UNIX-like operating systems this is accomplished with: `chmod 600 .signacrc`
 
 url
   The url specifies the MongoDB host url, e.g. `localhost`.
@@ -69,7 +69,7 @@ This is an example for a project configuration file:
    workspace_dir=/home/johndoe/myproject/workspace
 
 project
-  The name is required for the identification of the project's root directory and is used nowhere else.
+  The name is required for the identification of the project's root directory.
  
 workspace_dir
   The path to your project's workspace.
@@ -77,4 +77,4 @@ workspace_dir
 
 .. note::
 
-  It is recommended to use an absolute path.
+  It is recommended to use an absolute path to specify the workspace directory.
