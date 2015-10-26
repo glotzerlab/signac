@@ -17,7 +17,7 @@ class Project(object):
 
     Application developers should usually not need to
     directly instantiate this class, but use
-    :func:`.get_project` instead."""
+    :func:`.contrib.get_project` instead."""
 
     def __init__(self, config=None):
         if config is None:
@@ -140,5 +140,5 @@ def get_project():
     """Find a project configuration and return the associated project.
 
     :returns: The project handle.
-    :rtype: Instance of :class:`Project`."""
+    :rtype: :class:`Project`"""
     return Project()

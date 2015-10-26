@@ -20,7 +20,7 @@ You can specify a workspace directory that signac uses to store job data in.
 
     $ echo workspace_dir=/path/to/my/workspace/for/my_project >> signac.rc
 
-You can access your signac :class:`~signac.contrib.project.Project` from within your project's root directory or any subdirectory with
+You can access your signac :class:`~signac.contrib.project.Project` from within your project's root directory or any subdirectory with the :py:func:`~signac.contrib.get_project` function.
 
 .. code:: python
 

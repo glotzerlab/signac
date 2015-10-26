@@ -9,6 +9,6 @@ We define the process of generating or manipulating data a *job*.
 Every job operates on a set of well-defined unique parameters, which define the job's context.
 This means that all data is uniquely addressable from the associated parameters.
 
-.. image:: images/parameter_space_w_jd.pdf
+.. image:: images/parameter_space_w_jd.png
 
-You can use signac to manage a project based on this data model and index data for export into a `Database <database>`.
+You can use signac to manage a project based on this data model and index data for export into a database.
