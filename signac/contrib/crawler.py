@@ -87,7 +87,7 @@ class BaseCrawler(object):
         logger.info("Crawl of '{}' done.".format(self.root))
 
     def process(self, doc, dirpath, fn):
-        """Implement this method for an additional processing of generated docs.
+        """Implement this method for additional processing of generated docs.
 
         This method is particular useful to specialize non-abstract crawlers.
         The default implemenation will return the unmodified `doc`.
@@ -117,7 +117,7 @@ class RegexFileCrawler(BaseCrawler):
         ~/my_project/a_1.txt
         ...
 
-    A regular expression crawler for this structure would could be implemented
+    A regular expression crawler for this structure could be implemented
     like this:
 
     .. code::
@@ -133,7 +133,7 @@ class RegexFileCrawler(BaseCrawler):
         RE_TXT = re.compile('a_(?P<a>\d+).txt')
 
         MyCrawler(RegexFileCrawler): pass
-        MyCrawler.definitions[RE_TXT] = TextFile
+        MyCrawler.define(RE_TXT, TextFile)
 
     In this case we could also use :class:`.contrib.formats.TextFile`
     as data type which is an implementation of the example shown above.
@@ -141,20 +141,29 @@ class RegexFileCrawler(BaseCrawler):
     expects a `file-like object`_ as its first argument.
 
     .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
-
-    The index can then be generated with
-
-    .. code::
-
-        MyCrawler().crawl('~/my_project/')
     """
+    "Mapping of compiled regex objects and associated formats."
     definitions = dict()
 
     @classmethod
     def define(cls, regex, format_):
+        """Define a format for a particular regular expression.
+
+        :param regex: All files of the specified format must match this expression.
+        :type regex: `compiled regular expression`_
+        :param format_: The format associated with all matching files.
+        :type format_: :class:`object`
+
+        .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
         cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
+        """Generate documents from filenames.
+
+        This method is an implementation of the abstract method
+        of :class:`~.BaseCrawler`.
+        It is not recommended to reimplement this method to modify
+        documents generated from filenames. See :meth:`~.process` instead."""
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
             if m:
@@ -166,6 +175,19 @@ class RegexFileCrawler(BaseCrawler):
                 yield doc
 
     def fetch(self, doc):
+        """Fetch the data associated with `doc`.
+
+        :param doc: A document.
+        :type doc: :class:`dict`
+        :yields: An instance of the format associated with the
+                  file used to generate `doc`.
+
+        .. note::
+
+            For generality the :meth:`~.BaseCrawler.fetch` method is a generator function,
+            which may yield an arbitrary number of objects of arbitrary type.
+            In the case of the :class:`~.RegexFileCrawler` it will always yield
+            exactly **one** object."""
         fn = doc.get(KEY_FILENAME)
         if fn:
             for regex, format_ in self.definitions.items():
@@ -175,6 +197,23 @@ class RegexFileCrawler(BaseCrawler):
                     yield format_(open(ffn))
 
     def process(self, doc, dirpath, fn):
+        """Post-process documents generated from filenames.
+
+        Example:
+
+        .. code::
+
+            MyCrawler(signac.contrib.crawler.RegexFileCrawler):
+                def process(self, doc, dirpath, fn):
+                    doc['long_name_for_a'] = doc['a']
+                    return super().process(doc, dirpath, fn)
+
+        :param dirpath: The path of the file, relative to `root`.
+        :type dirpath: str
+        :param fn: The filename.
+        :type fn: str
+        :returns: A document, that means an instance of mapping.
+        :rtype: mapping"""
         result = dict()
         types = (int, float)
         for key, value in doc.items():
