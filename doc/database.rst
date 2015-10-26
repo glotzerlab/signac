@@ -25,21 +25,12 @@ Aggregation pipelines are executed with the :py:meth:`~pymongo.collection.Collec
 Indexing data
 =============
 
-Concept
--------
-
 Use crawlers to create an index on your data, which you can then store in a database.
 Crawlers `crawl` through a data source and generate an index which can then be operated on with database query and aggregation operations.
-
 Signac expects a crawler to produc an iterable of JSON documents, the data source is arbitrary.
 
-File indexing
--------------
-
 Every crawler provided by the signac package inherits from :py:class:`~signac.contrib.crawler.BaseCrawler`, which crawls through the files stored on a filesystem.
-
 A particular easy way to index files is to use `regular expressions`_.
+For this purpose signac provides the :py:class:`~signac.contrib.crawler.RegexFileCrawler`.
 
 .. _`regular expressions`: https://en.wikipedia.org/wiki/Regular_expression
-
-For this purpose signac provides the :py:class:`~signac.contrib.crawler.RegexFileCrawler`.
