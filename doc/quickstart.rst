@@ -76,30 +76,27 @@ Aggregation pipelines are executed with the :py:meth:`~pymongo.collection.Collec
 .. seealso:: https://api.mongodb.org/python/current/api/pymongo/collection.html
 
 Indexing data
-=============
+-------------
 
-Use crawlers to create an index on your data, which can then be stored in a database.
 Crawlers `crawl` through a data source and generate an index which can then be operated on with database query and aggregation operations.
-Signac expects a crawler to produc an iterable of JSON documents, the data source is arbitrary.
+Signac expects a crawler to produce a series of JSON documents, the data source is arbitrary.
 
-Every crawler provided by the signac package inherits from :py:class:`~signac.contrib.crawler.BaseCrawler`, which crawls through the files stored on a filesystem.
+Every crawler provided by the signac package inherits from :py:class:`~signac.contrib.crawler.BaseCrawler`, which crawls through files stored in a filesystem.
 A particular easy way to index files is to use `regular expressions`_.
 For this purpose signac provides the :py:class:`~signac.contrib.crawler.RegexFileCrawler`.
 
 .. _`regular expressions`: https://en.wikipedia.org/wiki/Regular_expression
 
-
 Processing data
-===============
+---------------
 
-Processing data consists of three steps:
+Processing data always consists of three steps:
 
   1. Get the input.
-  2. Process the input.
+  2. Process the input to produce output.
   3. Store the output.
 
-
-First, we define our processing function
+First, we define our processing function:
 
 .. code:: python
 
@@ -107,26 +104,27 @@ First, we define our processing function
       doc['calc_value'] =  # ...
       return doc
 
-Then, we fetch our input documents
+In this case we effectively copied and extended the input document to produce the output document which has the benefit of preserving all metadata, but is not strictly necessary.
+Then, we fetch our input documents from a collection that contains the index, in this case called `index`:
 
 .. code:: python
 
    db = signac.db.get_database('MyProject')
-   docs = db.find({'a': {'$lt': 100}})
+   docs = db.index.find({'a': {'$lt': 100}})
 
-Finally, we process the input
+We can use the :py:func:`map` function to generate the results:
 
 .. code:: python
 
    results = map(process, docs)
 
-and store the results
+and store them in a result collection called `results`:
 
 .. code:: python
 
    db.results.insert_many(results)
 
-We can **instantly** parallelize this process, by using a process pool:
+By using a different map function, we can **trivially** parallelize this process, for example with a process pool:
 
 .. code:: python
 
@@ -135,39 +133,32 @@ We can **instantly** parallelize this process, by using a process pool:
    with multiprocessing.Pool(8) as pool:
      results = pool.imap(process, docs)
 
-or an MPI pool, provided by signac:
+or an MPI pool, which is bundled with signac:
 
 .. code:: python
 
    with signac.contrib.MPIPool() as pool:
       results = pool.map(process, docs, ntask=docs.count())
 
-Map-Reduce
-==========
-
-One way to process data in the database is the map-reduce schema:
-
-  1. Create a query, to define the data set to operate on,
-  2. process (map) the data into a new set of data,
-  3. reduce the data.
-
-In our example we want to process all data, where the parameter `a` is less than 100.
-We will calculate a value from our document and store the result in a second collection called `results`.
-As the final step, we will reduce the data by calculating the average of all calculated values grouped by a second parameter `b`.
+We can then operate with the results collection and for example reduce the data with aggregation operations.
+This is an example of how we could calculate the average of our calculated value grouped by a second parameter b:
 
 .. code::
 
-    import signac
+    reduced_result = db.results.aggregate(
+      [
+        {'$group: {
+            '_id': 'b',
+            'avgValue': {'$avg': 'calc_value'}
+            }
+        }
+      ]
+    )
 
-    def process(doc):
-        doc['calculated_value'] = # ...
-        return doc
+.. seealso::
 
-    db = signac.db.get_database('MyProject')
-    query = {'a': {'$lt': 100}}
-    db.results.insert_many(map(process, db.index.find(query)))
-    the_average = db.results.aggregate([
-      {'$group': {
-        '_id': 'b',
-        'avgValue': {'$avg': 'calculated_value'}
-    }}])
+  The combined process of mapping and reducing is called MapReduce_.
+  For more information on the aggregation syntax, please refer to the `MongoDB reference on aggregation`_.
+
+.. _MapReduce: https://en.wikipedia.org/wiki/MapReduce
+.. _`MongoDB reference on aggregation`: https://docs.mongodb.org/manual/reference/aggregation/
