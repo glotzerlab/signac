@@ -6,7 +6,7 @@ Signac is designed to be used with a MongoDB database as backend.
 Use signac-gui_ to configure one or more MongoDB database hosts.
 Alternatively you can also create configuration files manually.
 
-.. _signac-gui: https://bitbucket.org/glotzer/signac-gui 
+.. _signac-gui: https://bitbucket.org/glotzer/signac-gui
 
 Manual configuration
 ====================
@@ -26,7 +26,7 @@ Example
 This is an example for a user configuration file:
 
 .. code:: ini
-   
+
    # ~/.signarc
    [hosts]
    [[localhost]]
@@ -70,7 +70,7 @@ This is an example for a project configuration file:
 
 project
   The name is required for the identification of the project's root directory.
- 
+
 workspace_dir
   The path to your project's workspace.
   The workspace needs to be specified to make full use of signac's project management capabilities.

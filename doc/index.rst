@@ -18,9 +18,6 @@ Contents:
    installation
    configuration
    quickstart
-   tutorial
-   projects
-   database
 
 Indices and tables
 ==================

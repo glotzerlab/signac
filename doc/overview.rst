@@ -10,3 +10,5 @@ Every job operates on a set of well-defined unique parameters, which define the 
 This means that all data is uniquely addressable from the associated parameters.
 
 .. image:: images/parameter_space_w_jd.svg
+
+You can use signac to manage a project based on this data model and index data for export into a `Database <database>`.

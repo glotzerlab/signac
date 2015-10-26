@@ -8,6 +8,7 @@ Accessing the database
 After :doc:`configuring <configuration>` one ore more database hosts you can access a database with the :py:func:`signac.db.get_database` function.
 
 .. automodule:: signac.db
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:

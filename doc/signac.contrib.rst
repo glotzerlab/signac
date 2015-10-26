@@ -64,7 +64,6 @@ signac.contrib.job module
 -------------------------
 
 .. automodule:: signac.contrib.job
-    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,7 +80,6 @@ signac.contrib.project module
 -----------------------------
 
 .. automodule:: signac.contrib.project
-    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
