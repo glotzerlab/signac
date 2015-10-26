@@ -24,6 +24,12 @@ LINK_MODULE_FETCH = 'module_fetch'
 
 
 class BaseCrawler(object):
+    """Crawl through a directory and index the files.
+
+    The crawler creates an index on data, which can be exported
+    to a database for easier access.
+    :param root: The path to the root directory to crawl through.
+    :type root: str"""
 
     def __init__(self, root):
         self.root = root
