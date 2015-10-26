@@ -17,7 +17,8 @@ Contents:
    overview
    installation
    configuration
-   quickstart
+   projects
+   database
 
 Indices and tables
 ==================
