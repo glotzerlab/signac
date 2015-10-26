@@ -19,7 +19,8 @@ Contents:
    configuration
    quickstart
    tutorial
-   signac_project
+   projects
+   database
 
 Indices and tables
 ==================

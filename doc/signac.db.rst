@@ -17,6 +17,7 @@ Module contents
 ---------------
 
 .. automodule:: signac.db
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
