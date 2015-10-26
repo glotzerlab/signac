@@ -24,25 +24,38 @@ LINK_MODULE_FETCH = 'module_fetch'
 
 
 class BaseCrawler(object):
-    """Crawl through a directory and index the files.
+    """Crawl through `root` and index all files.
 
     The crawler creates an index on data, which can be exported
-    to a database for easier access.
-    :param root: The path to the root directory to crawl through.
-    :type root: str"""
+    to a database for easier access."""
 
     def __init__(self, root):
+        """Initialize a BaseCrawler instance.
+
+        :param root: The path to the root directory to crawl through.
+        :type root: str"""
         self.root = root
 
     def docs_from_file(self, dirpath, fn):
+        """Implement this method to generate documents from files.
+
+        :param dirpath: The path of the file, relative to `root`.
+        :type dirpath: str
+        :param fn: The filename.
+        :type fn: str
+        :returns: A document, that means an instance of mapping.
+        :rtype: mapping"""
         raise NotImplementedError()
 
     def fetch(self, doc):
+        """Implement this generator method to associate data with a document.
+
+        :yields: An iterable of arbitray objects."""
         return
         yield
 
     @classmethod
-    def calculate_hash(cls, doc, dirpath, fn):
+    def _calculate_hash(cls, doc, dirpath, fn):
         import hashlib
         blob = json.dumps(doc, sort_keys=True)
         m = hashlib.md5()
@@ -52,6 +65,15 @@ class BaseCrawler(object):
         return m.hexdigest()
 
     def crawl(self, depth=0):
+        """Crawl through the `root` directory.
+
+        The crawler will inspect every file and directory up until the specified
+        `depth` and call the :meth:`docs_from_file` method.
+
+        :param depth: Crawl through the directory for the specified depth.
+                      A value of 0 specifies no limit.
+        :type dept: int
+        :yields: An iterable of dict objects."""
         logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
@@ -60,15 +82,72 @@ class BaseCrawler(object):
                         os.path.join(dirpath, fn)))
                     doc.setdefault(KEY_PAYLOAD, None)
                     _id = doc.setdefault(
-                        '_id', self.calculate_hash(doc, dirpath, fn))
+                        '_id', self._calculate_hash(doc, dirpath, fn))
                     yield _id, doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
     def process(self, doc, dirpath, fn):
+        """Implement this method for an additional processing of generated docs.
+
+        This method is particular useful to specialize non-abstract crawlers.
+        The default implemenation will return the unmodified `doc`.
+
+        :param dirpath: The path of the file, relative to `root`.
+        :type dirpath: str
+        :param fn: The filename.
+        :type fn: str
+        :returns: A document, that means an instance of mapping.
+        :rtype: mapping"""
         return doc
 
 
 class RegexFileCrawler(BaseCrawler):
+    """Generate documents from filenames and associate each file with a data type.
+
+    The `RegexFileCrawler` uses regular expressions to generate data from files.
+    This is a particular easy method to retrieve meta data associated with files.
+    Inherit from this class to configure a crawler for your data structre.
+
+    Let's assume we want to index text files, with a naming pattern, that
+    specifies a parameter `a` through the filename, e.g.:
+
+    .. code::
+
+        ~/my_project/a_0.txt
+        ~/my_project/a_1.txt
+        ...
+
+    A regular expression crawler for this structure would could be implemented
+    like this:
+
+    .. code::
+
+        import re
+
+        class TextFile(object):
+            def __init__(self, file):
+                # file is a file-like object
+                return file.read()
+
+        # This expressions yields mappings of the type: {'a': value_of_a}.
+        RE_TXT = re.compile('a_(?P<a>\d+).txt')
+
+        MyCrawler(RegexFileCrawler): pass
+        MyCrawler.definitions[RE_TXT] = TextFile
+
+    In this case we could also use :class:`.contrib.formats.TextFile`
+    as data type which is an implementation of the example shown above.
+    However we could use any other type, as long as its constructor
+    expects a `file-like object`_ as its first argument.
+
+    .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+
+    The index can then be generated with
+
+    .. code::
+
+        MyCrawler().crawl('~/my_project/')
+    """
     definitions = dict()
 
     @classmethod
