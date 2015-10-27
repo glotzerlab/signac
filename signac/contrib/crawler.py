@@ -341,6 +341,11 @@ def _load_crawler(name):
 
 
 def fetch(doc):
+    """Fetch all data associated with this document.
+
+    :param doc: A document which is part of an index.
+    :type doc: mapping
+    :yields: Data associated with this document in the specified format."""
     try:
         link = doc[KEY_LINK]
     except KeyError:
@@ -363,6 +368,20 @@ def fetched(docs):
 
 
 def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
+    """Optimized export function for pymongo collections.
+
+    The behaviour of this function is equivalent to:
+
+    .. code-block:: python
+
+        db.index.insert_many(crawler.crawl())
+
+    :param crawler: The crawler to execute.
+    :param index: A index collection to export to.
+    :param chunksize: The buffer size for export operations.
+    :type chunksize: int
+    :param args: Extra arguments and keyword arguments are
+                 forwarded to the crawler's crawl() method."""
     import pymongo
     logger.info("Exporting index for pymongo.")
     operations = []
@@ -380,6 +399,18 @@ def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
 
 
 def export(crawler, index, *args, **kwargs):
+    """Optimized export function for collections.
+
+    The behaviour of this function is equivalent to:
+
+    .. code-block:: python
+
+        db.index.insert_many(crawler.crawl())
+
+    :param crawler: The crawler to execute.
+    :param index: A index collection to export to.
+    :param args: Extra arguments and keyword arguments are
+                 forwarded to the crawler's crawl() method."""
     logger.info("Exporting index.")
     for _id, doc in crawler.crawl(*args, **kwargs):
         f = {'_id': _id}
