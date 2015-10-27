@@ -25,7 +25,7 @@ Example
 
 This is an example for a user configuration file:
 
-.. code:: ini
+.. code-block:: ini
 
    # ~/.signarc
    [hosts]
@@ -62,7 +62,7 @@ Once signac found a project configuration file it will stop to search for more c
 
 This is an example for a project configuration file:
 
-.. code:: ini
+.. code-block:: ini
 
    # signac.rc
    project=MyProject
