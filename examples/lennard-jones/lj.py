@@ -1,8 +1,7 @@
 from hoomd_script import *
 from math import pi
-from hoomd_util import try_restart, make_write_restart_file_callback
 
-def simulate(max_walltime, N, density, epsilon, sigma, r_cut, T, random_seed, num_steps, tau):
+def simulate(N, density, epsilon, sigma, r_cut, T, random_seed, num_steps, tau):
     if init.is_initialized():
         init.reset()
 
@@ -11,11 +10,10 @@ def simulate(max_walltime, N, density, epsilon, sigma, r_cut, T, random_seed, nu
     phi_p = 4.0 / 3 * pi * pow(r, 3) * density
 
     try:
-        try_restart('restart.xml')
-    except FileNotFoundError:
+        init.read_xml(filename='init.xml', restart='restart.xml')
+    except RuntimeError:
         init.create_random(
             N = N, phi_p = phi_p, seed = int(random_seed))
-        dump.xml('init.xml', vis = True)
 
     # simple lennard jones potential
     lj = pair.lj(r_cut=3.0)
@@ -37,14 +35,11 @@ def simulate(max_walltime, N, density, epsilon, sigma, r_cut, T, random_seed, nu
     dumping_period = max(1, int(num_steps / 10))
     dump.dcd(
         filename = 'trajectory.dcd',
-        period = dumping_period)
+        period = max(1, int(num_steps / 10)))
+    dump.xml(
+        filename= 'restart.xml',
+        period = max(1000, int(num_steps / 10)),
+        phase = 0)
 
     # run for 20k steps
-    restart_callback = make_write_restart_file_callback('restart.xml')
-    def callback(num_steps):
-        from signac.contrib import walltime
-        restart_callback(num_steps)
-        walltime.exit_by(max_walltime)
-
-    restart_period = max(1000, int(num_steps / 10))
-    run_upto(num_steps, callback=callback, callback_period=restart_period)
+    run_upto(num_steps)

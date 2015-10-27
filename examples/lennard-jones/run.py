@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from signac.contrib import get_project
+
+import signac
+import lj
+
 
 # This list defines the parameter space.
 def get_state_points(debug = False):
@@ -25,19 +28,15 @@ def get_state_points(debug = False):
 state_points = list(get_state_points(debug = True))
 
 # The code to be executed for each state point.
-def run_job(state_point):
-    project = get_project()
+def run_job(project, state_point):
     with project.open_job(state_point) as job:
-        job.storage.restore_files()
-        from lj import simulate
-        max_walltime = 10 * 60
-        simulate(max_walltime = max_walltime, ** job.parameters())
-        job.storage.store_files()
+        lj.simulate(** job.statepoint())
         job.document['num_steps_completed'] = job.parameters()['num_steps']
 
 def main():
+    project = signac.contrib.get_project()
     for state_point in state_points:
-        run_job(state_point)
+        run_job(project, state_point)
 
 if __name__ == '__main__':
     logging.basicConfig(level = logging.WARNING)

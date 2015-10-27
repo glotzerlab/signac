@@ -1,4 +1,4 @@
-# CompDB example projects
+# Signac example projects
 
 ## About
 
