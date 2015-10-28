@@ -1,4 +1,4 @@
-# signac - computational materials database framework
+# signac - database-driven simulation management
 
 ## About
 
@@ -12,26 +12,20 @@ The recommeded method of installation is using *pip*:
     pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
 
 To upgrade, the package, simply append the `--upgrade` option to this command.
-For more information on installation, upgrade and removal, please see the [wiki](https://bitbucket.org/glotzer/signac/wiki/latest/Setup).
 
-## Testing
+Detailed information about installing and configuring this package can be found in the documentation.
 
-To check if the package was installed correctly, execute `import signac` within a python shell.
-That should not result in any error.
+## Documentation
 
-Executing `signac` on the command line should produce similar output to:
+You can download the documentation for the lastest release in [html](https://bitbucket.org/glotzer/signac/downloads/signac-documentation.tar.gz) or [pdf](https://bitbucket.org/glotzer/signac/downloads/signac.pdf) format.
 
-    $ signac
-    usage: signac [-h] [-y] [-v]
-                  {init,config,remove,snapshot,restore,cleanup,info,view,check,server,log}
-                  ...
+To build documentation for the latest version with [sphinx](http://sphinx-doc.org), execute:
 
-If the command above fails, please refer to [here](https://bitbucket.org/glotzer/signac/wiki/set_path).
-
-For detailed testing, execute `nosetests` within the repositories root directory.
-Most tests require a MongoDB instance to connect to. The default is 'localhost'. To specify a different server host, execute:
-
-    $ signac config set database_host yourhost.com
+    $ git clone https://$USERf@bitbucket.org/glotzer/signac.git
+    $ cd signac
+    $ python3 setup.py install --user
+    $ cd doc
+    $ make html
 
 ## Quickstart
 
@@ -40,14 +34,12 @@ Setup a new project:
 
     $ mkdir my_project
     $ cd my_project
-    $ signac init MyProject
+    $ echo project=MyProject >> signac.rc
 
-This will create the basic configuration for a project named "MyProject" within the directory `my_project`.
-In addition, a few example scripts will be created, that may, but do not have to be the starting point for the creation of new project routines.
+and access the project handle
+   
+    >>> project = signac.contrib.get_project()
 
-To test if everything is correctly setup, you can then execute `$ signac check` which will check your configuration, the connectivity and permissions on the database.
+To access a database:
 
-## Get help:
-
-The tutorial and receipts are located in the [wiki](https://bitbucket.org/glotzer/signac/wiki).
-Checkout the examples in the example folder.
+    >>> db = signac.db.get_database('MyDatabase')
