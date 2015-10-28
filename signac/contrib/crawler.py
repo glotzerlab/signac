@@ -270,10 +270,10 @@ class SignacProjectRegexFileCrawler(
 
 
 class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
-    re_job_document = '.*signac_job_document\.json'
+    re_job_document = '.*\/signac_job_document\.json'
 
     def docs_from_file(self, dirpath, fn):
-        if re.match(self.re_job_document, fn):
+        if re.match(self.re_job_document, os.path.join(dirpath, fn)):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 try:
                     job_doc = json.loads(file.read().decode(self.encoding))
