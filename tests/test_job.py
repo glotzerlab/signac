@@ -55,7 +55,6 @@ class BaseJobTest(unittest.TestCase):
         self.config['project'] = 'testing_test_project'
         self.config['project_dir'] = self._tmp_pr
         self.config['workspace_dir'] = self._tmp_wd
-        self.config['signac_version'] = signac.VERSION_TUPLE
         self.project = signac.contrib.Project(config=self.config)
         # self.addCleanup(self.project.remove, force=True)
 

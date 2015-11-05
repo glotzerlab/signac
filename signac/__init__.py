@@ -9,11 +9,6 @@ data production and post-processing as well as distribution among collaboratos.
 from . import contrib
 from . import db
 
-# The VERSION string represents the actual (development) version of the
-# package.
-VERSION = '0.1.7'
-# The VERSION_TUPLE is used to identify whether signac projects, are
-# required to be updated and can therefore lag behind the actual version.
-VERSION_TUPLE = 0, 1, 7
+__version__ = '0.2.0'
 
-__all__ = ['VERSION', 'VERSION_TUPLE', 'contrib', 'db']
+__all__ = ['__version__', 'contrib', 'db']
