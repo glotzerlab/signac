@@ -5,6 +5,7 @@ import warnings
 import tempfile
 import uuid
 import copy
+import random
 
 import signac.contrib
 import signac.common.config
@@ -17,6 +18,28 @@ warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
 warnings.filterwarnings(
     'ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
 
+BUILTINS = [
+    ({'e': [1.0, '1.0', 1, True]}, '4d8058a305b940005be419b30e99bb53'),
+    ({'d': True}, '33cf9999de25a715a56339c6c1b28b41'),
+    ({'f': (1.0, '1.0', 1, True)}, 'e998db9b595e170bdff936f88ccdbf75'),
+    ({'a': 1}, '42b7b4f2921788ea14dac5566e6f06d0'),
+    ({'c': '1.0'}, '80fa45716dd3b83fa970877489beb42e'),
+    ({'b': 1.0}, '0ba6c5a46111313f11c41a6642520451'),
+]
+
+def builtins_dict():
+    random.shuffle(BUILTINS)
+    d = dict()
+    for b in BUILTINS:
+        d.update(b[0])
+    return d
+BUILTINS_HASH = '7a80b58db53bbc544fc27fcaaba2ce44'
+
+def nested_dict():
+    d = dict(builtins_dict())
+    d['g'] = builtins_dict()
+    return d
+NESTED_HASH = 'bd6f5828f4410b665bffcec46abeb8f3'
 
 def config_from_cfg(cfg):
     cfile = io.StringIO('\n'.join(cfg))
@@ -65,6 +88,20 @@ class BaseJobTest(unittest.TestCase):
         project = self.project
         return project.open_job(*args, **kwargs)
 
+class JobIDTest(BaseJobTest):
+
+    def test_builtins(self):
+        for p, h in BUILTINS:
+            self.assertEqual(str(self.project.open_job(p)), h)
+        self.assertEqual(str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
+
+    def test_shuffle(self):
+        for i in range(10):
+            self.assertEqual(str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
+
+    def test_nested(self):
+        for i in range(10):
+            self.assertEqual(str(self.project.open_job(nested_dict())), NESTED_HASH)
 
 class ConfigTest(BaseJobTest):
 
