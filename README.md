@@ -5,6 +5,8 @@
 signac aids in the management, access and analysis of large-scale computational investigations.
 The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaborators.
 
+**The package's documentation is available at: [https://glotzerlab.engin.umich.edu/signac](https://glotzerlab.engin.umich.edu/signac)**
+
 ## Installation
 
 The recommeded method of installation is using *pip*:
@@ -17,15 +19,14 @@ Detailed information about installing and configuring this package can be found 
 
 ## Documentation
 
-You can download the documentation for the lastest release in [html](https://bitbucket.org/glotzer/signac/downloads/signac-documentation.tar.gz) or [pdf](https://bitbucket.org/glotzer/signac/downloads/signac.pdf) format.
+Documentation for the current master branch is available at [https://glotzerlab.engin.umich.edu/signac](https://glotzerlab.engin.umich.edu/signac).
 
-To build documentation for the latest version with [sphinx](http://sphinx-doc.org), execute:
+To build documentation yourself with [sphinx](http://sphinx-doc.org), clone the repository, install the package and then execute:
 
-    $ git clone https://$USERf@bitbucket.org/glotzer/signac.git
-    $ cd signac
-    $ python3 setup.py install --user
     $ cd doc
     $ make html
+
+from within the repository's root directory.
 
 ## Quickstart
 
