@@ -15,7 +15,7 @@ The recommeded method of installation is using *pip*:
 
 To upgrade, the package, simply append the `--upgrade` option to this command.
 
-Detailed information about installing and configuring this package can be found in the documentation.
+**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://glotzerlab.engin.umich.edu/signac).**
 
 ## Documentation
 
