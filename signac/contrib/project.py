@@ -39,6 +39,10 @@ class Project(object):
         "Returns the project's root directory."
         return self._config['project_dir']
 
+    def workspace(self):
+        "Returns the project's workspace directory."
+        return self._config['workspace_dir']
+
     def get_id(self):
         """Get the project identifier.
 
@@ -83,7 +87,7 @@ class Project(object):
     def find_statepoints(self):
         "Find all statepoints in the project's workspace."
         for fn_manifest in glob.iglob(os.path.join(
-                self.config['workspace_dir'], '*', Job.FN_MANIFEST)):
+                self.workspace(), '*', Job.FN_MANIFEST)):
             with open(fn_manifest) as manifest:
                 yield json.load(manifest)
 
