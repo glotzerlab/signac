@@ -23,6 +23,7 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = config
+        self.get_id()
 
     def __str__(self):
         "Returns the project's id."
@@ -48,7 +49,7 @@ class Project(object):
             return str(self.config['project'])
         except KeyError:
             msg = "Unable to determine project id. "
-            msg += "Are you sure '{}' is a compDB project path?"
+            msg += "Are you sure '{}' is a signac project path?"
             raise LookupError(msg.format(os.path.abspath(os.getcwd())))
 
     def open_job(self, statepoint):
