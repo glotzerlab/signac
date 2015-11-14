@@ -43,6 +43,7 @@ Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on you
 
 You can use the job id to organize your data.
 
+
 The workspace
 -------------
 
@@ -73,7 +74,7 @@ This will switch to the job's workspace after entering the context and switches 
     >>> with project.open_job(statepoint) as job:
     >>>   with open('myfile.txt', 'w') as file:
     >>>     file.write('hello world')
-    >>> print(os.listdir(job.workspace()))
+    >>>   print(os.listdir(job.workspace()))
     ['myfile.txt']
     >>>
 
@@ -87,3 +88,42 @@ The document is automatically stored in the job's workspace directory in JSON fo
 
     >>> job = project.open_job(statepoint)
     >>> job.document['hello'] = 'world'
+
+Operate on the workspace
+------------------------
+
+Using a workspace makes it easy to keep track of your parameter space.
+Use :py:meth:`~signac.contrib.project.Project.get_statepoints` to retrieve a list of all statepoints for jobs with data in your workspace.
+
+.. code-block:: python
+
+    >>> statepoints = [{'a': i} for i in range(5)]
+    >>> for statepoint in statepoints:
+    ...   with project.open_job(statepoint) as job:
+              # Entering the job context once will trigger
+              # the creation of the workspace directory.
+              pass
+    ...
+    >>> project.find_statepoints()
+    [{'a': 3}, {'a': 4}, {'a': 1}, {'a': 0}, {'a': 2}]
+    >>>
+
+
+If you want to operate on all or a select number of jobs, use :py:meth:`~signac.contrib.project.Project.find_jobs` which will yield all or a filtered set of :py:class:`~signac.contrib.job.Job` instances.
+
+.. code-block:: python
+
+    >>> for job in project.find_jobs():
+    ...     print(job, job.statepoint())
+    ...
+    14fb5d016557165019abaac200785048 {'a': 3}
+    2af7905ebe91ada597a8d4bb91a1c0fc {'a': 4}
+    42b7b4f2921788ea14dac5566e6f06d0 {'a': 1}
+    9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
+    9f8a8e5ba8c70c774d410a9107e2a32b {'a': 2}
+    >>>
+    >>> for job in project.find_jobs({'a': 0}):
+    ...     print(job, job.statepoint())
+    ...
+    9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
+    >>>

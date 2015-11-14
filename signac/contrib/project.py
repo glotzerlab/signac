@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import glob
 
 from ..common.config import load_config
 from .job import Job
@@ -23,6 +24,7 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = config
+        self.get_id()
 
     def __str__(self):
         "Returns the project's id."
@@ -37,6 +39,10 @@ class Project(object):
         "Returns the project's root directory."
         return self._config['project_dir']
 
+    def workspace(self):
+        "Returns the project's workspace directory."
+        return self._config['workspace_dir']
+
     def get_id(self):
         """Get the project identifier.
 
@@ -48,7 +54,7 @@ class Project(object):
             return str(self.config['project'])
         except KeyError:
             msg = "Unable to determine project id. "
-            msg += "Are you sure '{}' is a compDB project path?"
+            msg += "Are you sure '{}' is a signac project path?"
             raise LookupError(msg.format(os.path.abspath(os.getcwd())))
 
     def open_job(self, statepoint):
@@ -60,6 +66,31 @@ class Project(object):
         :rtype: :class:`signac.contrib.job.Job`
         """
         return Job(self, statepoint)
+
+    def find_jobs(self, filter=None):
+        """Find all jobs in the project's workspace.
+
+        :param filter: If not None, only find jobs matching the filter.
+        :type filter: mapping
+        :yields: Instances of :class:`~signac.contrib.job.Job`"""
+        def _match(doc, f):
+            for key, value in f.items():
+                if not key in doc or doc[key] != value:
+                    return False
+            return True
+
+        for statepoint in self.find_statepoints():
+            if filter is None or _match(statepoint, filter):
+                yield Job(self, statepoint)
+
+
+    def find_statepoints(self):
+        "Find all statepoints in the project's workspace."
+        for fn_manifest in glob.iglob(os.path.join(
+                self.workspace(), '*', Job.FN_MANIFEST)):
+            with open(fn_manifest) as manifest:
+                yield json.load(manifest)
+
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
