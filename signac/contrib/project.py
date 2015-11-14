@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import glob
 
 from ..common.config import load_config
 from .job import Job
@@ -61,6 +62,31 @@ class Project(object):
         :rtype: :class:`signac.contrib.job.Job`
         """
         return Job(self, statepoint)
+
+    def find_jobs(self, filter=None):
+        """Find all jobs in the project's workspace.
+
+        :param filter: If not None, only find jobs matching the filter.
+        :type filter: mapping
+        :yields: Instances of :class:`~signac.contrib.job.Job`"""
+        def _match(doc, f):
+            for key, value in f.items():
+                if not key in doc or doc[key] != value:
+                    return False
+            return True
+
+        for statepoint in self.find_statepoints():
+            if filter is None or _match(statepoint, filter):
+                yield Job(self, statepoint)
+
+
+    def find_statepoints(self):
+        "Find all statepoints in the project's workspace."
+        for fn_manifest in glob.iglob(os.path.join(
+                self.config['workspace_dir'], '*', Job.FN_MANIFEST)):
+            with open(fn_manifest) as manifest:
+                yield json.load(manifest)
+
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
