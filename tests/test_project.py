@@ -42,6 +42,22 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
+    def test_find_statepoints(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            job = self.project.open_job(sp)
+            job.document['test'] = True
+        self.assertEqual(len(statepoints), len(list(self.project.find_statepoints())))
+
+    def test_find_jobs(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            job = self.project.open_job(sp)
+            job.document['test'] = True
+        self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
+        self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
+        self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
+
 
 @unittest.skip("Views are currently not implemented.")
 class ProjectViewTest(BaseProjectTest):
