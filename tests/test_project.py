@@ -4,6 +4,8 @@ import uuid
 import warnings
 from tempfile import TemporaryDirectory
 
+import signac
+
 from test_job import BaseJobTest
 
 # Make sure the jobs created for this test are unique.
@@ -42,88 +44,34 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
+    def test_find_statepoints(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            job = self.project.open_job(sp)
+            job.document['test'] = True
+        self.assertEqual(len(statepoints), len(list(self.project.find_statepoints())))
 
-@unittest.skip("Views are currently not implemented.")
-class ProjectViewTest(BaseProjectTest):
+    def test_find_jobs(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
+        self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
+        self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
 
-    def test_get_links(self):
-        project = self.project
-        A = ['a_{}'.format(i) for i in range(2)]
-        B = ['b_{}'.format(i) for i in range(2)]
-        for a in A:
-            for b in B:
-                p = dict(test_token)
-                p.update({'a': a, 'b': b})
-                with project.open_job(p) as test_job:
-                    test_job.document['result'] = True
-        url = 'view/a/{a}/b/{b}'
-        self.assertEqual(
-            len(list(project.get_storage_links(url))),
-            len(A) * len(B))
-        list(project.get_storage_links(url + '/{c}'))
+    def test_create_view(self):
+        # Test for highly heterogenous parameter space
+        sp_0 = [{'a': i, 'b': 0} for i in range(5)]
+        sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}} for i in range(5)]
+        statepoints = sp_0 + sp_1 + sp_2
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        self.assertEqual(len(statepoints), len(list(signac.contrib.project._make_urls(statepoints))))
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        self.project.create_view(prefix=view_prefix)
+        self.assertTrue(os.path.isdir(view_prefix))
 
-    def test_create_view_default_url(self):
-        project = self.project
-        A = ['a_{}'.format(i) for i in range(2)]
-        B = ['b_{}'.format(i) for i in range(2)]
-        for a in A:
-            for b in B:
-                p = dict(test_token)
-                p.update({'a': a, 'b': b, 'c': 'C'})
-                with project.open_job(p) as test_job:
-                    test_job.document['result'] = True
-        with TemporaryDirectory(prefix='comdb_') as tmp:
-            project.create_view(prefix=tmp)
-            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_0')))
-            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_0/b/b_1')))
-            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_1/b/b_0')))
-            self.assertTrue(os.path.isdir(os.path.join(tmp, 'a/a_1/b/b_1')))
-            self.assertFalse(os.path.isdir(
-                os.path.join(tmp, 'a/a_0/b/b_0/c/C')))
-
-    def test_create_view_custom_url(self):
-        project = self.project
-        A = ['a_{}'.format(i) for i in range(2)]
-        B = ['b_{}'.format(i) for i in range(2)]
-        for a in A:
-            for b in B:
-                p = dict(test_token)
-                p.update({'a': a, 'b': b})
-                with project.open_job(p) as test_job:
-                    test_job.document['result'] = True
-        with TemporaryDirectory(prefix='comdb_') as tmp:
-            url = os.path.join(tmp, 'a/{a}/b/{b}')
-            project.create_view(url)
-
-    def test_create_flat_view(self):
-        project = self.project
-        A = ['a_{}'.format(i) for i in range(2)]
-        B = ['b_{}'.format(i) for i in range(2)]
-        for a in A:
-            for b in B:
-                p = dict(test_token)
-                p.update({'a': a, 'b': b})
-                with project.open_job(p) as test_job:
-                    test_job.document['result'] = True
-                    with open('testfile_w', 'w') as file:
-                        file.write('abc')
-                    with test_job.storage.open_file('testfile_s', 'w') as file:
-                        file.write('abc')
-        with TemporaryDirectory(prefix='comdb_') as tmp:
-            project.create_flat_view(prefix=tmp)
-            for job in project.find_jobs():
-                self.assertTrue(os.path.isdir(
-                    os.path.join(tmp, 'storage', job.get_id())))
-                self.assertTrue(os.path.islink(
-                    os.path.join(tmp, 'storage', job.get_id())))
-                self.assertTrue(os.path.isdir(
-                    os.path.join(tmp, 'workspace', job.get_id())))
-                self.assertTrue(os.path.islink(
-                    os.path.join(tmp, 'workspace', job.get_id())))
-                self.assertTrue(os.path.isfile(os.path.join(
-                    tmp, 'storage', job.get_id(), 'testfile_s')))
-                self.assertTrue(os.path.isfile(os.path.join(
-                    tmp, 'workspace', job.get_id(), 'testfile_w')))
 
 if __name__ == '__main__':
     unittest.main()
