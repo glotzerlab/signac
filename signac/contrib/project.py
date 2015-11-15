@@ -223,12 +223,26 @@ class Project(object):
     def find_job_documents(self, filter=None):
         """Find all job documents in the project's workspace.
 
+        This method iterates through all jobs or all jobs matching
+        the filter and yields each job's document as a dict.
+        Each dict additionally contains a field 'statepoint',
+        with the job's statepoint and a field '_id', which is
+        the job's id.
+
         :param filter: If not None, 
             only find job documents matching filter.
         :type filter: mapping
-        :yields: Instances of dict."""
+        :yields: Instances of dict.
+        :raises KeyError: If the job document already contains the fields
+            '_id' or 'statepoint'."""
         for job in self.find_jobs(filter=filter):
             doc = dict(job.document)
+            if '_id' in doc:
+                raise KeyError(
+                    "The job document already contains a field '_id'!")
+            if 'statepoint' in doc:
+                raise KeyError(
+                    "The job document already contains a field 'statepoint'!")
             doc['_id'] = str(job)
             doc['statepoint'] = job.statepoint()
             yield doc

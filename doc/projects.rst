@@ -78,17 +78,6 @@ This will switch to the job's workspace after entering the context and switches 
     ['myfile.txt']
     >>>
 
-The job document
-----------------
-
-To associate simple key-value pairs with your job, you can use the job :py:attr:`~signac.contrib.job.Job.document`.
-The document is automatically stored in the job's workspace directory in JSON format.
-
-.. code-block:: python
-
-    >>> job = project.open_job(statepoint)
-    >>> job.document['hello'] = 'world'
-
 Operate on the workspace
 ------------------------
 
@@ -127,6 +116,53 @@ If you want to operate on all or a select number of jobs, use :py:meth:`~signac.
     ...
     9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
     >>>
+
+The job document
+----------------
+
+To associate simple key-value pairs with your job, you can use the job :py:attr:`~signac.contrib.job.Job.document`.
+The document is automatically stored in the job's workspace directory in JSON format.
+
+.. code-block:: python
+
+    >>> job = project.open_job(statepoint)
+    >>> job.document['hello'] = 'world'
+
+Uses cases for the **job document** include, but are not limited to:
+
+  1) **storage** of *lightweight* data,
+  2) keeping track of **runtime information** or to
+  3) **label** jobs, e.g. to identify error states.
+
+You can use job documents in combination with a database to execute complex query operations.
+In the following example, all job documents contain a field called `user_status`, which contains a list of labels that help to identify the job status.
+
+.. code-block:: python
+
+    >>> for job in project.find_jobs():
+    ...     ## identify the labels
+    ...     print(job.document['user_status'])
+    ...
+    ['stage2', 'walltimelimitreached']
+    ['stage3', 'done']
+    >>> # etc
+
+Using the :py:meth:`~signac.contrib.Project.find_job_documents` method, we can export all or a subset of the **job documents** into a database to execute more complex query operations.
+
+.. code-block:: python
+
+    >>> # We want to export the job documents to a MongoDB document collection.
+    >>> job_docs_collection = signac.db.get_database('MyProject').job_docs
+    >>> # Get a list of all or a subset of the job documents
+    >>> job_docs = list(project.find_job_documents())
+    >>> # Export to the collection
+    >>> job_docs_collection.insert_many(job_docs)
+
+To find all jobs labeled with 'stage2' that ran out of walltime we could execute the following query:
+
+.. code-block:: python
+
+    >>> jobs_stage2 = job_docs_collection.find({'user_status': ['stage2', 'walltimelimitreached']})
 
 Create workspace views
 ----------------------
@@ -176,4 +212,4 @@ the following *symbolic links* within the specified  view directory:
 
         >>> project.create_view({'debug': True})
 
-    will create links only where *debug* equals *True*.
+    will create links only for jobs where *debug* equals *True*.

@@ -83,6 +83,26 @@ class ProjectTest(BaseProjectTest):
             sp = job_doc['statepoint']
             self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
 
+    def test_find_job_documents_illegal_key(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        job_docs = list(self.project.find_job_documents())
+        self.assertEqual(len(statepoints), len(list(self.project.find_job_documents())))
+        self.project.open_job({'a': 0}).document['_id'] = True
+        list(self.project.find_job_documents({'a': 1}))  # should not throw
+        with self.assertRaises(KeyError):
+            list(self.project.find_job_documents())
+        with self.assertRaises(KeyError):
+            list(self.project.find_job_documents({'a': 0}))
+        self.project.open_job({'a': 1}).document['statepoint'] = True
+        with self.assertRaises(KeyError):
+            list(self.project.find_job_documents())
+        with self.assertRaises(KeyError):
+            list(self.project.find_job_documents({'a': 1}))
+        list(self.project.find_job_documents({'a': 2}))  # should not throw
+
+
 
 if __name__ == '__main__':
     unittest.main()
