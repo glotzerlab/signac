@@ -51,7 +51,7 @@ class Project(object):
 
         :return: The project id.
         :rtype: str
-        :raises: KeyError if no project id could be determined.
+        :raises KeyError: If no project id could be determined.
         """
         try:
             return str(self.config['project'])
@@ -81,7 +81,11 @@ class Project(object):
 
 
     def find_statepoints(self, filter=None):
-        "Find all statepoints in the project's workspace."
+        """Find all statepoints in the project's workspace.
+
+        :param filter: If not None, only yield statepoints matching the filter.
+        :type filter: mapping
+        :yields: statepoints as dict"""
         def _match(doc, f):
             for key, value in f.items():
                 if not key in doc or doc[key] != value:
@@ -170,8 +174,44 @@ class Project(object):
         """
         return self.read_statepoints(fn=fn)[jobid]
 
-    def create_view(self, filter=None, prefix='.', prefix_filter=True):
-        """Create a view of the workspace."""
+    def create_view(self, filter=None, prefix='view', prefix_filter=True):
+        """Create a view of the workspace.
+
+        This function gathers all varying statepoint parameters
+        and creates symbolic links to the workspace directories.
+        This is useful for browsing through the workspace in a
+        human-readable manner.
+
+
+        Let's assume the parameter space is
+
+            * a=0, b=0
+            * a=1, b=0
+            * a=2, b=0
+            * ...,
+
+        where *b* does not vary over all statepoints.
+
+        Calling this method will generate the following *symbolic links* within
+        the speciefied  view directory:
+
+        .. code:: bash
+
+            view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
+            view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
+            ...
+
+        .. note::
+
+            As *b* does not vary over the whole parameter space it is not part
+            of the view url.
+            This maximizes the compactness of each view url.
+
+        :param filter:  If not None,
+            create view only for jobs matching filter.
+        :type filter: mapping
+        :param prefix: Specifies where to create the links.
+        :param prefix_filter: Add a prefix as function of the filter."""
         if prefix_filter and filter is not None:
             prefix = os.path.join(prefix, *(os.path.join(str(k), str(v)) for k, v in filter.items()))
         statepoints = list(self.find_statepoints(filter=filter))
@@ -253,3 +293,8 @@ def get_project():
     :returns: The project handle.
     :rtype: :class:`Project`"""
     return Project()
+
+# lrwxrwx--- [...] 2 -> /path/to/workspace/fb4e5868559e719f0c5826de08023281
+# lrwxrwx--- [...] 3 -> /path/to/workspace/a1721c8f1b284d4004debde16447fe10
+# lrwxrwx--- [...] 4 -> /path/to/workspace/06d3d15bc724f8a213b67566178ea931
+# ...

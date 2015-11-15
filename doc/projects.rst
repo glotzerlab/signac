@@ -17,7 +17,7 @@ The directory that contains this configuration file is the project's root direct
 Access to project data
 -----------------------
 
-You can access your signac :class:`~signac.contrib.project.Project` from within your project's root directory or any subdirectory with the :py:func:`~signac.contrib.get_project` function.
+You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory with the :py:func:`~signac.contrib.get_project` function.
 
 .. code-block:: python
 
@@ -29,12 +29,12 @@ You can access your signac :class:`~signac.contrib.project.Project` from within 
 
 You can use the project to store data associated with a unique set of parameters.
 Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object.
-Each statepoint is a associated with a unique hash value, called *job id*.
-Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.project.Project.open_job` method.
+Each state point is a associated with a unique hash value, called *job id*.
+Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.Project.open_job` method.
 
 .. code-block:: python
 
-    # define a statepoint
+    # define a state point
     >>> statepoint = {'a': 0}
     # get the associated job
     >>> job = project.open_job(statepoint)
@@ -93,7 +93,7 @@ Operate on the workspace
 ------------------------
 
 Using a workspace makes it easy to keep track of your parameter space.
-Use :py:meth:`~signac.contrib.project.Project.get_statepoints` to retrieve a list of all statepoints for jobs with data in your workspace.
+Use :py:meth:`~signac.contrib.Project.get_statepoints` to retrieve a list of all state points for jobs with data in your workspace.
 
 .. code-block:: python
 
@@ -109,7 +109,7 @@ Use :py:meth:`~signac.contrib.project.Project.get_statepoints` to retrieve a lis
     >>>
 
 
-If you want to operate on all or a select number of jobs, use :py:meth:`~signac.contrib.project.Project.find_jobs` which will yield all or a filtered set of :py:class:`~signac.contrib.job.Job` instances.
+If you want to operate on all or a select number of jobs, use :py:meth:`~signac.contrib.Project.find_jobs` which will yield all or a filtered set of :py:class:`~signac.contrib.job.Job` instances.
 
 .. code-block:: python
 
@@ -127,3 +127,53 @@ If you want to operate on all or a select number of jobs, use :py:meth:`~signac.
     ...
     9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
     >>>
+
+Create workspace views
+----------------------
+
+Job ids are extremely useful to manage vast parameter spaces,
+however at the same time make it impossible to identify state points by
+browsing through the file system.
+In this case you can create a **view** on all or parts of the data
+with human-readable state points using the
+:py:meth:`~signac.contrib.Project.create_view` method.
+
+A view is a directory hierarchy consisting of **symbolic links**
+to the job workspace directories.
+This means no data is copied but you can conveniently browse through
+the job data space.
+
+Let's assume the parameter space is
+
+    * a=0, b=0
+    * a=1, b=0
+    * a=2, b=0
+    * ...,
+
+where *b* does not vary over all state points.
+
+Calling :py:meth:`~signac.contrib.Project.create_view()` will generate
+the following *symbolic links* within the specified  view directory:
+
+.. code:: bash
+
+    view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
+    view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
+    ...
+
+.. note::
+
+    As *b* does not vary over the whole parameter space it is not part
+    of the view url.
+    This maximizes the compactness of each view url.
+
+.. hint::
+
+    Using a **filter** argument, you can create a view for a **subset**
+    of the data, e.g.:
+
+    .. code:: python
+
+        >>> project.create_view({'debug': True})
+
+    will create links only where *debug* equals *True*.
