@@ -72,6 +72,17 @@ class ProjectTest(BaseProjectTest):
         self.project.create_view(prefix=view_prefix)
         self.assertTrue(os.path.isdir(view_prefix))
 
+    def test_find_job_documents(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        self.assertEqual(len(list(self.project.find_job_documents({'a': 0}))), 1)
+        job_docs = list(self.project.find_job_documents())
+        self.assertEqual(len(statepoints), len(job_docs))
+        for job_doc in job_docs:
+            sp = job_doc['statepoint']
+            self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
+
 
 if __name__ == '__main__':
     unittest.main()

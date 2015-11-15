@@ -220,6 +220,19 @@ class Project(object):
             dst = os.path.join(prefix, url)
             _make_link(src, dst)
 
+    def find_job_documents(self, filter=None):
+        """Find all job documents in the project's workspace.
+
+        :param filter: If not None, 
+            only find job documents matching filter.
+        :type filter: mapping
+        :yields: Instances of dict."""
+        for job in self.find_jobs(filter=filter):
+            doc = dict(job.document)
+            doc['_id'] = str(job)
+            doc['statepoint'] = job.statepoint()
+            yield doc
+
 
 def _make_link(src, dst):
     try:
