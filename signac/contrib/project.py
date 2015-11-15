@@ -2,6 +2,9 @@ import os
 import logging
 import json
 import glob
+import collections
+import collections.abc
+import itertools
 
 from ..common.config import load_config
 from .job import Job
@@ -73,23 +76,24 @@ class Project(object):
         :param filter: If not None, only find jobs matching the filter.
         :type filter: mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`"""
+        for statepoint in self.find_statepoints(filter=filter):
+            yield Job(self, statepoint)
+
+
+    def find_statepoints(self, filter=None):
+        "Find all statepoints in the project's workspace."
         def _match(doc, f):
             for key, value in f.items():
                 if not key in doc or doc[key] != value:
                     return False
             return True
-
-        for statepoint in self.find_statepoints():
-            if filter is None or _match(statepoint, filter):
-                yield Job(self, statepoint)
-
-
-    def find_statepoints(self):
-        "Find all statepoints in the project's workspace."
         for fn_manifest in glob.iglob(os.path.join(
                 self.workspace(), '*', Job.FN_MANIFEST)):
             with open(fn_manifest) as manifest:
-                yield json.load(manifest)
+                statepoint = json.load(manifest)
+                if filter is None or _match(statepoint, filter):
+                    yield statepoint
+
 
 
     def read_statepoints(self, fn=None):
@@ -165,6 +169,82 @@ class Project(object):
         See also :meth:`dump_statepoints`.
         """
         return self.read_statepoints(fn=fn)[jobid]
+
+    def create_view(self, filter=None, prefix='.', prefix_filter=True):
+        """Create a view of the workspace."""
+        if prefix_filter and filter is not None:
+            prefix = os.path.join(prefix, *(os.path.join(str(k), str(v)) for k, v in filter.items()))
+        statepoints = list(self.find_statepoints(filter=filter))
+        for statepoint, url in _make_urls(statepoints):
+            src = self.open_job(statepoint).workspace()
+            dst = os.path.join(prefix, url)
+            _make_link(src, dst)
+
+
+def _make_link(src, dst):
+    try:
+        os.makedirs(os.path.dirname(dst))
+    except FileExistsError:
+        pass
+    os.symlink(src, dst, target_is_directory=True)
+
+
+def _make_urls(statepoints):
+    "Create unique URLs for all jobs matching filter."
+    key_set = list(_find_unique_keys(statepoints))
+    for statepoint in statepoints:
+        url = []
+        for keys in key_set:
+            url.append('.'.join(keys))
+            v = statepoint
+            for key in keys:
+                v = v.get(key)
+                if v is None:
+                    break
+            url.append(str(v))
+        yield statepoint, os.path.join(*url)
+
+
+def _find_unique_keys(statepoints):
+    key_set = _aggregate_statepoints(statepoints)
+    def flatten(l):
+        for el in l:
+            if isinstance(el, collections.Iterable) and not isinstance(el, str):
+                for sub in flatten(el):
+                    yield sub
+            else:
+                yield el
+    key_set = (list(flatten(k)) for k in key_set)
+    key_set = yield from sorted(key_set, key=len)
+
+def _aggregate_statepoints(statepoints, prefix=None):
+    result = list()
+    statepoint_set = collections.defaultdict(set)
+    # Gather all keys.
+    ignore = set()
+    for statepoint in statepoints:
+        for key, value in statepoint.items():
+            if key in ignore:
+                continue
+            try:
+                statepoint_set[key].add(value)
+            except TypeError:
+                if isinstance(value, collections.abc.Mapping):
+                    result.extend(_aggregate_statepoints(
+                        [sp[key] for sp in statepoints if key in sp],
+                        prefix = (key) if prefix is None else (prefix, key)))
+                    ignore.add(key)
+                else:
+                    statepoint_set[key].add(calc_id(value))
+    # Heal heterogenous parameter space.
+    for statepoint in statepoints:
+        for key in statepoint_set.keys():
+            if not key in statepoint:
+                statepoint_set[key].add(None)
+    unique_keys = list(k for k, v in sorted(
+        statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)
+    result.extend((k,) if prefix is None else (prefix, k) for k in unique_keys)
+    return result
 
 
 def get_project():
