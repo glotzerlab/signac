@@ -1,6 +1,31 @@
 Installation
 ============
 
+With conda
+----------
+
+.. sidebar:: Closed-source
+
+    **signac** is not yet publicly released, installation via conda therefore requires access to the *private* Glotzer channel.
+
+To install the package with conda_, execute
+
+.. code:: bash
+
+    $ conda install signac
+
+To upgrade, execute
+
+.. code:: bash
+
+    $ conda update signac
+
+.. _conda: http://conda.pydata.org
+
+.. note::
+
+    This is the recommended installation method.
+
 With pip
 --------
 
@@ -24,7 +49,7 @@ To upgrade the package, simply execute the same command with the `--upgrade` opt
 With git
 --------
 
-Alternatively you can clone the git repository.
+Alternatively you can clone the git repository and use the ``setup.py`` to install the package.
 
 .. code:: bash
 
