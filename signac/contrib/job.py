@@ -35,8 +35,7 @@ class Job(object):
         self._statepoint = statepoint
         self._id = calc_id(statepoint)
         self._document = None
-        self._wd = os.path.join(self._project.config[
-                                'workspace_dir'], str(self))
+        self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = None
 
     def get_id(self):
