@@ -4,7 +4,7 @@ import signac.db
 
 try:
     signac.db.get_database('testing', hostname='testing')
-except AttributeError:
+except ImportError:
     DB_AVAILABLE=False
 else:
     DB_AVAILABLE=True
