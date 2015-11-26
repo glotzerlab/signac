@@ -47,15 +47,8 @@ You can use the job id to organize your data.
 The workspace
 -------------
 
-You can specify a workspace directory that signac uses to store job data in.
-
-.. code-block:: bash
-
-    $ echo workspace_dir=/path/to/my/workspace/for/my_project >> signac.rc
-
-.. note::
-
-    Although it is not required, the workspace can of course be within the project directory.
+The signac project related data is stored in the **workspace**, which by default is a directory called ``workspace``, located in your project's root directory.
+You can configure a different workspace directory with the ``workspace_dir`` attribute, either relative to your project's root directory or as absolute path.
 
 This gives you access to a unique path for each job within your workspace directory.
 

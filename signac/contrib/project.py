@@ -43,8 +43,20 @@ class Project(object):
         return self._config['project_dir']
 
     def workspace(self):
-        "Returns the project's workspace directory."
-        return self._config['workspace_dir']
+        """Returns the project's workspace directory.
+
+        The workspace defaults to `project_root/workspace`.
+        Configure this directory with the 'workspace_dir'
+        attribute.
+        If the specified directory is a relative path,
+        the absolute path is relative from the project's
+        root directory."""
+        wd = self._config.get('workspace_dir', 'workspace')
+        if os.path.isabs(wd):
+            return wd
+        else:
+            return os.path.join(self.root_directory(), wd)
+        #return self._config['workspace_dir']
 
     def get_id(self):
         """Get the project identifier.
@@ -231,7 +243,7 @@ class Project(object):
         with the job's statepoint and a field '_id', which is
         the job's id.
 
-        :param filter: If not None, 
+        :param filter: If not None,
             only find job documents matching filter.
         :type filter: mapping
         :yields: Instances of dict.

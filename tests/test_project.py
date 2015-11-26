@@ -31,6 +31,9 @@ class ProjectTest(BaseProjectTest):
     def test_root_directory(self):
         self.assertEqual(self._tmp_pr, self.project.root_directory())
 
+    def test_workspace_directory(self):
+        self.assertEqual(self._tmp_wd, self.project.workspace())
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
