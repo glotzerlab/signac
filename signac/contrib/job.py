@@ -82,7 +82,7 @@ class Job(object):
         _mkdir_p(self.workspace())
         with open(os.path.join(self.workspace(),
                                self.FN_MANIFEST), 'w') as file:
-            file.write(json.dumps(self.statepoint()))
+            file.write(json.dumps(self.statepoint(), indent=2))
 
     def open(self):
         """Enter the job's workspace directory.

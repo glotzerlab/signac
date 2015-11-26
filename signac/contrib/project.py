@@ -131,7 +131,7 @@ class Project(object):
         """
         return {calc_id(sp): sp for sp in statepoints}
 
-    def write_statepoints(self, statepoints, fn=None):
+    def write_statepoints(self, statepoints, fn=None, indent=2):
         """Dump statepoints to a file.
 
         If the file already contains statepoints, all new statepoints
@@ -142,6 +142,8 @@ class Project(object):
         :param fn: The filename of the file containing the statepoints,
             defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
         :type fn: str
+        :param indent: Specify the indentation of the json file.
+        :type indent: int
 
         See also :meth:`dump_statepoints`.
         """
@@ -153,7 +155,7 @@ class Project(object):
             tmp = dict()
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:
-            file.write(json.dumps(tmp))
+            file.write(json.dumps(tmp, indent=indent))
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
