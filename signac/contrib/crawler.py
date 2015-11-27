@@ -220,14 +220,15 @@ class RegexFileCrawler(BaseCrawler):
             if isinstance(value, bool):
                 result[key] = value
                 continue
-            for t in types:
-                try:
-                    result[key] = t(value)
-                    break
-                except ValueError:
-                    continue
-            else:
+            try:
+                float(value)
+            except ValueError:
                 result[key] = value
+            else:
+                if float(value) == int(value):
+                    result[key] = int(value)
+                else:
+                    result[key] = float(value)
         return super().process(result, dirpath, fn)
 
 
