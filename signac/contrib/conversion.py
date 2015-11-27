@@ -1,4 +1,5 @@
 import logging
+from six import with_metaclass
 
 
 logger = logging.getLogger(__name__)
@@ -17,10 +18,10 @@ class AdapterMetaType(type):
             identifier = "{}_to_{}".format(cls.expects, cls.returns)
             cls.registry[identifier] = cls
 
-        super().__init__(name, bases, dct)
+        super(AdapterMetaType, cls).__init__(name, bases, dct)
 
 
-class Adapter(metaclass=AdapterMetaType):
+class Adapter(with_metaclass(AdapterMetaType)):
     expects = None
     returns = None
     weight = WEIGHT_DEFAULT

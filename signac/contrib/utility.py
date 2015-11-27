@@ -145,7 +145,8 @@ class SmartFormatter(argparse.HelpFormatter):
 
 def walkdepth(path, depth=0):
     if depth == 0:
-        yield from os.walk(path)
+        for p in os.walk(path):
+            yield p
     elif depth > 0:
         path = path.rstrip(os.path.sep)
         assert os.path.isdir(path)

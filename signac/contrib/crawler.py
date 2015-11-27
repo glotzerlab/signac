@@ -243,7 +243,8 @@ class JSONCrawler(BaseCrawler):
         if re.match(self.fn_regex, os.path.join(dirpath, fn)):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
-                yield from self.docs_from_json(doc)
+                for d in self.docs_from_json(doc):
+                    return d
 
 
 class SignacProjectBaseCrawler(BaseCrawler):
@@ -287,7 +288,8 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
             job_doc['_id'] = signac_id
             job_doc['statepoint'] = statepoint
             yield job_doc
-        yield from super().docs_from_file(dirpath, fn)
+        for doc in super(SignacProjectJobDocumentCrawler, self).docs_from_file(dirpath, fn):
+            yield doc
 
 
 class SignacProjectCrawler(
@@ -319,7 +321,8 @@ class MasterCrawler(BaseCrawler):
     def docs_from_file(self, dirpath, fn):
         if fn == FN_CRAWLER:
             try:
-                yield from self._docs_from_module(dirpath, fn)
+                for doc in self._docs_from_module(dirpath, fn):
+                    yield doc
             except AttributeError as error:
                 if str(error) == 'get_crawlers':
                     logger.warning(
@@ -332,9 +335,6 @@ class MasterCrawler(BaseCrawler):
                 raise
             else:
                 logger.debug("Executed slave crawlers.")
-
-    def fetch(self, doc):
-        yield from fetch(doc)
 
 
 def _load_crawler(name):
@@ -359,7 +359,8 @@ def fetch(doc):
             link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
         crawler_module = _load_crawler(fn_module)
         crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-        yield from crawlers[link[KEY_CRAWLER_ID]].fetch(doc)
+        for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc):
+            yield d
 
 
 def fetched(docs):

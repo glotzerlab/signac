@@ -9,7 +9,11 @@ some other weaknesses in implementation.
 """
 
 import os
-import collections
+import six
+if six.PY3:
+    from collections import UserDict
+else:
+    from UserDict import UserDict
 import logging
 import uuid
 
@@ -21,7 +25,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-class JSonDict(collections.UserDict):
+class JSonDict(UserDict):
 
     def __init__(self, filename, synchronized=False, write_concern=False):
         self.data = dict()
@@ -120,7 +124,8 @@ class JSonDict(collections.UserDict):
     def __iter__(self):
         if self._synchronized:
             self.load()
-        yield from self.data
+        for d in self.data:
+            yield d
 
     def __str__(self):
         if self._synchronized:

@@ -1,4 +1,5 @@
 import logging
+from six import with_metaclass
 
 from .conversion import Adapter
 
@@ -15,10 +16,10 @@ class _FormatMetaType(type):
         else:
             cls.registry[name] = cls
 
-        super().__init__(name, bases, dct)
+        super(_FormatMetaType, cls).__init__(name, bases, dct)
 
 
-class BasicFormat(metaclass=_FormatMetaType):
+class BasicFormat(with_metaclass(_FormatMetaType)):
     pass
 
 
@@ -47,7 +48,7 @@ class LinkError(EnvironmentError):
     pass
 
 
-class BaseLink(metaclass=_LinkMetaType):
+class BaseLink(with_metaclass(_LinkMetaType)):
     """BaseLink allows to create a generic link to an object.
 
     Derive from this class and implement the fetch method

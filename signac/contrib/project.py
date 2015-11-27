@@ -2,8 +2,12 @@ import os
 import logging
 import json
 import glob
+import six
 import collections
-import collections.abc
+if six.PY3:
+    from collections import abc
+else:
+    import abc
 import itertools
 
 from ..common.config import load_config
@@ -296,7 +300,8 @@ def _find_unique_keys(statepoints):
             else:
                 yield el
     key_set = (list(flatten(k)) for k in key_set)
-    key_set = yield from sorted(key_set, key=len)
+    for key in sorted(key_set, key=len):
+        yield key
 
 def _aggregate_statepoints(statepoints, prefix=None):
     result = list()
@@ -310,7 +315,7 @@ def _aggregate_statepoints(statepoints, prefix=None):
             try:
                 statepoint_set[key].add(value)
             except TypeError:
-                if isinstance(value, collections.abc.Mapping):
+                if isinstance(value, abc.Mapping):
                     result.extend(_aggregate_statepoints(
                         [sp[key] for sp in statepoints if key in sp],
                         prefix = (key) if prefix is None else (prefix, key)))

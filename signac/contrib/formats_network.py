@@ -24,9 +24,10 @@ class ConversionNetwork(object):
                        self.formats_network, debug=debug)
 
     def converted(self, sources, target_format, ignore_errors=True):
-        yield from converted(sources, target_format,
+        for doc in converted(sources, target_format,
                              self.formats_network,
                              ignore_errors=ignore_errors)
+            yield doc
 
 
 def get_formats_network():
@@ -127,7 +128,8 @@ def get_converters(network, source_type, target_type):
     found_converter = False
     for src_type in mro:
         try:
-            yield from _get_converters(network, src_type, target_type)
+            for doc in _get_converters(network, src_type, target_type):
+                yield doc
         except NoConversionPathError:
             pass
         else:

@@ -23,9 +23,11 @@ class SimpleCollection(object):
 
     def find(self, limit=0):
         if limit != 0:
-            yield from itertools.islice(self._index.values(), limit)
+            for doc in itertools.islice(self._index.values(), limit):
+                yield doc
         else:
-            yield from self._index.values()
+            for doc in self._index.values():
+                yield doc
 
     def find_one(self):
         return next(self._index.values())
