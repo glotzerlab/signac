@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+"""Light-weight GUI client as part of the signac framework.
+
+The GUI can be used to view JSON files and access MongoDB
+databases."""
 
 import sys
-import copy
 import logging
 import json
 import itertools
@@ -9,7 +12,8 @@ import itertools
 from PySide import QtCore, QtGui
 from PySide.QtCore import Qt
 
-from .models import CursorTreeModel, DocumentTreeModel, DBTreeModel, DBCollectionTreeItem
+from .models import CursorTreeModel, DocumentTreeModel,\
+    DBTreeModel, DBCollectionTreeItem
 from ..common.connection import DBClientConnector
 from ..common.config import FN_CONFIG, read_config_file, load_config
 
@@ -19,10 +23,10 @@ DOC_INDEX_INC = 50
 APPLICATION_NAME = 'signac-gui'
 KEY_CONFIG_GUI = 'gui'
 KEY_CONFIG_HOSTS = 'hosts'
-ENCODING='utf-8'
+ENCODING = 'utf-8'
 KEY_SEQUENCE_QUIT = QtGui.QKeySequence(Qt.ControlModifier + Qt.Key_Q)
 
-ABOUT_MSG="""
+ABOUT_MSG = """
 Signac GUI
 
 A simple MongoDB GUI Client as part of the signac framework.
@@ -32,6 +36,7 @@ Author: Carl Simon Adorf, csadorf@umich.edu
 License: MIT
 """
 
+
 def set_bg_color(w, color):
     return
     p = w.palette()
@@ -39,10 +44,11 @@ def set_bg_color(w, color):
     w.setAutoFillBackground(True)
     w.setPalette(p)
 
+
 def check_query(query):
-    assert not ';' in query
-    assert not '\n' in query
-    assert not 'import' in query
+    assert ';' not in query
+    assert '\n' not in query
+    assert 'import' not in query
     tokens = query.split('.')
     assert tokens[0] == 'db'
 #
@@ -54,33 +60,41 @@ def check_query(query):
 #        assert False
 #    assert tokens[-1].endswith(')')
 
+
 def get_config():
     return read_config_file(FN_CONFIG)
+
 
 def get_hosts_config(config=None):
     if config is None:
         config = get_config()
     return config.setdefault(KEY_CONFIG_HOSTS, dict())
 
+
 def show_message(category, msg):
     msg_box = QtGui.QMessageBox(category, APPLICATION_NAME, msg)
     msg_box.exec_()
 
+
 def show_error(msg):
     show_message(QtGui.QMessageBox.Critical, msg)
+
 
 def show_warning(msg):
     show_message(QtGui.QMessageBox.Warning, msg)
 
+
 class DocumentView(QtGui.QTreeView):
-    def __init__(self, parent = None):
+
+    def __init__(self, parent=None):
         super(DocumentView, self).__init__(parent)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectItems)
 
+
 class FileSelectorEdit(QtGui.QWidget):
 
-    def __init__(self, filename = '', parent = None):
+    def __init__(self, filename='', parent=None):
         super(FileSelectorEdit, self).__init__(parent)
         self.dialog = QtGui.QFileDialog(self, filename)
         self.dialog.setModal(True)
@@ -101,14 +115,15 @@ class FileSelectorEdit(QtGui.QWidget):
     def set_filename(self, filename):
         self.edit.setText(filename)
 
+
 class FileSelectorBox(QtGui.QWidget):
 
-    def __init__(self, text, parent = None):
+    def __init__(self, text, parent=None):
         super(FileSelectorBox, self).__init__(parent)
         self.label = QtGui.QLabel(text)
         self.file_selector_edit = FileSelectorEdit(text, self)
         box_layout = QtGui.QVBoxLayout()
-        box_layout.setContentsMargins(0,0,0,0)
+        box_layout.setContentsMargins(0, 0, 0, 0)
         box_layout.addWidget(self.label)
         box_layout.addWidget(self.file_selector_edit)
         self.setLayout(box_layout)
@@ -119,9 +134,10 @@ class FileSelectorBox(QtGui.QWidget):
     def set_filename(self, filename):
         self.file_selector_edit.set_filename(filename)
 
+
 class HostTab(QtGui.QWidget):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(HostTab, self).__init__(parent)
         host_url_label = QtGui.QLabel("Host")
         self.host_url_edit = QtGui.QLineEdit()
@@ -130,9 +146,10 @@ class HostTab(QtGui.QWidget):
         main_layout.addWidget(self.host_url_edit)
         self.setLayout(main_layout)
 
+
 class AuthenticationTab(QtGui.QWidget):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(AuthenticationTab, self).__init__(parent)
         set_bg_color(self, Qt.red)
 
@@ -140,7 +157,7 @@ class AuthenticationTab(QtGui.QWidget):
         self.scram_button = QtGui.QRadioButton("SCRAM-SHA-1")
         self.scram_group = QtGui.QGroupBox()
         scram_layout = QtGui.QVBoxLayout()
-        scram_layout.setContentsMargins(0,0,0,0)
+        scram_layout.setContentsMargins(0, 0, 0, 0)
         username_label = QtGui.QLabel("Username")
         self.username_edit = QtGui.QLineEdit()
         password_label = QtGui.QLabel("Password")
@@ -157,7 +174,7 @@ class AuthenticationTab(QtGui.QWidget):
         self.ssl_certfile_edit = FileSelectorBox('Certificate')
         self.ssl_keyfile_edit = FileSelectorBox('Key file')
         ssl_layout = QtGui.QVBoxLayout()
-        ssl_layout.setContentsMargins(0,0,0,0)
+        ssl_layout.setContentsMargins(0, 0, 0, 0)
         ssl_layout.addWidget(self.ssl_ca_certs_edit)
         ssl_layout.addWidget(self.ssl_certfile_edit)
         ssl_layout.addWidget(self.ssl_keyfile_edit)
@@ -208,12 +225,14 @@ class AuthenticationTab(QtGui.QWidget):
         elif value == 'SSL-x509':
             self.ssl_button.setChecked(True)
         else:
-            raise RuntimeError("Auth mechanism '{}' not supported.".format(value))
+            raise RuntimeError(
+                "Auth mechanism '{}' not supported.".format(value))
         self.sync()
+
 
 class HostList(QtGui.QTableWidget):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(HostList, self).__init__(parent)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
@@ -246,9 +265,10 @@ class HostList(QtGui.QTableWidget):
         if len(items):
             self.setCurrentItem(items[0])
 
+
 class HostsDialog(QtGui.QDialog):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(HostsDialog, self).__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Hosts")
@@ -275,7 +295,8 @@ class HostsDialog(QtGui.QDialog):
         hosts_group = QtGui.QGroupBox("Hosts")
         hosts_group.setLayout(hosts_layout)
 
-        button_box = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok|QtGui.QDialogButtonBox.Cancel)
+        button_box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
 
@@ -288,17 +309,17 @@ class HostsDialog(QtGui.QDialog):
         new_button.clicked.connect(self.new_host)
         self.edit_button.clicked.connect(self.edit_host)
         self.remove_button.clicked.connect(self.remove_host)
-        #self.hosts_list.itemActivated.connect(self.item_activated)
+        # self.hosts_list.itemActivated.connect(self.item_activated)
         self.hosts_list.itemDoubleClicked.connect(self.item_activated)
-        self.hosts_list.itemSelectionChanged.connect(self.host_selection_changed)
-
+        self.hosts_list.itemSelectionChanged.connect(
+            self.host_selection_changed)
 
     def all_hostnames(self):
         return get_hosts_config().keys()
 
     def item_activated(self, item):
         self.accept()
-        #self.edit_host()
+        # self.edit_host()
 
     def host_selection_changed(self):
         have_selection = len(self.hosts_list.selectedIndexes())
@@ -312,7 +333,7 @@ class HostsDialog(QtGui.QDialog):
         hostnames = set(self.all_hostnames())
         hostname = ('New Host{}'.format(i) for i in itertools.count(1))
         for new_hostname in hostname:
-            if not new_hostname in hostnames:
+            if new_hostname not in hostnames:
                 break
         connect_dialog = ConnectDialog(new_hostname,  self)
         connect_dialog.show()
@@ -326,10 +347,12 @@ class HostsDialog(QtGui.QDialog):
     def remove_host(self):
         name = self.hosts_list.selected_host()
         msg = "Are you sure you want to remove host '{}'?"
-        answer = QtGui.QMessageBox.question(self,
+        answer = QtGui.QMessageBox.question(
+            self,
             APPLICATION_NAME,
             msg.format(name),
-            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == QtGui.QMessageBox.Yes
+            QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == \
+            QtGui.QMessageBox.Yes
         if answer:
             config = get_config()
             hosts_config = get_hosts_config(config)
@@ -348,11 +371,13 @@ class HostsDialog(QtGui.QDialog):
         else:
             show_warning("No host selected.")
 
-    #def reject(self):
-        #self.hide()
+    # def reject(self):
+        # self.hide()
+
 
 class HostnameValidator(QtGui.QValidator):
-    def __init__(self, name, parent = None):
+
+    def __init__(self, name, parent=None):
         super(HostnameValidator, self).__init__(parent)
         self.name = name
 
@@ -366,11 +391,12 @@ class HostnameValidator(QtGui.QValidator):
             else:
                 return HostnameValidator.Acceptable
 
+
 class ConnectDialog(QtGui.QDialog):
 
     class RenameDialog(QtGui.QDialog):
 
-        def __init__(self, parent = None):
+        def __init__(self, parent=None):
             super(ConnectDialog.RenameDialog, self).__init__(parent)
             self.setModal(True)
             main_layout = QtGui.QFormLayout()
@@ -379,7 +405,8 @@ class ConnectDialog(QtGui.QDialog):
             hostname = self.parent().hostname()
             self.edit.setValidator(HostnameValidator(hostname))
             self.edit.setText(hostname)
-            button_box = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok|QtGui.QDialogButtonBox.Cancel)
+            button_box = QtGui.QDialogButtonBox(
+                QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
             button_box.accepted.connect(self.accept)
             button_box.rejected.connect(self.reject)
 
@@ -396,7 +423,7 @@ class ConnectDialog(QtGui.QDialog):
                 self.parent().name_edit.setText(self.edit.text())
             super(ConnectDialog.RenameDialog, self).accept()
 
-    def __init__(self, hostname, parent = None):
+    def __init__(self, hostname, parent=None):
         super(ConnectDialog, self).__init__(parent)
         self.setupUI()
         self.name_edit.setValidator(HostnameValidator(hostname))
@@ -422,8 +449,10 @@ class ConnectDialog(QtGui.QDialog):
 
         self.tabs = QtGui.QTabWidget(self)
         self.host_tab_index = self.tabs.addTab(HostTab(), '&Host')
-        self.auth_tab_index = self.tabs.addTab(AuthenticationTab(), '&Authentication')
-        button_box = QtGui.QDialogButtonBox(QtGui.QDialogButtonBox.Ok|QtGui.QDialogButtonBox.Cancel)
+        self.auth_tab_index = self.tabs.addTab(
+            AuthenticationTab(), '&Authentication')
+        button_box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         main_layout = QtGui.QVBoxLayout()
@@ -436,7 +465,6 @@ class ConnectDialog(QtGui.QDialog):
         return self.name_edit.text()
 
     def change_name(self):
-        old_name = self.hostname()
         new_name_dialog = ConnectDialog.RenameDialog(self)
         new_name_dialog.show()
 
@@ -452,9 +480,12 @@ class ConnectDialog(QtGui.QDialog):
         auth_tab.username_edit.setText(host_config.get('username', ''))
         auth_tab.password_edit.setText(host_config.get('password', ''))
         auth_tab.auth_mechanism = host_config.get('auth_mechanism', 'none')
-        auth_tab.ssl_ca_certs_edit.set_filename(host_config.get('ssl_ca_certs', ''))
-        auth_tab.ssl_certfile_edit.set_filename(host_config.get('ssl_certfile', ''))
-        auth_tab.ssl_keyfile_edit.set_filename(host_config.get('ssl_keyfile', ''))
+        auth_tab.ssl_ca_certs_edit.set_filename(
+            host_config.get('ssl_ca_certs', ''))
+        auth_tab.ssl_certfile_edit.set_filename(
+            host_config.get('ssl_certfile', ''))
+        auth_tab.ssl_keyfile_edit.set_filename(
+            host_config.get('ssl_keyfile', ''))
         auth_tab.db_auth_edit.setText(host_config.get('db_auth', 'admin'))
 
     def update_config(self):
@@ -473,7 +504,7 @@ class ConnectDialog(QtGui.QDialog):
         host_config['ssl_certfile'] = auth_tab.ssl_certfile_edit.filename()
         host_config['ssl_keyfile'] = auth_tab.ssl_keyfile_edit.filename()
         host_config['db_auth'] = auth_tab.db_auth_edit.text()
-        if self.hostname() != hostname: # rename event
+        if self.hostname() != hostname:  # rename event
             hosts_config[self.hostname()] = host_config
             del hosts_config[hostname]
             self._hostname = self.hostname()
@@ -485,12 +516,14 @@ class ConnectDialog(QtGui.QDialog):
         self.parent().hosts_list.select_host(self.hostname())
         super(ConnectDialog, self).accept()
 
+
 class FileDialog(QtGui.QFileDialog):
     pass
 
+
 class MainWindow(QtGui.QMainWindow):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle(APPLICATION_NAME)
         self.config = None
@@ -509,11 +542,13 @@ class MainWindow(QtGui.QMainWindow):
 
         self.hosts_dialog = HostsDialog(self)
         fileMenu = self.menuBar().addMenu('&File')
-        fileMenu.addAction('&Connect...', self.hosts_dialog.show, QtGui.QKeySequence.New)
+        fileMenu.addAction(
+            '&Connect...', self.hosts_dialog.show, QtGui.QKeySequence.New)
         self.file_dialog = FileDialog(self)
         self.file_dialog.setDefaultSuffix('.json')
         self.file_dialog.setFilter('*.json')
-        fileMenu.addAction('&Open...', self.file_dialog.show, QtGui.QKeySequence.Open)
+        fileMenu.addAction('&Open...', self.file_dialog.show,
+                           QtGui.QKeySequence.Open)
         self.file_dialog.fileSelected.connect(self.open_file)
         fileMenu.addAction('&Quit..', self.close, KEY_SEQUENCE_QUIT)
 
@@ -532,7 +567,7 @@ class MainWindow(QtGui.QMainWindow):
     def sizeHint(self):
         return QtCore.QSize(1024, 768)
 
-    def set_status(self, msg, timeout = 0):
+    def set_status(self, msg, timeout=0):
         self.statusBar().showMessage(msg, timeout)
 
     def load_config(self):
@@ -570,22 +605,20 @@ class MainWindow(QtGui.QMainWindow):
 
     def open_file(self, fn):
         logger.info('open file({})'.format(fn))
-        try:
-            with open(fn, 'rb') as file:
-                mapping = json.loads(file.read().decode())
-        except Exception as error:
-            raise
-        else:
-            document_view = DocumentView()
-            document_view.setWindowTitle(fn)
-            document_view.setModel(DocumentTreeModel(mapping))
-            self.main_view.mdi_area.addSubWindow(document_view)
-            document_view.show()
+        with open(fn, 'rb') as file:
+            mapping = json.loads(file.read().decode())
+        document_view = DocumentView()
+        document_view.setWindowTitle(fn)
+        document_view.setModel(DocumentTreeModel(mapping))
+        self.main_view.mdi_area.addSubWindow(document_view)
+        document_view.show()
 
     def open_quit_dialog(self):
-        return QtGui.QMessageBox.question(self,
+        return QtGui.QMessageBox.question(
+            self,
             APPLICATION_NAME, "Are you sure you want to quit?",
-            QtGui.QMessageBox.No | QtGui.QMessageBox.Yes) == QtGui.QMessageBox.Yes
+            QtGui.QMessageBox.No | QtGui.QMessageBox.Yes) == \
+            QtGui.QMessageBox.Yes
 
     def closeEvent(self, event):
         if self.open_quit_dialog():
@@ -594,12 +627,14 @@ class MainWindow(QtGui.QMainWindow):
         else:
             event.ignore()
 
+
 class MdiArea(QtGui.QMdiArea):
     pass
 
+
 class MainView(QtGui.QWidget):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(MainView, self).__init__(parent)
         self.db_tree_model = DBTreeModel()
         self.setupUI()
@@ -626,25 +661,28 @@ class MainView(QtGui.QWidget):
             if isinstance(node, DBCollectionTreeItem):
                 query_view = QueryView(node.parent.db, self)
                 query_view.setWindowTitle(node.parent.db.name)
-                #self.query_views.append(query_view)
+                # self.query_views.append(query_view)
                 query_view.set_collection(node.collection)
                 self.mdi_area.addSubWindow(query_view)
                 query_view.show()
                 query_view.execute_query()
 
+
 class DBTreeView(QtGui.QTreeView):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(DBTreeView, self).__init__(parent)
         self.setHeaderHidden(True)
-        self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.setSizePolicy(QtGui.QSizePolicy.Minimum,
+                           QtGui.QSizePolicy.Expanding)
 
     def minimumSizeHint(self):
         return QtCore.QSize(250, 500)
 
+
 class QueryView(QtGui.QWidget):
 
-    def __init__(self, db, parent = None):
+    def __init__(self, db, parent=None):
         super(QueryView, self).__init__(parent)
         self.db = db
         self.setupUI()
@@ -652,12 +690,15 @@ class QueryView(QtGui.QWidget):
 
     def setupUI(self):
         main_layout = QtGui.QVBoxLayout()
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.setSizePolicy(QtGui.QSizePolicy.Expanding,
+                           QtGui.QSizePolicy.Expanding)
         self.setLayout(main_layout)
         self.query_edit = QtGui.QLineEdit(self)
         self.tree_view = QtGui.QTreeView(self)
-        self.tree_view.setSelectionBehavior(QtGui.QAbstractItemView.SelectItems)
-        self.tree_view.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.tree_view.setSelectionBehavior(
+            QtGui.QAbstractItemView.SelectItems)
+        self.tree_view.setSelectionMode(
+            QtGui.QAbstractItemView.SingleSelection)
         self.scroll_group = QtGui.QGroupBox(self)
         scroll_layout = QtGui.QHBoxLayout()
         scroll_layout.setAlignment(Qt.AlignRight)
@@ -715,9 +756,10 @@ class QueryView(QtGui.QWidget):
                     "'{}': {}".format(type(error), error))
                 msg_box.exec_()
             else:
-                docs_model = CursorTreeModel(result_cursor, (0, DOC_INDEX_INC), self)
+                docs_model = CursorTreeModel(
+                    result_cursor, (0, DOC_INDEX_INC), self)
                 self.tree_view.setModel(docs_model)
-                self.tree_view.setExpanded(docs_model.index(0,0), True)
+                self.tree_view.setExpanded(docs_model.index(0, 0), True)
                 self.tree_view.resizeColumnToContents(0)
                 self.tree_view.resizeColumnToContents(1)
                 self.tree_view.resizeColumnToContents(2)
@@ -757,6 +799,7 @@ class QueryView(QtGui.QWidget):
 
     def update_index(self):
         self.tree_view.model().doc_index = self.index_start, self.index_stop
+
 
 def main():
     app = QtGui.QApplication(sys.argv)

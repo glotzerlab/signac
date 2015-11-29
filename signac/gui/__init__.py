@@ -1,3 +1,7 @@
+"""Graphical User Interface (GUI) for configuration and database inspection.
+
+The GUI is a leight-weight interface which makes the configuration
+of the signac framework and data inspection more straight-forward."""
 import warnings
 try:
     import PySide  # noqa

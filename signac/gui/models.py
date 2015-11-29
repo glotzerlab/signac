@@ -7,6 +7,7 @@ from PySide.QtCore import Qt
 
 logger = logging.getLogger(__name__)
 
+
 class TreeItem(object):
 
     def __init__(self, data, parent):
@@ -29,25 +30,26 @@ class TreeItem(object):
     def row(self):
         return self.parent.get_index(self)
 
+
 class BasicTreeModel(QtCore.QAbstractItemModel):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(BasicTreeModel, self).__init__(parent)
 
     @property
     def children(self):
         raise NotImplementedError()
 
-    def index(self, row, column, parent = QtCore.QModelIndex()):
+    def index(self, row, column, parent=QtCore.QModelIndex()):
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
         if parent.isValid():
             parent_node = parent.internalPointer()
             return self.createIndex(row, column, parent_node.children[row])
-        else: # root nodes
+        else:  # root nodes
             return self.createIndex(row, column, self.children[row])
 
-    def parent(self, index = QtCore.QModelIndex()):
+    def parent(self, index=QtCore.QModelIndex()):
         if not index.isValid():
             return QtCore.QModelIndex()
         node = index.internalPointer()
@@ -58,7 +60,7 @@ class BasicTreeModel(QtCore.QAbstractItemModel):
         else:
             return self.createIndex(parent.row(), 0, parent)
 
-    def data(self, index, role = None):
+    def data(self, index, role=None):
         if index.isValid():
             if role == QtCore.Qt.DisplayRole:
                 if index.column() == 0:
@@ -76,11 +78,12 @@ class BasicTreeModel(QtCore.QAbstractItemModel):
         else:
             return 1
 
-    def rowCount(self, parent = QtCore.QModelIndex()):
+    def rowCount(self, parent=QtCore.QModelIndex()):
         if parent.isValid():
             return parent.internalPointer().rowCount()
         else:
             return len(self.children)
+
 
 class ListItem(TreeItem):
 
@@ -96,6 +99,7 @@ class ListItem(TreeItem):
     def columnCount(self):
         return 3
 
+
 class MappingTreeModel(object):
 
     def __init__(self, key, data, parent):
@@ -105,7 +109,8 @@ class MappingTreeModel(object):
         self.children = []
 
         if isinstance(data, collections.Mapping):
-            self.children = [MappingTreeModel(key, value, self) for key, value in data.items()]
+            self.children = [MappingTreeModel(
+                key, value, self) for key, value in data.items()]
         elif isinstance(data, list):
             self.children = [ListItem(v, self) for v in data]
         else:
@@ -133,9 +138,10 @@ class MappingTreeModel(object):
     def columnCount(self):
         return 3
 
+
 class DocumentTreeElement(TreeItem):
 
-    def __init__(self, row, doc, parent = None):
+    def __init__(self, row, doc, parent=None):
         super(DocumentTreeElement, self).__init__(doc, parent)
         self._row = row
         self._items = None
@@ -153,11 +159,13 @@ class DocumentTreeElement(TreeItem):
     @property
     def children(self):
         if self._items is None:
-            self._items = [MappingTreeModel(key, value, self) for key, value in self.doc.items()]
+            self._items = [MappingTreeModel(key, value, self)
+                           for key, value in self.doc.items()]
         return self._items
 
     def name(self):
-        return "({row}) {_id}".format(row=self.row(), _id=self.doc.get('_id',''))
+        return "({row}) {_id}".format(
+            row=self.row(), _id=self.doc.get('_id', ''))
 
     def value(self):
         return None
@@ -165,9 +173,10 @@ class DocumentTreeElement(TreeItem):
     def type(self):
         return None
 
+
 class DocumentTreeModel(BasicTreeModel):
 
-    def __init__(self, document, parent = None):
+    def __init__(self, document, parent=None):
         super(DocumentTreeModel, self).__init__(parent)
         self.root = DocumentTreeElement(0, document)
 
@@ -175,7 +184,7 @@ class DocumentTreeModel(BasicTreeModel):
     def children(self):
         return [self.root]
 
-    def columnCount(self, parent = QtCore.QModelIndex()):
+    def columnCount(self, parent=QtCore.QModelIndex()):
         return 3
 
     def headerData(self, section, orientation, role):
@@ -190,9 +199,10 @@ class DocumentTreeModel(BasicTreeModel):
     def row(self):
         return 0
 
+
 class CursorTreeModel(BasicTreeModel):
 
-    def __init__(self, cursor, doc_index ,parent = None):
+    def __init__(self, cursor, doc_index, parent=None):
         super(CursorTreeModel, self).__init__(parent)
         self._cursor = cursor
         self._doc_index = doc_index
@@ -222,13 +232,14 @@ class CursorTreeModel(BasicTreeModel):
             cursor = self._cursor.clone()
             inherent_limit = cursor.count(True)
             cursor.skip(self.doc_index[0])
-            delta = self.doc_index[1]-self.doc_index[0]
+            delta = self.doc_index[1] - self.doc_index[0]
             cursor.limit(min(inherent_limit, delta))
-            self._docs = [DocumentTreeElement(i, doc) for i, doc in enumerate(cursor)]
+            self._docs = [DocumentTreeElement(i, doc)
+                          for i, doc in enumerate(cursor)]
             self._index_modified = False
         return self._docs
 
-    def columnCount(self, parent = QtCore.QModelIndex()):
+    def columnCount(self, parent=QtCore.QModelIndex()):
         return 3
 
     def headerData(self, section, orientation, role):
@@ -240,6 +251,7 @@ class CursorTreeModel(BasicTreeModel):
             elif section == 2:
                 return "Type"
 
+
 class DBCollectionTreeItem(TreeItem):
 
     @property
@@ -249,9 +261,10 @@ class DBCollectionTreeItem(TreeItem):
     def name(self):
         return self.collection.name
 
+
 class DBTreeItem(TreeItem):
 
-    def __init__(self, db, parent = None):
+    def __init__(self, db, parent=None):
         super(DBTreeItem, self).__init__(db, parent)
         self._collections = None
 
@@ -262,15 +275,17 @@ class DBTreeItem(TreeItem):
     @property
     def children(self):
         if self._collections is None:
-            self._collections = [DBCollectionTreeItem(self.db[c], self) for c in self.db.collection_names()]
+            self._collections = [DBCollectionTreeItem(
+                self.db[c], self) for c in self.db.collection_names()]
         return self._collections
 
     def name(self):
         return self.db.name
 
+
 class DBClientTreeItem(TreeItem):
 
-    def __init__(self, row, connector, parent = None):
+    def __init__(self, row, connector, parent=None):
         super(DBClientTreeItem, self).__init__(connector, parent)
         self._databases = None
         self._row = row
@@ -286,9 +301,11 @@ class DBClientTreeItem(TreeItem):
             self.connector.authenticate()
             client = self.connector.client
             try:
-                self._databases = [DBTreeItem(client[n], self) for n in client.database_names()]
+                self._databases = [DBTreeItem(client[n], self)
+                                   for n in client.database_names()]
             except pymongo.errors.OperationFailure:
-                self._databases = [DBTreeItem(client[self.connector.config['db_auth']], self)]
+                self._databases = [DBTreeItem(
+                    client[self.connector.config['db_auth']], self)]
         return self._databases
 
     def name(self):
@@ -297,9 +314,10 @@ class DBClientTreeItem(TreeItem):
     def row(self):
         return self._row
 
+
 class DBTreeModel(BasicTreeModel):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         super(DBTreeModel, self).__init__(parent)
         self.connectors = list()
 
@@ -320,4 +338,3 @@ class DBTreeModel(BasicTreeModel):
     def headerData(self, section, orientation, role):
         if (orientation == Qt.Horizontal and role == Qt.DisplayRole):
             return "Hosts"
-
