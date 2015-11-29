@@ -4,20 +4,24 @@ import json
 import glob
 import six
 import collections
-if six.PY3:
-    from collections import abc
-else:
-    import abc
-import itertools
 
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
 
+if six.PY3:
+    from collections.abc import Mapping
+else:
+    from collections import Mapping
+
 logger = logging.getLogger(__name__)
 
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
+
+if not six.PY3:
+    class FileNotFoundError(IOError):
+        pass
 
 
 class Project(object):
@@ -60,7 +64,7 @@ class Project(object):
             return wd
         else:
             return os.path.join(self.root_directory(), wd)
-        #return self._config['workspace_dir']
+        # return self._config['workspace_dir']
 
     def get_id(self):
         """Get the project identifier.
@@ -95,7 +99,6 @@ class Project(object):
         for statepoint in self.find_statepoints(filter=filter):
             yield Job(self, statepoint)
 
-
     def find_statepoints(self, filter=None):
         """Find all statepoints in the project's workspace.
 
@@ -104,7 +107,7 @@ class Project(object):
         :yields: statepoints as dict"""
         def _match(doc, f):
             for key, value in f.items():
-                if not key in doc or doc[key] != value:
+                if key not in doc or doc[key] != value:
                     return False
             return True
         for fn_manifest in glob.iglob(os.path.join(
@@ -113,8 +116,6 @@ class Project(object):
                 statepoint = json.load(manifest)
                 if filter is None or _match(statepoint, filter):
                     yield statepoint
-
-
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -167,7 +168,8 @@ class Project(object):
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
-        except FileNotFoundError:
+        except IOError:
+            # except FileNotFoundError:
             tmp = dict()
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:
@@ -231,7 +233,9 @@ class Project(object):
         :param prefix: Specifies where to create the links.
         :param prefix_filter: Add a prefix as function of the filter."""
         if prefix_filter and filter is not None:
-            prefix = os.path.join(prefix, *(os.path.join(str(k), str(v)) for k, v in filter.items()))
+            prefix = os.path.join(
+                prefix, *(os.path.join(str(k), str(v))
+                          for k, v in filter.items()))
         statepoints = list(self.find_statepoints(filter=filter))
         for statepoint, url in _make_urls(statepoints):
             src = self.open_job(statepoint).workspace()
@@ -269,9 +273,13 @@ class Project(object):
 def _make_link(src, dst):
     try:
         os.makedirs(os.path.dirname(dst))
-    except FileExistsError:
+    except OSError:
+        # except FileExistsError:
         pass
-    os.symlink(src, dst, target_is_directory=True)
+    if six.PY3:
+        os.symlink(src, dst, target_is_directory=True)
+    else:
+        os.symlink(src, dst)
 
 
 def _make_urls(statepoints):
@@ -292,16 +300,28 @@ def _make_urls(statepoints):
 
 def _find_unique_keys(statepoints):
     key_set = _aggregate_statepoints(statepoints)
-    def flatten(l):
-        for el in l:
-            if isinstance(el, collections.Iterable) and not isinstance(el, str):
-                for sub in flatten(el):
-                    yield sub
-            else:
-                yield el
+    if six.PY2:
+        def flatten(l):
+            for el in l:
+                if isinstance(el, collections.Iterable) and not \
+                        (isinstance(el, str) or isinstance(el, unicode)):  # noqa
+                    for sub in flatten(el):
+                        yield sub
+                else:
+                    yield el
+    else:
+        def flatten(l):
+            for el in l:
+                if isinstance(el, collections.Iterable) and \
+                        not (isinstance(el, str)):
+                    for sub in flatten(el):
+                        yield sub
+                else:
+                    yield el
     key_set = (list(flatten(k)) for k in key_set)
     for key in sorted(key_set, key=len):
         yield key
+
 
 def _aggregate_statepoints(statepoints, prefix=None):
     result = list()
@@ -315,17 +335,17 @@ def _aggregate_statepoints(statepoints, prefix=None):
             try:
                 statepoint_set[key].add(value)
             except TypeError:
-                if isinstance(value, abc.Mapping):
+                if isinstance(value, Mapping):
                     result.extend(_aggregate_statepoints(
                         [sp[key] for sp in statepoints if key in sp],
-                        prefix = (key) if prefix is None else (prefix, key)))
+                        prefix=(key) if prefix is None else (prefix, key)))
                     ignore.add(key)
                 else:
                     statepoint_set[key].add(calc_id(value))
     # Heal heterogenous parameter space.
     for statepoint in statepoints:
         for key in statepoint_set.keys():
-            if not key in statepoint:
+            if key not in statepoint:
                 statepoint_set[key].add(None)
     unique_keys = list(k for k, v in sorted(
         statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)

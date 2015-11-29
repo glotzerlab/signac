@@ -2,13 +2,19 @@ import unittest
 import os
 import io
 import warnings
-import tempfile
 import uuid
 import copy
 import random
+import six
 
 import signac.contrib
 import signac.common.config
+
+if six.PY3:
+    from tempfile import TemporaryDirectory
+else:
+    from tempdir import TemporaryDirectory
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -27,6 +33,7 @@ BUILTINS = [
     ({'b': 1.0}, '0ba6c5a46111313f11c41a6642520451'),
 ]
 
+
 def builtins_dict():
     random.shuffle(BUILTINS)
     d = dict()
@@ -35,11 +42,13 @@ def builtins_dict():
     return d
 BUILTINS_HASH = '7a80b58db53bbc544fc27fcaaba2ce44'
 
+
 def nested_dict():
     d = dict(builtins_dict())
     d['g'] = builtins_dict()
     return d
 NESTED_HASH = 'bd6f5828f4410b665bffcec46abeb8f3'
+
 
 def config_from_cfg(cfg):
     cfile = io.StringIO('\n'.join(cfg))
@@ -65,7 +74,7 @@ def testdata():
 class BaseJobTest(unittest.TestCase):
 
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix='signac_')
+        self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
@@ -88,20 +97,25 @@ class BaseJobTest(unittest.TestCase):
         project = self.project
         return project.open_job(*args, **kwargs)
 
+
 class JobIDTest(BaseJobTest):
 
     def test_builtins(self):
         for p, h in BUILTINS:
             self.assertEqual(str(self.project.open_job(p)), h)
-        self.assertEqual(str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
+        self.assertEqual(
+            str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
 
     def test_shuffle(self):
         for i in range(10):
-            self.assertEqual(str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
+            self.assertEqual(
+                str(self.project.open_job(builtins_dict())), BUILTINS_HASH)
 
     def test_nested(self):
         for i in range(10):
-            self.assertEqual(str(self.project.open_job(nested_dict())), NESTED_HASH)
+            self.assertEqual(
+                str(self.project.open_job(nested_dict())), NESTED_HASH)
+
 
 class ConfigTest(BaseJobTest):
 
@@ -201,6 +215,25 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.document.get(key), d)
         self.assertEqual(job.document.get('bs', d), d)
 
+    def test_copy_document(self):
+        key = 'get_set'
+        d = testdata()
+        job = self.open_job(test_token)
+        job.document[key] = d
+        self.assertTrue(bool(job.document))
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key, job.document)
+        self.assertEqual(job.document[key], d)
+        self.assertEqual(job.document.get(key), d)
+        self.assertEqual(job.document.get('bs', d), d)
+        copy = dict(job.document)
+        self.assertTrue(bool(copy))
+        self.assertEqual(len(copy), 1)
+        self.assertIn(key, copy)
+        self.assertEqual(copy[key], d)
+        self.assertEqual(copy.get(key), d)
+        self.assertEqual(copy.get('bs', d), d)
+
     def test_update(self):
         key = 'get_set'
         d = testdata()
@@ -229,6 +262,7 @@ class JobDocumentTest(BaseJobTest):
         job2 = self.open_job(test_token)
         self.assertIn(key, job2.document)
         self.assertEqual(len(job2.document), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

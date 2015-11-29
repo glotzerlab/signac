@@ -2,11 +2,11 @@ import unittest
 import os
 import uuid
 import warnings
-from tempfile import TemporaryDirectory
 
 import signac
 
 from test_job import BaseJobTest
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -52,7 +52,8 @@ class ProjectTest(BaseProjectTest):
         for sp in statepoints:
             job = self.project.open_job(sp)
             job.document['test'] = True
-        self.assertEqual(len(statepoints), len(list(self.project.find_statepoints())))
+        self.assertEqual(len(statepoints), len(
+            list(self.project.find_statepoints())))
 
     def test_find_jobs(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -66,11 +67,13 @@ class ProjectTest(BaseProjectTest):
         # Test for highly heterogenous parameter space
         sp_0 = [{'a': i, 'b': 0} for i in range(5)]
         sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
-        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
         statepoints = sp_0 + sp_1 + sp_2
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        self.assertEqual(len(statepoints), len(list(signac.contrib.project._make_urls(statepoints))))
+        self.assertEqual(len(statepoints), len(
+            list(signac.contrib.project._make_urls(statepoints))))
         view_prefix = os.path.join(self._tmp_pr, 'view')
         self.project.create_view(prefix=view_prefix)
         self.assertTrue(os.path.isdir(view_prefix))
@@ -79,7 +82,8 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        self.assertEqual(len(list(self.project.find_job_documents({'a': 0}))), 1)
+        self.assertEqual(
+            len(list(self.project.find_job_documents({'a': 0}))), 1)
         job_docs = list(self.project.find_job_documents())
         self.assertEqual(len(statepoints), len(job_docs))
         for job_doc in job_docs:
@@ -90,8 +94,9 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        job_docs = list(self.project.find_job_documents())
-        self.assertEqual(len(statepoints), len(list(self.project.find_job_documents())))
+        list(self.project.find_job_documents())
+        self.assertEqual(len(statepoints), len(
+            list(self.project.find_job_documents())))
         self.project.open_job({'a': 0}).document['_id'] = True
         list(self.project.find_job_documents({'a': 1}))  # should not throw
         with self.assertRaises(KeyError):
@@ -104,7 +109,6 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents({'a': 1}))
         list(self.project.find_job_documents({'a': 2}))  # should not throw
-
 
 
 if __name__ == '__main__':

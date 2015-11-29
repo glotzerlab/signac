@@ -139,7 +139,7 @@ class FileLink(BaseLink):
         fn = os.path.join(self.root, self.url)
         try:
             return open(fn, 'rb')
-        except FileNotFoundError as error:
+        except IOError as error:
             msg = "Unable to open file '{}': {}. root='{}'"
             logger.warning(msg.format(fn, error, self.root))
             raise LinkError(error)

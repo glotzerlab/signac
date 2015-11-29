@@ -1,9 +1,14 @@
 import os
 import unittest
-import tempfile
+import six
 import uuid
 
 from signac.core.jsondict import JSonDict
+
+if six.PY3:
+    from tempfile import TemporaryDirectory
+else:
+    from tempdir import TemporaryDirectory
 
 FN_DICT = 'jsondict.json'
 
@@ -15,7 +20,7 @@ def testdata():
 class BaseJSonDictTest(unittest.TestCase):
 
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
         self.addCleanup(self._tmp_dir.cleanup)
 
@@ -117,6 +122,16 @@ class JSonDictTest(BaseJSonDictTest):
         jsd2.load()
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
+
+    def test_copy_as_dict(self):
+        jsd = self.get_json_dict()
+        key = 'copy'
+        d = testdata()
+        jsd[key] = d
+        copy = dict(jsd)
+        del jsd
+        self.assertTrue(key in copy)
+        self.assertEqual(copy[key], d)
 
 
 class SynchronizedDictTest(JSonDictTest):
