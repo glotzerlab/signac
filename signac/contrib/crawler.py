@@ -388,7 +388,8 @@ def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
 
     .. code-block:: python
 
-        db.index.insert_many(crawler.crawl())
+        for _id, doc in crawler.crawl(*args, **kwargs):
+            index.replace_one({'_id': _id}, doc)
 
     :param crawler: The crawler to execute.
     :param index: A index collection to export to.
@@ -419,7 +420,8 @@ def export(crawler, index, *args, **kwargs):
 
     .. code-block:: python
 
-        db.index.insert_many(crawler.crawl())
+        for _id, doc in crawler.crawl(*args, **kwargs):
+            index.replace_one({'_id': _id}, doc)
 
     :param crawler: The crawler to execute.
     :param index: A index collection to export to.

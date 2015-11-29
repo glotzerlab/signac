@@ -108,9 +108,9 @@ The index is then generated through the :py:meth:`~signac.contrib.RegexFileCrawl
    crawler = MyCrawler('/data/my_project')
    db.index.insert_many(crawler.crawl())
 
-.. seealso::
+.. hint::
 
-    Because this is such a common pattern, this particular function has been optimized, please see :py:func:`~signac.contrib.export_pymongo`.
+    Use the optimized export functions :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo` for faster export and avoidance of duplicates.
 
 Indexing a signac project
 -------------------------
@@ -118,12 +118,30 @@ Indexing a signac project
 Indexing signac projects is simplified by using a :py:class:`~signac.contrib.SignacProjectCrawler`.
 In this case meta data is automatically retrieved from the state point as well as from the :py:meth:`signac.contrib.job.Job.document`.
 
+Using a :py:class:`~signac.contrib.SignacProjectCrawler` we only need to point the crawler at our project's workspace and all state points are retrieved from the state point manifest file.
+
+.. code:: python
+
+    import re
+
+    import signac
+    from signac.contrib.formats import TextFile
+
+    class MyCrawler(signac.contrib.SignacProjectCrawler):
+        pass
+    MyCrawler.define(re.compile('.*\.txt'), Textfile)
+
+Notice that we used the regular expression to identify the text files that we want to index, but not to identify our state point.
+However we can further extend our meta data using regular expressions to further diversify data within our state point data space.
+An expression such as ``.*\(?P<class>init|final)\.txt`` will only match files named ``init.txt`` or ``final.txt``, and will add a field ``class`` to our database record, which will either have the value ``init`` or ``final``.
+
+
 Master crawlers
 ---------------
 
 It his highly recommended to not execute crawlers directly, but rather use a so called :py:class:`~signac.contrib.MasterCrawler`, which tries to find other crawlers and automatically executes them.
-In this way we don't need to care about the actual location of our data within our file system as long as the local hierarchy is preserved.
-The master crawler searches for modules called `signac_access.py` and tries to call a function called `get_crawlers()`.
+Using a :py:class:`~signac.contrib.MasterCrawler` we don't need to care about the actual location of our data within our file system as long as the local hierarchy is preserved.
+The master crawler searches for modules called ``signac_access.py`` and tries to call a function called ``get_crawlers()``.
 This function is defined as follows:
 
 .. py:function:: signac_access.get_crawlers(root)
@@ -135,11 +153,36 @@ This function is defined as follows:
     :type root: str
     :returns: A mapping of crawler id and crawler instance.
 
-This is minimal example for a `signac_access.py` file:
+The master crawler is then executed for the indexed data space.
+
+.. code:: python
+
+    >>> master_crawler = signac.contrib.MasterCrawler('/data')
+    >>> signac.contrib.export_pymongo(master_crawler, db.master_index, depth=1)
+
+The functions :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo` are optimized for exporting to an index collection, ensuring that the collection does not contain any duplicates.
+The behaviour of these functions is roughly equivalent to
+
+.. code:: python
+
+    for _id, doc in crawler.crawl(*args, **kwargs):
+        index.replace_one({'_id': _id}, doc)
+
+Calling the crawler directly will generate a sequence of JSON files can be manually exposed to an index, which does not support the ``replace_one()`` syntax.
+
+.. warning::
+
+    Especially for master crawlers it is recommended to reduce the crawl depth to avoid too extensive crawling operations over the *complete* filesystem.
+
+
+Examples for ``signac_access.py``
+---------------------------------
+
+This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.crawler.RegexFileCrawler`:
 
 .. code-block:: python
 
-    # ~/signac_access.py
+    # signac_access.py
     import os
     import re
 
@@ -160,20 +203,28 @@ This is minimal example for a `signac_access.py` file:
         'main': MyCrawler(os.path.join(root, 'my_project'))
         }
 
-The master crawler is then executed for the indexed data space.
+This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.crawler.SignacProjectCrawler`:
 
-.. code-block:: python
+.. code:: python
 
-    >>> master_crawler = signac.contrib.MasterCrawler('/data')
-    >>> signac.contrib.export_pymongo(master_crawler, db.master_index, depth=1)
+    # signac_access.py
+    import os
+    import re
 
-.. warning::
+    import signac
+    from signac.contrib.formats import TextFile
 
-    Especially for master crawlers it is recommended to reduce the crawl depth to avoid too extensive crawling operations over the *complete* filesystem.
+    class MyCrawler(signac.contrib.SignacProjectCrawler):
+        pass
+    MyCrawler.define(re.compile('.*\.txt'), Textfile)
 
-.. seealso::
+    def get_crawlers(root):
+        return {'main': MyCrawler(os.path.join(root, 'path/to/workspace'))}
 
-    This usage pattern has been optimized, please see :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo`.
+.. note::
+
+    The crawler's root is the project's **workspace**.
+
 
 Processing data
 ===============
