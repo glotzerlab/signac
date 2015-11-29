@@ -9,6 +9,7 @@ some other weaknesses in implementation.
 """
 
 import os
+import errno
 import six
 import logging
 import uuid
@@ -25,7 +26,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 if not six.PY3:
-    class UserDict(UD, object):
+    class UserDict(UD, object):  # noqa
         pass
 
 
@@ -91,7 +92,9 @@ class JSonDict(UserDict):
                 "Document file '{}' seems to be corrupted! Unable "
                 "to load document.".format(self._filename))
             raise
-        except IOError:
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
             pass
 
     def _dump(self):

@@ -3,6 +3,7 @@ import logging
 import json
 import glob
 import six
+import errno
 import collections
 
 from ..common.config import load_config
@@ -18,10 +19,6 @@ logger = logging.getLogger(__name__)
 
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
-
-if not six.PY3:
-    class FileNotFoundError(IOError):
-        pass
 
 
 class Project(object):
@@ -168,8 +165,10 @@ class Project(object):
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
-        except IOError:
-            # except FileNotFoundError:
+        # except FileNotFoundError:
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
             tmp = dict()
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:

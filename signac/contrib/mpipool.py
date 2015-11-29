@@ -6,10 +6,11 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
+from mpi4py import MPI
+
+
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
-
-from mpi4py import MPI
 
 
 class MPIPool(object):

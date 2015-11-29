@@ -1,4 +1,5 @@
 import logging
+import errno
 from six import with_metaclass
 
 from .conversion import Adapter
@@ -140,6 +141,8 @@ class FileLink(BaseLink):
         try:
             return open(fn, 'rb')
         except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
             msg = "Unable to open file '{}': {}. root='{}'"
             logger.warning(msg.format(fn, error, self.root))
             raise LinkError(error)
