@@ -16,6 +16,7 @@ Contents:
 
    overview
    installation
+   gui
    configuration
    projects
    database

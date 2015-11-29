@@ -2,8 +2,8 @@
 Configuration
 =============
 
-Signac is designed to be used with a MongoDB database as backend.
-Use signac-gui_ to configure one or more MongoDB database hosts.
+Signac is designed to be used with a MongoDB database as back end.
+Use the :doc:`signac gui <gui>` to configure one or more MongoDB database hosts.
 Alternatively you can also create configuration files manually.
 
 .. _signac-gui: https://bitbucket.org/glotzer/signac-gui
