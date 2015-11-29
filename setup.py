@@ -30,5 +30,12 @@ setup(
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
         'conversion': ['networkx>=1.1.0'],
+        'gui': ['PySide'],
+    },
+
+    entry_points={
+        'console_scripts': [
+            'signac-gui = signac.gui:main',
+        ],
     },
 )
