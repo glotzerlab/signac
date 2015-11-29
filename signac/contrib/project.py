@@ -272,8 +272,10 @@ class Project(object):
 def _make_link(src, dst):
     try:
         os.makedirs(os.path.dirname(dst))
-    except OSError:
-        # except FileExistsError:
+    # except FileExistsError:
+    except OSError as error:
+        if error.errno != errno.EEXIST:
+            raise
         pass
     if six.PY3:
         os.symlink(src, dst, target_is_directory=True)
