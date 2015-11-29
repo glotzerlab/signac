@@ -1,7 +1,7 @@
 import sys
 
 if sys.version_info <= (2,7,0):
-    print("Error: signac requires python version >= 2.7.")
+    print("Error: signac requires python version >= 2.7.x.")
     sys.exit(1)
 
 from setuptools import setup, find_packages
