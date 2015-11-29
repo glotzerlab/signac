@@ -1,0 +1,18 @@
+0.2.2
+
+	 - Fix SignacProjectCrawler 'super()' bug.
+
+0.2.1
+
+	 - python 2.7 support
+	 - gui (early alpha) included
+	 - relative and default workspace paths
+	 - create project views
+	 - find_*() functions to search the workspace
+	 - write and read state point hash tables
+
+0.2.0
+
+   - Initial release of 0.2.x series.
+	 - Major consolidation of the package.
+	 - Remove all hard dependencies, but six.
