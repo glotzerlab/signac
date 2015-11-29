@@ -1,9 +1,5 @@
 import re
 import subprocess
-import queue
-import itertools
-from threading import Thread, Event
-from math import tanh
 
 
 def get_subject_from_certificate(fn_certificate):
@@ -18,42 +14,6 @@ def get_subject_from_certificate(fn_certificate):
         lines = cert_txt.split('\n')
         assert lines[0].startswith('subject=')
         return lines[0][len('subject='):].strip()
-
-
-def fetch(target, timeout=None, stop_event=None):
-    tmp_queue = queue.Queue()
-    if stop_event is None:
-        stop_event = Event()
-
-    def inner_loop():
-        w = (tanh(0.05 * i) for i in itertools.count())
-        while(not stop_event.is_set()):
-            result = target()
-            if result is not None:
-                tmp_queue.put(result)
-                return
-        stop_event.wait(max(0.001, next(w)))
-    thread_fetch = Thread(target=inner_loop)
-    thread_fetch.start()
-    try:
-        thread_fetch.join(timeout=timeout)
-    except KeyboardInterrupt:
-        stop_event.set()
-        thread_fetch.join()
-        raise
-    if thread_fetch.is_alive():
-        stop_event.set()
-        thread_fetch.join()
-    try:
-        return tmp_queue.get_nowait()
-    except queue.Empty:
-        raise TimeoutError()
-
-
-def mongodb_fetch_find_one(collection, spec, timeout=None):
-    def target():
-        return collection.find_one(spec)
-    return fetch(target=target, timeout=timeout)
 
 
 class Version(dict):

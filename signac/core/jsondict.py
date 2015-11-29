@@ -9,9 +9,14 @@ some other weaknesses in implementation.
 """
 
 import os
-import collections
+import errno
+import six
 import logging
 import uuid
+if six.PY3:
+    from collections import UserDict
+else:
+    from UserDict import UserDict as UD
 
 try:
     import bson.json_util as json
@@ -20,14 +25,20 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+if not six.PY3:
+    class UserDict(UD, object):  # noqa
+        pass
 
-class JSonDict(collections.UserDict):
+
+class JSonDict(UserDict):
 
     def __init__(self, filename, synchronized=False, write_concern=False):
         self.data = dict()
         self._filename = filename
         self._synchronized = synchronized
         self._write_concern = write_concern
+        if self._synchronized:
+            self.load()
 
     def __setitem__(self, key, value):
         if self._synchronized:
@@ -81,7 +92,9 @@ class JSonDict(collections.UserDict):
                 "Document file '{}' seems to be corrupted! Unable "
                 "to load document.".format(self._filename))
             raise
-        except FileNotFoundError:
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
             pass
 
     def _dump(self):
@@ -99,7 +112,10 @@ class JSonDict(collections.UserDict):
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
             tmpfile.write(self._dump().encode())
-        os.replace(fn_tmp, self._filename)
+        if six.PY3:
+            os.replace(fn_tmp, self._filename)
+        else:
+            os.rename(fn_tmp, self._filename)
 
     def save(self):
         if self._write_concern:
@@ -120,7 +136,8 @@ class JSonDict(collections.UserDict):
     def __iter__(self):
         if self._synchronized:
             self.load()
-        yield from self.data
+        for d in self.data:
+            yield d
 
     def __str__(self):
         if self._synchronized:

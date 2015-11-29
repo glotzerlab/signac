@@ -1,4 +1,6 @@
 import logging
+import errno
+from six import with_metaclass
 
 from .conversion import Adapter
 
@@ -15,10 +17,10 @@ class _FormatMetaType(type):
         else:
             cls.registry[name] = cls
 
-        super().__init__(name, bases, dct)
+        super(_FormatMetaType, cls).__init__(name, bases, dct)
 
 
-class BasicFormat(metaclass=_FormatMetaType):
+class BasicFormat(with_metaclass(_FormatMetaType)):
     pass
 
 
@@ -47,7 +49,7 @@ class LinkError(EnvironmentError):
     pass
 
 
-class BaseLink(metaclass=_LinkMetaType):
+class BaseLink(with_metaclass(_LinkMetaType)):
     """BaseLink allows to create a generic link to an object.
 
     Derive from this class and implement the fetch method
@@ -138,7 +140,9 @@ class FileLink(BaseLink):
         fn = os.path.join(self.root, self.url)
         try:
             return open(fn, 'rb')
-        except FileNotFoundError as error:
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
             msg = "Unable to open file '{}': {}. root='{}'"
             logger.warning(msg.format(fn, error, self.root))
             raise LinkError(error)

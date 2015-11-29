@@ -1,8 +1,14 @@
 import unittest
+import six
 import tempfile
 import uuid
 import os
-import sys
+if six.PY3:
+    from tempfile import TemporaryDirectory
+else:
+    from tempdir import TemporaryDirectory
+    import logging
+    logging.basicConfig()
 
 try:
     import signac.contrib.formats_network
@@ -10,6 +16,7 @@ except ImportError:
     NETWORK_X_AVAILABLE = False
 else:
     NETWORK_X_AVAILABLE = True
+
 
 @unittest.skipIf(not NETWORK_X_AVAILABLE, 'networkx not available')
 class ConversionTest(unittest.TestCase):
@@ -35,20 +42,26 @@ class ConversionTest(unittest.TestCase):
         cn.convert(b, str)
         cn.convert(b, float)
         cn.convert(b, bool)
-        class CustomInt(int): pass
+
+        class CustomInt(int):
+            pass
         c = CustomInt(42)
         cn.convert(c, float)
         d = 42.0
         cn.convert(d, float)
-        class CustomType(object): pass
+
+        class CustomType(object):
+            pass
         e = CustomType()
-        with self.assertRaises(signac.contrib.formats_network.NoConversionPathError):
+        with self.assertRaises(
+                signac.contrib.formats_network.NoConversionPathError):
             cn.convert(e, float)
         l = [a, b, c, d]
-        l2 = list(cn.converted(l, float))
+        list(cn.converted(l, float))
 
     def test_fileformat(self):
-        testtoken=str(uuid.uuid4())
+        testtoken = str(uuid.uuid4())
+
         class MyFileFormat(signac.contrib.formats.FileFormat):
             pass
         with tempfile.NamedTemporaryFile() as tmp:
@@ -61,12 +74,15 @@ class ConversionTest(unittest.TestCase):
             self.assertEqual(myfile.data.decode(), testtoken)
 
     def test_link(self):
-        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = TemporaryDirectory()
         self.addCleanup(self.tmp_dir.cleanup)
-        testtoken=str(uuid.uuid4())
+        testtoken = str(uuid.uuid4())
+
         def fn(name):
             return os.path.join(self.tmp_dir.name, name)
-        class MyLink(signac.contrib.formats.FileLink): pass
+
+        class MyLink(signac.contrib.formats.FileLink):
+            pass
         # MyLink.linked_format must be specified in class definitions
         # for automatic Adapter generation.
         with self.assertRaises(TypeError):
@@ -85,11 +101,13 @@ class ConversionTest(unittest.TestCase):
         data._file_object.close()
 
     def test_link_conversion(self):
-        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = TemporaryDirectory()
         self.addCleanup(self.tmp_dir.cleanup)
-        testtoken=str(uuid.uuid4())
+        testtoken = str(uuid.uuid4())
+
         def fn(name):
             return os.path.join(self.tmp_dir.name, name)
+
         class MyLink(signac.contrib.formats.FileLink):
             linked_format = signac.contrib.formats.TextFile
         MyLink.set_root(self.tmp_dir.name)

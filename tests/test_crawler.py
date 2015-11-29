@@ -1,10 +1,15 @@
 import unittest
 import os
 import re
-import tempfile
+import six
 import json
 
 import signac.contrib
+
+if six.PY3:
+    from tempfile import TemporaryDirectory
+else:
+    from tempdir import TemporaryDirectory
 
 SIGNAC_ACCESS_MODULE = """import os
 import re
@@ -20,10 +25,11 @@ def get_crawlers(root):
     return {'main':  Crawler(os.path.join(root, '.'))}
 """
 
+
 class CrawlerBaseTest(unittest.TestCase):
 
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory(prefix='signac_')
+        self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
 
     def test_regex_file_crawler(self):
@@ -33,14 +39,15 @@ class CrawlerBaseTest(unittest.TestCase):
             file.write('{"a": 0}')
         with open(fn('a_1.txt'), 'w') as file:
             file.write('{"a": 1}')
+
         class MyType(object):
             pass
         crawler = signac.contrib.RegexFileCrawler(root=self._tmp_dir.name)
         regex = re.compile(".*a_(?P<a>\d)\.txt")
-        crawler.definitions.update({regex : MyType})
-        no_find=True
+        crawler.definitions.update({regex: MyType})
+        no_find = True
         for doc_id, doc in crawler.crawl():
-            no_find=False
+            no_find = False
             self.assertEqual(doc_id, doc['_id'])
             ffn = os.path.join(doc['root'], doc['filename'])
             m = regex.match(ffn)
@@ -61,9 +68,9 @@ class CrawlerBaseTest(unittest.TestCase):
         with open(fn('signac_access.py'), 'w') as module:
             module.write(SIGNAC_ACCESS_MODULE)
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
-        no_find=True
+        no_find = True
         for doc_id, doc in crawler.crawl():
-            no_find=False
+            no_find = False
             self.assertEqual(doc_id, doc['_id'])
             ffn = os.path.join(doc['root'], doc['filename'])
             self.assertTrue(os.path.isfile(ffn))

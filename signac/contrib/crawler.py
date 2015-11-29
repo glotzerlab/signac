@@ -2,10 +2,15 @@ import os
 import re
 import logging
 import json
-import importlib.machinery
+import six
 
 from .utility import walkdepth
 from .hashing import calc_id
+
+if six.PY3:
+    import importlib.machinery
+else:
+    import imp
 
 
 logger = logging.getLogger(__name__)
@@ -67,8 +72,9 @@ class BaseCrawler(object):
     def crawl(self, depth=0):
         """Crawl through the `root` directory.
 
-        The crawler will inspect every file and directory up until the specified
-        `depth` and call the :meth:`docs_from_file` method.
+        The crawler will inspect every file and directory up
+        until the specified `depth` and call the
+        :meth:`docs_from_file` method.
 
         :param depth: Crawl through the directory for the specified depth.
                       A value of 0 specifies no limit.
@@ -104,9 +110,10 @@ class BaseCrawler(object):
 class RegexFileCrawler(BaseCrawler):
     """Generate documents from filenames and associate each file with a data type.
 
-    The `RegexFileCrawler` uses regular expressions to generate data from files.
-    This is a particular easy method to retrieve meta data associated with files.
-    Inherit from this class to configure a crawler for your data structre.
+    The `RegexFileCrawler` uses regular expressions to generate
+    data from files. This is a particular easy method to retrieve meta data
+    associated with files. Inherit from this class to configure a crawler
+    for your data structre.
 
     Let's assume we want to index text files, with a naming pattern, that
     specifies a parameter `a` through the filename, e.g.:
@@ -149,7 +156,8 @@ class RegexFileCrawler(BaseCrawler):
     def define(cls, regex, format_):
         """Define a format for a particular regular expression.
 
-        :param regex: All files of the specified format must match this expression.
+        :param regex: All files of the specified format
+            must match this expression.
         :type regex: `compiled regular expression`_
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
@@ -184,9 +192,10 @@ class RegexFileCrawler(BaseCrawler):
 
         .. note::
 
-            For generality the :meth:`~.BaseCrawler.fetch` method is a generator function,
-            which may yield an arbitrary number of objects of arbitrary type.
-            In the case of the :class:`~.RegexFileCrawler` it will always yield
+            For generality the :meth:`~.BaseCrawler.fetch` method is
+            a generator function, which may yield an arbitrary number
+            of objects of arbitrary type. In the case of the
+            :class:`~.RegexFileCrawler` it will always yield
             exactly **one** object."""
         fn = doc.get(KEY_FILENAME)
         if fn:
@@ -215,7 +224,6 @@ class RegexFileCrawler(BaseCrawler):
         :returns: A document, that means an instance of mapping.
         :rtype: mapping"""
         result = dict()
-        types = (int, float)
         for key, value in doc.items():
             if isinstance(value, bool):
                 result[key] = value
@@ -229,7 +237,7 @@ class RegexFileCrawler(BaseCrawler):
                     result[key] = int(value)
                 else:
                     result[key] = float(value)
-        return super().process(result, dirpath, fn)
+        return super(RegexFileCrawler, self).process(result, dirpath, fn)
 
 
 class JSONCrawler(BaseCrawler):
@@ -243,7 +251,8 @@ class JSONCrawler(BaseCrawler):
         if re.match(self.fn_regex, os.path.join(dirpath, fn)):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
-                yield from self.docs_from_json(doc)
+                for d in self.docs_from_json(doc):
+                    return d
 
 
 class SignacProjectBaseCrawler(BaseCrawler):
@@ -287,7 +296,9 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
             job_doc['_id'] = signac_id
             job_doc['statepoint'] = statepoint
             yield job_doc
-        yield from super().docs_from_file(dirpath, fn)
+        for doc in super(SignacProjectJobDocumentCrawler, self).docs_from_file(
+                dirpath, fn):
+            yield doc
 
 
 class SignacProjectCrawler(
@@ -319,7 +330,8 @@ class MasterCrawler(BaseCrawler):
     def docs_from_file(self, dirpath, fn):
         if fn == FN_CRAWLER:
             try:
-                yield from self._docs_from_module(dirpath, fn)
+                for doc in self._docs_from_module(dirpath, fn):
+                    yield doc
             except AttributeError as error:
                 if str(error) == 'get_crawlers':
                     logger.warning(
@@ -333,12 +345,12 @@ class MasterCrawler(BaseCrawler):
             else:
                 logger.debug("Executed slave crawlers.")
 
-    def fetch(self, doc):
-        yield from fetch(doc)
-
 
 def _load_crawler(name):
-    return importlib.machinery.SourceFileLoader(name, name).load_module()
+    if six.PY3:
+        return importlib.machinery.SourceFileLoader(name, name).load_module()
+    else:
+        return imp.load_source(os.path.splitext(name)[0], name)
 
 
 def fetch(doc):
@@ -359,7 +371,8 @@ def fetch(doc):
             link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
         crawler_module = _load_crawler(fn_module)
         crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-        yield from crawlers[link[KEY_CRAWLER_ID]].fetch(doc)
+        for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc):
+            yield d
 
 
 def fetched(docs):
