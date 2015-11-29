@@ -215,7 +215,7 @@ class RegexFileCrawler(BaseCrawler):
             MyCrawler(signac.contrib.crawler.RegexFileCrawler):
                 def process(self, doc, dirpath, fn):
                     doc['long_name_for_a'] = doc['a']
-                    return super().process(doc, dirpath, fn)
+                    return super(MyCrawler, self).process(doc, dirpath, fn)
 
         :param dirpath: The path of the file, relative to `root`.
         :type dirpath: str
@@ -270,7 +270,7 @@ class SignacProjectBaseCrawler(BaseCrawler):
         signac_id, statepoint = self.get_statepoint(dirpath)
         doc.update(statepoint)
         doc['signac_id'] = signac_id
-        return super().process(doc, dirpath, fn)
+        return super(SignacProjectBaseCrawler, self).process(doc, dirpath, fn)
 
 
 class SignacProjectRegexFileCrawler(
