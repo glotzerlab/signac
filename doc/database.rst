@@ -116,9 +116,9 @@ Indexing a signac project
 -------------------------
 
 Indexing signac projects is simplified by using a :py:class:`~signac.contrib.SignacProjectCrawler`.
-In this case meta data is automatically retrieved from the state point as well as from the :py:meth:`signac.contrib.job.Job.document`.
+In this case meta data is automatically retrieved from the state point as well as from the :py:meth:`job.document <signac.contrib.job.Job.document>`.
 
-Using a :py:class:`~signac.contrib.SignacProjectCrawler` we only need to point the crawler at our project's workspace and all state points are retrieved from the state point manifest file.
+Using a :py:class:`~signac.contrib.SignacProjectCrawler` we only need to point the crawler at our project's workspace and all state points are automatically retrieved from the state point manifest file.
 
 .. code:: python
 
@@ -223,7 +223,7 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
 
 .. note::
 
-    The crawler's root is the project's **workspace**.
+    The root argument for a signac project crawler should be the project's **workspace**.
 
 
 Processing data

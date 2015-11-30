@@ -11,7 +11,7 @@ Alternatively you can also create configuration files manually.
 Manual configuration
 ====================
 
-signac is configured with configuration files, which are named either `.signacrc` or `signac.rc`.
+signac is configured with configuration files, which are named either ``.signacrc`` or ``signac.rc``.
 These configuration files are searched for at multiple locations in the following order:
 
   1. in the current working directory,
@@ -35,21 +35,21 @@ This is an example for a user configuration file:
 Host configuration
 ------------------
 
-You can configure one or multiple hosts in the `[hosts]` section, where each subsection header specifies the hosts name.
+You can configure one or multiple hosts in the ``[hosts]`` section, where each subsection header specifies the hosts name.
 
 .. warning::
-   Change the file permissions of your configuration file to user read-write only in case that you need to store authentication credentials within your configuration file.
+   Change the file permissions of your configuration file to *user read-write only* in case that you need to store authentication credentials within your configuration file.
 
-   In UNIX-like operating systems this is accomplished with: `chmod 600 .signacrc`
+   In UNIX-like operating systems this is accomplished with: ``chmod 600 .signacrc``
 
 url
-  The url specifies the MongoDB host url, e.g. `localhost`.
+  The url specifies the MongoDB host url, e.g. ``localhost``.
 authentication_method (default=none)
-  Specify the authentication method with the database, possible choices are: `none`, `SCRAM-SHA-1`, `SSL-x509` and `SSL`.
+  Specify the authentication method with the database, possible choices are: ``none``, ``SCRAM-SHA-1``, ``SSL-x509`` and ``SSL``.
 username
-  A username is required if you authenticate via `SCRAM-SHA-1`.
+  A username is required if you authenticate via ``SCRAM-SHA-1``.
 password
-  The password to authenticate via `SCRAM-SHA-1`.
+  The password to authenticate via ``SCRAM-SHA-1``.
   You need to change the file permissions of your configuration file to user read-write only for signac to read your password from the configuration file.
 db_auth (default=admin)
   The database to authenticate with.
@@ -57,7 +57,7 @@ db_auth (default=admin)
 Project configuration
 ---------------------
 
-A project configuration file is defined by containing the keyword `project`.
+A project configuration file is defined by containing the keyword *project*.
 Once signac found a project configuration file it will stop to search for more configuration files above the current working directory.
 
 This is an example for a project configuration file:
