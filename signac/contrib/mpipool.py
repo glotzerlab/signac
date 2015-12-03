@@ -6,8 +6,6 @@
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-from mpi4py import MPI
-
 
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
@@ -39,7 +37,14 @@ class MPIPool(object):
     """
 
     def __init__(self, comm=None, debug=False, loadbalance=False):
-        self.comm = MPI.COMM_WORLD if comm is None else comm
+        if comm is None:
+            # Late import of the MPI constant is necessary, to avoid
+            # early mpi initialization, which causes critital errors
+            # on badly configured systems.
+            from mpi4py import MPI
+            self.comm = MPI.COMM_WORLD
+        else:
+            self.comm = comm
         self.rank = self.comm.Get_rank()
         self.size = self.comm.Get_size() - 1
         self.debug = debug
