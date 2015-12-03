@@ -72,8 +72,10 @@ class ProjectTest(BaseProjectTest):
         statepoints = sp_0 + sp_1 + sp_2
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
+        unique_statepoints = list(signac.contrib.project._find_unique_keys(statepoints))
         self.assertEqual(len(statepoints), len(
-            list(signac.contrib.project._make_urls(statepoints))))
+            list(signac.contrib.project._make_urls(
+                statepoints, unique_statepoints))))
         view_prefix = os.path.join(self._tmp_pr, 'view')
         self.project.create_view(prefix=view_prefix)
         self.assertTrue(os.path.isdir(view_prefix))
@@ -109,6 +111,22 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents({'a': 1}))
         list(self.project.find_job_documents({'a': 2}))  # should not throw
+
+    def test_corrupted_workspace(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        # no manifest file
+        with self.project.open_job(statepoints[0]) as job:
+            os.remove(job.FN_MANIFEST)
+        # no blank manifest file
+        with self.project.open_job(statepoints[1]) as job:
+            with open(job.FN_MANIFEST, 'w'):
+                pass
+        for i, statepoint in enumerate(self.project.find_statepoints()):
+            print(i, statepoint)
+            #print(statepoint)
+
 
 
 if __name__ == '__main__':
