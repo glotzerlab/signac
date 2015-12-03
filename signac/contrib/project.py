@@ -238,8 +238,7 @@ class Project(object):
                 logger.warning("No state points matched the filter.")
         key_set = list(_find_unique_keys(statepoints))
         if filter is not None:
-            key_set.extend(([key] for key in filter.keys()))
-        print(key_set)
+            key_set[:0] = [[key] for key in filter.keys()]
         for statepoint, url in _make_urls(statepoints, key_set):
             src = self.open_job(statepoint).workspace()
             dst = os.path.join(prefix, url)
