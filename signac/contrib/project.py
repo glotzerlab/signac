@@ -193,7 +193,7 @@ class Project(object):
         """
         return self.read_statepoints(fn=fn)[jobid]
 
-    def create_view(self, filter=None, prefix='view', prefix_filter=True):
+    def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
 
         This function gathers all varying statepoint parameters
@@ -229,16 +229,22 @@ class Project(object):
         :param filter:  If not None,
             create view only for jobs matching filter.
         :type filter: mapping
-        :param prefix: Specifies where to create the links.
-        :param prefix_filter: Add a prefix as function of the filter."""
-        if prefix_filter and filter is not None:
-            prefix = os.path.join(
-                prefix, *(os.path.join(str(k), str(v))
-                          for k, v in filter.items()))
+        :param prefix: Specifies where to create the links."""
         statepoints = list(self.find_statepoints(filter=filter))
-        for statepoint, url in _make_urls(statepoints):
+        if not len(statepoints):
+            if filter is None:
+                logger.warning("No state points found!")
+            else:
+                logger.warning("No state points matched the filter.")
+        key_set = list(_find_unique_keys(statepoints))
+        if filter is not None:
+            key_set.extend(([key] for key in filter.keys()))
+        print(key_set)
+        for statepoint, url in _make_urls(statepoints, key_set):
             src = self.open_job(statepoint).workspace()
             dst = os.path.join(prefix, url)
+            logger.info(
+                "Creating link {src} -> {dst}".format(src=src, dst=dst))
             _make_link(src, dst)
 
     def find_job_documents(self, filter=None):
@@ -283,9 +289,8 @@ def _make_link(src, dst):
         os.symlink(src, dst)
 
 
-def _make_urls(statepoints):
+def _make_urls(statepoints, key_set):
     "Create unique URLs for all jobs matching filter."
-    key_set = list(_find_unique_keys(statepoints))
     for statepoint in statepoints:
         url = []
         for keys in key_set:
