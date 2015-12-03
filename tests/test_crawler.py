@@ -32,7 +32,7 @@ class CrawlerBaseTest(unittest.TestCase):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
 
-    def test_regex_file_crawler(self):
+    def test_regex_file_crawler_pre_compiled(self):
         def fn(name):
             return os.path.join(self._tmp_dir.name, name)
         with open(fn('a_0.txt'), 'w') as file:
@@ -45,6 +45,33 @@ class CrawlerBaseTest(unittest.TestCase):
         crawler = signac.contrib.RegexFileCrawler(root=self._tmp_dir.name)
         regex = re.compile(".*a_(?P<a>\d)\.txt")
         crawler.definitions.update({regex: MyType})
+        no_find = True
+        for doc_id, doc in crawler.crawl():
+            no_find = False
+            self.assertEqual(doc_id, doc['_id'])
+            ffn = os.path.join(doc['root'], doc['filename'])
+            m = regex.match(ffn)
+            self.assertIsNotNone(m)
+            self.assertTrue(os.path.isfile(ffn))
+            with open(ffn) as file:
+                doc2 = json.load(file)
+                self.assertEqual(doc2['a'], doc['a'])
+        self.assertFalse(no_find)
+
+    def test_regex_file_crawler(self):
+        def fn(name):
+            return os.path.join(self._tmp_dir.name, name)
+        with open(fn('a_0.txt'), 'w') as file:
+            file.write('{"a": 0}')
+        with open(fn('a_1.txt'), 'w') as file:
+            file.write('{"a": 1}')
+
+        class MyType(object):
+            pass
+        crawler = signac.contrib.RegexFileCrawler(root=self._tmp_dir.name)
+        pattern = ".*a_(?P<a>\d)\.txt"
+        regex = re.compile(pattern)
+        crawler.define(pattern, MyType)
         no_find = True
         for doc_id, doc in crawler.crawl():
             no_find = False
