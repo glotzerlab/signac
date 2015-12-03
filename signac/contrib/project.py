@@ -296,7 +296,8 @@ def _make_urls(statepoints):
                 if v is None:
                     break
             url.append(str(v))
-        yield statepoint, os.path.join(*url)
+        if len(url):
+            yield statepoint, os.path.join(*url)
 
 
 def _find_unique_keys(statepoints):
