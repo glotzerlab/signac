@@ -124,6 +124,8 @@ class RegexFileCrawler(BaseCrawler):
         ~/my_project/a_1.txt
         ...
 
+    A valid regular expression to match this patter would be: ``a_(?P<a>\d+)\.txt``.
+
     A regular expression crawler for this structure could be implemented
     like this:
 
@@ -136,11 +138,10 @@ class RegexFileCrawler(BaseCrawler):
                 # file is a file-like object
                 return file.read()
 
-        # This expressions yields mappings of the type: {'a': value_of_a}.
-        RE_TXT = re.compile('a_(?P<a>\d+).txt')
+        MyCrawler(RegexFileCrawler):
+            pass
 
-        MyCrawler(RegexFileCrawler): pass
-        MyCrawler.define(RE_TXT, TextFile)
+        MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
 
     In this case we could also use :class:`.contrib.formats.TextFile`
     as data type which is an implementation of the example shown above.
@@ -157,12 +158,18 @@ class RegexFileCrawler(BaseCrawler):
         """Define a format for a particular regular expression.
 
         :param regex: All files of the specified format
-            must match this expression.
-        :type regex: `compiled regular expression`_
+            must match this regular expression.
+        :type regex: :class:`str` or `compiled regular expression`_
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
 
         .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
+        if six.PY3:
+            if isinstance(regex, str):
+                regex = re.compile(regex)
+        else:
+            if isinstance(regex, basestring):
+                regex = re.compile(regex)
         cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
