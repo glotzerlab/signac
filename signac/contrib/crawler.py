@@ -3,6 +3,7 @@ import re
 import logging
 import json
 import six
+import math
 
 from .utility import walkdepth
 from .hashing import calc_id
@@ -236,14 +237,15 @@ class RegexFileCrawler(BaseCrawler):
                 result[key] = value
                 continue
             try:
-                float(value)
+                value = float(value)
             except ValueError:
                 result[key] = value
             else:
-                if float(value) == int(value):
-                    result[key] = int(value)
-                else:
-                    result[key] = float(value)
+                if not math.isnan(value) or math.isinf(value):
+                    if float(value) == int(value):
+                        result[key] = int(value)
+                    else:
+                        result[key] = float(value)
         return super(RegexFileCrawler, self).process(result, dirpath, fn)
 
 
@@ -259,7 +261,7 @@ class JSONCrawler(BaseCrawler):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
                 for d in self.docs_from_json(doc):
-                    return d
+                    yield d
 
 
 class SignacProjectBaseCrawler(BaseCrawler):
