@@ -114,10 +114,10 @@ class Project(object):
                     statepoint = json.load(manifest)
                     if filter is None or _match(statepoint, filter):
                         yield statepoint
-            except IOError as error:
-                logger.warning("error occured while processing file:", fn_manifest, error);
-            except OSError as error:
-                logger.warning("error occured while processing file:", fn_manifest, error);
+            except (IOError, ValueError) as error:
+                errorstr = str(error)
+                logger.error("error occured while processing file: {} erorr: {}\n".format(fn_manifest, errorstr));
+                raise
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -132,19 +132,8 @@ class Project(object):
         if fn is None:
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
         # See comment in write statepoints.
-        #try:
         with open(fn, 'r') as file:
             return json.loads(file.read())
-        # except IOError as error:
-        #     logger.error("Error occured while reading statepoint file {}".format(fn));
-        #     logger.error("must call project.write_statepoints before using this function.");
-        #     logger.error(error);
-        #     raise
-
-        # We could check to see if the jobs in the list exist before returning
-        # Do we want to keep workspace and signac_statepoints.json in sync?
-        # Do the statepoints in this file need to have jobs in the workspace?
-        #   -- if we do that here is do we gain a speed up over find_state
 
     def dump_statepoints(self, statepoints):
         """Dump the statepoints and associated job ids.
@@ -184,10 +173,6 @@ class Project(object):
         try:
             tmp = self.read_statepoints(fn=fn)
         # except FileNotFoundError:
-        # We may want to consider a programatic check since this is a
-        # standard code path i.e. if( not os.path.exists()) ... else: ...
-        # I think it makes things cleaner but this is just my style
-        # then I would have something like the commented code in read_statepoints
         except IOError as error:
             if not error.errno == errno.ENOENT:
                 raise
@@ -195,6 +180,39 @@ class Project(object):
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
+
+    def verify_statepoints(self, fn=None):
+        """Verifies all statepoints in the project's workspace.
+
+        :returns: list of directories in the workspace that are corrupted"""
+        error_list = [];
+        errct = 0;
+        # try to get the current list of the statepoints.
+        if fn is None:
+            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+        try:
+            statepoints = self.read_statepoints(fn=fn)
+        # except FileNotFoundError:
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
+            statepoints = dict()
+
+        for fn_manifest in glob.iglob(os.path.join(
+                self.workspace(), '*', Job.FN_MANIFEST)):
+            try:
+                logger.debug("attempting to read statepoint ".format(fn_manifest))
+                with open(fn_manifest) as manifest:
+                    json.load(manifest);
+            except (IOError, OSError, ValueError) as error: #maybe remove OSError
+                errct += 1;
+                logger.error("error occured while processing file:{} {}".format(fn_manifest, error));
+                jobid = os.path.basename(os.path.dirname(fn_manifest));
+                if jobid in statepoints:
+                    logger.info("found corrupted statepoint in hash table: {}".format( statepoints[jobid]));
+                error_list.append(os.path.dirname(fn_manifest));
+        logger.info("Found {} errors.".format(errct));
+        return error_list;
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
@@ -297,7 +315,6 @@ class Project(object):
 
 
 def _make_link(src, dst):
-    # same goes here for standard code paths.
     try:
         os.makedirs(os.path.dirname(dst))
     # except FileExistsError:
