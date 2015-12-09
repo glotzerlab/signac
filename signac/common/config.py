@@ -48,7 +48,7 @@ def search_standard_dirs():
 
 def check_permissions(filename):
     st = os.stat(filename)
-    if (st.st_mode & stat.S_IROTH):
+    if st.st_mode & stat.S_IROTH or st.st_mode & stat.S_IRGRP:
         raise PermissionsError("Permissions of configuration file '{fn}'"
                                "allow it to be read by others than the user. "
                                "Unable to read/write password.".format(
@@ -59,9 +59,13 @@ def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     config = Config(filename, configspec=cfg.split('\n'))
     config.validate(get_validator())
-    for key in config:
-        if key.endswith('password'):
-            check_permissions(filename)
+
+    def is_pw(section, key):
+        assert not key.endswith('password')
+    try:
+        config.walk(is_pw)
+    except AssertionError:
+        check_permissions(filename)
     return config
 
 

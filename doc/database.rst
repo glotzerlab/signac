@@ -90,11 +90,11 @@ The final implementation of crawler then looks like this:
             # file is a file-like object
             return file.read()
 
-    # This expressions yields mappings of the type: {'a': value_of_a}.
-    RE_TXT = re.compile('a_(?P<a>\d+)\.txt')
+    MyCrawler(RegexFileCrawler):
+      pass
 
-    MyCrawler(RegexFileCrawler): pass
-    MyCrawler.define(RE_TXT, TextFile)
+    # This expressions yields mappings of the type: {'a': value_of_a}.
+    MyCrawler.define('a_(?P<a>\d+)\.txt', TextFile)
 
 In this case we could also use :class:`.contrib.formats.TextFile`
 as data type which is an implementation of the example shown above.
@@ -129,7 +129,7 @@ Using a :py:class:`~signac.contrib.SignacProjectCrawler` we only need to point t
 
     class MyCrawler(signac.contrib.SignacProjectCrawler):
         pass
-    MyCrawler.define(re.compile('.*\.txt'), Textfile)
+    MyCrawler.define('.*\.txt', Textfile)
 
 Notice that we used the regular expression to identify the text files that we want to index, but not to identify our state point.
 However we can further extend our meta data using regular expressions to further diversify data within our state point data space.
@@ -194,7 +194,7 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
     MyCrawler(RegexFileCrawler): pass
 
     # Add file definitions for each file type, that should be part of the index.
-    MyCrawler.define(re.compile('a_(?P<a>\d+\.txt'), TextFile)
+    MyCrawler.define('a_(?P<a>\d+\.txt', TextFile)
 
     # Expose the data structures to a master crawler
     def get_crawlers(root):
@@ -216,7 +216,7 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
 
     class MyCrawler(signac.contrib.SignacProjectCrawler):
         pass
-    MyCrawler.define(re.compile('.*\.txt'), Textfile)
+    MyCrawler.define('.*\.txt', Textfile)
 
     def get_crawlers(root):
         return {'main': MyCrawler(os.path.join(root, 'path/to/workspace'))}
