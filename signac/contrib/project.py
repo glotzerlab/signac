@@ -93,14 +93,17 @@ class Project(object):
         :param filter: If not None, only find jobs matching the filter.
         :type filter: mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`"""
-        for statepoint in self.find_statepoints(filter=filter):
+        for statepoint in self.find_statepoints(filter):
             yield Job(self, statepoint)
 
-    def find_statepoints(self, filter=None):
+    def find_statepoints(self, filter=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         :param filter: If not None, only yield statepoints matching the filter.
         :type filter: mapping
+        :param skip_errors: Show, but otherwise ignore errors while iterating
+            over the workspace. Use this argument to repair a corrupted workspace.
+        :type skip_erros: bool
         :yields: statepoints as dict"""
         def _match(doc, f):
             for key, value in f.items():
@@ -118,7 +121,8 @@ class Project(object):
                 msg = "Error while trying to access manifest file: "\
                       "'{}'. Error: '{}'.".format(fn_manifest, error)
                 logger.critical(msg)
-                raise error
+                if not skip_errors:
+                    raise error
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -182,38 +186,6 @@ class Project(object):
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
-    def verify_statepoints(self, fn=None):
-        """Verifies all statepoints in the project's workspace.
-
-        :returns: list of directories in the workspace that are corrupted"""
-        error_list = [];
-        errct = 0;
-        # try to get the current list of the statepoints.
-        if fn is None:
-            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
-        try:
-            statepoints = self.read_statepoints(fn=fn)
-        # except FileNotFoundError:
-        except IOError as error:
-            if not error.errno == errno.ENOENT:
-                raise
-            statepoints = dict()
-
-        for fn_manifest in glob.iglob(os.path.join(
-                self.workspace(), '*', Job.FN_MANIFEST)):
-            try:
-                logger.debug("attempting to read statepoint ".format(fn_manifest))
-                with open(fn_manifest) as manifest:
-                    json.load(manifest);
-            except (IOError, OSError, ValueError) as error: #maybe remove OSError
-                errct += 1;
-                logger.error("error occured while processing file:{} {}".format(fn_manifest, error));
-                jobid = os.path.basename(os.path.dirname(fn_manifest));
-                if jobid in statepoints:
-                    logger.info("found corrupted statepoint in hash table: {}".format( statepoints[jobid]));
-                error_list.append(os.path.dirname(fn_manifest));
-        logger.info("Found {} errors.".format(errct));
-        return error_list;
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
@@ -313,6 +285,33 @@ class Project(object):
             doc['_id'] = str(job)
             doc['statepoint'] = job.statepoint()
             yield doc
+
+    def repair(self):
+        "Attempt to repair the workspace after it got corrupted."
+        for fn in glob.iglob(os.path.join(self.workspace(), '*')):
+            jobid = os.path.split(fn)[-1]
+            fn_manifest = os.path.join(fn, Job.FN_MANIFEST)
+            try:
+                with open(fn_manifest) as manifest:
+                    statepoint = json.load(manifest)
+            except Exception as error:
+                logger.warning(
+                    "Encountered error while reading from '{}'. "
+                    "Error: {}".format(fn_manifest, error))
+                try:
+                    logger.info("Attempt to recover statepoint from file.")
+                    statepoint = self.get_statepoint(jobid)
+                    self.open_job(statepoint)._create_directory(overwrite=True)
+                except IOError as error:
+                    if FN_STATEPOINTS in str(error):
+                        raise RuntimeWarning(
+                            "Use write_statepoints() before attempting to repair!")
+                    raise
+                except Exception:
+                    logger.error("Attemp to repair job space failed.")
+                    raise
+                else:
+                    logger.info("Successfully recovered state point.")
 
 
 def _make_link(src, dst):

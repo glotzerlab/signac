@@ -77,7 +77,7 @@ class Job(object):
                 fn, synchronized=True, write_concern=True)
         return self._document
 
-    def _create_directory(self):
+    def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
 
@@ -90,7 +90,7 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                mode = 'wx' if six.PY2 else 'x'
+                mode = 'w' if overwrite else 'wx' if six.PY2 else 'x'
                 with open(fn_manifest, mode) as file:
                     file.write(blob)
             except IOError as error:

@@ -2,6 +2,7 @@ import unittest
 import os
 import uuid
 import warnings
+import logging
 
 import signac
 
@@ -112,7 +113,7 @@ class ProjectTest(BaseProjectTest):
             list(self.project.find_job_documents({'a': 1}))
         list(self.project.find_job_documents({'a': 2}))  # should not throw
 
-    def test_corrupted_workspace(self):
+    def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
@@ -123,11 +124,28 @@ class ProjectTest(BaseProjectTest):
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
-        # There is really not much that we can but warn the user here.
-        # We might introduce a repair() function at some point.
-        with self.assertRaises(ValueError):
+        # Implement logging temporarily
+        try:
+            logging.disable(logging.CRITICAL)
+            # There is really not much that we can but warn the user here.
+            # We might introduce a repair() function at some point.
+            with self.assertRaises(ValueError):
+                for i, statepoint in enumerate(self.project.find_statepoints()):
+                    pass
+            # The skip_errors function helps to identify corrupt directories.
+            for i, statepoint in enumerate(self.project.find_statepoints(
+                    skip_errors=True)):
+                pass
+            with self.assertRaises(RuntimeWarning):
+                self.project.repair()
+            self.project.write_statepoints(statepoints)
+            self.project.repair()
             for i, statepoint in enumerate(self.project.find_statepoints()):
-                print(i, statepoint)
+                pass
+        except:
+            raise
+        finally:
+            logging.disable(logging.NOTSET)
 
 
 
