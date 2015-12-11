@@ -114,10 +114,11 @@ class Project(object):
                     statepoint = json.load(manifest)
                     if filter is None or _match(statepoint, filter):
                         yield statepoint
-            except (IOError, ValueError) as error:
-                errorstr = str(error)
-                logger.error("error occured while processing file: {} erorr: {}\n".format(fn_manifest, errorstr));
-                raise
+            except Exception as error:
+                msg = "Error while trying to access manifest file: "\
+                      "'{}'. Error: '{}'.".format(fn_manifest, error)
+                logger.critical(msg)
+                raise error
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.

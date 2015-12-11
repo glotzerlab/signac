@@ -119,13 +119,15 @@ class ProjectTest(BaseProjectTest):
         # no manifest file
         with self.project.open_job(statepoints[0]) as job:
             os.remove(job.FN_MANIFEST)
-        # no blank manifest file
+        # blank manifest file
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
-        for i, statepoint in enumerate(self.project.find_statepoints()):
-            print(i, statepoint)
-            #print(statepoint)
+        # There is really not much that we can but warn the user here.
+        # We might introduce a repair() function at some point.
+        with self.assertRaises(ValueError):
+            for i, statepoint in enumerate(self.project.find_statepoints()):
+                print(i, statepoint)
 
 
 
