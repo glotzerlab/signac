@@ -1,4 +1,5 @@
 import unittest
+import logging
 import six
 import tempfile
 import uuid
@@ -89,8 +90,14 @@ class ConversionTest(unittest.TestCase):
             MyLink('testfile')
         MyLink.linked_format = signac.contrib.formats.TextFile
         MyLink.set_root(self.tmp_dir.name)
-        with self.assertRaises(signac.contrib.formats.LinkError):
-            MyLink('bs').data
+        logging.disable(logging.ERROR)
+        try:
+            with self.assertRaises(signac.contrib.formats.LinkError):
+                MyLink('bs').data
+        except:
+            raise
+        finally:
+            logging.disable(logging.NOTSET)
         with open(fn('testfile'), 'w') as file:
             file.write(testtoken)
         link = MyLink('testfile')
