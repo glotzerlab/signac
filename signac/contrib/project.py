@@ -93,14 +93,17 @@ class Project(object):
         :param filter: If not None, only find jobs matching the filter.
         :type filter: mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`"""
-        for statepoint in self.find_statepoints(filter=filter):
+        for statepoint in self.find_statepoints(filter):
             yield Job(self, statepoint)
 
-    def find_statepoints(self, filter=None):
+    def find_statepoints(self, filter=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         :param filter: If not None, only yield statepoints matching the filter.
         :type filter: mapping
+        :param skip_errors: Show, but otherwise ignore errors while iterating
+            over the workspace. Use this argument to repair a corrupted workspace.
+        :type skip_erros: bool
         :yields: statepoints as dict"""
         def _match(doc, f):
             for key, value in f.items():
@@ -109,10 +112,17 @@ class Project(object):
             return True
         for fn_manifest in glob.iglob(os.path.join(
                 self.workspace(), '*', Job.FN_MANIFEST)):
-            with open(fn_manifest) as manifest:
-                statepoint = json.load(manifest)
-                if filter is None or _match(statepoint, filter):
-                    yield statepoint
+            try:
+                with open(fn_manifest) as manifest:
+                    statepoint = json.load(manifest)
+                    if filter is None or _match(statepoint, filter):
+                        yield statepoint
+            except Exception as error:
+                msg = "Error while trying to access manifest file: "\
+                      "'{}'. Error: '{}'.".format(fn_manifest, error)
+                logger.critical(msg)
+                if not skip_errors:
+                    raise error
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -122,9 +132,11 @@ class Project(object):
         :type fn: str
 
         See also :meth:`dump_statepoints`.
+        See also :meth:`write_statepoints`.
         """
         if fn is None:
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+        # See comment in write statepoints.
         with open(fn, 'r') as file:
             return json.loads(file.read())
 
@@ -173,6 +185,7 @@ class Project(object):
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
+
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
@@ -272,6 +285,33 @@ class Project(object):
             doc['_id'] = str(job)
             doc['statepoint'] = job.statepoint()
             yield doc
+
+    def repair(self):
+        "Attempt to repair the workspace after it got corrupted."
+        for fn in glob.iglob(os.path.join(self.workspace(), '*')):
+            jobid = os.path.split(fn)[-1]
+            fn_manifest = os.path.join(fn, Job.FN_MANIFEST)
+            try:
+                with open(fn_manifest) as manifest:
+                    statepoint = json.load(manifest)
+            except Exception as error:
+                logger.warning(
+                    "Encountered error while reading from '{}'. "
+                    "Error: {}".format(fn_manifest, error))
+                try:
+                    logger.info("Attempt to recover statepoint from file.")
+                    statepoint = self.get_statepoint(jobid)
+                    self.open_job(statepoint)._create_directory(overwrite=True)
+                except IOError as error:
+                    if FN_STATEPOINTS in str(error):
+                        raise RuntimeWarning(
+                            "Use write_statepoints() before attempting to repair!")
+                    raise
+                except Exception:
+                    logger.error("Attemp to repair job space failed.")
+                    raise
+                else:
+                    logger.info("Successfully recovered state point.")
 
 
 def _make_link(src, dst):
