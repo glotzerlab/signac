@@ -55,21 +55,39 @@ def check_permissions(filename):
                                    fn=filename))
 
 
+def fix_permissions(filename):
+    os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR)
+
+
+def check_and_fix_permissions(filename):
+    try:
+        check_permissions(filename)
+    except PermissionsError as permissions_error:
+        logger.debug(
+            "{} Attempting to fix permissions.".format(permissions_error))
+        try:
+            fix_permissions(filename)
+        except Exception as error:
+            logger.error(
+                "Failed to fix permissions with error: {}".format(error))
+            raise permissions_error
+        else:
+            logger.debug("Fixed permissions.")
+
+
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     config = Config(filename, configspec=cfg.split('\n'))
     config.validate(get_validator())
-
-    def is_pw(section, key):
-        assert not key.endswith('password')
-    try:
-        config.walk(is_pw)
-    except AssertionError:
-        check_permissions(filename)
+    if config.has_password():
+        check_and_fix_permissions(filename)
     return config
 
 
 def write_config(config, filename):
+    warnings.warn(
+        "The function write_config() is deprecated! "
+        "Use config.write() instead.", DeprecationWarning)
     fn = config.filename
     config.filename = None
     try:
@@ -109,3 +127,18 @@ class Config(ConfigObj):
         if validator is None:
             validator = get_validator()
         super(Config, self).validate(validator, *args, **kwargs)
+
+    def has_password(self):
+        def is_pw(section, key):
+            assert not key.endswith('password')
+        try:
+            self.walk(is_pw)
+            return False
+        except AssertionError:
+            return True
+
+    def write(self, outfile=None, section=None):
+        if outfile is not None:
+            if self.has_password():
+                check_and_fix_permissions(outfile)
+        return super(Config, self).write(outfile=outfile, section=section)
