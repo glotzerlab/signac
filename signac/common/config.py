@@ -109,11 +109,3 @@ class Config(ConfigObj):
         if validator is None:
             validator = get_validator()
         super(Config, self).validate(validator, *args, **kwargs)
-
-    def dump(self):
-        warnings.warn("Do not use dump.", DeprecationWarning)
-        fn = self.filename
-        self.filename = None
-        ret = self.write()
-        self.filename = fn
-        return ret
