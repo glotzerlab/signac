@@ -3,6 +3,7 @@ import re
 import logging
 import json
 import six
+import math
 
 from .utility import walkdepth
 from .hashing import calc_id
@@ -124,6 +125,9 @@ class RegexFileCrawler(BaseCrawler):
         ~/my_project/a_1.txt
         ...
 
+    A valid regular expression to match
+    this patter would be: ``a_(?P<a>\d+)\.txt``.
+
     A regular expression crawler for this structure could be implemented
     like this:
 
@@ -136,11 +140,10 @@ class RegexFileCrawler(BaseCrawler):
                 # file is a file-like object
                 return file.read()
 
-        # This expressions yields mappings of the type: {'a': value_of_a}.
-        RE_TXT = re.compile('a_(?P<a>\d+).txt')
+        MyCrawler(RegexFileCrawler):
+            pass
 
-        MyCrawler(RegexFileCrawler): pass
-        MyCrawler.define(RE_TXT, TextFile)
+        MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
 
     In this case we could also use :class:`.contrib.formats.TextFile`
     as data type which is an implementation of the example shown above.
@@ -157,12 +160,18 @@ class RegexFileCrawler(BaseCrawler):
         """Define a format for a particular regular expression.
 
         :param regex: All files of the specified format
-            must match this expression.
-        :type regex: `compiled regular expression`_
+            must match this regular expression.
+        :type regex: :class:`str` or `compiled regular expression`_
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
 
         .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
+        if six.PY3:
+            if isinstance(regex, str):
+                regex = re.compile(regex)
+        else:
+            if isinstance(regex, basestring):
+                regex = re.compile(regex)
         cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
@@ -229,14 +238,15 @@ class RegexFileCrawler(BaseCrawler):
                 result[key] = value
                 continue
             try:
-                float(value)
+                value = float(value)
             except ValueError:
                 result[key] = value
             else:
-                if float(value) == int(value):
-                    result[key] = int(value)
-                else:
-                    result[key] = float(value)
+                if not math.isnan(value) or math.isinf(value):
+                    if float(value) == int(value):
+                        result[key] = int(value)
+                    else:
+                        result[key] = float(value)
         return super(RegexFileCrawler, self).process(result, dirpath, fn)
 
 
@@ -252,7 +262,7 @@ class JSONCrawler(BaseCrawler):
             with open(os.path.join(dirpath, fn), 'rb') as file:
                 doc = json.loads(file.read().decode(self.encoding))
                 for d in self.docs_from_json(doc):
-                    return d
+                    yield d
 
 
 class SignacProjectBaseCrawler(BaseCrawler):

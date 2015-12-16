@@ -67,6 +67,7 @@ class MPIPool(object):
         If this isn't the master process, wait for instructions.
 
         """
+        from mpi4py import MPI
         if self.is_master():
             raise RuntimeError("Master node told to await jobs.")
 
@@ -126,6 +127,7 @@ class MPIPool(object):
             A callback function to call on each result.
 
         """
+        from mpi4py import MPI
         if ntask is None:
             ntask = len(tasks)
 

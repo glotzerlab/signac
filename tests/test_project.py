@@ -73,10 +73,9 @@ class ProjectTest(BaseProjectTest):
         statepoints = sp_0 + sp_1 + sp_2
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        unique_statepoints = list(signac.contrib.project._find_unique_keys(statepoints))
+        key_set = list(signac.contrib.project._find_unique_keys(statepoints))
         self.assertEqual(len(statepoints), len(
-            list(signac.contrib.project._make_urls(
-                statepoints, unique_statepoints))))
+            list(signac.contrib.project._make_urls(statepoints, key_set))))
         view_prefix = os.path.join(self._tmp_pr, 'view')
         self.project.create_view(prefix=view_prefix)
         self.assertTrue(os.path.isdir(view_prefix))
