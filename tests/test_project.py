@@ -35,6 +35,11 @@ class ProjectTest(BaseProjectTest):
     def test_workspace_directory(self):
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
+    def test_workspace_directory_with_env_variable(self):
+        os.environ['SIGNAC_ENV_DIR_TEST'] = self._tmp_wd
+        self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'
+        self.assertEqual(self._tmp_wd, self.project.workspace())
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)

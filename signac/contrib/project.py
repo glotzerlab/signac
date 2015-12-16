@@ -55,13 +55,16 @@ class Project(object):
         attribute.
         If the specified directory is a relative path,
         the absolute path is relative from the project's
-        root directory."""
-        wd = self._config.get('workspace_dir', 'workspace')
+        root directory.
+
+        .. note::
+            The configuration will respect environment variables,
+            such as $HOME."""
+        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
         if os.path.isabs(wd):
             return wd
         else:
             return os.path.join(self.root_directory(), wd)
-        # return self._config['workspace_dir']
 
     def get_id(self):
         """Get the project identifier.
