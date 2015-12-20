@@ -270,10 +270,13 @@ class SignacProjectBaseCrawler(BaseCrawler):
     fn_statepoint = 'signac_statepoint.json'
 
     def get_statepoint(self, dirpath):
-        with open(os.path.join(dirpath, self.fn_statepoint), 'rb') as file:
+        job_path = os.path.join(
+            self.root,
+            os.path.relpath(dirpath, self.root).split('/')[0])
+        with open(os.path.join(job_path, self.fn_statepoint), 'rb') as file:
             doc = json.loads(file.read().decode(self.encoding))
         signac_id = calc_id(doc)
-        assert dirpath.endswith(signac_id)
+        assert job_path.endswith(signac_id)
         return signac_id, doc
 
     def process(self, doc, dirpath, fn):
