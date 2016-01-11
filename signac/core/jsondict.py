@@ -47,6 +47,7 @@ class JSonDict(UserDict):
             self.save()
         else:
             self.data[key] = value
+        return value
 
     def __getitem__(self, key):
         if self._synchronized:

@@ -2,6 +2,7 @@ import unittest
 import os
 import uuid
 import warnings
+import logging
 
 import signac
 
@@ -32,6 +33,11 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self._tmp_pr, self.project.root_directory())
 
     def test_workspace_directory(self):
+        self.assertEqual(self._tmp_wd, self.project.workspace())
+
+    def test_workspace_directory_with_env_variable(self):
+        os.environ['SIGNAC_ENV_DIR_TEST'] = self._tmp_wd
+        self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
     def test_write_read_statepoint(self):
@@ -110,6 +116,41 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents({'a': 1}))
         list(self.project.find_job_documents({'a': 2}))  # should not throw
+
+    def test_repair_corrupted_workspace(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        # no manifest file
+        with self.project.open_job(statepoints[0]) as job:
+            os.remove(job.FN_MANIFEST)
+        # blank manifest file
+        with self.project.open_job(statepoints[1]) as job:
+            with open(job.FN_MANIFEST, 'w'):
+                pass
+        # Implement logging temporarily
+        try:
+            logging.disable(logging.CRITICAL)
+            # There is really not much that we can but warn the user here.
+            # We might introduce a repair() function at some point.
+            with self.assertRaises(ValueError):
+                for i, statepoint in enumerate(self.project.find_statepoints()):
+                    pass
+            # The skip_errors function helps to identify corrupt directories.
+            for i, statepoint in enumerate(self.project.find_statepoints(
+                    skip_errors=True)):
+                pass
+            with self.assertRaises(RuntimeWarning):
+                self.project.repair()
+            self.project.write_statepoints(statepoints)
+            self.project.repair()
+            for i, statepoint in enumerate(self.project.find_statepoints()):
+                pass
+        except:
+            raise
+        finally:
+            logging.disable(logging.NOTSET)
+
 
 
 if __name__ == '__main__':

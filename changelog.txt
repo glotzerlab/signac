@@ -1,3 +1,18 @@
+0.2.4
+	
+	- Implement repair() function for projects with corrupted workspaces.
+	- Increase robustness of job manifest file creation.
+	- Allow environment variables in workspace path definition.
+	- Check and fix config permission errors.
+	- Fix project crawler deep directory issue (hotfix).
+
+0.2.3
+
+	- Allow the definition of regex patterns for crawlers without regex
+		compilation, but directly as pattern.
+	- Account for NaN and Inf values while crwaling.
+	- Fix a few bugs related to project views.
+
 0.2.2
 
 	 - Fix SignacProjectCrawler 'super()' bug.

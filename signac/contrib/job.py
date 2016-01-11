@@ -2,6 +2,7 @@ import os
 import errno
 import logging
 import json
+import six
 
 from ..core.jsondict import JSonDict
 from .hashing import calc_id
@@ -76,12 +77,32 @@ class Job(object):
                 fn, synchronized=True, write_concern=True)
         return self._document
 
-    def _create_directory(self):
+    def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+
+        # Create the workspace directory if it did not exist yet.
         _mkdir_p(self.workspace())
-        with open(os.path.join(self.workspace(),
-                               self.FN_MANIFEST), 'w') as file:
-            file.write(json.dumps(self.statepoint(), indent=2))
+
+        try:
+            # Ensure to create the binary to write before file creation
+            blob = json.dumps(self.statepoint(), indent=2)
+
+            try:
+                # Open the file for writing only if it does not exist yet.
+                mode = 'w' if overwrite else 'wx' if six.PY2 else 'x'
+                with open(fn_manifest, mode) as file:
+                    file.write(blob)
+            except IOError as error:
+                if not error.errno == errno.EEXIST:
+                    raise
+        except Exception as error:
+            # Attempt to delete the file on error, to prevent corruption.
+            try:
+                os.remove(fn_manifest)
+            except Exception:  # ignore all errors here
+                pass
+            raise error
 
     def open(self):
         """Enter the job's workspace directory.

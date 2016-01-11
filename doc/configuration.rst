@@ -72,5 +72,5 @@ project
   The name is required for the identification of the project's root directory.
 
 workspace_dir
-  The path to your project's workspace, which defaults to ``/$project_root_dir/workspace``.
-  Can be configured relative to the project's root directory or as absolute path.
+  The path to your project's workspace, which defaults to ``$project_root_dir/workspace``.
+  Can be configured relative to the project's root directory or as absolute path and may contain environment variables.
