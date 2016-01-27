@@ -35,6 +35,7 @@ setup(
 
     entry_points={
         'console_scripts': [
+            'signac = signac.__main__:main',
             'signac-gui = signac.gui:main',
         ],
     },
