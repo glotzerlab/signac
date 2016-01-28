@@ -106,8 +106,20 @@ class FileFormat(BasicFormat):
     def data(self):
         return self.read()
 
-    def read(self):
-        return self._file_object.read()
+    def read(self, size=-1):
+        return self._file_object.read(size)
+
+    def seek(self, offset):
+        return self._file_object.seek(offset)
+
+    def tell(self):
+        return self._file_object.tell()
+
+    def __iter__(self):
+        return iter(self._file_object)
+
+    def close(self):
+        return self._file_object.close()
 
 
 class TextFile(FileFormat):
