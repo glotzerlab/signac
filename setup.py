@@ -10,6 +10,7 @@ setup(
     name='signac',
     version='0.2.4',
     packages=find_packages(),
+    zip_safe=True,
 
     author='Carl Simon Adorf',
     author_email='csadorf@umich.edu',
