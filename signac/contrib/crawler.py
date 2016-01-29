@@ -234,7 +234,7 @@ class RegexFileCrawler(BaseCrawler):
         :rtype: mapping"""
         result = dict()
         for key, value in doc.items():
-            if isinstance(value, bool):
+            if value is None or isinstance(value, bool):
                 result[key] = value
                 continue
             try:
