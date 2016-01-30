@@ -147,6 +147,13 @@ class ConfigTest(BaseJobTest):
 
 class JobOpenAndClosingTest(BaseJobTest):
 
+    def test_init(self):
+        job = self.open_job(test_token)
+        self.assertFalse(os.path.isdir(job.workspace()))
+        job.init()
+        self.assertTrue(os.path.isdir(job.workspace()))
+        self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
+
     def test_open_job_close(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
