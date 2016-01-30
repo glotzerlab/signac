@@ -9,13 +9,34 @@ The framework provides a simple data model, which helps to organize data product
 
 ## Installation
 
-The recommeded method of installation is using *pip*:
+The recommeded method of installation is using *conda*:
 
-    pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
+    conda install signac
 
-To upgrade, the package, simply append the `--upgrade` option to this command.
+To upgrade, the package, execute:
 
-**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://glotzerlab.engin.umich.edu/signac).**
+    conda update signac
+
+**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://glotzerlab.engin.umich.edu/signac/installation.html).**
+
+## Quickstart
+
+The framework facilitates a project-based workflow.
+Setup a new project:
+
+    $ mkdir my_project
+    $ cd my_project
+    $ signac init MyProject
+    # or
+    $ echo project=MyProject >> signac.rc
+
+and access the project handle:
+   
+    >>> project = signac.get_project()
+
+To access a database:
+
+    >>> db = signac.get_database('MyDatabase')
 
 ## Documentation
 
@@ -27,20 +48,3 @@ To build documentation yourself with [sphinx](http://sphinx-doc.org), clone the 
     $ make html
 
 from within the repository's root directory.
-
-## Quickstart
-
-The framework facilitates a project-based workflow.
-Setup a new project:
-
-    $ mkdir my_project
-    $ cd my_project
-    $ echo project=MyProject >> signac.rc
-
-and access the project handle
-   
-    >>> project = signac.contrib.get_project()
-
-To access a database:
-
-    >>> db = signac.db.get_database('MyDatabase')
