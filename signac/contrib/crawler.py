@@ -268,6 +268,7 @@ class JSONCrawler(BaseCrawler):
 class SignacProjectBaseCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_statepoint = 'signac_statepoint.json'
+    statepoint_index = 'statepoint'
 
     def get_statepoint(self, dirpath):
         job_path = os.path.join(
@@ -281,8 +282,11 @@ class SignacProjectBaseCrawler(BaseCrawler):
 
     def process(self, doc, dirpath, fn):
         signac_id, statepoint = self.get_statepoint(dirpath)
-        doc.update(statepoint)
         doc['signac_id'] = signac_id
+        if self.statepoint_index:
+            doc[self.statepoint_index] = statepoint
+        else:
+            doc.update(statepoint)
         return super(SignacProjectBaseCrawler, self).process(doc, dirpath, fn)
 
 
@@ -294,6 +298,8 @@ class SignacProjectRegexFileCrawler(
 
 class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
     re_job_document = '.*\/signac_job_document\.json'
+    statepoint_index = 'statepoint'
+    signac_id_alias = '_id'
 
     def docs_from_file(self, dirpath, fn):
         if re.match(self.re_job_document, os.path.join(dirpath, fn)):
@@ -306,8 +312,13 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
                             self.get_statepoint(dirpath)[0]))
                     raise
             signac_id, statepoint = self.get_statepoint(dirpath)
-            job_doc['_id'] = signac_id
-            job_doc['statepoint'] = statepoint
+            job_doc['signac_id'] = signac_id
+            if self.statepoint_index:
+                job_doc[self.statepoint_index] = statepoint
+            else:
+                job_doc.update(statepoint)
+            if self.signac_id_alias:
+                job_doc[self.signac_id_alias] = signac_id
             yield job_doc
         for doc in super(SignacProjectJobDocumentCrawler, self).docs_from_file(
                 dirpath, fn):
