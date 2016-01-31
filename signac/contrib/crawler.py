@@ -31,6 +31,7 @@ KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
 LINK_MODULE_FETCH = 'module_fetch'
+KEY_GRIDFS_CONFIG = 'gridfs_config'
 
 GRIDS = dict()
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = 1e9  # 1GB
@@ -41,7 +42,7 @@ class BaseCrawler(object):
 
     The crawler creates an index on data, which can be exported
     to a database for easier access."""
-    tags=None
+    tags = None
 
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
@@ -369,7 +370,7 @@ class MasterCrawler(BaseCrawler):
     def _store_files_to_gridfs(self, crawler, doc):
         import gridfs
         link = doc.setdefault(KEY_LINK, dict())
-        link['gridfs_config'] = self.gridfs_config
+        link[KEY_GRIDFS_CONFIG] = self.gridfs_config
         for file in crawler.fetch(doc, mode='rb'):
             file_id = hashlib.md5(file.read()).hexdigest()
             file.seek(0)
@@ -384,8 +385,8 @@ class MasterCrawler(BaseCrawler):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            if len(self.tags):
-                if not self.tags.intersection(crawler.tags):
+            if self.tags is not None and len(self.tags):
+                if not set(self.tags).intersection(set(crawler.tags)):
                     logger.info("Skipping, tag mismatch.")
                     continue
             for _id, doc in crawler.crawl():
@@ -446,18 +447,24 @@ def fetch(doc, mode='r'):
             "Are you sure it is part of a signac index?".format(KEY_LINK))
         raise
     if KEY_CRAWLER_PATH in doc:
+        logger.debug("Fetching files from the file system.")
         try:
             for file in _fetch_fs(doc, mode=mode):
                 yield file
             return
-        except OSError:
-            logger.debug("Unable to access file.")
-    try:
-        for file in _fetch_gridfs(link, mode):
-            yield file
-        return
-    except Exception:
-        raise
+        except OSError as error:
+            logger.warning(
+                "Unable to fetch file from file system: {}".format(error))
+            if KEY_GRIDFS_CONFIG in link:
+                logger.warning("Fallback to GridFS fetch.")
+    if KEY_GRIDFS_CONFIG in link:
+        logger.debug("Fetching files from GridFS.")
+        try:
+            for file in _fetch_gridfs(link, mode):
+                yield file
+            return
+        except Exception:
+            raise
 
 
 def fetch_one(doc, mode='r'):
@@ -477,6 +484,12 @@ def fetch_one(doc, mode='r'):
         return None
 
 
+def fetched(docs):
+    for doc in docs:
+        for data in fetch(doc):
+            yield doc, data
+
+
 def _fetch_fs(doc, mode):
     "Fetch files for doc from the file system."
     link = doc[KEY_LINK]
@@ -490,7 +503,7 @@ def _fetch_fs(doc, mode):
 
 def _fetch_gridfs(link, mode):
     "Fetch file for given link from gridfs."
-    gridfs_config = link['gridfs_config']
+    gridfs_config = link[KEY_GRIDFS_CONFIG]
     grid_id = hashlib.md5(
         json.dumps(gridfs_config, sort_keys=True).encode()).hexdigest()
     grid = GRIDS.setdefault(grid_id, _get_gridfs(gridfs_config))
@@ -513,12 +526,6 @@ def _get_gridfs(gridfs_config):
         gridfs_config['db'],
         hostname=gridfs_config.get('hostname'))
     return gridfs.GridFS(grid_db)
-
-
-def fetched(docs):
-    for doc in docs:
-        for data in fetch(doc):
-            yield doc, data
 
 
 def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
