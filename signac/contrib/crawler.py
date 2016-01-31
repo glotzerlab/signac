@@ -1,12 +1,16 @@
 import os
 import re
-import logging
 import json
 import six
 import math
+import io
+import hashlib
+import logging
+import warnings
 
 from .utility import walkdepth
 from .hashing import calc_id
+from ..db import get_database
 
 if six.PY3:
     import importlib.machinery
@@ -28,12 +32,16 @@ KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
 LINK_MODULE_FETCH = 'module_fetch'
 
+GRIDS = dict()
+GRIDFS_LARGE_FILE_WARNING_THRSHLD = 1e9  # 1GB
+
 
 class BaseCrawler(object):
     """Crawl through `root` and index all files.
 
     The crawler creates an index on data, which can be exported
     to a database for easier access."""
+    tags=None
 
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
@@ -41,6 +49,7 @@ class BaseCrawler(object):
         :param root: The path to the root directory to crawl through.
         :type root: str"""
         self.root = root
+        self.tags = set() if self.tags is None else set(self.tags)
 
     def docs_from_file(self, dirpath, fn):
         """Implement this method to generate documents from files.
@@ -191,7 +200,7 @@ class RegexFileCrawler(BaseCrawler):
                 doc[KEY_PAYLOAD] = str(format_)
                 yield doc
 
-    def fetch(self, doc):
+    def fetch(self, doc, mode='r'):
         """Fetch the data associated with `doc`.
 
         :param doc: A document.
@@ -212,7 +221,7 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    yield format_(open(ffn))
+                    yield format_(open(ffn, mode))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -333,22 +342,63 @@ class SignacProjectCrawler(
 
 class MasterCrawler(BaseCrawler):
 
-    def __init__(self, root):
-        super(MasterCrawler, self).__init__(root=root)
+    """Crawl the data space and search for signac crawlers.
+
+    The MasterCrawler executes signac slave crawlers
+    defined in signac_access.py modules.
+
+    If the master crawlers has defined tags, it will only
+    execute slave crawlers with at least one matching tag.
+
+    :param root: The path to the root directory to crawl through.
+    :type root: str
+    :param linkfs: Store the module path to enable file system fetch.
+    :type linkfs: bool
+    :param gridfs: Provide a GridFS configuration to export all data
+        files into the specified GridFS.
+    """
+    def __init__(self, root, linkfs=True, gridfs_config=None):
+        self.linkfs = linkfs
+        self.gridfs = None
+        self.gridfs_config = gridfs_config
+        if self.gridfs_config is not None:
+            self.gridfs = _get_gridfs(gridfs_config)
         self._crawlers = dict()
+        super(MasterCrawler, self).__init__(root=root)
+
+    def _store_files_to_gridfs(self, crawler, doc):
+        import gridfs
+        link = doc.setdefault(KEY_LINK, dict())
+        link['gridfs_config'] = self.gridfs_config
+        for file in crawler.fetch(doc, mode='rb'):
+            file_id = hashlib.md5(file.read()).hexdigest()
+            file.seek(0)
+            try:
+                with self.gridfs.new_file(_id=file_id) as gridfile:
+                    gridfile.write(file.read())
+            except gridfs.errors.FileExists:
+                pass
+        link['file_id'] = file_id
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
+            if len(self.tags):
+                if not self.tags.intersection(crawler.tags):
+                    logger.info("Skipping, tag mismatch.")
+                    continue
             for _id, doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                link = doc.setdefault(KEY_LINK, dict())
-                link[KEY_LINK_TYPE] = LINK_MODULE_FETCH
-                link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                link[KEY_CRAWLER_MODULE] = fn
-                link[KEY_CRAWLER_ID] = crawler_id
+                if self.linkfs:
+                    link = doc.setdefault(KEY_LINK, dict())
+                    link[KEY_LINK_TYPE] = LINK_MODULE_FETCH  # deprecated
+                    link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                    link[KEY_CRAWLER_MODULE] = fn
+                    link[KEY_CRAWLER_ID] = crawler_id
+                if self.gridfs is not None:
+                    self._store_files_to_gridfs(crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
@@ -377,12 +427,17 @@ def _load_crawler(name):
         return imp.load_source(os.path.splitext(name)[0], name)
 
 
-def fetch(doc):
+def fetch(doc, mode='r'):
     """Fetch all data associated with this document.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
+    :param mode: Mode to use for file opening ('r' or 'rb').
     :yields: Data associated with this document in the specified format."""
+    if mode not in ('r', 'rb'):
+        raise ValueError(mode)
+    if doc is None:
+        raise ValueError(doc)
     try:
         link = doc[KEY_LINK]
     except KeyError:
@@ -390,13 +445,74 @@ def fetch(doc):
             "This document is missing the '{}' key. "
             "Are you sure it is part of a signac index?".format(KEY_LINK))
         raise
-    if link[KEY_LINK_TYPE] == LINK_MODULE_FETCH:
-        fn_module = os.path.join(
-            link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
-        crawler_module = _load_crawler(fn_module)
-        crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-        for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc):
-            yield d
+    if KEY_CRAWLER_PATH in doc:
+        try:
+            for file in _fetch_fs(doc, mode=mode):
+                yield file
+            return
+        except OSError:
+            logger.debug("Unable to access file.")
+    try:
+        for file in _fetch_gridfs(link, mode):
+            yield file
+        return
+    except Exception:
+        raise
+
+
+def fetch_one(doc, mode='r'):
+    """Fetch data associated with this document.
+
+    Unlike fetch(), this function returns only the first
+    file associated with doc and ignores all others.
+
+    :param doc: A document which is part of an index.
+    :type doc: mapping
+    :param mode: Mode to use for file opening ('r' or 'rb').
+    :yields: Data associated with this document in the specified format."""
+    try:
+        return next(fetch(doc, mode=mode))
+    except Exception:
+        raise
+        return None
+
+
+def _fetch_fs(doc, mode):
+    "Fetch files for doc from the file system."
+    link = doc[KEY_LINK]
+    fn_module = os.path.join(
+        link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
+    crawler_module = _load_crawler(fn_module)
+    crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
+    for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc, mode=mode):
+        yield d
+
+
+def _fetch_gridfs(link, mode):
+    "Fetch file for given link from gridfs."
+    gridfs_config = link['gridfs_config']
+    grid_id = hashlib.md5(
+        json.dumps(gridfs_config, sort_keys=True).encode()).hexdigest()
+    grid = GRIDS.setdefault(grid_id, _get_gridfs(gridfs_config))
+    if mode == 'r':
+        file = io.StringIO(grid.get(link['file_id']).read().decode())
+        if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
+            warnings.warn(
+                "Open large GridFS files more efficiently in 'rb' mode.")
+        yield file
+    elif mode == 'rb':
+        yield grid.get(link['file_id'])
+    else:
+        raise ValueError(mode)
+
+
+def _get_gridfs(gridfs_config):
+    "Return the gridfs for given configuration."
+    import gridfs
+    grid_db = get_database(
+        gridfs_config['db'],
+        hostname=gridfs_config.get('hostname'))
+    return gridfs.GridFS(grid_db)
 
 
 def fetched(docs):
