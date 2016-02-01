@@ -19,6 +19,7 @@ Contents:
    gui
    configuration
    projects
+   indexing
    database
 
 Indices and tables

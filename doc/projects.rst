@@ -10,25 +10,43 @@ Specifying a project name as identifier within a configuration file initiates a 
 
     $ mkdir my_project
     $ cd my_project
+    $ signac init MyProject
+    # or
     $ echo project=MyProject >> signac.rc
 
 The directory that contains this configuration file is the project's root directory.
 
+Verify the configuration with:
+
+.. code-block:: bash
+
+    $ signac project
+    MyProject
+
+.. note::
+
+    Some of the functions introduced here on the python level have command line equivalents, to make it easier to integrate **signac** with bash scripts.
+    Check out ``$ signac --help`` for more information.
+
+
 Access to project data
 -----------------------
 
-You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory with the :py:func:`~signac.contrib.get_project` function.
+You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory from the command line or with the :py:func:`~signac.get_project` function.
 
 .. code-block:: python
 
+    $ signac project
+    MyProject
+
     $ python
     >>> import signac
-    >>> project = signac.contrib.get_project()
+    >>> project = signac.get_project()
     >>> print(project)
     MyProject
 
 You can use the project to store data associated with a unique set of parameters.
-Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object.
+Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object or in JSON format.
 Each state point is a associated with a unique hash value, called *job id*.
 Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.Project.open_job` method.
 
@@ -40,9 +58,15 @@ Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on you
     >>> job = project.open_job(statepoint)
     >>> job.get_id()
     '9bfd29df07674bc4aa960cf661b5acd2'
+    
+    # Equivalent from the command line:
+    $ signac job '{"a": 0}'
+    9bfd29df07674bc4aa960cf661b5acd2
+    # Pipe large statepoint definitions:
+    $ cat mystatepoint.json > signac job
+    ab343j...
 
-You can use the job id to organize your data.
-
+Use the job id to organize your data.
 
 The workspace
 -------------
