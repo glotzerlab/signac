@@ -42,3 +42,5 @@ nosetests.xml
 # custom
 _*
 *.log
+
+.DS_Store
