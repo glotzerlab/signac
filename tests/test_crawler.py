@@ -91,6 +91,7 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_master_crawler(self):
         self.setup_project()
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
+        crawler.tags = {'test1'}
         no_find = True
         for doc_id, doc in crawler.crawl():
             no_find = False
@@ -109,11 +110,11 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_master_crawler_tags(self):
         self.setup_project()
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
-        self.assertEqual(2, len(list(crawler.crawl())))
-        crawler.tags = {}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        self.assertEqual(0, len(list(crawler.crawl())))
         crawler.tags = None
-        self.assertEqual(2, len(list(crawler.crawl())))
+        self.assertEqual(0, len(list(crawler.crawl())))
+        crawler.tags = {}
+        self.assertEqual(0, len(list(crawler.crawl())))
         crawler.tags = {'nomatch'}
         self.assertEqual(0, len(list(crawler.crawl())))
         crawler.tags = {'test1'}
@@ -121,6 +122,12 @@ class CrawlerBaseTest(unittest.TestCase):
         crawler.tags = {'test2'}
         self.assertEqual(2, len(list(crawler.crawl())))
         crawler.tags = {'test1', 'test2'}
+        self.assertEqual(2, len(list(crawler.crawl())))
+        crawler.tags = {'test1', 'bs'}
+        self.assertEqual(2, len(list(crawler.crawl())))
+        crawler.tags = {'test2', 'bs'}
+        self.assertEqual(2, len(list(crawler.crawl())))
+        crawler.tags = {'test1', 'test2', 'bs'}
         self.assertEqual(2, len(list(crawler.crawl())))
 
 

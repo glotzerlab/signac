@@ -385,8 +385,11 @@ class MasterCrawler(BaseCrawler):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            if self.tags is not None and len(self.tags):
-                if not set(self.tags).intersection(set(crawler.tags)):
+            if crawler.tags is not None and len(set(crawler.tags)):
+                if self.tags is None or not len(set(self.tags)):
+                    logger.info("Skipping, project has defined tags.")
+                    continue
+                elif not set(self.tags).intersection(set(crawler.tags)):
                     logger.info("Skipping, tag mismatch.")
                     continue
             for _id, doc in crawler.crawl():
