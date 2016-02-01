@@ -72,8 +72,8 @@ class BasicShellTest(unittest.TestCase):
         self.call('python -m signac init my_project'.split())
         self.assertEqual(str(signac.get_project()), 'my_project')
         self.assertEqual(
-            self.call('python -m signac project --workspace'.split()).strip(),
-            os.path.join(self.tmpdir.name, 'workspace'))
+            os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()),
+            os.path.realpath(os.path.join(self.tmpdir.name, 'workspace')))
 
     def test_job_with_argument(self):
         self.call('python -m signac init my_project'.split())
@@ -85,7 +85,9 @@ class BasicShellTest(unittest.TestCase):
         self.call('python -m signac init my_project'.split())
         wd_path = os.path.join(self.tmpdir.name, 'workspace', '9bfd29df07674bc4aa960cf661b5acd2')
         self.assertEqual(
-            self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip(), wd_path)
+            os.path.realpath(
+                self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()),
+            os.path.realpath(wd_path))
 
     def test_job_with_argument_create_workspace(self):
         self.call('python -m signac init my_project'.split())
