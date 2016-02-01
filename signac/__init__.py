@@ -9,10 +9,10 @@ from __future__ import absolute_import
 from . import contrib
 from . import db
 from . import gui
-from .contrib import get_project
+from .contrib import get_project, fetch, fetch_one
 from .db import get_database
 
 __version__ = '0.2.4'
 
 __all__ = ['__version__', 'contrib', 'db', 'gui',
-           'get_project', 'get_database']
+           'get_project', 'get_database', 'fetch', 'fetch_one']
