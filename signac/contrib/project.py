@@ -10,10 +10,10 @@ from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
 
-if six.PY3:
-    from collections.abc import Mapping
-else:
+if six.PY2:
     from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +189,6 @@ class Project(object):
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
-
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
@@ -325,10 +324,10 @@ def _make_link(src, dst):
         if error.errno != errno.EEXIST:
             raise
         pass
-    if six.PY3:
-        os.symlink(src, dst, target_is_directory=True)
-    else:
+    if six.PY2:
         os.symlink(src, dst)
+    else:
+        os.symlink(src, dst, target_is_directory=True)
 
 
 def _make_urls(statepoints, key_set):

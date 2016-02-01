@@ -12,10 +12,10 @@ from .utility import walkdepth
 from .hashing import calc_id
 from ..db import get_database
 
-if six.PY3:
-    import importlib.machinery
-else:
+if six.PY2:
     import imp
+else:
+    import importlib.machinery
 
 
 logger = logging.getLogger(__name__)
@@ -176,11 +176,11 @@ class RegexFileCrawler(BaseCrawler):
         :type format_: :class:`object`
 
         .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
-        if six.PY3:
-            if isinstance(regex, str):
+        if six.PY2:
+            if isinstance(regex, basestring):
                 regex = re.compile(regex)
         else:
-            if isinstance(regex, basestring):
+            if isinstance(regex, str):
                 regex = re.compile(regex)
         cls.definitions[regex] = format_
 
@@ -422,10 +422,10 @@ class MasterCrawler(BaseCrawler):
 
 
 def _load_crawler(name):
-    if six.PY3:
-        return importlib.machinery.SourceFileLoader(name, name).load_module()
-    else:
+    if six.PY2:
         return imp.load_source(os.path.splitext(name)[0], name)
+    else:
+        return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
 def fetch(doc, mode='r'):

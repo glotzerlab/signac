@@ -5,10 +5,10 @@ import uuid
 
 from signac.core.jsondict import JSonDict
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 FN_DICT = 'jsondict.json'
 

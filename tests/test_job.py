@@ -10,10 +10,10 @@ import six
 import signac.contrib
 import signac.common.config
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 
 # Make sure the jobs created for this test are unique.

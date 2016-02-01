@@ -8,10 +8,10 @@ import six
 
 import signac
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 
 class DummyFile(object):

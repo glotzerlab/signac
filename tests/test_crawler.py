@@ -6,10 +6,10 @@ import json
 
 import signac.contrib
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 
 SIGNAC_ACCESS_MODULE = """import os

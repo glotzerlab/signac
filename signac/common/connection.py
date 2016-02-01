@@ -6,7 +6,7 @@ from os.path import expanduser
 
 import pymongo
 
-PYMONGO_3 = pymongo.version_tuple[0] == 3
+PYMONGO_2 = pymongo.version_tuple[0] == 2
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +126,10 @@ class DBClientConnector(object):
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_3:
-            self._connect_pymongo3(host)
-        else:  # pragma no cover
+        if PYMONGO_2:  # pragma no cover
             self._connect_pymongo2(host)
+        else:  # pragma no cover
+            self._connect_pymongo3(host)
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism')
