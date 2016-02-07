@@ -5,16 +5,16 @@ of the signac framework and data inspection more straight-forward."""
 import warnings
 try:
     import PySide  # noqa
-except ImportError:
-    warnings.warn("Failed to import PySide. "
-                  "gui will not be available.", ImportWarning)
+    import pymongo  # noqa
+except ImportError as error:
+    msg = "{}. The signac gui is not available.".format(error)
+    warnings.warn(msg, ImportWarning)
 
     def main():
         """Start signac-gui.
 
-        The gui is only available if PySide is installed."""
-        raise ImportError(
-            "You need to install PySide to use the gui.")
+        The gui requires PySide and pymongo."""
+        raise ImportError(msg)
 else:
     from .gui import main
 
