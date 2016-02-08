@@ -8,6 +8,13 @@ import hashlib
 import logging
 import warnings
 
+try:
+    import gridfs
+except ImportError:
+    GRIDFS = False
+else:
+    GRIDFS = True
+
 from .utility import walkdepth
 from .hashing import calc_id
 from ..db import get_database
@@ -26,12 +33,9 @@ KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
 KEY_LINK = 'signac_link'
-KEY_LINK_TYPE = 'link_type'
 KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
-LINK_MODULE_FETCH = 'module_fetch'
-KEY_GRIDFS_CONFIG = 'gridfs_config'
 
 GRIDS = dict()
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = 1e9  # 1GB
@@ -66,7 +70,12 @@ class BaseCrawler(object):
     def fetch(self, doc):
         """Implement this generator method to associate data with a document.
 
-        :yields: An iterable of arbitray objects."""
+        The return value of this generator function is not directly defined,
+        however it is recommneded to us `file-like object`_s.
+
+        .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+
+        :yields: An iterable of arbitrary objects."""
         return
         yield
 
@@ -106,8 +115,7 @@ class BaseCrawler(object):
     def process(self, doc, dirpath, fn):
         """Implement this method for additional processing of generated docs.
 
-        This method is particular useful to specialize non-abstract crawlers.
-        The default implemenation will return the unmodified `doc`.
+        The default implementation will return the unmodified `doc`.
 
         :param dirpath: The path of the file, relative to `root`.
         :type dirpath: str
@@ -182,6 +190,10 @@ class RegexFileCrawler(BaseCrawler):
         else:
             if isinstance(regex, str):
                 regex = re.compile(regex)
+        for meth in ('read', 'close'):
+            if not hasattr(format_, meth) or not callable(getattr(format_, meth)):
+                msg = "Format {} has no {}() method.".format(format_, meth)
+                warnings.warn(msg)
         cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
@@ -206,8 +218,7 @@ class RegexFileCrawler(BaseCrawler):
 
         :param doc: A document.
         :type doc: :class:`dict`
-        :yields: An instance of the format associated with the
-                  file used to generate `doc`.
+        :yields: All files associated with doc in the defined format.
 
         .. note::
 
@@ -341,6 +352,59 @@ class SignacProjectCrawler(
     pass
 
 
+def _store_files_to_grid(grid, crawler, doc):
+    link = doc.setdefault(KEY_LINK, dict())
+    link[grid.name] = grid.config()
+    file_ids = link.setdefault('file_ids', list())
+    for file in crawler.fetch(doc, mode='rb'):
+        file_id = hashlib.md5(file.read()).hexdigest()
+        file.seek(0)
+        try:
+            with grid.new_file(_id=file_id) as gridfile:
+                gridfile.write(file.read())
+        except grid.FileExistsError:
+            pass
+        if file_id not in file_ids:
+            file_ids.append(file_id)
+        file.close()
+
+
+class GridFS(object):
+    """A file system handler for the MongoDB GridFS file system."""
+    name = 'gridfs'
+
+    FileExistsError = gridfs.errors.FileExists
+    FileNotFoundError = gridfs.errors.NoFile
+
+    def __init__(self, db, collection='fs'):
+        self.db = db
+        self.collection = collection
+        self.gridfs = gridfs.GridFS(self.db, collection=self.collection)
+
+    def config(self):
+        return {'db': self.db.name, 'collection': self.collection}
+
+    @classmethod
+    def from_config(cls, config):
+        db = get_database(config['db'])
+        return GridFS(db=db, collection=str(config['collection']))
+
+    def new_file(self, **kwargs):
+        return self.gridfs.new_file(** kwargs)
+
+    def get(self, file_id, mode='r'):
+        if mode == 'r':
+            file = io.StringIO(self.gridfs.get(file_id).read().decode())
+            if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
+                warnings.warn(
+                    "Open large GridFS files more efficiently in 'rb' mode.")
+            return file
+        elif mode == 'rb':
+            return self.gridfs.get(file_id=file_id)
+        else:
+            raise ValueError(mode)
+
+
 class MasterCrawler(BaseCrawler):
 
     """Crawl the data space and search for signac crawlers.
@@ -353,56 +417,44 @@ class MasterCrawler(BaseCrawler):
 
     :param root: The path to the root directory to crawl through.
     :type root: str
-    :param linkfs: Store the module path to enable file system fetch.
-    :type linkfs: bool
-    :param gridfs: Provide a GridFS configuration to export all data
-        files into the specified GridFS.
+    :param link_local: Store a link to the local access module.
+    :param filesystems: The file system handlers to export data to.
     """
-    def __init__(self, root, linkfs=True, gridfs_config=None):
-        self.linkfs = linkfs
-        self.gridfs = None
-        self.gridfs_config = gridfs_config
-        if self.gridfs_config is not None:
-            self.gridfs = _get_gridfs(gridfs_config)
+
+    def __init__(self, root, link_local=True, grids=None):
+        self.link_local = link_local
+        self.grids = list() if grids is None else grids
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
-
-    def _store_files_to_gridfs(self, crawler, doc):
-        import gridfs
-        link = doc.setdefault(KEY_LINK, dict())
-        link[KEY_GRIDFS_CONFIG] = self.gridfs_config
-        for file in crawler.fetch(doc, mode='rb'):
-            file_id = hashlib.md5(file.read()).hexdigest()
-            file.seek(0)
-            try:
-                with self.gridfs.new_file(_id=file_id) as gridfile:
-                    gridfile.write(file.read())
-            except gridfs.errors.FileExists:
-                pass
-        link['file_id'] = file_id
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            if crawler.tags is not None and len(set(crawler.tags)):
-                if self.tags is None or not len(set(self.tags)):
-                    logger.info("Skipping, project has defined tags.")
-                    continue
-                elif not set(self.tags).intersection(set(crawler.tags)):
-                    logger.info("Skipping, tag mismatch.")
-                    continue
+            try:
+                tags = crawler.tags
+            except AttributeError:
+                pass
+            else:
+                if tags is not None and len(set(tags)):
+                    if self.tags is None or not len(set(self.tags)):
+                        logger.info("Skipping, project has defined tags.")
+                        continue
+                    elif not set(self.tags).intersection(set(crawler.tags)):
+                        logger.info("Skipping, tag mismatch.")
+                        continue
             for _id, doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                if self.linkfs:
-                    link = doc.setdefault(KEY_LINK, dict())
-                    link[KEY_LINK_TYPE] = LINK_MODULE_FETCH  # deprecated
-                    link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                    link[KEY_CRAWLER_MODULE] = fn
-                    link[KEY_CRAWLER_ID] = crawler_id
-                if self.gridfs is not None:
-                    self._store_files_to_gridfs(crawler, doc)
+                if hasattr(crawler, 'fetch'):
+                    if self.link_local:
+                        link = doc.setdefault(KEY_LINK, dict())
+                        link['link_type'] = 'module_fetch'  # deprecated
+                        link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                        link[KEY_CRAWLER_MODULE] = fn
+                        link[KEY_CRAWLER_ID] = crawler_id
+                    for grid in self.grids:
+                        _store_files_to_grid(grid, crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
@@ -431,25 +483,24 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc, mode='r'):
+def fetch(doc, mode='r', grids=None):
     """Fetch all data associated with this document.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
-    :param mode: Mode to use for file opening ('r' or 'rb').
+    :param mode: Mode to use for file opening.
+    :param grids: An optional set of grids to fetch files from.
+        If this parameter is ommitted, the grids are automatically determined
+        from the document.
+    :type grids: A sequence of filesystem-like objects,
+        see :class:`GridFS` for an example.
     :yields: Data associated with this document in the specified format."""
-    if mode not in ('r', 'rb'):
-        raise ValueError(mode)
     if doc is None:
         raise ValueError(doc)
-    try:
-        link = doc[KEY_LINK]
-    except KeyError:
-        logger.error(
-            "This document is missing the '{}' key. "
-            "Are you sure it is part of a signac index?".format(KEY_LINK))
-        raise
-    if KEY_CRAWLER_PATH in doc:
+    link = doc.get(KEY_LINK)
+    if link is None:
+        return
+    if KEY_CRAWLER_PATH in link:
         logger.debug("Fetching files from the file system.")
         try:
             for file in _fetch_fs(doc, mode=mode):
@@ -458,19 +509,30 @@ def fetch(doc, mode='r'):
         except OSError as error:
             logger.warning(
                 "Unable to fetch file from file system: {}".format(error))
-            if KEY_GRIDFS_CONFIG in link:
-                logger.warning("Fallback to GridFS fetch.")
-    if KEY_GRIDFS_CONFIG in link:
-        logger.debug("Fetching files from GridFS.")
-        try:
-            for file in _fetch_gridfs(link, mode):
-                yield file
-            return
-        except Exception:
-            raise
+    if grids is None:
+        grids = list()
+        if GRIDFS and 'gridfs' in link:
+            grids.append(GridFS.from_config(link['gridfs']))
+    logger.debug("Using grids to fetch files: {}".format(grids))
+    to_fetch = set(link.get('file_ids', []))
+    fetched = set()
+    for grid in grids:
+        for file_id in to_fetch:
+            try:
+                yield grid.get(file_id, mode=mode)
+            except grid.FileNotFoundError:
+                continue
+            else:
+                fetched.add(file_id)
+        for file_id in fetched:
+            to_fetch.remove(file_id)
+    if to_fetch:
+        msg = "Unable to fetch {}/{} file(s) with provided grids.".format(
+            len(to_fetch), len(to_fetch)+len(fetched))
+        raise IOError(msg)
 
 
-def fetch_one(doc, mode='r'):
+def fetch_one(doc, mode='r', grids=None):
     """Fetch data associated with this document.
 
     Unlike fetch(), this function returns only the first
@@ -480,11 +542,7 @@ def fetch_one(doc, mode='r'):
     :type doc: mapping
     :param mode: Mode to use for file opening ('r' or 'rb').
     :yields: Data associated with this document in the specified format."""
-    try:
-        return next(fetch(doc, mode=mode))
-    except Exception:
-        raise
-        return None
+    return next(fetch(doc, mode=mode, grids=grids))
 
 
 def fetched(docs):
@@ -502,33 +560,6 @@ def _fetch_fs(doc, mode):
     crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
     for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc, mode=mode):
         yield d
-
-
-def _fetch_gridfs(link, mode):
-    "Fetch file for given link from gridfs."
-    gridfs_config = link[KEY_GRIDFS_CONFIG]
-    grid_id = hashlib.md5(
-        json.dumps(gridfs_config, sort_keys=True).encode()).hexdigest()
-    grid = GRIDS.setdefault(grid_id, _get_gridfs(gridfs_config))
-    if mode == 'r':
-        file = io.StringIO(grid.get(link['file_id']).read().decode())
-        if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
-            warnings.warn(
-                "Open large GridFS files more efficiently in 'rb' mode.")
-        yield file
-    elif mode == 'rb':
-        yield grid.get(link['file_id'])
-    else:
-        raise ValueError(mode)
-
-
-def _get_gridfs(gridfs_config):
-    "Return the gridfs for given configuration."
-    import gridfs
-    grid_db = get_database(
-        gridfs_config['db'],
-        hostname=gridfs_config.get('hostname'))
-    return gridfs.GridFS(grid_db)
 
 
 def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
