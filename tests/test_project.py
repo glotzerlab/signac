@@ -3,9 +3,9 @@ import os
 import uuid
 import warnings
 import logging
-import six
 
 import signac
+from signac.common import six
 
 from test_job import BaseJobTest
 

@@ -1,9 +1,9 @@
 import os
 import unittest
-import six
 import uuid
 
 from signac.core.jsondict import JSonDict
+from signac.common import six
 
 if six.PY2:
     from tempdir import TemporaryDirectory

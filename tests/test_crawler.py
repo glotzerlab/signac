@@ -2,11 +2,11 @@ import unittest
 import os
 import io
 import re
-import six
 import json
 import logging
 
 import signac.contrib
+from signac.common import six
 
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)

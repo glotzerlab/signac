@@ -4,9 +4,9 @@ import io
 import unittest
 import subprocess
 import warnings
-import six
 
 import signac
+from signac.common import six
 
 if six.PY2:
     from tempdir import TemporaryDirectory

@@ -5,10 +5,10 @@ import warnings
 import uuid
 import copy
 import random
-import six
 
 import signac.contrib
 import signac.common.config
+from signac.common import six
 
 if six.PY2:
     from tempdir import TemporaryDirectory

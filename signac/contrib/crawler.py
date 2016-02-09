@@ -1,12 +1,12 @@
 import os
 import re
 import json
-import six
 import math
 import hashlib
 import logging
 import warnings
 
+from ..common import six
 from .utility import walkdepth
 from .hashing import calc_id
 from .filesystems import filesystems_from_config

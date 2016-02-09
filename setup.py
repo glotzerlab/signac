@@ -25,8 +25,6 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
 
-    install_requires=['six'],
-
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],

@@ -1,9 +1,10 @@
 import unittest
 import logging
-import six
 import tempfile
 import uuid
 import os
+
+from signac.common import six
 if six.PY2:
     from tempdir import TemporaryDirectory
     import logging
