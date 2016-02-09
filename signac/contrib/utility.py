@@ -149,7 +149,8 @@ def walkdepth(path, depth=0):
             yield p
     elif depth > 0:
         path = path.rstrip(os.path.sep)
-        assert os.path.isdir(path)
+        if not os.path.isdir(path):
+            raise OSError("Not a directory: '{}'.".format(path))
         num_sep = path.count(os.path.sep)
         for root, dirs, files in os.walk(path):
             yield root, dirs, files
