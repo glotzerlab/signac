@@ -153,7 +153,7 @@ if GRIDFS:
             :param _id: The file identifier.
             :type _id: str
             :returns: A file-like object to write to."""
-            return self.gridfs.new_file({'_id': _id})
+            return self.gridfs.new_file(_id=_id)
 
         def get(self, _id, mode='r'):
             """Open the file with the specified id.
