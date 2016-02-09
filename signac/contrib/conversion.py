@@ -1,5 +1,6 @@
 import logging
-from six import with_metaclass
+
+from ..common.six import with_metaclass
 
 
 logger = logging.getLogger(__name__)

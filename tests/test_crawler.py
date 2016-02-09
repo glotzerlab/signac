@@ -2,11 +2,11 @@ import unittest
 import os
 import io
 import re
-import six
 import json
 import logging
 
 import signac.contrib
+from signac.common import six
 
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)
@@ -241,7 +241,7 @@ class CrawlerBaseTest(unittest.TestCase):
             self.assertEqual(file.read(), 'testfilewrite')
         with self.assertRaises(fs_test.FileNotFoundError):
             fs_test.get('badid')
-        fs_bad = signac.contrib.crawler.LocalFS('/bad/path')
+        fs_bad = signac.contrib.filesystems.LocalFS('/bad/path')
         crawler = signac.contrib.MasterCrawler(
             root=self._tmp_dir.name,
             link_local=False,

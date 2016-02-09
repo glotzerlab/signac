@@ -10,9 +10,11 @@ some other weaknesses in implementation.
 
 import os
 import errno
-import six
 import logging
 import uuid
+
+from ..common import six
+
 if six.PY2:
     from UserDict import UserDict as UD
 else:

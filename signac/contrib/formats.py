@@ -1,7 +1,7 @@
 import logging
 import errno
-from six import with_metaclass
 
+from ..common.six import with_metaclass
 from .conversion import Adapter
 
 logger = logging.getLogger(__name__)

@@ -2,8 +2,9 @@
 import os
 import errno
 import io
-import six
 import warnings
+
+from ..common import six
 from ..db import get_database
 from .hashing import calc_id
 

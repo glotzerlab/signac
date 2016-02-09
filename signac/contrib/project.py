@@ -2,10 +2,10 @@ import os
 import logging
 import json
 import glob
-import six
 import errno
 import collections
 
+from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id

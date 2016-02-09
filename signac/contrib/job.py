@@ -2,8 +2,8 @@ import os
 import errno
 import logging
 import json
-import six
 
+from ..common import six
 from ..core.jsondict import JSonDict
 from .hashing import calc_id
 
