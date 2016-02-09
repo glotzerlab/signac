@@ -74,9 +74,9 @@ class BaseCrawler(object):
         """Implement this generator method to associate data with a document.
 
         The return value of this generator function is not directly defined,
-        however it is recommneded to us `file-like object`_s.
+        however it is recommended to use `file-like objects`_.
 
-        .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+        .. _`file-like objects`: https://docs.python.org/3/glossary.html#term-file-object
 
         :yields: An iterable of arbitrary objects."""
         return
@@ -205,7 +205,8 @@ class RegexFileCrawler(BaseCrawler):
         This method is an implementation of the abstract method
         of :class:`~.BaseCrawler`.
         It is not recommended to reimplement this method to modify
-        documents generated from filenames. See :meth:`~.process` instead."""
+        documents generated from filenames.
+        See :meth:`~RegexFileCrawler.process` instead."""
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
             if m:
@@ -488,7 +489,7 @@ class MasterCrawler(BaseCrawler):
     :param filesystems: An optional set of file systems, to export
         data to.
     :type filesystems: A sequence of filesystem-like objects or
-        filesystem configurations. See :funct:`~fetch` for details.
+        filesystem configurations. See :func:`~fetch` for details.
     """
 
     def __init__(self, root, link_local=True, filesystems=None):
@@ -588,6 +589,7 @@ def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     The latter is a slightly shorter notation, e.g.:
 
     .. code-block:
+
         fetch(doc, filesystems=[{'localfs': '/path/to/storage'}])
 
     :param doc: A document which is part of an index.

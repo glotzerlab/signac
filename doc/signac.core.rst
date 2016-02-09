@@ -20,14 +20,6 @@ signac.core.jsondict module
     :undoc-members:
     :show-inheritance:
 
-signac.core.storage module
---------------------------
-
-.. automodule:: signac.core.storage
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 signac.core.utility module
 --------------------------
 

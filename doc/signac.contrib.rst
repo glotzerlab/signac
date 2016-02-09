@@ -24,6 +24,7 @@ signac.contrib.crawler module
 -----------------------------
 
 .. automodule:: signac.contrib.crawler
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:

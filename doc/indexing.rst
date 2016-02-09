@@ -21,7 +21,7 @@ For example, this would be a valid (albeit not useful) crawler:
             for i in range(3):
                 yield (str(i), {'a': i})
 
-All crawlers defined by **signac** inherit from the abstract base class :py:class:`~signac.contrib.crawlers.BaseCrawler`.
+All crawlers defined by **signac** inherit from the abstract base class :py:class:`~signac.contrib.BaseCrawler`.
 It is recommended to inherit specializations of crawlers from this class.
 
 Indexing by filename
@@ -51,14 +51,14 @@ To extract meta data for this filename structure, we create a regex pattern like
 
 
 This regular expression matches all filenames which begin with `a_`, followed by one more digits, ending with `.txt`.
-The definition of a named group, `a`, matching only the digits allows the :py:class:`~signac.contrib.RegexFileCrawler` to extract the meta data from this filename.
+The definition of a named group, `a`, matching only the digits allows the :py:class:`~signac.contrib.crawler.RegexFileCrawler` to extract the meta data from this filename.
 For example:
 
     ``a_0.txt -> {'a': 0}``
     ``a_1.txt -> {'a': 1}``
     ... and so on.
 
-Each pattern is then associated with a specific format through the :py:func:`~signac.contrib.RegexFileCrawler.define` class method.
+Each pattern is then associated with a specific format through the :py:meth:`~signac.contrib.RegexFileCrawler.define` class method.
 We can use any class, as long as its constructor expects a `file-like object`_ as its first argument.
 
 .. code-block:: python
@@ -89,7 +89,7 @@ as data type which is a more complete implementation of the example shown above.
 
 .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
 
-The index is then generated through the :py:meth:`~signac.contrib.RegexFileCrawler.crawl` method and can be stored in a database collection:
+The index is then generated through the :py:meth:`~signac.contrib.BaseCrawler.crawl` method and can be stored in a database collection:
 
 .. code-block:: python
 
@@ -171,7 +171,7 @@ The master crawler is then executed for the indexed data space.
 Examples for *signac_access.py*
 -------------------------------
 
-This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.crawler.RegexFileCrawler`:
+This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.RegexFileCrawler`:
 
 .. code-block:: python
 
@@ -193,7 +193,7 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
       # the crawler id is arbitrary, but should not be changed after index creation
       return {'main': MyCrawler(os.path.join(root, 'my_project'))}
 
-This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.crawler.SignacProjectCrawler`:
+This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.SignacProjectCrawler`:
 
 .. code-block:: python
 

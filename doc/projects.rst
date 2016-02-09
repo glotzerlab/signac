@@ -48,7 +48,7 @@ You can access your signac :class:`~signac.contrib.Project` from within your pro
 You can use the project to store data associated with a unique set of parameters.
 Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object or in JSON format.
 Each state point is a associated with a unique hash value, called *job id*.
-Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.Project.open_job` method.
+Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.project.Project.open_job` method.
 
 .. code-block:: python
 
