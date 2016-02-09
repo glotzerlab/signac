@@ -229,7 +229,7 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_local_filesystem(self):
         self.setup_project()
         fs_root = os.path.join(self._tmp_dir.name, 'local')
-        fs_test = signac.contrib.crawler.LocalFS(fs_root)
+        fs_test = signac.contrib.filesystems.LocalFS(fs_root)
         with fs_test.new_file(_id='test123') as file:
             if six.PY2:
                 file.write('testfilewrite')
@@ -241,7 +241,7 @@ class CrawlerBaseTest(unittest.TestCase):
             self.assertEqual(file.read(), 'testfilewrite')
         with self.assertRaises(fs_test.FileNotFoundError):
             fs_test.get('badid')
-        fs_bad = signac.contrib.crawler.LocalFS('/bad/path')
+        fs_bad = signac.contrib.filesystems.LocalFS('/bad/path')
         crawler = signac.contrib.MasterCrawler(
             root=self._tmp_dir.name,
             link_local=False,
