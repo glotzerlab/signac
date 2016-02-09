@@ -55,7 +55,7 @@ class BaseCrawler(object):
         :rtype: mapping"""
         raise NotImplementedError()
 
-    def fetch(self, doc):
+    def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
 
         The return value of this generator function is not directly defined,
@@ -223,7 +223,7 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    yield format_(open(ffn, mode))
+                    yield format_(open(ffn, mode=mode))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -342,12 +342,12 @@ class SignacProjectCrawler(
     pass
 
 
-def _store_files_to_mirror(mirror, crawler, doc):
+def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
     link = doc.setdefault(KEY_LINK, dict())
     fs_config = link.setdefault('mirrors', list())
     fs_config.append({mirror.name: mirror.config()})
     file_ids = link.setdefault('file_ids', list())
-    for file in crawler.fetch(doc, mode='rb'):
+    for file in crawler.fetch(doc, mode=mode):
         file_id = hashlib.md5(file.read()).hexdigest()
         file.seek(0)
         try:
@@ -390,20 +390,18 @@ class MasterCrawler(BaseCrawler):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            try:
-                tags = crawler.tags
-            except AttributeError:
-                if self.tags is not None and len(set(self.tags)):
-                    logger.info("Skipping, crawler has no defined tags.")
+            logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
+            tags = getattr(crawler, 'tags', set())
+            if tags is not None and len(set(tags)):
+                if self.tags is None or not len(set(self.tags)):
+                    logger.info("Skipping, crawler has defined tags.")
                     continue
-            else:
-                if tags is not None and len(set(tags)):
-                    if self.tags is None or not len(set(self.tags)):
-                        logger.info("Skipping, crawler has defined tags.")
-                        continue
-                    elif not set(self.tags).intersection(set(crawler.tags)):
-                        logger.info("Skipping, tag mismatch.")
-                        continue
+                elif not set(self.tags).intersection(set(crawler.tags)):
+                    logger.info("Skipping, tag mismatch.")
+                    continue
+            elif self.tags is not None and len(set(self.tags)):
+                logger.info("Skipping, crawler has no defined tags.")
+                continue
             for _id, doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
