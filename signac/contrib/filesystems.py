@@ -100,13 +100,15 @@ _register_fs_class(LocalFS)
 if GRIDFS:
 
     class GridFS(object):
-        """A file system handler for the MongoDB GridFS file system.
+        """A file system handler for the MongoDB `GridFS`_ file system.
 
         .. note::
 
             If the `database` argument is a :class:`str`, signac will
             attempt to connect to the database using the
             global configuration.
+
+        .. _`GridFS`: http://api.mongodb.org/python/current/api/gridfs/
 
         :param db: The database used to store the grid.
         :type db: str or :class:`pymongo.database.Database`
@@ -161,9 +163,9 @@ if GRIDFS:
             .. warning::
 
                 To avoid compatiblity issues, all files are
-                opened in text-mode (r) by default, however
+                opened in text-mode (`r`) by default, however
                 for higher efficiency, files should generally
-                be opened in binary mode (rb) whenever possible.
+                be opened in binary mode (`rb`) whenever possible.
 
             :param _id: The file identifier.
             :type _id: str

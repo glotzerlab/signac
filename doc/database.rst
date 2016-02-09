@@ -1,20 +1,13 @@
-========
-Database
-========
-
-Basics
-======
+Data Processing
+===============
 
 Database access
 ---------------
 
 After :doc:`configuring <configuration>` one ore more database hosts you can access a database with the :py:func:`signac.get_database` function.
 
-.. automodule:: signac.db
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+.. autofunction:: signac.get_database
+    :noindex:
 
 Queries and aggregation
 -----------------------
@@ -24,10 +17,6 @@ To execute queries on a :py:class:`~pymongo.collection.Collection` instance use 
 Aggregation pipelines are executed with the :py:meth:`~pymongo.collection.Collection.aggregate` method.
 
 .. seealso:: https://api.mongodb.org/python/current/api/pymongo/collection.html
-
-
-Processing data
-===============
 
 Basic mapping
 -------------
@@ -47,10 +36,6 @@ First, we define our processing function:
       return doc
 
 In this case we effectively copy and extend the input document to produce the output document which has the benefit of preserving all meta data, but is not strictly necessary.
-
-.. seealso::
-
-   Data that were indexed by a :py:class:`~signac.contrib.MasterCrawler` can be fetched with the :py:func:`signac.contrib.fetch` function.
 
 We fetch our input documents from a collection that contains the index, in this case called `index`:
 

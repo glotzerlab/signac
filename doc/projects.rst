@@ -34,7 +34,7 @@ Access to project data
 
 You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory from the command line or with the :py:func:`~signac.get_project` function.
 
-.. code-block:: python
+.. code-block:: shell
 
     $ signac project
     MyProject
@@ -50,7 +50,7 @@ Parameters are defined by a mapping of key-value pairs stored for example in a :
 Each state point is a associated with a unique hash value, called *job id*.
 Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.project.Project.open_job` method.
 
-.. code-block:: python
+.. code-block:: shell
 
     # define a state point
     >>> statepoint = {'a': 0}
@@ -99,7 +99,7 @@ Operate on the workspace
 ------------------------
 
 Using a workspace makes it easy to keep track of your parameter space.
-Use :py:meth:`~signac.contrib.Project.get_statepoints` to retrieve a list of all state points for jobs with data in your workspace.
+Use :py:meth:`~signac.contrib.Project.find_statepoints` to retrieve a list of all state points for jobs with data in your workspace.
 
 .. code-block:: python
 
@@ -169,7 +169,7 @@ Using the :py:meth:`~signac.contrib.Project.find_job_documents` method, we can e
 .. code-block:: python
 
     >>> # We want to export the job documents to a MongoDB document collection.
-    >>> job_docs_collection = signac.db.get_database('MyProject').job_docs
+    >>> job_docs_collection = signac.get_database('MyProject').job_docs
     >>> # Get a list of all or a subset of the job documents
     >>> job_docs = list(project.find_job_documents())
     >>> # Export to the collection

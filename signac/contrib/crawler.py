@@ -19,7 +19,6 @@ else:
 
 logger = logging.getLogger(__name__)
 
-FN_CRAWLER = 'signac_access.py'
 KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
@@ -65,7 +64,7 @@ class BaseCrawler(object):
         .. _`file-like objects`:
             https://docs.python.org/3/glossary.html#term-file-object
 
-        :yields: An iterable of arbitrary objects."""
+        :yields: arbitrary objects."""
         return
         yield
 
@@ -89,7 +88,7 @@ class BaseCrawler(object):
         :param depth: Crawl through the directory for the specified depth.
                       A value of 0 specifies no limit.
         :type dept: int
-        :yields: An iterable of dict objects."""
+        :yields: (id, doc)-tuples"""
         logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
@@ -343,18 +342,18 @@ class SignacProjectCrawler(
     pass
 
 
-def _store_files_to_filesystem(filesystem, crawler, doc):
+def _store_files_to_mirror(mirror, crawler, doc):
     link = doc.setdefault(KEY_LINK, dict())
-    fs_config = link.setdefault('filesystems', list())
-    fs_config.append({filesystem.name: filesystem.config()})
+    fs_config = link.setdefault('mirrors', list())
+    fs_config.append({mirror.name: mirror.config()})
     file_ids = link.setdefault('file_ids', list())
     for file in crawler.fetch(doc, mode='rb'):
         file_id = hashlib.md5(file.read()).hexdigest()
         file.seek(0)
         try:
-            with filesystem.new_file(_id=file_id) as filesystemfile:
-                filesystemfile.write(file.read())
-        except filesystem.FileExistsError:
+            with mirror.new_file(_id=file_id) as mirrorfile:
+                mirrorfile.write(file.read())
+        except mirror.FileExistsError:
             pass
         if file_id not in file_ids:
             file_ids.append(file_id)
@@ -362,7 +361,6 @@ def _store_files_to_filesystem(filesystem, crawler, doc):
 
 
 class MasterCrawler(BaseCrawler):
-
     """Crawl the data space and search for signac crawlers.
 
     The MasterCrawler executes signac slave crawlers
@@ -374,16 +372,17 @@ class MasterCrawler(BaseCrawler):
     :param root: The path to the root directory to crawl through.
     :type root: str
     :param link_local: Store a link to the local access module.
-    :param filesystems: An optional set of file systems, to export
-        data to.
-    """
+    :param mirrors: An optional set of mirrors, to export data to."""
 
-    def __init__(self, root, link_local=True, filesystems=None):
+    FN_ACCESS_MODULE = 'signac_access.py'
+    "The filename of modules containing crawler definitions."
+
+    def __init__(self, root, link_local=True, mirrors=None):
         self.link_local = link_local
-        if filesystems is None:
-            self.filesystems = list()
+        if mirrors is None:
+            self.mirrors = list()
         else:
-            self.filesystems = list(filesystems_from_configs(filesystems))
+            self.mirrors = list(filesystems_from_configs(mirrors))
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
 
@@ -394,11 +393,13 @@ class MasterCrawler(BaseCrawler):
             try:
                 tags = crawler.tags
             except AttributeError:
-                pass
+                if self.tags is not None and len(set(self.tags)):
+                    logger.info("Skipping, crawler has no defined tags.")
+                    continue
             else:
                 if tags is not None and len(set(tags)):
                     if self.tags is None or not len(set(self.tags)):
-                        logger.info("Skipping, project has defined tags.")
+                        logger.info("Skipping, crawler has defined tags.")
                         continue
                     elif not set(self.tags).intersection(set(crawler.tags)):
                         logger.info("Skipping, tag mismatch.")
@@ -413,12 +414,12 @@ class MasterCrawler(BaseCrawler):
                         link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
                         link[KEY_CRAWLER_MODULE] = fn
                         link[KEY_CRAWLER_ID] = crawler_id
-                    for filesystem in self.filesystems:
-                        _store_files_to_filesystem(filesystem, crawler, doc)
+                    for mirror in self.mirrors:
+                        _store_files_to_mirror(mirror, crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
-        if fn == FN_CRAWLER:
+        if fn == self.FN_ACCESS_MODULE:
             try:
                 for doc in self._docs_from_module(dirpath, fn):
                     yield doc
@@ -443,17 +444,20 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
+def fetch(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     """Fetch all data associated with this document.
 
-    The filesystems argument is either a list of filesystem-like objects, a list of file system configurations or a mix of both.
-    See also: :mod:`.contrib.filesystems` for more information.
+    The sources argument is either a list of filesystem-like objects
+    or a list of file system configurations or a mix of both.
+
+    See :func:`.contrib.filesystems.filesystems_from_config`
+    for details.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
     :param mode: Mode to use for file opening.
-    :param filesystems: An optional set of filesystems to fetch files from.
-    :param ignore_linked_fs: Ignore all file system information in the
+    :param sources: An optional set of sources to fetch files from.
+    :param ignore_linked_mirrors: Ignore all mirror information in the
         document's link attribute.
     :yields: Data associated with this document in the specified format."""
     if doc is None:
@@ -464,34 +468,34 @@ def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     else:
         link = dict(link)
     if KEY_CRAWLER_PATH in link:
-        logger.debug("Fetching files from the file system.")
+        logger.debug("Fetching files from the local file system.")
         try:
             for file in _fetch_fs(doc, mode=mode):
                 yield file
             return
         except OSError as error:
             logger.warning(
-                "Unable to fetch file from file system: {}".format(error))
+                "Unable to fetch file from local file system: {}".format(error))
     to_fetch = set(link.pop('file_ids', []))
     n = len(to_fetch)
     if n == 0:
         return
-    if filesystems is None:
-        filesystems = list()
+    if sources is None:
+        sources = list()
     else:
-        filesystems = list(filesystems_from_configs(filesystems))
-    if not ignore_linked_fs:
-        filesystems.extend(
-            list(filesystems_from_configs(link.get('filesystems', list()))))
-    logger.debug("Using filesystems to fetch files: {}".format(filesystems))
-    for filesystem in filesystems:
+        sources = list(filesystems_from_configs(sources))
+    if not ignore_linked_mirrors:
+        sources.extend(
+            list(filesystems_from_configs(link.get('mirrors', list()))))
+    logger.debug("Using sources to fetch files: {}".format(sources))
+    for source in sources:
         fetched = set()
         for file_id in to_fetch:
             logger.debug("Fetching file with id '{}'.".format(file_id))
             try:
-                yield filesystem.get(file_id, mode=mode)
+                yield source.get(file_id, mode=mode)
                 fetched.add(file_id)
-            except filesystem.FileNotFoundError:
+            except source.FileNotFoundError:
                 continue
         for file_id in fetched:
             to_fetch.remove(file_id)
@@ -519,7 +523,7 @@ def fetched(docs):
 
 
 def _fetch_fs(doc, mode):
-    "Fetch files for doc from the file system."
+    "Fetch files for doc from the local file system."
     link = doc[KEY_LINK]
     fn_module = os.path.join(
         link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])

@@ -1,4 +1,3 @@
-=============
 Configuration
 =============
 
@@ -7,9 +6,6 @@ Use the :doc:`signac gui <gui>` to configure one or more MongoDB database hosts.
 Alternatively you can also create configuration files manually.
 
 .. _signac-gui: https://bitbucket.org/glotzer/signac-gui
-
-Manual configuration
-====================
 
 signac is configured with configuration files, which are named either ``.signacrc`` or ``signac.rc``.
 These configuration files are searched for at multiple locations in the following order:

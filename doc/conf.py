@@ -287,7 +287,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   (master_doc, 'signac', u'signac Documentation',
-   author, 'signac', 'One line description of project.',
+   author, 'signac', 'A simple data management framework.',
    'Miscellaneous'),
 ]
 
