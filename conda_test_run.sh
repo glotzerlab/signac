@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 sys_path_check() {
   n=$(python -c "import sys; print(':'.join(sys.path).count('site-packages/signac'))")
@@ -10,16 +10,16 @@ sys_path_check() {
 
 source activate signac-py27
 sys_path_check
-python -m unittest discover tests ${@}
+python -W once -m unittest discover tests ${@}
 
 source activate signac-py33
 sys_path_check
-python -m unittest discover tests ${@}
+python -W once -m unittest discover tests ${@}
 
 source activate signac-py34
 sys_path_check
-python -m unittest discover tests ${@}
+python -W once -m unittest discover tests ${@}
 
 source activate signac-py35
 sys_path_check
-python -m unittest discover tests ${@}
+python -W once -m unittest discover tests ${@}

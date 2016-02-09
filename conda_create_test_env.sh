@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 conda env remove --yes -n signac-py27
 conda env remove --yes -n signac-py33
