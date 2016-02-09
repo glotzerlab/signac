@@ -9,7 +9,7 @@ import warnings
 from ..common import six
 from .utility import walkdepth
 from .hashing import calc_id
-from .filesystems import filesystems_from_config
+from .filesystems import filesystems_from_configs
 
 if six.PY2:
     import imp
@@ -376,8 +376,6 @@ class MasterCrawler(BaseCrawler):
     :param link_local: Store a link to the local access module.
     :param filesystems: An optional set of file systems, to export
         data to.
-    :type filesystems: A sequence of filesystem-like objects or
-        filesystem configurations. See :func:`~fetch` for details.
     """
 
     def __init__(self, root, link_local=True, filesystems=None):
@@ -385,7 +383,7 @@ class MasterCrawler(BaseCrawler):
         if filesystems is None:
             self.filesystems = list()
         else:
-            self.filesystems = list(filesystems_from_config(filesystems))
+            self.filesystems = list(filesystems_from_configs(filesystems))
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
 
@@ -448,21 +446,13 @@ def _load_crawler(name):
 def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     """Fetch all data associated with this document.
 
-    The filesystems argument is either a list of filesystem-like objects,
-    see :mod:`~.contrib.fs` for examples, or a list of filesystem
-    configurations.
-    The latter is a slightly shorter notation, e.g.:
-
-    .. code-block:
-
-        fetch(doc, filesystems=[{'localfs': '/path/to/storage'}])
+    The filesystems argument is either a list of filesystem-like objects, a list of file system configurations or a mix of both.
+    See also: :mod:`.contrib.filesystems` for more information.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
     :param mode: Mode to use for file opening.
     :param filesystems: An optional set of filesystems to fetch files from.
-    :type filesystems: A sequence of filesystem-like objects or
-        filesystem configurations.
     :param ignore_linked_fs: Ignore all file system information in the
         document's link attribute.
     :yields: Data associated with this document in the specified format."""
@@ -489,10 +479,10 @@ def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     if filesystems is None:
         filesystems = list()
     else:
-        filesystems = list(filesystems_from_config(filesystems))
+        filesystems = list(filesystems_from_configs(filesystems))
     if not ignore_linked_fs:
         filesystems.extend(
-            list(filesystems_from_config(link.get('filesystems', list()))))
+            list(filesystems_from_configs(link.get('filesystems', list()))))
     logger.debug("Using filesystems to fetch files: {}".format(filesystems))
     for filesystem in filesystems:
         fetched = set()
