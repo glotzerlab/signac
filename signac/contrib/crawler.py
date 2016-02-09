@@ -3,29 +3,18 @@ import re
 import json
 import six
 import math
-import io
-import errno
 import hashlib
 import logging
 import warnings
 
-try:
-    import gridfs
-except ImportError:
-    GRIDFS = False
-else:
-    GRIDFS = True
-
 from .utility import walkdepth
 from .hashing import calc_id
-from ..db import get_database
+from .filesystems import filesystems_from_config
 
 if six.PY2:
     import imp
-    from collections import Mapping
 else:
     import importlib.machinery
-    from collections.abc import Mapping
 
 
 logger = logging.getLogger(__name__)
@@ -39,9 +28,6 @@ KEY_LINK = 'signac_link'
 KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
-
-GRIDS = dict()
-GRIDFS_LARGE_FILE_WARNING_THRSHLD = 1e9  # 1GB
 
 
 class BaseCrawler(object):
@@ -76,7 +62,8 @@ class BaseCrawler(object):
         The return value of this generator function is not directly defined,
         however it is recommended to use `file-like objects`_.
 
-        .. _`file-like objects`: https://docs.python.org/3/glossary.html#term-file-object
+        .. _`file-like objects`:
+            https://docs.python.org/3/glossary.html#term-file-object
 
         :yields: An iterable of arbitrary objects."""
         return
@@ -356,105 +343,6 @@ class SignacProjectCrawler(
     pass
 
 
-class LocalFS(object):
-    """A file system handler for the local file system."""
-    name = 'localfs'
-    FileExistsError = IOError
-    FileNotFoundError = IOError
-
-    def __init__(self, root):
-        self.root = root
-
-    def config(self):
-        return {'root': self.root}
-
-    def __repr__(self):
-        return '{}({})'.format(
-            type(self),
-            ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
-
-    @classmethod
-    def from_config(cls, config):
-        return LocalFS(root=config['root'])
-
-    def _fn(self, file_id, n=2, suffix='.dat'):
-        fn = os.path.join(
-            self.root,
-            * [file_id[i:i + n] for i in range(0, len(file_id), n)]) + suffix
-        return fn
-
-    def new_file(self, **kwargs):
-        assert 'x' in kwargs.get('mode', 'x')
-        file_id = kwargs.get('_id', calc_id(kwargs))
-        fn = self._fn(file_id)
-        try:
-            path = os.path.dirname(fn)
-            os.makedirs(path)
-        except OSError as error:
-            if not (error.errno == errno.EEXIST and os.path.isdir(path)):
-                raise
-        return open(fn, mode='wxb' if six.PY2 else 'xb')
-
-    def get(self, file_id, mode='r'):
-        assert 'r' in mode
-        return open(self._fn(file_id), mode=mode)
-
-
-class GridFS(object):
-    """A file system handler for the MongoDB GridFS file system."""
-    name = 'gridfs'
-
-    FileExistsError = gridfs.errors.FileExists
-    FileNotFoundError = gridfs.errors.NoFile
-
-    def __init__(self, db, collection='fs'):
-        if isinstance(db, str):
-            self.db = None
-            self.db_name = db
-        else:
-            self.db = db
-            self.db_name = db.name
-        self.collection = collection
-        self._gridfs = None
-
-    def config(self):
-        return {'db': self.db_name, 'collection': self.collection}
-
-    def __repr__(self):
-        return '{}({})'.format(
-            type(self),
-            ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
-
-    @classmethod
-    def from_config(cls, config):
-        return GridFS(
-            db=config['db'],
-            collection=config.get('collection', 'fs'))
-
-    @property
-    def gridfs(self):
-        if self._gridfs is None:
-            if self.db is None:
-                self.db = get_database(self.db_name)
-            self._gridfs = gridfs.GridFS(self.db, collection=self.collection)
-        return self._gridfs
-
-    def new_file(self, **kwargs):
-        return self.gridfs.new_file(** kwargs)
-
-    def get(self, file_id, mode='r'):
-        if mode == 'r':
-            file = io.StringIO(self.gridfs.get(file_id).read().decode())
-            if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
-                warnings.warn(
-                    "Open large GridFS files more efficiently in 'rb' mode.")
-            return file
-        elif mode == 'rb':
-            return self.gridfs.get(file_id=file_id)
-        else:
-            raise ValueError(mode)
-
-
 def _store_files_to_filesystem(filesystem, crawler, doc):
     link = doc.setdefault(KEY_LINK, dict())
     fs_config = link.setdefault('filesystems', list())
@@ -497,7 +385,7 @@ class MasterCrawler(BaseCrawler):
         if filesystems is None:
             self.filesystems = list()
         else:
-            self.filesystems = list(_filesystems_from_config(filesystems))
+            self.filesystems = list(filesystems_from_config(filesystems))
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
 
@@ -557,34 +445,11 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def _filesystems_from_config(fs_config):
-    for item in fs_config:
-        if isinstance(item, Mapping):
-            for key in item:
-                if key == 'localfs':
-                    if isinstance(item[key], Mapping):
-                        yield LocalFS.from_config(item[key])
-                    else:
-                        yield LocalFS(item[key])
-                elif key == 'gridfs':
-                    if GRIDFS:
-                        if isinstance(item[key], Mapping):
-                            yield GridFS.from_config(item[key])
-                        else:
-                            yield GridFS(item[key])
-                    else:
-                        warnings.warn("gridfs not available!")
-                else:
-                    warnings.warn("Unknown filesystem type '{}'.".format(key))
-        else:
-            yield item
-
-
 def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     """Fetch all data associated with this document.
 
     The filesystems argument is either a list of filesystem-like objects,
-    see :class:`~LocalFS` for an example, or a list of filesystem
+    see :mod:`~.contrib.fs` for examples, or a list of filesystem
     configurations.
     The latter is a slightly shorter notation, e.g.:
 
@@ -624,10 +489,10 @@ def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
     if filesystems is None:
         filesystems = list()
     else:
-        filesystems = list(_filesystems_from_config(filesystems))
+        filesystems = list(filesystems_from_config(filesystems))
     if not ignore_linked_fs:
         filesystems.extend(
-            list(_filesystems_from_config(link.get('filesystems', list()))))
+            list(filesystems_from_config(link.get('filesystems', list()))))
     logger.debug("Using filesystems to fetch files: {}".format(filesystems))
     for filesystem in filesystems:
         fetched = set()
@@ -648,7 +513,7 @@ def fetch(doc, mode='r', filesystems=None, ignore_linked_fs=False):
 def fetch_one(doc, *args, **kwargs):
     """Fetch data associated with this document.
 
-    Unlike fetch(), this function returns only the first
+    Unlike :func:`~signac.fetch`, this function returns only the first
     file associated with doc and ignores all others.
 
     :param doc: A document which is part of an index.

@@ -229,7 +229,7 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_local_filesystem(self):
         self.setup_project()
         fs_root = os.path.join(self._tmp_dir.name, 'local')
-        fs_test = signac.contrib.crawler.LocalFS(fs_root)
+        fs_test = signac.contrib.filesystems.LocalFS(fs_root)
         with fs_test.new_file(_id='test123') as file:
             if six.PY2:
                 file.write('testfilewrite')
