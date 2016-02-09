@@ -10,16 +10,32 @@ sys_path_check() {
 
 source activate signac-py27
 sys_path_check
-python -W once -m unittest discover tests ${@}
+python -W once::DeprecationWarning -m unittest discover tests ${@}
 
 source activate signac-py33
 sys_path_check
-python -W once -m unittest discover tests ${@}
+python -W once::DeprecationWarning -m unittest discover tests ${@}
 
 source activate signac-py34
 sys_path_check
-python -W once -m unittest discover tests ${@}
+python -W once::DeprecationWarning -m unittest discover tests ${@}
 
 source activate signac-py35
 sys_path_check
-python -W once -m unittest discover tests ${@}
+python -W once::DeprecationWarning -m unittest discover tests ${@}
+
+source activate signac-py27-minimal
+sys_path_check
+python -W once::DeprecationWarning -m unittest discover tests ${@}
+
+source activate signac-py33-minimal
+sys_path_check
+python -W once::DeprecationWarning -m unittest discover tests ${@}
+
+source activate signac-py34-minimal
+sys_path_check
+python -W once::DeprecationWarning -m unittest discover tests ${@}
+
+source activate signac-py35-minimal
+sys_path_check
+python -W once::DeprecationWarning -m unittest discover tests ${@}
