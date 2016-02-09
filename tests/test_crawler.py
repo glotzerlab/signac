@@ -158,12 +158,12 @@ class CrawlerBaseTest(unittest.TestCase):
             with open(ffn) as file:
                 doc2 = json.load(file)
                 self.assertEqual(doc2['a'], doc['a'])
-            no_data = True
-            for data in signac.contrib.fetch(doc):
-                no_data = False
-                self.assertEqual(signac.contrib.formats.TextFile, type(data))
-                data.close()
-            self.assertFalse(no_data)
+            no_files = True
+            for file in signac.contrib.fetch(doc):
+                no_files = False
+                self.assertEqual(signac.contrib.formats.TextFile, type(file))
+                file.close()
+            self.assertFalse(no_files)
         self.assertFalse(no_find)
 
     def test_master_crawler_tags(self):
@@ -203,17 +203,17 @@ class CrawlerBaseTest(unittest.TestCase):
         self.assertEqual(len(index), 2)
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(
+            for file in signac.contrib.fetch(
                     doc, filesystems=(fs_read, ), ignore_linked_fs=True):
-                m = json.load(data)
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
         self.assertEqual(len(check), 2)
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(
+            for file in signac.contrib.fetch(
                     doc, filesystems=(fs_bad, fs_read), ignore_linked_fs=True):
-                m = json.load(data)
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
         self.assertEqual(len(check), 2)
@@ -231,7 +231,10 @@ class CrawlerBaseTest(unittest.TestCase):
         fs_root = os.path.join(self._tmp_dir.name, 'local')
         fs_test = signac.contrib.crawler.LocalFS(fs_root)
         with fs_test.new_file(_id='test123') as file:
-            file.write('testfilewrite')
+            if six.PY2:
+                file.write('testfilewrite')
+            else:
+                file.write('testfilewrite'.encode())
         with self.assertRaises(fs_test.FileExistsError):
             fs_test.new_file(_id='test123')
         with fs_test.get('test123') as file:
@@ -247,33 +250,37 @@ class CrawlerBaseTest(unittest.TestCase):
         index = {_id: doc for _id, doc in crawler.crawl()}
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(doc, filesystems=(fs_test,)):
-                m = json.load(data)
+            for file in signac.contrib.fetch(doc, filesystems=(fs_test,)):
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
+                file.close()
         self.assertEqual(len(check), 2)
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(
+            for file in signac.contrib.fetch(
                     doc, filesystems=({'localfs': {'root': fs_root}},)):
-                m = json.load(data)
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
+                file.close()
         self.assertEqual(len(check), 2)
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(
+            for file in signac.contrib.fetch(
                     doc, filesystems=[dict(localfs=fs_root)]):
-                m = json.load(data)
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
+                file.close()
         self.assertEqual(len(check), 2)
         check = list()
         for _id, doc in index.items():
-            for data in signac.contrib.fetch(doc, filesystems=[]):
-                m = json.load(data)
+            for file in signac.contrib.fetch(doc, filesystems=[]):
+                m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
+                file.close()
         self.assertEqual(len(check), 2)
         check = list()
         for _id, doc in index.items():

@@ -426,7 +426,9 @@ class GridFS(object):
 
     @classmethod
     def from_config(cls, config):
-        return GridFS(db=config['db'], collection=config.get('collection'))
+        return GridFS(
+            db=config['db'],
+            collection=config.get('collection', 'fs'))
 
     @property
     def gridfs(self):
