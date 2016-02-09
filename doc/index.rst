@@ -10,13 +10,30 @@ Welcome to signac's documentation!
 
 .. automodule:: signac
 
-Contents:
+Contents
+--------
+
+.. glossary::
+
+    :ref:`overview`
+      A introduction to **signac**'s core concepts.
+
+    :ref:`guide`
+      A complete introduction of framework's major major components.
+
+    :ref:`quickreference`
+      Brief overview of the core functions, to serve as a reference.
+
+    :ref:`api`
+      The complete API reference to all packages.
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
    overview
    guide
+   reference
    signac
 
 Indices and tables
