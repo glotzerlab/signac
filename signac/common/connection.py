@@ -6,7 +6,7 @@ from os.path import expanduser
 
 import pymongo
 
-PYMONGO_3 = pymongo.version_tuple[0] == 3
+PYMONGO_2 = pymongo.version_tuple[0] == 2
 
 logger = logging.getLogger(__name__)
 
@@ -69,14 +69,21 @@ class DBClientConnector(object):
 
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
-        parameters = {
-            'connectTimeoutMS': self._config_get('connect_timeout_ms'),
-        }
+        forwarded_parameters = (
+            'socketTimeoutMS', 'connectTimeoutMS', 'serverSelectionTimeoutMS',
+            'w', 'wtimeout', 'replicaSet')
+        parameters = dict()
+        for parameter in forwarded_parameters:
+            if parameter in self._config:
+                parameters[parameter] = self._config_get(parameter)
 
         auth_mechanism = self._config_get('auth_mechanism')
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
             client = pymongo.MongoClient(
                 host,
+                read_preference=getattr(
+                    pymongo.read_preferences.ReadPreference,
+                    self._config_get('read_preference', 'PRIMARY')),
                 ** parameters)
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma  no cover
             # currently not officially supported
@@ -126,10 +133,10 @@ class DBClientConnector(object):
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_3:
-            self._connect_pymongo3(host)
-        else:  # pragma no cover
+        if PYMONGO_2:  # pragma no cover
             self._connect_pymongo2(host)
+        else:
+            self._connect_pymongo3(host)
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism')

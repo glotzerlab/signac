@@ -1,14 +1,14 @@
 import os
 import unittest
-import six
 import uuid
 
 from signac.core.jsondict import JSonDict
+from signac.common import six
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 FN_DICT = 'jsondict.json'
 

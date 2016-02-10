@@ -7,19 +7,32 @@ Welcome to signac's documentation!
 ==================================
 
 .. automodule:: signac
-   :members:
 
-Contents:
+Contents
+--------
+
+.. glossary::
+
+    :ref:`overview`
+      An illustration of **signac**'s workflow and data model.
+
+    :ref:`guide`
+      A complete introduction to the framework's major components.
+
+    :ref:`quickreference`
+      Brief overview of the core functions, to serve as reference.
+
+    :ref:`api`
+      The complete API reference.
 
 .. toctree::
-   :maxdepth: 2
+   :hidden:
+   :maxdepth: 3
 
    overview
-   installation
-   gui
-   configuration
-   projects
-   database
+   guide
+   reference
+   signac
 
 Indices and tables
 ==================

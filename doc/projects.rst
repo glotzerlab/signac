@@ -10,39 +10,70 @@ Specifying a project name as identifier within a configuration file initiates a 
 
     $ mkdir my_project
     $ cd my_project
+    $ signac init MyProject
+    # or
     $ echo project=MyProject >> signac.rc
 
 The directory that contains this configuration file is the project's root directory.
 
+Verify the configuration with:
+
+.. code-block:: bash
+
+    $ signac project
+    MyProject
+
+.. note::
+
+    Some of the functions introduced here on the python level have command line equivalents, to make it easier to integrate **signac** with bash scripts.
+    Check out ``$ signac --help`` for more information.
+
+
 Access to project data
 -----------------------
 
-You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory with the :py:func:`~signac.contrib.get_project` function.
+You can access your signac :class:`~signac.contrib.Project` from within your project's root directory or any subdirectory from the command line:
+
+.. code-block:: shell
+
+    $ signac project
+    MyProject
+
+Or with the :py:func:`~signac.get_project` function:
 
 .. code-block:: python
 
-    $ python
     >>> import signac
-    >>> project = signac.contrib.get_project()
+    >>> project = signac.get_project()
     >>> print(project)
     MyProject
 
-You can use the project to store data associated with a unique set of parameters.
-Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object.
+
+You can use the project to store data associated with a unique set of parameters, called a *state point*.
+Parameters are defined by a mapping of key-value pairs stored for example in a :py:class:`dict` object or in JSON format.
 Each state point is a associated with a unique hash value, called *job id*.
-Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.Project.open_job` method.
+Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on your job's data space with the :py:meth:`~signac.contrib.project.Project.open_job` method.
 
 .. code-block:: python
 
-    # define a state point
+    # Define a state point:
     >>> statepoint = {'a': 0}
-    # get the associated job
+    # Get the associated job:
     >>> job = project.open_job(statepoint)
     >>> job.get_id()
     '9bfd29df07674bc4aa960cf661b5acd2'
+    
+Equivalent from the command line:
 
-You can use the job id to organize your data.
+.. code-block:: shell
 
+    $ signac job '{"a": 0}'
+    9bfd29df07674bc4aa960cf661b5acd2
+    # Pipe large statepoint definitions:
+    $ cat mystatepoint.json > signac job
+    ab343j...
+
+The *job id* is a unique identifier or address for all project data.
 
 The workspace
 -------------
@@ -65,26 +96,36 @@ This will switch to the job's workspace after entering the context and switches 
 .. code-block:: python
 
     >>> with project.open_job(statepoint) as job:
-    >>>   with open('myfile.txt', 'w') as file:
-    >>>     file.write('hello world')
-    >>>   print(os.listdir(job.workspace()))
+    ...     with open('myfile.txt', 'w') as file:
+    ...         file.write('hello world')
+    ...     print(os.listdir(job.workspace()))
+    ...
     ['myfile.txt']
     >>>
+
+Once a job is initialized in the workspace, or the state point was written with :py:meth:`~signac.contrib.Project.write_statepoints` it is possible to **open a job by job id**:
+
+.. code-block:: python
+
+    >>> with project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2') as job:
+    ...     print(job.statepoint())
+    ...
+    {'a': 0}
 
 Operate on the workspace
 ------------------------
 
 Using a workspace makes it easy to keep track of your parameter space.
-Use :py:meth:`~signac.contrib.Project.get_statepoints` to retrieve a list of all state points for jobs with data in your workspace.
+Use :py:meth:`~signac.contrib.Project.find_statepoints` to retrieve a list of all state points for jobs with data in your workspace.
 
 .. code-block:: python
 
     >>> statepoints = [{'a': i} for i in range(5)]
     >>> for statepoint in statepoints:
     ...   with project.open_job(statepoint) as job:
-              # Entering the job context once will trigger
-              # the creation of the workspace directory.
-              pass
+    ...       # Entering the job context once will trigger
+    ...       # the creation of the workspace directory.
+    ...       pass
     ...
     >>> project.find_statepoints()
     [{'a': 3}, {'a': 4}, {'a': 1}, {'a': 0}, {'a': 2}]
@@ -145,7 +186,7 @@ Using the :py:meth:`~signac.contrib.Project.find_job_documents` method, we can e
 .. code-block:: python
 
     >>> # We want to export the job documents to a MongoDB document collection.
-    >>> job_docs_collection = signac.db.get_database('MyProject').job_docs
+    >>> job_docs_collection = signac.get_database('MyProject').job_docs
     >>> # Get a list of all or a subset of the job documents
     >>> job_docs = list(project.find_job_documents())
     >>> # Export to the collection

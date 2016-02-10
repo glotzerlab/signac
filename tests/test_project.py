@@ -5,8 +5,12 @@ import warnings
 import logging
 
 import signac
+from signac.common import six
 
 from test_job import BaseJobTest
+
+if six.PY2:
+    logging.basicConfig(level=logging.WARNING)
 
 
 # Make sure the jobs created for this test are unique.
@@ -68,6 +72,27 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
+
+    def test_open_job_by_id(self):
+        statepoints = [{'a': i} for i in range(5)]
+        jobs = [self.project.open_job(sp) for sp in statepoints]
+        try:
+            logging.disable(logging.WARNING)
+            for job in jobs:
+                with self.assertRaises(KeyError):
+                    self.project.open_job(id=str(job))
+            for job in jobs:
+                job.init()
+            for job in jobs:
+                self.project.open_job(id=str(job))
+            with self.assertRaises(KeyError):
+                self.project.open_job(id='abc')
+            with self.assertRaises(ValueError):
+                self.project.open_job()
+            with self.assertRaises(ValueError):
+                self.project.open_job(statepoints[0], id=str(jobs[0]))
+        finally:
+            logging.disable(logging.NOTSET)
 
     def test_create_view(self):
         # Test for highly heterogenous parameter space
@@ -131,8 +156,6 @@ class ProjectTest(BaseProjectTest):
         # Implement logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            # There is really not much that we can but warn the user here.
-            # We might introduce a repair() function at some point.
             with self.assertRaises(ValueError):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
@@ -146,11 +169,8 @@ class ProjectTest(BaseProjectTest):
             self.project.repair()
             for i, statepoint in enumerate(self.project.find_statepoints()):
                 pass
-        except:
-            raise
         finally:
             logging.disable(logging.NOTSET)
-
 
 
 if __name__ == '__main__':

@@ -2,18 +2,18 @@ import os
 import logging
 import json
 import glob
-import six
 import errno
 import collections
 
+from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
 
-if six.PY3:
-    from collections.abc import Mapping
-else:
+if six.PY2:
     from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
 
@@ -80,15 +80,37 @@ class Project(object):
             msg += "Are you sure '{}' is a signac project path?"
             raise LookupError(msg.format(os.path.abspath(os.getcwd())))
 
-    def open_job(self, statepoint):
-        """Get a job handle associated with statepoint.
+    def open_job(self, statepoint=None, id=None):
+        """Get a job handle associated with a statepoint.
+
+        This function returns the job instance associated with
+        the given statepoint or job id.
+        Opening a job by statepoint never fails.
+        Opening a job by id, requires a lookup of the statepoint
+        from the job id, which may fail if the job was not
+        previously initialized.
 
         :param statepoint: The job's unique set of parameters.
         :type statepoint: mapping
+        :param id: The job id.
+        :type id: str
         :return: The job instance.
         :rtype: :class:`signac.contrib.job.Job`
+        :raises KeyError: If the attempt to open the job by id fails.
         """
-        return Job(self, statepoint)
+        if (id is None) == (statepoint is None):
+            raise ValueError(
+                "You need to either provide the statepoint or the id.")
+        if id is None:
+            return Job(self, statepoint)
+        else:
+            try:
+                return Job(self, self.get_statepoint(id))
+            except KeyError as error:
+                logger.warning(
+                    "Unable to find statepoint for job id '{}' "
+                    "Is the job initialized?".format(id))
+                raise error
 
     def find_jobs(self, filter=None):
         """Find all jobs in the project's workspace.
@@ -160,13 +182,14 @@ class Project(object):
         """
         return {calc_id(sp): sp for sp in statepoints}
 
-    def write_statepoints(self, statepoints, fn=None, indent=2):
+    def write_statepoints(self, statepoints=None, fn=None, indent=2):
         """Dump statepoints to a file.
 
         If the file already contains statepoints, all new statepoints
         will be appended, while the old ones are preserved.
 
-        :param statepoints: A list of statepoints.
+        :param statepoints: A list of statepoints,
+            defaults to all statepoints which are defined in the workspace.
         :type statepoints: iterable
         :param fn: The filename of the file containing the statepoints,
             defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
@@ -185,15 +208,29 @@ class Project(object):
             if not error.errno == errno.ENOENT:
                 raise
             tmp = dict()
+        if statepoints is None:
+            statepoints = self.find_statepoints()
         tmp.update(self.dump_statepoints(statepoints))
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
+    def _get_statepoint_from_workspace(self, jobid):
+        fn_manifest = os.path.join(self.workspace(), jobid, Job.FN_MANIFEST)
+        try:
+            with open(fn_manifest, 'r') as manifest:
+                return json.load(manifest)
+        except (IOError, ValueError) as error:
+            if os.path.isfile(fn_manifest):
+                msg = "Error while trying to access manifest file: "\
+                      "'{}'. Error: '{}'.".format(fn_manifest, error)
+                logger.critical(msg)
+            raise KeyError(jobid)
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
-        Reads the statepoints file and returns the statepoint.
+        The statepoint is retrieved from the workspace or
+        from the statepoints file if the former attempt fails.
 
         :param jobid: A job id to get the statepoint for.
         :type jobid: str
@@ -207,7 +244,18 @@ class Project(object):
 
         See also :meth:`dump_statepoints`.
         """
-        return self.read_statepoints(fn=fn)[jobid]
+        try:
+            statepoint = self._get_statepoint_from_workspace(jobid)
+        except KeyError:
+            try:
+                statepoint = self.read_statepoints(fn=fn)[jobid]
+            except IOError as error:
+                if not error.errno == errno.ENOENT:
+                    raise
+                raise KeyError(jobid)
+        assert statepoint is not None
+        assert str(self.open_job(statepoint)) == jobid
+        return statepoint
 
     def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
@@ -305,6 +353,9 @@ class Project(object):
                     logger.info("Attempt to recover statepoint from file.")
                     statepoint = self.get_statepoint(jobid)
                     self.open_job(statepoint)._create_directory(overwrite=True)
+                except KeyError as error:
+                    raise RuntimeWarning(
+                        "Use write_statepoints() before attempting to repair!")
                 except IOError as error:
                     if FN_STATEPOINTS in str(error):
                         raise RuntimeWarning(
@@ -325,10 +376,10 @@ def _make_link(src, dst):
         if error.errno != errno.EEXIST:
             raise
         pass
-    if six.PY3:
-        os.symlink(src, dst, target_is_directory=True)
-    else:
+    if six.PY2:
         os.symlink(src, dst)
+    else:
+        os.symlink(src, dst, target_is_directory=True)
 
 
 def _make_urls(statepoints, key_set):

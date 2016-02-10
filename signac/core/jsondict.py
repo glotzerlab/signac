@@ -10,13 +10,15 @@ some other weaknesses in implementation.
 
 import os
 import errno
-import six
 import logging
 import uuid
-if six.PY3:
-    from collections import UserDict
-else:
+
+from ..common import six
+
+if six.PY2:
     from UserDict import UserDict as UD
+else:
+    from collections import UserDict
 
 try:
     import bson.json_util as json
@@ -113,10 +115,10 @@ class JSonDict(UserDict):
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
             tmpfile.write(self._dump().encode())
-        if six.PY3:
-            os.replace(fn_tmp, self._filename)
-        else:
+        if six.PY2:
             os.rename(fn_tmp, self._filename)
+        else:
+            os.replace(fn_tmp, self._filename)
 
     def save(self):
         if self._write_concern:

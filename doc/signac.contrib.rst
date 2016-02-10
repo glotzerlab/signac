@@ -36,6 +36,14 @@ signac.contrib.errors module
     :undoc-members:
     :show-inheritance:
 
+signac.contrib.filesystems module
+---------------------------------
+
+.. automodule:: signac.contrib.filesystems
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 signac.contrib.formats module
 -----------------------------
 

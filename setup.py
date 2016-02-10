@@ -8,8 +8,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='signac',
-    version='0.2.4',
+    version='0.2.5',
     packages=find_packages(),
+    zip_safe=True,
 
     author='Carl Simon Adorf',
     author_email='csadorf@umich.edu',
@@ -24,8 +25,6 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
 
-    install_requires=['six'],
-
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
@@ -35,6 +34,7 @@ setup(
 
     entry_points={
         'console_scripts': [
+            'signac = signac.__main__:main',
             'signac-gui = signac.gui:main',
         ],
     },

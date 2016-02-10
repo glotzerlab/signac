@@ -1,3 +1,4 @@
+import logging
 import warnings
 try:
     import pymongo  # noqa
@@ -12,6 +13,10 @@ except ImportError:
         raise ImportError(
             "You need to install pymongo to use `get_database()`.")
 else:
+    if pymongo.version_tuple[0] < 3:
+        logging.getLogger(__name__).warn(
+            "Your pymongo installation (version {}) is no longer "
+            "supported by signac. Consider updating.".format(pymongo.version))
     from .database import get_database
 
 

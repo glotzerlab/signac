@@ -23,6 +23,7 @@ def get_database(name, hostname=None, config=None):
     :type hostname: str
     :param config: The config object to retrieve the host
                    configuration from.
+                   Defaults to the global configuration.
     :type config: :class:`.common.config.Config`
     :returns: The database handle.
     :rtype: :class:`pymongo.database.Database`

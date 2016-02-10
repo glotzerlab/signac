@@ -1,4 +1,3 @@
-=============
 Configuration
 =============
 
@@ -7,9 +6,6 @@ Use the :doc:`signac gui <gui>` to configure one or more MongoDB database hosts.
 Alternatively you can also create configuration files manually.
 
 .. _signac-gui: https://bitbucket.org/glotzer/signac-gui
-
-Manual configuration
-====================
 
 signac is configured with configuration files, which are named either ``.signacrc`` or ``signac.rc``.
 These configuration files are searched for at multiple locations in the following order:
@@ -60,6 +56,7 @@ Project configuration
 A project configuration file is defined by containing the keyword *project*.
 Once signac found a project configuration file it will stop to search for more configuration files above the current working directory.
 
+For example, to initialize a project named *MyProject*, navigate to the project's root directory and either execute ``$ signac init MyProject`` on the command line or create the project configuration file manually.
 This is an example for a project configuration file:
 
 .. code-block:: ini

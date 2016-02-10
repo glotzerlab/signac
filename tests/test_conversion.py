@@ -1,15 +1,15 @@
 import unittest
 import logging
-import six
 import tempfile
 import uuid
 import os
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+
+from signac.common import six
+if six.PY2:
     from tempdir import TemporaryDirectory
-    import logging
     logging.basicConfig()
+else:
+    from tempfile import TemporaryDirectory
 
 try:
     import signac.contrib.formats_network

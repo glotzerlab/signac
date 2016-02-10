@@ -5,15 +5,15 @@ import warnings
 import uuid
 import copy
 import random
-import six
 
 import signac.contrib
 import signac.common.config
+from signac.common import six
 
-if six.PY3:
-    from tempfile import TemporaryDirectory
-else:
+if six.PY2:
     from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 
 # Make sure the jobs created for this test are unique.
@@ -146,6 +146,13 @@ class ConfigTest(BaseJobTest):
 
 
 class JobOpenAndClosingTest(BaseJobTest):
+
+    def test_init(self):
+        job = self.open_job(test_token)
+        self.assertFalse(os.path.isdir(job.workspace()))
+        job.init()
+        self.assertTrue(os.path.isdir(job.workspace()))
+        self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
 
     def test_open_job_close(self):
         with warnings.catch_warnings():

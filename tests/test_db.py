@@ -4,14 +4,16 @@ import signac.db
 
 try:
     signac.db.get_database('testing', hostname='testing')
+except signac.common.errors.ConfigError:
+    SKIP_REASON = "No 'testing' host configured."
 except ImportError:
-    DB_AVAILABLE = False
+    SKIP_REASON = "pymongo not available"
 else:
-    DB_AVAILABLE = True
+    SKIP_REASON = None
     import signac.common.host
 
 
-@unittest.skipIf(not DB_AVAILABLE, "pymongo not available")
+@unittest.skipIf(SKIP_REASON is not None, SKIP_REASON)
 class DBTest(unittest.TestCase):
 
     def get_test_db(self):

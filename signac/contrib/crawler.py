@@ -1,32 +1,32 @@
 import os
 import re
-import logging
 import json
-import six
 import math
+import hashlib
+import logging
+import warnings
 
+from ..common import six
 from .utility import walkdepth
 from .hashing import calc_id
+from .filesystems import filesystems_from_configs
 
-if six.PY3:
-    import importlib.machinery
-else:
+if six.PY2:
     import imp
+else:
+    import importlib.machinery
 
 
 logger = logging.getLogger(__name__)
 
-FN_CRAWLER = 'signac_access.py'
 KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
 KEY_LINK = 'signac_link'
-KEY_LINK_TYPE = 'link_type'
 KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
-LINK_MODULE_FETCH = 'module_fetch'
 
 
 class BaseCrawler(object):
@@ -34,6 +34,7 @@ class BaseCrawler(object):
 
     The crawler creates an index on data, which can be exported
     to a database for easier access."""
+    tags = None
 
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
@@ -41,6 +42,7 @@ class BaseCrawler(object):
         :param root: The path to the root directory to crawl through.
         :type root: str"""
         self.root = root
+        self.tags = set() if self.tags is None else set(self.tags)
 
     def docs_from_file(self, dirpath, fn):
         """Implement this method to generate documents from files.
@@ -53,10 +55,16 @@ class BaseCrawler(object):
         :rtype: mapping"""
         raise NotImplementedError()
 
-    def fetch(self, doc):
+    def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
 
-        :yields: An iterable of arbitray objects."""
+        The return value of this generator function is not directly defined,
+        however it is recommended to use `file-like objects`_.
+
+        .. _`file-like objects`:
+            https://docs.python.org/3/glossary.html#term-file-object
+
+        :yields: arbitrary objects."""
         return
         yield
 
@@ -80,7 +88,7 @@ class BaseCrawler(object):
         :param depth: Crawl through the directory for the specified depth.
                       A value of 0 specifies no limit.
         :type dept: int
-        :yields: An iterable of dict objects."""
+        :yields: (id, doc)-tuples"""
         logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
@@ -96,8 +104,7 @@ class BaseCrawler(object):
     def process(self, doc, dirpath, fn):
         """Implement this method for additional processing of generated docs.
 
-        This method is particular useful to specialize non-abstract crawlers.
-        The default implemenation will return the unmodified `doc`.
+        The default implementation will return the unmodified `doc`.
 
         :param dirpath: The path of the file, relative to `root`.
         :type dirpath: str
@@ -166,12 +173,16 @@ class RegexFileCrawler(BaseCrawler):
         :type format_: :class:`object`
 
         .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
-        if six.PY3:
-            if isinstance(regex, str):
+        if six.PY2:
+            if isinstance(regex, basestring):  # noqa
                 regex = re.compile(regex)
         else:
-            if isinstance(regex, basestring):
+            if isinstance(regex, str):
                 regex = re.compile(regex)
+        for meth in ('read', 'close'):
+            if not callable(getattr(format_, meth, None)):
+                msg = "Format {} has no {}() method.".format(format_, meth)
+                warnings.warn(msg)
         cls.definitions[regex] = format_
 
     def docs_from_file(self, dirpath, fn):
@@ -180,7 +191,8 @@ class RegexFileCrawler(BaseCrawler):
         This method is an implementation of the abstract method
         of :class:`~.BaseCrawler`.
         It is not recommended to reimplement this method to modify
-        documents generated from filenames. See :meth:`~.process` instead."""
+        documents generated from filenames.
+        See :meth:`~RegexFileCrawler.process` instead."""
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
             if m:
@@ -191,13 +203,12 @@ class RegexFileCrawler(BaseCrawler):
                 doc[KEY_PAYLOAD] = str(format_)
                 yield doc
 
-    def fetch(self, doc):
+    def fetch(self, doc, mode='r'):
         """Fetch the data associated with `doc`.
 
         :param doc: A document.
         :type doc: :class:`dict`
-        :yields: An instance of the format associated with the
-                  file used to generate `doc`.
+        :yields: All files associated with doc in the defined format.
 
         .. note::
 
@@ -212,7 +223,7 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    yield format_(open(ffn))
+                    yield format_(open(ffn, mode=mode))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -234,7 +245,7 @@ class RegexFileCrawler(BaseCrawler):
         :rtype: mapping"""
         result = dict()
         for key, value in doc.items():
-            if isinstance(value, bool):
+            if value is None or isinstance(value, bool):
                 result[key] = value
                 continue
             try:
@@ -268,6 +279,7 @@ class JSONCrawler(BaseCrawler):
 class SignacProjectBaseCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_statepoint = 'signac_statepoint.json'
+    statepoint_index = 'statepoint'
 
     def get_statepoint(self, dirpath):
         job_path = os.path.join(
@@ -281,8 +293,11 @@ class SignacProjectBaseCrawler(BaseCrawler):
 
     def process(self, doc, dirpath, fn):
         signac_id, statepoint = self.get_statepoint(dirpath)
-        doc.update(statepoint)
         doc['signac_id'] = signac_id
+        if self.statepoint_index:
+            doc[self.statepoint_index] = statepoint
+        else:
+            doc.update(statepoint)
         return super(SignacProjectBaseCrawler, self).process(doc, dirpath, fn)
 
 
@@ -294,6 +309,8 @@ class SignacProjectRegexFileCrawler(
 
 class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
     re_job_document = '.*\/signac_job_document\.json'
+    statepoint_index = 'statepoint'
+    signac_id_alias = '_id'
 
     def docs_from_file(self, dirpath, fn):
         if re.match(self.re_job_document, os.path.join(dirpath, fn)):
@@ -306,8 +323,13 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
                             self.get_statepoint(dirpath)[0]))
                     raise
             signac_id, statepoint = self.get_statepoint(dirpath)
-            job_doc['_id'] = signac_id
-            job_doc['statepoint'] = statepoint
+            job_doc['signac_id'] = signac_id
+            if self.statepoint_index:
+                job_doc[self.statepoint_index] = statepoint
+            else:
+                job_doc.update(statepoint)
+            if self.signac_id_alias:
+                job_doc[self.signac_id_alias] = signac_id
             yield job_doc
         for doc in super(SignacProjectJobDocumentCrawler, self).docs_from_file(
                 dirpath, fn):
@@ -320,28 +342,82 @@ class SignacProjectCrawler(
     pass
 
 
-class MasterCrawler(BaseCrawler):
+def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
+    link = doc.setdefault(KEY_LINK, dict())
+    fs_config = link.setdefault('mirrors', list())
+    fs_config.append({mirror.name: mirror.config()})
+    file_ids = link.setdefault('file_ids', list())
+    for file in crawler.fetch(doc, mode=mode):
+        file_id = hashlib.md5(file.read()).hexdigest()
+        file.seek(0)
+        try:
+            with mirror.new_file(_id=file_id) as mirrorfile:
+                mirrorfile.write(file.read())
+        except mirror.FileExistsError:
+            pass
+        if file_id not in file_ids:
+            file_ids.append(file_id)
+        file.close()
 
-    def __init__(self, root):
-        super(MasterCrawler, self).__init__(root=root)
+
+class MasterCrawler(BaseCrawler):
+    """Crawl the data space and search for signac crawlers.
+
+    The MasterCrawler executes signac slave crawlers
+    defined in signac_access.py modules.
+
+    If the master crawlers has defined tags, it will only
+    execute slave crawlers with at least one matching tag.
+
+    :param root: The path to the root directory to crawl through.
+    :type root: str
+    :param link_local: Store a link to the local access module.
+    :param mirrors: An optional set of mirrors, to export data to."""
+
+    FN_ACCESS_MODULE = 'signac_access.py'
+    "The filename of modules containing crawler definitions."
+
+    def __init__(self, root, link_local=True, mirrors=None):
+        self.link_local = link_local
+        if mirrors is None:
+            self.mirrors = list()
+        else:
+            self.mirrors = list(filesystems_from_configs(mirrors))
         self._crawlers = dict()
+        super(MasterCrawler, self).__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
         for crawler_id, crawler in module.get_crawlers(dirpath).items():
+            logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
+            tags = getattr(crawler, 'tags', set())
+            if tags is not None and len(set(tags)):
+                if self.tags is None or not len(set(self.tags)):
+                    logger.info("Skipping, crawler has defined tags.")
+                    continue
+                elif not set(self.tags).intersection(set(crawler.tags)):
+                    logger.info("Skipping, tag mismatch.")
+                    continue
+            elif self.tags is not None and len(set(self.tags)):
+                logger.info("Skipping, crawler has no defined tags.")
+                continue
             for _id, doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                link = doc.setdefault(KEY_LINK, dict())
-                link[KEY_LINK_TYPE] = LINK_MODULE_FETCH
-                link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                link[KEY_CRAWLER_MODULE] = fn
-                link[KEY_CRAWLER_ID] = crawler_id
+                if hasattr(crawler, 'fetch'):
+                    if self.link_local:
+                        link = doc.setdefault(KEY_LINK, dict())
+                        link['link_type'] = 'module_fetch'  # deprecated
+                        link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                        link[KEY_CRAWLER_MODULE] = fn
+                        link[KEY_CRAWLER_ID] = crawler_id
+                    for mirror in self.mirrors:
+                        _store_files_to_mirror(mirror, crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
-        if fn == FN_CRAWLER:
+        if fn == self.FN_ACCESS_MODULE:
             try:
                 for doc in self._docs_from_module(dirpath, fn):
                     yield doc
@@ -360,38 +436,99 @@ class MasterCrawler(BaseCrawler):
 
 
 def _load_crawler(name):
-    if six.PY3:
-        return importlib.machinery.SourceFileLoader(name, name).load_module()
-    else:
+    if six.PY2:
         return imp.load_source(os.path.splitext(name)[0], name)
+    else:
+        return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc):
+def fetch(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     """Fetch all data associated with this document.
+
+    The sources argument is either a list of filesystem-like objects
+    or a list of file system configurations or a mix of both.
+
+    See :func:`.contrib.filesystems.filesystems_from_config`
+    for details.
+
+    :param doc: A document which is part of an index.
+    :type doc: mapping
+    :param mode: Mode to use for file opening.
+    :param sources: An optional set of sources to fetch files from.
+    :param ignore_linked_mirrors: Ignore all mirror information in the
+        document's link attribute.
+    :yields: Data associated with this document in the specified format."""
+    if doc is None:
+        raise ValueError(doc)
+    link = doc.get(KEY_LINK)
+    if link is None:
+        return
+    else:
+        link = dict(link)
+    if KEY_CRAWLER_PATH in link:
+        logger.debug("Fetching files from the local file system.")
+        try:
+            for file in _fetch_fs(doc, mode=mode):
+                yield file
+            return
+        except OSError as error:
+            logger.warning(
+                "Unable to fetch file from local file system: {}".format(error))
+    to_fetch = set(link.pop('file_ids', []))
+    n = len(to_fetch)
+    if n == 0:
+        return
+    if sources is None:
+        sources = list()
+    else:
+        sources = list(filesystems_from_configs(sources))
+    if not ignore_linked_mirrors:
+        sources.extend(
+            list(filesystems_from_configs(link.get('mirrors', list()))))
+    logger.debug("Using sources to fetch files: {}".format(sources))
+    for source in sources:
+        fetched = set()
+        for file_id in to_fetch:
+            logger.debug("Fetching file with id '{}'.".format(file_id))
+            try:
+                yield source.get(file_id, mode=mode)
+                fetched.add(file_id)
+            except source.FileNotFoundError:
+                continue
+        for file_id in fetched:
+            to_fetch.remove(file_id)
+    if to_fetch:
+        msg = "Unable to fetch {}/{} file(s) associated with this document ."
+        raise IOError(msg.format(len(to_fetch), n))
+
+
+def fetch_one(doc, *args, **kwargs):
+    """Fetch data associated with this document.
+
+    Unlike :func:`~signac.fetch`, this function returns only the first
+    file associated with doc and ignores all others.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
     :yields: Data associated with this document in the specified format."""
-    try:
-        link = doc[KEY_LINK]
-    except KeyError:
-        logger.error(
-            "This document is missing the '{}' key. "
-            "Are you sure it is part of a signac index?".format(KEY_LINK))
-        raise
-    if link[KEY_LINK_TYPE] == LINK_MODULE_FETCH:
-        fn_module = os.path.join(
-            link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
-        crawler_module = _load_crawler(fn_module)
-        crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-        for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc):
-            yield d
+    return next(fetch(doc, *args, **kwargs))
 
 
 def fetched(docs):
     for doc in docs:
         for data in fetch(doc):
             yield doc, data
+
+
+def _fetch_fs(doc, mode):
+    "Fetch files for doc from the local file system."
+    link = doc[KEY_LINK]
+    fn_module = os.path.join(
+        link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
+    crawler_module = _load_crawler(fn_module)
+    crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
+    for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc, mode=mode):
+        yield d
 
 
 def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):

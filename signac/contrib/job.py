@@ -2,8 +2,8 @@ import os
 import errno
 import logging
 import json
-import six
 
+from ..common import six
 from ..core.jsondict import JSonDict
 from .hashing import calc_id
 
@@ -103,6 +103,13 @@ class Job(object):
             except Exception:  # ignore all errors here
                 pass
             raise error
+
+    def init(self):
+        """Initialize the job's workspace directory.
+
+        This function will do nothing if the directory and
+        the job manifest already exist."""
+        self._create_directory()
 
     def open(self):
         """Enter the job's workspace directory.

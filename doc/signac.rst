@@ -1,15 +1,9 @@
-signac package
-==============
+.. _api:
 
-Subpackages
------------
+API
+===
 
-.. toctree::
-
-    signac.common
-    signac.contrib
-    signac.core
-    signac.db
+The complete **signac** application interface (API).
 
 Module contents
 ---------------
@@ -18,3 +12,14 @@ Module contents
     :members:
     :undoc-members:
     :show-inheritance:
+
+
+Subpackages
+-----------
+
+.. toctree::
+
+    signac.contrib
+    signac.db
+    signac.core
+    signac.common
