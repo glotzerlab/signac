@@ -8,7 +8,6 @@ import warnings
 
 from ..common import six
 from ..db import get_database
-from .hashing import calc_id
 
 try:
     import gridfs
@@ -72,8 +71,8 @@ class LocalFS(object):
         :type _id: str
         :returns: A file-like object to write to."""
         if mode is None:
-            mode='wxb' if six.PY2 else 'xb'
-        if not 'x' in mode:
+            mode = 'wxb' if six.PY2 else 'xb'
+        if 'x' not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
         try:
@@ -92,7 +91,7 @@ class LocalFS(object):
         :param mode: The file mode used for opening.
         :returns: A file-like object to read from."""
 
-        if not 'r' in mode:
+        if 'r' not in mode:
             raise ValueError(mode)
         return open(self._fn(_id), mode=mode)
 _register_fs_class(LocalFS)
@@ -146,7 +145,8 @@ if GRIDFS:
             if self._gridfs is None:
                 if self.db is None:
                     self.db = get_database(self.db_name)
-                self._gridfs = gridfs.GridFS(self.db, collection=self.collection)
+                self._gridfs = gridfs.GridFS(
+                    self.db, collection=self.collection)
             return self._gridfs
 
         def new_file(self, _id):
@@ -216,7 +216,7 @@ def filesystems_from_config(fs_config):
     for key, args in fs_config.items():
         fs_class = FILESYSTEM_REGISTRY[key]
         if six.PY2:
-            is_str = isinstance(args, str) or isinstance(args, unicode)
+            is_str = isinstance(args, str) or isinstance(args, unicode)  # noqa
         else:
             is_str = isinstance(args, str)
         if isinstance(args, Mapping):

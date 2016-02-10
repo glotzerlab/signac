@@ -7,7 +7,6 @@ import os
 from signac.common import six
 if six.PY2:
     from tempdir import TemporaryDirectory
-    import logging
     logging.basicConfig()
 else:
     from tempfile import TemporaryDirectory

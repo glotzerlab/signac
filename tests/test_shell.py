@@ -1,9 +1,6 @@
 import os
-import sys
-import io
 import unittest
 import subprocess
-import warnings
 
 import signac
 from signac.common import six
@@ -16,6 +13,7 @@ else:
 
 class DummyFile(object):
     "We redirect sys stdout into this file during console tests."
+
     def __init__(self):
         self._x = ''
 
@@ -24,15 +22,18 @@ class DummyFile(object):
 
     def flush(self): pass
 
-    def read(self): 
+    def read(self):
         x = self._x
         self._x = ''
         return x
 
-class ExitCodeError(RuntimeError): pass
+
+class ExitCodeError(RuntimeError):
+    pass
+
 
 class BasicShellTest(unittest.TestCase):
-    
+
     def setUp(self):
         self.tmpdir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self.tmpdir.cleanup)
@@ -44,7 +45,8 @@ class BasicShellTest(unittest.TestCase):
         os.chdir(self.cwd)
 
     def call(self, command, input=None):
-        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate(input=input)
         if p.returncode != 0:
             raise ExitCodeError()
@@ -66,13 +68,16 @@ class BasicShellTest(unittest.TestCase):
     def test_project_id(self):
         self.call('python -m signac init my_project'.split())
         self.assertEqual(str(signac.get_project()), 'my_project')
-        self.assertEqual(self.call('python -m signac project'.split()).strip(), 'my_project')
+        self.assertEqual(
+            self.call('python -m signac project'.split()).strip(),
+            'my_project')
 
     def test_project_workspace(self):
         self.call('python -m signac init my_project'.split())
         self.assertEqual(str(signac.get_project()), 'my_project')
         self.assertEqual(
-            os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()),
+            os.path.realpath(
+                self.call('python -m signac project --workspace'.split()).strip()),
             os.path.realpath(os.path.join(self.tmpdir.name, 'workspace')))
 
     def test_job_with_argument(self):
@@ -83,7 +88,8 @@ class BasicShellTest(unittest.TestCase):
 
     def test_job_with_argument_workspace(self):
         self.call('python -m signac init my_project'.split())
-        wd_path = os.path.join(self.tmpdir.name, 'workspace', '9bfd29df07674bc4aa960cf661b5acd2')
+        wd_path = os.path.join(self.tmpdir.name, 'workspace',
+                               '9bfd29df07674bc4aa960cf661b5acd2')
         self.assertEqual(
             os.path.realpath(
                 self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()),
@@ -91,13 +97,12 @@ class BasicShellTest(unittest.TestCase):
 
     def test_job_with_argument_create_workspace(self):
         self.call('python -m signac init my_project'.split())
-        wd_path = os.path.join(self.tmpdir.name, 'workspace', '9bfd29df07674bc4aa960cf661b5acd2')
+        wd_path = os.path.join(self.tmpdir.name, 'workspace',
+                               '9bfd29df07674bc4aa960cf661b5acd2')
         self.assertFalse(os.path.isdir(wd_path))
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         self.assertTrue(os.path.isdir(wd_path))
 
-        
-        
 
 if __name__ == '__main__':
     unittest.main()

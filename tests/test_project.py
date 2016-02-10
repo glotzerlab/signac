@@ -173,6 +173,5 @@ class ProjectTest(BaseProjectTest):
             logging.disable(logging.NOTSET)
 
 
-
 if __name__ == '__main__':
     unittest.main()

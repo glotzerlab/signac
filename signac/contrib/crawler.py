@@ -174,7 +174,7 @@ class RegexFileCrawler(BaseCrawler):
 
         .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
         if six.PY2:
-            if isinstance(regex, basestring):
+            if isinstance(regex, basestring):  # noqa
                 regex = re.compile(regex)
         else:
             if isinstance(regex, str):
