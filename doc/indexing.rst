@@ -28,9 +28,9 @@ This method generates a sequence of arbitrary objects (usually file-like objects
 
     class MyCrawler(object):
         # [..]
-        def fetch(self, doc):
-            yield open('/foo/bar/a_{}.txt'.format(doc['a']))
-            yield open('/foo/bar/a_{}.dat'.format(doc['a']))
+        def fetch(self, doc, mode='r'):
+            yield open('/foo/bar/a_{}.txt'.format(doc['a']), mode)
+            yield open('/foo/bar/a_{}.dat'.format(doc['a']), mode)
 
 All crawlers defined by **signac** inherit from the abstract base class :py:class:`~signac.contrib.BaseCrawler`.
 
@@ -140,10 +140,10 @@ Any crawler can be a *slave crawler*.
 The *master crawler* adds information about its origin to each document.
 This allows to fetch data from the *master index*, which is almost independent of the actual location of the data within the file system.
 
-The *signac_acess.py* module
+The *signac_access.py* module
 ----------------------------
 
-The master crawler searches for modules called ``signac_access.py`` and tries to call a function called ``get_crawlers()``.
+The master crawler searches for modules called ``signac_access.py`` and tries to call a function called ``get_crawlers()`` defined in those modules.
 This function is defined as follows:
 
 .. py:function:: signac_access.get_crawlers(root)
@@ -187,8 +187,7 @@ As described above, a crawler generates a sequence of documents, where each docu
 The :py:class:`~signac.contrib.RegexFileCrawler` generates one document per matched file and associates that file with the respective document;
 that is a *one-to-one* association.
 
-Use the :py:func:`signac.fetch` or :py:func:`signac.fetch_one` function to fetch data associated with a document.
-For example:
+We then use the :py:func:`signac.fetch` function to fetch data associated with a document:
 
 .. code-block:: python
 
@@ -395,20 +394,19 @@ To access the data, we simply execute:
         files = signac.fetch(doc)
 
 If we have a local mirror of the data, we need to tell ``fetch()`` to use it.
-This is most conveniently done using a wrapper:
+This is most conveniently achieved by defining two wrapper functions:
 
 .. code-block:: python
 
+    sources = [
+      {'localfs': '/path/to/mirror'},
+      {'gridfs': 'gridfsdb'}]
+
     def fetch(*args, **kwargs):
-        for doc in signac.fetch(
-            sources=[{'localfs': '/path/to/mirror'}],
-            *args, **kwargs)
-          yield doc
+        yield from signac.fetch(sources=sources, *args, **kwargs)
 
     def fetch_one(*args, **kwargs):
-        return signac.fetch(
-          sources=[{'localfs': '/path/to/mirror'}],
-          *args, **kwargs)
+        return signac.fetch(sources=sources, *args, **kwargs)
 
 .. note::
 

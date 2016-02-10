@@ -13,8 +13,8 @@ Start a new project
     $ signac init MyProject
 
 
-Access a project
-----------------
+Open a job
+----------
 
 .. code-block:: python
 
@@ -22,6 +22,18 @@ Access a project
 
     with project.open_job({'a': 0}) as job:
         # do your job...
+
+     with project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2') as job:
+        # do your job...
+
+.. code-block:: shell
+
+    $ signac job '{"a": 0}'
+    9bfd29df07674bc4aa960cf661b5acd2
+    $ signac job --workspace '{"a": 0}'
+    /path/to/workspace/9bfd29df07674bc4aa960cf661b5acd2
+
+
 
 Access a database
 -----------------

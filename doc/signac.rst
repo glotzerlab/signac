@@ -3,7 +3,7 @@
 API
 ===
 
-The complete signac application interface (API).
+The complete **signac** application interface (API).
 
 Module contents
 ---------------
