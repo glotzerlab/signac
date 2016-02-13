@@ -283,6 +283,7 @@ class JobDocumentTest(BaseJobTest):
     def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
+        job.remove()
         d = testdata()
         job.document[key] = d
         self.assertIn(key, job.document)
