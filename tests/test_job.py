@@ -204,6 +204,16 @@ class JobOpenAndClosingTest(BaseJobTest):
             except AttributeError:
                 pass
 
+    def test_corrupt_workspace(self):
+        job = self.open_job(test_token)
+        job.init()
+        fn_manifest = os.path.join(job.workspace(), job.FN_MANIFEST)
+        with open(fn_manifest, 'w') as file:
+            file.write("corrupted")
+        job2 = self.open_job(test_token)
+        with self.assertRaises(RuntimeError):
+            job2.init()
+
 
 class JobDocumentTest(BaseJobTest):
 

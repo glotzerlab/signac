@@ -104,6 +104,22 @@ class Job(object):
             except Exception:  # ignore all errors here
                 pass
             raise error
+        else:
+            self._check_manifest()
+
+    def _check_manifest(self):
+        "Check whether the manifest file, if it exists, is correct."
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        try:
+            try:
+                with open(fn_manifest) as file:
+                    assert calc_id(json.load(file)) == self._id
+            except IOError as error:
+                if not error.errno == errno.ENOENT:
+                    raise error
+        except Exception as error:
+            msg = "Manifest file of job '{}' is corrupted: {}."
+            raise RuntimeError(msg.format(self, error))
 
     def init(self):
         """Initialize the job's workspace directory.

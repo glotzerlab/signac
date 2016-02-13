@@ -428,6 +428,8 @@ def _move_job(src, dst):
         raise RuntimeError(
             "Failed to move {} to {}, destination already exists.".format(
                 src, dst))
+    else:
+        dst.init()
         logger.info("Moved job {} to {}.".format(src, dst))
 
 
