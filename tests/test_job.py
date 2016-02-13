@@ -270,6 +270,21 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job2.document)
         self.assertEqual(len(job2.document), 1)
 
+    def test_remove(self):
+        key = 'remove'
+        job = self.open_job(test_token)
+        d = testdata()
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        fn_test = os.path.join(job.workspace(), 'test')
+        with open(fn_test, 'w') as file:
+            file.write('test')
+        self.assertTrue(os.path.isfile(fn_test))
+        job.remove()
+        self.assertNotIn(key, job.document)
+        self.assertFalse(os.path.isfile(fn_test))
+
 
 if __name__ == '__main__':
     unittest.main()

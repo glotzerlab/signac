@@ -2,6 +2,7 @@ import os
 import errno
 import logging
 import json
+import shutil
 
 from ..common import six
 from ..core.jsondict import JSonDict
@@ -110,6 +111,14 @@ class Job(object):
         This function will do nothing if the directory and
         the job manifest already exist."""
         self._create_directory()
+
+    def remove(self):
+        """Remove the job's workspace including the job document.
+
+        This function will do nothing if the workspace directory
+        does not exit."""
+        self.document.clear()
+        shutil.rmtree(self.workspace())
 
     def open(self):
         """Enter the job's workspace directory.
