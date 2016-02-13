@@ -342,7 +342,7 @@ class Project(object):
 
         .. danger::
 
-            Use this function with caution! Resetting the a job's statepoint,
+            Use this function with caution! Resetting a job's statepoint,
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
             If you only want to *extend* your statepoint, consider to
@@ -364,7 +364,7 @@ class Project(object):
 
         .. warning::
 
-            While appending to a job's statepoint is usually safe,
+            While appending to a job's statepoint is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
