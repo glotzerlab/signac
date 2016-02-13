@@ -349,7 +349,7 @@ class Project(object):
             use :meth:`~.update_statepoint` instead.
 
         :param job: The job, that should be reset to a new state point.
-        :type job: :class:`signac.contrib.job.Job`
+        :type job: :class:`~.contrib.job.Job`
         :param new_statepoint: The job's new unique set of parameters.
         :type new_statepoint: mapping
         :raises RuntimeError: If a job associated with the new unique set
@@ -360,27 +360,23 @@ class Project(object):
             "Reset statepoint of job {}, moved to {}.".format(job, dst))
 
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the job's statepoint.
+        """Update the statepoint of job.
 
         .. warning::
 
             While appending to a job's statepoint is usually safe,
             modifying existing parameters may lead to data
-            inconsistency.
-            This is why this method, unless the overwrite argument
-            is set to True, will raise a KeyError.
+            inconsistency. Use the overwrite argument with caution!
 
         :param job: The job, whose statepoint shall be updated.
-        :type job: :class:`signac.contrib.job.Job`
+        :type job: :class:`~.contrib.job.Job`
         :param update: A mapping used for the statepoint update.
         :type update: mapping
         :param overwrite: Set to true, to ignore whether this
             update overwrites parameters, which are currently
             part of the job's statepoint. Use with caution!
-        :raises KeyError: If the update contains key, value-pairs
-            that would modify existing key-value pairs in the
-            job's statepoint.
-        """
+        :raises KeyError: If the update contains keys, which are
+            already part of the job's statepoint."""
         statepoint = dict(job.statepoint())
         if not overwrite:
             for key in update:
