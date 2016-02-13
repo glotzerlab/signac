@@ -459,8 +459,3 @@ def get_project():
     :returns: The project handle.
     :rtype: :class:`Project`"""
     return Project()
-
-# lrwxrwx--- [...] 2 -> /path/to/workspace/fb4e5868559e719f0c5826de08023281
-# lrwxrwx--- [...] 3 -> /path/to/workspace/a1721c8f1b284d4004debde16447fe10
-# lrwxrwx--- [...] 4 -> /path/to/workspace/06d3d15bc724f8a213b67566178ea931
-# ...
