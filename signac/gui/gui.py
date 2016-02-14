@@ -6,6 +6,7 @@ databases."""
 
 import sys
 import logging
+import argparse
 import json
 import itertools
 
@@ -25,6 +26,7 @@ KEY_CONFIG_GUI = 'gui'
 KEY_CONFIG_HOSTS = 'hosts'
 ENCODING = 'utf-8'
 KEY_SEQUENCE_QUIT = QtGui.QKeySequence(Qt.ControlModifier + Qt.Key_Q)
+HIGH_NUM_DOCS_WARNING_THR = 1000
 
 ABOUT_MSG = """
 Signac GUI
@@ -35,7 +37,6 @@ Website: https://bitbucket.org/glotzer/signac-gui
 Author: Carl Simon Adorf, csadorf@umich.edu
 License: MIT
 """
-
 
 def set_bg_color(w, color):
     return
@@ -49,6 +50,7 @@ def check_query(query):
     assert ';' not in query
     assert '\n' not in query
     assert 'import' not in query
+    assert 'find(' in query
     tokens = query.split('.')
     assert tokens[0] == 'db'
 #
@@ -83,6 +85,17 @@ def show_error(msg):
 def show_warning(msg):
     show_message(QtGui.QMessageBox.Warning, msg)
 
+
+class HostConnectionThread(QtCore.QThread):
+
+    def run(self):
+        try:
+            self.parent().connector.connect()
+            self.parent().connector.authenticate()
+        except Exception as error:
+            self.parent().connection_error = error
+        else:
+            self.parent().connection_error = None
 
 class DocumentView(QtGui.QTreeView):
 
@@ -267,11 +280,17 @@ class HostList(QtGui.QTableWidget):
 
 
 class HostsDialog(QtGui.QDialog):
+    attempt_connection = QtCore.Signal()
+    host_connected = QtCore.Signal()
+    connection_failed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(HostsDialog, self).__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Hosts")
+        self.connector = None
+        self.connection_error = None
+        self.connect_host_thread = HostConnectionThread(self)
         self.setupUI()
 
     def setupUI(self):
@@ -313,6 +332,9 @@ class HostsDialog(QtGui.QDialog):
         self.hosts_list.itemDoubleClicked.connect(self.item_activated)
         self.hosts_list.itemSelectionChanged.connect(
             self.host_selection_changed)
+
+        self.connect_host_thread.started.connect(self.attempt_connection)
+        self.connect_host_thread.finished.connect(self.connect_attempt_finished)
 
     def all_hostnames(self):
         return get_hosts_config().keys()
@@ -365,15 +387,32 @@ class HostsDialog(QtGui.QDialog):
         self.load_config()
 
     def accept(self):
-        if self.hosts_list.selected_host() is not None:
-            self.parent().connect(self.hosts_list.selected_host())
-            super(HostsDialog, self).accept()
+        if self.connect_host_thread.isRunning():
+            show_warning("Already connecting!")
+            return False
+        selected_host = self.hosts_list.selected_host()
+        if selected_host is not None:
+            host_config = get_hosts_config()[selected_host]
+            host_config['serverSelectionTimeoutMS'] = 3000
+            self.connector = DBClientConnector(host_config)
+            self.connect_host_thread.start()
+            return super(HostsDialog, self).accept()
         else:
             show_warning("No host selected.")
+            return False
 
-    # def reject(self):
-        # self.hide()
-
+    def connect_attempt_finished(self):
+        if self.connection_error is None:
+            self.host_connected.emit()
+        else:
+            error = self.connection_error
+            self.connection_failed.emit()
+            self.parent().set_status("Error.", 5000)
+            msg_box = QtGui.QMessageBox(
+                QtGui.QMessageBox.Warning,
+                "Connection Error",
+                "{}: '{}'".format(type(error), error))
+            msg_box.exec_()
 
 class HostnameValidator(QtGui.QValidator):
 
@@ -564,6 +603,10 @@ class MainWindow(QtGui.QMainWindow):
             windowState = QtCore.QByteArray.fromBase64(gui.get('windowState'))
             self.restoreGeometry(windowState)
 
+        self.hosts_dialog.host_connected.connect(self.host_connected)
+        self.hosts_dialog.connection_failed.connect(self.host_connection_failed)
+        self.hosts_dialog.attempt_connection.connect(self.attempt_connection)
+
     def sizeHint(self):
         return QtCore.QSize(1024, 768)
 
@@ -582,26 +625,19 @@ class MainWindow(QtGui.QMainWindow):
         gui['windowState'] = self.saveState().toBase64()
         tmp.write()
 
-    def connect(self, hostname):
-        try:
-            host_config = get_hosts_config()[hostname]
-            logger.debug("Overriding timeout")
-            host_config['connect_timeout_ms'] = 1000
-            connector = DBClientConnector(host_config)
-            self.set_status("Connecting...")
-            connector.connect()
-            self.set_status("Authenticating...")
-            connector.authenticate()
-        except Exception as error:
-            self.set_status("Error.", 5000)
-            msg_box = QtGui.QMessageBox(
-                QtGui.QMessageBox.Warning,
-                "Connection Error",
-                "{}: '{}'".format(type(error), error))
-            msg_box.exec_()
-        else:
-            self.set_status("OK.", 3000)
-            self.main_view.db_tree_model.add_connector(connector)
+    def attempt_connection(self):
+        self.set_status("Connecting...")
+
+    def host_connected(self):
+        connector = self.hosts_dialog.connector
+        self.main_view.db_tree_model.add_connector(connector)
+        self.set_status(
+            "Connected to '{}'.".format(connector.client),
+            5000)
+
+    def host_connection_failed(self):
+        self.set_status("Connection attempt failed.", 5000)
+        self.hosts_dialog.show()
 
     def open_file(self, fn):
         logger.info('open file({})'.format(fn))
@@ -655,14 +691,24 @@ class MainView(QtGui.QWidget):
     def setupLogic(self):
         self.db_tree_view.doubleClicked.connect(self.open_query)
 
+    def set_status(self, msg, timeout=0):
+        self.parent().set_status(msg=msg, timeout=timeout)
+
+    def querying(self):
+        self.set_status("Querying...")
+
+    def query_done(self):
+        self.set_status("Done.", 5000)
+
     def open_query(self, index):
         if index.isValid():
             node = index.internalPointer()
             if isinstance(node, DBCollectionTreeItem):
                 query_view = QueryView(node.parent.db, self)
                 query_view.setWindowTitle(node.parent.db.name)
-                # self.query_views.append(query_view)
                 query_view.set_collection(node.collection)
+                query_view.query_begin.connect(self.querying)
+                query_view.query_done.connect(self.query_done)
                 self.mdi_area.addSubWindow(query_view)
                 query_view.show()
                 query_view.execute_query()
@@ -679,12 +725,34 @@ class DBTreeView(QtGui.QTreeView):
     def minimumSizeHint(self):
         return QtCore.QSize(250, 500)
 
+class QueryThread(QtCore.QThread):
+    query_result_available = QtCore.Signal()
+    query_failed = QtCore.Signal()
+
+    def __init__(self, parent):
+        super(QueryThread, self).__init__(parent)
+        self.db = None
+        self.result_cursor = None
+        self.error = None
+
+    def run(self):
+        query_cmd = self.parent().query_edit.text()
+        try:
+            self.result_cursor = eval(query_cmd, {'db': self.db})
+        except Exception as error:
+            self.error = error
+            self.query_failed.emit()
+        else:
+            self.query_result_available.emit()
 
 class QueryView(QtGui.QWidget):
+    query_begin = QtCore.Signal()
+    query_done = QtCore.Signal()
 
     def __init__(self, db, parent=None):
         super(QueryView, self).__init__(parent)
         self.db = db
+        self.query_thread = QueryThread(self)
         self.setupUI()
         self.setupLogic()
 
@@ -730,12 +798,16 @@ class QueryView(QtGui.QWidget):
         self.back_button.clicked.connect(self.decrease_doc_index)
         self.index_start_edit.returnPressed.connect(self.update_index)
         self.index_stop_edit.returnPressed.connect(self.update_index)
+        self.query_thread.query_result_available.connect(self.execute_query_success)
+        self.query_thread.query_failed.connect(self.execute_query_failed)
 
     def set_collection(self, collection):
         query = "db.{collection}.find()"
         self.query_edit.setText(query.format(collection=collection.name))
 
     def execute_query(self):
+        assert not self.query_thread.isRunning()
+        self.query_edit.setEnabled(False)
         query_cmd = self.query_edit.text().strip()
         try:
             check_query(query_cmd)
@@ -745,24 +817,41 @@ class QueryView(QtGui.QWidget):
                 "Illformed query",
                 query_cmd)
             msg_box.exec_()
+            self.query_edit.setEnabled(True)
         else:
-            try:
-                result_cursor = eval(query_cmd, {'db': self.db})
-                self.cursor_count_edit.setText(str(result_cursor.count()))
-            except Exception as error:
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Error while executing Query",
-                    "'{}': {}".format(type(error), error))
-                msg_box.exec_()
-            else:
-                docs_model = CursorTreeModel(
-                    result_cursor, (0, DOC_INDEX_INC), self)
-                self.tree_view.setModel(docs_model)
-                self.tree_view.setExpanded(docs_model.index(0, 0), True)
-                self.tree_view.resizeColumnToContents(0)
-                self.tree_view.resizeColumnToContents(1)
-                self.tree_view.resizeColumnToContents(2)
+            self.query_thread.db = self.db
+            self.query_thread.query_cmd = query_cmd
+            self.query_thread.start()
+
+    def enable(self):
+        self.setEnabled(True)
+
+    def disable(self):
+        self.setEnabled(False)
+
+    def execute_query_success(self):
+        self.query_edit.setEnabled(True)
+        result_cursor = self.query_thread.result_cursor
+        self.cursor_count_edit.setText(str(result_cursor.count()))
+        docs_model = CursorTreeModel(
+            result_cursor, (0, DOC_INDEX_INC), self)
+        docs_model.modelReset.connect(self.query_done)
+        docs_model.modelReset.connect(self.enable)
+        docs_model.modelAboutToBeReset.connect(self.disable)
+        self.tree_view.setModel(docs_model)
+        self.tree_view.setExpanded(docs_model.index(0, 0), True)
+        self.tree_view.resizeColumnToContents(0)
+        self.tree_view.resizeColumnToContents(1)
+        self.tree_view.resizeColumnToContents(2)
+
+    def execute_query_failed(self):
+        self.query_edit.setEnabled(True)
+        error = self.query_thread.error
+        msg_box = QtGui.QMessageBox(
+            QtGui.QMessageBox.Warning,
+            "Error while executing Query",
+            "'{}': {}".format(type(error), error))
+        msg_box.exec_()
 
     def sizeHint(self):
         return QtCore.QSize(860, 640)
@@ -798,6 +887,16 @@ class QueryView(QtGui.QWidget):
         self.update_index()
 
     def update_index(self):
+        num_docs = self.index_stop - self.index_start
+        if num_docs > HIGH_NUM_DOCS_WARNING_THR:
+            msg = "The number of document you selected to show is very high. Do you want to reduce them?"
+            answer = QtGui.QMessageBox.question(
+                self, APPLICATION_NAME, msg,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == \
+                QtGui.QMessageBox.Yes
+            if answer:
+                self.index_stop = self.index_start + HIGH_NUM_DOCS_WARNING_THR
+        self.query_begin.emit()
         self.tree_view.model().doc_index = self.index_start, self.index_stop
 
 def _get_url(url):
@@ -811,6 +910,16 @@ def _set_url(url_str):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help="Increase output verbosity.")
+    args = parser.parse_args()
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
     app = QtGui.QApplication(sys.argv)
     main_window = MainWindow()
     main_window.qt_about_action.triggered.connect(app.aboutQt)
