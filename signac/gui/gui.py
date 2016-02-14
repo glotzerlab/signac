@@ -248,7 +248,7 @@ class HostList(QtGui.QTableWidget):
             item = QtGui.QTableWidgetItem(key)
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.setItem(i, 0, item)
-            item = QtGui.QTableWidgetItem(host_config.get('url', ''))
+            item = QtGui.QTableWidgetItem(_get_url(host_config.get('url', '')))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.setItem(i, 1, item)
 
@@ -476,7 +476,7 @@ class ConnectDialog(QtGui.QDialog):
         host_config = hosts_config.get(self.name_edit.text(), dict())
         host_tab = self.tabs.widget(self.host_tab_index)
         auth_tab = self.tabs.widget(self.auth_tab_index)
-        host_tab.host_url_edit.setText(host_config.get('url', 'localhost'))
+        host_tab.host_url_edit.setText(_get_url(host_config.get('url', 'localhost')))
         auth_tab.username_edit.setText(host_config.get('username', ''))
         auth_tab.password_edit.setText(host_config.get('password', ''))
         auth_tab.auth_mechanism = host_config.get('auth_mechanism', 'none')
@@ -496,7 +496,7 @@ class ConnectDialog(QtGui.QDialog):
         config = get_config()
         hosts_config = get_hosts_config(config)
         host_config = hosts_config.setdefault(hostname, dict())
-        host_config['url'] = host_tab.host_url_edit.text()
+        host_config['url'] = _set_url(host_tab.host_url_edit.text())
         host_config['auth_mechanism'] = auth_tab.auth_mechanism
         host_config['username'] = auth_tab.username_edit.text()
         host_config['password'] = auth_tab.password_edit.text()
@@ -799,6 +799,15 @@ class QueryView(QtGui.QWidget):
 
     def update_index(self):
         self.tree_view.model().doc_index = self.index_start, self.index_stop
+
+def _get_url(url):
+    if isinstance(url, list):
+        return ','.join(url)
+    else:
+        return url
+
+def _set_url(url_str):
+    return ','.join((s.strip() for s in url_str.split(',')))
 
 
 def main():
