@@ -7,6 +7,7 @@ databases."""
 import sys
 import logging
 import warnings
+import argparse
 import json
 import itertools
 import threading
@@ -392,6 +393,7 @@ class HostsDialog(QtGui.QDialog):
         selected_host = self.hosts_list.selected_host()
         if selected_host is not None:
             host_config = get_hosts_config()[selected_host]
+            host_config['serverSelectionTimeoutMS'] = 3000
             self.connector = DBClientConnector(host_config)
             self.connect_host_thread.start()
             return super(HostsDialog, self).accept()
@@ -623,36 +625,6 @@ class MainWindow(QtGui.QMainWindow):
         gui['windowState'] = self.saveState().toBase64()
         tmp.write()
 
-    def _connect_host(self, hostname):
-        try:
-            host_config = get_hosts_config()[hostname]
-            logger.debug("Overriding timeout")
-            host_config['connect_timeout_ms'] = 1000
-            connector = DBClientConnector(host_config)
-            self.set_status("Connecting...")
-            connector.connect()
-            self.set_status("Authenticating...")
-            connector.authenticate()
-        except Exception as error:
-            self.set_status("Error.", 5000)
-            msg_box = QtGui.QMessageBox(
-                QtGui.QMessageBox.Warning,
-                "Connection Error",
-                "{}: '{}'".format(type(error), error))
-            msg_box.exec_()
-        else:
-            self.set_status("OK.", 3000)
-            self.main_view.db_tree_model.add_connector(connector)
-
-    def connect(self, hostname):
-        warnings.warn("The connect() function will be renamed to connect_host().", DeprecationWarning)
-        host_config = get_hosts_config()[hostname]
-        logger.debug("Overriding timeout")
-        host_config['connect_timeout_ms'] = 1000
-        self.connector = DBClientConnector(host_config)
-        self.set_status("Attempting to connect to '{}'...".format(hostname))
-        self.connect_host_thread.start()
-
     def attempt_connection(self):
         self.set_status("Connecting...")
 
@@ -665,6 +637,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def host_connection_failed(self):
         self.set_status("Connection attempt failed.", 5000)
+        self.hosts_dialog.show()
 
     def open_file(self, fn):
         logger.info('open file({})'.format(fn))
@@ -874,6 +847,16 @@ def _set_url(url_str):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help="Increase output verbosity.")
+    args = parser.parse_args()
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
     app = QtGui.QApplication(sys.argv)
     main_window = MainWindow()
     main_window.qt_about_action.triggered.connect(app.aboutQt)
