@@ -183,7 +183,9 @@ class RegexFileCrawler(BaseCrawler):
             if not callable(getattr(format_, meth, None)):
                 msg = "Format {} has no {}() method.".format(format_, meth)
                 warnings.warn(msg)
-        cls.definitions[regex] = format_
+        definitions = dict(cls.definitions)
+        definitions[regex] = format_
+        cls.definitions = definitions
 
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.

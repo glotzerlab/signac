@@ -109,9 +109,12 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
-        crawler = signac.contrib.RegexFileCrawler(root=self._tmp_dir.name)
+        class Crawler(signac.contrib.RegexFileCrawler):
+            pass
+
         regex = re.compile(".*a_(?P<a>\d)\.txt")
-        crawler.define(regex, TestFormat)
+        Crawler.define(regex, TestFormat)
+        crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
         for doc_id, doc in crawler.crawl():
             no_find = False
@@ -128,10 +131,12 @@ class CrawlerBaseTest(unittest.TestCase):
     def test_regex_file_crawler(self):
         self.setup_project()
 
-        crawler = signac.contrib.RegexFileCrawler(root=self._tmp_dir.name)
+        class Crawler(signac.contrib.RegexFileCrawler):
+            pass
         pattern = ".*a_(?P<a>\d)\.txt"
         regex = re.compile(pattern)
-        crawler.define(pattern, TestFormat)
+        Crawler.define(pattern, TestFormat)
+        crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
         for doc_id, doc in crawler.crawl():
             no_find = False
@@ -151,20 +156,24 @@ class CrawlerBaseTest(unittest.TestCase):
         class CrawlerA(signac.contrib.RegexFileCrawler):
             pass
 
-        class FormatA(TestFormat):
-            pass
-
         class CrawlerB(signac.contrib.RegexFileCrawler):
             pass
 
-        class FormatB(TestFormat):
-            pass
-
-        CrawlerA.define('a', FormatA)
-        CrawlerB.define('b', FormatB)
-
+        CrawlerA.define('a', TestFormat)
+        CrawlerB.define('b', TestFormat)
         self.assertEqual(len(CrawlerA.definitions), 1)
         self.assertEqual(len(CrawlerB.definitions), 1)
+
+        class CrawlerC(CrawlerA):
+            pass
+
+        self.assertEqual(len(CrawlerA.definitions), 1)
+        self.assertEqual(len(CrawlerC.definitions), 1)
+        self.assertEqual(len(CrawlerB.definitions), 1)
+        CrawlerC.define('c', TestFormat)
+        self.assertEqual(len(CrawlerA.definitions), 1)
+        self.assertEqual(len(CrawlerB.definitions), 1)
+        self.assertEqual(len(CrawlerC.definitions), 2)
 
     def test_master_crawler(self):
         self.setup_project()
