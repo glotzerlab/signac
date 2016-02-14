@@ -6,11 +6,9 @@ databases."""
 
 import sys
 import logging
-import warnings
 import argparse
 import json
 import itertools
-import threading
 
 from PySide import QtCore, QtGui
 from PySide.QtCore import Qt
@@ -28,6 +26,7 @@ KEY_CONFIG_GUI = 'gui'
 KEY_CONFIG_HOSTS = 'hosts'
 ENCODING = 'utf-8'
 KEY_SEQUENCE_QUIT = QtGui.QKeySequence(Qt.ControlModifier + Qt.Key_Q)
+HIGH_NUM_DOCS_WARNING_THR = 1000
 
 ABOUT_MSG = """
 Signac GUI
@@ -51,6 +50,7 @@ def check_query(query):
     assert ';' not in query
     assert '\n' not in query
     assert 'import' not in query
+    assert 'find(' in query
     tokens = query.split('.')
     assert tokens[0] == 'db'
 #
@@ -87,7 +87,7 @@ def show_warning(msg):
 
 
 class HostConnectionThread(QtCore.QThread):
-    
+
     def run(self):
         try:
             self.parent().connector.connect()
@@ -691,14 +691,24 @@ class MainView(QtGui.QWidget):
     def setupLogic(self):
         self.db_tree_view.doubleClicked.connect(self.open_query)
 
+    def set_status(self, msg, timeout=0):
+        self.parent().set_status(msg=msg, timeout=timeout)
+
+    def querying(self):
+        self.set_status("Querying...")
+
+    def query_done(self):
+        self.set_status("Done.", 5000)
+
     def open_query(self, index):
         if index.isValid():
             node = index.internalPointer()
             if isinstance(node, DBCollectionTreeItem):
                 query_view = QueryView(node.parent.db, self)
                 query_view.setWindowTitle(node.parent.db.name)
-                # self.query_views.append(query_view)
                 query_view.set_collection(node.collection)
+                query_view.query_begin.connect(self.querying)
+                query_view.query_done.connect(self.query_done)
                 self.mdi_area.addSubWindow(query_view)
                 query_view.show()
                 query_view.execute_query()
@@ -715,12 +725,34 @@ class DBTreeView(QtGui.QTreeView):
     def minimumSizeHint(self):
         return QtCore.QSize(250, 500)
 
+class QueryThread(QtCore.QThread):
+    query_result_available = QtCore.Signal()
+    query_failed = QtCore.Signal()
+
+    def __init__(self, parent):
+        super(QueryThread, self).__init__(parent)
+        self.db = None
+        self.result_cursor = None
+        self.error = None
+
+    def run(self):
+        query_cmd = self.parent().query_edit.text()
+        try:
+            self.result_cursor = eval(query_cmd, {'db': self.db})
+        except Exception as error:
+            self.error = error
+            self.query_failed.emit()
+        else:
+            self.query_result_available.emit()
 
 class QueryView(QtGui.QWidget):
+    query_begin = QtCore.Signal()
+    query_done = QtCore.Signal()
 
     def __init__(self, db, parent=None):
         super(QueryView, self).__init__(parent)
         self.db = db
+        self.query_thread = QueryThread(self)
         self.setupUI()
         self.setupLogic()
 
@@ -766,12 +798,16 @@ class QueryView(QtGui.QWidget):
         self.back_button.clicked.connect(self.decrease_doc_index)
         self.index_start_edit.returnPressed.connect(self.update_index)
         self.index_stop_edit.returnPressed.connect(self.update_index)
+        self.query_thread.query_result_available.connect(self.execute_query_success)
+        self.query_thread.query_failed.connect(self.execute_query_failed)
 
     def set_collection(self, collection):
         query = "db.{collection}.find()"
         self.query_edit.setText(query.format(collection=collection.name))
 
     def execute_query(self):
+        assert not self.query_thread.isRunning()
+        self.query_edit.setEnabled(False)
         query_cmd = self.query_edit.text().strip()
         try:
             check_query(query_cmd)
@@ -781,24 +817,41 @@ class QueryView(QtGui.QWidget):
                 "Illformed query",
                 query_cmd)
             msg_box.exec_()
+            self.query_edit.setEnabled(True)
         else:
-            try:
-                result_cursor = eval(query_cmd, {'db': self.db})
-                self.cursor_count_edit.setText(str(result_cursor.count()))
-            except Exception as error:
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Error while executing Query",
-                    "'{}': {}".format(type(error), error))
-                msg_box.exec_()
-            else:
-                docs_model = CursorTreeModel(
-                    result_cursor, (0, DOC_INDEX_INC), self)
-                self.tree_view.setModel(docs_model)
-                self.tree_view.setExpanded(docs_model.index(0, 0), True)
-                self.tree_view.resizeColumnToContents(0)
-                self.tree_view.resizeColumnToContents(1)
-                self.tree_view.resizeColumnToContents(2)
+            self.query_thread.db = self.db
+            self.query_thread.query_cmd = query_cmd
+            self.query_thread.start()
+
+    def enable(self):
+        self.setEnabled(True)
+
+    def disable(self):
+        self.setEnabled(False)
+
+    def execute_query_success(self):
+        self.query_edit.setEnabled(True)
+        result_cursor = self.query_thread.result_cursor
+        self.cursor_count_edit.setText(str(result_cursor.count()))
+        docs_model = CursorTreeModel(
+            result_cursor, (0, DOC_INDEX_INC), self)
+        docs_model.modelReset.connect(self.query_done)
+        docs_model.modelReset.connect(self.enable)
+        docs_model.modelAboutToBeReset.connect(self.disable)
+        self.tree_view.setModel(docs_model)
+        self.tree_view.setExpanded(docs_model.index(0, 0), True)
+        self.tree_view.resizeColumnToContents(0)
+        self.tree_view.resizeColumnToContents(1)
+        self.tree_view.resizeColumnToContents(2)
+
+    def execute_query_failed(self):
+        self.query_edit.setEnabled(True)
+        error = self.query_thread.error
+        msg_box = QtGui.QMessageBox(
+            QtGui.QMessageBox.Warning,
+            "Error while executing Query",
+            "'{}': {}".format(type(error), error))
+        msg_box.exec_()
 
     def sizeHint(self):
         return QtCore.QSize(860, 640)
@@ -834,6 +887,16 @@ class QueryView(QtGui.QWidget):
         self.update_index()
 
     def update_index(self):
+        num_docs = self.index_stop - self.index_start
+        if num_docs > HIGH_NUM_DOCS_WARNING_THR:
+            msg = "The number of document you selected to show is very high. Do you want to reduce them?"
+            answer = QtGui.QMessageBox.question(
+                self, APPLICATION_NAME, msg,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No) == \
+                QtGui.QMessageBox.Yes
+            if answer:
+                self.index_stop = self.index_start + HIGH_NUM_DOCS_WARNING_THR
+        self.query_begin.emit()
         self.tree_view.model().doc_index = self.index_start, self.index_stop
 
 def _get_url(url):
