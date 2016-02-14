@@ -6,8 +6,10 @@ databases."""
 
 import sys
 import logging
+import warnings
 import json
 import itertools
+import threading
 
 from PySide import QtCore, QtGui
 from PySide.QtCore import Qt
@@ -35,7 +37,6 @@ Website: https://bitbucket.org/glotzer/signac-gui
 Author: Carl Simon Adorf, csadorf@umich.edu
 License: MIT
 """
-
 
 def set_bg_color(w, color):
     return
@@ -83,6 +84,17 @@ def show_error(msg):
 def show_warning(msg):
     show_message(QtGui.QMessageBox.Warning, msg)
 
+
+class HostConnectionThread(QtCore.QThread):
+    
+    def run(self):
+        try:
+            self.parent().connector.connect()
+            self.parent().connector.authenticate()
+        except Exception as error:
+            self.parent().connection_error = error
+        else:
+            self.parent().connection_error = None
 
 class DocumentView(QtGui.QTreeView):
 
@@ -267,11 +279,17 @@ class HostList(QtGui.QTableWidget):
 
 
 class HostsDialog(QtGui.QDialog):
+    attempt_connection = QtCore.Signal()
+    host_connected = QtCore.Signal()
+    connection_failed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(HostsDialog, self).__init__(parent)
         self.setModal(True)
         self.setWindowTitle("Hosts")
+        self.connector = None
+        self.connection_error = None
+        self.connect_host_thread = HostConnectionThread(self)
         self.setupUI()
 
     def setupUI(self):
@@ -313,6 +331,9 @@ class HostsDialog(QtGui.QDialog):
         self.hosts_list.itemDoubleClicked.connect(self.item_activated)
         self.hosts_list.itemSelectionChanged.connect(
             self.host_selection_changed)
+
+        self.connect_host_thread.started.connect(self.attempt_connection)
+        self.connect_host_thread.finished.connect(self.connect_attempt_finished)
 
     def all_hostnames(self):
         return get_hosts_config().keys()
@@ -365,15 +386,31 @@ class HostsDialog(QtGui.QDialog):
         self.load_config()
 
     def accept(self):
-        if self.hosts_list.selected_host() is not None:
-            self.parent().connect(self.hosts_list.selected_host())
-            super(HostsDialog, self).accept()
+        if self.connect_host_thread.isRunning():
+            show_warning("Already connecting!")
+            return False
+        selected_host = self.hosts_list.selected_host()
+        if selected_host is not None:
+            host_config = get_hosts_config()[selected_host]
+            self.connector = DBClientConnector(host_config)
+            self.connect_host_thread.start()
+            return super(HostsDialog, self).accept()
         else:
             show_warning("No host selected.")
+            return False
 
-    # def reject(self):
-        # self.hide()
-
+    def connect_attempt_finished(self):
+        if self.connection_error is None:
+            self.host_connected.emit()
+        else:
+            error = self.connection_error
+            self.connection_failed.emit()
+            self.parent().set_status("Error.", 5000)
+            msg_box = QtGui.QMessageBox(
+                QtGui.QMessageBox.Warning,
+                "Connection Error",
+                "{}: '{}'".format(type(error), error))
+            msg_box.exec_()
 
 class HostnameValidator(QtGui.QValidator):
 
@@ -564,6 +601,10 @@ class MainWindow(QtGui.QMainWindow):
             windowState = QtCore.QByteArray.fromBase64(gui.get('windowState'))
             self.restoreGeometry(windowState)
 
+        self.hosts_dialog.host_connected.connect(self.host_connected)
+        self.hosts_dialog.connection_failed.connect(self.host_connection_failed)
+        self.hosts_dialog.attempt_connection.connect(self.attempt_connection)
+
     def sizeHint(self):
         return QtCore.QSize(1024, 768)
 
@@ -582,7 +623,7 @@ class MainWindow(QtGui.QMainWindow):
         gui['windowState'] = self.saveState().toBase64()
         tmp.write()
 
-    def connect(self, hostname):
+    def _connect_host(self, hostname):
         try:
             host_config = get_hosts_config()[hostname]
             logger.debug("Overriding timeout")
@@ -602,6 +643,28 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.set_status("OK.", 3000)
             self.main_view.db_tree_model.add_connector(connector)
+
+    def connect(self, hostname):
+        warnings.warn("The connect() function will be renamed to connect_host().", DeprecationWarning)
+        host_config = get_hosts_config()[hostname]
+        logger.debug("Overriding timeout")
+        host_config['connect_timeout_ms'] = 1000
+        self.connector = DBClientConnector(host_config)
+        self.set_status("Attempting to connect to '{}'...".format(hostname))
+        self.connect_host_thread.start()
+
+    def attempt_connection(self):
+        self.set_status("Connecting...")
+
+    def host_connected(self):
+        connector = self.hosts_dialog.connector
+        self.main_view.db_tree_model.add_connector(connector)
+        self.set_status(
+            "Connected to '{}'.".format(connector.client),
+            5000)
+
+    def host_connection_failed(self):
+        self.set_status("Connection attempt failed.", 5000)
 
     def open_file(self, fn):
         logger.info('open file({})'.format(fn))
