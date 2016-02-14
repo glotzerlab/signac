@@ -314,6 +314,11 @@ class DBClientTreeItem(TreeItem):
     def row(self):
         return self._row
 
+    def reload(self):
+        self.modelAboutToBeReset.emit()
+        self._databases = None
+        self.modelReset.emit()
+
 
 class DBTreeModel(BasicTreeModel):
 
@@ -338,3 +343,10 @@ class DBTreeModel(BasicTreeModel):
     def headerData(self, section, orientation, role):
         if (orientation == Qt.Horizontal and role == Qt.DisplayRole):
             return "Hosts"
+
+    def reload_all(self):
+        self.modelAboutToBeReset.emit()
+        connectors = [item.connector for item in self.connectors]
+        self.connectors = list()
+        for connector in connectors:
+            self.add_connector(connector)
