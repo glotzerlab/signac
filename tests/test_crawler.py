@@ -145,6 +145,27 @@ class CrawlerBaseTest(unittest.TestCase):
                 self.assertEqual(doc2['a'], doc['a'])
         self.assertFalse(no_find)
 
+    def test_regex_file_crawler_inheritance(self):
+        self.setup_project()
+
+        class CrawlerA(signac.contrib.RegexFileCrawler):
+            pass
+
+        class FormatA(TestFormat):
+            pass
+
+        class CrawlerB(signac.contrib.RegexFileCrawler):
+            pass
+
+        class FormatB(TestFormat):
+            pass
+
+        CrawlerA.define('a', FormatA)
+        CrawlerB.define('b', FormatB)
+
+        self.assertEqual(len(CrawlerA.definitions), 1)
+        self.assertEqual(len(CrawlerB.definitions), 1)
+
     def test_master_crawler(self):
         self.setup_project()
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
