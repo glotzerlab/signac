@@ -5,6 +5,7 @@ import argparse
 import json
 
 from . import get_project
+from . import __version__
 
 
 def main_project(args):
@@ -58,6 +59,10 @@ def main():
         '--debug',
         action='store_true',
         help="Show traceback on error for debugging.")
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help="Display the version number and exit.")
     subparsers = parser.add_subparsers()
 
     parser_project = subparsers.add_parser('project')
@@ -91,6 +96,13 @@ def main():
         type=str,
         help="Initialize a project with the given project id.")
     parser_init.set_defaults(func=main_init)
+
+    # This is a hack, as argparse itself does not
+    # allow to parse only --version without any
+    # of the other required arguments.
+    if '--version' in sys.argv:
+        print('signac', __version__)
+        sys.exit(0)
 
     args = parser.parse_args()
     try:
