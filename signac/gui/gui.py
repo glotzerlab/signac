@@ -591,6 +591,12 @@ class MainWindow(QtGui.QMainWindow):
         self.file_dialog.fileSelected.connect(self.open_file)
         fileMenu.addAction('&Quit..', self.close, KEY_SEQUENCE_QUIT)
 
+        dbMenu = self.menuBar().addMenu('&Database')
+        dbMenu.addAction('&Reload', self.reload_collections).setEnabled(False)  # currently defunct
+        dbMenu.addAction('&Close', self.close_connection)
+        dbMenu.addSeparator()
+        dbMenu.addAction('Reload &all', self.reload_all_collections)
+
         helpMenu = self.menuBar().addMenu('&Help')
         about_action = helpMenu.addAction('&About signac')
         about_action.triggered.connect(self.show_about)
@@ -638,6 +644,19 @@ class MainWindow(QtGui.QMainWindow):
     def host_connection_failed(self):
         self.set_status("Connection attempt failed.", 5000)
         self.hosts_dialog.show()
+
+    def reload_all_collections(self):
+        self.main_view.db_tree_model.reload_all()
+
+    def reload_collections(self):
+        selection = self.main_view.db_tree_view.selectedIndexes()
+        for s in selection:
+            self.main_view.db_tree_model.reload_connector(s)
+
+    def close_connection(self):
+        selection = self.main_view.db_tree_view.selectedIndexes()
+        for s in selection:
+            self.main_view.db_tree_model.remove_connector(s)
 
     def open_file(self, fn):
         logger.info('open file({})'.format(fn))
@@ -721,6 +740,8 @@ class DBTreeView(QtGui.QTreeView):
         self.setHeaderHidden(True)
         self.setSizePolicy(QtGui.QSizePolicy.Minimum,
                            QtGui.QSizePolicy.Expanding)
+        self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 
     def minimumSizeHint(self):
         return QtCore.QSize(250, 500)
