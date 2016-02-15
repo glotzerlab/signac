@@ -60,7 +60,7 @@ class BasicTreeModel(QtCore.QAbstractItemModel):
         else:
             return self.createIndex(parent.row(), 0, parent)
 
-    def data(self, index, role=None):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
         if index.isValid():
             if role == QtCore.Qt.DisplayRole:
                 if index.column() == 0:
@@ -314,10 +314,8 @@ class DBClientTreeItem(TreeItem):
     def row(self):
         return self._row
 
-    def reload(self):
-        self.modelAboutToBeReset.emit()
+    def reload_databases(self):
         self._databases = None
-        self.modelReset.emit()
 
 
 class DBTreeModel(BasicTreeModel):
@@ -333,12 +331,20 @@ class DBTreeModel(BasicTreeModel):
         self.connectors.append(DBClientTreeItem(i, connector))
         self.endInsertRows()
 
+    def remove_connector(self, index):
+        if index.isValid():
+            while index.parent() != QtCore.QModelIndex():
+                index = index.parent()
+            self.beginRemoveRows(index.parent(), index.row(), index.row())
+            self.connectors.pop(index.row())
+            self.endRemoveRows()
+
     @property
     def children(self):
         return self.connectors
 
     def flags(self, index):
-        return QtCore.Qt.ItemIsSelectable and QtCore.Qt.ItemIsEnabled
+        return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
 
     def headerData(self, section, orientation, role):
         if (orientation == Qt.Horizontal and role == Qt.DisplayRole):
