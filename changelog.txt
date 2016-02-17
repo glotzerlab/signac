@@ -1,3 +1,37 @@
+0.2.5
+
+  - API changes:
+
+		- Added `signac.get_project()`, `signac.get_database()`, `signac.fetch()` and `signac.fetch_one()` to top-level namespace.
+		- Added basic shell commands, see `$ signac --help`.
+
+  - New features:
+
+		- Allow opening of jobs by id: `project.open_job(id='abc123...')`.
+		- Mirror data while crawling.
+		- Use extra sources for `fetch()` and `fetch_one()`.
+		- Add file system handler: LocalFS, handler for local file system.
+		- Add file system handler: GridFS, handler for MongoDB GridFS file system.
+		- Crawler tags, to control which crawlers are used for a specific index.
+		- Allow explicit job workspace creation through `job.init()`
+		- Forwarding of pymongo host configuration via signac configuration.
+
+  - Documentation:
+
+		- Major reorganization of the documentation, split into: Overview, Guide, Quick Reference and API.
+		- Add notes for system administrators about advanced indexing.
+
+  - Misc
+
+		- Warn about outdated pymongo versions.
+		- Set zip_safe flag to true in setup.py.
+		- Remove dependency on six module, by adding it to the common subpackage.
+
+  - Bug Fixes:
+
+		- Fixed hard import of pymongo bug (issue #24).
+		- Crawler issues with malformed documents.
+
 0.2.4
 	
 	- Implement repair() function for projects with corrupted workspaces.
