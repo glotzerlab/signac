@@ -252,7 +252,7 @@ class RegexFileCrawler(BaseCrawler):
                 continue
             try:
                 value = float(value)
-            except ValueError:
+            except Exception:
                 result[key] = value
             else:
                 if not math.isnan(value) or math.isinf(value):
