@@ -337,6 +337,54 @@ class Project(object):
             doc['statepoint'] = job.statepoint()
             yield doc
 
+    def reset_statepoint(self, job, new_statepoint):
+        """Reset the statepoint of job.
+
+        .. danger::
+
+            Use this function with caution! Resetting a job's statepoint,
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+            If you only want to *extend* your statepoint, consider to
+            use :meth:`~.update_statepoint` instead.
+
+        :param job: The job, that should be reset to a new state point.
+        :type job: :class:`~.contrib.job.Job`
+        :param new_statepoint: The job's new unique set of parameters.
+        :type new_statepoint: mapping
+        :raises RuntimeError: If a job associated with the new unique set
+            of parameters already exists in the workspace."""
+        dst = self.open_job(new_statepoint)
+        _move_job(job, dst)
+        logger.info(
+            "Reset statepoint of job {}, moved to {}.".format(job, dst))
+
+    def update_statepoint(self, job, update, overwrite=False):
+        """Update the statepoint of job.
+
+        .. warning::
+
+            While appending to a job's statepoint is generally safe,
+            modifying existing parameters may lead to data
+            inconsistency. Use the overwrite argument with caution!
+
+        :param job: The job, whose statepoint shall be updated.
+        :type job: :class:`~.contrib.job.Job`
+        :param update: A mapping used for the statepoint update.
+        :type update: mapping
+        :param overwrite: Set to true, to ignore whether this
+            update overwrites parameters, which are currently
+            part of the job's statepoint. Use with caution!
+        :raises KeyError: If the update contains keys, which are
+            already part of the job's statepoint."""
+        statepoint = dict(job.statepoint())
+        if not overwrite:
+            for key in update:
+                if key in statepoint:
+                    raise KeyError(key)
+        statepoint.update(update)
+        _move_job(job, self.open_job(statepoint))
+
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
         for fn in glob.iglob(os.path.join(self.workspace(), '*')):
@@ -366,6 +414,23 @@ class Project(object):
                     raise
                 else:
                     logger.info("Successfully recovered state point.")
+
+
+def _move_job(src, dst):
+    logger.debug("Attempting to move job {} to {}".format(src, dst))
+    fn_src_manifest = os.path.join(src.workspace(), src.FN_MANIFEST)
+    fn_src_manifest_backup = fn_src_manifest + '~'
+    os.rename(fn_src_manifest, fn_src_manifest_backup)
+    try:
+        os.rename(src.workspace(), dst.workspace())
+    except OSError:  # rollback
+        os.rename(fn_src_manifest_backup, fn_src_manifest)
+        raise RuntimeError(
+            "Failed to move {} to {}, destination already exists.".format(
+                src, dst))
+    else:
+        dst.init()
+        logger.info("Moved job {} to {}.".format(src, dst))
 
 
 def _make_link(src, dst):
@@ -459,8 +524,3 @@ def get_project():
     :returns: The project handle.
     :rtype: :class:`Project`"""
     return Project()
-
-# lrwxrwx--- [...] 2 -> /path/to/workspace/fb4e5868559e719f0c5826de08023281
-# lrwxrwx--- [...] 3 -> /path/to/workspace/a1721c8f1b284d4004debde16447fe10
-# lrwxrwx--- [...] 4 -> /path/to/workspace/06d3d15bc724f8a213b67566178ea931
-# ...
