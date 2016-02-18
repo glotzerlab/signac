@@ -34,8 +34,8 @@ class Job(object):
 
     def __init__(self, project, statepoint):
         self._project = project
-        self._statepoint = statepoint
-        self._id = calc_id(statepoint)
+        self._statepoint = json.loads(json.dumps(statepoint))
+        self._id = calc_id(self._statepoint)
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = None
