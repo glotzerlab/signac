@@ -116,6 +116,12 @@ class JobIDTest(BaseJobTest):
             self.assertEqual(
                 str(self.project.open_job(nested_dict())), NESTED_HASH)
 
+    def test_sequences_identity(self):
+        job1 = self.project.open_job({'a': [1.0, '1.0', 1, True]})
+        job2 = self.project.open_job({'a': (1.0, '1.0', 1, True)})
+        self.assertEqual(str(job1), str(job2))
+        self.assertEqual(job1.statepoint(), job2.statepoint())
+
 
 class ConfigTest(BaseJobTest):
 
