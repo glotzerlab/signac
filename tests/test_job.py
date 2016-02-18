@@ -204,6 +204,16 @@ class JobOpenAndClosingTest(BaseJobTest):
             except AttributeError:
                 pass
 
+    def test_corrupt_workspace(self):
+        job = self.open_job(test_token)
+        job.init()
+        fn_manifest = os.path.join(job.workspace(), job.FN_MANIFEST)
+        with open(fn_manifest, 'w') as file:
+            file.write("corrupted")
+        job2 = self.open_job(test_token)
+        with self.assertRaises(RuntimeError):
+            job2.init()
+
 
 class JobDocumentTest(BaseJobTest):
 
@@ -269,6 +279,72 @@ class JobDocumentTest(BaseJobTest):
         job2 = self.open_job(test_token)
         self.assertIn(key, job2.document)
         self.assertEqual(len(job2.document), 1)
+
+    def test_remove(self):
+        key = 'remove'
+        job = self.open_job(test_token)
+        job.remove()
+        d = testdata()
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        fn_test = os.path.join(job.workspace(), 'test')
+        with open(fn_test, 'w') as file:
+            file.write('test')
+        self.assertTrue(os.path.isfile(fn_test))
+        job.remove()
+        self.assertNotIn(key, job.document)
+        self.assertFalse(os.path.isfile(fn_test))
+
+    def test_reset_statepoint(self):
+        key = 'move_job'
+        d = testdata()
+        src = test_token
+        dst = dict(test_token)
+        dst['dst'] = True
+        src_job = self.open_job(src)
+        src_job.document[key] = d
+        self.assertIn(key, src_job.document)
+        self.assertEqual(len(src_job.document), 1)
+        self.project.reset_statepoint(src_job, dst)
+        src_job = self.open_job(src)
+        dst_job = self.open_job(dst)
+        self.assertIn(key, dst_job.document)
+        self.assertEqual(len(dst_job.document), 1)
+        self.assertNotIn(key, src_job.document)
+        with self.assertRaises(RuntimeError):
+            self.project.reset_statepoint(src_job, dst)
+
+    def test_update_statepoint(self):
+        key = 'move_job'
+        d = testdata()
+        src = test_token
+        extension = {'dst': True}
+        dst = dict(src)
+        dst.update(extension)
+        extension2 = {'dst': False}
+        dst2 = dict(src)
+        dst2.update(extension2)
+        src_job = self.open_job(src)
+        src_job.document[key] = d
+        self.assertIn(key, src_job.document)
+        self.assertEqual(len(src_job.document), 1)
+        self.project.update_statepoint(src_job, extension)
+        src_job = self.open_job(src)
+        dst_job = self.open_job(dst)
+        self.assertEqual(dst_job.statepoint(), dst)
+        self.assertIn(key, dst_job.document)
+        self.assertEqual(len(dst_job.document), 1)
+        self.assertNotIn(key, src_job.document)
+        with self.assertRaises(RuntimeError):
+            self.project.reset_statepoint(src_job, dst)
+        with self.assertRaises(KeyError):
+            self.project.update_statepoint(dst_job, extension2)
+        self.project.update_statepoint(dst_job, extension2, overwrite=True)
+        dst2_job = self.open_job(dst2)
+        self.assertEqual(dst2_job.statepoint(), dst2)
+        self.assertIn(key, dst2_job.document)
+        self.assertEqual(len(dst2_job.document), 1)
 
 
 if __name__ == '__main__':
