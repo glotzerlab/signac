@@ -60,10 +60,26 @@ class ProjectTest(BaseProjectTest):
     def test_find_statepoints(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
-            job = self.project.open_job(sp)
-            job.document['test'] = True
-        self.assertEqual(len(statepoints), len(
-            list(self.project.find_statepoints())))
+            self.project.open_job(sp).init()
+        self.assertEqual(
+            len(statepoints),
+            len(list(self.project.find_statepoints())))
+        self.assertEqual(
+            1, len(list(self.project.find_statepoints({'a': 0}))))
+
+    def test_find_statepoint_sequences(self):
+        statepoints = [{'a': (i, i+1)} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.assertEqual(
+            len(statepoints),
+            len(list(self.project.find_statepoints())))
+        self.assertEqual(
+            1,
+            len(list(self.project.find_statepoints({'a': [0, 1]}))))
+        self.assertEqual(
+            1,
+            len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
     def test_find_jobs(self):
         statepoints = [{'a': i} for i in range(5)]

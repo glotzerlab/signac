@@ -2,6 +2,7 @@ import os
 import errno
 import logging
 import json
+import shutil
 
 from ..common import six
 from ..core.jsondict import JSonDict
@@ -33,8 +34,8 @@ class Job(object):
 
     def __init__(self, project, statepoint):
         self._project = project
-        self._statepoint = statepoint
-        self._id = calc_id(statepoint)
+        self._statepoint = json.loads(json.dumps(statepoint))
+        self._id = calc_id(self._statepoint)
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = None
@@ -103,6 +104,22 @@ class Job(object):
             except Exception:  # ignore all errors here
                 pass
             raise error
+        else:
+            self._check_manifest()
+
+    def _check_manifest(self):
+        "Check whether the manifest file, if it exists, is correct."
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        try:
+            try:
+                with open(fn_manifest) as file:
+                    assert calc_id(json.load(file)) == self._id
+            except IOError as error:
+                if not error.errno == errno.ENOENT:
+                    raise error
+        except Exception as error:
+            msg = "Manifest file of job '{}' is corrupted: {}."
+            raise RuntimeError(msg.format(self, error))
 
     def init(self):
         """Initialize the job's workspace directory.
@@ -110,6 +127,19 @@ class Job(object):
         This function will do nothing if the directory and
         the job manifest already exist."""
         self._create_directory()
+
+    def remove(self):
+        """Remove the job's workspace including the job document.
+
+        This function will do nothing if the workspace directory
+        does not exist."""
+        if self._document is not None:
+            self._document.clear()
+        try:
+            shutil.rmtree(self.workspace())
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise
 
     def open(self):
         """Enter the job's workspace directory.

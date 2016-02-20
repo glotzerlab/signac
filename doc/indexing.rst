@@ -141,7 +141,7 @@ The *master crawler* adds information about its origin to each document.
 This allows to fetch data from the *master index*, which is almost independent of the actual location of the data within the file system.
 
 The *signac_access.py* module
-----------------------------
+-----------------------------
 
 The master crawler searches for modules called ``signac_access.py`` and tries to call a function called ``get_crawlers()`` defined in those modules.
 This function is defined as follows:
