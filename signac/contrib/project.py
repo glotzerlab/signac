@@ -130,6 +130,7 @@ class Project(object):
             over the workspace. Use this argument to repair a corrupted workspace.
         :type skip_erros: bool
         :yields: statepoints as dict"""
+        filter = None if filter is None else json.loads(json.dumps(filter))
         def _match(doc, f):
             for key, value in f.items():
                 if key not in doc or doc[key] != value:
