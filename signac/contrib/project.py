@@ -377,7 +377,9 @@ class Project(object):
             update overwrites parameters, which are currently
             part of the job's statepoint. Use with caution!
         :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint."""
+            already part of the job's statepoint.
+        :raises RuntimeError: If a job associated with the new unique set
+            of parameters already exists in the workspace."""
         statepoint = dict(job.statepoint())
         if not overwrite:
             for key in update:

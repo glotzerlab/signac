@@ -151,6 +151,21 @@ If you want to operate on all or a select number of jobs, use :py:meth:`~signac.
     9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
     >>>
 
+Modify the workspace
+--------------------
+
+To modify the workspace, for example by adding a previously not needed parameter to all or a select number of state points, we can use the :py:meth:`~signac.contrib.project.Project.update_statepoint` and :py:meth:`~signac.contrib.project.Project.reset_statepoint` methods.
+Modifying a state point entails modifying the job id.
+This means that both of these functions will move all data to the new location within the workspace.
+Note, that this is efficiently done with one renaming operation and does not actually require expensive move operations.
+
+Changing of state points is a delicate procedure and generally one should prefer :py:meth:`~signac.contrib.project.Project.update_statepoint` over :py:meth:`~signac.contrib.project.Project.reset_statepoint` as the former preserves the original state point.
+Any updates that would change existing parameters fail by default.
+The :py:meth:`~signac.contrib.project.Project.reset_statepoint` method is significantly more intrusive as it allows to assign a complete new state point to the job.
+Both methods will raise a :py:class:`RuntimeError` if the workspace already contains a job with the new state point.
+
+Finally, removing a job and all of its data is possible using the :py:meth:`~signac.contrib.job.Job.remove` method.
+
 The job document
 ----------------
 
