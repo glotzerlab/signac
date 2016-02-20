@@ -1,3 +1,25 @@
+0.2.6
+
+	- API changes:
+
+		- Add `job.reset_statepoint()` and `job.update_statepoint()`
+		- Add `job.remove()` function
+
+	- Improvements:
+
+		- Sanitize filter argument in `project.find_*()` methods
+		- The `job.statepoint()` function accurately represents saved 
+		statepoints, e.g. tuples are represented as lists, as there is no
+		difference between tuples and lists in json
+		- signac-gui does not block on database operations
+		- signac-gui allows reload of databases and collections of connected hosts
+
+	- Bug fixes:
+
+		- `RegexFileCrawler` `define()` class function only acts upon the actual
+		specialization and not globally on all RegexFileCrawler classes
+		- signac-gui does not crash when replica sets are configured
+
 0.2.5
 
   - API changes:
