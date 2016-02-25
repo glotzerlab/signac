@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import json
 import glob
@@ -112,6 +113,14 @@ class Project(object):
                     "Is the job initialized?".format(id))
                 raise error
 
+    def _job_dirs(self):
+        wd = self.workspace()
+        m = re.compile('[a-z0-9]{32}')
+        return (d for d in os.listdir(wd) if m.match(d))
+
+    def num_jobs(self):
+        return len(list(self._job_dirs()))
+
     def find_jobs(self, filter=None):
         """Find all jobs in the project's workspace.
 
@@ -131,13 +140,15 @@ class Project(object):
         :type skip_erros: bool
         :yields: statepoints as dict"""
         filter = None if filter is None else json.loads(json.dumps(filter))
+
         def _match(doc, f):
             for key, value in f.items():
                 if key not in doc or doc[key] != value:
                     return False
             return True
-        for fn_manifest in glob.iglob(os.path.join(
-                self.workspace(), '*', Job.FN_MANIFEST)):
+        wd = self.workspace()
+        for job_dir in self._job_dirs():
+            fn_manifest = os.path.join(wd, job_dir, Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
                     statepoint = json.load(manifest)

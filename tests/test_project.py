@@ -89,6 +89,13 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
 
+    def test_num_jobs(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.assertEqual(len(statepoints), self.project.num_jobs())
+        self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
+
     def test_open_job_by_id(self):
         statepoints = [{'a': i} for i in range(5)]
         jobs = [self.project.open_job(sp) for sp in statepoints]
