@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import json
 import glob
@@ -136,8 +137,11 @@ class Project(object):
                 if key not in doc or doc[key] != value:
                     return False
             return True
-        for fn_manifest in glob.iglob(os.path.join(
-                self.workspace(), '*', Job.FN_MANIFEST)):
+        wd = self.workspace()
+        m = re.compile('[a-z0-9]{32}')
+        job_dirs = [d for d in os.listdir(wd) if m.match(d)]
+        for job_dir in job_dirs:
+            fn_manifest = os.path.join(wd, job_dir, Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
                     statepoint = json.load(manifest)
