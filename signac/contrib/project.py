@@ -2,7 +2,6 @@ import os
 import re
 import logging
 import json
-import glob
 import errno
 import collections
 
@@ -401,9 +400,9 @@ class Project(object):
 
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
-        for fn in glob.iglob(os.path.join(self.workspace(), '*')):
-            jobid = os.path.split(fn)[-1]
-            fn_manifest = os.path.join(fn, Job.FN_MANIFEST)
+        for job_dir in self._job_dirs():
+            jobid = os.path.split(job_dir)[-1]
+            fn_manifest = os.path.join(job_dir, Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
                     statepoint = json.load(manifest)
