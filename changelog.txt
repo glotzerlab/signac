@@ -1,3 +1,13 @@
+0.2.7
+
+	- API changes:
+
+		- Add `job.isfile()` method
+
+	- Improvements:
+
+		- Optimize `project.find_statepoints()` and `project.repair()` functions.
+
 0.2.6
 
 	- API changes:
@@ -8,7 +18,7 @@
 	- Improvements:
 
 		- Sanitize filter argument in `project.find_*()` methods
-		- The `job.statepoint()` function accurately represents saved 
+		- The `job.statepoint()` function accurately represents saved
 		statepoints, e.g. tuples are represented as lists, as there is no
 		difference between tuples and lists in json
 		- signac-gui does not block on database operations
@@ -55,7 +65,7 @@
 		- Crawler issues with malformed documents.
 
 0.2.4
-	
+
 	- Implement repair() function for projects with corrupted workspaces.
 	- Increase robustness of job manifest file creation.
 	- Allow environment variables in workspace path definition.
