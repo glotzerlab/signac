@@ -123,6 +123,20 @@ class JobIDTest(BaseJobTest):
         self.assertEqual(job1.statepoint(), job2.statepoint())
 
 
+class JobTest(BaseJobTest):
+
+    def test_isfile(self):
+        job = self.project.open_job({'a': 0})
+        fn = 'test.txt'
+        fn_  = os.path.join(job.workspace(), fn)
+        self.assertFalse(job.isfile(fn))
+        job.init()
+        self.assertFalse(job.isfile(fn))
+        with open(fn_, 'w') as file:
+            file.write('hello')
+        self.assertTrue(job.isfile(fn))
+
+
 class ConfigTest(BaseJobTest):
 
     def test_set_get_delete(self):
