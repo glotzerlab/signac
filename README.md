@@ -1,4 +1,4 @@
-# signac - database-driven simulation management
+# signac - a simple data management framework
 
 ## About
 
