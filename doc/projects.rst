@@ -70,7 +70,7 @@ Equivalent from the command line:
     $ signac job '{"a": 0}'
     9bfd29df07674bc4aa960cf661b5acd2
     # Pipe large statepoint definitions:
-    $ cat mystatepoint.json > signac job
+    $ cat mystatepoint.json | signac job
     ab343j...
 
 The *job id* is a unique identifier or address for all project data.
