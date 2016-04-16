@@ -141,6 +141,14 @@ class Job(object):
             if error.errno != errno.ENOENT:
                 raise
 
+    def fn(self, filename):
+        """Prepend a filename with the job's workspace directory path.
+
+        :param filename: The filename of the file.
+        :type filename: str
+        :return: The full workspace path of the file."""
+        return os.path.join(self.workspace(), filename)
+
     def isfile(self, filename):
         """Return True if file exists in the job's workspace.
 
@@ -148,7 +156,7 @@ class Job(object):
         :type filename: str
         :return: True if file with filename exists in workspace.
         :rtype: bool"""
-        return os.path.isfile(os.path.join(self.workspace(), filename))
+        return os.path.isfile(self.fn(filename))
 
     def open(self):
         """Enter the job's workspace directory.
