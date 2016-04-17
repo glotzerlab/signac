@@ -20,8 +20,8 @@ This tutorial requires signac, so make sure to install the package before starti
 The signac framework assists us in conducting a computational investigation by managing the data space for us.
 This means that we do not need to worry about how to organize our data on disk and how to keep track of meta data.
 
-For the first part of the tutorial we only need signac, for the other parts we also need signac-flow.
-The easiest way to install both packages is using conda:
+In case we have not done this yet, we first need to install signac.
+The easiest way to dos is using conda:
 
 .. code-block:: bash
 
@@ -207,7 +207,7 @@ Let's examine the results of our computation, by adding an ``examine.py`` script
         "Return the computed volume for this job."
         with open(job.fn('V.txt')) as file:
             return float(file.read())
-  
+
     project = signac.get_project()
     print('p    V')
     for job in project.find_jobs():
@@ -370,7 +370,7 @@ We move the ``calc_volume()`` and ``compute_volume()`` functions into an ``opera
 We then determine the next operation explicitly by adding a ``next_operation()`` function in the ``project.py`` module:
 
 .. code-block:: python
-    
+
     # project.py
 
     # ...
@@ -403,7 +403,7 @@ In other words, we can execute any function defined in the ``operations.py`` mod
     Specify the output verbosity with the :py:mod:`logging` module, for example by adding the following lines to the ``run.py`` script:
 
     .. code-block:: python
-        
+
         import logging
         logging.basicConfig(level=logging.INFO)
 
@@ -439,7 +439,7 @@ To use the job document instead of a file, we need to modify our operation funct
             V = calc_volume(sp['N'], sp['T'], sp['N'])
             job.document['V'] = V
             print(job, 'computed volume')
-          
+
 Technically using the ``with job:`` clause is not necessary in this case, but we'll keep it in there for good measure.
 Now we need to modify our classification function:
 
@@ -493,11 +493,68 @@ This allows us to examine the data with human-readable path names:
     cat view/p/10.0/V.txt
     100.0
 
-.. note:: 
-      
+.. note::
+
     The actual file paths will slightly differ because of floating point precision.
 
 Indexing
 --------
 
-*Coming soon.*
+A index is a complete record of the data and its associated metadata within our project's data space.
+To create an index, we need to crawl through the project's data space.
+To do so, we can either specialize a :py:class:`~signac.contrib.crawler.SignacProjectCrawler` or call the :py:meth:`~signac.Project.index` method.
+Let's create a ``index.py`` script:
+
+.. code-block:: python
+
+    # index.py
+    import signac
+
+    project = signac.get_project()
+    for _id, doc in project.index():
+        print(_id, doc)
+
+If we used the *job document* for data storage this will immediately create an index of our data:
+
+.. code-block:: bash
+
+    $ python index.py
+    474778977e728a74b4ebc2e14221bef6 {'signac_id': '474778977e728a74b4ebc2e14221bef6', 'format': None, 'V': 294.1176470588235, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 3.4000000000000004}, '_id': '474778977e728a74b4ebc2e14221bef6'}
+    184f2b7e8eadfcbc9f7c4b6638db3c43 {'signac_id': '184f2b7e8eadfcbc9f7c4b6638db3c43', 'format': None, 'V': 128.2051282051282, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 7.800000000000001}, '_id': '184f2b7e8eadfcbc9f7c4b6638db3c43'}
+    3daa7dc28de43a2ff132a4b48c6abe0e {'signac_id': '3daa7dc28de43a2ff132a4b48c6abe0e', 'format': None, 'V': 10000.0, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 0.1}, '_id': '3daa7dc28de43a2ff132a4b48c6abe0e'}
+    # ...
+
+If we used text files to store data we need to additionally specify the format of those file to make them *indexable*.
+In general, any python class may be a format definition, however optimally a format class provides a file-like interface.
+An example for such a format class is the :py:class:`~signac.contrib.formats.TextFile` class.
+We will specify that in addition to the *job documents* all files named ``V.txt`` within our data space are to be indexed as *TextFiles*:
+
+.. code-block:: python
+
+    # index.py
+    import signac
+    from signac.contrib.formats import TextFormat
+
+    project = signac.get_project()
+    for _id, doc in project.index({'.*/V.txt': TextFormat):
+        print(_id, doc)
+
+The regular expression ``.*/V\.txt`` specifies that all file ending in ``V.txt`` are to be indexed, that would include sub-directories!
+
+Database Integration
+--------------------
+
+The index created in the previous section can now be used for advanced data querying and manipulation.
+Generally the choice of tools to work with the index is up to the user.
+For convenience, signac provides selected export routines.
+
+If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
+
+.. code-block:: python
+
+    # index.py
+    import signac
+
+    project = signac.get_project()
+    db = signac.get_db('mydb')
+    signac.contrib.export_pymongo(project.index(), db.index)
