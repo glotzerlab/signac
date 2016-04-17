@@ -6,6 +6,7 @@ import logging
 
 import signac
 from signac.common import six
+from signac.contrib.formats import TextFile
 
 from test_job import BaseJobTest
 
@@ -194,6 +195,23 @@ class ProjectTest(BaseProjectTest):
                 pass
         finally:
             logging.disable(logging.NOTSET)
+
+    def test_index(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        job_ids = set((job.get_id() for job in self.project.find_jobs()))
+        docs = list(self.project.index())
+        job_ids_cmp = set((_id for _id, doc in docs))
+        self.assertEqual(job_ids, job_ids_cmp)
+        self.assertEqual(len(docs), len(statepoints))
+        for sp in statepoints:
+            with self.project.open_job(sp):
+                with open('test.txt', 'w'):
+                    pass
+        docs = list(self.project.index({'.*/test.txt': TextFile}))
+        self.assertEqual(len(docs), 2 * len(statepoints))
+        self.assertEqual(len(set((_id for _id, _ in docs))), len(docs))
 
 
 if __name__ == '__main__':
