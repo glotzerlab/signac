@@ -116,9 +116,8 @@ class CrawlerBaseTest(unittest.TestCase):
         Crawler.define(regex, TestFormat)
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
-        for doc_id, doc in crawler.crawl():
+        for doc in crawler.crawl():
             no_find = False
-            self.assertEqual(doc_id, doc['_id'])
             ffn = os.path.join(doc['root'], doc['filename'])
             m = regex.match(ffn)
             self.assertIsNotNone(m)
@@ -138,9 +137,8 @@ class CrawlerBaseTest(unittest.TestCase):
         Crawler.define(pattern, TestFormat)
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
-        for doc_id, doc in crawler.crawl():
+        for doc in crawler.crawl():
             no_find = False
-            self.assertEqual(doc_id, doc['_id'])
             ffn = os.path.join(doc['root'], doc['filename'])
             m = regex.match(ffn)
             self.assertIsNotNone(m)
@@ -180,9 +178,8 @@ class CrawlerBaseTest(unittest.TestCase):
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         no_find = True
-        for doc_id, doc in crawler.crawl():
+        for doc in crawler.crawl():
             no_find = False
-            self.assertEqual(doc_id, doc['_id'])
             ffn = os.path.join(doc['root'], doc['filename'])
             self.assertTrue(os.path.isfile(ffn))
             with open(ffn) as file:
@@ -229,10 +226,10 @@ class CrawlerBaseTest(unittest.TestCase):
             link_local=False,
             mirrors=(fs_write,))
         crawler.tags = {'test1'}
-        index = {_id: doc for _id, doc in crawler.crawl()}
+        index = list(crawler.crawl())
         self.assertEqual(len(index), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(
                     doc, sources=(fs_read, ), ignore_linked_mirrors=True):
                 m = json.load(file)
@@ -240,18 +237,18 @@ class CrawlerBaseTest(unittest.TestCase):
                 check.append(m)
         self.assertEqual(len(check), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(
                     doc, sources=(fs_bad, fs_read), ignore_linked_mirrors=True):
                 m = json.load(file)
                 self.assertTrue('a' in m)
                 check.append(m)
         self.assertEqual(len(check), 2)
-        for _id, doc in index.items():
+        for doc in index:
             with self.assertRaises(IOError):
                 signac.contrib.fetch_one(
                     doc, sources=[], ignore_linked_mirrors=True)
-        for _id, doc in index.items():
+        for doc in index:
             with self.assertRaises(IOError):
                 signac.contrib.fetch_one(
                     doc, sources=(fs_bad,), ignore_linked_mirrors=True)
@@ -277,9 +274,9 @@ class CrawlerBaseTest(unittest.TestCase):
             link_local=False,
             mirrors=({'localfs': {'root': fs_root}},))
         crawler.tags = {'test1'}
-        index = {_id: doc for _id, doc in crawler.crawl()}
+        index = list(crawler.crawl())
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(doc, sources=(fs_test,)):
                 m = json.load(file)
                 self.assertTrue('a' in m)
@@ -287,7 +284,7 @@ class CrawlerBaseTest(unittest.TestCase):
                 file.close()
         self.assertEqual(len(check), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(
                     doc, sources=({'localfs': {'root': fs_root}},)):
                 m = json.load(file)
@@ -296,7 +293,7 @@ class CrawlerBaseTest(unittest.TestCase):
                 file.close()
         self.assertEqual(len(check), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(
                     doc, sources=[dict(localfs=fs_root)]):
                 m = json.load(file)
@@ -305,7 +302,7 @@ class CrawlerBaseTest(unittest.TestCase):
                 file.close()
         self.assertEqual(len(check), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             for file in signac.contrib.fetch(doc, sources=[]):
                 m = json.load(file)
                 self.assertTrue('a' in m)
@@ -313,10 +310,10 @@ class CrawlerBaseTest(unittest.TestCase):
                 file.close()
         self.assertEqual(len(check), 2)
         check = list()
-        for _id, doc in index.items():
+        for doc in index:
             with self.assertRaises(IOError):
                 signac.contrib.fetch_one(doc, ignore_linked_mirrors=True)
-        for _id, doc in index.items():
+        for doc in index:
             with self.assertRaises(IOError):
                 signac.contrib.fetch_one(
                     doc, sources=(fs_bad,), ignore_linked_mirrors=True)
