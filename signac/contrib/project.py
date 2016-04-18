@@ -515,22 +515,20 @@ class Project(object):
                 MasterCrawler.FN_ACCESS_MODULE)
         workspace = os.path.relpath(self.workspace(), self.root_directory())
 
+        imports = set()
         if formats is None:
-            definitions = "# {crawlername}.define(\
-                '.*\.txt', signac.contrib.formats.TextFile)".format(
-                crawlername=crawlername)
+            definitions=''
         else:
             dl = "{}.define('{}', {})"
-            imports = set()
             defs = list()
             for expr, fmt in formats.items():
                 defs.append(dl.format(crawlername, expr, fmt.__name__))
                 imports.add(
                     'from {} import {}'.format(fmt.__module__, fmt.__name__))
-            if master:
-                imports.add('from signac.contrib.crawler import MasterCrawler')
             definitions = '\n'.join(defs)
-            imports = '\n'.join(imports)
+        if master:
+            imports.add('from signac.contrib.crawler import MasterCrawler')
+        imports = '\n'.join(imports)
 
         module = ACCESS_MODULE_TEMPLATE.format(
             crawlername=crawlername,
