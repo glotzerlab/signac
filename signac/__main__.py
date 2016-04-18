@@ -45,6 +45,7 @@ def main_init(args):
         with open("signac.rc", 'a') as file:
             file.write('project={}\n'.format(args.project_id))
         assert str(get_project()) == args.project_id
+        print("Initialized project '{}'.".format(args.project_id))
     else:
         raise RuntimeError(
             "Failed to initialize project '{}', '{}' is already a "
