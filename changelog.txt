@@ -1,3 +1,23 @@
+0.2.8
+
+	- API changes:
+
+		- The `crawl()` function yields only the index documents
+			and not a tuple of (_id, doc).
+    - `export()` and `export_pymongo()` expect the index documents
+		  as first argument, not a crawler instance. The old API
+			is still supported, but will trigger a DeprecationWarning.
+		- `Project` is now in the root namespace.
+		- Add `index()` method to `Project`.
+		- Add `create_access_module()` method to `Project`.
+		- Add `find_variable_parameters()` method to `Project`.
+		- Add `fn()` method to `Job`, which preprends the job's workspace path
+		  to a filename.
+
+ 	- Improvements:
+
+		- The documentation contains a comprehensive tutorial.
+
 0.2.7
 
 	- API changes:
