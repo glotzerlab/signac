@@ -97,10 +97,10 @@ We will set :math:`k_B=1` and execute the complete study in **7 lines** of code:
     1. import signac
     2. project = signac.get_project()
     3. for p in 0.1, 1.0, 10.0:
-    4.    sp = {'p': p, 'T': 10.0, 'N': 10}
-    5.    with project.open_job(sp) as job:
-    6.        if 'V' not in job.document:
-    7.            job.document['V'] = sp['N'] * sp['T'] / sp['p']
+    4.     sp = {'p': p, 'T': 10.0, 'N': 10}
+    5.     with project.open_job(sp) as job:
+    6.         if 'V' not in job.document:
+    7.             job.document['V'] = sp['N'] * sp['T'] / sp['p']
 
 1. Import the ``signac`` package.
 2. Obtain a handle for the configured project.
@@ -179,10 +179,10 @@ The project's workspace has been populated with directories for each state point
 
 We could execute the initialization script multiple times to add more state points, already existing jobs will be ignored.
 
-Computing results
------------------
+Computing data
+--------------
 
-Now we can finally go ahead and perform our "simulation".
+Now we can finally go ahead and perform our computation.
 For this we define two functions inside a ``run.py`` script:
 
 .. code-block:: python
@@ -208,7 +208,7 @@ The ``with job:`` clause utilizes the ``job`` handle as a context manager.
 It means that all commands below it are executed within the job's workspace directory.
 This is good practice, because it means that files are being put into the right location.
 
-We split the computation into two distinct function to highlight the concept of *operations*.
+We split the computation into two distinct functions to highlight the concept of *operations*.
 The ``calc_volume`` function is a pure function with no side-effects, it returns the volume of an ideal gas for a set of input arguments.
 In contrast, the ``compute_volume()`` function *modifies* or *operates* on the data space.
 Because of this, we call such a function an *operation*.
@@ -255,8 +255,8 @@ And we can verify that we actually stored data:
     $ cat workspace/07dc3f53615713900208803484b87253/V.txt
     100.0
 
-Analyzing results
------------------
+Analyzing data
+--------------
 
 Let's examine the results of our computation, by adding an ``examine.py`` script to our project:
 
@@ -572,6 +572,35 @@ This allows us to examine the data with human-readable path names:
 
     The actual file paths will slightly differ because of floating point precision.
 
+Sometimes it is advantageous to implement your own view routine.
+This is an example for a flat linked view:
+
+.. code-block:: python
+
+    # create_flat_view.py
+    import os
+    import signac
+
+    project = signac.get_project()
+    variables = project.find_variable_parameters()[0]
+    for job in project.find_jobs():
+        name = '_'.join('{}_{}'.format(p, job.statepoint()[p])
+                        for p in variables)
+        os.symlink(job.fn('V.txt'), name + '_V.txt')
+
+The :py:meth:`~signac.contrib.project.Project.find_variable_parameters` method returns a hierarchical list of all varying parameters.
+In our case this is only the pressure *p*.
+
+Executing this, will create multiple symbolic links pointing to the source files with a parameter-based, human-readable name:
+
+.. code-block:: bash
+
+    $ python create_flat_view.py
+    $ ls -1 *.txt
+    p_0.1_V.txt
+    p_10.0_V.txt
+    # ...
+
 Indexing
 --------
 
@@ -589,7 +618,7 @@ Let's create a ``index.py`` script:
     for doc in project.index():
         print(doc)
 
-If we used the *job document* for data storage this will immediately create an index of our data:
+If we used the *job document* for data storage this will immediately generate an index of our data:
 
 .. code-block:: bash
 
@@ -614,14 +643,14 @@ We will specify that in addition to the *job documents* all files named ``V.txt`
     for doc in project.index({'.*/V.txt': TextFormat):
         print(doc)
 
-The regular expression ``.*/V\.txt`` specifies that all file ending in ``V.txt`` are to be indexed, that would include sub-directories!
+The regular expression ``.*/V\.txt`` specifies that all files ending in ``V.txt`` are to be indexed, that would include sub-directories!
 
 Database Integration
 --------------------
 
 The index created in the previous section can now be used for advanced data querying and manipulation.
-Generally the choice of tools to work with the index is up to the user.
-For convenience, signac provides selected export routines.
+You can export the index into a any tool of your choice.
+For convenience, signac provides export routines for MongoDB database collections.
 
 If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
 
@@ -640,7 +669,7 @@ For signac projects this is simplified by using the :py:meth:`~signac.contrib.pr
 .. code-block:: python
 
     project.create_access_module()  # or
-    project.create_access_module({'.*/V.txt': TextFormat})  # respectively
+    project.create_access_module({'.*/V\.txt': TextFormat})  # respectively
 
 This will create a ``signac_access.py`` module in the project's root directory, which will look like this:
 
@@ -673,6 +702,6 @@ You can easily change this default behavior, for example by replacing the last t
 Further reading
 ===============
 
-This concludes this tutorial.
+This concludes the tutorial.
 To learn more about the individual components, check out the :ref:`guide` or inspect the :ref:`api` documentation.
 A quick overview of the most important components are provided in the :ref:`quickreference`.
