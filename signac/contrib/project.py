@@ -463,15 +463,15 @@ class Project(object):
 
         .. code::
 
-            for _id, doc in project.index('.*\.txt', TextFile):
-                print(_id, doc)
+            for doc in project.index('.*\.txt', TextFile):
+                print(doc)
 
         :param formats: The format definitions as mapping.
         :type formats: dict
         :param depth: Specifies the crawling depth.
             A value of 0 (default) means no limit.
         :type depth: int
-        :yields: (id, doc)-tuples"""
+        :yields: index documents"""
         class Crawler(SignacProjectCrawler):
             pass
 
