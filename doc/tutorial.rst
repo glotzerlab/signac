@@ -132,7 +132,7 @@ Data space initialization
 -------------------------
 
 In the minimal example we initialized the data space *implicitely*.
-Let's have a look how we can initialize it *explicitely*.
+Let's see how we can initialize it *explicitely*.
 In general, the data space needs to contain all parameters that will affect our data.
 For the ideal gas that is a 3-dimensional space spanned by the temperature *T*, the pressure *p* and the system size *N*.
 
@@ -214,7 +214,7 @@ In contrast, the ``compute_volume()`` function *modifies* or *operates* on the d
 Because of this, we call such a function an *operation*.
 Any well-defined *operation* should only take one or more arguments of type :py:class:`~signac.contrib.job.Job`.
 
-To execute our "ideal gas simulator" for the whole data space we use signac's capability of iterating over the workspace.
+To execute the ideal gas computation for the whole data space we use signac's capability of iterating over the workspace.
 Let's add a few more lines to complete the ``run.py`` script:
 
 .. code-block:: python
@@ -371,13 +371,13 @@ One way is to add a simple check to our ``run.py`` script:
       .. code-block:: python
 
           for job in project.find_jobs():
-              if job.isfile('V.txt'):
+              if not job.isfile('V.txt'):
                   compute_volume(job)
 
 It would be even better if we could get an overview of which state points have been computed and which not.
 We call this a project's *status*.
 
-For this purpose we classify each *job* based on certain conditions.
+For this purpose we classify each *job* by attaching labels.
 We label our *jobs* based on certain conditions with a ``classify()`` generator function:
 
 .. code-block:: python
@@ -649,7 +649,7 @@ Database Integration
 --------------------
 
 The index created in the previous section can now be used for advanced data querying and manipulation.
-You can export the index into a any tool of your choice.
+You can export the index into any tool of your choice.
 For convenience, signac provides export routines for MongoDB database collections.
 
 If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
