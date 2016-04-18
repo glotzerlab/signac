@@ -51,10 +51,10 @@ To upgrade the package, simply execute the same command with the `--upgrade` opt
 With git
 --------
 
-Alternatively you can clone the git repository and use the ``setup.py`` to install the package.
+Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/signac>`_ and use the ``setup.py`` script to install the package.
 
 .. code:: bash
 
   git clone https://$USER@bitbucket.org/glotzer/signac.git
   cd signac
-  python3 setup.py install --user
+  python setup.py install --user
