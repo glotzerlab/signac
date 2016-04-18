@@ -185,6 +185,29 @@ class Project(object):
                 if not skip_errors:
                     raise error
 
+    def find_variable_parameters(self, statepoints=None):
+        """Find all parameters which vary over the data space.
+
+        This function attempts to detect all parameters, which vary
+        over the parameter space.
+        The parameter sets are ordered decreasingly
+        by data sub space size.
+
+        .. warning::
+
+            This function does not detect linear dependencies
+            within the state points. Linear dependencies should
+            generally be avoided.
+
+        :param statepoints: The statepoints to consider.
+            Defaults to all state points within the data space.
+        :type statepoints: Iterable of parameter mappings.
+        :return: A hierarchical list of variable parameters.
+        :rtype: list"""
+        if statepoints is None:
+            statepoints = self.find_statepoints()
+        return list(_find_unique_keys(statepoints))
+
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
 
