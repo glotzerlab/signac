@@ -118,6 +118,34 @@ class ProjectTest(BaseProjectTest):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_find_variable_parameters(self):
+        # Test for highly heterogenous parameter space
+        sp_0 = [{'a': i, 'b': 0} for i in range(5)]
+        sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0),
+            [['a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_1),
+            [['a'], ['c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_1),
+            [['a'], ['c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_1 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_1 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+
     def test_create_view(self):
         # Test for highly heterogenous parameter space
         sp_0 = [{'a': i, 'b': 0} for i in range(5)]
