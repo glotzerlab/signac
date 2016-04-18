@@ -533,19 +533,22 @@ def _fetch_fs(doc, mode):
         yield d
 
 
-def export_pymongo(docs, index, chunksize=1000,
-                   crawler=None, *args, **kwargs):
+def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
     """Optimized export function for pymongo collections.
 
-    The behaviour of this function is equivalent to:
+    The behavior of this function is equivalent to:
 
     .. code-block:: python
 
-        for _id, doc in crawler.crawl(*args, **kwargs):
-            index.replace_one({'_id': _id}, doc)
+        for doc in docs:
+            index.replace_one({'_id': doc['_id']}, doc)
+
+    .. note::
+
+        All index documents must be JSON-serializable to
+        be able to be exported to a MongoDB collection.
 
     :param docs: The index documents to export.
-    :type docs: Iterable of index documents.
     :param index: The database collection to export the index to.
     :type index: :class:`pymongo.collection.Collection`
     :param chunksize: The buffer size for export operations.
@@ -555,14 +558,12 @@ def export_pymongo(docs, index, chunksize=1000,
     operations = []
 
     # backwards compatibility hacks
-    if crawler is not None:
-        raise ValueError(
-            "You are using a deprecated API for export_pymongo()!")
     if hasattr(docs, 'crawl'):
         docs = docs.crawl(* args, **kwargs)
         warnings.warn(
             "You are using a deprecated API for export_pymongo()!",
             DeprecationWarning)
+
     for doc in docs:
         f = {'_id': doc['_id']}
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
@@ -576,19 +577,17 @@ def export_pymongo(docs, index, chunksize=1000,
 
 
 def export(docs, index, *args, **kwargs):
-    """Optimized export function for collections.
+    """Export function for collections.
 
-    The behaviour of this function is equivalent to:
+    The behavior of this function is equivalent to:
 
     .. code-block:: python
 
-        for _id, doc in crawler.crawl(*args, **kwargs):
-            index.replace_one({'_id': _id}, doc)
+        for doc in docs:
+            index.replace_one({'_id': doc['_id']}, doc)
 
     :param docs: The index docs to export.
-    :type docs: Iterable of index documents.
-    :param index: The database collection to export the index to.
-    :type index: :class:`pymongo.collection.Collection`"""
+    :param index: The collection to export the index to."""
     logger.info("Exporting index.")
     if hasattr(docs, 'crawl'):
         docs = docs.crawl(* args, **kwargs)
