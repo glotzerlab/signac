@@ -96,9 +96,9 @@ class BaseCrawler(object):
                     logger.debug("doc from file: '{}'.".format(
                         os.path.join(dirpath, fn)))
                     doc.setdefault(KEY_PAYLOAD, None)
-                    _id = doc.setdefault(
+                    doc.setdefault(
                         '_id', self._calculate_hash(doc, dirpath, fn))
-                    yield _id, doc
+                    yield doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
     def process(self, doc, dirpath, fn):
@@ -404,7 +404,7 @@ class MasterCrawler(BaseCrawler):
             elif self.tags is not None and len(set(self.tags)):
                 logger.info("Skipping, crawler has no defined tags.")
                 continue
-            for _id, doc in crawler.crawl():
+            for doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
                 if hasattr(crawler, 'fetch'):
@@ -533,28 +533,39 @@ def _fetch_fs(doc, mode):
         yield d
 
 
-def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
+def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
     """Optimized export function for pymongo collections.
 
-    The behaviour of this function is equivalent to:
+    The behavior of this function is equivalent to:
 
     .. code-block:: python
 
-        for _id, doc in crawler.crawl(*args, **kwargs):
-            index.replace_one({'_id': _id}, doc)
+        for doc in docs:
+            index.replace_one({'_id': doc['_id']}, doc)
 
-    :param crawler: The crawler to execute.
-    :param index: A index collection to export to.
+    .. note::
+
+        All index documents must be JSON-serializable to
+        be able to be exported to a MongoDB collection.
+
+    :param docs: The index documents to export.
+    :param index: The database collection to export the index to.
+    :type index: :class:`pymongo.collection.Collection`
     :param chunksize: The buffer size for export operations.
-    :type chunksize: int
-    :param args: Extra arguments and keyword arguments are
-                 forwarded to the crawler's crawl() method."""
+    :type chunksize: int"""
     import pymongo
     logger.info("Exporting index for pymongo.")
     operations = []
-    for _id, doc in crawler.crawl(*args, **kwargs):
-        f = {'_id': _id}
-        assert doc['_id'] == _id
+
+    # backwards compatibility hacks
+    if hasattr(docs, 'crawl'):
+        docs = docs.crawl(* args, **kwargs)
+        warnings.warn(
+            "You are using a deprecated API for export_pymongo()!",
+            DeprecationWarning)
+
+    for doc in docs:
+        f = {'_id': doc['_id']}
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(operations) >= chunksize:
             logger.debug("Pushing chunk.")
@@ -565,21 +576,23 @@ def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
         index.bulk_write(operations)
 
 
-def export(crawler, index, *args, **kwargs):
-    """Optimized export function for collections.
+def export(docs, index, *args, **kwargs):
+    """Export function for collections.
 
-    The behaviour of this function is equivalent to:
+    The behavior of this function is equivalent to:
 
     .. code-block:: python
 
-        for _id, doc in crawler.crawl(*args, **kwargs):
-            index.replace_one({'_id': _id}, doc)
+        for doc in docs:
+            index.replace_one({'_id': doc['_id']}, doc)
 
-    :param crawler: The crawler to execute.
-    :param index: A index collection to export to.
-    :param args: Extra arguments and keyword arguments are
-                 forwarded to the crawler's crawl() method."""
+    :param docs: The index docs to export.
+    :param index: The collection to export the index to."""
     logger.info("Exporting index.")
-    for _id, doc in crawler.crawl(*args, **kwargs):
-        f = {'_id': _id}
+    if hasattr(docs, 'crawl'):
+        docs = docs.crawl(* args, **kwargs)
+        warnings.warn(
+            "You are using a deprecated API of export()!")
+    for doc in docs:
+        f = {'_id': doc['_id']}
         index.replace_one(f, doc)

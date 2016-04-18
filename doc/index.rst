@@ -16,6 +16,9 @@ Contents
     :ref:`overview`
       An illustration of **signac**'s workflow and data model.
 
+    :ref:`tutorial`
+      Compact demonstration of the implementation of a computational workflow.
+
     :ref:`guide`
       A complete introduction to the framework's major components.
 
@@ -35,6 +38,7 @@ Contents
    :maxdepth: 3
 
    overview
+   tutorial
    guide
    reference
    signac

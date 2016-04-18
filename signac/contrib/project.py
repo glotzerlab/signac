@@ -9,6 +9,8 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
+from .crawler import SignacProjectCrawler
+from .crawler import MasterCrawler
 
 if six.PY2:
     from collections import Mapping
@@ -19,6 +21,29 @@ logger = logging.getLogger(__name__)
 
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
+
+ACCESS_MODULE_TEMPLATE = """#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import os
+
+from signac.contrib.crawler import SignacProjectCrawler
+{imports}
+
+
+class {crawlername}(SignacProjectCrawler):
+    pass
+{definitions}
+
+
+def get_crawlers(root):
+    return {{'main': {crawlername}(os.path.join(root, '{wd}'))}}
+"""
+
+ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
+    master_crawler = MasterCrawler('.')
+    for doc in master_crawler.crawl(depth={depth}):
+        print(doc)
+"""
 
 
 class Project(object):
@@ -159,6 +184,29 @@ class Project(object):
                 logger.critical(msg)
                 if not skip_errors:
                     raise error
+
+    def find_variable_parameters(self, statepoints=None):
+        """Find all parameters which vary over the data space.
+
+        This function attempts to detect all parameters, which vary
+        over the parameter space.
+        The parameter sets are ordered decreasingly
+        by data sub space size.
+
+        .. warning::
+
+            This function does not detect linear dependencies
+            within the state points. Linear dependencies should
+            generally be avoided.
+
+        :param statepoints: The statepoints to consider.
+            Defaults to all state points within the data space.
+        :type statepoints: Iterable of parameter mappings.
+        :return: A hierarchical list of variable parameters.
+        :rtype: list"""
+        if statepoints is None:
+            statepoints = self.find_statepoints()
+        return list(_find_unique_keys(statepoints))
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -427,6 +475,96 @@ class Project(object):
                     raise
                 else:
                     logger.info("Successfully recovered state point.")
+
+    def index(self, formats=None, depth=0):
+        """Generate an index of the project's workspace.
+
+        This generator function indexes every file in the project's
+        workspace until the specified `depth`.
+        The job document if it exists, is always indexed, other
+        files need to be specified with the formats argument.
+
+        .. code::
+
+            for doc in project.index('.*\.txt', TextFile):
+                print(doc)
+
+        :param formats: The format definitions as mapping.
+        :type formats: dict
+        :param depth: Specifies the crawling depth.
+            A value of 0 (default) means no limit.
+        :type depth: int
+        :yields: index documents"""
+        class Crawler(SignacProjectCrawler):
+            pass
+
+        if formats is not None:
+            for expr, fmt in formats.items():
+                Crawler.define(expr, fmt)
+
+        crawler = Crawler(self.workspace())
+        for doc in crawler.crawl(depth=depth):
+            yield doc
+
+    def create_access_module(self, formats=None, crawlername=None,
+                             filename=None, master=True, depth=1):
+        """Create the access module for indexing
+
+        This function generates the acess module containing indexing
+        directives for master crawlers.
+
+        :param formats: The format definitions as mapping.
+        :type formats: dict
+        :param crawlername: Specify a name for the crawler class.
+            Defaults to a name based on the project's name.
+        :type crawlername: str
+        :param filename: The name of the access module file.
+            Defaults to the standard name and should ususally
+            not be changed.
+        :type filename: str
+        :param master: If True, will add master crawler execution
+            commands to the bottom of the file.
+        :type master: bool
+        :param depth: Specifies the depth of the master crawler
+            definitions (if `master` is True). Defaults to 1 to
+            reduce the crawling depth of the master crawler.
+            A value of 0 means no limit.
+        :type depth: int"""
+        if crawlername is None:
+            crawlername = str(self) + 'Crawler'
+        if filename is None:
+            filename = os.path.join(
+                self.root_directory(),
+                MasterCrawler.FN_ACCESS_MODULE)
+        workspace = os.path.relpath(self.workspace(), self.root_directory())
+
+        imports = set()
+        if formats is None:
+            definitions = ''
+        else:
+            dl = "{}.define('{}', {})"
+            defs = list()
+            for expr, fmt in formats.items():
+                defs.append(dl.format(crawlername, expr, fmt.__name__))
+                imports.add(
+                    'from {} import {}'.format(fmt.__module__, fmt.__name__))
+            definitions = '\n'.join(defs)
+        if master:
+            imports.add('from signac.contrib.crawler import MasterCrawler')
+        imports = '\n'.join(imports)
+
+        module = ACCESS_MODULE_TEMPLATE.format(
+            crawlername=crawlername,
+            imports=imports,
+            definitions=definitions,
+            wd=workspace)
+        if master:
+            module += '\n\n' + ACCESS_MODULE_MC_TEMPLATE.format(
+                depth=depth)
+
+        with open(filename, 'wx' if six.PY2 else 'x') as file:
+            file.write(module)
+        logger.info("Created access module file '{}'.".format(filename))
 
 
 def _move_job(src, dst):

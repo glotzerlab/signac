@@ -34,7 +34,6 @@ Open a job
     /path/to/workspace/9bfd29df07674bc4aa960cf661b5acd2
 
 
-
 Access a database
 -----------------
 
@@ -58,29 +57,21 @@ Example for a collection named *index*:
 Index project data
 ------------------
 
-1. Create a ``signac_access.py`` module:
+1. Use the :py:meth:`~signac.contrib.project.Project.index` method:
 
-  .. code-block:: python
+    .. code-block:: python
 
-    # signac_access.py
-    import os
+        for doc in project.index():
+            print(doc)
 
-    import signac
-    from signac.contrib.formats import TextFile
+2. Export the index to a database collection:
 
-    class MyCrawler(signac.contrib.SignacProjectCrawler):
-        pass
-    MyCrawler.define('.*\.txt', TextFile)
+    .. code-block:: python
 
-    def get_crawlers(root):
-        return {'main': MyCrawler(os.path.join(root, 'path/to/workspace'))}
+        db = signac.get_database('mydb')
+        signac.contrib.export(project.index(), db.index)  # or export_pymongo()
 
-2. Export the index using a :py:class:`~signac.contrib.MasterCrawler`:
-
-  .. code-block:: python
-
-      master_crawler = signac.contrib.MasterCrawler('/path/to/projects/')
-      signac.contrib.export_pymongo(master_crawler, db.index, depth=1)
+3. Create a ``signac_access.py`` module with the :py:meth:`~signac.contrib.project.Project.create_access_module` method (or :ref:`manually <signac-access>`)  to expose the index to a :py:class:`~signac.contrib.crawler.MasterCrawler`.
 
 Access data using an index
 --------------------------

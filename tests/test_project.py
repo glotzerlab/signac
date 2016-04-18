@@ -6,6 +6,7 @@ import logging
 
 import signac
 from signac.common import six
+from signac.contrib.formats import TextFile
 
 from test_job import BaseJobTest
 
@@ -117,6 +118,34 @@ class ProjectTest(BaseProjectTest):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_find_variable_parameters(self):
+        # Test for highly heterogenous parameter space
+        sp_0 = [{'a': i, 'b': 0} for i in range(5)]
+        sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0),
+            [['a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_1),
+            [['a'], ['c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_1),
+            [['a'], ['c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_1 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        self.assertEqual(
+            self.project.find_variable_parameters(sp_0 + sp_1 + sp_2),
+            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+
     def test_create_view(self):
         # Test for highly heterogenous parameter space
         sp_0 = [{'a': i, 'b': 0} for i in range(5)]
@@ -194,6 +223,23 @@ class ProjectTest(BaseProjectTest):
                 pass
         finally:
             logging.disable(logging.NOTSET)
+
+    def test_index(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        job_ids = set((job.get_id() for job in self.project.find_jobs()))
+        docs = list(self.project.index())
+        job_ids_cmp = set((doc['_id'] for doc in docs))
+        self.assertEqual(job_ids, job_ids_cmp)
+        self.assertEqual(len(docs), len(statepoints))
+        for sp in statepoints:
+            with self.project.open_job(sp):
+                with open('test.txt', 'w'):
+                    pass
+        docs = list(self.project.index({'.*/test.txt': TextFile}))
+        self.assertEqual(len(docs), 2 * len(statepoints))
+        self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
 
 if __name__ == '__main__':
