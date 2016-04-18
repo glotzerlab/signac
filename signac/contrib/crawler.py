@@ -96,9 +96,9 @@ class BaseCrawler(object):
                     logger.debug("doc from file: '{}'.".format(
                         os.path.join(dirpath, fn)))
                     doc.setdefault(KEY_PAYLOAD, None)
-                    _id = doc.setdefault(
+                    doc.setdefault(
                         '_id', self._calculate_hash(doc, dirpath, fn))
-                    yield _id, doc
+                    yield doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
     def process(self, doc, dirpath, fn):
@@ -404,7 +404,7 @@ class MasterCrawler(BaseCrawler):
             elif self.tags is not None and len(set(self.tags)):
                 logger.info("Skipping, crawler has no defined tags.")
                 continue
-            for _id, doc in crawler.crawl():
+            for doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
                 if hasattr(crawler, 'fetch'):
@@ -533,7 +533,8 @@ def _fetch_fs(doc, mode):
         yield d
 
 
-def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
+def export_pymongo(docs, index, chunksize=1000,
+                   crawler=None, *args, **kwargs):
     """Optimized export function for pymongo collections.
 
     The behaviour of this function is equivalent to:
@@ -543,18 +544,27 @@ def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
         for _id, doc in crawler.crawl(*args, **kwargs):
             index.replace_one({'_id': _id}, doc)
 
-    :param crawler: The crawler to execute.
-    :param index: A index collection to export to.
+    :param docs: The index documents to export.
+    :type docs: Iterable of index documents.
+    :param index: The database collection to export the index to.
+    :type index: :class:`pymongo.collection.Collection`
     :param chunksize: The buffer size for export operations.
-    :type chunksize: int
-    :param args: Extra arguments and keyword arguments are
-                 forwarded to the crawler's crawl() method."""
+    :type chunksize: int"""
     import pymongo
     logger.info("Exporting index for pymongo.")
     operations = []
-    for _id, doc in crawler.crawl(*args, **kwargs):
-        f = {'_id': _id}
-        assert doc['_id'] == _id
+
+    # backwards compatibility hacks
+    if crawler is not None:
+        raise ValueError(
+            "You are using a deprecated API for export_pymongo()!")
+    if hasattr(docs, 'crawl'):
+        docs = docs.crawl(* args, **kwargs)
+        warnings.warn(
+            "You are using a deprecated API for export_pymongo()!",
+            DeprecationWarning)
+    for doc in docs:
+        f = {'_id': doc['_id']}
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(operations) >= chunksize:
             logger.debug("Pushing chunk.")
@@ -565,7 +575,7 @@ def export_pymongo(crawler, index, chunksize=1000, *args, **kwargs):
         index.bulk_write(operations)
 
 
-def export(crawler, index, *args, **kwargs):
+def export(docs, index, *args, **kwargs):
     """Optimized export function for collections.
 
     The behaviour of this function is equivalent to:
@@ -575,11 +585,15 @@ def export(crawler, index, *args, **kwargs):
         for _id, doc in crawler.crawl(*args, **kwargs):
             index.replace_one({'_id': _id}, doc)
 
-    :param crawler: The crawler to execute.
-    :param index: A index collection to export to.
-    :param args: Extra arguments and keyword arguments are
-                 forwarded to the crawler's crawl() method."""
+    :param docs: The index docs to export.
+    :type docs: Iterable of index documents.
+    :param index: The database collection to export the index to.
+    :type index: :class:`pymongo.collection.Collection`"""
     logger.info("Exporting index.")
-    for _id, doc in crawler.crawl(*args, **kwargs):
-        f = {'_id': _id}
+    if hasattr(docs, 'crawl'):
+        docs = docs.crawl(* args, **kwargs)
+        warnings.warn(
+            "You are using a deprecated API of export()!")
+    for doc in docs:
+        f = {'_id': doc['_id']}
         index.replace_one(f, doc)
