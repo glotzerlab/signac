@@ -540,7 +540,7 @@ class Project(object):
 
         imports = set()
         if formats is None:
-            definitions=''
+            definitions = ''
         else:
             dl = "{}.define('{}', {})"
             defs = list()
