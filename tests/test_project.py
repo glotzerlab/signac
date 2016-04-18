@@ -230,7 +230,7 @@ class ProjectTest(BaseProjectTest):
             self.project.open_job(sp).document['test'] = True
         job_ids = set((job.get_id() for job in self.project.find_jobs()))
         docs = list(self.project.index())
-        job_ids_cmp = set((_id for _id, doc in docs))
+        job_ids_cmp = set((doc['_id'] for doc in docs))
         self.assertEqual(job_ids, job_ids_cmp)
         self.assertEqual(len(docs), len(statepoints))
         for sp in statepoints:
@@ -239,7 +239,7 @@ class ProjectTest(BaseProjectTest):
                     pass
         docs = list(self.project.index({'.*/test.txt': TextFile}))
         self.assertEqual(len(docs), 2 * len(statepoints))
-        self.assertEqual(len(set((_id for _id, _ in docs))), len(docs))
+        self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
 
 if __name__ == '__main__':
