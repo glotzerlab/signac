@@ -4,30 +4,50 @@
 Tutorial
 ========
 
+.. sidebar:: Requirementes
+
+    The tutorial assumes a basic proficiency in python and will take about 20 to 30 minutes to complete.
+
 This tutorial demonstrates how to implement a basic computational workflow with signac.
-We will conduct a simple computational investigation using the ideal gas law.
-While using signac for this study is absolute overkill it will help us to learn the basics for more involved future studies.
-
-The tutorial assumes a basic proficiency in python and will take about 20 to 30 minutes to complete.
-
-Basics
-======
-
-Prerequisites
--------------
-
-This tutorial requires signac, so make sure to install the package before starting.
 The signac framework assists us in conducting a computational investigation by managing the data space for us.
 This means that we do not need to worry about how to organize our data on disk and how to keep track of meta data.
 
-In case we have not done this yet, we first need to install signac.
-The easiest way to dos is using conda:
+We will conduct a simple computational investigation using the ideal gas law.
+
+Prerequisites
+=============
+
+Installation
+------------
+
+This tutorial requires signac, so make sure to install the package before starting.
+The easiest way to do so is using conda:
 
 .. code-block:: bash
 
     $ conda install signac
 
 Alternative installation methods are described :ref:`here <installation>`.
+After successful installation we should be able to open a python shell and import the signac package without error:
+
+.. code-block:: bash
+
+    $ python
+    >>> import signac
+    >>>
+
+Executing ``signac`` on the command line should prompt something like:
+
+.. code-block:: bash
+
+    $ signac
+    usage: signac [-h] [--debug] [--version] {project,job,init} ...
+
+.. note::
+
+    In some cases the installation routine fails to place the ``signac`` executable on the correct path.
+    In this case you may need to adjust your ``PATH`` configuration manually.
+    Howver, this is not required to complete this tutorial.
 
 Project Setup
 -------------
@@ -42,43 +62,86 @@ You can create the directory anywhere, for example in your home directory.
     $ signac init IdealGasProject
     Initialized project 'IdealGasProject'.
 
-This creates a config file ``signac.rc`` within our project root directory.
-Executing ``signac project`` on the command line anywhere within our project directory returns the name of the configured project:
+This creates a config file ``signac.rc`` within our project root directory with the following content:
 
 .. code-block:: bash
 
-    $ signac project
-    IdealGasProject
+    project=IdealGasProject
+
+Alternatively you can create the config file manually with ``$ echo "project=IdealGasProject" > signac.rc``.
 
 The project is the interface to our data space.
-We can either interact with it on the command line like we just did or use the python interface:
+We can either interact with it on the command line or use the python interface:
 
 .. code-block:: python
 
     >>> import signac
-    >>>
     >>> project = signac.get_project()
     >>> print(project)
     IdealGasProject
 
-Data space initialization
--------------------------
+The minimal Example
+===================
 
 For this tutorial we want to compute the volume of an ideal gas as a function of its pressure and temperature.
-Before we can compute anything we need to initialize our parameter space.
-The parameter space needs to span all parameters that will affect our data.
-For the ideal gas that is a 3-dimensional space spanned by the temperature *T*, the pressure *p* and the system size *N*.
 
-To initialize the parameter space we will iterate over the variable and create a statepoint.
+.. math::
+
+    p V = N k_B T
+
+We will set :math:`k_B=1` and execute the complete study in **7 lines** of code:
 
 .. code-block:: python
 
-    for pressure in 0.1, 1.0, 10.0:
-        statepoint = {'p': pressure, 'T': 1.0, 'N': 1000}
+    0. # minimal.py
+    1. import signac
+    2. project = signac.get_project()
+    3. for p in 0.1, 1.0, 10.0:
+    4.    sp = {'p': p, 'T': 10.0, 'N': 10}
+    5.    with project.open_job(sp) as job:
+    6.        if 'V' not in job.document:
+    7.            job.document['V'] = sp['N'] * sp['T'] / sp['p']
 
-This statepoint represents a unique set of parameters that we want to associate with data.
+1. Import the ``signac`` package.
+2. Obtain a handle for the configured project.
+3. Iterate over the variable of interest and
+4. specify a complete state point.
+5. Obtain a ``job`` handle, which associates the state point with our data.
+6. Only if the result is not available,
+7. compute the result and store it in the *job document*.
+
+We can then examine our results by iterating over the data space:
+
+.. code-block:: python
+
+    >>> for job in project.find_jobs():
+    ...     print(job.statepoint()['p'], job.document['V'])
+    ...
+    0.1 10000.0
+    1.0 1000.0
+    10.0 100.0
+
+This concludes the minimal example.
+In the next section we will assume that the ideal gas computation represents a more expensive computation.
+We will also take a closer look at the individual components and learn how to operate with files.
+
+The Basics
+==========
+
+Data space initialization
+-------------------------
+
+In the minimal example we initialized the data space *implicitely*.
+Let's have a look how we can initialize it *explicitely*.
+In general, the data space needs to contain all parameters that will affect our data.
+For the ideal gas that is a 3-dimensional space spanned by the temperature *T*, the pressure *p* and the system size *N*.
+
+Each state point represents a unique set of parameters that we want to associate with data.
 In terms of signac this relationship is represented by a :py:class:`~signac.contrib.job.Job`.
-Let's initialize all jobs for our study in a script called ``init.py``:
+
+If you ran the minimal example before, you should now remove any previous results with ``$ rm -r workspace``.
+
+Let's define our initialization routine in a script called ``init.py``:
 
 .. code-block:: python
 
@@ -90,31 +153,31 @@ Let's initialize all jobs for our study in a script called ``init.py``:
         statepoint = {'p': pressure, 'T': 1.0, 'N': 1000}
         job = project.open_job(statepoint)
         job.init()
-        print('initialized', job)
+        print(job, 'initialized')
 
 We can now initialize the workspace with:
 
 .. code-block:: bash
 
     $ python init.py
-    initialized 3daa7dc28de43a2ff132a4b48c6abe0e
-    initialized 9e100da58ccdf6ad7941fce7d14deeb5
-    initialized 07dc3f53615713900208803484b87253
+    3daa7dc28de43a2ff132a4b48c6abe0e initialized
+    9e100da58ccdf6ad7941fce7d14deeb5 initialized
+    07dc3f53615713900208803484b87253 initialized
 
-The output shows the job ids associated with each statepoint.
-The *job id* is a unique identifier representing the statepoint.
+The output shows the job ids associated with each state point.
+The *job id* is a unique identifier representing the state point.
 Typical computational studies require vastly more parameters than the three we need for the ideal gas computation.
-Especially in those cases the *job id* is a much more compact representation of the whole statepoint.
+Especially in those cases the *job id* is a much more compact representation of the whole state point.
 
-As we did not explicitely specify the location of our project's *workspace* it defaulted to 'ideal_gas_project/workspace'.
-The project's workspace has been populated with directories for each statepoint:
+As we did not explicitely specify the location of our project's *workspace* it defaulted to ``ideal_gas_project/workspace``.
+The project's workspace has been populated with directories for each state point:
 
 .. code-block:: bash
 
    $ ls workspace/
    07dc3f53615713900208803484b87253        3daa7dc28de43a2ff132a4b48c6abe0e        9e100da58ccdf6ad7941fce7d14deeb5
 
-We could execute the initialization script multiple times to add more statepoints, already existing jobs will be ignored.
+We could execute the initialization script multiple times to add more state points, already existing jobs will be ignored.
 
 Computing results
 -----------------
@@ -140,12 +203,12 @@ For this we define two functions inside a ``run.py`` script:
             print(job, 'computed volume')
 
 The ``calc_volume()`` function returns the volume of an ideal gas with a system size *N*, temperature *T* and pressure *p*.
-The ``compute_volume()`` function retrieves the statepoint from the job argument and stores the result of the ideal gas law calculation in a file called ``V.txt``.
+The ``compute_volume()`` function retrieves the state point from the job argument and stores the result of the ideal gas law calculation in a file called ``V.txt``.
 The ``with job:`` clause utilizes the ``job`` handle as a context manager.
 It means that all commands below it are executed within the job's workspace directory.
 This is good practice, because it means that files are being put into the right location.
 
-We split this computation into two distinct function to highlight the concept of *operations*.
+We split the computation into two distinct function to highlight the concept of *operations*.
 The ``calc_volume`` function is a pure function with no side-effects, it returns the volume of an ideal gas for a set of input arguments.
 In contrast, the ``compute_volume()`` function *modifies* or *operates* on the data space.
 Because of this, we call such a function an *operation*.
@@ -215,7 +278,7 @@ Let's examine the results of our computation, by adding an ``examine.py`` script
         V = get_volume(job)
         print('{:04.1f} {}'.format(p, V))
 
-We use the ``job.fn()`` function to prepend our filename with the associated workspace path.
+We use the :py:meth:`~signac.contrib.job.Job.fn` function to prepend our filename with the associated workspace path.
 Executing this script will print the results to screen:
 
 .. code-block:: bash
@@ -229,13 +292,51 @@ Executing this script will print the results to screen:
 We see that increasing the pressure reduces the volume linearly, exactly what we expect from an ideal gas.
 Ordering the output if necessary and/or plotting it is left as an exercise to the reader.
 
-Streamlining the workflow
-=========================
+The job document
+----------------
+
+So far we have stored the results of our computation in a file.
+This is a very viable option, however in this case, as shown in the minimal example, we could also use the *job document*.
+The *job document* is a JSON dictionary associated with each job designed to store lightweight data.
+
+To use the job document instead of a file, we need to modify our operation function:
+
+.. code-block:: python
+
+    def compute_volume(job):
+        sp = job.statepoint()
+        with job:
+            V = calc_volume(sp['N'], sp['T'], sp['N'])
+            job.document['V'] = V
+            print(job, 'computed volume')
+
+Technically using the ``with job:`` clause is not necessary in this case, but we'll keep it in there for good measure.
+
+We can also get rid of the ``get_volume()`` function and retrieve the value directly:
+
+.. code-block:: python
+
+    # examine.py
+    import signac
+    print('p    V')
+    for job in project.find_jobs():
+        p = job.statepoint()['p']
+        V = job.document['V']
+        print('{:04.1f} {}'.format(p, V))
+
+If we wanted to make our result display less prone to missing values, we could write ``V = job.document.get('V')`` instead, which will return ``None`` or any other value specified by an optional second argument, in case that the value is missing.
+
+That's it.
+We successfully created a well-defined data space for our ideal gas computer experiment.
+In the next section we will complete our workflow to make it more flexible.
+
+A complete Workflow
+===================
 
 Classification
 --------------
 
-Let's imagine we are still not convinced of the relationship that we just "discovered" and want to add a few more statepoints.
+Let's imagine we are still not convinced of the relationship that we just "discovered" and want to add a few more state points.
 We can do so by modifying the ``init.py`` script:
 
 .. code-block:: python
@@ -251,20 +352,29 @@ We can do so by modifying the ``init.py`` script:
         job.init()
         print(job, 'initialized')
 
-Running ``$ python init.py`` again will initialize a few more statepoint, but now we have a problem.
-If we were not using the ideal gas law, but a more complicated simulation we would want to skip all statepoints that have already been computed.
+Running ``$ python init.py`` again will initialize a few more state points, but now we have a problem.
+If we were not using the ideal gas law, but a more expensive simulation we would want to skip all state points that have already been computed.
 
 One way is to add a simple check to our ``run.py`` script:
+
 
 .. code-block:: python
 
       for job in project.find_jobs():
-          if job.isfile('V.txt'):
-              continue
-          else:
+          if 'V' not in job.document:
               compute_volume(job)
 
-It would be even better if we could get an overview of which statepoints have been computed and which not.
+.. tip::
+
+      Use :py:meth:`~signac.contrib.job.Job.isfile` to implement the same check for the file solution:
+
+      .. code-block:: python
+
+          for job in project.find_jobs():
+              if job.isfile('V.txt'):
+                  compute_volume(job)
+
+It would be even better if we could get an overview of which state points have been computed and which not.
 We call this a project's *status*.
 
 For this purpose we classify each *job* based on certain conditions.
@@ -274,10 +384,10 @@ We label our *jobs* based on certain conditions with a ``classify()`` generator 
 
       def classify(job):
           yield 'init'
-          if job.isfile('V.txt'):
+          if 'V' in job.document:
               yield 'volume-computed'
 
-Our classifier will always yield the ``init`` label, but the ``volume-computed`` label is only yielded if the result file exists.
+Our classifier will always yield the ``init`` label, but the ``volume-computed`` label is only yielded if the result has already been computed.
 We can then embed this function in a ``project.py`` script to view our project's status:
 
 .. code-block:: python
@@ -287,7 +397,7 @@ We can then embed this function in a ``project.py`` script to view our project's
 
     def classify(job):
         yield 'init'
-        if job.isfile('V.txt'):
+        if 'V' in job.document:
             yield 'volume-computed'
 
     if __name__ == '__main__':
@@ -299,7 +409,7 @@ We can then embed this function in a ``project.py`` script to view our project's
             p = '{:04.1f}'.format(job.statepoint()['p'])
             print(job, p, labels)
 
-Executing this script should show us that the statepoints that we initialized earlier have been evaluated, but the new ones have not:
+Executing this script should show us that the state points that we initialized earlier have been evaluated, but the new ones have not:
 
 .. code-block:: bash
 
@@ -316,7 +426,7 @@ Executing this script should show us that the statepoints that we initialized ea
     9e100da58ccdf6ad7941fce7d14deeb5 01.0 init,volume-computed
     b0dd91c4755b81b47becf83e6fb22413 02.3 init
 
-We can use the classification to control execution in ``run.py``:
+We can use the classification to control the execution in ``run.py``:
 
 .. code-block:: python
 
@@ -330,7 +440,7 @@ We can use the classification to control execution in ``run.py``:
         if 'volume-computed' not in classify(job):
             compute_volume(job)
 
-This ensures that we only execute ``compute_volume()`` for the 8 new statepoints:
+This ensures that we only execute ``compute_volume()`` for the 8 new state points:
 
 .. code-block:: bash
 
@@ -363,8 +473,7 @@ We move the ``calc_volume()`` and ``compute_volume()`` functions into an ``opera
         sp = job.statepoint()
         with job:
             V = calc_volume(sp['N'], sp['T'], sp['p'])
-            with open('V.txt', 'w') as file:
-                file.write(str(V)+'\n')
+            job.document['V'] = V
             print(job, 'computed volume')
 
 We then determine the next operation explicitly by adding a ``next_operation()`` function in the ``project.py`` module:
@@ -379,7 +488,7 @@ We then determine the next operation explicitly by adding a ``next_operation()``
         if 'volume-computed' not in classify(job):
             return 'compute_volume'
 
-And use it for execution in the ``run.py`` script:
+And use its result to control the execution in the ``run.py`` script:
 
 .. code-block:: python
 
@@ -419,50 +528,16 @@ We created the following layout:
   * ``run.py``: Execution of said operations.
   * ``examine.py``: Aggregates and prints results to screen.
 
-What's left
-===========
 
-The job document
-----------------
+.. tip::
 
-So far we have stored the results of our computation in a file.
-This is a very viable option, however in this case we could also use the *job document*.
-The *job document* is a JSON dictionary associated with each job designed to store lightweight data.
+    **Don't hesitate to implement lightweight operations directly!**
 
-To use the job document instead of a file, we need to modify our operation function:
+    The minimal example implements almost **the complete workflow in 7 lines** of code.
 
-.. code-block:: python
 
-    def compute_volume(job):
-        sp = job.statepoint()
-        with job:
-            V = calc_volume(sp['N'], sp['T'], sp['N'])
-            job.document['V'] = V
-            print(job, 'computed volume')
-
-Technically using the ``with job:`` clause is not necessary in this case, but we'll keep it in there for good measure.
-Now we need to modify our classification function:
-
-.. code-block:: python
-
-    def classify(job):
-        yield 'init'
-        if 'V' in job.document:
-            yield 'volume-computed'
-
-Finally, we get rid of the ``get_volume()`` function and retrieve the value directly:
-
-.. code-block:: python
-
-    # examine.py
-    import signac
-    print('p    V')
-    for job in project.find_jobs():
-        p = job.statepoint()['p']
-        V = job.document['V']
-        print('{:04.1f} {}'.format(p, V))
-
-If we wanted to make our result display less prone to missing values, we could use ``V = job.document.get('V')`` instead, which will return ``None`` or any other value specified by an optional second argument, in case that the value is missing.
+Views and Indexing
+==================
 
 Views
 -----
@@ -511,8 +586,8 @@ Let's create a ``index.py`` script:
     import signac
 
     project = signac.get_project()
-    for _id, doc in project.index():
-        print(_id, doc)
+    for doc in project.index():
+        print(doc)
 
 If we used the *job document* for data storage this will immediately create an index of our data:
 
@@ -536,8 +611,8 @@ We will specify that in addition to the *job documents* all files named ``V.txt`
     from signac.contrib.formats import TextFormat
 
     project = signac.get_project()
-    for _id, doc in project.index({'.*/V.txt': TextFormat):
-        print(_id, doc)
+    for doc in project.index({'.*/V.txt': TextFormat):
+        print(doc)
 
 The regular expression ``.*/V\.txt`` specifies that all file ending in ``V.txt`` are to be indexed, that would include sub-directories!
 
@@ -556,5 +631,48 @@ If we :ref:`configured <configuration>` a MongoDB database we can export the ind
     import signac
 
     project = signac.get_project()
-    db = signac.get_db('mydb')
+    db = signac.get_database('mydb')
     signac.contrib.export_pymongo(project.index(), db.index)
+
+To expose the project to a :py:class:`~signac.contrib.crawler.MasterCrawler` we need to create an :ref:`access module <signac-access>`.
+For signac projects this is simplified by using the :py:meth:`~signac.contrib.project.Project.create_access_module` method:
+
+.. code-block:: python
+
+    project.create_access_module()  # or
+    project.create_access_module({'.*/V.txt': TextFormat})  # respectively
+
+This will create a ``signac_access.py`` module in the project's root directory, which will look like this:
+
+.. code-block:: bash
+
+    #!/usr/bin/env python
+    # -*- coding: utf-8 -*-
+    import os
+
+    from signac.contrib.crawler import SignacProjectCrawler
+    from signac.contrib.crawler import MasterCrawler
+
+
+    class IdealGasProjectCrawler(SignacProjectCrawler):
+        pass
+
+
+    def get_crawlers(root):
+        return {'main': IdealGasProjectCrawler(os.path.join(root, 'workspace'))}
+
+
+    if __name__ == '__main__':
+        master_crawler = MasterCrawler('.')
+        for doc in master_crawler.crawl(depth=1):
+            print(doc)
+
+Executing the access module will print the index to screen.
+You can easily change this default behavior, for example by replacing the last two lines with an export to a database as shown earlier.
+
+Further reading
+===============
+
+This concludes this tutorial.
+To learn more about the individual components, check out the :ref:`guide` or inspect the :ref:`api` documentation.
+A quick overview of the most important components are provided in the :ref:`quickreference`.
