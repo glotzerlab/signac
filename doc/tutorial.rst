@@ -640,28 +640,13 @@ We will specify that in addition to the *job documents* all files named ``V.txt`
     from signac.contrib.formats import TextFormat
 
     project = signac.get_project()
-    for doc in project.index({'.*/V.txt': TextFormat):
+    for doc in project.index({'.*/V\.txt': TextFormat):
         print(doc)
 
 The regular expression ``.*/V\.txt`` specifies that all files ending in ``V.txt`` are to be indexed, that would include sub-directories!
 
-Database Integration
---------------------
-
-The index created in the previous section can now be used for advanced data querying and manipulation.
-You can export the index into any tool of your choice.
-For convenience, signac provides export routines for MongoDB database collections.
-
-If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
-
-.. code-block:: python
-
-    # index.py
-    import signac
-
-    project = signac.get_project()
-    db = signac.get_database('mydb')
-    signac.contrib.export_pymongo(project.index(), db.index)
+Using a master crawler
+----------------------
 
 To expose the project to a :py:class:`~signac.contrib.crawler.MasterCrawler` we need to create an :ref:`access module <signac-access>`.
 For signac projects this is simplified by using the :py:meth:`~signac.contrib.project.Project.create_access_module` method:
@@ -696,8 +681,85 @@ This will create a ``signac_access.py`` module in the project's root directory, 
         for doc in master_crawler.crawl(depth=1):
             print(doc)
 
+The ``signac_access.py`` script defines a specific crawler for this project, which can be further specialized.
+A master crawler will search for this script and then execute all crawlers defined in the ``get_crawlers()`` function.
+In this way you can control what data is exposed to a master crawler.
+
 Executing the access module will print the index to screen.
-You can easily change this default behavior, for example by replacing the last two lines with an export to a database as shown earlier.
+You can easily change this default behavior, for example by replacing the last two lines with an export to a database as shown in the last section.
+
+Fetch data via index
+--------------------
+
+Data, which was indexed with a :py:class:`~signac.contrib.crawler.MasterCrawler` can be seamlessly fetched using the signac :py:func:`~signac.fetch` and :py:func:`~signac.fetch_one` functions.
+Let's test this!
+
+First, we make a minor modification to the ``signac_access.py`` file:
+
+.. code-block:: python
+
+    # signac_acess.py
+    # ...
+
+    if __name__ == '__main__':
+        import json  # <-- import the json module
+        master_crawler = MasterCrawler('.')
+        for doc in master_crawler.crawl(depth=1)
+            print(json.dumps(doc))  # <-- print docs in json format
+
+In this way we can dump the index in JSON format into a file:
+
+.. code-block:: bash
+
+    $ python signac_access.py > index.txt
+
+The ``index.txt`` file now contains the index.
+Next, we implememt a ``fetch.py`` script:
+
+.. code-block:: python
+
+    # fetch.py
+    import json
+    import signac
+
+    with open('index.txt') as file:
+        for line in file:
+            doc = json.loads(line)
+            file = signac.fetch_one(doc)
+            V = float(file.read())
+            print(doc['statepoint'], V)
+
+We open the file containing the index, iterate through the individual lines and interpret them as JSON data.
+These are the individual index documents corresponding to our data, stored in the ``doc`` variable.
+The index document contains the information that the :py:func:`~signac.fetch_one` function utilizes to open the corresponding file.
+We can then read from the file and print the result to screen:
+
+.. code-block:: bash
+
+    $ python fetch.py
+    {'p': 10.0, 'N': 1000, 'T': 1.0} 100.0
+    {'p': 4.5, 'N': 1000, 'T': 1.0} 222.22222222222223
+    {'p': 7.800000000000001, 'N': 1000, 'T': 1.0} 128.2051282051282
+    # ...
+
+Database Integration
+--------------------
+
+The index created in the previous section can now be used for advanced data querying and manipulation.
+You can export the index into any tool of your choice.
+For convenience, signac provides export routines for MongoDB database collections.
+
+If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
+
+.. code-block:: python
+
+    # index.py
+    import signac
+
+    project = signac.get_project()
+    db = signac.get_database('mydb')
+    signac.contrib.export_pymongo(project.index(), db.index)
+
 
 Further reading
 ===============

@@ -17,6 +17,7 @@ def get_crawlers(root):
 
 
 if __name__ == '__main__':
+    import json
     master_crawler = MasterCrawler('.')
     for doc in master_crawler.crawl(depth=1):
-        print(doc)
+        print(json.dumps(doc))
