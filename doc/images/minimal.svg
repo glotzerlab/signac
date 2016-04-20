@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="demo.svg"
+   width="358.98242"
+   height="204.29395">
+  <metadata
+     id="metadata138">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs136" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1361"
+     inkscape:window-height="809"
+     id="namedview134"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="2.36"
+     inkscape:cx="50"
+     inkscape:cy="156.91211"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <g
+     font-size="14px"
+     id="g4"
+     style="font-size:14px;font-family:monospace"
+     transform="translate(0,-2.6181641)">
+    <text
+       x="0"
+       y="14"
+       xml:space="preserve"
+       id="text6"><tspan
+   font-weight="bold"
+   id="tspan8"
+   style="font-weight:bold;fill:#008000">import</tspan> <tspan
+   font-weight="bold"
+   id="tspan10"
+   style="font-weight:bold;fill:#0000ff">signac</tspan></text>
+    <text
+       x="0"
+       y="33"
+       xml:space="preserve"
+       id="text12">project <tspan
+   id="tspan14"
+   style="fill:#666666">=</tspan> signac<tspan
+   id="tspan16"
+   style="fill:#666666">.</tspan>get_project()</text>
+    <text
+       x="0"
+       y="52"
+       xml:space="preserve"
+       id="text18"><tspan
+   font-weight="bold"
+   id="tspan20"
+   style="font-weight:bold;fill:#008000">for</tspan> p <tspan
+   font-weight="bold"
+   id="tspan22"
+   style="font-weight:bold;fill:#aa22ff">in</tspan> <tspan
+   id="tspan24"
+   style="fill:#666666">0.1</tspan>, <tspan
+   id="tspan26"
+   style="fill:#666666">1.0</tspan>, <tspan
+   id="tspan28"
+   style="fill:#666666">10.0</tspan>:</text>
+    <text
+       x="0"
+       y="71"
+       xml:space="preserve"
+       id="text30">    sp <tspan
+   id="tspan32"
+   style="fill:#666666">=</tspan> {<tspan
+   id="tspan34"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan36"
+   style="fill:#ba2121">p</tspan><tspan
+   id="tspan38"
+   style="fill:#ba2121">'</tspan>: p, <tspan
+   id="tspan40"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan42"
+   style="fill:#ba2121">T</tspan><tspan
+   id="tspan44"
+   style="fill:#ba2121">'</tspan>: <tspan
+   id="tspan46"
+   style="fill:#666666">1.0</tspan>, <tspan
+   id="tspan48"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan50"
+   style="fill:#ba2121">N</tspan><tspan
+   id="tspan52"
+   style="fill:#ba2121">'</tspan>: <tspan
+   id="tspan54"
+   style="fill:#666666">1000</tspan>}</text>
+    <text
+       x="0"
+       y="90"
+       xml:space="preserve"
+       id="text56">    <tspan
+   font-weight="bold"
+   id="tspan58"
+   style="font-weight:bold;fill:#008000">with</tspan> project<tspan
+   id="tspan60"
+   style="fill:#666666">.</tspan>open_job(sp) <tspan
+   font-weight="bold"
+   id="tspan62"
+   style="font-weight:bold;fill:#008000">as</tspan> job:</text>
+    <text
+       x="0"
+       y="109"
+       xml:space="preserve"
+       id="text64">        <tspan
+   font-weight="bold"
+   id="tspan66"
+   style="font-weight:bold;fill:#008000">if</tspan> <tspan
+   id="tspan68"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan70"
+   style="fill:#ba2121">V</tspan><tspan
+   id="tspan72"
+   style="fill:#ba2121">'</tspan> <tspan
+   font-weight="bold"
+   id="tspan74"
+   style="font-weight:bold;fill:#aa22ff">not</tspan> <tspan
+   font-weight="bold"
+   id="tspan76"
+   style="font-weight:bold;fill:#aa22ff">in</tspan> job<tspan
+   id="tspan78"
+   style="fill:#666666">.</tspan>document:</text>
+    <text
+       x="0"
+       y="128"
+       xml:space="preserve"
+       id="text80">            V <tspan
+   id="tspan82"
+   style="fill:#666666">=</tspan> sp[<tspan
+   id="tspan84"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan86"
+   style="fill:#ba2121">N</tspan><tspan
+   id="tspan88"
+   style="fill:#ba2121">'</tspan>] <tspan
+   id="tspan90"
+   style="fill:#666666">*</tspan> sp[<tspan
+   id="tspan92"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan94"
+   style="fill:#ba2121">T</tspan><tspan
+   id="tspan96"
+   style="fill:#ba2121">'</tspan>] <tspan
+   id="tspan98"
+   style="fill:#666666">/</tspan> sp[<tspan
+   id="tspan100"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan102"
+   style="fill:#ba2121">p</tspan><tspan
+   id="tspan104"
+   style="fill:#ba2121">'</tspan>]</text>
+    <text
+       x="0"
+       y="147"
+       xml:space="preserve"
+       id="text106">            job<tspan
+   id="tspan108"
+   style="fill:#666666">.</tspan>document[<tspan
+   id="tspan110"
+   style="fill:#ba2121">'</tspan><tspan
+   id="tspan112"
+   style="fill:#ba2121">V</tspan><tspan
+   id="tspan114"
+   style="fill:#ba2121">'</tspan>] <tspan
+   id="tspan116"
+   style="fill:#666666">=</tspan> V</text>
+    <text
+       x="0"
+       y="166"
+       xml:space="preserve"
+       id="text118" />
+    <text
+       x="0"
+       y="185"
+       xml:space="preserve"
+       id="text120"><tspan
+   font-weight="bold"
+   id="tspan122"
+   style="font-weight:bold;fill:#008000">for</tspan> doc <tspan
+   font-weight="bold"
+   id="tspan124"
+   style="font-weight:bold;fill:#aa22ff">in</tspan> project<tspan
+   id="tspan126"
+   style="fill:#666666">.</tspan>index():</text>
+    <text
+       x="0"
+       y="204"
+       xml:space="preserve"
+       id="text128">    <tspan
+   font-weight="bold"
+   id="tspan130"
+   style="font-weight:bold;fill:#008000">print</tspan>(doc)</text>
+    <text
+       x="0"
+       y="223"
+       xml:space="preserve"
+       id="text132" />
+  </g>
+</svg>
