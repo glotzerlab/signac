@@ -174,8 +174,10 @@ The project's workspace has been populated with directories for each state point
 
 .. code-block:: bash
 
-   $ ls workspace/
-   07dc3f53615713900208803484b87253        3daa7dc28de43a2ff132a4b48c6abe0e        9e100da58ccdf6ad7941fce7d14deeb5
+   $ ls -1 workspace/
+   07dc3f53615713900208803484b87253
+   3daa7dc28de43a2ff132a4b48c6abe0e
+   9e100da58ccdf6ad7941fce7d14deeb5
 
 We could execute the initialization script multiple times to add more state points, already existing jobs will be ignored.
 
@@ -307,24 +309,29 @@ To use the job document instead of a file, we need to modify our operation funct
         sp = job.statepoint()
         with job:
             V = calc_volume(sp['N'], sp['T'], sp['N'])
-            job.document['V'] = V
+            job.document['V'] = V                         # <-- new line
+            with open('V.txt', 'w') as file:
+                file.write(str(V)+'\n')
             print(job, 'computed volume')
 
-Technically using the ``with job:`` clause is not necessary in this case, but we'll keep it in there for good measure.
+We keep the now redundant writing to the ``V.txt`` file for the sake of being able to demonstrate how to work with files in other parts of the tutorial.
 
-We can also get rid of the ``get_volume()`` function and retrieve the value directly:
+However we can get rid of the ``get_volume()`` function and retrieve the value directly:
 
 .. code-block:: python
 
     # examine.py
     import signac
+    project = signac.get_project()
     print('p    V')
     for job in project.find_jobs():
         p = job.statepoint()['p']
         V = job.document['V']
         print('{:04.1f} {}'.format(p, V))
 
-If we wanted to make our result display less prone to missing values, we could write ``V = job.document.get('V')`` instead, which will return ``None`` or any other value specified by an optional second argument, in case that the value is missing.
+.. tip::
+
+  If we wanted to make our result display less prone to missing values, we could write ``V = job.document.get('V')`` instead, which will return ``None`` or any other value specified by an optional second argument, in case that the value is missing.
 
 That's it.
 We successfully created a well-defined data space for our ideal gas computer experiment.
@@ -343,10 +350,10 @@ We can do so by modifying the ``init.py`` script:
 
     # init.py
     import signac
-    import numpy as np  # <-- importing numpy
+    import numpy as np                            # <-- importing numpy
 
     project = signac.get_project()
-    for pressure in np.linspace(0.1, 10.0, 10):  # <-- using linspace()
+    for pressure in np.linspace(0.1, 10.0, 10):   # <-- using linspace()
         statepoint = {'p': pressure, 'T': 10.0, 'N': 10}
         job = project.open_job(statepoint)
         job.init()
@@ -607,11 +614,11 @@ Indexing
 A index is a complete record of the data and its associated metadata within our project's data space.
 To create an index, we need to crawl through the project's data space.
 To do so, we can either specialize a :py:class:`~signac.contrib.crawler.SignacProjectCrawler` or call the :py:meth:`~signac.Project.index` method.
-Let's create a ``index.py`` script:
+Let's implement a ``create_index.py`` script:
 
 .. code-block:: python
 
-    # index.py
+    # create_index.py
     import signac
 
     project = signac.get_project()
@@ -622,7 +629,7 @@ If we used the *job document* for data storage this will immediately generate an
 
 .. code-block:: bash
 
-    $ python index.py
+    $ python create_index.py
     474778977e728a74b4ebc2e14221bef6 {'signac_id': '474778977e728a74b4ebc2e14221bef6', 'format': None, 'V': 294.1176470588235, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 3.4000000000000004}, '_id': '474778977e728a74b4ebc2e14221bef6'}
     184f2b7e8eadfcbc9f7c4b6638db3c43 {'signac_id': '184f2b7e8eadfcbc9f7c4b6638db3c43', 'format': None, 'V': 128.2051282051282, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 7.800000000000001}, '_id': '184f2b7e8eadfcbc9f7c4b6638db3c43'}
     3daa7dc28de43a2ff132a4b48c6abe0e {'signac_id': '3daa7dc28de43a2ff132a4b48c6abe0e', 'format': None, 'V': 10000.0, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 0.1}, '_id': '3daa7dc28de43a2ff132a4b48c6abe0e'}
@@ -635,12 +642,12 @@ We will specify that in addition to the *job documents* all files named ``V.txt`
 
 .. code-block:: python
 
-    # index.py
+    # create_index.py
     import signac
-    from signac.contrib.formats import TextFormat
+    from signac.contrib.formats import TextFile
 
     project = signac.get_project()
-    for doc in project.index({'.*/V\.txt': TextFormat):
+    for doc in project.index({'.*/V\.txt': TextFile}):
         print(doc)
 
 The regular expression ``.*/V\.txt`` specifies that all files ending in ``V.txt`` are to be indexed, that would include sub-directories!
@@ -648,13 +655,21 @@ The regular expression ``.*/V\.txt`` specifies that all files ending in ``V.txt`
 Using a master crawler
 ----------------------
 
+A master crawler uses other other crawlers to compile a combined master index of one or more data spaces.
+This allows you to expose your project data to you and everyone else who has access to the index.
+
 To expose the project to a :py:class:`~signac.contrib.crawler.MasterCrawler` we need to create an :ref:`access module <signac-access>`.
-For signac projects this is simplified by using the :py:meth:`~signac.contrib.project.Project.create_access_module` method:
+For signac projects this is simplified by using the :py:meth:`~signac.contrib.project.Project.create_access_module` method.
+Let's create the access module by adding the following commands to the ``create_index.py`` script:
 
 .. code-block:: python
 
-    project.create_access_module()  # or
-    project.create_access_module({'.*/V\.txt': TextFormat})  # respectively
+    # create_index.py
+    # ...
+    try:
+        project.create_access_module({'.*/V\.txt': TextFile})
+    except OSError:
+        print("Access module already exists!")
 
 This will create a ``signac_access.py`` module in the project's root directory, which will look like this:
 
@@ -665,11 +680,13 @@ This will create a ``signac_access.py`` module in the project's root directory, 
     import os
 
     from signac.contrib.crawler import SignacProjectCrawler
+    from signac.contrib.formats import TextFile
     from signac.contrib.crawler import MasterCrawler
 
 
     class IdealGasProjectCrawler(SignacProjectCrawler):
         pass
+    IdealGasProjectCrawler.define('.*/V\.txt', TextFile)
 
 
     def get_crawlers(root):
@@ -681,12 +698,16 @@ This will create a ``signac_access.py`` module in the project's root directory, 
         for doc in master_crawler.crawl(depth=1):
             print(doc)
 
-The ``signac_access.py`` script defines a specific crawler for this project, which can be further specialized.
-A master crawler will search for this script and then execute all crawlers defined in the ``get_crawlers()`` function.
-In this way you can control what data is exposed to a master crawler.
+The ``signac_access.py`` module defines a specific crawler for this project, which can be further specialized.
 
-Executing the access module will print the index to screen.
-You can easily change this default behavior, for example by replacing the last two lines with an export to a database as shown in the last section.
+A master crawler will search for modules like this, imports them and then executes call crawlers defined in the ``get_crawlers()`` function.
+By modifying the access module, you can control exactly what data is exposed to a master crawler.
+
+.. note::
+
+    The expression ``if __name__ == '__main__':`` is only True if the script is directly executed and not imported from another script.
+    This means the commands below it have no relevance with regards to the script's function as access module.
+    The commands are there to allow immediate testing.
 
 Fetch data via index
 --------------------
@@ -694,26 +715,26 @@ Fetch data via index
 Data, which was indexed with a :py:class:`~signac.contrib.crawler.MasterCrawler` can be seamlessly fetched using the signac :py:func:`~signac.fetch` and :py:func:`~signac.fetch_one` functions.
 Let's test this!
 
-First, we make a minor modification to the ``signac_access.py`` file:
+First we create a script to compile a master index in JSON format:
 
 .. code-block:: python
 
-    # signac_acess.py
-    # ...
+    # create_master_index.py
+    import json
+    from signac.contrib.crawler import MasterCrawler
 
-    if __name__ == '__main__':
-        import json  # <-- import the json module
-        master_crawler = MasterCrawler('.')
-        for doc in master_crawler.crawl(depth=1)
-            print(json.dumps(doc))  # <-- print docs in json format
+    master_crawler = MasterCrawler('.')
+    for doc in master_crawler.crawl(depth=1)
+        print(json.dumps(doc))
 
-In this way we can dump the index in JSON format into a file:
+The master crawler is initialized for the current working directory and the index documents are printed to screen in JSON format.
+
+We then store the index in a file:
 
 .. code-block:: bash
 
-    $ python signac_access.py > index.txt
+    $ python create_master_index.py > index.txt
 
-The ``index.txt`` file now contains the index.
 Next, we implememt a ``fetch.py`` script:
 
 .. code-block:: python
@@ -729,10 +750,9 @@ Next, we implememt a ``fetch.py`` script:
             V = float(file.read())
             print(doc['statepoint'], V)
 
-We open the file containing the index, iterate through the individual lines and interpret them as JSON data.
-These are the individual index documents corresponding to our data, stored in the ``doc`` variable.
-The index document contains the information that the :py:func:`~signac.fetch_one` function utilizes to open the corresponding file.
-We can then read from the file and print the result to screen:
+This scripts reads the index documents from the index file.
+The index document is stored in the ``doc`` variable and contains the link to the indexed file.
+We pass the ``doc`` variable to the :py:func:`~signac.fetch_one` function to open the file and then print its content to screen.
 
 .. code-block:: bash
 
@@ -745,20 +765,110 @@ We can then read from the file and print the result to screen:
 Database Integration
 --------------------
 
-The index created in the previous section can now be used for advanced data querying and manipulation.
-You can export the index into any tool of your choice.
+Instead of storing the index in a plain-text file we could export it to any tool of our choice.
 For convenience, signac provides export routines for MongoDB database collections.
 
-If we :ref:`configured <configuration>` a MongoDB database we can export the index to a database collection:
+If we :ref:`configured <configuration>` a MongoDB database we could export the index to a database collection:
 
 .. code-block:: python
 
-    # index.py
+    # create_index.py
     import signac
 
     project = signac.get_project()
     db = signac.get_database('mydb')
     signac.contrib.export_pymongo(project.index(), db.index)
+
+    # Or using a master crawler:
+    master_crawler = signac.contrib.crawler.MasterCrawler('.')
+    signac.contrib.export_pymongo(crawler.crawl(depth=1), db.index)
+
+This would allow us to execute more advanced query operations.
+For example, to fetch all data for pressures greater than 2.0:
+
+.. code-block:: python
+
+    docs = db.index.find({'statepoint.p': {'$gt': 2.0}})
+    for doc in docs:
+        file = signac.fetch_one(doc)
+        V = float(file.read())
+        print(doc['statepoint'], V)
+
+Integrating other tools
+=======================
+
+As a final chapter, we want to have a look at how we could integrate a non-python tool into our workflow.
+Let's stick to the example and implement the ideal gas program in bash.
+As bash can only evaluate expressions with integer values we need to express the pressure as a fraction and otherwise assume that *N* and *T* are integer values:
+
+.. code-block:: bash
+
+    # idg.sh
+    N=$1
+    T=$2
+    p_num=$3        # bash expressions can only contain integers.
+    p_denom=${4-1}  # The denominator defaults to 1.
+    V=${expr $N \* $T \* $p_num / $p_denom}
+    echo $V
+
+We should now test our program on the command line:
+
+.. code-block:: bash
+
+   $ bash idg.sh 1000 1 1
+   1000
+
+There are many different ways on how to integrate this tool into our workflow.
+One alternative would be to take advantage of signac's command line interface:
+
+.. code-block:: bash
+
+    $ signac job '{"N": 1000, "T": 1.0, "p": 1.0}'
+    9e100da58ccdf6ad7941fce7d14deeb5
+
+We could pipe the results of the computation into a file like this:
+
+.. code-block:: bash
+
+    $ bash idg.sh 1000 1 1 > `signac job -cw '{"N": 1000, "T": 1.0, "p": 1.0}'`/V.txt
+
+Another alternative is to use a python script to prepare the execution of the other tool.
+This has the additional advantage that we can use the :py:mod:`fractions` module to work-around bash's integer limitation:
+
+.. code-block:: python
+
+    # prepare_idg.py
+    from fractions import Fraction
+    import signac
+
+    cmd = 'bash idg.sh {N} {T} {p_n} {p_d} > {out}'
+
+    project = signac.get_project()
+    for job in project.find_jobs():
+        sp = job.statepoint()
+        p = Fraction(sp['p'])
+        print(cmd.format(
+            N=int(sp['N']), T=int(sp['T']),
+            p_n=p.numerator, p_d=p.denominator,
+            out=job.fn('V.txt')))
+
+This will generate a chain of one command for each state point in our data space:
+
+.. code-block:: bash
+
+    $ python prepare_idg.py
+    bash idg.sh 1000 1 10 1 > ~/ideal_gas_project/workspace/07dc3f53615713900208803484b87253/V.txt
+    bash idg.sh 1000 1 9 2 > ~/ideal_gas_project/workspace/14ba699529683f7132c863c51facc79c/V.txt
+    # ...
+
+To execute this we could simply pipe these commands into another bash script:
+
+.. code-block:: bash
+
+    $ python prepare_idg.py > run.sh
+    $ bash run.sh
+    $ # Or execute directly:
+    $ python prepare_idg.py | bash
 
 
 Further reading
