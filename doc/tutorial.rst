@@ -46,8 +46,8 @@ Executing ``signac`` on the command line should prompt something like:
 .. note::
 
     In some cases the installation routine fails to place the ``signac`` executable on the correct path.
-    In this case you may need to adjust your ``PATH`` configuration manually.
-    Howver, this is not required to complete this tutorial.
+    In this case you may need to adjust your ``$PATH`` configuration manually.
+    However, this is not required to complete this tutorial.
 
 Project Setup
 -------------
@@ -630,9 +630,9 @@ If we used the *job document* for data storage this will immediately generate an
 .. code-block:: bash
 
     $ python create_index.py
-    474778977e728a74b4ebc2e14221bef6 {'signac_id': '474778977e728a74b4ebc2e14221bef6', 'format': None, 'V': 294.1176470588235, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 3.4000000000000004}, '_id': '474778977e728a74b4ebc2e14221bef6'}
-    184f2b7e8eadfcbc9f7c4b6638db3c43 {'signac_id': '184f2b7e8eadfcbc9f7c4b6638db3c43', 'format': None, 'V': 128.2051282051282, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 7.800000000000001}, '_id': '184f2b7e8eadfcbc9f7c4b6638db3c43'}
-    3daa7dc28de43a2ff132a4b48c6abe0e {'signac_id': '3daa7dc28de43a2ff132a4b48c6abe0e', 'format': None, 'V': 10000.0, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 0.1}, '_id': '3daa7dc28de43a2ff132a4b48c6abe0e'}
+    {'signac_id': '474778977e728a74b4ebc2e14221bef6', 'format': None, 'V': 294.1176470588235, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 3.4000000000000004}, '_id': '474778977e728a74b4ebc2e14221bef6'}
+    {'signac_id': '184f2b7e8eadfcbc9f7c4b6638db3c43', 'format': None, 'V': 128.2051282051282, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 7.800000000000001}, '_id': '184f2b7e8eadfcbc9f7c4b6638db3c43'}
+    {'signac_id': '3daa7dc28de43a2ff132a4b48c6abe0e', 'format': None, 'V': 10000.0, 'statepoint': {'T': 1.0, 'N': 1000, 'p': 0.1}, '_id': '3daa7dc28de43a2ff132a4b48c6abe0e'}
     # ...
 
 If we used text files to store data we need to additionally specify the format of those file to make them *indexable*.
@@ -700,7 +700,7 @@ This will create a ``signac_access.py`` module in the project's root directory, 
 
 The ``signac_access.py`` module defines a specific crawler for this project, which can be further specialized.
 
-A master crawler will search for modules like this, imports them and then executes call crawlers defined in the ``get_crawlers()`` function.
+A master crawler will search for modules like this, imports them and then executes all crawlers defined in the ``get_crawlers()`` function.
 By modifying the access module, you can control exactly what data is exposed to a master crawler.
 
 .. note::
@@ -808,7 +808,7 @@ As bash can only evaluate expressions with integer values we need to express the
     T=$2
     p_num=$3        # bash expressions can only contain integers.
     p_denom=${4-1}  # The denominator defaults to 1.
-    V=${expr $N \* $T \* $p_num / $p_denom}
+    V=${expr $N \* $T \* $p_denom / $p_num}
     echo $V
 
 We should now test our program on the command line:
