@@ -8,4 +8,6 @@ def compute_volume(job):
     with job:
         V = calc_volume(sp['N'], sp['T'], sp['p'])
         job.document['V'] = V
+        with open('V.txt', 'w') as file:
+            file.write(str(V)+'\n')
         print(job, 'computed volume')

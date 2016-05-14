@@ -6,6 +6,9 @@
 Welcome to signac's documentation!
 ==================================
 
+.. image:: images/minimal.svg
+    :align: right
+
 .. automodule:: signac
 
 Contents
@@ -17,7 +20,7 @@ Contents
       An illustration of **signac**'s workflow and data model.
 
     :ref:`tutorial`
-      Short demonstration of how to implement a computational workflow with signac.
+      Compact demonstration of the implementation of a computational workflow.
 
     :ref:`guide`
       A complete introduction to the framework's major components.
