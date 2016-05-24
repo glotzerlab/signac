@@ -1,3 +1,6 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 """The file system handlers defined in this module
 encapsulate the I/O operations required to store
 and fetch data from different file systems."""

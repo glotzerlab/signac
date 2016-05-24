@@ -2,8 +2,10 @@
 
 ## About
 
-signac aids in the management, access and analysis of large-scale computational investigations.
-The framework provides a simple data model, which helps to organize data production and post-processing as well as distribution among collaborators.
+The signac framework aids in the management of large and heterogeneous data spaces.
+
+It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
+This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
 **The package's documentation is available at: [https://glotzerlab.engin.umich.edu/signac](https://glotzerlab.engin.umich.edu/signac)**
 

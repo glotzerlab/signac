@@ -1,13 +1,7 @@
-"""Dict implementation with backend json file.
-
-Slightly adapted version of jsondict.
-https://pypi.python.org/pypi/jsondict/1.2
-
-I could not use the original, because it is not multi-processing
-safe and uses a 3rd library 'asjson', instead of bson and had
-some other weaknesses in implementation.
-"""
-
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
+"Dict implementation with backend json file."
 import os
 import errno
 import logging

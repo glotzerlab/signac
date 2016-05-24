@@ -11,6 +11,7 @@ Start a new project
     $ mkdir my_project
     $ cd my_project
     $ signac init MyProject
+    Initialized project 'MyProject'.
 
 
 Open a job

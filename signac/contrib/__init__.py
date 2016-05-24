@@ -1,3 +1,6 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 from __future__ import absolute_import
 import warnings
 

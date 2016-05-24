@@ -6,6 +6,9 @@
 Welcome to signac's documentation!
 ==================================
 
+.. image:: images/minimal.svg
+    :align: right
+
 .. automodule:: signac
 
 Contents

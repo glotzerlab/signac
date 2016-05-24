@@ -1,10 +1,15 @@
-"""
-signac aids in the management, access and analysis of large-scale
-computational investigations.
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
+"""The signac framework aids in the management of large and
+heterogeneous data spaces.
 
-The framework provides a simple data model, which helps to organize
-data production and post-processing as well as distribution among collaboratos.
-"""
+It provides a simple and robust data model to create a
+well-defined indexable storage layout for data and metadata.
+This makes it easier to operate on large data spaces,
+streamlines post-processing and analysis and makes data
+collectively accessible."""
+
 from __future__ import absolute_import
 from . import contrib
 from . import db
