@@ -6,6 +6,7 @@ import errno
 import logging
 import json
 import shutil
+import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
@@ -66,7 +67,7 @@ class Job(object):
 
         :return: The statepoint mapping.
         :rtype: dict"""
-        return dict(self._statepoint)
+        return copy.deepcopy(self._statepoint)
 
     @property
     def document(self):
