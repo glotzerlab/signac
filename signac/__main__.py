@@ -14,8 +14,9 @@ from . import __version__
 from .common import config
 from .common.configobj import flatten_errors
 from .common import six
-from .common.crypt import get_crypt_context, parse_pwhash
-from .common.host import get_database, get_current_password
+from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
+from .common.host import get_database, get_credentials, uri
+from .common.errors import AuthenticationError
 from .contrib.utility import query_yes_no, prompt_password
 
 
@@ -33,7 +34,7 @@ CONFIG_HOST_CHOICES = {
 
 
 def _print_err(msg):
-    _print_err(msg)
+    print(msg, file=sys.stderr)
 
 
 def _prompt_for_new_password(attempts=3):
@@ -52,10 +53,27 @@ def _prompt_for_new_password(attempts=3):
 
 def _update_password(config, hostname):
     hostcfg = config['hosts'][hostname]
-    hostcfg['password'] = get_current_password(hostcfg)
-    db_auth = get_database(
-        hostcfg.get('db_auth', 'admin'),
-        hostname=hostname, config=config)
+    hostcfg['password'] = get_credentials(hostcfg)
+    try:
+        db_auth = get_database(
+            hostcfg.get('db_auth', 'admin'),
+            hostname=hostname, config=config)
+    except AuthenticationError as error:
+        _print_err(error)
+        kr = get_keyring()
+        if kr and kr.get_password('signac', uri(hostcfg)) is not None:
+            if query_yes_no(
+                    "Do you want to remove the key from the keyring?", 'no'):
+                kr.delete_password('signac', uri(hostcfg))
+                # Second attempt...
+                hostcfg['password'] = get_credentials(hostcfg)
+                db_auth = get_database(
+                    hostcfg.get('db_auth', 'admin'),
+                    hostname=hostname, config=config)
+            else:
+                raise
+        else:
+            raise
     new_pw = _prompt_for_new_password()
     pwhash = get_crypt_context().encrypt(new_pw)
     db_auth.add_user(hostcfg['username'], pwhash)
@@ -311,8 +329,20 @@ def main_config_host(args):
         if query_yes_no(q, default='no'):
             pwhash = _update_password(cfg, args.hostname)
             if query_yes_no("Do you want to store the password?"):
-                return dict(password=pwhash, password_config=None)
+                keyring = get_keyring()
+                if keyring is None:
+                    return dict(password=pwhash, password_config=None)
+                else:
+                    if query_yes_no("Use keyring for storing?"):
+                        keyring.set_password('signac', uri(hostcfg()), pwhash)
+                        return dict(
+                            password=None,
+                            password_config=dict(keyring=uri(hostcfg())))
+                    else:
+                        keyring.delete_password('signac', uri(hostcfg()))
+                        return dict(password=pwhash, password_config=None)
             else:
+                keyring.delete_password('signac', uri(hostcfg()))
                 pwcfg = parse_pwhash(pwhash)
                 return dict(password=None, password_config=pwcfg)
         else:
@@ -466,10 +496,6 @@ def main():
         logging.basicConfig(level=logging.WARNING)
     try:
         args.func(args)
-    except AttributeError:
-        raise
-        parser.print_usage()
-        sys.exit(2)
     except KeyboardInterrupt:
         _print_err("Interrupted.")
         sys.exit(1)
