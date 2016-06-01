@@ -1,20 +1,52 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 import base64
 
-from .passlib.context import CryptContext
+from . import six
+
+try:
+    from passlib.context import CryptContext
+except ImportError:
+    def get_crypt_context():
+        "This function requires passlib!"
+        raise ImportError("Requires passlib!")
+else:
+    def get_crypt_context():
+        "Return the default signac crypto context."
+        return CryptContext(schemes=('bcrypt', ))
+
+try:
+    import keyring
+except ImportError:
+    def get_keyring():
+        "This function requires keyring!"
+        return None
+else:
+    def get_keyring():
+        "Return the system user keyring."
+        return keyring.get_keyring()
 
 
-class SimplePasswordCache(object):
+class SimpleKeyring(object):
+    """Simple in-memory keyring for caching."""
 
     def __init__(self):
         self._cache = dict()
 
     @classmethod
     def _encode(cls, msg):
-        return base64.b64encode(msg)
+        if six.PY2:
+            return base64.b64encode(msg)
+        else:
+            return base64.b64encode(msg.encode())
 
     @classmethod
     def _decode(cls, msg):
-        return base64.b64decode(msg)
+        if six.PY2:
+            return base64.b64decode(msg)
+        else:
+            return base64.b64decode(msg).decode()
 
     def __contains__(self, key):
         return key in self._cache
@@ -29,11 +61,8 @@ class SimplePasswordCache(object):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
-def get_crypt_context():
-    return CryptContext(schemes=('bcrypt', ))
-
-
 def parse_pwhash(pwhash):
+    "Extract hash configuration from hash string."
     if get_crypt_context().identify(pwhash) == 'bcrypt':
         return dict(
             rounds=int(pwhash.split('$')[2]),
