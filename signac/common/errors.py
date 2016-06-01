@@ -12,4 +12,9 @@ class ConfigError(Error, RuntimeError):
 
 
 class AuthenticationError(Error, RuntimeError):
-    pass
+
+    def __str__(self):
+        if len(self.args) > 0:
+            return "Failed to authenticate with host '{}'.".format(self.args[0])
+        else:
+            return "Failed to authenticate with host."
