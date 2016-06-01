@@ -85,4 +85,5 @@ db_auth = string(default='admin')
 [[[password_config]]]
 salt = string
 rounds = integer
+keyring = string
 """

@@ -2,47 +2,53 @@
 # All rights reserved.
 # This software is licensed under the MIT License.
 import logging
+import warnings
 import getpass
 import json
 
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector
-from .crypt import get_crypt_context, SimplePasswordCache
+from .crypt import get_crypt_context, SimpleKeyring, get_keyring
 from . import six
 
 logger = logging.getLogger(__name__)
 
 
-SESSION_PASSWORD_HASH_CACHE = SimplePasswordCache()
+SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
 
 
-def get_host_config(hostname=None, config=None):
+def get_default_host(config=None):
     if config is None:
         config = load_config()
-    if hostname is None:
+    try:
+        return config['General']['default_host']
+    except KeyError:
         try:
-            hostname = config['General']['default_host']
-        except KeyError:
-            try:
-                hostname = config['hosts'].keys()[0]
-            except (KeyError, IndexError):
-                raise ConfigError("No hosts specified.")
+            return config['hosts'].keys()[0]
+        except (KeyError, IndexError):
+            raise ConfigError("No hosts specified.")
+
+
+def get_host_config(hostname, config):
     try:
         return config['hosts'][hostname]
     except KeyError:
         raise ConfigError("Host '{}' not configured.".format(hostname))
 
 
-def request_credentials(hostcfg):
+def uri(hostcfg):
+    return '{}@{}'.format(hostcfg['username'], hostcfg['url'])
+
+
+def _request_credentials(hostcfg):
     pw = hostcfg.get('password')
     pwcfg = hostcfg.get('password_config')
-    if pwcfg:
-        logger.debug("Found password configuration: {}".format(pwcfg))
     if pw is None:
         pw = getpass.getpass("Enter password for {}@{}: ".format(
             hostcfg['username'], hostcfg['url']))
-        if pwcfg:
+        if pwcfg and 'salt' in pwcfg and 'rounds' in pwcfg:
+            logger.debug("Using password configuration for hashing.")
             return get_crypt_context().encrypt(pw, **pwcfg)
         else:
             return pw
@@ -50,14 +56,37 @@ def request_credentials(hostcfg):
         return pw
 
 
-def get_credentials(hostcfg):
+def _get_keyring_credentials(hostcfg):
+    pwcfg = hostcfg.get('password_config')
+    kr = get_keyring()
+    if kr is None:
+        if pwcfg and 'keyring' in pwcfg:
+            warnings.warn(
+                "Password stored in keyring, but keyring is not available!")
+    elif pwcfg and 'keyring' in pwcfg:
+        return kr.get_password('signac', pwcfg['keyring'])
+    else:
+        return kr.get_password('signac', uri(hostcfg))
+
+
+def _get_cached_credentials(hostcfg, default):
     hostcfg_id = json.dumps(hostcfg, sort_keys=True)
     if hostcfg_id in SESSION_PASSWORD_HASH_CACHE:
         logger.debug("Loading credentials from cache.")
         return SESSION_PASSWORD_HASH_CACHE[hostcfg_id]
     else:
-        return SESSION_PASSWORD_HASH_CACHE.setdefault(
-            hostcfg_id, request_credentials(hostcfg))
+        return SESSION_PASSWORD_HASH_CACHE.setdefault(hostcfg_id, default())
+
+
+def get_credentials(hostcfg):
+    def default():
+        pw = _get_keyring_credentials(hostcfg)
+        if pw is None:
+            return _request_credentials(hostcfg)
+        else:
+            logger.debug("Loaded credentials from keyring.")
+            return pw
+    return _get_cached_credentials(hostcfg, default)
 
 
 def check_credentials(hostcfg):
@@ -74,24 +103,27 @@ def check_credentials(hostcfg):
     return hostcfg
 
 
-def get_connector(hostname=None, config=None, **kwargs):
-    hostcfg = check_credentials(
-        get_host_config(hostname=hostname, config=config))
-    logger.debug("Connecting with host config: {}".format(
-        {k: '***' if 'password' in k else v for k, v in hostcfg.items()}))
+def get_connector(hostcfg, **kwargs):
     return DBClientConnector(hostcfg, **kwargs)
 
 
-def get_client(hostname=None, config=None, **kwargs):
-    connector = get_connector(hostname=hostname, config=config, **kwargs)
+def get_client(hostcfg, **kwargs):
+    connector = get_connector(hostcfg, **kwargs)
     connector.connect()
     connector.authenticate()
     return connector.client
 
 
 def get_database(name, hostname=None, config=None, **kwargs):
+    if hostname is None:
+        hostname = get_default_host()
+    if config is None:
+        config = load_config()
+    hostcfg = check_credentials(get_host_config(hostname, config))
+    logger.debug("Connecting with host config: {}".format(
+        {k: '***' if 'password' in k else v for k, v in hostcfg.items()}))
     try:
-        client = get_client(hostname=hostname, config=config, **kwargs)
+        client = get_client(hostcfg, **kwargs)
     except Exception as error:
         if "Authentication failed" in str(error):
             raise AuthenticationError(hostname)
