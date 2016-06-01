@@ -3,14 +3,18 @@
 # This software is licensed under the MIT License.
 import logging
 import getpass
+import json
 
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector
-from .crypt import get_crypt_context
+from .crypt import get_crypt_context, SimplePasswordCache
 from . import six
 
 logger = logging.getLogger(__name__)
+
+
+SESSION_PASSWORD_HASH_CACHE = SimplePasswordCache()
 
 
 def get_host_config(hostname=None, config=None):
@@ -30,7 +34,7 @@ def get_host_config(hostname=None, config=None):
         raise ConfigError("Host '{}' not configured.".format(hostname))
 
 
-def get_current_password(hostcfg):
+def request_credentials(hostcfg):
     pw = hostcfg.get('password')
     pwcfg = hostcfg.get('password_config')
     if pwcfg:
@@ -46,6 +50,16 @@ def get_current_password(hostcfg):
         return pw
 
 
+def get_credentials(hostcfg):
+    hostcfg_id = json.dumps(hostcfg, sort_keys=True)
+    if hostcfg_id in SESSION_PASSWORD_HASH_CACHE:
+        logger.debug("Loading credentials from cache.")
+        return SESSION_PASSWORD_HASH_CACHE[hostcfg_id]
+    else:
+        return SESSION_PASSWORD_HASH_CACHE.setdefault(
+            hostcfg_id, request_credentials(hostcfg))
+
+
 def check_credentials(hostcfg):
     input_ = raw_input if six.PY2 else input  # noqa
     auth_m = hostcfg.get('auth_mechanism', 'none')
@@ -56,14 +70,15 @@ def check_credentials(hostcfg):
                 username = getpass.getuser()
             hostcfg['username'] = username
         if 'password' not in hostcfg:
-            hostcfg['password'] = get_current_password(hostcfg)
+            hostcfg['password'] = get_credentials(hostcfg)
     return hostcfg
 
 
 def get_connector(hostname=None, config=None, **kwargs):
     hostcfg = check_credentials(
         get_host_config(hostname=hostname, config=config))
-    logger.debug("Connecting with host config: {}".format(hostcfg))
+    logger.debug("Connecting with host config: {}".format(
+        {k: '***' if 'password' in k else v for k, v in hostcfg.items()}))
     return DBClientConnector(hostcfg, **kwargs)
 
 
