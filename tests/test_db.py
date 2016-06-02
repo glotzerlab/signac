@@ -20,24 +20,28 @@ class DBTest(unittest.TestCase):
         signac.db.get_database('testing', hostname='testing')
 
     def test_get_connector(self):
-        signac.common.host.get_connector(hostname='testing')
+        host_config = signac.common.host.get_host_config(hostname='testing')
+        signac.common.host.get_connector(host_config)
 
     def test_get_connector_no_client(self):
-        c = signac.common.host.get_connector(hostname='testing')
+        host_config = signac.common.host.get_host_config(hostname='testing')
+        c = signac.common.host.get_connector(host_config)
         with self.assertRaises(RuntimeError):
             c.client
 
     def test_get_client(self):
-        signac.common.host.get_client(hostname='testing')
+        host_config = signac.common.host.get_host_config(hostname='testing')
+        signac.common.host.get_client(host_config)
 
     def test_connector_get_host(self):
         host_config = signac.common.host.get_host_config(hostname='testing')
-        c = signac.common.host.get_connector(hostname='testing')
+        c = signac.common.host.get_connector(host_config)
         self.assertEqual(host_config['url'], c.host)
         self.assertEqual(host_config, c.config)
 
     def test_logout(self):
-        c = signac.common.host.get_connector(hostname='testing')
+        host_config = signac.common.host.get_host_config(hostname='testing')
+        c = signac.common.host.get_connector(host_config)
         with self.assertRaises(RuntimeError):
             c.client
         c.connect()

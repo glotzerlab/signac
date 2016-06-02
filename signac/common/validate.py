@@ -1,10 +1,13 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the MIT License.
-import warnings
+import logging
 
 from .configobj.validate import Validator
 from .configobj.validate import VdtValueError
+
+
+logger = logging.getLogger(__name__)
 
 
 def version(value, *args, **kwargs):
@@ -21,7 +24,7 @@ def mongodb_uri(value, *args, **kwargs):
     try:
         import pymongo
     except ImportError:
-        warnings.warn("Install pymongo to validate database configurations.")
+        logger.debug("Install pymongo to validate database configurations!")
     else:
         uris = value if isinstance(value, list) else value.split(',')
         for uri in uris:
@@ -50,7 +53,7 @@ cfg = """
 author_name = string(default=None)
 author_email = string(default=None)
 workspace_dir = string(default='workspace')
-project = string(default=None)
+project = string
 signac_version = version(default='0,1,0')
 
 database_host = string(default=None)

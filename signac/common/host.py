@@ -30,7 +30,11 @@ def get_default_host(config=None):
             raise ConfigError("No hosts specified.")
 
 
-def get_host_config(hostname, config):
+def get_host_config(hostname=None, config=None):
+    if config is None:
+        config = load_config()
+    if hostname is None:
+        hostname = get_default_host(config)
     try:
         return config['hosts'][hostname]
     except KeyError:
@@ -42,18 +46,18 @@ def uri(hostcfg):
 
 
 def _request_credentials(hostcfg):
-    pw = hostcfg.get('password')
     pwcfg = hostcfg.get('password_config')
-    if pw is None:
-        pw = getpass.getpass("Enter password for {}@{}: ".format(
-            hostcfg['username'], hostcfg['url']))
-        if pwcfg and 'salt' in pwcfg and 'rounds' in pwcfg:
-            logger.debug("Using password configuration for hashing.")
-            return get_crypt_context().encrypt(pw, **pwcfg)
-        else:
-            return pw
+    pw = getpass.getpass("Enter password for {}@{}: ".format(
+        hostcfg['username'], hostcfg['url']))
+    if pwcfg and 'salt' in pwcfg and 'rounds' in pwcfg:
+        logger.debug("Using password configuration for hashing.")
+        return get_crypt_context().encrypt(pw, **pwcfg)
     else:
         return pw
+
+
+def _get_config_credentials(hostcfg):
+    return hostcfg.get('password')
 
 
 def _get_keyring_credentials(hostcfg):
@@ -78,15 +82,31 @@ def _get_cached_credentials(hostcfg, default):
         return SESSION_PASSWORD_HASH_CACHE.setdefault(hostcfg_id, default())
 
 
-def get_credentials(hostcfg):
+def _get_stored_credentials(hostcfg):
     def default():
         pw = _get_keyring_credentials(hostcfg)
         if pw is None:
-            return _request_credentials(hostcfg)
-        else:
-            logger.debug("Loaded credentials from keyring.")
-            return pw
+            pw = _get_config_credentials(hostcfg)
+        return pw
     return _get_cached_credentials(hostcfg, default)
+
+
+def _get_credentials(hostcfg):
+    def default():
+        pw = _get_config_credentials(hostcfg)
+        if pw is None:
+            pw = _get_keyring_credentials(hostcfg)
+            if pw is None:
+                pw = _request_credentials(hostcfg)
+        return pw
+    return _get_cached_credentials(hostcfg, default)
+
+
+def get_credentials(hostcfg, ask=True):
+    if ask:
+        return _get_credentials(hostcfg)
+    else:
+        return _get_stored_credentials(hostcfg)
 
 
 def check_credentials(hostcfg):

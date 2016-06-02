@@ -36,6 +36,8 @@ class SimpleKeyring(object):
 
     @classmethod
     def _encode(cls, msg):
+        if msg is None:
+            return
         if six.PY2:
             return base64.b64encode(msg)
         else:
@@ -43,6 +45,8 @@ class SimpleKeyring(object):
 
     @classmethod
     def _decode(cls, msg):
+        if msg is None:
+            return
         if six.PY2:
             return base64.b64decode(msg)
         else:
