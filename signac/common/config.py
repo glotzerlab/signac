@@ -81,7 +81,10 @@ def check_and_fix_permissions(filename):
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     config = Config(filename, configspec=cfg.split('\n'))
-    config.validate(get_validator())
+    verification = config.verify()
+    if verification is not True:
+        logger.debug("Config file '{}' may contain invalid values.".format(
+            os.path.abspath(filename)))
     if config.has_password():
         check_and_fix_permissions(filename)
     return config
@@ -129,7 +132,7 @@ class Config(ConfigObj):
     def verify(self, validator=None, *args, **kwargs):
         if validator is None:
             validator = get_validator()
-        super(Config, self).validate(validator, *args, **kwargs)
+        return super(Config, self).validate(validator, *args, **kwargs)
 
     def has_password(self):
         def is_pw(section, key):

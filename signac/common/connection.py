@@ -9,6 +9,7 @@ from os.path import expanduser
 
 import pymongo
 
+
 PYMONGO_2 = pymongo.version_tuple[0] == 2
 
 logger = logging.getLogger(__name__)
@@ -45,9 +46,10 @@ def raise_unsupported_auth_mechanism(mechanism):
 
 class DBClientConnector(object):
 
-    def __init__(self, host_config):
+    def __init__(self, host_config, **kwargs):
         self._config = host_config
         self._client = None
+        self._kwargs = kwargs
 
     @property
     def client(self):
@@ -75,7 +77,7 @@ class DBClientConnector(object):
         forwarded_parameters = (
             'socketTimeoutMS', 'connectTimeoutMS', 'serverSelectionTimeoutMS',
             'w', 'wtimeout', 'replicaSet')
-        parameters = dict()
+        parameters = self._kwargs
         for parameter in forwarded_parameters:
             if parameter in self._config:
                 parameters[parameter] = self._config_get(parameter)
@@ -110,12 +112,13 @@ class DBClientConnector(object):
 
     # not officially supported anymore
     def _connect_pymongo2(self, host):  # pragma no cover
-        logger.debug("Connecting with pymongo3.")
+        logger.debug("Connecting with pymongo2.")
         warnings.warn("pymongo version 2 is no longer supported!",
                       DeprecationWarning)
         parameters = {
             'connectTimeoutMS': self._config_get('connect_timeout_ms'),
         }
+        parameters.update(self._kwargs)
 
         auth_mechanism = self._config_get('auth_mechanism')
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
