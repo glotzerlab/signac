@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
+SESSION_USERNAME_CACHE = dict()
 
 
 def get_default_host(config=None):
@@ -30,25 +31,38 @@ def get_default_host(config=None):
             raise ConfigError("No hosts specified.")
 
 
-def get_host_config(hostname=None, config=None):
-    if config is None:
-        config = load_config()
-    if hostname is None:
-        hostname = get_default_host(config)
+def _get_host_config(hostname, config):
     try:
         return config['hosts'][hostname]
     except KeyError:
         raise ConfigError("Host '{}' not configured.".format(hostname))
 
 
-def uri(hostcfg):
-    return '{}@{}'.format(hostcfg['username'], hostcfg['url'])
+def get_host_config(hostname=None, config=None):
+    if config is None:
+        config = load_config()
+    if hostname is None:
+        hostname = get_default_host(config)
+    return _get_host_config(hostname, config)
+
+
+def _host_id(hostcfg):
+    return json.dumps(hostcfg, sort_keys=True)
+
+
+def make_uri(hostcfg):
+    ret = hostcfg['url']
+    if ret.startswith('mongodb://'):
+        ret = ret[len('mongodb://'):]
+    if 'username' in hostcfg:
+        assert '@' not in ret
+        ret = hostcfg['username'] + '@' + ret
+    return 'mongodb://' + ret
 
 
 def _request_credentials(hostcfg):
     pwcfg = hostcfg.get('password_config')
-    pw = getpass.getpass("Enter password for {}@{}: ".format(
-        hostcfg['username'], hostcfg['url']))
+    pw = getpass.getpass("Enter password for {}: ".format(make_uri(hostcfg)))
     if pwcfg and 'salt' in pwcfg and 'rounds' in pwcfg:
         logger.debug("Using password configuration for hashing.")
         return get_crypt_context().encrypt(pw, **pwcfg)
@@ -70,7 +84,7 @@ def _get_keyring_credentials(hostcfg):
     elif pwcfg and 'keyring' in pwcfg:
         return kr.get_password('signac', pwcfg['keyring'])
     else:
-        return kr.get_password('signac', uri(hostcfg))
+        return kr.get_password('signac', make_uri(hostcfg))
 
 
 def _get_cached_credentials(hostcfg, default):
@@ -109,16 +123,35 @@ def get_credentials(hostcfg, ask=True):
         return _get_stored_credentials(hostcfg)
 
 
-def check_credentials(hostcfg):
+def _input(prompt, default=''):
     input_ = raw_input if six.PY2 else input  # noqa
+    try:
+        value = input_(prompt)
+    except SyntaxError:
+        return default
+    if value:
+        return value
+    else:
+        return default
+
+
+def check_credentials(hostcfg):
+    from pymongo.uri_parser import parse_uri
     auth_m = hostcfg.get('auth_mechanism', 'none')
     if auth_m == 'SCRAM-SHA-1':
-        if 'username' not in hostcfg:
-            username = input("Username ({}): ".format(getpass.getuser()))
-            if not username:
-                username = getpass.getuser()
-            hostcfg['username'] = username
-        if 'password' not in hostcfg:
+        uri = hostcfg['url']
+        if isinstance(uri, list):
+            uri = ','.join(uri)
+        if 'username' not in hostcfg and not parse_uri(uri)['username']:
+            username = SESSION_USERNAME_CACHE.get(_host_id(hostcfg))
+            if username:
+                hostcfg['username'] = username
+            else:
+                SESSION_USERNAME_CACHE[_host_id(hostcfg)] = \
+                    hostcfg['username'] = _input(
+                        "Username ({}): ".format(getpass.getuser()),
+                        getpass.getuser())
+        if 'password' not in hostcfg and not parse_uri(uri)['password']:
             hostcfg['password'] = get_credentials(hostcfg)
     return hostcfg
 
@@ -136,7 +169,7 @@ def get_client(hostcfg, **kwargs):
 
 def get_database(name, hostname=None, config=None, **kwargs):
     if hostname is None:
-        hostname = get_default_host()
+        hostname = get_default_host(config)
     if config is None:
         config = load_config()
     hostcfg = check_credentials(get_host_config(hostname, config))
