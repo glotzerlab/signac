@@ -139,7 +139,8 @@ def main_init(args):
 
 
 def verify_config(cfg, preserve_errors=True):
-    verification = cfg.verify(preserve_errors=preserve_errors)
+    verification = cfg.verify(
+        preserve_errors=preserve_errors, skip_missing=True)
     if verification is True:
         _print_err("Passed.")
     else:
