@@ -50,43 +50,21 @@ def get_validator():
 
 
 cfg = """
-author_name = string(default=None)
-author_email = string(default=None)
 workspace_dir = string(default='workspace')
-project = string
+project = string()
 signac_version = version(default='0,1,0')
-
-database_host = string(default=None)
-database_auth_mechanism = option('none', 'SCRAM-SHA-1', 'SSL-x509', 'SSL', default='none')
-database_ssl_ca_certs = string(default=None)
-database_ssl_certfile = string(default=None)
-database_ssl_keyfile = string(default=None)
-database_username = string(default=None)
-database_password = string(default=None)
-database_connect_timeout_ms = integer(default=5000)
 
 [General]
 default_host = string()
-[Author]
-name = string(default=None)
-email = string(default=None)
-
-[signacdb]
-database = string(default='signacdb')
 
 [hosts]
 [[__many__]]
 url = mongodb_uri(default='localhost')
-auth_mechanism = option('none', 'SCRAM-SHA-1', 'SSL-x509', 'SSL', default='none')
-ssl_ca_certs = string(default=None)
-ssl_certfile = string(default=None)
-ssl_keyfile = string(default=None)
-username = string
+auth_mechanism = option('none', 'SCRAM-SHA-1', default='none')
+username = string()
 password = password()
-connect_timeout_ms = integer(default=5000)
 db_auth = string(default='admin')
 [[[password_config]]]
-salt = string
-rounds = integer
-keyring = string
+salt = string()
+rounds = integer()
 """
