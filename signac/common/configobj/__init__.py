@@ -2130,7 +2130,7 @@ class ConfigObj(Section):
                 h.write(output_bytes)
 
     def validate(self, validator, preserve_errors=False, copy=False,
-                 section=None):
+                 section=None, skip_missing=False):
         """
         Test the ConfigObj against a configspec.
 
@@ -2248,6 +2248,8 @@ class ConfigObj(Section):
                 # reserved names
                 continue
             if (not entry in section.scalars) or (entry in section.defaults):
+                if skip_missing:
+                    continue
                 # missing entries
                 # or entries from defaults
                 missing = True
@@ -2308,7 +2310,7 @@ class ConfigObj(Section):
             if copy:
                 section.comments[entry] = configspec.comments.get(entry, [])
                 section.inline_comments[entry] = configspec.inline_comments.get(entry, '')
-            check = self.validate(validator, preserve_errors=preserve_errors, copy=copy, section=section[entry])
+            check = self.validate(validator, preserve_errors=preserve_errors, copy=copy, section=section[entry], skip_missing=skip_missing)
             out[entry] = check
             if check == False:
                 ret_true = False
