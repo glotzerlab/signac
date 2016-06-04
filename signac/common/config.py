@@ -81,7 +81,7 @@ def check_and_fix_permissions(filename):
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
     config = Config(filename, configspec=cfg.split('\n'))
-    verification = config.verify()
+    verification = config.verify(skip_missing=True)
     if verification is not True:
         logger.debug("Config file '{}' may contain invalid values.".format(
             os.path.abspath(filename)))
