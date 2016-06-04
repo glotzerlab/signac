@@ -12,21 +12,26 @@ import getpass
 from . import get_project
 from . import __version__
 from .common import config
-from .common.configobj import flatten_errors
+from .common.configobj import flatten_errors, Section
 from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .common.errors import AuthenticationError
 from .contrib.utility import query_yes_no, prompt_password
 try:
-    from .common.host import get_database, get_credentials, uri
+    from .common.host import get_database, get_credentials, make_uri
 except ImportError:
     HOST = False
 else:
     HOST = True
 
+PW_ENCRYPTION_SCHEMES = ['None']
+DEFAULT_PW_ENCRYPTION_SCHEME = PW_ENCRYPTION_SCHEMES[0]
+if get_crypt_context() is not None:
+    PW_ENCRYPTION_SCHEMES.extend(get_crypt_context().schemes())
+    DEFAULT_PW_ENCRYPTION_SCHEME = get_crypt_context().default_scheme()
+
 
 CONFIG_HOST_DEFAULTS = {
-    'url': 'localhost',
+    'url': 'mongodb://localhost',
     'username': getpass.getuser(),
     'auth_mechanism': 'none',
     'ssl_cert_reqs': 'required',
@@ -40,6 +45,22 @@ CONFIG_HOST_CHOICES = {
 
 def _print_err(msg=None):
     print(msg, file=sys.stderr)
+
+
+def _passlib_available():
+    try:
+        import passlib  # noqa
+    except ImportError:
+        return False
+    else:
+        return True
+
+
+def _hide_password(line):
+    if line.strip().startswith('password'):
+        return ' ' * line.index('password') + 'password = ***'
+    else:
+        return line
 
 
 def _prompt_for_new_password(attempts=3):
@@ -56,80 +77,23 @@ def _prompt_for_new_password(attempts=3):
         raise ValueError("Too many failed attempts.")
 
 
-def _format_prompt(
-        key, default=None, choices=None,
-        prompt="Enter value for {key}{choices}{default}: "):
-    input_ = raw_input if six.PY2 else input  # noqa
-    return input_(prompt.format(
-        key=key,
-        choices='' if choices is None else ' [{}]'.format('|'.join(choices)),
-        default='' if default is None else ' ({})'.format(default)))
-
-
-def _select_from_choices(value, choices):
-    m = [c for c in choices if c.startswith(value)]
-    if not m:
-        m = [c for c in choices if c.lower().startswith(value.lower())]
-    if len(m) == 0:
-        raise ValueError("Illegal value '{}', not in [{}].".format(
-            value, '|'.join(choices)))
-    elif len(m) == 1:
-        return m[0]
-    else:
-        raise ValueError("Ambigious value '{}', choices=[{}].".format(
-            value, '|'.join(choices)))
-
-
-def _update_password(config, hostname):
+def _update_password(config, hostname, scheme=None, new_pw=None):
+    def hashpw(pw):
+        if scheme is None:
+            return pw
+        else:
+            return get_crypt_context().encrypt(
+                pw, scheme=scheme)
     hostcfg = config['hosts'][hostname]
     hostcfg['password'] = get_credentials(hostcfg)
-    try:
-        db_auth = get_database(
-            hostcfg.get('db_auth', 'admin'),
-            hostname=hostname, config=config)
-    except AuthenticationError as error:
-        _print_err(error)
-        kr = get_keyring()
-        if kr and kr.get_password('signac', uri(hostcfg)) is not None:
-            if query_yes_no(
-                    "Do you want to remove the key from the keyring?", 'no'):
-                kr.delete_password('signac', uri(hostcfg))
-                # Second attempt...
-                hostcfg['password'] = get_credentials(hostcfg)
-                db_auth = get_database(
-                    hostcfg.get('db_auth', 'admin'),
-                    hostname=hostname, config=config)
-            else:
-                raise
-        else:
-            raise
-    new_pw = _prompt_for_new_password()
-    try:
-        cc = get_crypt_context()
-    except ImportError:
-        _print_err("Warning: Install passlib for hashed password support!")
-    else:
-        identified_scheme = cc.identify(new_pw)
-        if identified_scheme:
-            _print_err(
-                "The password you entered has been identified as "
-                "hashed with the '{}' hashing algorithm. Please "
-                "select if you want to apply another hashing algorithm, "
-                "the default is None.".format(identified_scheme))
-        else:
-            _print_err(
-                "It is highly recommended to apply a hashing algorithm "
-                "to the password that you have entered. In doubt use "
-                "the default hashing scheme.")
-        scheme = _format_prompt(
-            key="password hashing scheme",
-            default='None' if identified_scheme else cc.default_scheme(),
-            choices=('None',) + cc.schemes())
-        if scheme == 'None':
-            new_pw = cc.encrypt(new_pw, scheme=scheme)
-    if new_pw != hostcfg['password']:
-        db_auth.add_user(hostcfg['username'], new_pw)
-    return new_pw
+    db_auth = get_database(
+        hostcfg.get('db_auth', 'admin'),
+        hostname=hostname, config=config)
+    if new_pw is None:
+        new_pw = _prompt_for_new_password()
+    pwhash = hashpw(new_pw)
+    db_auth.add_user(hostcfg['username'], pwhash)
+    return pwhash
 
 
 def main_project(args):
@@ -189,7 +153,9 @@ def verify_config(cfg, preserve_errors=True):
             section_string = '.'.join(section_list)
             if error is False:
                 error = 'Possibly invalid or missing.'
-            _print_err(section_string, ':', error)
+            else:
+                error = type(error).__name__
+            _print_err(' '.join((section_string, ':', error)))
 
 
 def main_config_show(args):
@@ -224,8 +190,11 @@ def main_config_show(args):
             cfg = cfg.get(kt)
             if cfg is None:
                 break
-    for line in config.Config(cfg).write():
-        print(line)
+    if not isinstance(cfg, Section):
+        print(cfg)
+    else:
+        for line in config.Config(cfg).write():
+            print(_hide_password(line))
 
 
 def main_config_verify(args):
@@ -284,8 +253,8 @@ def main_config_set(args):
     keys = args.key.split('.')
     if keys[-1].endswith('password'):
         raise RuntimeError(
-            "Passwords need to be updated with '{} config host'!".format(
-                os.path.basename(sys.argv[0])))
+            "Passwords need to be set with `{} config host "
+            "HOSTNAME -p`!".format(os.path.basename(sys.argv[0])))
     else:
         if len(args.value) == 0:
             raise ValueError("No value argument provided!")
@@ -305,8 +274,11 @@ def main_config_set(args):
 
 
 def main_config_host(args):
+    if args.update_pw is True:
+        args.update_pw = DEFAULT_PW_ENCRYPTION_SCHEME
     if not HOST:
         raise ImportError("pymongo is required for host configuration!")
+    from pymongo.uri_parser import parse_uri
     if not (args.local or args.globalcfg):
         args.globalcfg = True
     fn_config = None
@@ -332,12 +304,21 @@ def main_config_host(args):
         return cfg.setdefault(
             'hosts', dict()).setdefault(args.hostname, dict())
 
-    if hostcfg():
-        _print_err("Configuring host '{}'.".format(args.hostname))
-    else:
-        _print_err("Configuring new host '{}'.".format(args.hostname))
+    if args.remove:
+        if hostcfg():
+            q = "Are you sure you want to remove host '{}'."
+            if args.yes or query_yes_no(q.format(args.hostname), 'no'):
+                kr = get_keyring()
+                if kr:
+                    if kr.get_password('signac', make_uri(hostcfg())):
+                        kr.delete_password('signac', make_uri(hostcfg()))
+                del cfg['hosts'][args.hostname]
+                cfg.write()
+        else:
+            _print_err("Nothing to remove.")
+        return
 
-    if args.show_stored_pw:
+    if args.show_pw:
         pw = get_credentials(hostcfg(), ask=False)
         if pw is None:
             raise RuntimeError("Did not find stored password!")
@@ -345,16 +326,24 @@ def main_config_host(args):
             print(pw)
             return
 
+    if hostcfg():
+        _print_err("Configuring host '{}'.".format(args.hostname))
+    else:
+        _print_err("Configuring new host '{}'.".format(args.hostname))
+
     def hide_password(k, v):
+        "Hide all fields containing sensitive information."
         return '***' if k.endswith('password') else v
 
-    def update_hostcfg(update):
+    def update_hostcfg(** update):
+        "Update the host configuration."
         store = False
         for k, v in update.items():
-            if v is None and k in hostcfg():
-                _print_err("Deleting key {}".format(k))
-                del cfg['hosts'][args.hostname][k]
-                store = True
+            if v is None:
+                if k in hostcfg():
+                    _print_err("Deleting key {}".format(k))
+                    del cfg['hosts'][args.hostname][k]
+                    store = True
             elif k not in hostcfg() or v != hostcfg()[k]:
                 _print_err("Setting {}={}".format(k, hide_password(k, v)))
                 cfg['hosts'][args.hostname][k] = v
@@ -362,68 +351,49 @@ def main_config_host(args):
         if store:
             cfg.write()
 
-    def prompt_pw():
-        q = "Do you want to update the password?"
-        if query_yes_no(q, default='no'):
-            pwhash = _update_password(cfg, args.hostname)
-            keyring = get_keyring()
-            if query_yes_no("Do you want to store the password?"):
-                if keyring is None:
-                    return dict(password=pwhash, password_config=None)
-                else:
-                    if query_yes_no("Use keyring for storing?"):
-                        keyring.set_password('signac', uri(hostcfg()), pwhash)
-                        return dict(
-                            password=None,
-                            password_config=dict(keyring=uri(hostcfg())))
-                    else:
-                        if keyring.get_password('signac', uri(hostcfg())):
-                            keyring.delete_password('signac', uri(hostcfg()))
-                        return dict(password=pwhash, password_config=None)
-            else:
-                if keyring.get_password('signac', uri(hostcfg())):
-                    keyring.delete_password('signac', uri(hostcfg()))
-                pwcfg = parse_pwhash(pwhash)
-                return dict(password=None, password_config=pwcfg)
-        else:
-            return {}
+    def requires_username():
+        if 'username' not in hostcfg():
+            raise ValueError("Please specify a username!")
 
-    def prompt(key):
-        if key.endswith('password'):
-            return prompt_pw()
-        default = hostcfg().get(key, CONFIG_HOST_DEFAULTS.get(key))
-        ret = _format_prompt(key=key, default=default,
-                             choices=CONFIG_HOST_CHOICES.get(key))
-        if args.force:
-            return {key: ret}
-        elif ret:
-            choices = CONFIG_HOST_CHOICES.get(key)
-            if choices is None:
-                return {key: ret}
-            elif key in choices:
-                return {key: ret}
-            else:
-                return {key: _select_from_choices(ret, choices)}
-        else:
-            return {key: default}
+    if args.uri:
+        parse_uri(args.uri)
+        update_hostcfg(url=args.uri)
 
-    for key in ('url', 'auth_mechanism'):
-        update_hostcfg(prompt(key))
-    authm = hostcfg()['auth_mechanism']
-    _print_err("Selected authentication mechanism: {}".format(authm))
-    if authm in (None, 'none'):
-        pass
-    elif authm == 'SCRAM-SHA-1':
-        for key in ('username', 'password'):
-            update_hostcfg(prompt(key))
-    elif authm in ('SSL', 'SSL-x509'):
-        _print_err(
-            "Warning: SSL authentication is currently not fully supported!")
-        for key in ('ssl_keyfile', 'ssl_certfile',
-                    'ssl_cert_reqs', 'ssl_ca_certs'):
-            update_hostcfg(prompt(key))
-    else:
-        raise ValueError("Unsupported auth mechanism '{}'.".format(authm))
+    if args.username:
+        update_hostcfg(
+            username=args.username,
+            auth_mechanism='SCRAM-SHA-1')
+
+    if args.update_pw:
+        requires_username()
+        if not _passlib_available():
+            _print_err(
+                "WARNING: It is highly recommended to install passlib "
+                "to encrypt your password!")
+        pwhash = _update_password(
+            cfg, args.hostname,
+            scheme=None if args.update_pw == 'None' else args.update_pw,
+            new_pw=None if args.password is True else args.password)
+        if args.password:
+            update_hostcfg(
+                password=pwhash, password_config=None)
+        elif args.update_pw == 'None':
+            update_hostcfg(
+                password=None, password_config=None)
+        else:
+            update_hostcfg(
+                password=None, password_config=parse_pwhash(pwhash))
+    elif args.password:
+        requires_username()
+        if args.password is True:
+            new_pw = prompt_password()
+        else:
+            new_pw = args.password
+        update_hostcfg(password=new_pw, password_config=None)
+
+    _print_err("Configured host '{}':".format(args.hostname))
+    for line in config.Config({args.hostname: hostcfg()}).write():
+        print(_hide_password(line))
 
 
 def main():
@@ -438,6 +408,10 @@ def main():
         '--version',
         action='store_true',
         help="Display the version number and exit.")
+    parser.add_argument(
+        '-y', '--yes',
+        action='store_true',
+        help="Answer all questions with yes. Useful for scripted interaction.")
     subparsers = parser.add_subparsers()
 
     parser_project = subparsers.add_parser('project')
@@ -487,6 +461,7 @@ def main():
         action='store_true',
         help="Skip sanity checks when modifying the configuration.")
     config_subparsers = parser_config.add_subparsers()
+
     parser_show = config_subparsers.add_parser('show')
     parser_show.add_argument(
         'key',
@@ -494,6 +469,7 @@ def main():
         nargs='*',
         help="The key(s) to show, omit to show the full configuration.")
     parser_show.set_defaults(func=main_config_show)
+
     parser_set = config_subparsers.add_parser('set')
     parser_set.add_argument(
         'key',
@@ -509,16 +485,52 @@ def main():
         action='store_true',
         help="Override any validation warnings.")
     parser_set.set_defaults(func=main_config_set)
+
     parser_host = config_subparsers.add_parser('host')
     parser_host.add_argument(
         'hostname',
         type=str,
-        help="The name of the host to configure.")
+        help="The name of the specified resource. "
+             "Note: The name can be arbitrarily chosen.")
     parser_host.add_argument(
-        '--show-stored-pw',
+        'uri',
+        type=str,
+        nargs='?',
+        default='mongodb://localhost',
+        help="Set the URI of the specified resource, for "
+             "example: 'mongodb://localhost'.")
+    parser_host.add_argument(
+        '-u', '--username',
+        type=str,
+        help="Set the username for this resource.")
+    parser_host.add_argument(
+        '-p', '--password',
+        type=str,
+        nargs='?',
+        const=True,
+        help="Store a password for the specified resource.")
+    parser_host.add_argument(
+        '--update-pw',
+        type=str,
+        nargs='?',
+        const=True,
+        choices=PW_ENCRYPTION_SCHEMES,
+        help="Update the password of the specified resource. "
+             "Use in combination with -p/--password to store the "
+             "new password. You can optionally specify the hashing "
+             "algorithm used for the password encryption. Anything "
+             "else but 'None' requires passlib! (default={})".format(
+                 DEFAULT_PW_ENCRYPTION_SCHEME))
+    parser_host.add_argument(
+        '--show-pw',
         action='store_true',
-        help="Show the password if it was stored.")
+        help="Show the password if it was stored and exit.")
+    parser_host.add_argument(
+        '-r', '--remove',
+        action='store_true',
+        help="Remove the specified resource.")
     parser_host.set_defaults(func=main_config_host)
+
     parser_verify = config_subparsers.add_parser('verify')
     parser_verify.set_defaults(func=main_config_verify)
 
@@ -539,6 +551,8 @@ def main():
     except KeyboardInterrupt:
         _print_err()
         _print_err("Interrupted.")
+        if args.debug:
+            raise
         sys.exit(1)
     except Exception as error:
         _print_err('Error: {}'.format(str(error)))
