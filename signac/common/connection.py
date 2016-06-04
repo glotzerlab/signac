@@ -3,7 +3,6 @@
 # This software is licensed under the MIT License.
 import subprocess
 import logging
-import warnings
 import ssl
 from os.path import expanduser
 
@@ -110,37 +109,14 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    # not officially supported anymore
-    def _connect_pymongo2(self, host):  # pragma no cover
-        logger.debug("Connecting with pymongo2.")
-        warnings.warn("pymongo version 2 is no longer supported!",
-                      DeprecationWarning)
-        parameters = {
-            'connectTimeoutMS': self._config_get('connect_timeout_ms'),
-        }
-        parameters.update(self._kwargs)
-
-        auth_mechanism = self._config_get('auth_mechanism')
-        if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
-            client = pymongo.MongoClient(
-                host,
-                ** parameters)
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-            logger.critical("SSL authentication not supported for "
-                            "pymongo versions <= 3.x .")
-            raise_unsupported_auth_mechanism(auth_mechanism)
-        else:
-            raise_unsupported_auth_mechanism(auth_mechanism)
-        self._client = client
-
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_2:  # pragma no cover
-            self._connect_pymongo2(host)
+        if PYMONGO_2:
+            raise RuntimeError("pymongo version 2.x is no longer supported.")
         else:
             self._connect_pymongo3(host)
 
