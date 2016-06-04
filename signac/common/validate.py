@@ -21,19 +21,19 @@ def version(value, *args, **kwargs):
 
 
 def mongodb_uri(value, *args, **kwargs):
+    if isinstance(value, list):
+        value = ','.join(value)
+    if not value.startswith('mongodb://'):
+        value = 'mongodb://' + value
     try:
         import pymongo
     except ImportError:
         logger.debug("Install pymongo to validate database configurations!")
     else:
-        uris = value if isinstance(value, list) else value.split(',')
-        for uri in uris:
-            try:
-                if not uri.startswith('mongodb://'):
-                    uri = 'mongodb://' + uri
-                pymongo.uri_parser.parse_uri(uri)
-            except pymongo.errors.InvalidURI:
-                raise VdtValueError(value)
+        try:
+            pymongo.uri_parser.parse_uri(value)
+        except pymongo.errors.InvalidURI:
+            raise VdtValueError(value)
     return value
 
 
