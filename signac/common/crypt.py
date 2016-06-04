@@ -9,6 +9,7 @@ try:
     from passlib.context import CryptContext
 except ImportError:
     def get_crypt_context():
+        "This function requires passlib!"
         return None
 else:
     def get_crypt_context():
