@@ -1,10 +1,9 @@
 import sys
+from setuptools import setup, find_packages
 
-if sys.version_info < (2,7,0):
+if sys.version_info < (2, 7, 0):
     print("Error: signac requires python version >= 2.7.x.")
     sys.exit(1)
-
-from setuptools import setup, find_packages
 
 setup(
     name='signac',
@@ -14,13 +13,12 @@ setup(
 
     author='Carl Simon Adorf',
     author_email='csadorf@umich.edu',
-    description="Computational Database.",
-    keywords='simulation tools mc md monte-carlo mongodb '
-             'jobmanagement materials database',
+    description="Simple data management framework.",
+    keywords='simulation database index collaboration workflow',
 
     classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Topic :: Scientific/Engineering :: Physics",
     ],
