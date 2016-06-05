@@ -1,3 +1,35 @@
+0.2.9
+
+	- API changes:
+
+		- Addition of the `signac config` command line API.
+
+	- New Features:
+
+		- Password updates are encrypted with `bcrypt` when `passlib` is
+		  installed.
+	  - The user is prompted to enter missing credentials (username/password)
+		  in case that they are not stored in the configuration.
+		- The `signac confg` tool provides the ``--update-pw`` argument,
+	    which allows users to update their own password.
+
+	- Documentation:
+
+		- Improved documentation on how to configure signac.
+
+  - Bug fixes:
+
+	  - Nested job statepoints can no longer get corrupted. This bug
+		  occured when trying to operate on nested statepoint mappings.
+
+	- Misc:
+
+		- Added MIT license, in addition, all source code files contain a
+			short licensing header.
+		- The OSI classifiers are updated, including an upgrade of the
+		  development status to '4 - beta'.
+		- Deprecated pymongo versions 2.x are no longer supported.
+
 0.2.8
 
 	- API changes:
