@@ -548,6 +548,9 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
     elif six.PY2:
         logging.basicConfig(level=logging.WARNING)
+    if not hasattr(args, 'func'):
+        parser.print_usage()
+        sys.exit(2)
     try:
         args.func(args)
     except KeyboardInterrupt:
