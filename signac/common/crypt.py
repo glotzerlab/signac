@@ -10,7 +10,7 @@ try:
 except ImportError:
     def get_crypt_context():
         "This function requires passlib!"
-        raise ImportError("Requires passlib!")
+        return None
 else:
     def get_crypt_context():
         "Return the default signac crypto context."
@@ -71,5 +71,3 @@ def parse_pwhash(pwhash):
         return dict(
             rounds=int(pwhash.split('$')[2]),
             salt=pwhash[-53:-31])
-    else:
-        raise ValueError(pwhash)
