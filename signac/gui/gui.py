@@ -536,7 +536,7 @@ class ConnectDialog(QtGui.QDialog):
         host_config = hosts_config.get(self.name_edit.text(), dict())
         host_tab = self.tabs.widget(self.host_tab_index)
         auth_tab = self.tabs.widget(self.auth_tab_index)
-        host_tab.host_url_edit.setText(_get_url(host_config.get('url', 'localhost')))
+        host_tab.host_url_edit.setText(_get_url(host_config.get('url', 'mongodb://localhost')))
         auth_tab.username_edit.setText(host_config.get('username', ''))
         auth_tab.password_edit.setText(host_config.get('password', ''))
         auth_tab.auth_mechanism = host_config.get('auth_mechanism', 'none')
