@@ -7,7 +7,7 @@ if sys.version_info < (2, 7, 0):
 
 setup(
     name='signac',
-    version='0.2.8',
+    version='0.2.9rc1',
     packages=find_packages(),
     zip_safe=True,
 

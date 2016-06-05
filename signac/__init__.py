@@ -17,7 +17,7 @@ from . import gui
 from .contrib import Project, get_project, fetch, fetch_one
 from .db import get_database
 
-__version__ = '0.2.8'
+__version__ = '0.2.9rc1'
 
 __all__ = ['__version__', 'contrib', 'db', 'gui',
            'Project', 'get_project', 'get_database', 'fetch', 'fetch_one']
