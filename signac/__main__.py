@@ -359,6 +359,8 @@ def main_config_host(args):
     if args.uri:
         parse_uri(args.uri)
         update_hostcfg(url=args.uri)
+    elif 'url' not in hostcfg():
+        update_hostcfg(url='mongodb://localhost')
 
     if args.username:
         update_hostcfg(
@@ -497,7 +499,6 @@ def main():
         'uri',
         type=str,
         nargs='?',
-        default='mongodb://localhost',
         help="Set the URI of the specified resource, for "
              "example: 'mongodb://localhost'.")
     parser_host.add_argument(
