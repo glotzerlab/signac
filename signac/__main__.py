@@ -395,6 +395,7 @@ def main_config_host(args):
         update_hostcfg(password=new_pw, password_config=None)
 
     _print_err("Configured host '{}':".format(args.hostname))
+    print("[hosts]")
     for line in config.Config({args.hostname: hostcfg()}).write():
         print(_hide_password(line))
 
