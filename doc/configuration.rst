@@ -70,11 +70,7 @@ Assuming that we a have a MongoDB database reachable via *example.com*, which re
 
     $ signac config host example mongodb://example.com -u johndoe -p
     Configuring new host 'example'.
-    Setting url=mongodb://example.com
-    Setting username=johndoe
-    Setting auth_mechanism=SCRAM-SHA-1
     Password:
-    Setting password=***
     Configured host 'example':
     [hosts]
     [[example]]
