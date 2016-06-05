@@ -342,11 +342,11 @@ def main_config_host(args):
         for k, v in update.items():
             if v is None:
                 if k in hostcfg():
-                    _print_err("Deleting key {}".format(k))
+                    logging.info("Deleting key {}".format(k))
                     del cfg['hosts'][args.hostname][k]
                     store = True
             elif k not in hostcfg() or v != hostcfg()[k]:
-                _print_err("Setting {}={}".format(k, hide_password(k, v)))
+                logging.info("Setting {}={}".format(k, hide_password(k, v)))
                 cfg['hosts'][args.hostname][k] = v
                 store = True
         if store:
