@@ -93,7 +93,7 @@ The ``hostname`` argument defaults to the first configured host and can always b
 
 .. note::
 
-    To prevent that unauthorized users can steal your login credentials, **signac** will update the configuration file permissions, such that it is only readable by yourself.
+    To prevent that unauthorized users can obtain your login credentials, **signac** will update the configuration file permissions, such that it is only readable by yourself.
 
 
 Changing the password
@@ -153,7 +153,7 @@ db_auth (default=admin)
   The database to authenticate with.
 password_config
   In case that you update, but not store your password, the configuration file will contain only meta hashing data, such as the salt.
-  This allows to authenticate by entering the password for each sessions, which is generally more secure than storing the actual password hash.
+  This allows to authenticate by entering the password for each session, which is generally more secure than storing the actual password hash.
 
 .. warning::
 
