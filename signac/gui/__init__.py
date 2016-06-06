@@ -1,3 +1,6 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 """Graphical User Interface (GUI) for configuration and database inspection.
 
 The GUI is a leight-weight interface which makes the configuration

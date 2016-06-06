@@ -1,10 +1,13 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 import subprocess
 import logging
-import warnings
 import ssl
 from os.path import expanduser
 
 import pymongo
+
 
 PYMONGO_2 = pymongo.version_tuple[0] == 2
 
@@ -42,9 +45,10 @@ def raise_unsupported_auth_mechanism(mechanism):
 
 class DBClientConnector(object):
 
-    def __init__(self, host_config):
+    def __init__(self, host_config, **kwargs):
         self._config = host_config
         self._client = None
+        self._kwargs = kwargs
 
     @property
     def client(self):
@@ -72,7 +76,7 @@ class DBClientConnector(object):
         forwarded_parameters = (
             'socketTimeoutMS', 'connectTimeoutMS', 'serverSelectionTimeoutMS',
             'w', 'wtimeout', 'replicaSet')
-        parameters = dict()
+        parameters = self._kwargs
         for parameter in forwarded_parameters:
             if parameter in self._config:
                 parameters[parameter] = self._config_get(parameter)
@@ -105,36 +109,14 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    # not officially supported anymore
-    def _connect_pymongo2(self, host):  # pragma no cover
-        logger.debug("Connecting with pymongo3.")
-        warnings.warn("pymongo version 2 is no longer supported!",
-                      DeprecationWarning)
-        parameters = {
-            'connectTimeoutMS': self._config_get('connect_timeout_ms'),
-        }
-
-        auth_mechanism = self._config_get('auth_mechanism')
-        if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
-            client = pymongo.MongoClient(
-                host,
-                ** parameters)
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):
-            logger.critical("SSL authentication not supported for "
-                            "pymongo versions <= 3.x .")
-            raise_unsupported_auth_mechanism(auth_mechanism)
-        else:
-            raise_unsupported_auth_mechanism(auth_mechanism)
-        self._client = client
-
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
         logger.debug("Connecting to host '{host}'.".format(
             host=self._config_get_required('url')))
 
-        if PYMONGO_2:  # pragma no cover
-            self._connect_pymongo2(host)
+        if PYMONGO_2:
+            raise RuntimeError("pymongo version 2.x is no longer supported.")
         else:
             self._connect_pymongo3(host)
 

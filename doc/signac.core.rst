@@ -4,14 +4,6 @@ signac.core package
 Submodules
 ----------
 
-signac.core.collection module
------------------------------
-
-.. automodule:: signac.core.collection
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 signac.core.jsondict module
 ---------------------------
 

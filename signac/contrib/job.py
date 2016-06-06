@@ -1,8 +1,12 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
 import os
 import errno
 import logging
 import json
 import shutil
+import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
@@ -63,7 +67,7 @@ class Job(object):
 
         :return: The statepoint mapping.
         :rtype: dict"""
-        return dict(self._statepoint)
+        return copy.deepcopy(self._statepoint)
 
     @property
     def document(self):

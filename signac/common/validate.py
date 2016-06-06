@@ -1,5 +1,13 @@
+# Copyright (c) 2016 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the MIT License.
+import logging
+
 from .configobj.validate import Validator
-from .configobj.validate import VdtTypeError
+from .configobj.validate import VdtValueError
+
+
+logger = logging.getLogger(__name__)
 
 
 def version(value, *args, **kwargs):
@@ -8,54 +16,55 @@ def version(value, *args, **kwargs):
             return tuple((int(v) for v in value.split(',')))
         else:
             return tuple((int(v) for v in value))
-    except Exception as error:
-        print(error)
-        raise VdtTypeError(value)
+    except Exception:
+        raise VdtValueError(value)
 
-fdict = {
-    'version': version
-}
+
+def mongodb_uri(value, *args, **kwargs):
+    if isinstance(value, list):
+        value = ','.join(value)
+    if not value.startswith('mongodb://'):
+        value = 'mongodb://' + value
+    try:
+        import pymongo
+    except ImportError:
+        logger.debug("Install pymongo to validate database configurations!")
+    else:
+        try:
+            pymongo.uri_parser.parse_uri(value)
+        except pymongo.errors.InvalidURI:
+            raise VdtValueError(value)
+    return value
+
+
+def password(value, *args, **kwargs):
+    return value
 
 
 def get_validator():
-    return Validator(fdict)
+    return Validator({
+        'version': version,
+        'mongodb_uri': mongodb_uri,
+        'password': password,
+    })
+
 
 cfg = """
-author_name = string
-author_email = string
-filestorage_dir = string
-workspace_dir = string
-noforking = bool(default=False)
-project = string
+workspace_dir = string(default='workspace')
+project = string()
 signac_version = version(default='0,1,0')
-
-database_host = string()
-database_auth_mechanism = option('none', 'SCRAM-SHA-1', 'SSL-x509', 'SSL', default='none')
-database_ssl_ca_certs = string
-database_ssl_certfile = string
-database_ssl_keyfile = string
-database_username = string
-database_password = string
-database_connect_timeout_ms = integer(default=5000)
 
 [General]
 default_host = string()
-[Author]
-name = string
-email = string
-
-[signacdb]
-database = string(default='signacdb')
 
 [hosts]
 [[__many__]]
-url = string(default='localhost')
-auth_mechanism = option('none', 'SCRAM-SHA-1', 'SSL-x509', 'SSL', default='none')
-ssl_ca_certs = string
-ssl_certfile = string
-ssl_keyfile = string
-username = string
-password = string
-connect_timeout_ms = integer(default=5000)
-db_auth = string
+url = mongodb_uri(default='localhost')
+auth_mechanism = option('none', 'SCRAM-SHA-1', default='none')
+username = string()
+password = password()
+db_auth = string(default='admin')
+[[[password_config]]]
+salt = string()
+rounds = integer()
 """
