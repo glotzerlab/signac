@@ -1,10 +1,11 @@
 .. _installation:
 
+============
 Installation
 ============
 
-With conda
-----------
+Install with conda
+==================
 
 .. sidebar:: Closed-source
 
@@ -28,8 +29,29 @@ To upgrade, execute
 
     This is the recommended installation method.
 
-With pip
---------
+Alternative installation methods
+================================
+
+Optional dependencies
+---------------------
+
+When using one of the alternative installation  methods, any optional dependencies may not get automatically installed.
+In the case that you want to use extra features that requires dependencies, you need to install those manually.
+
+Extra features with dependencies:
+
+.. glossary::
+
+    MongoDB database backend
+      required: ``pymongo``
+
+      recommended: ``passlib``, ``bcrypt``
+
+    Graphical User Interface (GUI)
+      required: ``PySide``
+
+Install with pip
+----------------
 
 To install the package with the package manager pip_, execute
 
@@ -37,7 +59,7 @@ To install the package with the package manager pip_, execute
 
 .. code:: bash
 
-    $ pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
+    $ pip install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
 
 .. note::
     It is highly recommended to install the package into the user space and not as superuser!
@@ -46,10 +68,16 @@ To upgrade the package, simply execute the same command with the `--upgrade` opt
 
 .. code:: bash
 
-    $ pip3 install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user --upgrade
+    $ pip install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user --upgrade
 
-With git
---------
+Consider to install optional dependencies:
+
+.. code:: bash
+
+    $ pip install pymongo passlib bcrypt
+
+Install with git
+----------------
 
 Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/signac>`_ and use the ``setup.py`` script to install the package.
 
@@ -58,3 +86,5 @@ Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/s
   git clone https://$USER@bitbucket.org/glotzer/signac.git
   cd signac
   python setup.py install --user
+
+Consider to install optional dependencies (see above).
