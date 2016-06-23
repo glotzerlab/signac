@@ -1,3 +1,8 @@
+0.3.0
+
+	- Change license from MIT to BSD 3-clause license.
+	- Add contributing agreement and guidelines.
+			
 0.2.9
 
 	- API changes:
