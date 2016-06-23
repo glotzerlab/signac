@@ -41,7 +41,7 @@ Executing ``signac`` on the command line should prompt something like:
 .. code-block:: bash
 
     $ signac
-    usage: signac [-h] [--debug] [--version] {project,job,init} ...
+    usage: signac [-h] [--debug] [--version] {project,job,init,config} ...
 
 .. note::
 
@@ -265,7 +265,6 @@ Let's examine the results of our computation, by adding an ``examine.py`` script
 .. code-block:: python
 
     # examine.py
-    import os
     import signac
 
     def get_volume(job):
