@@ -33,8 +33,7 @@ Contents
 
 .. attention::
 
-    The **signac** package is hosted on `bitbucket <https://bitbucket.org/glotzer/signac>`_ and not open to the public yet.
-    Please contact `csadorf@umich.edu <mailto:csadorf@umich.edu>`_ to gain early access.
+    The **signac** package is hosted on `bitbucket <https://bitbucket.org/glotzer/signac>`_ and licensed under the open-source BSD 3-Clause license.
 
 .. toctree::
    :hidden:

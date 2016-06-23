@@ -7,7 +7,7 @@ if sys.version_info < (2, 7, 0):
 
 setup(
     name='signac',
-    version='0.2.9',
+    version='0.3.0',
     packages=find_packages(),
     zip_safe=True,
 
@@ -19,7 +19,7 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: BSD 3-Clause License",
         "Topic :: Scientific/Engineering :: Physics",
     ],
 

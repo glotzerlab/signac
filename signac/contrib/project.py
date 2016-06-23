@@ -1,6 +1,6 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
-# This software is licensed under the MIT License.
+# This software is licensed under the BSD 3-Clause License.
 import os
 import re
 import logging
@@ -162,8 +162,9 @@ class Project(object):
 
         :param filter: If not None, only yield statepoints matching the filter.
         :type filter: mapping
-        :param skip_errors: Show, but otherwise ignore errors while iterating
-            over the workspace. Use this argument to repair a corrupted workspace.
+        :param skip_errors: Show, but otherwise ignore errors while
+            iterating over the workspace. Use this argument to repair
+            a corrupted workspace.
         :type skip_erros: bool
         :yields: statepoints as dict"""
         filter = None if filter is None else json.loads(json.dumps(filter))
