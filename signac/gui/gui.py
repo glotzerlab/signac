@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-#!/usr/bin/env python3
 """Light-weight GUI client as part of the signac framework.
 
 The GUI can be used to view JSON files and access MongoDB
@@ -58,6 +58,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE."""
+
 
 def set_bg_color(w, color):
     return
@@ -117,6 +118,7 @@ class HostConnectionThread(QtCore.QThread):
             self.parent().connection_error = error
         else:
             self.parent().connection_error = None
+
 
 class DocumentView(QtGui.QTreeView):
 
@@ -434,6 +436,7 @@ class HostsDialog(QtGui.QDialog):
                 "Connection Error",
                 "{}: '{}'".format(type(error), error))
             msg_box.exec_()
+
 
 class HostnameValidator(QtGui.QValidator):
 
@@ -767,6 +770,7 @@ class DBTreeView(QtGui.QTreeView):
     def minimumSizeHint(self):
         return QtCore.QSize(250, 500)
 
+
 class QueryThread(QtCore.QThread):
     query_result_available = QtCore.Signal()
     query_failed = QtCore.Signal()
@@ -786,6 +790,7 @@ class QueryThread(QtCore.QThread):
             self.query_failed.emit()
         else:
             self.query_result_available.emit()
+
 
 class QueryView(QtGui.QWidget):
     query_begin = QtCore.Signal()
@@ -941,11 +946,13 @@ class QueryView(QtGui.QWidget):
         self.query_begin.emit()
         self.tree_view.model().doc_index = self.index_start, self.index_stop
 
+
 def _get_url(url):
     if isinstance(url, list):
         return ','.join(url)
     else:
         return url
+
 
 def _set_url(url_str):
     return ','.join((s.strip() for s in url_str.split(',')))
