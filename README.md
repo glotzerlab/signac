@@ -7,7 +7,7 @@ The signac framework aids in the management of large and heterogeneous data spac
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
-**The package's documentation is available at: [https://glotzerlab.engin.umich.edu/signac](https://glotzerlab.engin.umich.edu/signac)**
+**The package's documentation is available at: [http://signac.readthedocs.io/en/latest/](http://signac.readthedocs.io/en/latest/)**
 
 ## Installation
 
