@@ -13,11 +13,11 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 
 The recommeded method of installation is using *conda*:
 
-    conda install signac
+    conda install -c glotzer signac
 
 To upgrade, the package, execute:
 
-    conda update signac
+    conda update -c glotzer signac
 
 **Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://glotzerlab.engin.umich.edu/signac/installation.html).**
 
