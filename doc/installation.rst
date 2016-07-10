@@ -7,15 +7,11 @@ Installation
 Install with conda
 ==================
 
-.. sidebar:: Closed-source
-
-    **signac** is not yet publicly released, installation via conda therefore requires access to the *private* Glotzer channel.
-
 To install the package with conda_, execute
 
 .. code:: bash
 
-    $ conda install signac
+    $ conda install -c glotzer signac
 
 To upgrade, execute
 
