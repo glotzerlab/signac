@@ -31,9 +31,13 @@ Contents
     :ref:`api`
       The complete API reference.
 
-.. attention::
+Support and Contribution
+------------------------
 
-    The **signac** package is hosted on `bitbucket <https://bitbucket.org/glotzer/signac>`_ and licensed under the open-source BSD 3-Clause license.
+To get help using the signac package, either send an email to `signac-support@umich.edu <mailto:signac-support@umich.edu>`_ or join the `signac hipchat channel <https://www.hipchat.com/gGxEbx62Z>`_.
+
+The **signac** package is hosted on `bitbucket <https://bitbucket.org/glotzer/signac>`_ and licensed under the open-source BSD 3-Clause license.
+Please use the `repository's issue tracker <https://bitbucket.org/glotzer/signac/issues?status=new&status=open>`_ to report bugs or request new features.
 
 .. toctree::
    :hidden:
