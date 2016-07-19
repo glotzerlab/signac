@@ -79,7 +79,7 @@ Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/s
 
 .. code:: bash
 
-  git clone https://$USER@bitbucket.org/glotzer/signac.git
+  git clone https://bitbucket.org/glotzer/signac.git
   cd signac
   python setup.py install --user
 
