@@ -19,7 +19,7 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: BSD 3-Clause License",
+        "License :: OSI Approved :: BSD License",
         "Topic :: Scientific/Engineering :: Physics",
     ],
 
