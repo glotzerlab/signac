@@ -55,7 +55,7 @@ To install the package with the package manager pip_, execute
 
 .. code:: bash
 
-    $ pip install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user
+    $ pip install signac --user
 
 .. note::
     It is highly recommended to install the package into the user space and not as superuser!
@@ -64,7 +64,7 @@ To upgrade the package, simply execute the same command with the `--upgrade` opt
 
 .. code:: bash
 
-    $ pip install git+https://$USER@bitbucket.org/glotzer/signac.git#egg=signac --user --upgrade
+    $ pip install signac --user --upgrade
 
 Consider to install optional dependencies:
 

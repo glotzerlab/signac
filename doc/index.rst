@@ -19,6 +19,9 @@ Contents
     :ref:`overview`
       An illustration of **signac**'s workflow and data model.
 
+    :ref:`installation`
+      Instructions on how to install the **signac** package.
+
     :ref:`tutorial`
       Compact demonstration of the implementation of a computational workflow.
 
@@ -44,6 +47,7 @@ Please use the `repository's issue tracker <https://bitbucket.org/glotzer/signac
    :maxdepth: 3
 
    overview
+   installation
    tutorial
    guide
    reference
