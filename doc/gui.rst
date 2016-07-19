@@ -1,8 +1,8 @@
 ===
-Gui
+GUI
 ===
 
-**signac** provides a graphical user interface (gui) which makes configuration and inspecting database records easier.
+**signac** provides a simple graphical user interface (GUI) which makes configuration and inspecting database records easier.
 
 .. sidebar:: Warning
 

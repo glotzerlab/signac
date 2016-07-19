@@ -10,9 +10,8 @@ Contents:
 .. toctree::
    :maxdepth: 3
 
-   installation
-   gui
    configuration
    projects
    indexing
    database
+   gui

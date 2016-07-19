@@ -25,7 +25,13 @@ The easiest way to do so is using conda:
 
 .. code-block:: bash
 
-    $ conda install signac
+    $ conda install -c glotzer signac
+
+or pip:
+
+.. code-block:: bash
+
+   $ pip install signac
 
 Alternative installation methods are described :ref:`here <installation>`.
 After successful installation we should be able to open a python shell and import the signac package without error:
