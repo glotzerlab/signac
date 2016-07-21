@@ -17,7 +17,7 @@ Contents
 .. glossary::
 
     :ref:`overview`
-      An illustration of **signac**'s workflow and data model.
+      An illustration of **signac**'s data model.
 
     :ref:`installation`
       Instructions on how to install the **signac** package.

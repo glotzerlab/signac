@@ -31,9 +31,9 @@ or pip:
 
 .. code-block:: bash
 
-   $ pip install signac
+   $ pip install signac --user
 
-Alternative installation methods are described :ref:`here <installation>`.
+Please refer to the :ref:`installation page <installation>` for detailed instructions on how to install signac.
 After successful installation we should be able to open a python shell and import the signac package without error:
 
 .. code-block:: bash
@@ -123,9 +123,9 @@ We can then examine our results by iterating over the data space:
     >>> for job in project.find_jobs():
     ...     print(job.statepoint()['p'], job.document['V'])
     ...
-    0.1 10000.0
-    1.0 1000.0
-    10.0 100.0
+    0.1 1000.0
+    1.0 100.0
+    10.0 10.0
 
 This concludes the minimal example.
 In the next section we will assume that the ideal gas computation represents a more expensive computation.
@@ -137,8 +137,8 @@ The Basics
 Data space initialization
 -------------------------
 
-In the minimal example we initialized the data space *implicitely*.
-Let's see how we can initialize it *explicitely*.
+In the minimal example we initialized the data space *implicitly*.
+Let's see how we can initialize it *explicitly*.
 In general, the data space needs to contain all parameters that will affect our data.
 For the ideal gas that is a 3-dimensional space spanned by the temperature *T*, the pressure *p* and the system size *N*.
 
@@ -228,7 +228,7 @@ Let's add a few more lines to complete the ``run.py`` script:
 .. code-block:: python
 
     # run.py
-    import signac
+    import signac  # <- Add import statement!
 
     def calc_volume(N, T, p):
         "Compute the volume of an ideal gas."
