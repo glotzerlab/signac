@@ -752,6 +752,8 @@ Next, we implememt a ``fetch.py`` script:
         for line in file:
             doc = json.loads(line)
             file = signac.fetch_one(doc)
+            if file is None:
+                continue
             V = float(file.read())
             print(doc['statepoint'], V)
 
