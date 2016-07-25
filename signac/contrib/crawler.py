@@ -512,11 +512,16 @@ def fetch_one(doc, *args, **kwargs):
 
     Unlike :func:`~signac.fetch`, this function returns only the first
     file associated with doc and ignores all others.
+    This function returns None if not file is associated with
+    the document.
 
     :param doc: A document which is part of an index.
     :type doc: mapping
-    :yields: Data associated with this document in the specified format."""
-    return next(fetch(doc, *args, **kwargs))
+    :returns: Data associated with this document or None."""
+    try:
+        return next(fetch(doc, *args, **kwargs))
+    except StopIteration:
+        return None
 
 
 def fetched(docs):
