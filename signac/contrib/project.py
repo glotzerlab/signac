@@ -8,6 +8,7 @@ import json
 import errno
 import collections
 
+from ..core.search_engine import DocumentSearchEngine
 from ..common import six
 from ..common.config import load_config
 from .job import Job
@@ -47,6 +48,28 @@ ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
     for doc in master_crawler.crawl(depth={depth}):
         print(doc)
 """
+
+
+class FindJobsEngine(object):
+
+    def __init__(self, project, index, include=None):
+        self.project = project
+        self._engine = DocumentSearchEngine.build_index(index, include=include)
+
+    def find_job_ids(self, filter=None, doc_filter=None):
+        filter = None if filter is None else json.loads(json.dumps(filter))
+        doc_filter = None if doc_filter is None else json.loads(json.dumps(doc_filter))
+        q = dict()
+        if filter is not None:
+            q['statepoint'] = filter
+        if doc_filter is not None:
+            q.update(doc_filter)
+        for job_id in self._engine.find(filter=q):
+            yield job_id
+
+    def find_jobs(self, filter=None, doc_filter=None):
+        for job_id in self.find_job_ids(filter, doc_filter):
+            yield self.project.open_job(id=job_id)
 
 
 class Project(object):
@@ -148,16 +171,29 @@ class Project(object):
     def num_jobs(self):
         return len(list(self._job_dirs()))
 
-    def find_jobs(self, filter=None):
+    def load_find_jobs_engine(self, index, include=None):
+        return FindJobsEngine(self, index=index, include=include)
+
+    def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
 
         :param filter: If not None, only find jobs matching the filter.
         :type filter: mapping
+        :param doc_filter: If not None, only find jobs with documents
+            that match doc_filter.
+        :type filter: mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`"""
-        for statepoint in self.find_statepoints(filter):
-            yield Job(self, statepoint)
+        if index is None:
+            index = self.index()
+        if doc_filter is None:
+            include = {'statepoint': True}
+        else:
+            include = None
+        engine = self.load_find_jobs_engine(index=index, include=include)
+        for job_id in engine.find_job_ids(filter=filter):
+            yield self.open_job(id=job_id)
 
-    def find_statepoints(self, filter=None, skip_errors=False):
+    def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         :param filter: If not None, only yield statepoints matching the filter.
@@ -165,29 +201,17 @@ class Project(object):
         :param skip_errors: Show, but otherwise ignore errors while
             iterating over the workspace. Use this argument to repair
             a corrupted workspace.
-        :type skip_erros: bool
+        :type skip_errors: bool
         :yields: statepoints as dict"""
-        filter = None if filter is None else json.loads(json.dumps(filter))
-
-        def _match(doc, f):
-            for key, value in f.items():
-                if key not in doc or doc[key] != value:
-                    return False
-            return True
-        wd = self.workspace()
-        for job_dir in self._job_dirs():
-            fn_manifest = os.path.join(wd, job_dir, Job.FN_MANIFEST)
-            try:
-                with open(fn_manifest) as manifest:
-                    statepoint = json.load(manifest)
-                    if filter is None or _match(statepoint, filter):
-                        yield statepoint
-            except Exception as error:
-                msg = "Error while trying to access manifest file: "\
-                      "'{}'. Error: '{}'.".format(fn_manifest, error)
-                logger.critical(msg)
-                if not skip_errors:
-                    raise error
+        if index is None:
+            index = self.index()
+        if skip_errors:
+            index = _skip_errors(index, logger.critical)
+        jobs = self.find_jobs(filter, doc_filter, index)
+        if skip_errors:
+            jobs = _skip_errors(jobs, logger.critical)
+        for job in jobs:
+            yield job.statepoint()
 
     def find_variable_parameters(self, statepoints=None):
         """Find all parameters which vary over the data space.
@@ -480,7 +504,7 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
-    def index(self, formats=None, depth=0):
+    def index(self, formats=None, depth=0, skip_errors=False):
         """Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -507,7 +531,10 @@ class Project(object):
                 Crawler.define(expr, fmt)
 
         crawler = Crawler(self.workspace())
-        for doc in crawler.crawl(depth=depth):
+        docs = crawler.crawl(depth=depth)
+        if skip_errors:
+            docs = _skip_errors(docs, logger.critical)
+        for doc in docs:
             yield doc
 
     def create_access_module(self, formats=None, crawlername=None,
@@ -671,6 +698,16 @@ def _aggregate_statepoints(statepoints, prefix=None):
         statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)
     result.extend((k,) if prefix is None else (prefix, k) for k in unique_keys)
     return result
+
+
+def _skip_errors(iterable, log=print):
+  while True:
+    try:
+        yield next(iterable)
+    except StopIteration:
+        return
+    except Exception as error:
+        log(error)
 
 
 def get_project():
