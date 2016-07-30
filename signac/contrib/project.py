@@ -50,24 +50,66 @@ ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
 """
 
 
-class FindJobsEngine(object):
+class JobSearchEngine(object):
+    """Search for sepcific jobs with filters.
 
+    The JobSearchEngine allows to search for jobs
+    which are part of an index which match specific
+    statepoint filters or job document filters.
+
+    :param project: The project the jobs are associated with.
+    :type project: :class:`~.Project`
+    :param index: A document index.
+    :type index: list
+    :param include: A mapping of keys that shall be
+        included (True) or excluded (False).
+    :type include: Mapping
+    """
     def __init__(self, project, index, include=None):
         self.project = project
-        self._engine = DocumentSearchEngine.build_index(index, include=include)
+        self._engine = DocumentSearchEngine(index, include=include)
 
     def find_job_ids(self, filter=None, doc_filter=None):
-        filter = None if filter is None else json.loads(json.dumps(filter))
-        doc_filter = None if doc_filter is None else json.loads(json.dumps(doc_filter))
-        q = dict()
+        """Find the job_ids of all jobs matching the filters.
+
+        Both filters must be JSON serializable.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :yields: The ids of all indexed jobs matching both filters.
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
+        f = dict()
         if filter is not None:
-            q['statepoint'] = filter
+            f['statepoint'] = filter
         if doc_filter is not None:
-            q.update(doc_filter)
-        for job_id in self._engine.find(filter=q):
+            f.update(doc_filter)
+        f = json.loads(json.dumps(f))  # Normalize
+        for job_id in self._engine.find(filter=f):
             yield job_id
 
     def find_jobs(self, filter=None, doc_filter=None):
+        """Find all jobs matching the filters.
+
+        Both filters must be JSON serializable.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :yields: All indexed jobs matching both filters.
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
         for job_id in self.find_job_ids(filter, doc_filter):
             yield self.project.open_job(id=job_id)
 
@@ -171,8 +213,18 @@ class Project(object):
     def num_jobs(self):
         return len(list(self._job_dirs()))
 
-    def load_find_jobs_engine(self, index, include=None):
-        return FindJobsEngine(self, index=index, include=include)
+    def load_job_search_engine(self, index, include=None):
+        """Load the job search engine.
+
+        :param index: A document index.
+        :type index: list
+        :param include: A mapping of keys that shall be
+            included (True) or excluded (False).
+        :type include: Mapping
+        :returns: A job search engine for the indexed jobs.
+        :rtype: :class:`~.JobSearchEngine`
+        """
+        return JobSearchEngine(self, index=index, include=include)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
@@ -189,7 +241,7 @@ class Project(object):
             include = {'statepoint': True}
         else:
             include = None
-        engine = self.load_find_jobs_engine(index=index, include=include)
+        engine = self.load_job_search_engine(index, include)
         for job_id in engine.find_job_ids(filter=filter):
             yield self.open_job(id=job_id)
 
@@ -701,13 +753,13 @@ def _aggregate_statepoints(statepoints, prefix=None):
 
 
 def _skip_errors(iterable, log=print):
-  while True:
-    try:
-        yield next(iterable)
-    except StopIteration:
-        return
-    except Exception as error:
-        log(error)
+    while True:
+        try:
+            yield next(iterable)
+        except StopIteration:
+            return
+        except Exception as error:
+            log(error)
 
 
 def get_project():
