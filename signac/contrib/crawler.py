@@ -317,27 +317,35 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
     statepoint_index = 'statepoint'
     signac_id_alias = '_id'
 
-    def docs_from_file(self, dirpath, fn):
-        if re.match(self.re_job_document, os.path.join(dirpath, fn)):
-            with open(os.path.join(dirpath, fn), 'rb') as file:
-                try:
-                    job_doc = json.loads(file.read().decode(self.encoding))
-                except ValueError:
-                    logger.error(
-                        "Failed to load job document for job '{}'.".format(
-                            self.get_statepoint(dirpath)[0]))
-                    raise
-            signac_id, statepoint = self.get_statepoint(dirpath)
-            job_doc['signac_id'] = signac_id
-            if self.statepoint_index:
-                job_doc[self.statepoint_index] = statepoint
-            else:
-                job_doc.update(statepoint)
+    def crawl(self, depth=0):
+        m = re.compile('[a-z0-9]{32}')
+        job_ids = (d for d in os.listdir(self.root) if m.match(d))
+        for job_id in job_ids:
+            job_wd_dir = os.path.join(self.root, job_id)
+            try:
+                sp = self.get_statepoint(job_wd_dir)[1]
+            except IOError:
+                raise LookupError(job_id)
+            doc = {
+                    'signac_id': job_id,
+                    self.statepoint_index: sp,
+                }
             if self.signac_id_alias:
-                job_doc[self.signac_id_alias] = signac_id
-            yield job_doc
-        for doc in super(SignacProjectJobDocumentCrawler, self).docs_from_file(
-                dirpath, fn):
+                doc[self.signac_id_alias] = job_id
+            try:
+                with open(os.path.join(job_wd_dir, 'signac_job_document.json')) as file:
+                    job_doc = json.load(file)
+                    if '_id' in job_doc:
+                        raise KeyError(
+                            "The job document already contains a field '_id'!")
+                    if self.statepoint_index in job_doc:
+                        raise KeyError(
+                            "The job document already contains a field '{}'!".format(self.statepoint_index))
+                    doc.update(job_doc)
+            except FileNotFoundError:
+                pass
+            yield doc
+        for doc in super(SignacProjectJobDocumentCrawler, self).crawl(depth=depth):
             yield doc
 
 

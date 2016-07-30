@@ -181,18 +181,17 @@ class ProjectTest(BaseProjectTest):
         list(self.project.find_job_documents())
         self.assertEqual(len(statepoints), len(
             list(self.project.find_job_documents())))
+        list(self.project.find_job_documents({'a': 1}))
         self.project.open_job({'a': 0}).document['_id'] = True
-        list(self.project.find_job_documents({'a': 1}))  # should not throw
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents())
-        with self.assertRaises(KeyError):
-            list(self.project.find_job_documents({'a': 0}))
+        del self.project.open_job({'a': 0}).document['_id']
+        list(self.project.find_job_documents())
         self.project.open_job({'a': 1}).document['statepoint'] = True
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents())
-        with self.assertRaises(KeyError):
-            list(self.project.find_job_documents({'a': 1}))
-        list(self.project.find_job_documents({'a': 2}))  # should not throw
+        del self.project.open_job({'a': 1}).document['statepoint']
+        list(self.project.find_job_documents())
 
     def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -205,10 +204,10 @@ class ProjectTest(BaseProjectTest):
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
-        # Implement logging temporarily
+        # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LookupError):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
             # The skip_errors function helps to identify corrupt directories.
