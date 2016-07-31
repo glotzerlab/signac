@@ -39,25 +39,6 @@ def _traverse_tree(t, include=None):
         yield t
 
 
-def _build_index(docs, include=None):
-    index = defaultdict(set)
-    ids = set()
-    if include is None:
-        included = None
-    else:
-        included = dict()
-        for branch in _traverse_tree(include):
-            f = tuple(_flatten(branch))
-            included[hash(f[:-1])] = f[-1]
-    if docs is not None:
-        for doc in docs:
-            ids.add(doc['_id'])
-            for branch in _traverse_tree(doc, include=include):
-                f = tuple(_flatten(branch))
-                index[hash(f)].add(doc['_id'])
-    return ids, index, included
-
-
 def _valid_filter(f):
     if isinstance(f, Mapping):
         return all(_valid_filter(v) for v in f.values())
@@ -82,11 +63,32 @@ class DocumentSearchEngine(object):
     :param include: A mapping of keys that shall be
         included (True) or excluded (False).
     :type include: Mapping
+    :param hash_: The hash function to use, defaults to :func:`hash`.
+    :type hash_: callable
     """
-    def __init__(self, docs=None, include=None):
+    def __init__(self, docs=None, include=None, hash_=None):
+        self._hash = hash if hash_ is None else hash_
         logger.debug("Building index...")
-        self.ids, self.index, self.included = _build_index(docs, include)
+        self.ids, self.index, self.included = self._build_index(docs, include)
         logger.debug("Built index with {} entries.".format(len(self.index)))
+
+    def _build_index(self, docs, include=None):
+        index = defaultdict(set)
+        ids = set()
+        if include is None:
+            included = None
+        else:
+            included = dict()
+            for branch in _traverse_tree(include):
+                f = tuple(_flatten(branch))
+                included[self._hash(f[:-1])] = f[-1]
+        if docs is not None:
+            for doc in docs:
+                ids.add(doc['_id'])
+                for branch in _traverse_tree(doc, include=include):
+                    f = tuple(_flatten(branch))
+                    index[self._hash(f)].add(doc['_id'])
+        return ids, index, included
 
     def _filter_supported(self, filter):
         if self.included is None:
@@ -95,7 +97,7 @@ class DocumentSearchEngine(object):
             for branch in _traverse_tree(filter):
                 f = tuple(_flatten(branch))
                 for i in range(len(f)):
-                    h = hash(f[:-i])
+                    h = self._hash(f[:-i])
                     if self.included.get(h, False):
                         break
                 else:
@@ -160,7 +162,7 @@ class DocumentSearchEngine(object):
         else:
             result = None
             for branch in _traverse_tree(filter):
-                h = hash(tuple(_flatten(branch)))
+                h = self._hash(tuple(_flatten(branch)))
                 m = self.index.get(h, set())
                 if result is None:
                     result = m
