@@ -129,7 +129,24 @@ def main_index(args):
     _print_err("Indexing project...")
     index = project.index()
     for doc in index:
-        print(doc)
+        print(json.dumps(doc))
+
+
+def main_find(args):
+    project = get_project()
+    if args.filter is None:
+        f = None
+    else:
+        f = json.loads(args.filter)
+    if args.index is None:
+        _print_err("Indexing project...")
+        index = project.index()
+    else:
+        _print_err("Reading index from file '{}'...".format(args.index))
+        fd = open(args.index)
+        index = (json.loads(l) for l in fd)
+    for job_id in project.find_job_ids(filter=f, index=index):
+        print(job_id)
 
 
 def main_init(args):
@@ -464,6 +481,18 @@ def main():
 
     parser_index = subparsers.add_parser('index')
     parser_index.set_defaults(func=main_index)
+
+    parser_find = subparsers.add_parser('find')
+    parser_find.add_argument(
+        'filter',
+        type=str,
+        nargs='?',
+        help="A JSON encoded filter (key-value pairs).")
+    parser_find.add_argument(
+        '-i', '--index',
+        type=str,
+        help="The filename of an index file.")
+    parser_find.set_defaults(func=main_find)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
