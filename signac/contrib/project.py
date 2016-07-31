@@ -65,9 +65,9 @@ class JobSearchIndex(object):
         included (True) or excluded (False).
     :type include: Mapping
     """
-    def __init__(self, project, index, include=None):
+    def __init__(self, project, index, include=None, hash_=None):
         self.project = project
-        self._engine = DocumentSearchEngine(index, include=include)
+        self._engine = DocumentSearchEngine(index, include=include, hash_=hash_)
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
@@ -213,7 +213,7 @@ class Project(object):
     def num_jobs(self):
         return len(list(self._job_dirs()))
 
-    def build_job_search_index(self, index, include=None):
+    def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
 
         :param index: A document index.
@@ -224,7 +224,19 @@ class Project(object):
         :returns: A job search index based on the provided index.
         :rtype: :class:`~.JobSearchIndex`
         """
-        return JobSearchIndex(self, index=index, include=include)
+        return JobSearchIndex(self, index=index, include=include, hash_=hash_)
+
+    def build_job_statepoint_index(self, exclude_const=False, index=None):
+        if index is None:
+            index = self.index()
+        include = {'statepoint': True}
+        search_index = self.build_job_search_index(index, include, hash_=json.dumps)
+        tmp = search_index._engine.index
+        N = self.num_jobs()
+        for k in sorted(tmp, key=lambda k: len(tmp[k])):
+            if exclude_const and len(tmp[k]) == N:
+                continue
+            yield json.dumps(json.loads(k)[1:]), tmp[k]
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
