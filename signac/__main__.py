@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
+import re
 import sys
 import argparse
 import json
@@ -117,11 +118,21 @@ def main_job(args):
         raise
     job = project.open_job(statepoint)
     if args.create:
-        job.document
+        job.init()
     if args.workspace:
         print(job.workspace())
     else:
         print(job)
+
+
+def main_statepoint(args):
+    project = get_project()
+    m = re.compile('[a-z0-9]{32}')
+    for job_id in args.job_id:
+        if not m.match(job_id):
+            raise ValueError(
+                "'{}' is not a valid job id!".format(job_id))
+        print(json.dumps(project.open_job(id=job_id).statepoint()))
 
 
 def main_index(args):
@@ -472,12 +483,24 @@ def main():
     parser_job.add_argument(
         '-w', '--workspace',
         action='store_true',
-        help="print the job's workspace path instead of the job id.")
+        help="Print the job's workspace path instead of the job id.")
     parser_job.add_argument(
         '-c', '--create',
         action='store_true',
         help="Create the job's workspace directory if necessary.")
     parser_job.set_defaults(func=main_job)
+
+    parser_statepoint = subparsers.add_parser(
+        'statepoint',
+        description="Print the statepoint(s) corresponding to one or "
+                    "more job ids.")
+    parser_statepoint.add_argument(
+        'job_id',
+        nargs='+',
+        type=str,
+        help="One or more job ids. The job corresponding to a job "
+             "id must be initialized.")
+    parser_statepoint.set_defaults(func=main_statepoint)
 
     parser_index = subparsers.add_parser('index')
     parser_index.set_defaults(func=main_index)
