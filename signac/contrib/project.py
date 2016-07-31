@@ -60,7 +60,6 @@ class JobSearchIndex(object):
     :param project: The project the jobs are associated with.
     :type project: :class:`~.Project`
     :param index: A document index.
-    :type index: list
     :param include: A mapping of keys that shall be
         included (True) or excluded (False).
     :type include: Mapping
@@ -75,7 +74,8 @@ class JobSearchIndex(object):
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
-        Both filters must be JSON serializable.
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
 
         :param filter: A mapping of key-value pairs that all
             indexed job statepoints are compared against.
@@ -222,15 +222,28 @@ class Project(object):
                 continue
             yield json.dumps(json.loads(k)[1:]), tmp[k]
 
-    def find_jobs(self, filter=None, doc_filter=None, index=None):
-        """Find all jobs in the project's workspace.
+    def find_job_ids(self, filter=None, doc_filter=None, index=None):
+        """Find the job_ids of all jobs matching the filters.
 
-        :param filter: If not None, only find jobs matching the filter.
-        :type filter: mapping
-        :param doc_filter: If not None, only find jobs with documents
-            that match doc_filter.
-        :type filter: mapping
-        :yields: Instances of :class:`~signac.contrib.job.Job`"""
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
+
+        .. note::
+            Providing a pre-calculated index may vastly increase the
+            performance of this function.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :param index: A document index.
+        :yields: The ids of all indexed jobs matching both filters.
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
         if index is None:
             index = self.index()
         if doc_filter is None:
@@ -239,6 +252,30 @@ class Project(object):
             include = None
         search_index = self.build_job_search_index(index, include)
         for job_id in search_index.find_job_ids(filter=filter):
+            yield job_id
+
+    def find_jobs(self, filter=None, doc_filter=None, index=None):
+        """Find all jobs in the project's workspace.
+
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
+
+        .. note::
+            Providing a pre-calculated index may vastly increase the
+            performance of this function.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :yields: Instances of :class:`~signac.contrib.job.Job`
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
+        for job_id in self.find_job_ids(filter, doc_filter, index):
             yield self.open_job(id=job_id)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
