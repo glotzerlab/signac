@@ -50,10 +50,10 @@ ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
 """
 
 
-class JobSearchEngine(object):
+class JobSearchIndex(object):
     """Search for sepcific jobs with filters.
 
-    The JobSearchEngine allows to search for jobs
+    The JobSearchIndex allows to search for jobs
     which are part of an index which match specific
     statepoint filters or job document filters.
 
@@ -213,18 +213,18 @@ class Project(object):
     def num_jobs(self):
         return len(list(self._job_dirs()))
 
-    def load_job_search_engine(self, index, include=None):
-        """Load the job search engine.
+    def build_job_search_index(self, index, include=None):
+        """Build a job search index.
 
         :param index: A document index.
         :type index: list
         :param include: A mapping of keys that shall be
             included (True) or excluded (False).
         :type include: Mapping
-        :returns: A job search engine for the indexed jobs.
-        :rtype: :class:`~.JobSearchEngine`
+        :returns: A job search index based on the provided index.
+        :rtype: :class:`~.JobSearchIndex`
         """
-        return JobSearchEngine(self, index=index, include=include)
+        return JobSearchIndex(self, index=index, include=include)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
@@ -241,8 +241,8 @@ class Project(object):
             include = {'statepoint': True}
         else:
             include = None
-        engine = self.load_job_search_engine(index, include)
-        for job_id in engine.find_job_ids(filter=filter):
+        search_index = self.build_job_search_index(index, include)
+        for job_id in search_index.find_job_ids(filter=filter):
             yield self.open_job(id=job_id)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
