@@ -6,6 +6,7 @@ import re
 import logging
 import json
 import errno
+import warnings
 import collections
 
 from ..core.search_engine import DocumentSearchEngine
@@ -429,6 +430,67 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
+    def create_persistent_view(self, job_ids=None, prefix=None,
+                               force=False, index=None):
+        """Create a persistent linked view of the selected data space..
+
+        This function determines unique paths for each job based on the job's
+        statepoint and creates symbolic links to the associated workspace
+        directories. This is useful for browsing through the data space in a
+        human-readable manner.
+
+        Assuming that the parameter space is
+
+            * a=0, b=0
+            * a=1, b=0
+            * a=2, b=0
+            * ...,
+
+        where *b* does not vary over all statepoints, this method will create
+        the following *symbolic links* within the specified view prefix:
+
+        .. code:: bash
+
+            view/a/0/job -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
+            view/a/1/job -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
+            ...
+
+        .. note::
+
+            To maximize the compactness of each view path, *b* which does not
+            vary over the selected data space, is ignored.
+        """
+        if prefix is None:
+            prefix = 'view'
+        if index is None:
+            index = self.index()
+        if not force and os.listdir(prefix):
+            raise RuntimeError(
+                "Failed to create persistent view in '{}', the directory "
+                "is not empty! Use `force=True` to ignore this and create "
+                "the view anyways.".format(prefix))
+
+        if job_ids is not None:
+            if not isinstance(job_ids, set):
+                job_ids = set(job_ids)
+            index = (doc for doc in index if doc['signac_id'] in job_ids)
+
+        jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
+        no_link = True
+        for path, job_id in _make_paths(jsi):
+            if job_ids is not None and job_id not in job_ids:
+                continue
+            src = os.path.join(self.open_job(id=job_id).workspace())
+            dst = os.path.join(prefix, path)
+            logger.info(
+                "Creating link {src} -> {dst}".format(src=src, dst=dst))
+            _make_link(src, dst)
+            no_link = False
+        if no_link:
+            raise RuntimeError(
+                "The # of jobs selected for the creation of views must "
+                "be greater or equal than 2!")
+
     def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
 
@@ -437,6 +499,10 @@ class Project(object):
         This is useful for browsing through the workspace in a
         human-readable manner.
 
+        .. warning::
+
+            This method is deprecated.
+            Please use :meth:`~.create_persistent_view` instead.
 
         Let's assume the parameter space is
 
@@ -466,6 +532,9 @@ class Project(object):
             create view only for jobs matching filter.
         :type filter: mapping
         :param prefix: Specifies where to create the links."""
+        warnings.warn(
+            "The create_view() method is deprecated, please use "
+            "create_persistent_view() instead.", PendingDeprecationWarning)
         statepoints = list(self.find_statepoints(filter=filter))
         if not len(statepoints):
             if filter is None:
@@ -707,11 +776,16 @@ def _make_link(src, dst):
     except OSError as error:
         if error.errno != errno.EEXIST:
             raise
-        pass
-    if six.PY2:
-        os.symlink(src, dst)
-    else:
-        os.symlink(src, dst, target_is_directory=True)
+    try:
+        if six.PY2:
+            os.symlink(src, dst)
+        else:
+            os.symlink(src, dst, target_is_directory=True)
+    except OSError as error:
+        if error.errno == errno.EEXIST:
+            if os.path.realpath(src) == os.path.realpath(dst):
+                return
+        raise
 
 
 def _make_urls(statepoints, key_set):
@@ -728,6 +802,17 @@ def _make_urls(statepoints, key_set):
             url.append(str(v))
         if len(url):
             yield statepoint, os.path.join(*url)
+
+
+def _make_paths(sp_index):
+    tmp = collections.defaultdict(list)
+    for key, jids in sp_index:
+        for jid in jids:
+            tmp[jid].append(key)
+    for jid, sps in tmp.items():
+        p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
+        path = os.path.join(* p, 'job')
+        yield path, jid
 
 
 def _find_unique_keys(statepoints):
