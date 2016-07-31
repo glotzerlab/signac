@@ -98,8 +98,16 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 
 def main_project(args):
     project = get_project()
+    if args.workspace and args.index:
+        raise ValueError(
+            "Cannot select both options --workspace and --index.")
     if args.workspace:
         print(project.workspace())
+    elif args.index:
+        _print_err("Indexing project...")
+        index = project.index()
+        for doc in index:
+            print(doc)
     else:
         print(project)
 
@@ -423,6 +431,10 @@ def main():
         '-w', '--workspace',
         action='store_true',
         help="Print the project's workspace path instead of the project id.")
+    parser_project.add_argument(
+        '-i', '--index',
+        action='store_true',
+        help="Generate and print an index for the project.")
     parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser('job')
