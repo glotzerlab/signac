@@ -53,8 +53,8 @@ ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
 class JobSearchIndex(object):
     """Search for sepcific jobs with filters.
 
-    The JobSearchIndex allows to search for jobs
-    which are part of an index which match specific
+    The JobSearchIndex allows to search for job_ids,
+    that are part of an index, which match specific
     statepoint filters or job document filters.
 
     :param project: The project the jobs are associated with.
@@ -65,9 +65,12 @@ class JobSearchIndex(object):
         included (True) or excluded (False).
     :type include: Mapping
     """
-    def __init__(self, project, index, include=None, hash_=None):
-        self.project = project
-        self._engine = DocumentSearchEngine(index, include=include, hash_=hash_)
+    def __init__(self, index, include=None, hash_=None):
+        self._engine = DocumentSearchEngine(
+            index, include=include, hash_=hash_)
+
+    def __len__(self):
+        return len(self._engine)
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
@@ -93,25 +96,6 @@ class JobSearchIndex(object):
         f = json.loads(json.dumps(f))  # Normalize
         for job_id in self._engine.find(filter=f):
             yield job_id
-
-    def find_jobs(self, filter=None, doc_filter=None):
-        """Find all jobs matching the filters.
-
-        Both filters must be JSON serializable.
-
-        :param filter: A mapping of key-value pairs that all
-            indexed job statepoints are compared against.
-        :type filter: Mapping
-        :param doc_filter: A mapping of key-value pairs that all
-            indexed job documents are compared against.
-        :yields: All indexed jobs matching both filters.
-        :raise TypeError: If the filters are not JSON serializable.
-        :raises ValueError: If the filters are invalid.
-        :raises RuntimeError: If the filters are not supported
-            by the index.
-        """
-        for job_id in self.find_job_ids(filter, doc_filter):
-            yield self.project.open_job(id=job_id)
 
 
 class Project(object):
@@ -224,7 +208,7 @@ class Project(object):
         :returns: A job search index based on the provided index.
         :rtype: :class:`~.JobSearchIndex`
         """
-        return JobSearchIndex(self, index=index, include=include, hash_=hash_)
+        return JobSearchIndex(index=index, include=include, hash_=hash_)
 
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         if index is None:
