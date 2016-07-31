@@ -216,7 +216,7 @@ class Project(object):
         include = {'statepoint': True}
         search_index = self.build_job_search_index(index, include, hash_=json.dumps)
         tmp = search_index._engine.index
-        N = self.num_jobs()
+        N = len(search_index)
         for k in sorted(tmp, key=lambda k: len(tmp[k])):
             if exclude_const and len(tmp[k]) == N:
                 continue
