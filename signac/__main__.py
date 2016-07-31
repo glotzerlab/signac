@@ -98,16 +98,8 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 
 def main_project(args):
     project = get_project()
-    if args.workspace and args.index:
-        raise ValueError(
-            "Cannot select both options --workspace and --index.")
     if args.workspace:
         print(project.workspace())
-    elif args.index:
-        _print_err("Indexing project...")
-        index = project.index()
-        for doc in index:
-            print(doc)
     else:
         print(project)
 
@@ -130,6 +122,14 @@ def main_job(args):
         print(job.workspace())
     else:
         print(job)
+
+
+def main_index(args):
+    project = get_project()
+    _print_err("Indexing project...")
+    index = project.index()
+    for doc in index:
+        print(doc)
 
 
 def main_init(args):
@@ -426,6 +426,13 @@ def main():
         help="Answer all questions with yes. Useful for scripted interaction.")
     subparsers = parser.add_subparsers()
 
+    parser_init = subparsers.add_parser('init')
+    parser_init.add_argument(
+        'project_id',
+        type=str,
+        help="Initialize a project with the given project id.")
+    parser_init.set_defaults(func=main_init)
+
     parser_project = subparsers.add_parser('project')
     parser_project.add_argument(
         '-w', '--workspace',
@@ -455,12 +462,8 @@ def main():
         help="Create the job's workspace directory if necessary.")
     parser_job.set_defaults(func=main_job)
 
-    parser_init = subparsers.add_parser('init')
-    parser_init.add_argument(
-        'project_id',
-        type=str,
-        help="Initialize a project with the given project id.")
-    parser_init.set_defaults(func=main_init)
+    parser_index = subparsers.add_parser('index')
+    parser_index.set_defaults(func=main_index)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
