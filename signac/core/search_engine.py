@@ -24,7 +24,8 @@ def _traverse_tree(t, include=None):
         return
     if isinstance(t, list):
         for i in t:
-            yield from _traverse_tree(i, include)
+            for b in _traverse_tree(i, include):
+                yield b
     elif isinstance(t, Mapping):
         for k in t:
             if include is None or include is True:

@@ -1,6 +1,7 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+from __future__ import print_function
 import os
 import re
 import logging
@@ -811,7 +812,7 @@ def _make_paths(sp_index):
             tmp[jid].append(key)
     for jid, sps in tmp.items():
         p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
-        path = os.path.join(* p, 'job')
+        path = os.path.join(* p + ['job'])
         yield path, jid
 
 

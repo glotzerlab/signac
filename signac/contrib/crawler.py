@@ -8,6 +8,7 @@ import math
 import hashlib
 import logging
 import warnings
+import errno
 
 from ..common import six
 from .utility import walkdepth
@@ -342,8 +343,9 @@ class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
                         raise KeyError(
                             "The job document already contains a field '{}'!".format(self.statepoint_index))
                     doc.update(job_doc)
-            except FileNotFoundError:
-                pass
+            except IOError as error:
+                if error.errno != errno.ENOENT:
+                    raise
             yield doc
         for doc in super(SignacProjectJobDocumentCrawler, self).crawl(depth=depth):
             yield doc
