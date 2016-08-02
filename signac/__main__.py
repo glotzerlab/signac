@@ -97,6 +97,16 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
     return pwhash
 
 
+def _read_index(project, fn_index=None):
+    if fn_index is None:
+        _print_err("Indexing project...")
+        return project.index()
+    else:
+        _print_err("Reading index from file '{}'...".format(fn_index))
+        fd = open(fn_index)
+        return (json.loads(l) for l in fd)
+
+
 def main_project(args):
     project = get_project()
     if args.workspace:
@@ -149,15 +159,19 @@ def main_find(args):
         f = None
     else:
         f = json.loads(args.filter)
-    if args.index is None:
-        _print_err("Indexing project...")
-        index = project.index()
-    else:
-        _print_err("Reading index from file '{}'...".format(args.index))
-        fd = open(args.index)
-        index = (json.loads(l) for l in fd)
+    index = _read_index(project, args.index)
     for job_id in project.find_job_ids(filter=f, index=index):
         print(job_id)
+
+
+def main_view(args):
+    project = get_project()
+    index = _read_index(project, args.index)
+    project.create_linked_view(
+        job_ids=args.job_id,
+        prefix=args.prefix,
+        force=args.force,
+        index=index)
 
 
 def main_init(args):
@@ -516,6 +530,28 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_find.set_defaults(func=main_find)
+
+    parser_view = subparsers.add_parser('view')
+    parser_view.add_argument(
+        'prefix',
+        type=str,
+        nargs='?',
+        default='view',
+        help="The path where the view is to be created.")
+    parser_view.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs with these job ids.")
+    parser_view.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help="Ignore whether the view path is not empty.")
+    parser_view.add_argument(
+        '-i', '--index',
+        type=str,
+        help="The filename of an index file.")
+    parser_view.set_defaults(func=main_view)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
