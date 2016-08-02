@@ -1,5 +1,6 @@
 from collections import defaultdict
 import logging
+import json
 
 from ..common import six
 if six.PY2:
@@ -19,32 +20,51 @@ def _flatten(container):
             yield i
 
 
-def _traverse_tree(t, include=None):
+def _encode_tree(x):
+    if isinstance(x, list):
+        return json.dumps(x)
+    else:
+        return x
+
+
+def _traverse_tree(t, include=None, encode=None):
+    if encode is not None:
+        t = encode(t)
     if include is False:
         return
     if isinstance(t, list):
         for i in t:
-            for b in _traverse_tree(i, include):
+            for b in _traverse_tree(i, include, encode):
                 yield b
     elif isinstance(t, Mapping):
         for k in t:
             if include is None or include is True:
-                for i in _traverse_tree(t[k]):
+                for i in _traverse_tree(t[k], encode=encode):
                     yield k, i
             else:
                 if not include.get(k, False):
                     continue
-                for i in _traverse_tree(t[k], include.get(k)):
+                for i in _traverse_tree(t[k], include.get(k), encode=encode):
                     yield k, i
     else:
         yield t
 
 
-def _valid_filter(f):
+def _traverse_filter(t, include=None):
+    for b in _traverse_tree(t, include=include, encode=_encode_tree):
+        yield b
+
+
+_traverse_docs = _traverse_filter
+
+
+def _valid_filter(f, top=True):
     if isinstance(f, Mapping):
-        return all(_valid_filter(v) for v in f.values())
+        return all(_valid_filter(v, top=False) for v in f.values())
+    elif isinstance(f, list):
+        return not top
     else:
-        return not isinstance(f, list)
+        return True
 
 
 class DocumentSearchEngine(object):
@@ -80,13 +100,13 @@ class DocumentSearchEngine(object):
             included = None
         else:
             included = dict()
-            for branch in _traverse_tree(include):
+            for branch in _traverse_docs(include):
                 f = tuple(_flatten(branch))
                 included[self._hash(f[:-1])] = f[-1]
         if docs is not None:
             for doc in docs:
                 ids.add(doc['_id'])
-                for branch in _traverse_tree(doc, include=include):
+                for branch in _traverse_docs(doc, include=include):
                     f = tuple(_flatten(branch))
                     index[self._hash(f)].add(doc['_id'])
         return ids, index, included
@@ -162,7 +182,7 @@ class DocumentSearchEngine(object):
                 yield _id
         else:
             result = None
-            for branch in _traverse_tree(filter):
+            for branch in _traverse_filter(filter):
                 h = self._hash(tuple(_flatten(branch)))
                 m = self.index.get(h, set())
                 if result is None:

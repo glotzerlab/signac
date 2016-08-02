@@ -8,6 +8,8 @@ TEST_INDEX = [
     {'a': 0, 'b': 1.0},
     {'a': 0, 'b': 1.0, 'c': 'abc'},
     {'a': 0, 'b': 1.0, 'c': 'abc', 'd': {'e': True}},
+    {'a': 0, 'f': [0, 1]},
+    {'a': 0, 'g': {'h': [0, 1.0, 'abc'], 'i': 'xyz'}},
     ]
 
 
@@ -48,15 +50,16 @@ class DocumentSearchEngineTest(unittest.TestCase):
         e = DSE(ti, include=None)
         self.assertEqual(len(e), len(ti))
         QUERIES = [
-            (TI[0], 4),
+            (TI[0], 6),
             (TI[1], 4),
             (TI[2], 3),
             (TI[3], 2),
-            (TI[4], 1)]
+            (TI[4], 1),
+            (TI[5], 1)]
         for q, num in QUERIES:
             self.assertEqual(len(list(e.find(q))), num)
         QUERIES = [
-            ({'a': 0}, {0, 2, 3, 4}),
+            ({'a': 0}, {0, 2, 3, 4, 5, 6}),
             ({'a': 0, 'f': 0}, {}),
             ({'a': 1}, {}),
             ({'b': 1.0}, {1, 2, 3, 4}),
@@ -65,12 +68,20 @@ class DocumentSearchEngineTest(unittest.TestCase):
             ({'c': 'abc'}, {3, 4}),
             ({'d': {'e': False}}, {}),
             ({'d': {'e': True}}, {4}),
+            ({'a': 0, 'f': [0, 1]}, {5}),
+            ({'f': [0, 1]}, {5}),
+            ({'f': [0, 1, 2]}, {}),
+            ({'f': [0, 1.0, 2]}, {}),
+            ({'f': [0, 1.0]}, {}),
+            ({'g': {'h': [0, 1.0, 'abc']}}, {6}),
+            ({'g': {'h': [0, 1, 'abc']}}, {}),
+            ({'g': {'i': 'xyz'}}, {6}),
         ]
         for q, result in QUERIES:
             self.assertEqual(set(e.find(q)), set(result))
 
     def test_illegal_filters(self):
-        q_invalid = {'a': [0, {'b': 1}]}
+        q_invalid = [{'a': [0, {'b': 1}]}]
         q_not_indexed = {'b': 0}
         ti = self.test_index()
         e = DSE(ti, include={'a': True})
