@@ -253,7 +253,7 @@ class Project(object):
         else:
             include = None
         search_index = self.build_job_search_index(index, include)
-        for job_id in search_index.find_job_ids(filter=filter):
+        for job_id in search_index.find_job_ids(filter=filter, doc_filter=doc_filter):
             yield job_id
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
