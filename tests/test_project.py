@@ -222,7 +222,7 @@ class ProjectTest(BaseProjectTest):
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(LookupError):
+            with self.assertRaises(ValueError):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
             # The skip_errors function helps to identify corrupt directories.
