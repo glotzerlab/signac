@@ -812,7 +812,7 @@ def _make_paths(sp_index):
             tmp[jid].append(key)
     for jid, sps in tmp.items():
         p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
-        path = os.path.join(* p + ['job'])
+        path = os.path.join(* list(p) + ['job'])
         yield path, jid
 
 
