@@ -82,6 +82,21 @@ class ProjectTest(BaseProjectTest):
             1,
             len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
+    def test_find_job_ids(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['b'] = sp['a']
+        self.assertEqual(len(statepoints), len(list(self.project.find_job_ids())))
+        self.assertEqual(1, len(list(self.project.find_job_ids({'a': 0}))))
+        self.assertEqual(0, len(list(self.project.find_job_ids({'a': 5}))))
+        self.assertEqual(1, len(list(self.project.find_job_ids(doc_filter={'b': 0}))))
+        self.assertEqual(0, len(list(self.project.find_job_ids(doc_filter={'b': 5}))))
+        for job_id in self.project.find_job_ids():
+            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+        index = list(self.project.index())
+        for job_id in self.project.find_job_ids(index=index):
+            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+
     def test_find_jobs(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
