@@ -431,8 +431,8 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_persistent_view(self, job_ids=None, prefix=None,
-                               force=False, index=None):
+    def create_linked_view(self, job_ids=None, prefix=None,
+                           force=False, index=None):
         """Create a persistent linked view of the selected data space..
 
         This function determines unique paths for each job based on the job's
@@ -503,7 +503,7 @@ class Project(object):
         .. warning::
 
             This method is deprecated.
-            Please use :meth:`~.create_persistent_view` instead.
+            Please use :meth:`~.create_linked_view` instead.
 
         Let's assume the parameter space is
 
@@ -535,7 +535,7 @@ class Project(object):
         :param prefix: Specifies where to create the links."""
         warnings.warn(
             "The create_view() method is deprecated, please use "
-            "create_persistent_view() instead.", PendingDeprecationWarning)
+            "create_linked_view() instead.", PendingDeprecationWarning)
         statepoints = list(self.find_statepoints(filter=filter))
         if not len(statepoints):
             if filter is None:
