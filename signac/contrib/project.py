@@ -495,15 +495,15 @@ class Project(object):
     def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
 
-        This function gathers all varying statepoint parameters
-        and creates symbolic links to the workspace directories.
-        This is useful for browsing through the workspace in a
-        human-readable manner.
-
         .. warning::
 
             This method is deprecated.
             Please use :meth:`~.create_linked_view` instead.
+
+        This function gathers all varying statepoint parameters
+        and creates symbolic links to the workspace directories.
+        This is useful for browsing through the workspace in a
+        human-readable manner.
 
         Let's assume the parameter space is
 
