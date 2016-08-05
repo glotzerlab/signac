@@ -90,20 +90,6 @@ def read_config_file(filename):
     return config
 
 
-def write_config(config, filename):
-    warnings.warn(
-        "The function write_config() is deprecated! "
-        "Use config.write() instead.", DeprecationWarning)
-    fn = config.filename
-    config.filename = None
-    try:
-        with open(filename, 'wb') as file:
-            for line in config.write():
-                file.write((line + '\n').encode(type(config).encoding))
-    finally:
-        config.filename = fn
-
-
 def get_config(infile=None, configspec=None, * args, **kwargs):
     if configspec is None:
         configspec = cfg.split('\n')
