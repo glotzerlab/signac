@@ -160,7 +160,7 @@ This allows us to examine the data with human-readable path names:
 
 .. tip::
 
-    Consider creating a linked view for large data sets on an in-memory file system.
+    Consider creating a linked view for large data sets on an in-memory file system for best performance.
 
 This completes the basic tutorial.
 The next section shows how to complete the workflow and make it more flexible.

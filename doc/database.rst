@@ -1,5 +1,7 @@
-Data Processing
-===============
+.. _database_integration:
+
+Database Integration
+====================
 
 Database access
 ---------------

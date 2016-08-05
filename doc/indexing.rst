@@ -109,9 +109,8 @@ The index is then generated through the :py:meth:`~signac.contrib.BaseCrawler.cr
 Indexing a signac project
 -------------------------
 
-To index a signac project we can either specialize a :py:class:`~signac.contrib.SignacProjectCrawler` or use the :py:meth:`~signac.contrib.project.Project.index` method.
-The index will always contain all non-empty job documents.
-To additionally index files we need to provide the filename pattern and format definition.
+To index a signac project we can either specialize a :py:class:`~.contrib.SignacProjectCrawler` or use the :py:meth:`~.contrib.project.Project.index` method.
+The index will contain all initialized jobs and the data stored in the corresponding job documents.
 
 .. code-block:: python
 

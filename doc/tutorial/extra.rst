@@ -1,4 +1,4 @@
-.. _tutorial_indexing:
+.. _tutorial_extra:
 
 ============
 Extra Topics
@@ -26,7 +26,8 @@ To have more control over the indexing process, we can do this explicitly:
         pass
     IdealGasProjectCrawler.define('.*/V\.txt', TextFile)
 
-    for doc in IdealGasProjectCrawler.crawl():
+    crawler = IdealGasProjectCrawler()
+    for doc in crawler.crawl():
         print(doc)
 
 We could specialize the ``IdealGasProjectCrawler`` class further, e.g., to add more metadata to the index.
@@ -184,7 +185,7 @@ For example, to fetch all data for pressures greater than 2.0:
 Integrating other tools
 =======================
 
-As a final chapter, we want to have a look at how we could integrate a non-python tool into our workflow.
+Many workflows require the integration of non-python tools.
 Let's stick to the example and implement the ideal gas program in bash.
 As bash can only evaluate expressions with integer values we need to express the pressure as a fraction and otherwise assume that *N* and *T* are integer values:
 
@@ -284,7 +285,7 @@ This is an example for a flat linked view:
 The :py:meth:`~.Project.build_job_statepoint_index` method generates a statepoint index, with complete statepoint paths as keys and a set of all corresponding jobs as value.
 To create the flat view, we make sure to exclude all parameters which are constant over the whole data space by setting ``exclude_const=True``.
 
-Executing this, will create multiple symbolic links pointing to the source files with a parameter-based, human-readable name:
+Executing this script, will create multiple symbolic links pointing to the source files with a parameter-based, human-readable name:
 
 .. code-block:: bash
 

@@ -37,13 +37,15 @@ Executing ``signac`` on the command line should prompt something like:
 .. code-block:: bash
 
     $ signac
-    usage: signac [-h] [--debug] [--version] {project,job,init,config} ...
+    usage: signac [-h] [--debug] [--version] [-y]
+              {init,project,job,statepoint,index,find,view,config} ...
 
 .. note::
 
     In some cases the installation routine fails to place the ``signac`` executable on the correct path.
     In this case you may need to adjust your ``$PATH`` configuration manually.
-    However, this is not required to complete this tutorial.
+    However, this is not required to complete this tutorial and you can always replace ``$ signac`` with
+    ``$ python -m signac``.
 
 Project Setup
 -------------
@@ -120,6 +122,7 @@ We can then examine our results by iterating over the data space:
 This concludes the minimal example.
 In the next section we will assume that the ideal gas computation represents a more expensive computation.
 We will also take a closer look at the individual components and learn how to operate with files.
+
 .. _tutorial_basics:
 
 The Basics

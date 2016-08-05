@@ -162,7 +162,7 @@ class Project(object):
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
-        This function returns the job instance associated with
+        This method returns the job instance associated with
         the given statepoint or job id.
         Opening a job by statepoint never fails.
         Opening a job by id, requires a lookup of the statepoint
@@ -213,6 +213,30 @@ class Project(object):
         return JobSearchIndex(index=index, include=include, hash_=hash_)
 
     def build_job_statepoint_index(self, exclude_const=False, index=None):
+        """Build a statepoint index to identify jobs with specific parameters.
+
+        This method generates unordered key-value pairs, with complete
+        statepoint paths as keys, encoded in JSON, and a set of job ids
+        of all corresponding jobs, e.g.:
+
+        .. code::
+
+            >>> project.open_job({'a': 0, 'b': {'c': 'const'}}).init()
+            >>> project.open_job({'a': 1, 'b': {'c': 'const'}}).init()
+            >>> for k, v in project.job_statepoint_index():
+            ...     print(k, v)
+            ...
+            ["a", 1] {'b7568fa73881d27cbf24bf58d226d80e'}
+            ["a", 0] {'54b61a7adbe004b30b39aa399d04f483'}
+            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b39aa399d04f483'}
+
+        :param exclude_const: Exclude entries that are shared by all jobs
+            that are part of the index.
+        :type exclude_const: bool
+        :param index: A document index.
+        :yields: Key-value pairs of JSON-encoded statepoint parameters and
+            and a set of corresponding job ids.
+        """
         if index is None:
             index = self.index()
         include = {'statepoint': True}
@@ -303,14 +327,20 @@ class Project(object):
     def find_variable_parameters(self, statepoints=None):
         """Find all parameters which vary over the data space.
 
-        This function attempts to detect all parameters, which vary
+        .. warning::
+
+            This method is deprecated.
+            Please see :meth:`~.build_job_statepoint_index` for an
+            alternative method.
+
+        This method attempts to detect all parameters, which vary
         over the parameter space.
         The parameter sets are ordered decreasingly
         by data sub space size.
 
         .. warning::
 
-            This function does not detect linear dependencies
+            This method does not detect linear dependencies
             within the state points. Linear dependencies should
             generally be avoided.
 
@@ -319,6 +349,9 @@ class Project(object):
         :type statepoints: Iterable of parameter mappings.
         :return: A hierarchical list of variable parameters.
         :rtype: list"""
+        warnings.warn(
+            "The find_variable_parameters() method is deprecated, please use "
+            "build_job_statepoint_index() instead.", PendingDeprecationWarning)
         if statepoints is None:
             statepoints = self.find_statepoints()
         return list(_find_unique_keys(statepoints))
@@ -435,7 +468,7 @@ class Project(object):
                            force=False, index=None):
         """Create a persistent linked view of the selected data space..
 
-        This function determines unique paths for each job based on the job's
+        This method determines unique paths for each job based on the job's
         statepoint and creates symbolic links to the associated workspace
         directories. This is useful for browsing through the data space in a
         human-readable manner.
@@ -500,7 +533,7 @@ class Project(object):
             This method is deprecated.
             Please use :meth:`~.create_linked_view` instead.
 
-        This function gathers all varying statepoint parameters
+        This method gathers all varying statepoint parameters
         and creates symbolic links to the workspace directories.
         This is useful for browsing through the workspace in a
         human-readable manner.
@@ -696,7 +729,7 @@ class Project(object):
                              filename=None, master=True, depth=1):
         """Create the access module for indexing
 
-        This function generates the acess module containing indexing
+        This method generates the acess module containing indexing
         directives for master crawlers.
 
         :param formats: The format definitions as mapping.
