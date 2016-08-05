@@ -1,3 +1,28 @@
+0.4.0
+
+	- General updates:
+
+		- The SignacProjectCrawler indexes all jobs, not only those with non-empty job documents.
+		- Complete refactorization of the find_jobs() implementation based on internal DocumentSearchEngine.
+		- The performance of find operations can be greatly improved by using pregenerated job indexes.
+
+	- API changes:
+
+		- New top-level commands: signac find, index, statepoint, and view
+		- New method: Project.create_linked_view()
+		- New method: Project.build_job_statepoint_index()
+		- New method: Project.build_job_search_index()
+		- find_jobs() allows to filter by job document.
+		- fetch_one() returns None if no associated object can be fetched.
+		- Remove previously deprecated keyword argument 'crawl' in index export functions.
+		- Remove previously deprecated function common.config.write_config().
+
+	- Documentation:
+
+		- The tutorial is restructured into multiple parts.
+		- Instructions for installation are separated from the guide.
+		- The guide is updated to reflect recent changes.
+		
 0.3.0
 
 	- Change license from MIT to BSD 3-clause license.
