@@ -574,14 +574,6 @@ def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
     import pymongo
     logger.info("Exporting index for pymongo.")
     operations = []
-
-    # backwards compatibility hacks
-    if hasattr(docs, 'crawl'):
-        docs = docs.crawl(* args, **kwargs)
-        warnings.warn(
-            "You are using a deprecated API for export_pymongo()!",
-            DeprecationWarning)
-
     for doc in docs:
         f = {'_id': doc['_id']}
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
@@ -607,10 +599,6 @@ def export(docs, index, *args, **kwargs):
     :param docs: The index docs to export.
     :param index: The collection to export the index to."""
     logger.info("Exporting index.")
-    if hasattr(docs, 'crawl'):
-        docs = docs.crawl(* args, **kwargs)
-        warnings.warn(
-            "You are using a deprecated API of export()!")
     for doc in docs:
         f = {'_id': doc['_id']}
         index.replace_one(f, doc)
