@@ -1,13 +1,16 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+from __future__ import print_function
 import os
 import re
 import logging
 import json
 import errno
+import warnings
 import collections
 
+from ..core.search_engine import DocumentSearchEngine
 from ..common import six
 from ..common.config import load_config
 from .job import Job
@@ -47,6 +50,54 @@ ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
     for doc in master_crawler.crawl(depth={depth}):
         print(doc)
 """
+
+
+class JobSearchIndex(object):
+    """Search for sepcific jobs with filters.
+
+    The JobSearchIndex allows to search for job_ids,
+    that are part of an index, which match specific
+    statepoint filters or job document filters.
+
+    :param project: The project the jobs are associated with.
+    :type project: :class:`~.Project`
+    :param index: A document index.
+    :param include: A mapping of keys that shall be
+        included (True) or excluded (False).
+    :type include: Mapping
+    """
+    def __init__(self, index, include=None, hash_=None):
+        self._engine = DocumentSearchEngine(
+            index, include=include, hash_=hash_)
+
+    def __len__(self):
+        return len(self._engine)
+
+    def find_job_ids(self, filter=None, doc_filter=None):
+        """Find the job_ids of all jobs matching the filters.
+
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :yields: The ids of all indexed jobs matching both filters.
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
+        f = dict()
+        if filter is not None:
+            f['statepoint'] = filter
+        if doc_filter is not None:
+            f.update(doc_filter)
+        f = json.loads(json.dumps(f))  # Normalize
+        for job_id in self._engine.find(filter=f):
+            yield job_id
 
 
 class Project(object):
@@ -111,7 +162,7 @@ class Project(object):
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
-        This function returns the job instance associated with
+        This method returns the job instance associated with
         the given statepoint or job id.
         Opening a job by statepoint never fails.
         Opening a job by id, requires a lookup of the statepoint
@@ -148,16 +199,112 @@ class Project(object):
     def num_jobs(self):
         return len(list(self._job_dirs()))
 
-    def find_jobs(self, filter=None):
+    def build_job_search_index(self, index, include=None, hash_=None):
+        """Build a job search index.
+
+        :param index: A document index.
+        :type index: list
+        :param include: A mapping of keys that shall be
+            included (True) or excluded (False).
+        :type include: Mapping
+        :returns: A job search index based on the provided index.
+        :rtype: :class:`~.JobSearchIndex`
+        """
+        return JobSearchIndex(index=index, include=include, hash_=hash_)
+
+    def build_job_statepoint_index(self, exclude_const=False, index=None):
+        """Build a statepoint index to identify jobs with specific parameters.
+
+        This method generates unordered key-value pairs, with complete
+        statepoint paths as keys, encoded in JSON, and a set of job ids
+        of all corresponding jobs, e.g.:
+
+        .. code::
+
+            >>> project.open_job({'a': 0, 'b': {'c': 'const'}}).init()
+            >>> project.open_job({'a': 1, 'b': {'c': 'const'}}).init()
+            >>> for k, v in project.job_statepoint_index():
+            ...     print(k, v)
+            ...
+            ["a", 1] {'b7568fa73881d27cbf24bf58d226d80e'}
+            ["a", 0] {'54b61a7adbe004b30b39aa399d04f483'}
+            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b39aa399d04f483'}
+
+        :param exclude_const: Exclude entries that are shared by all jobs
+            that are part of the index.
+        :type exclude_const: bool
+        :param index: A document index.
+        :yields: Key-value pairs of JSON-encoded statepoint parameters and
+            and a set of corresponding job ids.
+        """
+        if index is None:
+            index = self.index()
+        include = {'statepoint': True}
+        search_index = self.build_job_search_index(index, include, hash_=json.dumps)
+        tmp = search_index._engine.index
+        N = len(search_index)
+        for k in sorted(tmp, key=lambda k: len(tmp[k])):
+            if exclude_const and len(tmp[k]) == N:
+                continue
+            yield json.dumps(json.loads(k)[1:]), tmp[k]
+
+    def find_job_ids(self, filter=None, doc_filter=None, index=None):
+        """Find the job_ids of all jobs matching the filters.
+
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
+
+        .. note::
+            Providing a pre-calculated index may vastly increase the
+            performance of this function.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :param index: A document index.
+        :yields: The ids of all indexed jobs matching both filters.
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
+        if index is None:
+            index = self.index()
+        if doc_filter is None:
+            include = {'statepoint': True}
+        else:
+            include = None
+        search_index = self.build_job_search_index(index, include)
+        for job_id in search_index.find_job_ids(filter=filter, doc_filter=doc_filter):
+            yield job_id
+
+    def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
 
-        :param filter: If not None, only find jobs matching the filter.
-        :type filter: mapping
-        :yields: Instances of :class:`~signac.contrib.job.Job`"""
-        for statepoint in self.find_statepoints(filter):
-            yield Job(self, statepoint)
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
 
-    def find_statepoints(self, filter=None, skip_errors=False):
+        .. note::
+            Providing a pre-calculated index may vastly increase the
+            performance of this function.
+
+        :param filter: A mapping of key-value pairs that all
+            indexed job statepoints are compared against.
+        :type filter: Mapping
+        :param doc_filter: A mapping of key-value pairs that all
+            indexed job documents are compared against.
+        :yields: Instances of :class:`~signac.contrib.job.Job`
+        :raise TypeError: If the filters are not JSON serializable.
+        :raises ValueError: If the filters are invalid.
+        :raises RuntimeError: If the filters are not supported
+            by the index.
+        """
+        for job_id in self.find_job_ids(filter, doc_filter, index):
+            yield self.open_job(id=job_id)
+
+    def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         :param filter: If not None, only yield statepoints matching the filter.
@@ -165,41 +312,35 @@ class Project(object):
         :param skip_errors: Show, but otherwise ignore errors while
             iterating over the workspace. Use this argument to repair
             a corrupted workspace.
-        :type skip_erros: bool
+        :type skip_errors: bool
         :yields: statepoints as dict"""
-        filter = None if filter is None else json.loads(json.dumps(filter))
-
-        def _match(doc, f):
-            for key, value in f.items():
-                if key not in doc or doc[key] != value:
-                    return False
-            return True
-        wd = self.workspace()
-        for job_dir in self._job_dirs():
-            fn_manifest = os.path.join(wd, job_dir, Job.FN_MANIFEST)
-            try:
-                with open(fn_manifest) as manifest:
-                    statepoint = json.load(manifest)
-                    if filter is None or _match(statepoint, filter):
-                        yield statepoint
-            except Exception as error:
-                msg = "Error while trying to access manifest file: "\
-                      "'{}'. Error: '{}'.".format(fn_manifest, error)
-                logger.critical(msg)
-                if not skip_errors:
-                    raise error
+        if index is None:
+            index = self.index()
+        if skip_errors:
+            index = _skip_errors(index, logger.critical)
+        jobs = self.find_jobs(filter, doc_filter, index)
+        if skip_errors:
+            jobs = _skip_errors(jobs, logger.critical)
+        for job in jobs:
+            yield job.statepoint()
 
     def find_variable_parameters(self, statepoints=None):
         """Find all parameters which vary over the data space.
 
-        This function attempts to detect all parameters, which vary
+        .. warning::
+
+            This method is deprecated.
+            Please see :meth:`~.build_job_statepoint_index` for an
+            alternative method.
+
+        This method attempts to detect all parameters, which vary
         over the parameter space.
         The parameter sets are ordered decreasingly
         by data sub space size.
 
         .. warning::
 
-            This function does not detect linear dependencies
+            This method does not detect linear dependencies
             within the state points. Linear dependencies should
             generally be avoided.
 
@@ -208,6 +349,9 @@ class Project(object):
         :type statepoints: Iterable of parameter mappings.
         :return: A hierarchical list of variable parameters.
         :rtype: list"""
+        warnings.warn(
+            "The find_variable_parameters() method is deprecated, please use "
+            "build_job_statepoint_index() instead.", PendingDeprecationWarning)
         if statepoints is None:
             statepoints = self.find_statepoints()
         return list(_find_unique_keys(statepoints))
@@ -320,14 +464,79 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
+    def create_linked_view(self, job_ids=None, prefix=None,
+                           force=False, index=None):
+        """Create a persistent linked view of the selected data space..
+
+        This method determines unique paths for each job based on the job's
+        statepoint and creates symbolic links to the associated workspace
+        directories. This is useful for browsing through the data space in a
+        human-readable manner.
+
+        Assuming that the parameter space is
+
+            * a=0, b=0
+            * a=1, b=0
+            * a=2, b=0
+            * ...,
+
+        where *b* does not vary over all statepoints, this method will create
+        the following *symbolic links* within the specified view prefix:
+
+        .. code:: bash
+
+            view/a/0/job -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
+            view/a/1/job -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
+            ...
+
+        .. note::
+
+            To maximize the compactness of each view path, *b* which does not
+            vary over the selected data space, is ignored.
+        """
+        if prefix is None:
+            prefix = 'view'
+        if index is None:
+            index = self.index()
+        if not force and os.listdir(prefix):
+            raise RuntimeError(
+                "Failed to create persistent view in '{}', the directory "
+                "is not empty! Use `force=True` to ignore this and create "
+                "the view anyways.".format(prefix))
+
+        if job_ids is not None:
+            if not isinstance(job_ids, set):
+                job_ids = set(job_ids)
+            index = (doc for doc in index if doc['signac_id'] in job_ids)
+
+        jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
+        no_link = True
+        for path, job_id in _make_paths(jsi):
+            if job_ids is not None and job_id not in job_ids:
+                continue
+            src = os.path.join(self.open_job(id=job_id).workspace())
+            dst = os.path.join(prefix, path)
+            logger.info(
+                "Creating link {src} -> {dst}".format(src=src, dst=dst))
+            _make_link(src, dst)
+            no_link = False
+        if no_link:
+            raise RuntimeError(
+                "The # of jobs selected for the creation of views must "
+                "be greater or equal than 2!")
+
     def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
 
-        This function gathers all varying statepoint parameters
+        .. warning::
+
+            This method is deprecated.
+            Please use :meth:`~.create_linked_view` instead.
+
+        This method gathers all varying statepoint parameters
         and creates symbolic links to the workspace directories.
         This is useful for browsing through the workspace in a
         human-readable manner.
-
 
         Let's assume the parameter space is
 
@@ -357,6 +566,9 @@ class Project(object):
             create view only for jobs matching filter.
         :type filter: mapping
         :param prefix: Specifies where to create the links."""
+        warnings.warn(
+            "The create_view() method is deprecated, please use "
+            "create_linked_view() instead.", PendingDeprecationWarning)
         statepoints = list(self.find_statepoints(filter=filter))
         if not len(statepoints):
             if filter is None:
@@ -480,7 +692,7 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
-    def index(self, formats=None, depth=0):
+    def index(self, formats=None, depth=0, skip_errors=False):
         """Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -507,14 +719,17 @@ class Project(object):
                 Crawler.define(expr, fmt)
 
         crawler = Crawler(self.workspace())
-        for doc in crawler.crawl(depth=depth):
+        docs = crawler.crawl(depth=depth)
+        if skip_errors:
+            docs = _skip_errors(docs, logger.critical)
+        for doc in docs:
             yield doc
 
     def create_access_module(self, formats=None, crawlername=None,
                              filename=None, master=True, depth=1):
         """Create the access module for indexing
 
-        This function generates the acess module containing indexing
+        This method generates the acess module containing indexing
         directives for master crawlers.
 
         :param formats: The format definitions as mapping.
@@ -595,11 +810,16 @@ def _make_link(src, dst):
     except OSError as error:
         if error.errno != errno.EEXIST:
             raise
-        pass
-    if six.PY2:
-        os.symlink(src, dst)
-    else:
-        os.symlink(src, dst, target_is_directory=True)
+    try:
+        if six.PY2:
+            os.symlink(src, dst)
+        else:
+            os.symlink(src, dst, target_is_directory=True)
+    except OSError as error:
+        if error.errno == errno.EEXIST:
+            if os.path.realpath(src) == os.path.realpath(dst):
+                return
+        raise
 
 
 def _make_urls(statepoints, key_set):
@@ -616,6 +836,17 @@ def _make_urls(statepoints, key_set):
             url.append(str(v))
         if len(url):
             yield statepoint, os.path.join(*url)
+
+
+def _make_paths(sp_index):
+    tmp = collections.defaultdict(list)
+    for key, jids in sp_index:
+        for jid in jids:
+            tmp[jid].append(key)
+    for jid, sps in tmp.items():
+        p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
+        path = os.path.join(* list(p) + ['job'])
+        yield path, jid
 
 
 def _find_unique_keys(statepoints):
@@ -671,6 +902,16 @@ def _aggregate_statepoints(statepoints, prefix=None):
         statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)
     result.extend((k,) if prefix is None else (prefix, k) for k in unique_keys)
     return result
+
+
+def _skip_errors(iterable, log=print):
+    while True:
+        try:
+            yield next(iterable)
+        except StopIteration:
+            return
+        except Exception as error:
+            log(error)
 
 
 def get_project():

@@ -1,4 +1,5 @@
 import os
+import json
 import unittest
 import subprocess
 
@@ -102,6 +103,48 @@ class BasicShellTest(unittest.TestCase):
         self.assertFalse(os.path.isdir(wd_path))
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         self.assertTrue(os.path.isdir(wd_path))
+
+    def test_index(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        project.open_job({'a': 0}).init()
+        doc = json.loads(self.call('python -m signac index'.split()))
+        self.assertIn('statepoint', doc)
+        self.assertEqual(doc['statepoint'], {'a': 0})
+        project.open_job({'a': 0}).document['b'] = 0
+        doc = json.loads(self.call('python -m signac index'.split()))
+        self.assertIn('statepoint', doc)
+        self.assertEqual(doc['statepoint'], {'a': 0})
+        self.assertIn('b', doc)
+        self.assertEqual(doc['b'], 0)
+
+    def test_view(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        sps = [{'a': i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir('view')
+        self.call('python -m signac view'.split())
+        for sp in sps:
+            self.assertTrue(os.path.isdir('view/a_{}'.format(sp['a'])))
+            self.assertTrue(os.path.isdir('view/a_{}/job'.format(sp['a'])))
+            self.assertEqual(
+                os.path.realpath('view/a_{}/job'.format(sp['a'])),
+                os.path.realpath(project.open_job(sp).workspace()))
+
+    def test_find(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        sps = [{'a': i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        out = self.call('python -m signac find'.split())
+        job_ids = out.split('\n')[:-1]
+        self.assertEqual(set(job_ids), set(project.find_job_ids()))
+        self.assertEqual(
+            self.call('python -m signac find'.split() + ['{"a": 0}']).strip(),
+            list(project.find_job_ids({'a': 0}))[0])
 
 
 if __name__ == '__main__':

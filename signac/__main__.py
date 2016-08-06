@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
+import re
 import sys
 import argparse
 import json
@@ -96,6 +97,16 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
     return pwhash
 
 
+def _read_index(project, fn_index=None):
+    if fn_index is None:
+        _print_err("Indexing project...")
+        return project.index()
+    else:
+        _print_err("Reading index from file '{}'...".format(fn_index))
+        fd = open(fn_index)
+        return (json.loads(l) for l in fd)
+
+
 def main_project(args):
     project = get_project()
     if args.workspace:
@@ -117,11 +128,50 @@ def main_job(args):
         raise
     job = project.open_job(statepoint)
     if args.create:
-        job.document
+        job.init()
     if args.workspace:
         print(job.workspace())
     else:
         print(job)
+
+
+def main_statepoint(args):
+    project = get_project()
+    m = re.compile('[a-z0-9]{32}')
+    for job_id in args.job_id:
+        if not m.match(job_id):
+            raise ValueError(
+                "'{}' is not a valid job id!".format(job_id))
+        print(json.dumps(project.open_job(id=job_id).statepoint()))
+
+
+def main_index(args):
+    project = get_project()
+    _print_err("Indexing project...")
+    index = project.index()
+    for doc in index:
+        print(json.dumps(doc))
+
+
+def main_find(args):
+    project = get_project()
+    if args.filter is None:
+        f = None
+    else:
+        f = json.loads(args.filter)
+    index = _read_index(project, args.index)
+    for job_id in project.find_job_ids(filter=f, index=index):
+        print(job_id)
+
+
+def main_view(args):
+    project = get_project()
+    index = _read_index(project, args.index)
+    project.create_linked_view(
+        job_ids=args.job_id,
+        prefix=args.prefix,
+        force=args.force,
+        index=index)
 
 
 def main_init(args):
@@ -418,11 +468,22 @@ def main():
         help="Answer all questions with yes. Useful for scripted interaction.")
     subparsers = parser.add_subparsers()
 
+    parser_init = subparsers.add_parser('init')
+    parser_init.add_argument(
+        'project_id',
+        type=str,
+        help="Initialize a project with the given project id.")
+    parser_init.set_defaults(func=main_init)
+
     parser_project = subparsers.add_parser('project')
     parser_project.add_argument(
         '-w', '--workspace',
         action='store_true',
         help="Print the project's workspace path instead of the project id.")
+    parser_project.add_argument(
+        '-i', '--index',
+        action='store_true',
+        help="Generate and print an index for the project.")
     parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser('job')
@@ -436,19 +497,61 @@ def main():
     parser_job.add_argument(
         '-w', '--workspace',
         action='store_true',
-        help="print the job's workspace path instead of the job id.")
+        help="Print the job's workspace path instead of the job id.")
     parser_job.add_argument(
         '-c', '--create',
         action='store_true',
         help="Create the job's workspace directory if necessary.")
     parser_job.set_defaults(func=main_job)
 
-    parser_init = subparsers.add_parser('init')
-    parser_init.add_argument(
-        'project_id',
+    parser_statepoint = subparsers.add_parser(
+        'statepoint',
+        description="Print the statepoint(s) corresponding to one or "
+                    "more job ids.")
+    parser_statepoint.add_argument(
+        'job_id',
+        nargs='+',
         type=str,
-        help="Initialize a project with the given project id.")
-    parser_init.set_defaults(func=main_init)
+        help="One or more job ids. The job corresponding to a job "
+             "id must be initialized.")
+    parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_index = subparsers.add_parser('index')
+    parser_index.set_defaults(func=main_index)
+
+    parser_find = subparsers.add_parser('find')
+    parser_find.add_argument(
+        'filter',
+        type=str,
+        nargs='?',
+        help="A JSON encoded filter (key-value pairs).")
+    parser_find.add_argument(
+        '-i', '--index',
+        type=str,
+        help="The filename of an index file.")
+    parser_find.set_defaults(func=main_find)
+
+    parser_view = subparsers.add_parser('view')
+    parser_view.add_argument(
+        'prefix',
+        type=str,
+        nargs='?',
+        default='view',
+        help="The path where the view is to be created.")
+    parser_view.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs with these job ids.")
+    parser_view.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help="Ignore whether the view path is not empty.")
+    parser_view.add_argument(
+        '-i', '--index',
+        type=str,
+        help="The filename of an index file.")
+    parser_view.set_defaults(func=main_view)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(

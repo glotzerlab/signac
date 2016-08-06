@@ -82,6 +82,21 @@ class ProjectTest(BaseProjectTest):
             1,
             len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
+    def test_find_job_ids(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['b'] = sp['a']
+        self.assertEqual(len(statepoints), len(list(self.project.find_job_ids())))
+        self.assertEqual(1, len(list(self.project.find_job_ids({'a': 0}))))
+        self.assertEqual(0, len(list(self.project.find_job_ids({'a': 5}))))
+        self.assertEqual(1, len(list(self.project.find_job_ids(doc_filter={'b': 0}))))
+        self.assertEqual(0, len(list(self.project.find_job_ids(doc_filter={'b': 5}))))
+        for job_id in self.project.find_job_ids():
+            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+        index = list(self.project.index())
+        for job_id in self.project.find_job_ids(index=index):
+            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+
     def test_find_jobs(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
@@ -119,48 +134,52 @@ class ProjectTest(BaseProjectTest):
             logging.disable(logging.NOTSET)
 
     def test_find_variable_parameters(self):
-        # Test for highly heterogenous parameter space
-        sp_0 = [{'a': i, 'b': 0} for i in range(5)]
-        sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
-        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
-                for i in range(5)]
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_0),
-            [['a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_1),
-            [['a'], ['c', 'a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_2),
-            [['a'], ['c', 'a'], ['c', 'c', 'a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_0 + sp_1),
-            [['a'], ['c', 'a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_0 + sp_2),
-            [['a'], ['c', 'a'], ['c', 'c', 'a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_1 + sp_2),
-            [['a'], ['c', 'a'], ['c', 'c', 'a']])
-        self.assertEqual(
-            self.project.find_variable_parameters(sp_0 + sp_1 + sp_2),
-            [['a'], ['c', 'a'], ['c', 'c', 'a']])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            # Test for highly heterogenous parameter space
+            sp_0 = [{'a': i, 'b': 0} for i in range(5)]
+            sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
+            sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                    for i in range(5)]
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_0),
+                [['a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_1),
+                [['a'], ['c', 'a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_2),
+                [['a'], ['c', 'a'], ['c', 'c', 'a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_0 + sp_1),
+                [['a'], ['c', 'a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_0 + sp_2),
+                [['a'], ['c', 'a'], ['c', 'c', 'a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_1 + sp_2),
+                [['a'], ['c', 'a'], ['c', 'c', 'a']])
+            self.assertEqual(
+                self.project.find_variable_parameters(sp_0 + sp_1 + sp_2),
+                [['a'], ['c', 'a'], ['c', 'c', 'a']])
 
     def test_create_view(self):
-        # Test for highly heterogenous parameter space
-        sp_0 = [{'a': i, 'b': 0} for i in range(5)]
-        sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
-        sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
-                for i in range(5)]
-        statepoints = sp_0 + sp_1 + sp_2
-        for sp in statepoints:
-            self.project.open_job(sp).document['test'] = True
-        key_set = list(signac.contrib.project._find_unique_keys(statepoints))
-        self.assertEqual(len(statepoints), len(
-            list(signac.contrib.project._make_urls(statepoints, key_set))))
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        self.project.create_view(prefix=view_prefix)
-        self.assertTrue(os.path.isdir(view_prefix))
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            # Test for highly heterogenous parameter space
+            sp_0 = [{'a': i, 'b': 0} for i in range(5)]
+            sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
+            sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                    for i in range(5)]
+            statepoints = sp_0 + sp_1 + sp_2
+            for sp in statepoints:
+                self.project.open_job(sp).document['test'] = True
+            key_set = list(signac.contrib.project._find_unique_keys(statepoints))
+            self.assertEqual(len(statepoints), len(
+                list(signac.contrib.project._make_urls(statepoints, key_set))))
+            view_prefix = os.path.join(self._tmp_pr, 'view')
+            self.project.create_view(prefix=view_prefix)
+            self.assertTrue(os.path.isdir(view_prefix))
 
     def test_find_job_documents(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -181,18 +200,17 @@ class ProjectTest(BaseProjectTest):
         list(self.project.find_job_documents())
         self.assertEqual(len(statepoints), len(
             list(self.project.find_job_documents())))
+        list(self.project.find_job_documents({'a': 1}))
         self.project.open_job({'a': 0}).document['_id'] = True
-        list(self.project.find_job_documents({'a': 1}))  # should not throw
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents())
-        with self.assertRaises(KeyError):
-            list(self.project.find_job_documents({'a': 0}))
+        del self.project.open_job({'a': 0}).document['_id']
+        list(self.project.find_job_documents())
         self.project.open_job({'a': 1}).document['statepoint'] = True
         with self.assertRaises(KeyError):
             list(self.project.find_job_documents())
-        with self.assertRaises(KeyError):
-            list(self.project.find_job_documents({'a': 1}))
-        list(self.project.find_job_documents({'a': 2}))  # should not throw
+        del self.project.open_job({'a': 1}).document['statepoint']
+        list(self.project.find_job_documents())
 
     def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -205,7 +223,7 @@ class ProjectTest(BaseProjectTest):
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
-        # Implement logging temporarily
+        # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(ValueError):

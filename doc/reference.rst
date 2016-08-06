@@ -1,7 +1,11 @@
 .. _quickreference:
 
+===============
 Quick Reference
 ===============
+
+Projects
+========
 
 Start a new project
 -------------------
@@ -12,7 +16,6 @@ Start a new project
     $ cd my_project
     $ signac init MyProject
     Initialized project 'MyProject'.
-
 
 Open a job
 ----------
@@ -27,13 +30,60 @@ Open a job
      with project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2') as job:
         # do your job...
 
-.. code-block:: shell
+.. code-block:: bash
 
     $ signac job '{"a": 0}'
     9bfd29df07674bc4aa960cf661b5acd2
     $ signac job --workspace '{"a": 0}'
     /path/to/workspace/9bfd29df07674bc4aa960cf661b5acd2
+    $ signac statepoint 9bfd29df07674bc4aa960cf661b5acd2
+    {"a": 0}
 
+Find jobs
+---------
+
+.. code-block:: python
+
+    # Iterate over all jobs in the data space:
+    for job in project.find_jobs():
+        # ...
+
+    # Iterate over a filtered subset:
+    for job in project.find_jobs({'a': 0}):
+        # ...
+
+.. code-block:: bash
+
+    # Find all jobs:
+    $ signac find
+
+    # Find a filtered subset:
+    $ signac find '{"a": 0}'
+
+Index project data
+------------------
+
+1. Use the :py:meth:`~signac.contrib.project.Project.index` method:
+
+    .. code-block:: python
+
+        for doc in project.index():
+            print(doc)
+
+2. Use the ``signac index`` function:
+
+    .. code-block:: bash
+
+        $ signac index
+
+3. Define a custom crawler for example for a ``signac_access.py`` module:
+
+    .. code-block:: python
+
+        project.create_access_module()
+
+Database Integration
+====================
 
 Access a database
 -----------------
@@ -41,6 +91,14 @@ Access a database
 .. code-block:: python
 
     db = signac.get_database('my_database')
+
+Export an index to a database collection
+----------------------------------------
+
+.. code-block:: python
+
+    db = signac.get_database('mydb')
+    signac.contrib.export(project.index(), db.index)  # or export_pymongo()
 
 Search a database collection
 ----------------------------
@@ -54,25 +112,6 @@ Example for a collection named *index*:
 
     # a = 2
     doc = db.index.find_one({'a': 2})
-
-Index project data
-------------------
-
-1. Use the :py:meth:`~signac.contrib.project.Project.index` method:
-
-    .. code-block:: python
-
-        for doc in project.index():
-            print(doc)
-
-2. Export the index to a database collection:
-
-    .. code-block:: python
-
-        db = signac.get_database('mydb')
-        signac.contrib.export(project.index(), db.index)  # or export_pymongo()
-
-3. Create a ``signac_access.py`` module with the :py:meth:`~signac.contrib.project.Project.create_access_module` method (or :ref:`manually <signac-access>`)  to expose the index to a :py:class:`~signac.contrib.crawler.MasterCrawler`.
 
 Access data using an index
 --------------------------

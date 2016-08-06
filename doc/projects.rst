@@ -75,6 +75,21 @@ Equivalent from the command line:
 
 The *job id* is a unique identifier or address for all project data.
 
+Once a job is initialized in your workspace, you can translate a job id back into a statepoint by either opening the job *by id* in python:
+
+.. code-block:: python
+
+    >>> job = project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2')
+    >>> print(job.statepoint())
+    {'a': 0}
+
+Or by using the ``signac statepoint`` function on the command line:
+
+.. code-block:: bash
+
+    $ signac statepoint 9bfd29df07674bc4aa960cf661b5acd2
+    {"a": 0}
+
 The workspace
 -------------
 
@@ -151,6 +166,15 @@ If you want to operate on all or a select number of jobs, use :py:meth:`~signac.
     9bfd29df07674bc4aa960cf661b5acd2 {'a': 0}
     >>>
 
+Equivalently, you can search for specific jobs on the command line:
+
+.. code-block:: bash
+
+    $ signac find '{"a": 0}'
+    9bfd29df07674bc4aa960cf661b5acd2
+
+Omitting the filter argument will find all jobs which are part of your workspace.
+
 Modify the workspace
 --------------------
 
@@ -216,49 +240,44 @@ To find all jobs labeled with 'stage2' that ran out of walltime we could execute
 Create workspace views
 ----------------------
 
-Job ids are extremely useful to manage vast parameter spaces,
-however at the same time make it impossible to identify state points by
-browsing through the file system.
-In this case you can create a **view** on all or parts of the data
-with human-readable state points using the
-:py:meth:`~signac.contrib.Project.create_view` method.
+The workspace structure is organized by job id, which is efficient and flexible for organizing the data.
+However, inspecting files as part of a job workspace directly on the file system is now harder.
 
-A view is a directory hierarchy consisting of **symbolic links**
-to the job workspace directories.
-This means no data is copied but you can conveniently browse through
-the job data space.
+In this case it is useful to create a *linked view*, that means, a directory hierarchy with human-readable
+names, that link to the actual job workspace directories.
+This means that no data is copied, but you can inspect data in a more convenient way.
 
-Let's assume the parameter space is
+To create a linked view you can either call the :py:meth:`~.Project.create_linked_view` method or execute
+the ``signac view`` function on the command line.
+
+Let's assume the data space has the following job statepoints:
 
     * a=0, b=0
     * a=1, b=0
     * a=2, b=0
     * ...,
 
-where *b* does not vary over all state points.
+where *b* is constant for all state points.
 
-Calling :py:meth:`~signac.contrib.Project.create_view()` will generate
-the following *symbolic links* within the specified  view directory:
+We then create the linked view with:
 
-.. code:: bash
+.. code-block:: bash
 
-    view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
-    view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
-    ...
+    $ mkdir my_view
+    $ signac view my_view/
+    Indexing project...
+    $ ls my_view/
+    a_0 a_1 a_2 ...
 
-.. note::
+As the parameter *b* is constant for all jobs within the data space, it is ignored for the creation of the linked views.
 
-    As *b* does not vary over the whole parameter space it is not part
-    of the view url.
-    This maximizes the compactness of each view url.
+It may be useful to reduce to the *linked view* to a specific data sub set.
+For this purpose you can provide the set of job ids corresponding to this subset to the ``signac view`` function, for example in combination with ``signac find``, e.g.:
 
-.. hint::
+.. code-block:: bash
 
-    Using a **filter** argument, you can create a view for a **subset**
-    of the data, e.g.:
+    $ signac find '{"a": 0}' | xargs signac view my_view/ -j
 
-    .. code:: python
+.. tip::
 
-        >>> project.create_view({'debug': True})
-
-    will create links only for jobs where *debug* equals *True*.
+    Consider creating a linked view for large data sets on an in-memory file system for best performance.
