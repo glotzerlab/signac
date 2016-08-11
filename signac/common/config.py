@@ -16,7 +16,6 @@ DEFAULT_FILENAME = '.signacrc'
 CONFIG_FILENAMES = [DEFAULT_FILENAME, 'signac.rc']
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
-CWD = os.getcwd()
 FN_CONFIG = os.path.expanduser('~/.signacrc')
 
 
@@ -24,20 +23,21 @@ class PermissionsError(ConfigError):
     pass
 
 
-def search_tree():
-    cwd = os.getcwd()
+def search_tree(root=None):
+    if root is None:
+        root = os.getroot()
     while(True):
         for filename in CONFIG_FILENAMES:
-            fn = os.path.abspath(os.path.join(cwd, filename))
+            fn = os.path.abspath(os.path.join(root, filename))
             if os.path.isfile(fn):
                 yield fn
-        up = os.path.abspath(os.path.join(cwd, '..'))
-        if up == cwd:
+        up = os.path.abspath(os.path.join(root, '..'))
+        if up == root:
             msg = "Reached filesystem root."
             logger.debug(msg)
             return
         else:
-            cwd = up
+            root = up
 
 
 def search_standard_dirs():
@@ -96,12 +96,12 @@ def get_config(infile=None, configspec=None, * args, **kwargs):
     return Config(infile, configspec=configspec, *args, **kwargs)
 
 
-def load_config():
+def load_config(root=None):
     config = Config(configspec=cfg.split('\n'))
     for fn in search_standard_dirs():
         tmp = read_config_file(fn)
         config.merge(tmp)
-    for fn in search_tree():
+    for fn in search_tree(root=root):
         tmp = read_config_file(fn)
         config.merge(tmp)
         if 'project' in tmp:

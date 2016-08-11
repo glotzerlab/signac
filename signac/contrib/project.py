@@ -914,9 +914,9 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
-def get_project():
+def get_project(root=None):
     """Find a project configuration and return the associated project.
 
     :returns: The project handle.
     :rtype: :class:`Project`"""
-    return Project()
+    return Project(config=load_config(root=root))
