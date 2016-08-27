@@ -929,18 +929,27 @@ def _skip_errors(iterable, log=print):
 def init_project(name, root=None, workspace=None, make_dir=True):
     """Initialize a project with the given name.
 
+    It is safe to call this function multiple times with
+    the same arguments.
+    However, a RuntimeError is raised in case where an
+    existing project configuration would conflict with
+    the provided initialization parameters.
+
     :param name: The name of the project to initialize.
     :type name: str
     :param root: The root directory for the project.
         Defaults to the current working directory.
+    :type root: str
+    :param workspace: The workspace directory for the project.
+        Defaults to `$project_root/workspace`.
+    :type workspace: str
     :param make_dir: Create the project root directory, if
         it does not exist yet.
     :type make_dir: bool
     :returns: The project handle of the initialized project.
     :rtype: :py:class:`~.Project`
     :raises RuntimeError: If the project root path already
-        contains a project configuration with a different
-        project name."""
+        contains a conflicting project configuration."""
     if root is None:
         root = os.getcwd()
     try:
@@ -974,12 +983,9 @@ def get_project(root=None):
     """Find a project configuration and return the associated project.
 
     :param root: The project root directory.
-        If not root directory is give, the next project found
+        If no root directory is given, the next project found
         within or above the current working directory is returned.
     :type root: str
-    :param init: Initialize a project with the given name if the
-        project is not already initialized.
-    :type init: str
     :returns: The project handle.
     :rtype: :class:`Project`
     :raises LookupError: If no project configuration can be found."""
