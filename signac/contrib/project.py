@@ -270,6 +270,9 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
+        if filter is None and doc_filter is None and index is None:
+            for job_id in self._job_dirs():
+                yield job_id
         if index is None:
             index = self.index()
         if doc_filter is None:
