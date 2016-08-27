@@ -12,6 +12,9 @@ from test_job import BaseJobTest
 
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)
+    from tempdir import TemporaryDirectory
+else:
+    from tempfile import TemporaryDirectory
 
 
 # Make sure the jobs created for this test are unique.
@@ -226,7 +229,7 @@ class ProjectTest(BaseProjectTest):
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LookupError):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
             # The skip_errors function helps to identify corrupt directories.
@@ -259,6 +262,51 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
+class ProjectInitTest(unittest.TestCase):
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_')
+        self.addCleanup(self._tmp_dir.cleanup)
+
+    def test_get_project(self):
+        root = self._tmp_dir.name
+        with self.assertRaises(LookupError):
+            signac.get_project(root=root)
+        project = signac.init_project(name='testproject', root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+        project = signac.get_project(root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+
+    def test_init(self):
+        root = self._tmp_dir.name
+        with self.assertRaises(LookupError):
+            signac.get_project(root=root)
+        project = signac.init_project(name='testproject', root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+        # Second initialization should not make any difference.
+        project = signac.init_project(name='testproject', root=root)
+        project = signac.get_project(root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+        # Deviating initialization parameters should result in errors.
+        with self.assertRaises(RuntimeError):
+            signac.init_project(name='testproject2', root=root)
+        with self.assertRaises(RuntimeError):
+            signac.init_project(
+                name='testproject',
+                root=root,
+                workspace='workspace2')
+            signac.init_project(
+                name='testproject2',
+                root=root,
+                workspace='workspace2')
 
 if __name__ == '__main__':
     unittest.main()

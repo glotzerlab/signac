@@ -17,6 +17,7 @@ from .job import Job
 from .hashing import calc_id
 from .crawler import SignacProjectCrawler
 from .crawler import MasterCrawler
+from .utility import _mkdir_p
 
 if six.PY2:
     from collections import Mapping
@@ -66,6 +67,7 @@ class JobSearchIndex(object):
         included (True) or excluded (False).
     :type include: Mapping
     """
+
     def __init__(self, index, include=None, hash_=None):
         self._engine = DocumentSearchEngine(
             index, include=include, hash_=hash_)
@@ -117,6 +119,10 @@ class Project(object):
         "Returns the project's id."
         return str(self.get_id())
 
+    def __repr__(self):
+        return "{}(config={})".format(
+            type(self).__name__, repr(self.config))
+
     @property
     def config(self):
         "The project's configuration."
@@ -150,14 +156,15 @@ class Project(object):
 
         :return: The project id.
         :rtype: str
-        :raises KeyError: If no project id could be determined.
+        :raises LookupError: If no project id could be determined.
         """
         try:
             return str(self.config['project'])
         except KeyError:
-            msg = "Unable to determine project id. "
-            msg += "Are you sure '{}' is a signac project path?"
-            raise LookupError(msg.format(os.path.abspath(os.getcwd())))
+            raise LookupError(
+                "Unable to determine project id ."
+                "Are ou sure '{}' is a signac project path?".format(
+                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
@@ -240,7 +247,8 @@ class Project(object):
         if index is None:
             index = self.index()
         include = {'statepoint': True}
-        search_index = self.build_job_search_index(index, include, hash_=json.dumps)
+        search_index = self.build_job_search_index(
+            index, include, hash_=json.dumps)
         tmp = search_index._engine.index
         N = len(search_index)
         for k in sorted(tmp, key=lambda k: len(tmp[k])):
@@ -918,9 +926,66 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
+def init_project(name, root=None, workspace=None, make_dir=True):
+    """Initialize a project with the given name.
+
+    :param name: The name of the project to initialize.
+    :type name: str
+    :param root: The root directory for the project.
+        Defaults to the current working directory.
+    :param make_dir: Create the project root directory, if
+        it does not exist yet.
+    :type make_dir: bool
+    :returns: The project handle of the initialized project.
+    :rtype: :py:class:`~.Project`
+    :raises RuntimeError: If the project root path already
+        contains a project configuration with a different
+        project name."""
+    if root is None:
+        root = os.getcwd()
+    try:
+        project = get_project(root=root)
+    except LookupError:
+        fn_config = os.path.join(root, 'signac.rc')
+        if make_dir:
+            _mkdir_p(os.path.dirname(fn_config))
+        with open(fn_config, 'a') as config_file:
+            config_file.write('project={}\n'.format(name))
+            if workspace is not None:
+                config_file.write('workspace_dir={}\n'.format(workspace))
+        project = get_project(root=root)
+        assert project.get_id() == str(name)
+        return project
+    else:
+        try:
+            assert project.get_id() == str(name)
+            if workspace is not None:
+                assert os.path.realpath(workspace) \
+                    == os.path.realpath(project.workspace())
+            return project
+        except AssertionError:
+            raise RuntimeError(
+                "Failed to initialize project '{}'. Path '{}' already "
+                "contains a differing project configuration.".format(
+                    name, os.path.abspath(root)))
+
+
 def get_project(root=None):
     """Find a project configuration and return the associated project.
 
+    :param root: The project root directory.
+        If not root directory is give, the next project found
+        within or above the current working directory is returned.
+    :type root: str
+    :param init: Initialize a project with the given name if the
+        project is not already initialized.
+    :type init: str
     :returns: The project handle.
-    :rtype: :class:`Project`"""
-    return Project(config=load_config(root=root))
+    :rtype: :class:`Project`
+    :raises LookupError: If no project configuration can be found."""
+    config = load_config(root=root, local=root is not None)
+    if 'project' not in config:
+        raise LookupError(
+            "Unable to determine project id for path '{}'.".format(
+                os.getcwd() if root is None else os.path.abspath(root)))
+    return Project(config=config)

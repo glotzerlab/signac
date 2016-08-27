@@ -6,7 +6,7 @@ import warnings
 
 from . import conversion
 from . import formats
-from .project import Project, get_project
+from .project import Project, get_project, init_project
 from .crawler import BaseCrawler, RegexFileCrawler, JSONCrawler,\
     SignacProjectCrawler, MasterCrawler, fetch, fetch_one, fetched,\
     export, export_pymongo

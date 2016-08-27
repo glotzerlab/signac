@@ -14,7 +14,7 @@ from __future__ import absolute_import
 from . import contrib
 from . import db
 from . import gui
-from .contrib import Project, get_project, fetch, fetch_one
+from .contrib import Project, get_project, init_project, fetch, fetch_one
 from .db import get_database
 
 __version__ = '0.4.0'
