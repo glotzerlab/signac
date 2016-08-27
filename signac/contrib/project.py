@@ -273,6 +273,7 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             for job_id in self._job_dirs():
                 yield job_id
+            return
         if index is None:
             index = self.index()
         if doc_filter is None:
