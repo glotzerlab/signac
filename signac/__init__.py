@@ -20,4 +20,5 @@ from .db import get_database
 __version__ = '0.4.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'gui',
-           'Project', 'get_project', 'get_database', 'fetch', 'fetch_one']
+           'Project', 'get_project', 'init_project',
+           'get_database', 'fetch', 'fetch_one']
