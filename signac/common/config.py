@@ -25,7 +25,7 @@ class PermissionsError(ConfigError):
 
 def search_tree(root=None):
     if root is None:
-        root = os.getroot()
+        root = os.getcwd()
     while(True):
         for filename in CONFIG_FILENAMES:
             fn = os.path.abspath(os.path.join(root, filename))
