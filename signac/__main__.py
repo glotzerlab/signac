@@ -176,16 +176,18 @@ def main_view(args):
 
 def main_init(args):
     try:
-        get_project()
+        project = get_project()
     except LookupError:
-        with open("signac.rc", 'a') as file:
-            file.write('project={}\n'.format(args.project_id))
-        assert str(get_project()) == args.project_id
-        _print_err("Initialized project '{}'.".format(args.project_id))
+        pass
     else:
-        raise RuntimeError(
-            "Failed to initialize project '{}', '{}' is already a "
-            "project root path.".format(args.project_id, os.getcwd()))
+        if project.root_directory() == os.getcwd():
+            raise RuntimeError(
+                "Failed to initialize project '{}', '{}' is already a "
+                "project root path.".format(args.project_id, os.getcwd()))
+    with open("signac.rc", 'a') as file:
+        file.write('project={}\n'.format(args.project_id))
+    assert str(get_project()) == args.project_id
+    _print_err("Initialized project '{}'.".format(args.project_id))
 
 
 def verify_config(cfg, preserve_errors=True):
