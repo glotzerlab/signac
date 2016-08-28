@@ -163,7 +163,7 @@ class Project(object):
         except KeyError:
             raise LookupError(
                 "Unable to determine project id ."
-                "Are ou sure '{}' is a signac project path?".format(
+                "Are you sure '{}' is a signac project path?".format(
                     os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
     def open_job(self, statepoint=None, id=None):
@@ -975,7 +975,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         except AssertionError:
             raise RuntimeError(
                 "Failed to initialize project '{}'. Path '{}' already "
-                "contains a differing project configuration.".format(
+                "contains a conflicting project configuration.".format(
                     name, os.path.abspath(root)))
 
 
