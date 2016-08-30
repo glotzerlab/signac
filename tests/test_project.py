@@ -303,6 +303,7 @@ class ProjectInitTest(unittest.TestCase):
                 name='testproject',
                 root=root,
                 workspace='workspace2')
+        with self.assertRaises(RuntimeError):
             signac.init_project(
                 name='testproject2',
                 root=root,
