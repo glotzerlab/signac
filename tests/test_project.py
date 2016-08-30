@@ -229,7 +229,7 @@ class ProjectTest(BaseProjectTest):
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(LookupError):
+            with self.assertRaises(ValueError):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
             # The skip_errors function helps to identify corrupt directories.
@@ -276,7 +276,15 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.get_id(), 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
+        project = signac.Project.init_project(name='testproject', root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
         project = signac.get_project(root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+        project = signac.Project.get_project(root=root)
         self.assertEqual(project.get_id(), 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
@@ -292,6 +300,10 @@ class ProjectInitTest(unittest.TestCase):
         # Second initialization should not make any difference.
         project = signac.init_project(name='testproject', root=root)
         project = signac.get_project(root=root)
+        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
+        self.assertEqual(project.root_directory(), root)
+        project = signac.Project.get_project(root=root)
         self.assertEqual(project.get_id(), 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
