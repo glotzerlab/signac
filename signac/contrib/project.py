@@ -797,6 +797,77 @@ class Project(object):
             file.write(module)
         logger.info("Created access module file '{}'.".format(filename))
 
+    @classmethod
+    def init_project(cls, name, root=None, workspace=None, make_dir=True):
+        """Initialize a project with the given name.
+
+        It is safe to call this function multiple times with
+        the same arguments.
+        However, a RuntimeError is raised in case where an
+        existing project configuration would conflict with
+        the provided initialization parameters.
+
+        :param name: The name of the project to initialize.
+        :type name: str
+        :param root: The root directory for the project.
+            Defaults to the current working directory.
+        :type root: str
+        :param workspace: The workspace directory for the project.
+            Defaults to `$project_root/workspace`.
+        :type workspace: str
+        :param make_dir: Create the project root directory, if
+            it does not exist yet.
+        :type make_dir: bool
+        :returns: The project handle of the initialized project.
+        :rtype: :py:class:`~.Project`
+        :raises RuntimeError: If the project root path already
+            contains a conflicting project configuration."""
+        if root is None:
+            root = os.getcwd()
+        try:
+            project = cls.get_project(root=root)
+        except LookupError:
+            fn_config = os.path.join(root, 'signac.rc')
+            if make_dir:
+                _mkdir_p(os.path.dirname(fn_config))
+            with open(fn_config, 'a') as config_file:
+                config_file.write('project={}\n'.format(name))
+                if workspace is not None:
+                    config_file.write('workspace_dir={}\n'.format(workspace))
+            project = cls.get_project(root=root)
+            assert project.get_id() == str(name)
+            return project
+        else:
+            try:
+                assert project.get_id() == str(name)
+                if workspace is not None:
+                    assert os.path.realpath(workspace) \
+                        == os.path.realpath(project.workspace())
+                return project
+            except AssertionError:
+                raise RuntimeError(
+                    "Failed to initialize project '{}'. Path '{}' already "
+                    "contains a conflicting project configuration.".format(
+                        name, os.path.abspath(root)))
+
+    @classmethod
+    def get_project(cls, root=None):
+        """Find a project configuration and return the associated project.
+
+        :param root: The project root directory.
+            If no root directory is given, the next project found
+            within or above the current working directory is returned.
+        :type root: str
+        :returns: The project handle.
+        :rtype: :class:`Project`
+        :raises LookupError: If no project configuration can be found."""
+        config = load_config(root=root, local=root is not None)
+        if 'project' not in config:
+            raise LookupError(
+                "Unable to determine project id for path '{}'.".format(
+                    os.getcwd() if root is None else os.path.abspath(root)))
+        return cls(config=config)
+
 
 def _move_job(src, dst):
     logger.debug("Attempting to move job {} to {}".format(src, dst))
@@ -950,33 +1021,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     :rtype: :py:class:`~.Project`
     :raises RuntimeError: If the project root path already
         contains a conflicting project configuration."""
-    if root is None:
-        root = os.getcwd()
-    try:
-        project = get_project(root=root)
-    except LookupError:
-        fn_config = os.path.join(root, 'signac.rc')
-        if make_dir:
-            _mkdir_p(os.path.dirname(fn_config))
-        with open(fn_config, 'a') as config_file:
-            config_file.write('project={}\n'.format(name))
-            if workspace is not None:
-                config_file.write('workspace_dir={}\n'.format(workspace))
-        project = get_project(root=root)
-        assert project.get_id() == str(name)
-        return project
-    else:
-        try:
-            assert project.get_id() == str(name)
-            if workspace is not None:
-                assert os.path.realpath(workspace) \
-                    == os.path.realpath(project.workspace())
-            return project
-        except AssertionError:
-            raise RuntimeError(
-                "Failed to initialize project '{}'. Path '{}' already "
-                "contains a conflicting project configuration.".format(
-                    name, os.path.abspath(root)))
+    return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
 
 
 def get_project(root=None):
@@ -989,9 +1034,4 @@ def get_project(root=None):
     :returns: The project handle.
     :rtype: :class:`Project`
     :raises LookupError: If no project configuration can be found."""
-    config = load_config(root=root, local=root is not None)
-    if 'project' not in config:
-        raise LookupError(
-            "Unable to determine project id for path '{}'.".format(
-                os.getcwd() if root is None else os.path.abspath(root)))
-    return Project(config=config)
+    return Project.get_project(root=root)
