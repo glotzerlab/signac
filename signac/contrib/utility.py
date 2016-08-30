@@ -6,6 +6,7 @@ import sys
 import os
 import getpass
 import argparse
+import errno
 
 logger = logging.getLogger(__name__)
 
@@ -162,3 +163,11 @@ def walkdepth(path, depth=0):
                 del dirs[:]
     else:
         raise ValueError("The value of depth must be non-negative.")
+
+
+def _mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as error:
+        if not (error.errno == errno.EEXIST and os.path.isdir(path)):
+            raise
