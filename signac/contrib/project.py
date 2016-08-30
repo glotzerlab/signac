@@ -201,7 +201,13 @@ class Project(object):
     def _job_dirs(self):
         wd = self.workspace()
         m = re.compile('[a-z0-9]{32}')
-        return (d for d in os.listdir(wd) if m.match(d))
+        try:
+            for d in os.listdir(wd):
+                if m.match(d):
+                    yield d
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise
 
     def num_jobs(self):
         return len(list(self._job_dirs()))
