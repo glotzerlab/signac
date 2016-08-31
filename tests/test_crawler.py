@@ -106,6 +106,16 @@ class CrawlerBaseTest(unittest.TestCase):
         with open(fn('signac_access.py'), 'w') as module:
             module.write(SIGNAC_ACCESS_MODULE)
 
+    def test_base_crawler(self):
+        crawler = signac.contrib.BaseCrawler(root=self._tmp_dir.name)
+        self.assertEqual(len(list(crawler.crawl())), 0)
+        doc = dict(a=0)
+        for doc in crawler.fetch(doc):
+            pass
+        self.assertEqual(doc, crawler.process(doc, None, None))
+        with self.assertRaises(NotImplementedError):
+            crawler.docs_from_file(None, None)
+
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
