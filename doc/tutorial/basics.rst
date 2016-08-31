@@ -52,6 +52,7 @@ Project Setup
 
 To start we create a new project directory.
 You can create the directory anywhere, for example in your home directory.
+Initialize your project either on the command line
 
 .. code-block:: bash
 
@@ -60,13 +61,21 @@ You can create the directory anywhere, for example in your home directory.
     $ signac init IdealGasProject
     Initialized project 'IdealGasProject'.
 
+or within python:
+
+.. code-block:: python
+
+   >>> import signac
+   >>> project = signac.init_project('IdealGasProject')
+   >>>
+
 This creates a config file ``signac.rc`` within our project root directory with the following content:
 
 .. code-block:: bash
 
     project=IdealGasProject
 
-Alternatively you can create the config file manually with ``$ echo "project=IdealGasProject" > signac.rc``.
+Alternatively you can create the config file manually, e.g., with ``$ echo "project=IdealGasProject" > signac.rc``.
 
 The project is the interface to our data space.
 We can either interact with it on the command line or use the python interface:

@@ -11,7 +11,17 @@ Specifying a project name as identifier within a configuration file initiates a 
     $ mkdir my_project
     $ cd my_project
     $ signac init MyProject
-    # or
+
+You can alternatively initialize your project within python with
+
+.. code-block:: python
+
+    >>> project = signac.init_project('MyProject')
+
+Finally, you can of course also create the configuration manually, e.g., with:
+
+.. code-block:: bash
+
     $ echo project=MyProject >> signac.rc
 
 The directory that contains this configuration file is the project's root directory.
@@ -62,7 +72,7 @@ Get an instance of :py:class:`~signac.contrib.job.Job`, which is a handle on you
     >>> job = project.open_job(statepoint)
     >>> job.get_id()
     '9bfd29df07674bc4aa960cf661b5acd2'
-    
+
 Equivalent from the command line:
 
 .. code-block:: shell
