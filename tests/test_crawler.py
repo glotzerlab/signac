@@ -224,6 +224,37 @@ class CrawlerBaseTest(unittest.TestCase):
             self.assertFalse(no_files)
         self.assertFalse(no_find)
 
+    def test_fetch(self):
+        self.setup_project()
+        crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
+        crawler.tags = {'test1'}
+        index = list(crawler.crawl())
+        self.assertEqual(len(index), 2)
+        with self.assertRaises(ValueError):
+            list(signac.fetch(doc=None))
+        with self.assertRaises(ValueError):
+            signac.fetch_one(doc=None)
+        list(signac.fetch(dict()))     # missing link should do nothing
+        self.assertIsNone(signac.fetch_one(doc=dict()))
+        for doc, file in signac.contrib.crawler.fetched(index):
+            doc2 = json.load(file)
+            self.assertEqual(doc['a'], doc2['a'])
+            file.close()
+
+    def test_export(self):
+        class Index(object):
+            called = False
+            @classmethod
+            def replace_one(cls, f, doc):
+                cls.called = True
+                self.assertEqual(f, dict(_id=doc['_id']))
+        self.setup_project()
+        crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
+        crawler.tags = {'test1'}
+        index = list(crawler.crawl())
+        signac.contrib.export(index, Index())
+        self.assertTrue(Index.called)
+
     def test_master_crawler_tags(self):
         self.setup_project()
         crawler = signac.contrib.MasterCrawler(root=self._tmp_dir.name)
