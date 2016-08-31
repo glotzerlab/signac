@@ -139,9 +139,9 @@ We pass the ``doc`` variable to the :py:func:`~signac.fetch_one` function to ope
 .. code-block:: bash
 
     $ python fetch.py
-    {'p': 10.0, 'N': 1000, 'T': 1.0} 100.0
-    {'p': 4.5, 'N': 1000, 'T': 1.0} 222.22222222222223
-    {'p': 7.800000000000001, 'N': 1000, 'T': 1.0} 128.2051282051282
+    {'p': 10.0, 'N': 1000, 'kT': 1.0} 100.0
+    {'p': 4.5, 'N': 1000, 'kT': 1.0} 222.22222222222223
+    {'p': 7.800000000000001, 'N': 1000, 'kT': 1.0} 128.2051282051282
     # ...
 
 Database Integration
@@ -229,14 +229,14 @@ This has the additional advantage that we can use the :py:mod:`fractions` module
     from fractions import Fraction
     import signac
 
-    cmd = 'bash idg.sh {N} {T} {p_n} {p_d} > {out}'
+    cmd = 'bash idg.sh {N} {kT} {p_n} {p_d} > {out}'
 
     project = signac.get_project()
     for job in project.find_jobs():
         sp = job.statepoint()
         p = Fraction(sp['p'])
         print(cmd.format(
-            N=int(sp['N']), T=int(sp['T']),
+            N=int(sp['N']), kT=int(sp['kT']),
             p_n=p.numerator, p_d=p.denominator,
             out=job.fn('V.txt')))
 
@@ -245,8 +245,8 @@ This will generate a chain of one command for each state point in our data space
 .. code-block:: bash
 
     $ python prepare_idg.py
-    bash idg.sh 1000 1 10 1 > ~/ideal_gas_project/workspace/07dc3f53615713900208803484b87253/V.txt
-    bash idg.sh 1000 1 9 2 > ~/ideal_gas_project/workspace/14ba699529683f7132c863c51facc79c/V.txt
+    bash idg.sh 1000 1 9 2 > /Users/csadorf/local/signac/examples/ideal_gas_project/workspace/b45a2485a44a46364cc60134360ea5af/V.txt
+    bash idg.sh 1000 1 10 1 > /Users/csadorf/local/signac/examples/ideal_gas_project/workspace/5a456c131b0c5897804a4af8e77df5aa/V.txt
     # ...
 
 To execute this we could simply pipe these commands into another bash script:

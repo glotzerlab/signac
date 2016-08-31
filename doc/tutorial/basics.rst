@@ -90,13 +90,14 @@ We can either interact with it on the command line or use the python interface:
 A minimal Example
 =================
 
-For this tutorial we want to compute the volume of an ideal gas as a function of its pressure and temperature.
+For this tutorial we want to compute the volume of an ideal gas as a function of its pressure and thermal energy.
 
 .. math::
 
-    p V = N k_B T
+    p V = N k_B T,
 
-We will set :math:`k_B=1` and execute the complete study in **7 lines** of code:
+where :math:`N` is the system size, :math:`p` the pressure, :math:`k_B T` the thermal energy and :math:`V` the volume.
+We will  execute the complete study in **7 lines of code**:
 
 .. code-block:: python
 
@@ -104,10 +105,10 @@ We will set :math:`k_B=1` and execute the complete study in **7 lines** of code:
     1. import signac
     2. project = signac.get_project()
     3. for p in 0.1, 1.0, 10.0:
-    4.     sp = {'p': p, 'T': 10.0, 'N': 10}
+    4.     sp = {'p': p, 'kT': 1.0, 'N': 1000}
     5.     with project.open_job(sp) as job:
     6.         if 'V' not in job.document:
-    7.             job.document['V'] = sp['N'] * sp['T'] / sp['p']
+    7.             job.document['V'] = sp['N'] * sp['kT'] / sp['p']
 
 1. Import the ``signac`` package.
 2. Obtain a handle for the configured project.
@@ -124,9 +125,9 @@ We can then examine our results by iterating over the data space:
     >>> for job in project.find_jobs():
     ...     print(job.statepoint()['p'], job.document['V'])
     ...
-    0.1 1000.0
-    1.0 100.0
-    10.0 10.0
+    0.1 10000.0
+    1.0 1000.0
+    10.0 100.0
 
 This concludes the minimal example.
 In the next section we will assume that the ideal gas computation represents a more expensive computation.
@@ -143,7 +144,7 @@ Data space initialization
 In the minimal example we initialized the data space *implicitly*.
 Let's see how we can initialize it *explicitly*.
 In general, the data space needs to contain all parameters that will affect our data.
-For the ideal gas that is a 3-dimensional space spanned by the temperature *T*, the pressure *p* and the system size *N*.
+For the ideal gas that is a 3-dimensional space spanned by the thermal energy *kT*, the pressure *p* and the system size *N*.
 
 Each state point represents a unique set of parameters that we want to associate with data.
 In terms of signac this relationship is represented by a :py:class:`~signac.contrib.job.Job`.
@@ -159,7 +160,7 @@ Let's define our initialization routine in a script called ``init.py``:
 
     project = signac.get_project()
     for pressure in 0.1, 1.0, 10.0:
-        statepoint = {'p': pressure, 'T': 1.0, 'N': 1000}
+        statepoint = {'p': pressure, 'kT': 1.0, 'N': 1000}
         job = project.open_job(statepoint)
         job.init()
         print(job, 'initialized')
@@ -169,9 +170,9 @@ We can now initialize the workspace with:
 .. code-block:: bash
 
     $ python init.py
-    3daa7dc28de43a2ff132a4b48c6abe0e initialized
-    9e100da58ccdf6ad7941fce7d14deeb5 initialized
-    07dc3f53615713900208803484b87253 initialized
+    5a6c687f7655319db24de59a2336eff8 initialized
+    ee617ad585a90809947709a7a45dda9a initialized
+    5a456c131b0c5897804a4af8e77df5aa initialized
 
 The output shows the job ids associated with each state point.
 The *job id* is a unique identifier representing the state point.
@@ -184,9 +185,9 @@ The project's workspace has been populated with directories for each state point
 .. code-block:: bash
 
    $ ls -1 workspace/
-   07dc3f53615713900208803484b87253
-   3daa7dc28de43a2ff132a4b48c6abe0e
-   9e100da58ccdf6ad7941fce7d14deeb5
+   5a6c687f7655319db24de59a2336eff8
+   ee617ad585a90809947709a7a45dda9a
+   5a456c131b0c5897804a4af8e77df5aa
 
 We could execute the initialization script multiple times to add more state points, already existing jobs will be ignored.
 
@@ -208,12 +209,12 @@ For this we define two functions inside a ``run.py`` script:
         "Compute the volume of this state point."
         sp = job.statepoint()
         with job:
-            V = calc_volume(sp['N'], sp['T'], sp['p'])
+            V = calc_volume(sp['N'], sp['kT'], sp['p'])
             with open('V.txt', 'w') as file:
                 file.write(str(V)+'\n')
             print(job, 'computed volume')
 
-The ``calc_volume()`` function returns the volume of an ideal gas with a system size *N*, temperature *T* and pressure *p*.
+The ``calc_volume()`` function returns the volume of an ideal gas with a system size *N*, thermal energy *kT* and pressure *p*.
 The ``compute_volume()`` function retrieves the state point from the job argument and stores the result of the ideal gas law calculation in a file called ``V.txt``.
 The ``with job:`` clause utilizes the ``job`` handle as a context manager.
 It means that all commands below it are executed within the job's workspace directory.
@@ -241,7 +242,7 @@ Let's add a few more lines to complete the ``run.py`` script:
         "Compute the volume of this state point."
         sp = job.statepoint()
         with job:
-            V = calc_volume(sp['N'], sp['T'], sp['p'])
+            V = calc_volume(sp['N'], sp['kT'], sp['p'])
             with open('V.txt', 'w') as file:
                 file.write(str(V)+'\n')
             print(job, 'computed volume')
@@ -255,16 +256,16 @@ We are now ready to execute:
 .. code-block:: bash
 
     $ python run.py
-    07dc3f53615713900208803484b87253 computed volume
-    3daa7dc28de43a2ff132a4b48c6abe0e computed volume
-    9e100da58ccdf6ad7941fce7d14deeb5 computed volume
+    5a456c131b0c5897804a4af8e77df5aa computed volume
+    5a6c687f7655319db24de59a2336eff8 computed volume
+    ee617ad585a90809947709a7a45dda9a computed volume
 
 And we can verify that we actually stored data:
 
 .. code-block:: bash
 
-    $ cat workspace/07dc3f53615713900208803484b87253/V.txt
-    100.0
+    $ cat workspace/ee617ad585a90809947709a7a45dda9a/V.txt
+    1000.0
 
 Analyzing data
 --------------
@@ -316,7 +317,7 @@ To use the job document instead of a file, we need to modify our operation funct
     def compute_volume(job):
         sp = job.statepoint()
         with job:
-            V = calc_volume(sp['N'], sp['T'], sp['N'])
+            V = calc_volume(sp['N'], sp['kT'], sp['N'])
             job.document['V'] = V                         # <-- new line
             with open('V.txt', 'w') as file:
                 file.write(str(V)+'\n')
