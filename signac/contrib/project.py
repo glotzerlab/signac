@@ -711,7 +711,8 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
-    def index(self, formats=None, depth=0, skip_errors=False, include_job_document=True):
+    def index(self, formats=None, depth=0,
+              skip_errors=False, include_job_document=True):
         """Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -729,6 +730,12 @@ class Project(object):
         :param depth: Specifies the crawling depth.
             A value of 0 (default) means no limit.
         :type depth: int
+        :param skip_errors: Skip all errors which occur during indexing.
+            This is useful when trying to repair a broken workspace.
+        :type skip_errors: bool
+        :param include_job_document: Include the contents of job
+            documents.
+        :type include_job_document: bool
         :yields: index documents"""
         if formats is None:
             docs = _index_signac_project_workspace(
