@@ -262,6 +262,48 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
+    def test_signac_project_crawler(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document['test'] = True
+        job_ids = set((job.get_id() for job in self.project.find_jobs()))
+        index = dict()
+        for doc in self.project.index():
+            index[doc['_id']] = doc
+        self.assertEqual(len(index), len(job_ids))
+        self.assertEqual(set(index.keys()), set(job_ids))
+        crawler = signac.contrib.SignacProjectCrawler(self.project.workspace())
+        index2 = dict()
+        for doc in crawler.crawl():
+            index2[doc['_id']] = doc
+        self.assertEqual(index, index2)
+        for job in self.project.find_jobs():
+            with open(job.fn('test.txt'), 'w') as file:
+                file.write('test\n')
+        formats = {r'.*/test\.txt': signac.contrib.formats.TextFile}
+        index = dict()
+        for doc in self.project.index(formats):
+            index[doc['_id']] = doc
+        self.assertEqual(len(index), 2 * len(job_ids))
+
+        class Crawler(signac.contrib.SignacProjectCrawler):
+            called = False
+
+            def process(self_, doc, dirpath, fn):
+                Crawler.called = True
+                doc = super(Crawler, self_).process(doc=doc, dirpath=dirpath, fn=fn)
+                if 'format' in doc and doc['format'] is None:
+                    self.assertEqual(doc['_id'], doc['signac_id'])
+                return doc
+        for p, fmt in formats.items():
+            Crawler.define(p, fmt)
+        index2 = dict()
+        for doc in Crawler(root=self.project.workspace()).crawl():
+            index2[doc['_id']] = doc
+        self.assertEqual(index, index2)
+        self.assertTrue(Crawler.called)
+
+
 class ProjectInitTest(unittest.TestCase):
 
     def setUp(self):
