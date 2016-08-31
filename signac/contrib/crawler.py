@@ -289,79 +289,57 @@ class JSONCrawler(BaseCrawler):
                     yield d
 
 
-class SignacProjectBaseCrawler(BaseCrawler):
+class SignacProjectCrawler(RegexFileCrawler):
     encoding = 'utf-8'
     fn_statepoint = 'signac_statepoint.json'
+    fn_job_document = 'signac_job_document.json'
     statepoint_index = 'statepoint'
+    signac_id_alias = '_id'
 
-    def get_statepoint(self, dirpath):
-        job_path = os.path.join(
+    def _get_job_dir(self, dirpath):
+        return os.path.join(
             self.root,
             os.path.relpath(dirpath, self.root).split('/')[0])
-        with open(os.path.join(job_path, self.fn_statepoint), 'rb') as file:
-            doc = json.loads(file.read().decode(self.encoding))
-        signac_id = calc_id(doc)
-        assert job_path.endswith(signac_id)
-        return signac_id, doc
+
+    def get_statepoint(self, job_dir):
+        fn_sp = os.path.join(job_dir, self.fn_statepoint)
+        with open(fn_sp, 'rb') as file:
+            sp = json.loads(file.read().decode(self.encoding))
+        signac_id = calc_id(sp)
+        assert job_dir.endswith(signac_id)
+        return signac_id, sp
+
+    def get_job_document(self, dirpath):
+        job_dir = self._get_job_dir(dirpath)
+        fn_doc = os.path.join(job_dir, self.fn_job_document)
+        try:
+            with open(fn_doc, 'rb') as file:
+                return json.loads(file.read().decode(self.encoding))
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise
 
     def process(self, doc, dirpath, fn):
-        signac_id, statepoint = self.get_statepoint(dirpath)
+        job_dir = self._get_job_dir(dirpath)
+        signac_id, statepoint = self.get_statepoint(job_dir)
         doc['signac_id'] = signac_id
         if self.statepoint_index:
             doc[self.statepoint_index] = statepoint
         else:
             doc.update(statepoint)
-        return super(SignacProjectBaseCrawler, self).process(doc, dirpath, fn)
-
-
-class SignacProjectRegexFileCrawler(
-        SignacProjectBaseCrawler,
-        RegexFileCrawler):
-    pass
-
-
-class SignacProjectJobDocumentCrawler(SignacProjectBaseCrawler):
-    re_job_document = '.*\/signac_job_document\.json'
-    statepoint_index = 'statepoint'
-    signac_id_alias = '_id'
+        return super(SignacProjectCrawler, self).process(doc, dirpath, fn)
 
     def crawl(self, depth=0):
-        m = re.compile('[a-z0-9]{32}')
+        m = re.compile(r'[a-z0-9]{32}')
         job_ids = (d for d in os.listdir(self.root) if m.match(d))
         for job_id in job_ids:
-            job_wd_dir = os.path.join(self.root, job_id)
-            try:
-                sp = self.get_statepoint(job_wd_dir)[1]
-            except IOError:
-                raise LookupError(job_id)
-            doc = {
-                    'signac_id': job_id,
-                    self.statepoint_index: sp,
-                }
+            dirpath = os.path.join(self.root, job_id)
+            doc = self.get_job_document(dirpath) or dict()
             if self.signac_id_alias:
                 doc[self.signac_id_alias] = job_id
-            try:
-                with open(os.path.join(job_wd_dir, 'signac_job_document.json')) as file:
-                    job_doc = json.load(file)
-                    if '_id' in job_doc:
-                        raise KeyError(
-                            "The job document already contains a field '_id'!")
-                    if self.statepoint_index in job_doc:
-                        raise KeyError(
-                            "The job document already contains a field '{}'!".format(self.statepoint_index))
-                    doc.update(job_doc)
-            except IOError as error:
-                if error.errno != errno.ENOENT:
-                    raise
+            yield self.process(doc, dirpath, None)
+        for doc in super(SignacProjectCrawler, self).crawl(depth=depth):
             yield doc
-        for doc in super(SignacProjectJobDocumentCrawler, self).crawl(depth=depth):
-            yield doc
-
-
-class SignacProjectCrawler(
-        SignacProjectRegexFileCrawler,
-        SignacProjectJobDocumentCrawler):
-    pass
 
 
 def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
