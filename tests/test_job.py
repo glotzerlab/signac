@@ -79,7 +79,7 @@ class BaseJobTest(unittest.TestCase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)
-        os.mkdir(self._tmp_wd)
+        #os.mkdir(self._tmp_wd)
         self.config = signac.common.config.load_config()
         self.config['default_host'] = 'testing'
         self.config['author'] = 'test_author'
