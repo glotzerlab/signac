@@ -266,6 +266,13 @@ class RegexFileCrawler(BaseCrawler):
                         result[key] = float(value)
         return super(RegexFileCrawler, self).process(result, dirpath, fn)
 
+    def crawl(self, depth=0):
+        if self.definitions:
+            for doc in super(RegexFileCrawler, self).crawl(depth=depth):
+                yield doc
+        else:
+            return
+
 
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
