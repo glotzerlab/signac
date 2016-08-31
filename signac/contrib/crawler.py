@@ -289,55 +289,101 @@ class JSONCrawler(BaseCrawler):
                     yield d
 
 
+def _index_signac_project_workspace(root,
+                                    include_job_document=True,
+                                    fn_statepoint='signac_statepoint.json',
+                                    fn_job_document='signac_job_document.json',
+                                    statepoint_index='statepoint',
+                                    signac_id_alias='_id',
+                                    encoding='utf-8',
+                                    statepoint_dict=None):
+    "Yields standard index documents for a signac project workspace."
+    m = re.compile(r'[a-f0-9]{32}')
+    for job_id in os.listdir(root):
+        if not m.match(job_id):
+            continue
+        doc = dict(signac_id=job_id)
+        if signac_id_alias:
+            doc[signac_id_alias] = job_id
+        fn_sp = os.path.join(root, job_id, fn_statepoint)
+        with open(fn_sp, 'rb') as file:
+            sp = json.loads(file.read().decode(encoding))
+            if statepoint_dict is not None:
+                statepoint_dict[job_id] = sp
+            if statepoint_index:
+                doc[statepoint_index] = sp
+            else:
+                doc.update(sp)
+        if include_job_document:
+            fn_doc = os.path.join(root, job_id, fn_job_document)
+            try:
+                with open(fn_doc, 'rb') as file:
+                    doc.update(json.loads(file.read().decode(encoding)))
+            except IOError as error:
+                if error.errno != errno.ENOENT:
+                    raise
+        yield doc
+
+
 class SignacProjectCrawler(RegexFileCrawler):
+    """Index a signac project workspace.
+
+    Without any file format definitions, this crawler
+    yields index documents for each job, including
+    the statepoint and the job document.
+
+    See also: :py:class:`~.RegexFileCrawler`
+
+    :param root: The path to the project workspace.
+    :type root: str"""
     encoding = 'utf-8'
+    statepoint_index = 'statepoint'
     fn_statepoint = 'signac_statepoint.json'
     fn_job_document = 'signac_job_document.json'
-    statepoint_index = 'statepoint'
     signac_id_alias = '_id'
 
-    def _get_job_dir(self, dirpath):
-        return os.path.join(
-            self.root,
-            os.path.relpath(dirpath, self.root).split('/')[0])
+    def __init__(self, root):
+        self.root = root
+        self._statepoints = dict()
 
-    def get_statepoint(self, job_dir):
-        fn_sp = os.path.join(job_dir, self.fn_statepoint)
+    def _get_job_id(self, dirpath):
+        return os.path.relpath(dirpath, self.root).split('/')[0]
+
+    def _read_statepoint(self, job_id):
+        fn_sp = os.path.join(self.root, job_id, self.fn_statepoint)
         with open(fn_sp, 'rb') as file:
-            sp = json.loads(file.read().decode(self.encoding))
-        signac_id = calc_id(sp)
-        assert job_dir.endswith(signac_id)
-        return signac_id, sp
+            return json.loads(file.read().decode(self.encoding))
 
-    def get_job_document(self, dirpath):
-        job_dir = self._get_job_dir(dirpath)
-        fn_doc = os.path.join(job_dir, self.fn_job_document)
-        try:
-            with open(fn_doc, 'rb') as file:
-                return json.loads(file.read().decode(self.encoding))
-        except IOError as error:
-            if error.errno != errno.ENOENT:
-                raise
+    def _get_statepoint(self, job_id):
+        sp = self._statepoints.setdefault(job_id, self._read_statepoint(job_id))
+        assert calc_id(sp) == job_id
+        return sp
+
+    def get_statepoint(self, dirpath):
+        job_id = self._get_job_id(dirpath)
+        return job_id, self._get_statepoint(self, job_id)
 
     def process(self, doc, dirpath, fn):
-        job_dir = self._get_job_dir(dirpath)
-        signac_id, statepoint = self.get_statepoint(job_dir)
-        doc['signac_id'] = signac_id
-        if self.statepoint_index:
-            doc[self.statepoint_index] = statepoint
-        else:
-            doc.update(statepoint)
+        if dirpath is not None:
+            job_id = self._get_job_id(dirpath)
+            statepoint = self._get_statepoint(job_id)
+            doc['signac_id'] = job_id
+            if self.statepoint_index:
+                doc[self.statepoint_index] = statepoint
+            else:
+                doc.update(statepoint)
         return super(SignacProjectCrawler, self).process(doc, dirpath, fn)
 
     def crawl(self, depth=0):
-        m = re.compile(r'[a-z0-9]{32}')
-        job_ids = (d for d in os.listdir(self.root) if m.match(d))
-        for job_id in job_ids:
-            dirpath = os.path.join(self.root, job_id)
-            doc = self.get_job_document(dirpath) or dict()
-            if self.signac_id_alias:
-                doc[self.signac_id_alias] = job_id
-            yield self.process(doc, dirpath, None)
+        for doc in _index_signac_project_workspace(
+                root=self.root,
+                fn_statepoint=self.fn_statepoint,
+                fn_job_document=self.fn_job_document,
+                statepoint_index=self.statepoint_index,
+                signac_id_alias=self.signac_id_alias,
+                encoding=self.encoding,
+                statepoint_dict=self._statepoints):
+                yield self.process(doc, None, None)
         for doc in super(SignacProjectCrawler, self).crawl(depth=depth):
             yield doc
 
