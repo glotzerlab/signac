@@ -26,7 +26,8 @@ To have more control over the indexing process, we can do this explicitly:
         pass
     IdealGasProjectCrawler.define('.*/V\.txt', TextFile)
 
-    crawler = IdealGasProjectCrawler()
+    project = signac.get_project()
+    crawler = IdealGasProjectCrawler(root=project.workspace())
     for doc in crawler.crawl():
         print(doc)
 
@@ -48,7 +49,7 @@ Let's create the access module by adding the following commands to the ``create_
     # ...
     try:
         project.create_access_module({'.*/V\.txt': TextFile})
-    except OSError:
+    except IOError:
         print("Access module already exists!")
 
 Executing ``python create_index.py`` will now create a ``signac_access.py`` module in the project's root directory, which will look like this:
