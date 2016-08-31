@@ -15,6 +15,7 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
+from .crawler import _index_signac_project_workspace
 from .crawler import SignacProjectCrawler
 from .crawler import MasterCrawler
 from .utility import _mkdir_p
@@ -289,7 +290,7 @@ class Project(object):
                 yield job_id
             return
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=doc_filter is not None)
         if doc_filter is None:
             include = {'statepoint': True}
         else:
@@ -710,7 +711,8 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
-    def index(self, formats=None, depth=0, skip_errors=False):
+    def index(self, formats=None, depth=0,
+              skip_errors=False, include_job_document=True):
         """Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -728,16 +730,25 @@ class Project(object):
         :param depth: Specifies the crawling depth.
             A value of 0 (default) means no limit.
         :type depth: int
+        :param skip_errors: Skip all errors which occur during indexing.
+            This is useful when trying to repair a broken workspace.
+        :type skip_errors: bool
+        :param include_job_document: Include the contents of job
+            documents.
+        :type include_job_document: bool
         :yields: index documents"""
-        class Crawler(SignacProjectCrawler):
-            pass
-
-        if formats is not None:
-            for expr, fmt in formats.items():
-                Crawler.define(expr, fmt)
-
-        crawler = Crawler(self.workspace())
-        docs = crawler.crawl(depth=depth)
+        if formats is None:
+            docs = _index_signac_project_workspace(
+                root=self.workspace(),
+                include_job_document=include_job_document,
+                fn_statepoint=Job.FN_MANIFEST)
+        else:
+            class Crawler(SignacProjectCrawler):
+                pass
+            for pattern, fmt in formats.items():
+                Crawler.define(pattern, fmt)
+            crawler = Crawler(self.workspace())
+            docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
         for doc in docs:

@@ -229,7 +229,7 @@ class ProjectTest(BaseProjectTest):
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(ValueError):
+            with self.assertRaises(Exception):
                 for i, statepoint in enumerate(self.project.find_statepoints()):
                     pass
             # The skip_errors function helps to identify corrupt directories.
@@ -246,6 +246,10 @@ class ProjectTest(BaseProjectTest):
             logging.disable(logging.NOTSET)
 
     def test_index(self):
+        docs = list(self.project.index(include_job_document=True))
+        self.assertEqual(len(docs), 0)
+        docs = list(self.project.index(include_job_document=False))
+        self.assertEqual(len(docs), 0)
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
