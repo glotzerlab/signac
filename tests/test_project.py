@@ -246,6 +246,10 @@ class ProjectTest(BaseProjectTest):
             logging.disable(logging.NOTSET)
 
     def test_index(self):
+        docs = list(self.project.index(include_job_document=True))
+        self.assertEqual(len(docs), 0)
+        docs = list(self.project.index(include_job_document=False))
+        self.assertEqual(len(docs), 0)
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
