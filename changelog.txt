@@ -1,3 +1,19 @@
+0.5.0:
+
+	- General updates:
+
+		- The performance of project indexing and crawling has been improved.
+
+	- API changes:
+		
+		- New function: `signac.init_project()` simplifies project initialization
+		within python
+		- Added optional `root` argument to `signac.get_project()` to simplify
+		getting a project handle outside of the current working directory
+		- Added optional argument to `signac.get_project()`, to allow for projec
+		- Added two class factory methods to `Project`: `get_project()` and
+		`init_project()`
+
 0.4.0
 
 	- General updates:
