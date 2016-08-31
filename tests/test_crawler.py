@@ -146,6 +146,12 @@ class CrawlerBaseTest(unittest.TestCase):
 
         class Crawler(signac.contrib.RegexFileCrawler):
             pass
+
+        # First test without pattern
+        crawler = Crawler(root=self._tmp_dir.name)
+        self.assertEqual(len(list(crawler.crawl())), 0)
+
+        # Now with pattern
         pattern = ".*a_(?P<a>\d)\.txt"
         regex = re.compile(pattern)
         Crawler.define(pattern, TestFormat)
