@@ -299,7 +299,14 @@ def _index_signac_project_workspace(root,
                                     statepoint_dict=None):
     "Yields standard index documents for a signac project workspace."
     m = re.compile(r'[a-f0-9]{32}')
-    for job_id in os.listdir(root):
+    try:
+        job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
+    except IOError as error:
+        if error.errno == errno.ENOENT:
+            return
+        else:
+            raise
+    for job_id in job_ids:
         if not m.match(job_id):
             continue
         doc = dict(signac_id=job_id)
