@@ -16,7 +16,6 @@ DEFAULT_FILENAME = '.signacrc'
 CONFIG_FILENAMES = [DEFAULT_FILENAME, 'signac.rc']
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
-CWD = os.getcwd()
 FN_CONFIG = os.path.expanduser('~/.signacrc')
 
 
@@ -24,29 +23,25 @@ class PermissionsError(ConfigError):
     pass
 
 
-def search_tree():
-    cwd = os.getcwd()
+def search_tree(root=None):
+    if root is None:
+        root = os.getcwd()
     while(True):
-        for filename in CONFIG_FILENAMES:
-            fn = os.path.abspath(os.path.join(cwd, filename))
-            if os.path.isfile(fn):
-                yield fn
-        up = os.path.abspath(os.path.join(cwd, '..'))
-        if up == cwd:
+        for fn in _search_local(root):
+            yield fn
+        up = os.path.abspath(os.path.join(root, '..'))
+        if up == root:
             msg = "Reached filesystem root."
             logger.debug(msg)
             return
         else:
-            cwd = up
+            root = up
 
 
 def search_standard_dirs():
     for path in CONFIG_PATH:
-        for filename in CONFIG_FILENAMES:
-            fn = os.path.abspath(os.path.join(path, filename))
-            if os.path.isfile(fn):
-                yield fn
-                return
+        for fn in _search_local(path):
+            yield fn
 
 
 def check_permissions(filename):
@@ -96,20 +91,36 @@ def get_config(infile=None, configspec=None, * args, **kwargs):
     return Config(infile, configspec=configspec, *args, **kwargs)
 
 
-def load_config():
+def _search_local(root):
+    for fn in CONFIG_FILENAMES:
+        fn_ = os.path.abspath(os.path.join(root, fn))
+        if os.path.isfile(fn_):
+            yield fn_
+
+
+def _search(root, local=False):
+    if local:
+        for fn in _search_local(root):
+            yield fn
+    else:
+        for fn in search_standard_dirs():
+            yield fn
+        for fn in search_tree(root=root):
+            yield fn
+
+
+def load_config(root=None, local=False):
+    if root is None:
+        root = os.getcwd()
     config = Config(configspec=cfg.split('\n'))
-    for fn in search_standard_dirs():
-        tmp = read_config_file(fn)
-        config.merge(tmp)
-    for fn in search_tree():
+    for fn in _search(root=root, local=local):
         tmp = read_config_file(fn)
         config.merge(tmp)
         if 'project' in tmp:
-            config['project_dir'] = os.path.split(fn)[0]
+            config['project_dir'] = os.path.dirname(fn)
             break
-    else:
-        logger.debug("Did not find a project configuration file.")
     return config
+
 
 
 class Config(ConfigObj):

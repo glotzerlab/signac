@@ -10,7 +10,7 @@ import json
 import logging
 import getpass
 
-from . import get_project
+from . import get_project, init_project
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
@@ -175,17 +175,11 @@ def main_view(args):
 
 
 def main_init(args):
-    try:
-        get_project()
-    except LookupError:
-        with open("signac.rc", 'a') as file:
-            file.write('project={}\n'.format(args.project_id))
-        assert str(get_project()) == args.project_id
-        _print_err("Initialized project '{}'.".format(args.project_id))
-    else:
-        raise RuntimeError(
-            "Failed to initialize project '{}', '{}' is already a "
-            "project root path.".format(args.project_id, os.getcwd()))
+    init_project(
+        name=args.project_id,
+        root=os.getcwd(),
+        workspace=args.workspace)
+    _print_err("Initialized project '{}'.".format(args.project_id))
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -473,6 +467,11 @@ def main():
         'project_id',
         type=str,
         help="Initialize a project with the given project id.")
+    parser_init.add_argument(
+        '-w', '--workspace',
+        type=str,
+        default='workspace',
+        help="The path to the workspace directory.")
     parser_init.set_defaults(func=main_init)
 
     parser_project = subparsers.add_parser('project')

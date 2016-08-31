@@ -11,16 +11,9 @@ import copy
 from ..common import six
 from ..core.jsondict import JSonDict
 from .hashing import calc_id
+from .utility import _mkdir_p
 
 logger = logging.getLogger(__name__)
-
-
-def _mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as error:
-        if not (error.errno == errno.EEXIST and os.path.isdir(path)):
-            raise
 
 
 class Job(object):
@@ -54,6 +47,10 @@ class Job(object):
     def __str__(self):
         "Returns the job's id."
         return str(self.get_id())
+
+    def __repr__(self):
+        return "{}(project={}, id={})".format(
+            type(self).__name__, repr(self._project), self._id)
 
     def workspace(self):
         """Each job is associated with a unique workspace directory.

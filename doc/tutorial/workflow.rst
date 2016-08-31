@@ -17,7 +17,7 @@ We can do so by modifying the ``init.py`` script:
 
     project = signac.get_project()
     for pressure in np.linspace(0.1, 10.0, 10):   # <-- using linspace()
-        statepoint = {'p': pressure, 'T': 10.0, 'N': 10}
+        statepoint = {'p': pressure, 'kT': 1.0, 'N': 1000}
         job = project.open_job(statepoint)
         job.init()
         print(job, 'initialized')
@@ -84,17 +84,18 @@ Executing this script should show us that the state points that we initialized e
 .. code-block:: bash
 
     $ python project.py
-    07dc3f53615713900208803484b87253 10.0 init,volume-computed
-    14ba699529683f7132c863c51facc79c 04.5 init
-    184f2b7e8eadfcbc9f7c4b6638db3c43 07.8 init
-    30e9e87d9ae2931df88787e105506cb2 05.6 init
-    3daa7dc28de43a2ff132a4b48c6abe0e 00.1 init,volume-computed
-    474778977e728a74b4ebc2e14221bef6 03.4 init
-    6869bef5f259337db37b11dec88f6fab 06.7 init
-    9100165ad7753e91804f1eb875ea0b69 01.2 init
-    957349e42149cea3b0362226535a3973 08.9 init
-    9e100da58ccdf6ad7941fce7d14deeb5 01.0 init,volume-computed
-    b0dd91c4755b81b47becf83e6fb22413 02.3 init
+    IdealGasProject
+    665547b1344fe40de5b2c7ace4204783 06.7 init
+    ee617ad585a90809947709a7a45dda9a 01.0 init,volume-computed
+    b45a2485a44a46364cc60134360ea5af 04.5 init
+    05061d2acea19d2d9a25ac3360f70e04 05.6 init
+    c0ab2e09a6f878019a6057175bf718e6 02.3 init
+    9110d0837ad93ff6b4013bae30091edd 03.4 init
+    5a456c131b0c5897804a4af8e77df5aa 10.0 init,volume-computed
+    e8186b9b68e18a82f331d51a7b8c8c15 08.9 init
+    8629822576debc2bfbeffa56787ca348 07.8 init
+    22582e83c6b12336526ed304d4378ff8 01.2 init
+    5a6c687f7655319db24de59a2336eff8 00.1 init,volume-computed
 
 We can use the classification to control the execution in ``run.py``:
 
@@ -115,14 +116,9 @@ This ensures that we only execute ``compute_volume()`` for the 8 new state point
 .. code-block:: bash
 
     $ python run.py
-    14ba699529683f7132c863c51facc79c computed volume
-    184f2b7e8eadfcbc9f7c4b6638db3c43 computed volume
-    30e9e87d9ae2931df88787e105506cb2 computed volume
-    474778977e728a74b4ebc2e14221bef6 computed volume
-    6869bef5f259337db37b11dec88f6fab computed volume
-    9100165ad7753e91804f1eb875ea0b69 computed volume
-    957349e42149cea3b0362226535a3973 computed volume
-    b0dd91c4755b81b47becf83e6fb22413 computed volume
+    9110d0837ad93ff6b4013bae30091edd computed volume
+    665547b1344fe40de5b2c7ace4204783 computed volume
+    # ...
 
 
 Determining the next operation
@@ -134,15 +130,15 @@ We move the ``calc_volume()`` and ``compute_volume()`` functions into an ``opera
 .. code-block:: python
 
     # operations.py
-    def calc_volume(N, T, p):
+    def calc_volume(N, kT, p):
         "Compute the volume of an ideal gas."
-        return N * T / p
+        return N * kT / p
 
     def compute_volume(job):
         "Compute the volume of this state point."
         sp = job.statepoint()
         with job:
-            V = calc_volume(sp['N'], sp['T'], sp['p'])
+            V = calc_volume(sp['N'], sp['kT'], sp['p'])
             job.document['V'] = V
             print(job, 'computed volume')
 

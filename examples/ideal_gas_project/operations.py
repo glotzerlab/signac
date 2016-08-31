@@ -6,7 +6,7 @@ def compute_volume(job):
     "Compute the volume of this statepoint."
     sp = job.statepoint()
     with job:
-        V = calc_volume(sp['N'], sp['T'], sp['p'])
+        V = calc_volume(sp['N'], sp['kT'], sp['p'])
         job.document['V'] = V
         with open('V.txt', 'w') as file:
             file.write(str(V)+'\n')

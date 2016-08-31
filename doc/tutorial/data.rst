@@ -14,8 +14,8 @@ By default, using the :py:meth:`~.Project.find_jobs` function will return a list
     >>> for job in project.find_jobs():
     ...     print(job)
     ...
-    474778977e728a74b4ebc2e14221bef6
-    3daa7dc28de43a2ff132a4b48c6abe0e
+    8629822576debc2bfbeffa56787ca348
+    9110d0837ad93ff6b4013bae30091edd
     # ...
 
 Similarly, we can execute ``signac find`` on the command line to get a list of all *job ids* within the workspace:
@@ -24,8 +24,8 @@ Similarly, we can execute ``signac find`` on the command line to get a list of a
 
     $ signac find
     Indexing project...
-    474778977e728a74b4ebc2e14221bef6
-    3daa7dc28de43a2ff132a4b48c6abe0e
+    8629822576debc2bfbeffa56787ca348
+    9110d0837ad93ff6b4013bae30091edd
     # ...
 
 A standard operation is to find and operate on a **data subset**.
@@ -36,7 +36,7 @@ For this purpose we can use a filter argument, which will return all jobs with m
     >>> for job in project.find_jobs({'p': 1.0}):
     ...     print(job)
     ...
-    3daa7dc28de43a2ff132a4b48c6abe0e
+    ee617ad585a90809947709a7a45dda9a
 
 
 Or equivalently on the command line:
@@ -45,7 +45,7 @@ Or equivalently on the command line:
 
     $ signac find '{"p": 0.1}'
     Indexing project...
-    3daa7dc28de43a2ff132a4b48c6abe0e
+    5a6c687f7655319db24de59a2336eff8
 
 Next, we verify the selection by piping the output of ``signac find`` into the ``signac statepoints`` command via ``xargs``:
 
@@ -53,7 +53,7 @@ Next, we verify the selection by piping the output of ``signac find`` into the `
 
     $ signac find '{"p": 0.1}' | xargs signac statepoint
     Indexing project...
-    {"p": 0.1, "T": 1.0, "N": 1000}
+    {"N": 1000, "p": 0.1, "kT": 1.0}
 
 
 Instead of filtering by statepoint, we can also filter by values in the *job document* (or both):
@@ -63,7 +63,7 @@ Instead of filtering by statepoint, we can also filter by values in the *job doc
     >>> for job in project.find_jobs(doc_filter={'V': 100}):
     ...     print(job)
     ...
-    07dc3f53615713900208803484b87253
+    5a456c131b0c5897804a4af8e77df5aa
 
 Finding jobs by certain criteria requires an index of the data space.
 In the previous examples this index was created implicitly, however depending on the data space size, it may make sense to create the index explicitly for multiple uses.
@@ -80,8 +80,8 @@ To create an index, we need to crawl through the project's data space, for examp
 
     >>> for doc in project.index():
     ...     print(doc)
-    {'statepoint': {'N': 1000, 'T': 1.0, 'p': 10.0}, '_id': '07dc3f53615713900208803484b87253', 'signac_id': '07dc3f53615713900208803484b87253', 'V': 100.0}
-    {'statepoint': {'N': 1000, 'T': 1.0, 'p': 4.5}, '_id': '14ba699529683f7132c863c51facc79c', 'signac_id': '14ba699529683f7132c863c51facc79c', 'V': 222.22222222222223}
+    {'statepoint': {'p': 5.6, 'N': 1000, 'kT': 1.0}, '_id': '05061d2acea19d2d9a25ac3360f70e04', 'signac_id': '05061d2acea19d2d9a25ac3360f70e04', 'V': 178.57142857142858}
+    {'statepoint': {'p': 1.2000000000000002, 'N': 1000, 'kT': 1.0}, '_id': '22582e83c6b12336526ed304d4378ff8', 'signac_id': '22582e83c6b12336526ed304d4378ff8', 'V': 833.3333333333333}
     # ...
 
 Or by executing the ``signac index`` function on the command line:
@@ -90,8 +90,8 @@ Or by executing the ``signac index`` function on the command line:
 
     $ signac index
     Indexing project...
-    {"signac_id": "07dc3f53615713900208803484b87253", "V": 100.0, "_id": "07dc3f53615713900208803484b87253", "statepoint": {"N": 1000, "p": 10.0, "T": 1.0}}
-    {"signac_id": "14ba699529683f7132c863c51facc79c", "V": 222.22222222222223, "_id": "14ba699529683f7132c863c51facc79c", "statepoint": {"N": 1000, "p": 4.5, "T": 1.0}}
+    {"signac_id": "05061d2acea19d2d9a25ac3360f70e04", "V": 178.57142857142858, "statepoint": {"N": 1000, "p": 5.6, "kT": 1.0}, "_id": "05061d2acea19d2d9a25ac3360f70e04"}
+    {"signac_id": "22582e83c6b12336526ed304d4378ff8", "V": 833.3333333333333, "statepoint": {"N": 1000, "p": 1.2000000000000002, "kT": 1.0}, "_id": "22582e83c6b12336526ed304d4378ff8"}
     # ...
 
 We can store and reuse this index, e.g. to speed up find operations:
@@ -102,8 +102,8 @@ We can store and reuse this index, e.g. to speed up find operations:
     Indexing project...
     $ signac find --index=index.txt
     Reading index from file 'index.txt'...
-    b0dd91c4755b81b47becf83e6fb22413
-    957349e42149cea3b0362226535a3973
+    05061d2acea19d2d9a25ac3360f70e04
+    e8186b9b68e18a82f331d51a7b8c8c15
     # ...
 
 At this point the index contains information about the statepoint and all data stored in the *job document*.

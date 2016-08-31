@@ -10,6 +10,10 @@ Projects
 Start a new project
 -------------------
 
+.. code-block:: python
+
+   project = signac.init_project('MyProject')
+
 .. code-block:: bash
 
     $ mkdir my_project

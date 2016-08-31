@@ -4,13 +4,13 @@ import fractions
 import signac
 
 project = signac.get_project()
-cmd = 'bash idg.sh {N} {T} {p_n} {p_d} > {out}'
+cmd = 'bash idg.sh {N} {kT} {p_n} {p_d} > {out}'
 for job in project.find_jobs():
     sp = job.statepoint()
     p = Fraction(sp['p'])
     print(cmd.format(
         N=int(sp['N']),
-        T=int(sp['T']),
+        kT=int(sp['kT']),
         p_n=p.numerator,
-        p_d=p.denumerator,
+        p_d=p.denominator,
         out=job.fn('V.txt')))
