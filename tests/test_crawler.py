@@ -103,6 +103,10 @@ class CrawlerBaseTest(unittest.TestCase):
             file.write('{"a": 0}')
         with open(fn('a_1.txt'), 'w') as file:
             file.write('{"a": 1}')
+        with open(fn('a_0.json'), 'w') as file:
+            json.dump(dict(a=0), file)
+        with open(fn('a_1.json'), 'w') as file:
+            json.dump(dict(a=1), file)
         with open(fn('signac_access.py'), 'w') as module:
             module.write(SIGNAC_ACCESS_MODULE)
 
@@ -182,6 +186,17 @@ class CrawlerBaseTest(unittest.TestCase):
         self.assertEqual(len(CrawlerA.definitions), 1)
         self.assertEqual(len(CrawlerB.definitions), 1)
         self.assertEqual(len(CrawlerC.definitions), 2)
+
+    def test_json_crawler(self):
+        self.setup_project()
+        crawler = signac.contrib.JSONCrawler(root=self._tmp_dir.name)
+        docs = list(sorted(crawler.crawl(), key=lambda d: d['a']))
+        self.assertEqual(len(docs), 2)
+        for i, doc in enumerate(docs):
+            self.assertEqual(doc['a'], i)
+            self.assertIsNone(doc['format'])
+        ids = set(doc['_id'] for doc in docs)
+        self.assertEqual(len(ids), len(docs))
 
     def test_master_crawler(self):
         self.setup_project()
