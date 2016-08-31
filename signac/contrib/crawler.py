@@ -301,7 +301,7 @@ def _index_signac_project_workspace(root,
     m = re.compile(r'[a-f0-9]{32}')
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
-    except IOError as error:
+    except OSError as error:
         if error.errno == errno.ENOENT:
             return
         else:
