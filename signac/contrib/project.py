@@ -252,7 +252,7 @@ class Project(object):
             and a set of corresponding job ids.
         """
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         include = {'statepoint': True}
         search_index = self.build_job_search_index(
             index, include, hash_=json.dumps)
@@ -334,7 +334,7 @@ class Project(object):
         :type skip_errors: bool
         :yields: statepoints as dict"""
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         if skip_errors:
             index = _skip_errors(index, logger.critical)
         jobs = self.find_jobs(filter, doc_filter, index)
@@ -516,7 +516,7 @@ class Project(object):
         if prefix is None:
             prefix = 'view'
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         if not force and os.listdir(prefix):
             raise RuntimeError(
                 "Failed to create persistent view in '{}', the directory "
