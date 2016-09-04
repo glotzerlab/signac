@@ -6,7 +6,7 @@ Database Integration
 Database access
 ---------------
 
-After :doc:`configuring <configuration>` one ore more database hosts you can access a database with the :py:func:`signac.get_database` function.
+After :doc:`configuring <configuration>` one or more database hosts you can access a database with the :py:func:`signac.get_database` function.
 
 .. autofunction:: signac.get_database
     :noindex:
