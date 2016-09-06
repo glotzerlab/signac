@@ -142,7 +142,9 @@ def main_statepoint(args):
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(project.open_job(id=job_id).statepoint()))
+        print(json.dumps(
+            project.open_job(id=job_id).statepoint(),
+            indent=args.indent))
 
 
 def main_index(args):
@@ -513,6 +515,10 @@ def main():
         type=str,
         help="One or more job ids. The job corresponding to a job "
              "id must be initialized.")
+    parser_statepoint.add_argument(
+        '-i', '--indent',
+        type=int,
+        help="Specify the indentation of the JSON formatted state point.")
     parser_statepoint.set_defaults(func=main_statepoint)
 
     parser_index = subparsers.add_parser('index')
