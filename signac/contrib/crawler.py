@@ -130,7 +130,7 @@ class RegexFileCrawler(BaseCrawler):
     Let's assume we want to index text files, with a naming pattern, that
     specifies a parameter `a` through the filename, e.g.:
 
-    .. code::
+    .. code-block:: python
 
         ~/my_project/a_0.txt
         ~/my_project/a_1.txt
@@ -142,7 +142,7 @@ class RegexFileCrawler(BaseCrawler):
     A regular expression crawler for this structure could be implemented
     like this:
 
-    .. code::
+    .. code-block:: python
 
         import re
 
@@ -236,7 +236,7 @@ class RegexFileCrawler(BaseCrawler):
 
         Example:
 
-        .. code::
+        .. code-block:: python
 
             MyCrawler(signac.contrib.crawler.RegexFileCrawler):
                 def process(self, doc, dirpath, fn):

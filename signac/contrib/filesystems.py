@@ -197,7 +197,7 @@ def filesystems_from_config(fs_config):
     to the constructor of the specified file system handler.
     Arguments can be provided as mappings, sequences or single values, e.g.:
 
-    .. code::
+    .. code-block:: python
 
         # The following two function calls are equivalent and both
         # generate two file system handler objects:

@@ -233,7 +233,7 @@ class Project(object):
         statepoint paths as keys, encoded in JSON, and a set of job ids
         of all corresponding jobs, e.g.:
 
-        .. code::
+        .. code-block:: python
 
             >>> project.open_job({'a': 0, 'b': {'c': 'const'}}).init()
             >>> project.open_job({'a': 1, 'b': {'c': 'const'}}).init()
@@ -396,7 +396,7 @@ class Project(object):
 
         Equivalent to:
 
-        .. code::
+        .. code-block:: python
 
             {project.open_job(sp).get_id(): sp for sp in statepoints}
 
@@ -502,7 +502,7 @@ class Project(object):
         where *b* does not vary over all statepoints, this method will create
         the following *symbolic links* within the specified view prefix:
 
-        .. code:: bash
+        .. code-block:: python bash
 
             view/a/0/job -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
             view/a/1/job -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
@@ -569,7 +569,7 @@ class Project(object):
         Calling this method will generate the following *symbolic links* within
         the speciefied  view directory:
 
-        .. code:: bash
+        .. code-block:: python bash
 
             view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
             view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
@@ -720,7 +720,7 @@ class Project(object):
         The job document if it exists, is always indexed, other
         files need to be specified with the formats argument.
 
-        .. code::
+        .. code-block:: python
 
             for doc in project.index('.*\.txt', TextFile):
                 print(doc)

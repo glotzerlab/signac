@@ -64,7 +64,7 @@ class BaseLink(with_metaclass(_LinkMetaType)):
     The constructor of `linked_format` needs to accept a
     single argument, the return value of `fetch()`.
 
-    .. code::
+    .. code-block:: python
 
         class SimpleFileLink(BaseLink):
             def fetch(self):
@@ -141,7 +141,7 @@ class FileLink(BaseLink):
               which might be linked into local file systems at different
               locations.
 
-    .. code::
+    .. code-block:: python
 
         class HomeFileLink(FileLink):
             from os.path import expanduser
