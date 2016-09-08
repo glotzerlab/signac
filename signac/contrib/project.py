@@ -502,7 +502,7 @@ class Project(object):
         where *b* does not vary over all statepoints, this method will create
         the following *symbolic links* within the specified view prefix:
 
-        .. code-block:: python bash
+        .. code-block:: bash
 
             view/a/0/job -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
             view/a/1/job -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
@@ -569,7 +569,7 @@ class Project(object):
         Calling this method will generate the following *symbolic links* within
         the speciefied  view directory:
 
-        .. code-block:: python bash
+        .. code-block:: bash
 
             view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
             view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
