@@ -164,7 +164,7 @@ class Job(object):
 
         You can use the :class:`~.Job` class as context manager:
 
-        .. code::
+        .. code-block:: python
 
             with project.open_job(my_statepoint) as job:
                 # manipulate your job data
