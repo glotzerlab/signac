@@ -134,7 +134,7 @@ class DocumentSearchEngine(object):
 
         Example:
 
-        .. code::
+        .. code-block:: python
             incl = {'a': True, 'b': {'c': False, 'd': True}}
             engine = DocumentSearchEngine(docs, incl)
             # Examples for supported filters:

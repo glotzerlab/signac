@@ -10,7 +10,7 @@ def get_database(name, hostname=None, config=None):
     The database handle is an instance of :class:`~pymongo.database.Database`,
     which provides access to the document collections within one database.
 
-    .. code::
+    .. code-block:: python
 
         db = signac.db.get_database('MyDatabase')
         docs = db.my_collection.find()
