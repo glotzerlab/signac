@@ -56,7 +56,7 @@ class BasicShellTest(unittest.TestCase):
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate(input=input)
         if p.returncode != 0:
-            raise ExitCodeError()
+            raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
         if six.PY2:
             return str(out)
         else:
