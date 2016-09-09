@@ -36,6 +36,12 @@ class ExitCodeError(RuntimeError):
 class BasicShellTest(unittest.TestCase):
 
     def setUp(self):
+        pythonpath=os.environ.get('PYTHONPATH')
+        if pythonpath is None:
+            pythonpath = [os.getcwd()]
+        else:
+            pythonpath = [os.getcwd()] + pythonpath.split(':')
+        os.environ['PYTHONPATH'] = ':'.join(pythonpath)
         self.tmpdir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self.tmpdir.cleanup)
         self.cwd = os.getcwd()
@@ -50,7 +56,7 @@ class BasicShellTest(unittest.TestCase):
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate(input=input)
         if p.returncode != 0:
-            raise ExitCodeError()
+            raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
         if six.PY2:
             return str(out)
         else:
