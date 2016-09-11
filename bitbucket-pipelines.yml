@@ -13,7 +13,31 @@ pipelines:
           - python setup.py build
           - python -m unittest discover tests/ -v
   branches:
-    master|develop|v*:
+    master:
+      - step:
+          image: themattrix/tox
+          script:
+            - pip install -U coverage
+            - python --version
+            - pip --version
+            - tox --version
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+            - tox
+            - coverage report -i --include="signac*"
+    develop:
+      - step:
+          image: themattrix/tox
+          script:
+            - pip install -U coverage
+            - python --version
+            - pip --version
+            - tox --version
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+            - tox
+            - coverage report -i --include="signac*"
+    v*:
       - step:
           image: themattrix/tox
           script:
