@@ -7,10 +7,21 @@ image: python:3.5.1
 pipelines:
   default:
     - step:
-        image: python:3.5.1
-        script: # Modify the commands below to build your repository.
-          - pip install -U tox
+        script:
+          - python --version
           - pip --version
-          - tox --version
           - python setup.py build
           - python -m unittest discover tests/ -v
+  branches:
+    master|develop|v*:
+      - step:
+          image: themattrix/tox
+          script:
+            - pip install -U coverage
+            - python --version
+            - pip --version
+            - tox --version
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+            - tox
+            - coverage report -i --include="signac*"
