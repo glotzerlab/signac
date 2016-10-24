@@ -34,7 +34,7 @@ class ProjectTest(BaseProjectTest):
         pass
 
     def test_get_id(self):
-        self.assertEqual(self.project.get_id(), self.config['project'])
+        self.assertEqual(self.project.get_id(), 'testing_test_project')
         self.assertEqual(str(self.project), self.project.get_id())
 
     def test_root_directory(self):

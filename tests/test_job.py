@@ -79,16 +79,12 @@ class BaseJobTest(unittest.TestCase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)
-        #os.mkdir(self._tmp_wd)
         self.config = signac.common.config.load_config()
-        self.config['default_host'] = 'testing'
-        self.config['author'] = 'test_author'
-        self.config['author_email'] = 'testauthor@example.com'
-        self.config['project'] = 'testing_test_project'
-        self.config['project_dir'] = self._tmp_pr
-        self.config['workspace_dir'] = self._tmp_wd
-        self.project = signac.contrib.Project(config=self.config)
-        # self.addCleanup(self.project.remove, force=True)
+        self.project = signac.Project.init_project(
+            name = 'testing_test_project',
+            root=self._tmp_pr,
+            workspace=self._tmp_wd)
+        self.project.config['default_host'] = 'testing'
 
     def tearDown(self):
         pass
