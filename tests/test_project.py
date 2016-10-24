@@ -308,6 +308,32 @@ class ProjectTest(BaseProjectTest):
         self.assertTrue(Crawler.called)
 
 
+    def test_custom_project(self):
+
+        class CustomProject(signac.Project):
+            pass
+
+        project = CustomProject.get_project(root=self.project.root_directory())
+        self.assertTrue(isinstance(project, signac.Project))
+        self.assertTrue(isinstance(project, CustomProject))
+
+    def test_custom_job_class(self):
+
+        class CustomJob(signac.contrib.job.Job):
+            def __init__(self, *args, **kwargs):
+                super(CustomJob, self).__init__(*args, **kwargs)
+
+        class CustomProject(signac.Project):
+            Job=CustomJob
+
+        project = CustomProject.get_project(root=self.project.root_directory())
+        self.assertTrue(isinstance(project, signac.Project))
+        self.assertTrue(isinstance(project, CustomProject))
+        job = project.open_job(dict(a=0))
+        self.assertTrue(isinstance(job, CustomJob))
+        self.assertTrue(isinstance(job, signac.contrib.job.Job))
+
+
 class ProjectInitTest(unittest.TestCase):
 
     def setUp(self):
