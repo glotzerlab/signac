@@ -1,6 +1,7 @@
 master:
 
 	- Make it simpler to use a custom Job class with a project.
+	- Log, but do not reraise exceptions during MasterCrawler execution.
 
 0.5.0:
 

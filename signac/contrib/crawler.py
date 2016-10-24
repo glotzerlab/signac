@@ -483,7 +483,6 @@ class MasterCrawler(BaseCrawler):
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
-                raise
             else:
                 logger.debug("Executed slave crawlers.")
 
