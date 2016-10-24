@@ -1,3 +1,7 @@
+master:
+
+	- Make it simpler to use a custom Job class with a project.
+
 0.5.0:
 
 	- General updates:

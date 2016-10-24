@@ -109,6 +109,7 @@ class Project(object):
     Application developers should usually not need to
     directly instantiate this class, but use
     :func:`.contrib.get_project` instead."""
+    Job = Job
 
     def __init__(self, config=None):
         if config is None:
@@ -189,10 +190,10 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
-            return Job(self, statepoint)
+            return self.Job(project=self, statepoint=statepoint)
         else:
             try:
-                return Job(self, self.get_statepoint(id))
+                return self.Job(project=self, statepoint=self.get_statepoint(id))
             except KeyError as error:
                 logger.warning(
                     "Unable to find statepoint for job id '{}' "
@@ -441,7 +442,7 @@ class Project(object):
             file.write(json.dumps(tmp, indent=indent))
 
     def _get_statepoint_from_workspace(self, jobid):
-        fn_manifest = os.path.join(self.workspace(), jobid, Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'r') as manifest:
                 return json.load(manifest)
@@ -685,7 +686,7 @@ class Project(object):
         "Attempt to repair the workspace after it got corrupted."
         for job_dir in self._job_dirs():
             jobid = os.path.split(job_dir)[-1]
-            fn_manifest = os.path.join(job_dir, Job.FN_MANIFEST)
+            fn_manifest = os.path.join(job_dir, self.Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
                     statepoint = json.load(manifest)
@@ -741,7 +742,7 @@ class Project(object):
             docs = _index_signac_project_workspace(
                 root=self.workspace(),
                 include_job_document=include_job_document,
-                fn_statepoint=Job.FN_MANIFEST)
+                fn_statepoint=self.Job.FN_MANIFEST)
         else:
             class Crawler(SignacProjectCrawler):
                 pass
