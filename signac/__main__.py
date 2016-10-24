@@ -518,6 +518,8 @@ def main():
     parser_statepoint.add_argument(
         '-i', '--indent',
         type=int,
+        nargs='?',
+        const='2',
         help="Specify the indentation of the JSON formatted state point.")
     parser_statepoint.set_defaults(func=main_statepoint)
 
