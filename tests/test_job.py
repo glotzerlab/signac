@@ -220,6 +220,31 @@ class JobOpenAndClosingTest(BaseJobTest):
             except AttributeError:
                 pass
 
+    def test_open_job_recursive(self):
+        rp = os.path.realpath
+        job = self.open_job(test_token)
+        cwd = rp(os.getcwd())
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(os.getcwd()), rp(self.project.root_directory()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()
