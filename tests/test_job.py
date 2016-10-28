@@ -220,6 +220,52 @@ class JobOpenAndClosingTest(BaseJobTest):
             except AttributeError:
                 pass
 
+    def test_close_nonopen_job(self):
+        job = self.open_job(test_token)
+        job.close()
+        with job:
+            pass
+
+    def test_close_job_while_open(self):
+        rp = os.path.realpath
+        cwd = rp(os.getcwd())
+        job = self.open_job(test_token)
+        with job:
+            job.close()
+            self.assertEqual(cwd, rp(os.getcwd()))
+
+    def test_open_job_recursive(self):
+        rp = os.path.realpath
+        cwd = rp(os.getcwd())
+        job = self.open_job(test_token)
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(os.getcwd()), rp(self.project.root_directory()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            job.close()
+            self.assertEqual(cwd, rp(os.getcwd()))
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(cwd, rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()

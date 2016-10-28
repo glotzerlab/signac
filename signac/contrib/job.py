@@ -35,7 +35,7 @@ class Job(object):
         self._id = calc_id(self._statepoint)
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
-        self._cwd = None
+        self._cwd = list()
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -172,19 +172,18 @@ class Job(object):
         Opening the context will switch into the job's workspace,
         leaving it will switch back to the previous working directory.
         """
-        if self._cwd is None:
-            self._cwd = os.getcwd()
-            self._create_directory()
-            logger.info("Enter workspace '{}'.".format(self.workspace()))
-            os.chdir(self.workspace())
-        else:
-            logger.debug("Job is already opened, doing nothing.")
+        self._cwd.append(os.getcwd())
+        self._create_directory()
+        logger.info("Enter workspace '{}'.".format(self.workspace()))
+        os.chdir(self.workspace())
 
     def close(self):
         "Close the job and switch to the previous working directory."
-        logger.info("Leave workspace.")
-        os.chdir(self._cwd)
-        self._cwd = None
+        try:
+            os.chdir(self._cwd.pop())
+            logger.info("Leave workspace.")
+        except IndexError:
+            pass
 
     def __enter__(self):
         self.open()
