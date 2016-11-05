@@ -7,7 +7,7 @@ The signac framework aids in the management of large and heterogeneous data spac
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
-**The package's documentation is available at: [http://signac.readthedocs.io/en/latest/](http://signac.readthedocs.io/en/latest/)**
+**The package's documentation is available at: [http://signac.readthedocs.io](http://signac.readthedocs.io)**
 
 ## Installation
 
@@ -19,7 +19,7 @@ To upgrade, the package, execute:
 
     conda update -c glotzer signac
 
-**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://glotzerlab.engin.umich.edu/signac/installation.html).**
+**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://signac.readthedocs.io/en/latest/installation.html).**
 
 ## Quickstart
 
@@ -42,7 +42,7 @@ To access a database:
 
 ## Documentation
 
-Documentation for the current master branch is available at [https://glotzerlab.engin.umich.edu/signac](https://glotzerlab.engin.umich.edu/signac).
+Documentation for the current master branch is available at [https://signac.readthedocs.io](https://signac.readthedocs.io).
 
 To build documentation yourself with [sphinx](http://sphinx-doc.org), clone the repository, install the package and then execute:
 
