@@ -11,6 +11,7 @@ import warnings
 import errno
 
 from ..common import six
+from ..common import errors
 from .utility import walkdepth
 from .hashing import calc_id
 from .filesystems import filesystems_from_configs
@@ -31,6 +32,13 @@ KEY_LINK = 'signac_link'
 KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
+
+
+def md5(file):
+    m = hashlib.md5()
+    for chunk in iter(lambda: file.read(4096), b''):
+        m.update(chunk)
+    return m.hexdigest()
 
 
 class BaseCrawler(object):
@@ -207,6 +215,8 @@ class RegexFileCrawler(BaseCrawler):
                     os.path.join(dirpath, fn), self.root)
                 doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
+                with open(os.path.join(dirpath, fn), 'rb') as file:
+                    doc['md5'] = md5(file)
                 yield doc
 
     def fetch(self, doc, mode='r'):
@@ -494,7 +504,7 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc, mode='r', sources=None, ignore_linked_mirrors=False):
+def fetch_deprecated(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     """Fetch all data associated with this document.
 
     The sources argument is either a list of filesystem-like objects
@@ -552,6 +562,22 @@ def fetch(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     if to_fetch:
         msg = "Unable to fetch {}/{} file(s) associated with this document ."
         raise IOError(msg.format(len(to_fetch), n))
+
+
+def fetch(doc_or_id, mirrors=None, num_tries=3):
+    "Robust fetch function."
+    if mirrors is None:
+        mirrors = MIRRORS
+    _id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id['md5']
+    for i in range(num_tries):
+        for mirror in mirrors:
+            try:
+                yield mirror.get(_id)
+                break
+            except mirror.FileNotFoundError as error:
+                logger.warning(error)
+        else:
+            raise errors.FileNotFoundError(_id)
 
 
 def fetch_one(doc, *args, **kwargs):
@@ -623,7 +649,7 @@ def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
         index.bulk_write(operations)
 
 
-def export(docs, index, *args, **kwargs):
+def export(docs, index, mirrors=None, num_tries=3, *args, **kwargs):
     """Export function for collections.
 
     The behavior of this function is equivalent to:
@@ -637,5 +663,27 @@ def export(docs, index, *args, **kwargs):
     :param index: The collection to export the index to."""
     logger.info("Exporting index.")
     for doc in docs:
-        f = {'_id': doc['_id']}
-        index.replace_one(f, doc)
+        for i in range(num_tries):
+            try:
+                index.replace_one({'_id': doc['_id']}, doc, upsert=True)
+            except database.AutoRetry:
+                logger.warning("Failed, retrying...")
+            else:
+                break
+        else:
+            raise errors.ExportError(doc)
+        if mirrors and 'md5' in doc:
+            for mirror in mirrors:
+                for i in range(num_tries):
+                    try:
+                        with mirror.new_file(_id=doc['md5']) as dst:
+                            dst.write(file.read())
+                    except mirror.FileExistsError:
+                        logger.debug("File '{}' exists, skipping.".format(doc['md5']))
+                        break
+                    except mirror.AutoRetry:
+                        logger.warning("Failed to mirror file, retrying...")
+                    else:
+                        break
+                else:
+                    raise errors.ExportError(doc)

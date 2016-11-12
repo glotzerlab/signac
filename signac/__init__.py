@@ -15,10 +15,12 @@ from . import contrib
 from . import db
 from . import gui
 from .contrib import Project, get_project, init_project, fetch, fetch_one
+from .contrib import filesystems as fs
 from .db import get_database
 
 __version__ = '0.5.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'gui',
            'Project', 'get_project', 'init_project',
-           'get_database', 'fetch', 'fetch_one']
+           'get_database', 'fetch', 'fetch_one',
+           'fs']

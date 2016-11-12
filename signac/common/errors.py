@@ -19,3 +19,11 @@ class AuthenticationError(Error, RuntimeError):
                 self.args[0])
         else:
             return "Failed to authenticate with host."
+
+
+class ExportError(Error, RuntimeError):
+    pass
+
+
+class FileNotFoundError(Error, FileNotFoundError):
+    pass
