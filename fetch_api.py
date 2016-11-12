@@ -26,7 +26,7 @@ export(project.index(defs), index, mirrors=mirrors)
 # Exporting in context
 with signac.use_mirrors(mirrors):
     export(project.index(defs), index)
-        
+
 
 # FETCHING
 # Fetching a file from one mirror manually
@@ -43,17 +43,6 @@ for doc in index.find():
         # Do something with file
         pass
 
-
-## FETCHING in context
-with signac.use_mirrors(mirrors):
-    for doc in index.find():
-        with signac.fetch(doc) as file:
-            pass    # Do something with file
-
-with signac.use_mirrors(alias={'/nfs/glotzer/', '/nfs_glotzer'}):
-    for doc in index.find():
-        with signac.fetch(doc) as file:
-            pass    # Do something with file
 
 #
 # --- ROBUST IMPLEMENTATIONS (DETAIL) ---
@@ -89,7 +78,7 @@ def fetch(doc_or_id, mirrors=None, num_tries=3):
     "Robust fetch function."
     if mirrors is None:
         mirrors = MIRRORS
-    doc = doc_or_id if isinstance(doc_or_id, str) else doc['_id'] 
+    doc = doc_or_id if isinstance(doc_or_id, str) else doc['_id']
     for i in range(num_tries):
         for mirror in mirros:
             try:
