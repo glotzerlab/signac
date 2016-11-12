@@ -122,8 +122,9 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}(config={})".format(
-            type(self).__name__, repr(self.config))
+        return "{}({'project_dir': '{rd}', 'workspace_dir': {wd}})".format(
+            rd=self.root_directory(),
+            wd=self.workspace())
 
     @property
     def config(self):
@@ -192,13 +193,7 @@ class Project(object):
         if id is None:
             return self.Job(project=self, statepoint=statepoint)
         else:
-            try:
-                return self.Job(project=self, statepoint=self.get_statepoint(id))
-            except KeyError as error:
-                logger.warning(
-                    "Unable to find statepoint for job id '{}' "
-                    "Is the job initialized?".format(id))
-                raise error
+            return self.Job(project=self, statepoint=self.get_statepoint(id))
 
     def _job_dirs(self):
         wd = self.workspace()
