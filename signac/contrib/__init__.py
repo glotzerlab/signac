@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import absolute_import
-import warnings
+import logging
 
 from . import conversion
 from . import formats
@@ -23,8 +23,8 @@ __all__ = [
 try:
     import networkx  # noqa
 except ImportError:
-    warnings.warn("Failed to import networkx. formats_network will "
-                  "not be available.", ImportWarning)
+    logging.debug("Failed to import networkx. formats_network will "
+                  "not be available.")
 else:
     from .formats_network import get_formats_network, get_conversion_network  # noqa
     __all__.extend(['get_formats_network', 'get_conversion_network'])
@@ -32,8 +32,7 @@ else:
 try:
     import mpi4py  # noqa
 except ImportError:
-    warnings.warn("Failed to import mpi4py. MPIPool will not be available.",
-                  ImportWarning)
+    logging.debug("Failed to import mpi4py. MPIPool will not be available.")
 else:
     from .mpipool import MPIPool  # noqa
     __all__.extend(['MPIPool'])
