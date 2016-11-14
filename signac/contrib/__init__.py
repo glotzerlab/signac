@@ -9,7 +9,7 @@ from . import formats
 from .project import Project, get_project, init_project
 from .crawler import BaseCrawler, RegexFileCrawler, JSONCrawler,\
     SignacProjectCrawler, MasterCrawler, fetch, fetch_one, fetched,\
-    export, export_pymongo
+    export_one, export, export_to_mirror, export_pymongo
 
 
 __all__ = [
@@ -17,7 +17,7 @@ __all__ = [
     'Project', 'get_project', 'init_project',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
-    'export', 'export_pymongo',
+    'export_one', 'export', 'export_to_mirror', 'export_pymongo',
 ]
 
 try:

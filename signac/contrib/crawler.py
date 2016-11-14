@@ -199,6 +199,17 @@ class RegexFileCrawler(BaseCrawler):
         definitions[regex] = format_
         cls.definitions = definitions
 
+    @classmethod
+    def compute_file_id(cls, doc, file):
+        """Compute the file id for a given doc and the associated file.
+
+        :param doc: The index document
+        :param file: The associated file
+        :returns: The file id.
+        """
+        file_id = doc['md5'] = md5(file)
+        return file_id
+
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
 
@@ -216,7 +227,7 @@ class RegexFileCrawler(BaseCrawler):
                 doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
                 with open(os.path.join(dirpath, fn), 'rb') as file:
-                    doc['md5'] = md5(file)
+                    doc['file_id'] = self.compute_file_id(doc, file)
                 yield doc
 
     def fetch(self, doc, mode='r'):
@@ -504,7 +515,7 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch_deprecated(doc, mode='r', sources=None, ignore_linked_mirrors=False):
+def fetch_legacy(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     """Fetch all data associated with this document.
 
     The sources argument is either a list of filesystem-like objects
@@ -520,6 +531,7 @@ def fetch_deprecated(doc, mode='r', sources=None, ignore_linked_mirrors=False):
     :param ignore_linked_mirrors: Ignore all mirror information in the
         document's link attribute.
     :yields: Data associated with this document in the specified format."""
+    warnings.warn("Using deprecated fetch_legacy() function.", DeprecationWarning)
     if doc is None:
         raise ValueError(doc)
     link = doc.get(KEY_LINK)
@@ -564,43 +576,56 @@ def fetch_deprecated(doc, mode='r', sources=None, ignore_linked_mirrors=False):
         raise IOError(msg.format(len(to_fetch), n))
 
 
-def fetch(doc_or_id, mirrors=None, num_tries=3):
-    "Robust fetch function."
+def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
+    """Fetch the file associated with this document or file id.
+
+    :param: doc_or_id: A file_id or a document with a file_id value.
+    :param mode: Mode to use for opening files.
+    :param mirrors: An optional set of mirrors to fetch the file from.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :returns: The file associated with the document or file id.
+    :rtype: A file-like object
+    """
+    if doc_or_id is None:
+        raise ValueError("Argument 'doc_or_id' must not be None!")
+    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get('file_id')
+    if file_id is None or mirrors is None:
+        try:
+            fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
+            return open(fn, mode=mode)
+        except KeyError:
+            raise errors.FetchError("Insufficient file meta data for fetch.", doc_or_id)
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                if file_id is None:
+                    raise errors.FileNotFoundError(doc_or_id)
     if mirrors is None:
-        mirrors = MIRRORS
-    _id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id['md5']
-    for i in range(num_tries):
-        for mirror in mirrors:
-            try:
-                yield mirror.get(_id)
-                break
-            except mirror.FileNotFoundError as error:
-                logger.warning(error)
-        else:
-            raise errors.FileNotFoundError(_id)
+        raise errors.FetchError("No mirrors provided!")
+    else:
+        for i in range(num_tries):
+            for mirror in mirrors:
+                try:
+                    return mirror.get(file_id, mode=mode)
+                except mirror.FileNotFoundError as error:
+                    logger.debug(error)
+            else:
+                raise errors.FileNotFoundError(file_id)
 
 
 def fetch_one(doc, *args, **kwargs):
-    """Fetch data associated with this document.
-
-    Unlike :func:`~signac.fetch`, this function returns only the first
-    file associated with doc and ignores all others.
-    This function returns None if not file is associated with
-    the document.
-
-    :param doc: A document which is part of an index.
-    :type doc: mapping
-    :returns: Data associated with this document or None."""
-    try:
-        return next(fetch(doc, *args, **kwargs))
-    except StopIteration:
-        return None
+    "Legacy function, now provided by fetch()."
+    warnings.warn(
+        "This function is deprecated, please use fetch().",
+        DeprecationWarning)
+    return fetch(doc_or_id=doc, *args, **kwargs)
 
 
 def fetched(docs):
+    """Iterate over documents and yield associated files."""
     for doc in docs:
-        for data in fetch(doc):
-            yield doc, data
+        if 'file_id' in doc:
+            yield doc, fetch(doc)
 
 
 def _fetch_fs(doc, mode):
@@ -614,15 +639,105 @@ def _fetch_fs(doc, mode):
         yield d
 
 
-def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
-    """Optimized export function for pymongo collections.
+def _export_to_mirror(file, file_id, mirror):
+    "Export a file-like object with file_id to mirror."
+    with mirror.new_file(_id=file_id) as dst:
+        dst.write(file.read())
+
+
+def export_to_mirror(doc, mirror, num_tries=3):
+    """Export a file associated with doc to mirror.
+
+    :param doc: A document with a file_id entry.
+    :param mirror: A file-system object to export the file to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :returns: The file id after successful export.
+    """
+    if 'file_id' not in doc:
+        raise errors.ExportError("Doc '{}' does not have a file_id entry.".format(doc))
+    for i in range(num_tries):
+        try:
+            with fetch(doc, mode='rb') as file:
+                _export_to_mirror(file, doc['file_id'], mirror)
+        except mirror.FileExistsError:
+            logger.debug("File with id '{}' already exported, skipping.".format(doc['file_id']))
+            break
+        except mirror.AutoRetry as error:
+            logger.warning("Error during export: '{}', retrying...".format(error))
+        else:
+            logger.debug("Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
+            return doc['file_id']
+    else:
+        raise errors.ExportError(doc)
+
+
+def export_one(doc, index, mirrors=None, num_tries=3):
+    """Export one document to index and an optionally associated file to mirrors.
+
+    :param doc: A document with a file_id entry.
+    :param docs: The index collection to export to.
+    :param mirrors: An optional set of mirrors to export files to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :returns: The id and file id after successful export.
+    """
+    index.replace_one({'_id': doc['_id']}, doc, upsert=True)
+    if mirrors and 'file_id' in doc:
+        for mirror in mirrors:
+            export_to_mirror(doc, mirror, num_tries)
+        return doc['_id'], doc['file_id']
+    else:
+        return doc['_id'], None
+
+
+def export(docs, index, mirrors=None, num_tries=3):
+    """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
 
     .. code-block:: python
 
         for doc in docs:
-            index.replace_one({'_id': doc['_id']}, doc)
+            export_one(doc, index, mirrors, num_tries)
+
+    :param docs: The index documents to export.
+    :param index: The collection to export the index to.
+    :param mirrors: An optional set of mirrors to export files to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    """
+    for doc in docs:
+        export_one(doc, index, mirrors, num_tries)
+
+
+def _export_pymongo(docs, operations, index, mirrors, num_tries):
+    """Export docs via operations to index and files to mirrors."""
+    import pymongo
+    if mirrors is not None:
+        for mirror in mirrors:
+            for doc in docs:
+                if 'file_id' in doc:
+                    export_to_mirror(doc, mirror, num_tries)
+    for i in range(num_tries):
+        try:
+            index.bulk_write(operations)
+            break
+        except pymongo.errors.AutoReconnect as error:
+            logger.warning(error)
+    else:
+        raise errors.ExportError()
+
+
+def export_pymongo(docs, index, mirrors=None, num_tries=3, chunksize=100):
+    """Optimized export() function for pymongo index collections.
+
+    The behavior of this function is rougly equivalent to:
+
+    .. code-block:: python
+
+        for doc in docs:
+            export_one(doc, index, mirrors, num_tries)
 
     .. note::
 
@@ -632,58 +747,23 @@ def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
     :param docs: The index documents to export.
     :param index: The database collection to export the index to.
     :type index: :class:`pymongo.collection.Collection`
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
     :param chunksize: The buffer size for export operations.
     :type chunksize: int"""
     import pymongo
-    logger.info("Exporting index for pymongo.")
+    logger.info("Exporting to pymongo database collection index '{}'.".format(index))
+    chunk = []
     operations = []
     for doc in docs:
         f = {'_id': doc['_id']}
+        chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
-        if len(operations) >= chunksize:
+        if len(chunk) >= chunksize:
             logger.debug("Pushing chunk.")
-            index.bulk_write(operations)
+            _export_pymongo(chunk, operations, index, mirrors, num_tries)
+            chunk.clear()
             operations.clear()
     if len(operations):
         logger.debug("Pushing final chunk.")
-        index.bulk_write(operations)
-
-
-def export(docs, index, mirrors=None, num_tries=3, *args, **kwargs):
-    """Export function for collections.
-
-    The behavior of this function is equivalent to:
-
-    .. code-block:: python
-
-        for doc in docs:
-            index.replace_one({'_id': doc['_id']}, doc)
-
-    :param docs: The index docs to export.
-    :param index: The collection to export the index to."""
-    logger.info("Exporting index.")
-    for doc in docs:
-        for i in range(num_tries):
-            try:
-                index.replace_one({'_id': doc['_id']}, doc, upsert=True)
-            except database.AutoRetry:
-                logger.warning("Failed, retrying...")
-            else:
-                break
-        else:
-            raise errors.ExportError(doc)
-        if mirrors and 'md5' in doc:
-            for mirror in mirrors:
-                for i in range(num_tries):
-                    try:
-                        with mirror.new_file(_id=doc['md5']) as dst:
-                            dst.write(file.read())
-                    except mirror.FileExistsError:
-                        logger.debug("File '{}' exists, skipping.".format(doc['md5']))
-                        break
-                    except mirror.AutoRetry:
-                        logger.warning("Failed to mirror file, retrying...")
-                    else:
-                        break
-                else:
-                    raise errors.ExportError(doc)
+        _export_pymongo(chunk, operations, index, mirrors, num_tries)

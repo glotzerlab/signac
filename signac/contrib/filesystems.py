@@ -13,6 +13,7 @@ from ..common import six
 from ..db import get_database
 
 try:
+    import pymongo
     import gridfs
 except ImportError:
     GRIDFS = False
@@ -48,6 +49,9 @@ class LocalFS(object):
     "A file with the specified id already exists."
     FileNotFoundError = IOError
     "A file with the specified id is not found."
+
+    class AutoRetry(RuntimeError):
+        pass
 
     def __init__(self, root):
         self.root = root
@@ -122,6 +126,7 @@ if GRIDFS:
         "A file with the specified id already exists."
         FileNotFoundError = gridfs.errors.NoFile
         "A file with the specified id is not found."
+        AutoRetry = pymongo.errors.AutoReconnect
 
         def __init__(self, db, collection='fs'):
             if isinstance(db, str):
