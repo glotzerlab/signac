@@ -4,6 +4,22 @@ master:
 	- Log, but do not reraise exceptions during MasterCrawler execution.
 	- Provide default argument for '--indent' option for 'signac statepoint'
 		command.
+	- The MasterCrawler logic has been simplified; their primary function is
+		the compilaton of index documents from slave crawlers, all export logic,
+		including data mirroring is now provided by the signac.export() function.
+	- The signac.export() function now implements the logic for data linking
+	  and mirroring.
+	- Each index document is now uniquely coupled with only one file or
+	  data object, which is why signac.fetch() replaces signac.fetch_one()
+		and the latter one has been deprecated and is currently an alias of
+		the former one.
+	- The export() function automatically delegates to specialized
+		implementations such as export_pymongo().
+	- Provision of the export_one() function for the export of a single
+		index document; simplifies the implementation of custom export functions.
+	- Provision of the export_to_mirror() funtion for mirroring files.
+	- Introduction of the signac.fs namespace to simplify the configuration
+	  of mirror filesystems.
 
 0.5.0:
 
