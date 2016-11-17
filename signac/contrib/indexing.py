@@ -12,7 +12,7 @@ import errno
 
 from ..common import six
 from ..common import errors
-from .utility import walkdepth
+from .utility import walkdepth, is_string
 from .hashing import calc_id
 from .filesystems import filesystems_from_configs
 
@@ -164,7 +164,7 @@ class RegexFileCrawler(BaseCrawler):
 
         MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
 
-    In this case we could also use :class:`.contrib.formats.TextFile`
+    In this case we could also use :class:`.formats.TextFile`
     as data type which is an implementation of the example shown above.
     However we could use any other type, as long as its constructor
     expects a `file-like object`_ as its first argument.
@@ -175,7 +175,7 @@ class RegexFileCrawler(BaseCrawler):
     definitions = dict()
 
     @classmethod
-    def define(cls, regex, format_):
+    def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
         :param regex: All files of the specified format
@@ -191,10 +191,6 @@ class RegexFileCrawler(BaseCrawler):
         else:
             if isinstance(regex, str):
                 regex = re.compile(regex)
-        for meth in ('read', 'close'):
-            if not callable(getattr(format_, meth, None)):
-                msg = "Format {} has no {}() method.".format(format_, meth)
-                warnings.warn(msg)
         definitions = dict(cls.definitions)
         definitions[regex] = format_
         cls.definitions = definitions
@@ -250,7 +246,14 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    yield format_(open(ffn, mode=mode))
+                    if is_string(format_):
+                        yield open(ffn, mode=mode)
+                    else:
+                        for meth in ('read', 'close'):
+                            if not callable(getattr(format_, meth, None)):
+                                msg = "Format {} has no {}() method.".format(format_, meth)
+                                warnings.warn(msg)
+                        yield format_(open(ffn, mode=mode))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -259,7 +262,7 @@ class RegexFileCrawler(BaseCrawler):
 
         .. code-block:: python
 
-            MyCrawler(signac.contrib.crawler.RegexFileCrawler):
+            MyCrawler(signac.indexing.RegexFileCrawler):
                 def process(self, doc, dirpath, fn):
                     doc['long_name_for_a'] = doc['a']
                     return super(MyCrawler, self).process(doc, dirpath, fn)
@@ -445,14 +448,12 @@ class MasterCrawler(BaseCrawler):
 
     :param root: The path to the root directory to crawl through.
     :type root: str
-    :param link_local: Store a link to the local access module.
     :param mirrors: An optional set of mirrors, to export data to."""
 
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root, link_local=True, mirrors=None):
-        self.link_local = link_local
+    def __init__(self, root, mirrors=None):
         if mirrors is None:
             self.mirrors = list()
         else:
@@ -480,12 +481,10 @@ class MasterCrawler(BaseCrawler):
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
                 if hasattr(crawler, 'fetch'):
-                    if self.link_local:
-                        link = doc.setdefault(KEY_LINK, dict())
-                        link['link_type'] = 'module_fetch'  # deprecated
-                        link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                        link[KEY_CRAWLER_MODULE] = fn
-                        link[KEY_CRAWLER_ID] = crawler_id
+                    link = doc.setdefault(KEY_LINK, dict())
+                    link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
+                    link[KEY_CRAWLER_MODULE] = fn
+                    link[KEY_CRAWLER_ID] = crawler_id
                     for mirror in self.mirrors:
                         _store_files_to_mirror(mirror, crawler, doc)
                 yield doc
@@ -579,7 +578,7 @@ def fetch_legacy(doc, mode='r', sources=None, ignore_linked_mirrors=False):
 def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
     """Fetch the file associated with this document or file id.
 
-    :param: doc_or_id: A file_id or a document with a file_id value.
+    :param doc_or_id: A file_id or a document with a file_id value.
     :param mode: Mode to use for opening files.
     :param mirrors: An optional set of mirrors to fetch the file from.
     :param num_tries: The number of automatic retry attempts in case of
@@ -614,9 +613,9 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
 
 
 def fetch_one(doc, *args, **kwargs):
-    "Legacy function, now provided by fetch()."
+    "Legacy function, use fetch() instead."
     warnings.warn(
-        "This function is deprecated, please use fetch().",
+        "This function is deprecated, please use fetch() instead.",
         DeprecationWarning)
     return fetch(doc_or_id=doc, *args, **kwargs)
 
@@ -707,6 +706,14 @@ def export(docs, index, mirrors=None, num_tries=3):
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
     """
+    try:
+        import pymongo
+    except ImportError:
+        pass
+    else:
+        if isinstance(index, pymongo.collection.Collection):
+            logger.info("Using optimized export function export_pymongo().")
+            return export_pymongo(docs=docs, index=index, mirrors=mirrors, num_tries=num_tries)
     for doc in docs:
         export_one(doc, index, mirrors, num_tries)
 

@@ -20,10 +20,10 @@ signac.contrib.conversion module
     :undoc-members:
     :show-inheritance:
 
-signac.contrib.crawler module
------------------------------
+signac.contrib.indexing module
+------------------------------
 
-.. automodule:: signac.contrib.crawler
+.. automodule:: signac.contrib.indexing
     :members:
     :undoc-members:
     :show-inheritance:
