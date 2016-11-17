@@ -6,11 +6,14 @@
 The GUI is a leight-weight interface which makes the configuration
 of the signac framework and data inspection more straight-forward."""
 import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     import PySide  # noqa
     import pymongo  # noqa
 except ImportError as error:
-    logging.debug("{}. The signac gui is not available.".format(error))
+    logger.debug("{}. The signac gui is not available.".format(error))
 
     def main():
         """Start signac-gui.
