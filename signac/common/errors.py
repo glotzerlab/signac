@@ -29,5 +29,5 @@ class FileNotFoundError(Error, FileNotFoundError):
     pass
 
 
-class FetchError(Error):
+class FetchError(FileNotFoundError):
     pass
