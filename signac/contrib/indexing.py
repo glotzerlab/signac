@@ -15,7 +15,6 @@ from ..common import six
 from ..common import errors
 from .utility import walkdepth, is_string
 from .hashing import calc_id
-from .filesystems import filesystems_from_configs
 
 if six.PY2:
     import imp
