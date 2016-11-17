@@ -61,12 +61,6 @@ def open_job(cfg, *args, **kwargs):
     return project.open_job(*args, **kwargs)
 
 
-def open_offline_job(cfg, *args, **kwargs):
-    config = config_from_cfg(cfg)
-    project = signac.contrib.project.Project(config=config)
-    return project.open_offline_job(*args, **kwargs)
-
-
 def testdata():
     return str(uuid.uuid4())
 
