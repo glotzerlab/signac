@@ -139,7 +139,7 @@ class RegexFileCrawler(BaseCrawler):
         ...
 
     A valid regular expression to match
-    this patter would be: ``a_(?P<a>\d+)\.txt``.
+    this pattern would be: ``a_(?P<a>\d+)\.txt``.
 
     A regular expression crawler for this structure could be implemented
     like this:
