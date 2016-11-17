@@ -21,15 +21,6 @@ __all__ = [
 ]
 
 try:
-    import networkx  # noqa
-except ImportError:
-    warnings.warn("Failed to import networkx. formats_network will "
-                  "not be available.", ImportWarning)
-else:
-    from .formats_network import get_formats_network, get_conversion_network  # noqa
-    __all__.extend(['get_formats_network', 'get_conversion_network'])
-
-try:
     import mpi4py  # noqa
 except ImportError:
     warnings.warn("Failed to import mpi4py. MPIPool will not be available.",

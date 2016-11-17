@@ -28,7 +28,7 @@ class Mock(MagicMock):
             return (3,0)
         return Mock()
 
-MOCK_MODULES = ['pymongo', 'gridfs', 'mpi4py', 'networkx']
+MOCK_MODULES = ['pymongo', 'gridfs', 'mpi4py']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
