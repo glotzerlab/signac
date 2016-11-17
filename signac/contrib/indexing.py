@@ -9,6 +9,7 @@ import hashlib
 import logging
 import warnings
 import errno
+from time import sleep
 
 from ..common import six
 from ..common import errors
@@ -492,6 +493,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
     :param mirrors: An optional set of mirrors to fetch the file from.
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
+    :type num_tries: int
     :returns: The file associated with the document or file id.
     :rtype: A file-like object
     """
@@ -542,13 +544,17 @@ def _export_to_mirror(file, file_id, mirror):
         dst.write(file.read())
 
 
-def export_to_mirror(doc, mirror, num_tries=3):
+def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     """Export a file associated with doc to mirror.
 
     :param doc: A document with a file_id entry.
     :param mirror: A file-system object to export the file to.
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     :returns: The file id after successful export.
     """
     if 'file_id' not in doc:
@@ -562,6 +568,7 @@ def export_to_mirror(doc, mirror, num_tries=3):
             break
         except mirror.AutoRetry as error:
             logger.warning("Error during export: '{}', retrying...".format(error))
+            sleep(timeout)
         else:
             logger.debug("Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
             return doc['file_id']
@@ -569,7 +576,7 @@ def export_to_mirror(doc, mirror, num_tries=3):
         raise errors.ExportError(doc)
 
 
-def export_one(doc, index, mirrors=None, num_tries=3):
+def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     """Export one document to index and an optionally associated file to mirrors.
 
     :param doc: A document with a file_id entry.
@@ -577,18 +584,22 @@ def export_one(doc, index, mirrors=None, num_tries=3):
     :param mirrors: An optional set of mirrors to export files to.
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     :returns: The id and file id after successful export.
     """
     index.replace_one({'_id': doc['_id']}, doc, upsert=True)
     if mirrors and 'file_id' in doc:
         for mirror in mirrors:
-            export_to_mirror(doc, mirror, num_tries)
+            export_to_mirror(doc, mirror, num_tries, timeout)
         return doc['_id'], doc['file_id']
     else:
         return doc['_id'], None
 
 
-def export(docs, index, mirrors=None, num_tries=3):
+def export(docs, index, mirrors=None, num_tries=3, timeout=60):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -603,6 +614,10 @@ def export(docs, index, mirrors=None, num_tries=3):
     :param mirrors: An optional set of mirrors to export files to.
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     """
     try:
         import pymongo
@@ -611,30 +626,31 @@ def export(docs, index, mirrors=None, num_tries=3):
     else:
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
-            return export_pymongo(docs=docs, index=index, mirrors=mirrors, num_tries=num_tries)
+            return export_pymongo(docs=docs, index=index, mirrors=mirrors, num_tries=num_tries, timeout=timeout)
     for doc in docs:
-        export_one(doc, index, mirrors, num_tries)
+        export_one(doc, index, mirrors, num_tries, timeout)
 
 
-def _export_pymongo(docs, operations, index, mirrors, num_tries):
+def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     """Export docs via operations to index and files to mirrors."""
     import pymongo
     if mirrors is not None:
         for mirror in mirrors:
             for doc in docs:
                 if 'file_id' in doc:
-                    export_to_mirror(doc, mirror, num_tries)
+                    export_to_mirror(doc, mirror, num_tries, timeout)
     for i in range(num_tries):
         try:
             index.bulk_write(operations)
             break
         except pymongo.errors.AutoReconnect as error:
             logger.warning(error)
+            sleep(timeout)
     else:
         raise errors.ExportError()
 
 
-def export_pymongo(docs, index, mirrors=None, num_tries=3, chunksize=100):
+def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize=100):
     """Optimized export() function for pymongo index collections.
 
     The behavior of this function is rougly equivalent to:
@@ -654,6 +670,10 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, chunksize=100):
     :type index: :class:`pymongo.collection.Collection`
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     :param chunksize: The buffer size for export operations.
     :type chunksize: int"""
     import pymongo
@@ -666,9 +686,9 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, chunksize=100):
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(chunk) >= chunksize:
             logger.debug("Pushing chunk.")
-            _export_pymongo(chunk, operations, index, mirrors, num_tries)
+            _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
             chunk.clear()
             operations.clear()
     if len(operations):
         logger.debug("Pushing final chunk.")
-        _export_pymongo(chunk, operations, index, mirrors, num_tries)
+        _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
