@@ -4,7 +4,6 @@
 from __future__ import absolute_import
 import logging
 
-from . import conversion
 from . import formats
 from . import indexing
 from .project import Project, get_project, init_project
@@ -25,21 +24,13 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = [
-    'conversion', 'formats', 'indexing',
+    'formats', 'indexing',
     'Project', 'get_project', 'init_project',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
     'export_one', 'export', 'export_to_mirror', 'export_pymongo',
 ]
 
-try:
-    import networkx  # noqa
-except ImportError:
-    logger.debug("Failed to import networkx. formats_network will "
-                  "not be available.")
-else:
-    from .formats_network import get_formats_network, get_conversion_network  # noqa
-    __all__.extend(['get_formats_network', 'get_conversion_network'])
 
 try:
     import mpi4py  # noqa
