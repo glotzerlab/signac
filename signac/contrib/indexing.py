@@ -512,67 +512,6 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch_legacy(doc, mode='r', sources=None, ignore_linked_mirrors=False):
-    """Fetch all data associated with this document.
-
-    The sources argument is either a list of filesystem-like objects
-    or a list of file system configurations or a mix of both.
-
-    See :func:`.contrib.filesystems.filesystems_from_config`
-    for details.
-
-    :param doc: A document which is part of an index.
-    :type doc: mapping
-    :param mode: Mode to use for file opening.
-    :param sources: An optional set of sources to fetch files from.
-    :param ignore_linked_mirrors: Ignore all mirror information in the
-        document's link attribute.
-    :yields: Data associated with this document in the specified format."""
-    warnings.warn("Using deprecated fetch_legacy() function.", DeprecationWarning)
-    if doc is None:
-        raise ValueError(doc)
-    link = doc.get(KEY_LINK)
-    if link is None:
-        return
-    else:
-        link = dict(link)
-    if KEY_CRAWLER_PATH in link:
-        logger.debug("Fetching files from the local file system.")
-        try:
-            for file in _fetch_fs(doc, mode=mode):
-                yield file
-            return
-        except OSError as error:
-            logger.warning(
-                "Unable to fetch file from local file system: {}".format(error))
-    to_fetch = set(link.pop('file_ids', []))
-    n = len(to_fetch)
-    if n == 0:
-        return
-    if sources is None:
-        sources = list()
-    else:
-        sources = list(filesystems_from_configs(sources))
-    if not ignore_linked_mirrors:
-        sources.extend(
-            list(filesystems_from_configs(link.get('mirrors', list()))))
-    logger.debug("Using sources to fetch files: {}".format(sources))
-    for source in sources:
-        fetched = set()
-        for file_id in to_fetch:
-            logger.debug("Fetching file with id '{}'.".format(file_id))
-            try:
-                yield source.get(file_id, mode=mode)
-                fetched.add(file_id)
-            except source.FileNotFoundError:
-                continue
-        for file_id in fetched:
-            to_fetch.remove(file_id)
-    if to_fetch:
-        msg = "Unable to fetch {}/{} file(s) associated with this document ."
-        raise IOError(msg.format(len(to_fetch), n))
-
-
 def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
     """Fetch the file associated with this document or file id.
 
@@ -623,17 +562,6 @@ def fetched(docs):
     for doc in docs:
         if 'file_id' in doc:
             yield doc, fetch(doc)
-
-
-def _fetch_fs(doc, mode):
-    "Fetch files for doc from the local file system."
-    link = doc[KEY_LINK]
-    fn_module = os.path.join(
-        link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
-    crawler_module = _load_crawler(fn_module)
-    crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-    for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc, mode=mode):
-        yield d
 
 
 def _export_to_mirror(file, file_id, mirror):
