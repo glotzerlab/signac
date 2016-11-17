@@ -437,6 +437,7 @@ class IndexingBaseTest(unittest.TestCase):
                 signac.fetch(doc, mirrors=(fs_bad,))
 
 
+@unittest.skipIf(SKIP_REASON is not None, SKIP_REASON)
 class IndexingPyMongoTest(IndexingBaseTest):
 
     def get_index_collection(self):
