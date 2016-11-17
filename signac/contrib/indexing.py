@@ -72,7 +72,7 @@ class BaseCrawler(object):
 
         :returns: object associated with doc
         """
-        raise errors.FetchError(doc)
+        raise errors.FetchError("Unable to fetch object for '{}'.".format(doc))
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
@@ -535,7 +535,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
         except OSError as error:
             if error.errno == errno.ENOENT:
                 if file_id is None:
-                    raise errors.FileNotFoundError(doc_or_id)
+                    raise errors.FetchError("Failed to fetch '{}'.".format(doc_or_id))
     if mirrors is None:
         raise errors.FetchError("No mirrors provided!")
     else:
@@ -546,7 +546,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
                 except mirror.FileNotFoundError as error:
                     logger.debug(error)
             else:
-                raise errors.FileNotFoundError(file_id)
+                raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
 
 
 def fetch_one(doc, *args, **kwargs):
