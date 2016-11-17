@@ -70,15 +70,9 @@ class BaseCrawler(object):
     def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
 
-        The return value of this generator function is not directly defined,
-        however it is recommended to use `file-like objects`_.
-
-        .. _`file-like objects`:
-            https://docs.python.org/3/glossary.html#term-file-object
-
-        :yields: arbitrary objects."""
-        return
-        yield
+        :returns: object associated with doc
+        """
+        raise errors.FetchError(doc)
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
@@ -247,13 +241,18 @@ class RegexFileCrawler(BaseCrawler):
                 m = regex.match(ffn)
                 if m:
                     if is_string(format_):
-                        yield open(ffn, mode=mode)
+                        return open(ffn, mode=mode)
                     else:
                         for meth in ('read', 'close'):
                             if not callable(getattr(format_, meth, None)):
                                 msg = "Format {} has no {}() method.".format(format_, meth)
                                 warnings.warn(msg)
-                        yield format_(open(ffn, mode=mode))
+                        return format_(open(ffn, mode=mode))
+            else:
+                raise errors.FetchError("Unable to match file path of doc '{}' "
+                                        "to format definition.".format(doc))
+        else:
+            raise errors.FetchError("Insufficient meta data in doc '{}'.".format(doc))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -424,7 +423,7 @@ def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
     fs_config = link.setdefault('mirrors', list())
     fs_config.append({mirror.name: mirror.config()})
     file_ids = link.setdefault('file_ids', list())
-    for file in crawler.fetch(doc, mode=mode):
+    with crawler.fetch(doc, mode=mode) as file:
         file_id = hashlib.md5(file.read()).hexdigest()
         file.seek(0)
         try:
@@ -434,7 +433,6 @@ def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
             pass
         if file_id not in file_ids:
             file_ids.append(file_id)
-        file.close()
 
 
 class MasterCrawler(BaseCrawler):

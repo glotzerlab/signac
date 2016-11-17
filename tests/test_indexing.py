@@ -153,8 +153,8 @@ class IndexingBaseTest(unittest.TestCase):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
         self.assertEqual(len(list(crawler.crawl())), 0)
         doc = dict(a=0)
-        for doc in crawler.fetch(doc):
-            pass
+        with self.assertRaises(errors.FetchError):
+            self.assertIsNone(crawler.fetch(doc))
         self.assertEqual(doc, crawler.process(doc, None, None))
         with self.assertRaises(NotImplementedError):
             crawler.docs_from_file(None, None)
@@ -190,10 +190,12 @@ class IndexingBaseTest(unittest.TestCase):
         crawler = Crawler(root=self._tmp_dir.name)
         self.assertEqual(len(list(crawler.crawl())), 0)
 
-        # Now with pattern
+        # Now with pattern(s)
         pattern = ".*a_(?P<a>\d)\.txt"
+        pattern_false = "nomatch"
         regex = re.compile(pattern)
         Crawler.define(pattern, TestFormat)
+        Crawler.define("negativematch", "negativeformat")
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
         for doc in crawler.crawl():
@@ -206,6 +208,10 @@ class IndexingBaseTest(unittest.TestCase):
                 doc2 = json.load(file)
                 self.assertEqual(doc2['a'], doc['a'])
         self.assertFalse(no_find)
+        with self.assertRaises(errors.FetchError):
+            crawler.fetch(dict())
+        with self.assertRaises(errors.FetchError):
+            crawler.fetch({'filename': 'shouldnotmatch'})
 
     def test_regex_file_crawler_inheritance(self):
         self.setup_project()
