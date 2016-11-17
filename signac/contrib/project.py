@@ -15,10 +15,10 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
-from .crawler import _index_signac_project_workspace
-from .crawler import SignacProjectCrawler
-from .crawler import MasterCrawler
-from .utility import _mkdir_p
+from .indexing import _index_signac_project_workspace
+from .indexing import SignacProjectCrawler
+from .indexing import MasterCrawler
+from .utility import _mkdir_p, is_string
 
 if six.PY2:
     from collections import Mapping
@@ -34,7 +34,7 @@ ACCESS_MODULE_TEMPLATE = """#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
 
-from signac.contrib.crawler import SignacProjectCrawler
+from signac.contrib import SignacProjectCrawler
 {imports}
 
 
@@ -794,12 +794,15 @@ class Project(object):
             dl = "{}.define('{}', {})"
             defs = list()
             for expr, fmt in formats.items():
-                defs.append(dl.format(crawlername, expr, fmt.__name__))
-                imports.add(
-                    'from {} import {}'.format(fmt.__module__, fmt.__name__))
+                if is_string(fmt):
+                    defs.append(dl.format(crawlername, expr, "'{}'".format(fmt)))
+                else:
+                    defs.append(dl.format(crawlername, expr, fmt.__name__))
+                    imports.add(
+                        'from {} import {}'.format(fmt.__module__, fmt.__name__))
             definitions = '\n'.join(defs)
         if master:
-            imports.add('from signac.contrib.crawler import MasterCrawler')
+            imports.add('from signac.contrib import MasterCrawler')
         imports = '\n'.join(imports)
 
         module = ACCESS_MODULE_TEMPLATE.format(
