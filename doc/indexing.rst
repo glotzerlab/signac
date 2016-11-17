@@ -13,13 +13,14 @@ The data index contains all information about the project data structure and can
 **signac** uses crawlers to `crawl` through a data source to generate an index.
 A crawler is defined to generate a sequence of index documents (mappings), the data source is arbitrary.
 Each index document requires at least one ``_id`` keyword.
-For example, this would be a valid (albeit not useful) crawler:
+For example, this would be a valid crawler:
 
 .. code-block:: python
 
     my_source = ['a', 'b', 'c']
 
     class MyCrawler(object):
+
         def crawl(self):
             for i, x in enumerate(my_source):
                 yield dict(_id=i, x=x)
@@ -35,17 +36,50 @@ This method generates a sequence of arbitrary objects (usually file-like objects
             yield open('/foo/bar/a_{}.txt'.format(doc['a']), mode)
             yield open('/foo/bar/a_{}.dat'.format(doc['a']), mode)
 
-Indexing by filename
---------------------
+Indexing a signac project
+=========================
 
-A particular easy way to index files by filename is to use `regular expressions`_.
-For this purpose signac provides the :py:class:`~signac.contrib.RegexFileCrawler`.
+To index a signac project we can either use the :py:meth:`~.Project.index` method or specialize a :py:class:`~.indexing.SignacProjectCrawler`.
+The index will contain all initialized jobs and the data stored in the corresponding job documents.
+In addition, you can define to index specific files using `regular expression patterns`_ like this:
 
-.. _`regular expressions`: https://en.wikipedia.org/wiki/Regular_expression
+.. code-block:: python
 
-The `RegexFileCrawler` uses regular expressions to generate data from files.
-This is a particular easy method to retrieve meta data associated with files.
-Inherit from this class to configure a crawler for the given data structure.
+    for doc in project.index(formats={'.*\.txt': 'TextFile'})
+        print(doc)
+
+.. _`regular expression patterns`: https://en.wikipedia.org/wiki/Regular_expression
+
+Each index document contains the state point parameters stored under the ``statepoint`` keyword and for files the file path and format metadata.
+You can omit the format definition by providing `None`, but it is usually a good idea to have some form of identifier.
+
+We use the regular expression to identify which files to include, and optionally in which format.
+Using named groups we can extract more metadata from the file path.
+An expression such as ``.*\(?P<class>init|final)\.txt`` will only match files named ``init.txt`` or ``final.txt``, and will add a field ``class`` to the index document, which will either have the value ``init`` or ``final``.
+
+.. hint::
+
+    While possibly, it is generally advisabe to limit the amount of metadata encoded in filenames to the bare minimum.
+
+This is the same example with a :py:class:`~signac.contrib.SignacProjectCrawler`:
+
+.. code-block:: python
+
+    class MyCrawler(signac.contrib.SignacProjectCrawler):
+        pass
+    MyCrawler.define('.*\.txt', 'TextFile')
+
+    project = signac.get_project()
+    crawler = MyCrawler(project.workspace())
+    for doc in crawler.crawl():
+        print(doc)
+
+
+Indexing by file path
+=====================
+
+In some cases you may want to index an existing unmananged data space.
+If metadata is primarily defined through file paths, you can specialize a :py:class:`~.contrib.indexing.RegexFileCrawler`.
 
 Assuming we wanted to index text files, with a specific naming pattern, which
 specifies a parameter `a` via the filename, e.g.:
@@ -56,31 +90,19 @@ specifies a parameter `a` via the filename, e.g.:
     /data/my_project/a_1.txt
     ...
 
-To extract meta data for this filename structure, we create a regex pattern like this:
+To extract meta data for this filename structure, we use regular expression groups, e.g.:
 
     ``a_(?P<a>\d+)\.txt``
 
-
 This regular expression matches all filenames which begin with `a_`, followed by one or more digits, ending with `.txt`.
-The definition of a named group, `a`, matching only the digits allows the :py:class:`~signac.contrib.crawler.RegexFileCrawler` to extract the meta data from this filename.
+The definition of a named group, `a`, matching only the digits allows the :py:class:`~signac.contrib.RegexFileCrawler` to extract the meta data from this filename.
 For example:
 
     ``a_0.txt -> {'a': 0}``
     ``a_1.txt -> {'a': 1}``
     ... and so on.
 
-Each pattern is then associated with a specific format through the :py:meth:`~signac.contrib.RegexFileCrawler.define` class method.
-We can use any class, as long as its constructor expects a `file-like object`_ as its first argument.
-This would be a minimal implementation of such a format:
-
-.. code-block:: python
-
-    class TextFile(object):
-
-        def __init__(self, file):
-            self.data = file.read()
-
-The final implementation of crawler then looks like this:
+Each pattern can be associated with a specific format through the :py:meth:`~.indexing.RegexFileCrawler.define` class method.
 
 .. code-block:: python
 
@@ -88,71 +110,78 @@ The final implementation of crawler then looks like this:
         pass
 
     # This expressions yields mappings of the type: {'a': value_of_a}.
-    MyCrawler.define('a_(?P<a>\d+)\.txt', TextFile)
+    MyCrawler.define('a_(?P<a>\d+)\.txt', 'TextFile')
 
-In this case we could also use :class:`.contrib.formats.TextFile`
-as data type which is a more complete implementation of the minimal example shown above.
 
-.. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+Exporting index documents
+=========================
 
-The index is then generated through the :py:meth:`~signac.contrib.BaseCrawler.crawl` method and can be stored in a database collection:
+The simplest way to export and store a project index is by piping the output of the following script into a file with
 
-.. code-block:: python
+.. code-block:: bash
 
-   crawler = MyCrawler('/data/my_project')
-   db.index.insert_many(crawler.crawl())
+    $ signac index > my_index.txt
 
-.. hint::
-
-    Use the optimized export functions :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo` for more efficient export and avoidance of duplicates.
-
-Indexing a signac project
--------------------------
-
-To index a signac project we can either specialize a :py:class:`~.contrib.SignacProjectCrawler` or use the :py:meth:`~.contrib.project.Project.index` method.
-The index will contain all initialized jobs and the data stored in the corresponding job documents.
+This is essentially equivalent to storing the output of the following script:
 
 .. code-block:: python
 
-    for doc in project.index(formats={'*\.txt': TextFile})
-        print(doc)
+    # export_index.py
+    import json
+    import signac
 
-Each index document contains the state point parameters stored under the ``statepoint`` keyword.
+    for doc in signac.get_project().index():
+        print(json.dumps(doc))
 
-This is the same example with a :py:class:`~signac.contrib.SignacProjectCrawler`:
+A data index is required for certain operations such as the selection of data sub spaces.
+We can use a stored (i.e. cached) data index to accelerate these operations.
+For example the following command will select the data sub space where `a=0`, using the pre-generated index:
+
+.. code-block:: bash
+
+    $ signac find --index my_index.txt '{"a": 0}'
+
+We can use the :py:func:`signac.export` function to export index documents into a document collection:
 
 .. code-block:: python
 
-    class MyCrawler(signac.contrib.SignacProjectCrawler):
-        pass
-    MyCrawler.define('.*\.txt', Textfile)
+    signac.export(collection, project.index())
 
-    project = signac.get_project()
-    crawler = MyCrawler(project.workspace())
-    for doc in crawler.crawl():
-        print(doc)
+.. note::
 
-Notice that we used the regular expression to identify the text files that we want to index, but not to identify the state point.
-However we can further extend the meta data using regular expressions to further diversify data within the state point data space.
-An expression such as ``.*\(?P<class>init|final)\.txt`` will only match files named ``init.txt`` or ``final.txt``, and will add a field ``class`` to the index document, which will either have the value ``init`` or ``final``.
+    The :py:func:`signac.export` function will automatically delegate to the optimized :py:func:`signac.export_pymongo` function if the index argument is a :py:class:`pymongo.collection.Collection` instance.
+
+Fetching Data
+=============
+
+Index documents retrieved from an index collection can be used to fetch associated data.
+The :py:func:`signac.fetch` function is essentially equivalent to the python built-in :py:func:`open` command, but instead of a file path it uses an index document [#f1]_ to locate the file.
+
+.. code-block:: python
+
+    # Get a document from the index:
+    doc = index.find_one()
+
+    # Fetch and open the file associated with this document:
+    with signac.fetch(doc) as file:
+        do_something_with_file(file)
+
+The :py:func:`~signac.fetch` function will attempt to retrieve data from more than one source if data was :ref:`exported to a mirror <data_mirroring>`.
+Overall, this enables us to operate on indexed project data in a way which is more agnostic to its actual source.
+
+.. [#f1] or a file id
 
 Master crawlers
 ===============
 
-About
------
+Concept
+-------
 
-A :py:class:`~signac.contrib.MasterCrawler` compiles a master index by combining all documents from other crawlers.
+A :py:class:`~signac.contrib.MasterCrawler` compiles a master index by combining index documents from other crawlers.
 In this context those crawlers are called *slave crawlers*.
 Any crawler (including other master crawlers) can be *slave crawlers*.
 
-The *master crawler* adds information about its origin to each document.
-This allows to fetch data from the *master index*, which is almost independent of the actual location of the data within the file system.
-
 .. _signac-access:
-
-The *signac_access.py* module
------------------------------
 
 The master crawler searches for modules called ``signac_access.py`` and tries to call a function called ``get_crawlers()`` defined in those modules.
 This function is defined as follows:
@@ -162,17 +191,17 @@ This function is defined as follows:
 
     Return crawlers to be executed by a master crawler.
 
-    :param root: The directory where this module was found.
+    :param root: The path where the access module was found.
     :type root: str
     :returns: A mapping of crawler id and crawler instance.
 
-By putting the crawler definitions from above into a file called *signac_access.py* and adding the ``get_crawlers()`` function, we make those crawlers available to a master crawler:
+By putting the crawler definitions from above into a file called *signac_access.py* and adding the ``get_crawlers()`` function, we make those crawlers available to master crawlers:
 
 .. code-block:: python
 
      # signac_acess.py
 
-     # [definitions as shown above]
+     # [crawler definitions as shown before]
 
      def get_crawlers(root):
         return {'main': MyCrawler(os.path.join(root, 'data'))}
@@ -182,67 +211,36 @@ The *crawler id*, here ``main``, is a completely arbitrary string, however shoul
 
 .. tip::
 
-    Use the :py:meth:`~signac.contrib.project.Project.create_access_module` method to create the access module file for signac projects.
+    Use the :py:meth:`~signac.Project.create_access_module` method to create the access module file for signac projects.
 
-The master crawler is then executed for the indexed data space.
+Execution
+---------
+
+To compile a master index, simply crawl through a file path that contains `signac_access.py` modules:
+Assuming the following directory structure:
+
+.. code-block:: bash
+
+    /projects
+      project_a/
+        signac_access.py
+        ...
+      project_b/
+        signac_access.py
+        ...
+      ...
+
+We can compile the master index for all projects with:
 
 .. code-block:: python
 
     master_crawler = signac.contrib.MasterCrawler('/projects')
-    signac.contrib.export_pymongo(master_crawler.crawl(depth=1), index)
+    signac.export(master_crawler.crawl(depth=1), index)
 
-.. warning::
-
-    Especially for master crawlers it is recommended to reduce the crawl depth to avoid too extensive crawling operations over the *complete* file system.
-
-Fetching data
--------------
-
-As described above, a crawler generates a sequence of documents, where each document may be associated with an arbitrary sequence of objects.
-The :py:class:`~signac.contrib.RegexFileCrawler` generates one document per matched file and associates that file with the respective document;
-that is a *one-to-one* association.
-
-We then use the :py:func:`signac.fetch` function to fetch data associated with a document:
-
-.. code-block:: python
-
-    # Get a document from the index:
-    doc = index.find_one()
-
-    # Fetch all files associated with this document:
-    files = signac.fetch(doc)
-
-When we *know* that a particular crawler, such as the :py:class:`~signac.contrib.RegexFileCrawler`, only yields one file per document, it is more convenient to use the :py:func:`~signac.fetch_one` function:
-
-.. code-block:: python
-
-    file = signac.fetch_one(doc)
+It is usually a good idea to reduce the crawl depth for master crawlers, to avoid too extensive crawling operations over the *complete* file system.
 
 Examples for *signac_access.py*
 -------------------------------
-
-This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.RegexFileCrawler`:
-
-.. code-block:: python
-
-    # signac_access.py
-    import os
-
-    import signac
-    from signac.contrib.formats import TextFile
-
-
-    # Define a crawler class for each structure
-    class MyCrawler(signac.contrib.RegexFileCrawler):
-      pass
-
-    # Add file definitions for each file type, that should be part of the index.
-    MyCrawler.define('.*/a_(?P<a>\d+)\.txt', TextFile)
-
-    # Expose the data structures to a master crawler
-    def get_crawlers(root):
-      # the crawler id is arbitrary, but should not be changed after index creation
-      return {'main': MyCrawler(os.path.join(root, 'my_project'))}
 
 This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.SignacProjectCrawler`:
 
@@ -252,11 +250,10 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
     import os
 
     import signac
-    from signac.contrib.formats import TextFile
 
     class MyCrawler(signac.contrib.SignacProjectCrawler):
         pass
-    MyCrawler.define('.*\.txt', Textfile)
+    MyCrawler.define('.*\.txt', 'TextFile')
 
     def get_crawlers(root):
         return {'main': MyCrawler(os.path.join(root, 'path/to/workspace'))}
@@ -264,6 +261,30 @@ This is a minimal example for a ``signac_access.py`` file using a :py:class:`~si
 .. note::
 
     The root argument for a signac project crawler should be the project's **workspace**.
+
+
+This is a minimal example for a ``signac_access.py`` file using a :py:class:`~signac.contrib.RegexFileCrawler`:
+
+.. code-block:: python
+
+    # signac_access.py
+    import os
+
+    import signac
+
+
+    # Define a crawler class for each structure
+    class MyCrawler(signac.contrib.RegexFileCrawler):
+      pass
+
+    # Add file definitions for each file type, that should be part of the index.
+    MyCrawler.define('.*/a_(?P<a>\d+)\.txt', 'TextFile')
+
+    # Expose the data structures to a master crawler
+    def get_crawlers(root):
+      # the crawler id is arbitrary, but should not be changed after index creation
+      return {'main': MyCrawler(os.path.join(root, 'my_project'))}
+
 
 Advanced Indexing
 =================
@@ -277,54 +298,36 @@ Advanced Indexing
 Data mirroring
 --------------
 
-A **master crawler** will add a special field called `signac_link` to each crawled document.
-This link allows to fetch all data exported by the **slave crawler** which was used to crawl the document in the first place.
-This is why generating a *master index* and fetching data from it usually does not require any additional action.
-However, in heterogeneous environments it is sometimes necessary to mirror the data provided by the *slave crawlers*.
+Using the :py:func:`signac.fetch` function it is possible retrieve files that are associated with index documents.
+Those files will preferably be opened directly via a local system path.
+However in some cases it may be desirable to mirror files at a different location, e.g., in a database or a different path to increase the accessibility of files.
 
-For this purpose it is possible to pass *file system handlers* to the *master crawler*.
+Use the mirrors argument in the :py:func:`signac.export` function to automatically mirror all files associated with exported index documents.
 **signac** provides handlers for a local file system and the MongoDB `GridFS`_ database file system.
-Please see :py:mod:`signac.contrib.filesystems` for details.
+
+.. code-block:: python
+
+    localfs = fs.LocalFS('/path/to/mirror')
+    gridfs = fs.GridFS(db)
+
+    export(crawler.crawl(), index, mirrors=[localfs, gridfs])
 
 .. _`GridFS`: https://docs.mongodb.org/manual/core/gridfs/
 
-To mirror to another file system, simply add the file system as argument to the *master crawler's* constructor:
+
+To access the data, provide the mirrors argument to the :py:func:`signac.fetch` function:
 
 .. code-block:: python
 
-    from signac.contrib.filesystems import LocalFS
+    for doc in index:
+        with signac.fetch(doc, mirrors=[localfs, gridfs]) as file:
+            do_something_with_file(file)
 
-    MasterCrawler(
-      root,
-      mirrors = [LocalFS('/path/to/data/storage')])
+.. note::
 
-Instead of passing the handlers directly, we can use a config dictionary.
-Here are some examples using dictionaries to configure file systems:
+    File systems are used to fetch data in the order provided, starting
+    with the native data path.
 
-.. code-block:: python
-
-    MasterCrawler(root, mirrors=[{'localfs': '/path/to/data/storage'}])
-    MasterCrawler(root, mirrors=[{'gridfs': 'my_database'}])
-
-The key specifies the type of file system handler, the values are the arguments to the handler's constructor.
-Please see :py:func:`~signac.contrib.filesystems.filesystems_from_config` for details.
-
-Optimization
-------------
-
-When exporting to a database, such as MongoDB it is more efficent to use specialized export functions :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo`:
-
-.. code-block:: python
-
-    signac.contrib.export_pymongo(master_crawler.crawl(depth=1), db.master_index)
-
-The functions :py:func:`~signac.contrib.export` and :py:func:`~signac.contrib.export_pymongo` are optimized for exporting to an index collection, ensuring that the collection does not contain any duplicates.
-The behavior of these functions is roughly equivalent to
-
-.. code-block:: python
-
-    for doc in crawler.crawl(*args, **kwargs):
-        index.replace_one({'_id': doc['_id']}, doc)
 
 Tagging
 -------
@@ -365,63 +368,25 @@ Most conveniently the data is stored directly in the database using GridFS.
 
     db = signac.get_database('public_db')
 
-    master_crawler = MasterCrawler(
-      # The project root path
-      root='/path/to/projects/',
+    master_crawler = MasterCrawler('/path/to/public/projects')
 
-      # The following argument suppresses the creation
-      # of the default link, which is of no use
-      # without access to the local file system.
-      link_local=False,
+    # We define two mirrors
+    public_mirrors = [
+      # The GridFS database file system is stored in the
+      # same database, that we use to publish the index.
+      # This means that anyone who can access the index,
+      # will be able to access the associated files.
+      signac.fs.GridFS(db),
 
-      # We define two extra mirrors:
-      mirrors = [
-        # The GridFS database file system is stored in the
-        # same database, that we use to publish the index.
-        # This means that anyone who can access the index,
-        # will be able to access the associated files.
-        {'gridfs': 'public_db'},
-
-        # The second mirror is on the local file system.
-        # It can be downloaded and made available locally,
-        # for example to reduce required network transfers.
-        {'localfs': '/path/to/mirror'}
-        ]
-      )
-
+      # The second mirror is on the local file system.
+      # It can be downloaded and made available locally,
+      # for example to reduce required network transfers.
+      signac.fs.LocalFS('/path/to/mirror')
+      ]
 
     # By defining special tags for projects, which are cleared
     # for publication, we prevent the accidental export of private
     # data to the database.
     master_crawler.tags = {'public'}
 
-    signac.contrib.export_pymongo(master_crawler.crawl(depth=1), index_collection)
-
-To access the data, we simply execute:
-
-.. code-block:: python
-
-    for doc in index.find():
-        files = signac.fetch(doc)
-
-If we have a local mirror of the data, we need to tell ``fetch()`` to use it.
-This is most conveniently achieved by defining two wrapper functions:
-
-.. code-block:: python
-
-    sources = [
-      {'localfs': '/path/to/mirror'},
-      {'gridfs': 'gridfsdb'}]
-
-    def fetch(*args, **kwargs):
-        yield from signac.fetch(sources=sources, *args, **kwargs)
-
-    def fetch_one(*args, **kwargs):
-        return signac.fetch(sources=sources, *args, **kwargs)
-
-.. note::
-
-    File systems are used to fetch data in the order provided.
-    For the example given above, the local source will be queried *first*.
-    Only if files cannot be fetched using the local source, other sources
-    will be queried.
+    signac.export(master_crawler.crawl(depth=1), db.index, public_mirrors)
