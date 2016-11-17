@@ -418,23 +418,6 @@ class SignacProjectCrawler(RegexFileCrawler):
             yield doc
 
 
-def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
-    link = doc.setdefault(KEY_LINK, dict())
-    fs_config = link.setdefault('mirrors', list())
-    fs_config.append({mirror.name: mirror.config()})
-    file_ids = link.setdefault('file_ids', list())
-    with crawler.fetch(doc, mode=mode) as file:
-        file_id = hashlib.md5(file.read()).hexdigest()
-        file.seek(0)
-        try:
-            with mirror.new_file(_id=file_id) as mirrorfile:
-                mirrorfile.write(file.read())
-        except mirror.FileExistsError:
-            pass
-        if file_id not in file_ids:
-            file_ids.append(file_id)
-
-
 class MasterCrawler(BaseCrawler):
     """Crawl the data space and search for signac crawlers.
 
@@ -451,11 +434,7 @@ class MasterCrawler(BaseCrawler):
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root, mirrors=None):
-        if mirrors is None:
-            self.mirrors = list()
-        else:
-            self.mirrors = list(filesystems_from_configs(mirrors))
+    def __init__(self, root):
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
 
@@ -478,13 +457,6 @@ class MasterCrawler(BaseCrawler):
             for doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                if hasattr(crawler, 'fetch'):
-                    link = doc.setdefault(KEY_LINK, dict())
-                    link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                    link[KEY_CRAWLER_MODULE] = fn
-                    link[KEY_CRAWLER_ID] = crawler_id
-                    for mirror in self.mirrors:
-                        _store_files_to_mirror(mirror, crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
