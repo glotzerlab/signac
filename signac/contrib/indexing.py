@@ -598,7 +598,7 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
         return doc['_id'], None
 
 
-def export(docs, index, mirrors=None, num_tries=3, timeout=60):
+def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -617,6 +617,8 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60):
     :param timeout: The time in seconds to wait before an
         automatic retry attempt.
     :type timeout: int
+    :param kwargs: Optional keyword arguments to pass to
+        delegate implementations.
     """
     try:
         import pymongo
@@ -625,9 +627,9 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60):
     else:
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
-            return export_pymongo(docs=docs, index=index, mirrors=mirrors, num_tries=num_tries, timeout=timeout)
+            return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
     for doc in docs:
-        export_one(doc, index, mirrors, num_tries, timeout)
+        export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
