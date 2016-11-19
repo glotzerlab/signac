@@ -29,7 +29,7 @@ from .db import get_database
 
 __version__ = '0.6.0'
 
-__all__ = ['__version__', 'contrib', 'db', 'gui', 'errors'
+__all__ = ['__version__', 'contrib', 'db', 'gui', 'errors',
            'Project', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',
            'export_one', 'export', 'export_to_mirror',
