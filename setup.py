@@ -15,6 +15,7 @@ setup(
     author_email='csadorf@umich.edu',
     description="Simple data management framework.",
     keywords='simulation database index collaboration workflow',
+    url="https://bitbucket.org/glotzer/signac",
 
     classifiers=[
         "Development Status :: 4 - Beta",
