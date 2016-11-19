@@ -1,7 +1,7 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
+from . import six
 
 class Error(Exception):
     pass
@@ -19,3 +19,19 @@ class AuthenticationError(Error, RuntimeError):
                 self.args[0])
         else:
             return "Failed to authenticate with host."
+
+
+class ExportError(Error, RuntimeError):
+    pass
+
+
+if six.PY2:
+    class FileNotFoundError(Error, IOError):
+        pass
+else:
+    class FileNotFoundError(Error, FileNotFoundError):
+        pass
+
+
+class FetchError(FileNotFoundError):
+    pass

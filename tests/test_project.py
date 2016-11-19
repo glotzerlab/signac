@@ -34,7 +34,7 @@ class ProjectTest(BaseProjectTest):
         pass
 
     def test_get_id(self):
-        self.assertEqual(self.project.get_id(), self.config['project'])
+        self.assertEqual(self.project.get_id(), 'testing_test_project')
         self.assertEqual(str(self.project), self.project.get_id())
 
     def test_root_directory(self):
@@ -306,6 +306,32 @@ class ProjectTest(BaseProjectTest):
             index2[doc['_id']] = doc
         self.assertEqual(index, index2)
         self.assertTrue(Crawler.called)
+
+
+    def test_custom_project(self):
+
+        class CustomProject(signac.Project):
+            pass
+
+        project = CustomProject.get_project(root=self.project.root_directory())
+        self.assertTrue(isinstance(project, signac.Project))
+        self.assertTrue(isinstance(project, CustomProject))
+
+    def test_custom_job_class(self):
+
+        class CustomJob(signac.contrib.job.Job):
+            def __init__(self, *args, **kwargs):
+                super(CustomJob, self).__init__(*args, **kwargs)
+
+        class CustomProject(signac.Project):
+            Job=CustomJob
+
+        project = CustomProject.get_project(root=self.project.root_directory())
+        self.assertTrue(isinstance(project, signac.Project))
+        self.assertTrue(isinstance(project, CustomProject))
+        job = project.open_job(dict(a=0))
+        self.assertTrue(isinstance(job, CustomJob))
+        self.assertTrue(isinstance(job, signac.contrib.job.Job))
 
 
 class ProjectInitTest(unittest.TestCase):

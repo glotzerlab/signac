@@ -2,38 +2,40 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import absolute_import
-import warnings
+import logging
 
-from . import conversion
 from . import formats
+from . import indexing
 from .project import Project, get_project, init_project
-from .crawler import BaseCrawler, RegexFileCrawler, JSONCrawler,\
-    SignacProjectCrawler, MasterCrawler, fetch, fetch_one, fetched,\
-    export, export_pymongo
+from .indexing import BaseCrawler
+from .indexing import RegexFileCrawler
+from .indexing import JSONCrawler
+from .indexing import SignacProjectCrawler
+from .indexing import MasterCrawler
+from .indexing import fetch
+from .indexing import fetch_one  # deprecated
+from .indexing import fetched
+from .indexing import export_one
+from .indexing import export
+from .indexing import export_to_mirror
+from .indexing import export_pymongo
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
-    'conversion', 'formats',
+    'formats', 'indexing',
     'Project', 'get_project', 'init_project',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
-    'export', 'export_pymongo',
+    'export_one', 'export', 'export_to_mirror', 'export_pymongo',
 ]
 
-try:
-    import networkx  # noqa
-except ImportError:
-    warnings.warn("Failed to import networkx. formats_network will "
-                  "not be available.", ImportWarning)
-else:
-    from .formats_network import get_formats_network, get_conversion_network  # noqa
-    __all__.extend(['get_formats_network', 'get_conversion_network'])
 
 try:
     import mpi4py  # noqa
 except ImportError:
-    warnings.warn("Failed to import mpi4py. MPIPool will not be available.",
-                  ImportWarning)
+    logger.debug("Failed to import mpi4py. MPIPool will not be available.")
 else:
     from .mpipool import MPIPool  # noqa
     __all__.extend(['MPIPool'])

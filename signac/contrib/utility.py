@@ -8,6 +8,8 @@ import getpass
 import argparse
 import errno
 
+from ..common import six
+
 logger = logging.getLogger(__name__)
 
 
@@ -171,3 +173,10 @@ def _mkdir_p(path):
     except OSError as error:
         if not (error.errno == errno.EEXIST and os.path.isdir(path)):
             raise
+
+
+def is_string(s):
+    if six.PY2:
+        return isinstance(s, basestring)  # noqa
+    else:
+        return isinstance(s, str)

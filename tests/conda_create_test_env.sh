@@ -10,7 +10,7 @@ conda env remove --yes -n signac-py34-minimal
 conda env remove --yes -n signac-py35-minimal
 
 echo "Creating environment for python 2.7."
-conda create --yes -n signac-py27 python=2.7 pymongo networkx mpi4py
+conda create --yes -n signac-py27 python=2.7 pymongo mpi4py
 if [ "$?" != "0" ]; then
   conda create --yes -n signac-py27 python=2.7
 fi
@@ -26,13 +26,12 @@ if [ "$?" != "0" ]; then
 fi
 . activate signac-py33
 pip install pymongo
-pip install networkx
 python setup.py develop
 . deactivate
 echo "Done."
 
 echo "Creating environment for python 3.4."
-conda create --yes -n signac-py34 python=3.4 pymongo networkx mpi4py
+conda create --yes -n signac-py34 python=3.4 pymongo mpi4py
 if [ "$?" != "0" ]; then
   conda create --yes -n signac-py34 python=3.4
 fi
@@ -42,7 +41,7 @@ python setup.py develop
 echo "Done."
 
 echo "Creating environment for python 3.5."
-conda create --yes -n signac-py35 python=3.5 pymongo networkx mpi4py
+conda create --yes -n signac-py35 python=3.5 pymongo mpi4py
 if [ "$?" != "0" ]; then
   conda create --yes -n signac-py35 python=3.5
 fi

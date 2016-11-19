@@ -211,7 +211,7 @@ The document is automatically stored in the job's workspace directory in JSON fo
     >>> job = project.open_job(statepoint)
     >>> job.document['hello'] = 'world'
 
-Uses cases for the **job document** include, but are not limited to:
+Use cases for the **job document** include, but are not limited to:
 
   1) **storage** of *lightweight* data,
   2) keeping track of **runtime information** or to

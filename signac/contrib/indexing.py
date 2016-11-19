@@ -9,11 +9,12 @@ import hashlib
 import logging
 import warnings
 import errno
+from time import sleep
 
 from ..common import six
-from .utility import walkdepth
+from ..common import errors
+from .utility import walkdepth, is_string
 from .hashing import calc_id
-from .filesystems import filesystems_from_configs
 
 if six.PY2:
     import imp
@@ -31,6 +32,14 @@ KEY_LINK = 'signac_link'
 KEY_CRAWLER_PATH = 'access_crawler_root'
 KEY_CRAWLER_MODULE = 'access_module'
 KEY_CRAWLER_ID = 'access_crawler_id'
+
+
+def md5(file):
+    "Calculate and return the md5 hash value for the file data."
+    m = hashlib.md5()
+    for chunk in iter(lambda: file.read(4096), b''):
+        m.update(chunk)
+    return m.hexdigest()
 
 
 class BaseCrawler(object):
@@ -62,15 +71,9 @@ class BaseCrawler(object):
     def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
 
-        The return value of this generator function is not directly defined,
-        however it is recommended to use `file-like objects`_.
-
-        .. _`file-like objects`:
-            https://docs.python.org/3/glossary.html#term-file-object
-
-        :yields: arbitrary objects."""
-        return
-        yield
+        :returns: object associated with doc
+        """
+        raise errors.FetchError("Unable to fetch object for '{}'.".format(doc))
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
@@ -137,7 +140,7 @@ class RegexFileCrawler(BaseCrawler):
         ...
 
     A valid regular expression to match
-    this patter would be: ``a_(?P<a>\d+)\.txt``.
+    this pattern would be: ``a_(?P<a>\d+)\.txt``.
 
     A regular expression crawler for this structure could be implemented
     like this:
@@ -156,7 +159,7 @@ class RegexFileCrawler(BaseCrawler):
 
         MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
 
-    In this case we could also use :class:`.contrib.formats.TextFile`
+    In this case we could also use :class:`.formats.TextFile`
     as data type which is an implementation of the example shown above.
     However we could use any other type, as long as its constructor
     expects a `file-like object`_ as its first argument.
@@ -167,7 +170,7 @@ class RegexFileCrawler(BaseCrawler):
     definitions = dict()
 
     @classmethod
-    def define(cls, regex, format_):
+    def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
         :param regex: All files of the specified format
@@ -183,13 +186,20 @@ class RegexFileCrawler(BaseCrawler):
         else:
             if isinstance(regex, str):
                 regex = re.compile(regex)
-        for meth in ('read', 'close'):
-            if not callable(getattr(format_, meth, None)):
-                msg = "Format {} has no {}() method.".format(format_, meth)
-                warnings.warn(msg)
         definitions = dict(cls.definitions)
         definitions[regex] = format_
         cls.definitions = definitions
+
+    @classmethod
+    def compute_file_id(cls, doc, file):
+        """Compute the file id for a given doc and the associated file.
+
+        :param doc: The index document
+        :param file: The associated file
+        :returns: The file id.
+        """
+        file_id = doc['md5'] = md5(file)
+        return file_id
 
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
@@ -207,29 +217,37 @@ class RegexFileCrawler(BaseCrawler):
                     os.path.join(dirpath, fn), self.root)
                 doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
+                with open(os.path.join(dirpath, fn), 'rb') as file:
+                    doc['file_id'] = self.compute_file_id(doc, file)
                 yield doc
 
     def fetch(self, doc, mode='r'):
         """Fetch the data associated with `doc`.
 
-        :param doc: A document.
+        :param doc: A index document.
         :type doc: :class:`dict`
-        :yields: All files associated with doc in the defined format.
-
-        .. note::
-
-            For generality the :meth:`~.BaseCrawler.fetch` method is
-            a generator function, which may yield an arbitrary number
-            of objects of arbitrary type. In the case of the
-            :class:`~.RegexFileCrawler` it will always yield
-            exactly **one** object."""
+        :returns: The file associated with the index document.
+        :rtype: A file-like object
+        """
         fn = doc.get(KEY_FILENAME)
         if fn:
             for regex, format_ in self.definitions.items():
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    yield format_(open(ffn, mode=mode))
+                    if is_string(format_):
+                        return open(ffn, mode=mode)
+                    else:
+                        for meth in ('read', 'close'):
+                            if not callable(getattr(format_, meth, None)):
+                                msg = "Format {} has no {}() method.".format(format_, meth)
+                                warnings.warn(msg)
+                        return format_(open(ffn, mode=mode))
+            else:
+                raise errors.FetchError("Unable to match file path of doc '{}' "
+                                        "to format definition.".format(doc))
+        else:
+            raise errors.FetchError("Insufficient meta data in doc '{}'.".format(doc))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -238,7 +256,7 @@ class RegexFileCrawler(BaseCrawler):
 
         .. code-block:: python
 
-            MyCrawler(signac.contrib.crawler.RegexFileCrawler):
+            MyCrawler(signac.indexing.RegexFileCrawler):
                 def process(self, doc, dirpath, fn):
                     doc['long_name_for_a'] = doc['a']
                     return super(MyCrawler, self).process(doc, dirpath, fn)
@@ -395,24 +413,6 @@ class SignacProjectCrawler(RegexFileCrawler):
             yield doc
 
 
-def _store_files_to_mirror(mirror, crawler, doc, mode='rb'):
-    link = doc.setdefault(KEY_LINK, dict())
-    fs_config = link.setdefault('mirrors', list())
-    fs_config.append({mirror.name: mirror.config()})
-    file_ids = link.setdefault('file_ids', list())
-    for file in crawler.fetch(doc, mode=mode):
-        file_id = hashlib.md5(file.read()).hexdigest()
-        file.seek(0)
-        try:
-            with mirror.new_file(_id=file_id) as mirrorfile:
-                mirrorfile.write(file.read())
-        except mirror.FileExistsError:
-            pass
-        if file_id not in file_ids:
-            file_ids.append(file_id)
-        file.close()
-
-
 class MasterCrawler(BaseCrawler):
     """Crawl the data space and search for signac crawlers.
 
@@ -424,18 +424,12 @@ class MasterCrawler(BaseCrawler):
 
     :param root: The path to the root directory to crawl through.
     :type root: str
-    :param link_local: Store a link to the local access module.
     :param mirrors: An optional set of mirrors, to export data to."""
 
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root, link_local=True, mirrors=None):
-        self.link_local = link_local
-        if mirrors is None:
-            self.mirrors = list()
-        else:
-            self.mirrors = list(filesystems_from_configs(mirrors))
+    def __init__(self, root):
         self._crawlers = dict()
         super(MasterCrawler, self).__init__(root=root)
 
@@ -458,15 +452,6 @@ class MasterCrawler(BaseCrawler):
             for doc in crawler.crawl():
                 doc.setdefault(
                     KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                if hasattr(crawler, 'fetch'):
-                    if self.link_local:
-                        link = doc.setdefault(KEY_LINK, dict())
-                        link['link_type'] = 'module_fetch'  # deprecated
-                        link[KEY_CRAWLER_PATH] = os.path.abspath(dirpath)
-                        link[KEY_CRAWLER_MODULE] = fn
-                        link[KEY_CRAWLER_ID] = crawler_id
-                    for mirror in self.mirrors:
-                        _store_files_to_mirror(mirror, crawler, doc)
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
@@ -483,7 +468,6 @@ class MasterCrawler(BaseCrawler):
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
-                raise
             else:
                 logger.debug("Executed slave crawlers.")
 
@@ -495,109 +479,205 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc, mode='r', sources=None, ignore_linked_mirrors=False):
-    """Fetch all data associated with this document.
+def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60):
+    """Fetch the file associated with this document or file id.
 
-    The sources argument is either a list of filesystem-like objects
-    or a list of file system configurations or a mix of both.
+    This function retrieves a file associated with the provided
+    index document or file id and behaves like the built-in
+    :py:func:`open` function, e.g.:
 
-    See :func:`.contrib.filesystems.filesystems_from_config`
-    for details.
+    .. code-block:: python
 
-    :param doc: A document which is part of an index.
-    :type doc: mapping
-    :param mode: Mode to use for file opening.
-    :param sources: An optional set of sources to fetch files from.
-    :param ignore_linked_mirrors: Ignore all mirror information in the
-        document's link attribute.
-    :yields: Data associated with this document in the specified format."""
-    if doc is None:
-        raise ValueError(doc)
-    link = doc.get(KEY_LINK)
-    if link is None:
-        return
-    else:
-        link = dict(link)
-    if KEY_CRAWLER_PATH in link:
-        logger.debug("Fetching files from the local file system.")
+        for doc in index:
+            with signac.fetch(doc) as file:
+                do_something_with(file)
+
+    :param doc_or_id: A file_id or a document with a file_id value.
+    :param mode: Mode to use for opening files.
+    :param mirrors: An optional set of mirrors to fetch the file from.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
+    :returns: The file associated with the document or file id.
+    :rtype: A file-like object
+    """
+    if doc_or_id is None:
+        raise ValueError("Argument 'doc_or_id' must not be None!")
+    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get('file_id')
+    if file_id is None or mirrors is None:
         try:
-            for file in _fetch_fs(doc, mode=mode):
-                yield file
-            return
+            fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
+            return open(fn, mode=mode)
+        except KeyError:
+            raise errors.FetchError("Insufficient file meta data for fetch.", doc_or_id)
         except OSError as error:
-            logger.warning(
-                "Unable to fetch file from local file system: {}".format(error))
-    to_fetch = set(link.pop('file_ids', []))
-    n = len(to_fetch)
-    if n == 0:
-        return
-    if sources is None:
-        sources = list()
+            if error.errno == errno.ENOENT:
+                if file_id is None:
+                    raise errors.FetchError("Failed to fetch '{}'.".format(doc_or_id))
+    if mirrors is None:
+        raise errors.FetchError("No mirrors provided!")
     else:
-        sources = list(filesystems_from_configs(sources))
-    if not ignore_linked_mirrors:
-        sources.extend(
-            list(filesystems_from_configs(link.get('mirrors', list()))))
-    logger.debug("Using sources to fetch files: {}".format(sources))
-    for source in sources:
-        fetched = set()
-        for file_id in to_fetch:
-            logger.debug("Fetching file with id '{}'.".format(file_id))
-            try:
-                yield source.get(file_id, mode=mode)
-                fetched.add(file_id)
-            except source.FileNotFoundError:
-                continue
-        for file_id in fetched:
-            to_fetch.remove(file_id)
-    if to_fetch:
-        msg = "Unable to fetch {}/{} file(s) associated with this document ."
-        raise IOError(msg.format(len(to_fetch), n))
+        for i in range(num_tries):
+            for mirror in mirrors:
+                try:
+                    return mirror.get(file_id, mode=mode)
+                except mirror.AutoRetry as error:
+                    logger.warning(error)
+                    sleep(timeout)
+                except mirror.FileNotFoundError as error:
+                    logger.debug(error)
+            else:
+                raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
 
 
 def fetch_one(doc, *args, **kwargs):
-    """Fetch data associated with this document.
-
-    Unlike :func:`~signac.fetch`, this function returns only the first
-    file associated with doc and ignores all others.
-    This function returns None if not file is associated with
-    the document.
-
-    :param doc: A document which is part of an index.
-    :type doc: mapping
-    :returns: Data associated with this document or None."""
-    try:
-        return next(fetch(doc, *args, **kwargs))
-    except StopIteration:
-        return None
+    "Legacy function, use :py:func:`~.fetch` instead."
+    warnings.warn(
+        "This function is deprecated, please use fetch() instead.",
+        DeprecationWarning)
+    return fetch(doc_or_id=doc, *args, **kwargs)
 
 
 def fetched(docs):
+    """Iterate over documents and yield associated files."""
     for doc in docs:
-        for data in fetch(doc):
-            yield doc, data
+        if 'file_id' in doc:
+            yield doc, fetch(doc)
 
 
-def _fetch_fs(doc, mode):
-    "Fetch files for doc from the local file system."
-    link = doc[KEY_LINK]
-    fn_module = os.path.join(
-        link[KEY_CRAWLER_PATH], link[KEY_CRAWLER_MODULE])
-    crawler_module = _load_crawler(fn_module)
-    crawlers = crawler_module.get_crawlers(link[KEY_CRAWLER_PATH])
-    for d in crawlers[link[KEY_CRAWLER_ID]].fetch(doc, mode=mode):
-        yield d
+def _export_to_mirror(file, file_id, mirror):
+    "Export a file-like object with file_id to mirror."
+    with mirror.new_file(_id=file_id) as dst:
+        dst.write(file.read())
 
 
-def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
-    """Optimized export function for pymongo collections.
+def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
+    """Export a file associated with doc to mirror.
+
+    :param doc: A document with a file_id entry.
+    :param mirror: A file-system object to export the file to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
+    :returns: The file id after successful export.
+    """
+    if 'file_id' not in doc:
+        raise errors.ExportError("Doc '{}' does not have a file_id entry.".format(doc))
+    for i in range(num_tries):
+        try:
+            with fetch(doc, mode='rb') as file:
+                _export_to_mirror(file, doc['file_id'], mirror)
+        except mirror.FileExistsError:
+            logger.debug("File with id '{}' already exported, skipping.".format(doc['file_id']))
+            break
+        except mirror.AutoRetry as error:
+            logger.warning("Error during export: '{}', retrying...".format(error))
+            sleep(timeout)
+        else:
+            logger.debug("Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
+            return doc['file_id']
+    else:
+        raise errors.ExportError(doc)
+
+
+def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
+    """Export one document to index and an optionally associated file to mirrors.
+
+    :param doc: A document with a file_id entry.
+    :param docs: The index collection to export to.
+    :param mirrors: An optional set of mirrors to export files to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
+    :returns: The id and file id after successful export.
+    """
+    index.replace_one({'_id': doc['_id']}, doc, upsert=True)
+    if mirrors and 'file_id' in doc:
+        for mirror in mirrors:
+            export_to_mirror(doc, mirror, num_tries, timeout)
+        return doc['_id'], doc['file_id']
+    else:
+        return doc['_id'], None
+
+
+def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
+    """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
 
     .. code-block:: python
 
         for doc in docs:
-            index.replace_one({'_id': doc['_id']}, doc)
+            export_one(doc, index, mirrors, num_tries)
+
+    .. note::
+
+        This function will automatically delegate to specialized
+        implementations for special index types. For example, if
+        the index argument is a MongoDB document collection, the
+        index documents will be exported via :py:func:`~.export_pymongo`.
+
+    :param docs: The index documents to export.
+    :param index: The collection to export the index to.
+    :param mirrors: An optional set of mirrors to export files to.
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
+    :param kwargs: Optional keyword arguments to pass to
+        delegate implementations.
+    """
+    try:
+        import pymongo
+    except ImportError:
+        pass
+    else:
+        if isinstance(index, pymongo.collection.Collection):
+            logger.info("Using optimized export function export_pymongo().")
+            return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
+    for doc in docs:
+        export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+
+
+def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
+    """Export docs via operations to index and files to mirrors."""
+    import pymongo
+    if mirrors is not None:
+        for mirror in mirrors:
+            for doc in docs:
+                if 'file_id' in doc:
+                    export_to_mirror(doc, mirror, num_tries, timeout)
+    for i in range(num_tries):
+        try:
+            index.bulk_write(operations)
+            break
+        except pymongo.errors.AutoReconnect as error:
+            logger.warning(error)
+            sleep(timeout)
+    else:
+        raise errors.ExportError()
+
+
+def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize=100):
+    """Optimized :py:func:`~.export` function for pymongo index collections.
+
+    The behavior of this function is rougly equivalent to:
+
+    .. code-block:: python
+
+        for doc in docs:
+            export_one(doc, index, mirrors, num_tries)
 
     .. note::
 
@@ -607,36 +687,27 @@ def export_pymongo(docs, index, chunksize=1000, *args, **kwargs):
     :param docs: The index documents to export.
     :param index: The database collection to export the index to.
     :type index: :class:`pymongo.collection.Collection`
+    :param num_tries: The number of automatic retry attempts in case of
+        mirror connection errors.
+    :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     :param chunksize: The buffer size for export operations.
     :type chunksize: int"""
     import pymongo
-    logger.info("Exporting index for pymongo.")
+    logger.info("Exporting to pymongo database collection index '{}'.".format(index))
+    chunk = []
     operations = []
     for doc in docs:
         f = {'_id': doc['_id']}
+        chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
-        if len(operations) >= chunksize:
+        if len(chunk) >= chunksize:
             logger.debug("Pushing chunk.")
-            index.bulk_write(operations)
+            _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
+            chunk.clear()
             operations.clear()
     if len(operations):
         logger.debug("Pushing final chunk.")
-        index.bulk_write(operations)
-
-
-def export(docs, index, *args, **kwargs):
-    """Export function for collections.
-
-    The behavior of this function is equivalent to:
-
-    .. code-block:: python
-
-        for doc in docs:
-            index.replace_one({'_id': doc['_id']}, doc)
-
-    :param docs: The index docs to export.
-    :param index: The collection to export the index to."""
-    logger.info("Exporting index.")
-    for doc in docs:
-        f = {'_id': doc['_id']}
-        index.replace_one(f, doc)
+        _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)

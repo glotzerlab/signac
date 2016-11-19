@@ -6,6 +6,7 @@ import json
 
 
 def calc_id(spec):
+    "Calculate and return a hash value for the given spec."
     blob = json.dumps(spec, sort_keys=True)
     m = hashlib.md5()
     m.update(blob.encode())

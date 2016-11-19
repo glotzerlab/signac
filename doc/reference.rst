@@ -52,7 +52,7 @@ Find jobs
     for job in project.find_jobs():
         # ...
 
-    # Iterate over a filtered subset:
+    # Iterate over a data sub set:
     for job in project.find_jobs({'a': 0}):
         # ...
 
@@ -102,7 +102,7 @@ Export an index to a database collection
 .. code-block:: python
 
     db = signac.get_database('mydb')
-    signac.contrib.export(project.index(), db.index)  # or export_pymongo()
+    signac.export(project.index(), db.index)
 
 Search a database collection
 ----------------------------
@@ -120,11 +120,11 @@ Example for a collection named *index*:
 Access data using an index
 --------------------------
 
-Access files using an index with :py:func:`signac.fetch` and :py:func:`signac.fetch_one`:
+Access files using an index with :py:func:`signac.fetch`:
 
 .. code-block:: python
 
-    docs = db.index.find({'a': 0, 'format': {'$regex': 'TextFile'}})
+    docs = db.index.find({'a': 0, 'format': 'TextFile'})
     for doc in docs:
-        with signac.fetch_one(doc) as file:
+        with signac.fetch(doc) as file:
             print(file.read())

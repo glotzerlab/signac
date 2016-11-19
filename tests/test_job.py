@@ -61,12 +61,6 @@ def open_job(cfg, *args, **kwargs):
     return project.open_job(*args, **kwargs)
 
 
-def open_offline_job(cfg, *args, **kwargs):
-    config = config_from_cfg(cfg)
-    project = signac.contrib.project.Project(config=config)
-    return project.open_offline_job(*args, **kwargs)
-
-
 def testdata():
     return str(uuid.uuid4())
 
@@ -79,16 +73,12 @@ class BaseJobTest(unittest.TestCase):
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)
-        #os.mkdir(self._tmp_wd)
         self.config = signac.common.config.load_config()
-        self.config['default_host'] = 'testing'
-        self.config['author'] = 'test_author'
-        self.config['author_email'] = 'testauthor@example.com'
-        self.config['project'] = 'testing_test_project'
-        self.config['project_dir'] = self._tmp_pr
-        self.config['workspace_dir'] = self._tmp_wd
-        self.project = signac.contrib.Project(config=self.config)
-        # self.addCleanup(self.project.remove, force=True)
+        self.project = signac.Project.init_project(
+            name = 'testing_test_project',
+            root=self._tmp_pr,
+            workspace=self._tmp_wd)
+        self.project.config['default_host'] = 'testing'
 
     def tearDown(self):
         pass
@@ -223,6 +213,52 @@ class JobOpenAndClosingTest(BaseJobTest):
                 job.remove()
             except AttributeError:
                 pass
+
+    def test_close_nonopen_job(self):
+        job = self.open_job(test_token)
+        job.close()
+        with job:
+            pass
+
+    def test_close_job_while_open(self):
+        rp = os.path.realpath
+        cwd = rp(os.getcwd())
+        job = self.open_job(test_token)
+        with job:
+            job.close()
+            self.assertEqual(cwd, rp(os.getcwd()))
+
+    def test_open_job_recursive(self):
+        rp = os.path.realpath
+        cwd = rp(os.getcwd())
+        job = self.open_job(test_token)
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            os.chdir(self.project.root_directory())
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(rp(os.getcwd()), rp(self.project.root_directory()))
+        self.assertEqual(cwd, rp(os.getcwd()))
+        with job:
+            job.close()
+            self.assertEqual(cwd, rp(os.getcwd()))
+            with job:
+                self.assertEqual(rp(job.workspace()), rp(os.getcwd()))
+            self.assertEqual(cwd, rp(os.getcwd()))
+        self.assertEqual(cwd, rp(os.getcwd()))
 
     def test_corrupt_workspace(self):
         job = self.open_job(test_token)

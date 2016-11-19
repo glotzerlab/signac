@@ -15,10 +15,10 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
-from .crawler import _index_signac_project_workspace
-from .crawler import SignacProjectCrawler
-from .crawler import MasterCrawler
-from .utility import _mkdir_p
+from .indexing import _index_signac_project_workspace
+from .indexing import SignacProjectCrawler
+from .indexing import MasterCrawler
+from .utility import _mkdir_p, is_string
 
 if six.PY2:
     from collections import Mapping
@@ -34,7 +34,7 @@ ACCESS_MODULE_TEMPLATE = """#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
 
-from signac.contrib.crawler import SignacProjectCrawler
+from signac.contrib import SignacProjectCrawler
 {imports}
 
 
@@ -108,7 +108,8 @@ class Project(object):
 
     Application developers should usually not need to
     directly instantiate this class, but use
-    :func:`.contrib.get_project` instead."""
+    :func:`signac.get_project` instead."""
+    Job = Job
 
     def __init__(self, config=None):
         if config is None:
@@ -121,8 +122,9 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}(config={})".format(
-            type(self).__name__, repr(self.config))
+        return "{}({'project_dir': '{rd}', 'workspace_dir': {wd}})".format(
+            rd=self.root_directory(),
+            wd=self.workspace())
 
     @property
     def config(self):
@@ -189,15 +191,9 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
-            return Job(self, statepoint)
+            return self.Job(project=self, statepoint=statepoint)
         else:
-            try:
-                return Job(self, self.get_statepoint(id))
-            except KeyError as error:
-                logger.warning(
-                    "Unable to find statepoint for job id '{}' "
-                    "Is the job initialized?".format(id))
-                raise error
+            return self.Job(project=self, statepoint=self.get_statepoint(id))
 
     def _job_dirs(self):
         wd = self.workspace()
@@ -211,6 +207,7 @@ class Project(object):
                 raise
 
     def num_jobs(self):
+        "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
     def build_job_search_index(self, index, include=None, hash_=None):
@@ -252,7 +249,7 @@ class Project(object):
             and a set of corresponding job ids.
         """
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         include = {'statepoint': True}
         search_index = self.build_job_search_index(
             index, include, hash_=json.dumps)
@@ -334,7 +331,7 @@ class Project(object):
         :type skip_errors: bool
         :yields: statepoints as dict"""
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         if skip_errors:
             index = _skip_errors(index, logger.critical)
         jobs = self.find_jobs(filter, doc_filter, index)
@@ -382,8 +379,7 @@ class Project(object):
             defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
         :type fn: str
 
-        See also :meth:`dump_statepoints`.
-        See also :meth:`write_statepoints`.
+        See also :meth:`dump_statepoints` and :meth:`write_statepoints`.
         """
         if fn is None:
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
@@ -441,7 +437,7 @@ class Project(object):
             file.write(json.dumps(tmp, indent=indent))
 
     def _get_statepoint_from_workspace(self, jobid):
-        fn_manifest = os.path.join(self.workspace(), jobid, Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'r') as manifest:
                 return json.load(manifest)
@@ -516,7 +512,7 @@ class Project(object):
         if prefix is None:
             prefix = 'view'
         if index is None:
-            index = self.index()
+            index = self.index(include_job_document=False)
         if not force and os.listdir(prefix):
             raise RuntimeError(
                 "Failed to create persistent view in '{}', the directory "
@@ -670,7 +666,7 @@ class Project(object):
             update overwrites parameters, which are currently
             part of the job's statepoint. Use with caution!
         :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint.
+            already part of the job's statepoint and overwrite is False.
         :raises RuntimeError: If a job associated with the new unique set
             of parameters already exists in the workspace."""
         statepoint = dict(job.statepoint())
@@ -685,7 +681,7 @@ class Project(object):
         "Attempt to repair the workspace after it got corrupted."
         for job_dir in self._job_dirs():
             jobid = os.path.split(job_dir)[-1]
-            fn_manifest = os.path.join(job_dir, Job.FN_MANIFEST)
+            fn_manifest = os.path.join(job_dir, self.Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
                     statepoint = json.load(manifest)
@@ -741,7 +737,7 @@ class Project(object):
             docs = _index_signac_project_workspace(
                 root=self.workspace(),
                 include_job_document=include_job_document,
-                fn_statepoint=Job.FN_MANIFEST)
+                fn_statepoint=self.Job.FN_MANIFEST)
         else:
             class Crawler(SignacProjectCrawler):
                 pass
@@ -793,12 +789,15 @@ class Project(object):
             dl = "{}.define('{}', {})"
             defs = list()
             for expr, fmt in formats.items():
-                defs.append(dl.format(crawlername, expr, fmt.__name__))
-                imports.add(
-                    'from {} import {}'.format(fmt.__module__, fmt.__name__))
+                if is_string(fmt):
+                    defs.append(dl.format(crawlername, expr, "'{}'".format(fmt)))
+                else:
+                    defs.append(dl.format(crawlername, expr, fmt.__name__))
+                    imports.add(
+                        'from {} import {}'.format(fmt.__module__, fmt.__name__))
             definitions = '\n'.join(defs)
         if master:
-            imports.add('from signac.contrib.crawler import MasterCrawler')
+            imports.add('from signac.contrib import MasterCrawler')
         imports = '\n'.join(imports)
 
         module = ACCESS_MODULE_TEMPLATE.format(

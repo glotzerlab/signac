@@ -1,3 +1,70 @@
+0.6.0:
+
+	- Major updates:
+
+		- The MasterCrawler logic has been simplified; their primary function is
+			the compilaton of index documents from slave crawlers, all export logic,
+			including data mirroring is now provided by the signac.export() function.
+		- Each index document is now uniquely coupled with only one file or
+			data object, which is why signac.fetch() replaces signac.fetch_one()
+			and the latter one has been deprecated and is currently an alias of
+			the former one.
+	  - The fetch() function always returns a file-like object, regardless of
+		  format definition.
+	  - The format argument in the crawler define() function is now optional and
+		  has now very well defined behavior for str types. It is encouraged to
+			define a format with a str constant rather than a file-like object type.
+		- The TextFile file-like object class definition in the formats module
+		  has been replaced with a str constant.
+		- The export() function automatically delegates to specialized
+			implementations such as export_pymongo() and is more robust against
+			errors, such as broken connections.
+		- The export_pymongo() function makes multiple automatic restart attempts
+		  when encountering errors.
+		- All modules related to the statel 'conversion framework' feature have
+		  been removed resulting in a removal of the optional networkx dependency.
+		- Documentation: The tutorial is now based on signac-examples jupyter notebooks.
+
+  - API changes:
+
+		- The contrib.crawler module has been renamed to contrib.indexing to
+		  better reflect the semantic context.
+		- The signac.export() function now implements the logic for data linking
+			and mirroring.
+		- Provision of the export_one() function for the export of a single
+			index document; simplifies the implementation of custom export functions.
+		- Provision of the export_to_mirror() funtion for mirroring files.
+		- Introduction of the signac.fs namespace to simplify the configuration
+			of mirror filesystems.
+		- Add 'errors' module to root namespace. Many exceptions raised inherit
+			from the base exception types defined within that module, making it
+			easier to catch signac related  errors.
+	  - Multiple modules related to the 'conversion framework' feature have been
+		  removed, including: contrib.formats_network, contrib.conversion, and
+			contrib.adapters.
+		- Provide default argument for '--indent' option for 'signac statepoint'
+			command.
+
+	- Bug Fixes:
+
+		- Opening Job instances with the open() function multiple times,
+			equivalently entering the job context recursively, does not cause an
+			error anymore, but instead the behavior is well-defined (see above).
+
+  - Minor updates:
+
+		- Opening an instance of Job with the open() function multiple times and
+			entering a job context recursively is now well-defined behavior:
+			Opening a job now adds the current working directory onto a stack,
+			closing it switches into the directory on top of the stack.
+		- The return type of open_job can be configured to make it easier
+		  to specialize projects with custom job types.
+		- Log, but do not reraise exceptions during MasterCrawler execution,
+		  making the compilation of master indexes more robust against errors.
+	  - The object representation of Job and Project instances is simplified.
+		- The warning verbosity has been reduced when importing modules with
+		  optional dependencies.
+
 0.5.0:
 
 	- General updates:

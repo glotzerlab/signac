@@ -4,26 +4,11 @@ signac.contrib package
 Submodules
 ----------
 
-signac.contrib.adapters module
+
+signac.contrib.indexing module
 ------------------------------
 
-.. automodule:: signac.contrib.adapters
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-signac.contrib.conversion module
---------------------------------
-
-.. automodule:: signac.contrib.conversion
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-signac.contrib.crawler module
------------------------------
-
-.. automodule:: signac.contrib.crawler
+.. automodule:: signac.contrib.indexing
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,14 +33,6 @@ signac.contrib.formats module
 -----------------------------
 
 .. automodule:: signac.contrib.formats
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-signac.contrib.formats_network module
--------------------------------------
-
-.. automodule:: signac.contrib.formats_network
     :members:
     :undoc-members:
     :show-inheritance:
