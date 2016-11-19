@@ -8,15 +8,16 @@ if [ "$(basename $(pwd))" != "doc" ]
     exit 1
 fi
 PWD=$(pwd)
+export PYTHONPATH=$PWD/..
 
 function cleanup {
   cd $PWD
-  rm -rf signac-examples
+  #rm -rf signac-examples
 }
 trap cleanup EXIT
 
-git clone --reference ~/local/gitcaches/signac-examples.reference git@bitbucket.org:glotzer/signac-examples.git
+git clone git@github.com:csadorf/signac-examples.git
 cd signac-examples/
-PYTHONPATH=.. scons signac
+scons signac
 cd ../
 find signac-examples/notebooks/static -regex '.*/signac\_[a-z0-9_]*\.ipynb' -exec cp {} ./ \;
