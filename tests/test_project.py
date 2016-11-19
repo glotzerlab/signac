@@ -37,6 +37,15 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self.project.get_id(), 'testing_test_project')
         self.assertEqual(str(self.project), self.project.get_id())
 
+    def test_repr(self):
+        repr(self.project)
+        p = eval(repr(self.project))
+        self.assertEqual(repr(p), repr(self.project))
+        self.assertEqual(p, self.project)
+
+    def test_str(self):
+        str(self.project) == self.project.get_id()
+
     def test_root_directory(self):
         self.assertEqual(self._tmp_pr, self.project.root_directory())
 

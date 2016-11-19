@@ -122,9 +122,14 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}({'project_dir': '{rd}', 'workspace_dir': {wd}})".format(
+        return "{type}({{'project': '{id}', 'project_dir': '{rd}', 'workspace_dir': '{wd}'}})".format(
+            type=self.__class__.__module__ + '.' + self.__class__.__name__,
+            id=self.get_id(),
             rd=self.root_directory(),
             wd=self.workspace())
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     @property
     def config(self):
