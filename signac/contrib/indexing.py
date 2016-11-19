@@ -35,6 +35,7 @@ KEY_CRAWLER_ID = 'access_crawler_id'
 
 
 def md5(file):
+    "Calculate and return the md5 hash value for the file data."
     m = hashlib.md5()
     for chunk in iter(lambda: file.read(4096), b''):
         m.update(chunk)
@@ -223,17 +224,11 @@ class RegexFileCrawler(BaseCrawler):
     def fetch(self, doc, mode='r'):
         """Fetch the data associated with `doc`.
 
-        :param doc: A document.
+        :param doc: A index document.
         :type doc: :class:`dict`
-        :yields: All files associated with doc in the defined format.
-
-        .. note::
-
-            For generality the :meth:`~.BaseCrawler.fetch` method is
-            a generator function, which may yield an arbitrary number
-            of objects of arbitrary type. In the case of the
-            :class:`~.RegexFileCrawler` it will always yield
-            exactly **one** object."""
+        :returns: The file associated with the index document.
+        :rtype: A file-like object
+        """
         fn = doc.get(KEY_FILENAME)
         if fn:
             for regex, format_ in self.definitions.items():
@@ -484,8 +479,18 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
+def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60):
     """Fetch the file associated with this document or file id.
+
+    This function retrieves a file associated with the provided
+    index document or file id and behaves like the built-in
+    :py:func:`open` function, e.g.:
+
+    .. code-block:: python
+
+        for doc in index:
+            with signac.fetch(doc) as file:
+                do_something_with(file)
 
     :param doc_or_id: A file_id or a document with a file_id value.
     :param mode: Mode to use for opening files.
@@ -493,6 +498,9 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
     :type num_tries: int
+    :param timeout: The time in seconds to wait before an
+        automatic retry attempt.
+    :type timeout: int
     :returns: The file associated with the document or file id.
     :rtype: A file-like object
     """
@@ -516,6 +524,9 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
             for mirror in mirrors:
                 try:
                     return mirror.get(file_id, mode=mode)
+                except mirror.AutoRetry as error:
+                    logger.warning(error)
+                    sleep(timeout)
                 except mirror.FileNotFoundError as error:
                     logger.debug(error)
             else:
@@ -523,7 +534,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3):
 
 
 def fetch_one(doc, *args, **kwargs):
-    "Legacy function, use fetch() instead."
+    "Legacy function, use :py:func:`~.fetch` instead."
     warnings.warn(
         "This function is deprecated, please use fetch() instead.",
         DeprecationWarning)
@@ -608,6 +619,13 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
         for doc in docs:
             export_one(doc, index, mirrors, num_tries)
 
+    .. note::
+
+        This function will automatically delegate to specialized
+        implementations for special index types. For example, if
+        the index argument is a MongoDB document collection, the
+        index documents will be exported via :py:func:`~.export_pymongo`.
+
     :param docs: The index documents to export.
     :param index: The collection to export the index to.
     :param mirrors: An optional set of mirrors to export files to.
@@ -652,7 +670,7 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
 
 
 def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize=100):
-    """Optimized export() function for pymongo index collections.
+    """Optimized :py:func:`~.export` function for pymongo index collections.
 
     The behavior of this function is rougly equivalent to:
 

@@ -108,7 +108,7 @@ class Project(object):
 
     Application developers should usually not need to
     directly instantiate this class, but use
-    :func:`.contrib.get_project` instead."""
+    :func:`signac.get_project` instead."""
     Job = Job
 
     def __init__(self, config=None):
@@ -207,6 +207,7 @@ class Project(object):
                 raise
 
     def num_jobs(self):
+        "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
     def build_job_search_index(self, index, include=None, hash_=None):
@@ -378,8 +379,7 @@ class Project(object):
             defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
         :type fn: str
 
-        See also :meth:`dump_statepoints`.
-        See also :meth:`write_statepoints`.
+        See also :meth:`dump_statepoints` and :meth:`write_statepoints`.
         """
         if fn is None:
             fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
@@ -666,7 +666,7 @@ class Project(object):
             update overwrites parameters, which are currently
             part of the job's statepoint. Use with caution!
         :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint.
+            already part of the job's statepoint and overwrite is False.
         :raises RuntimeError: If a job associated with the new unique set
             of parameters already exists in the workspace."""
         statepoint = dict(job.statepoint())
