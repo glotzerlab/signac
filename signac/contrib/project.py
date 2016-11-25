@@ -840,6 +840,7 @@ class Project(object):
             it does not exist yet.
         :type make_dir: bool
         :returns: The project handle of the initialized project.
+        :rtype: :py:class:`~.Project`
         :raises RuntimeError: If the project root path already
             contains a conflicting project configuration."""
         if root is None:
@@ -1051,6 +1052,6 @@ def get_project(root=None):
         within or above the current working directory is returned.
     :type root: str
     :returns: The project handle.
-    :rtype: :class:`Project`
+    :rtype: :py:class:`~.Project`
     :raises LookupError: If no project configuration can be found."""
     return Project.get_project(root=root)
