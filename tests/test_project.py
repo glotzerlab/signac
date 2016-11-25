@@ -316,7 +316,6 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(index, index2)
         self.assertTrue(Crawler.called)
 
-
     def test_custom_project(self):
 
         class CustomProject(signac.Project):
@@ -333,7 +332,7 @@ class ProjectTest(BaseProjectTest):
                 super(CustomJob, self).__init__(*args, **kwargs)
 
         class CustomProject(signac.Project):
-            Job=CustomJob
+            Job = CustomJob
 
         project = CustomProject.get_project(root=self.project.root_directory())
         self.assertTrue(isinstance(project, signac.Project))
