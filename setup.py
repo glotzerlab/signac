@@ -7,7 +7,7 @@ if sys.version_info < (2, 7, 0):
 
 setup(
     name='signac',
-    version='0.6.0',
+    version='0.6.1',
     packages=find_packages(),
     zip_safe=True,
 
@@ -15,6 +15,7 @@ setup(
     author_email='csadorf@umich.edu',
     description="Simple data management framework.",
     keywords='simulation database index collaboration workflow',
+    url="https://bitbucket.org/glotzer/signac",
 
     classifiers=[
         "Development Status :: 4 - Beta",

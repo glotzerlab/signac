@@ -122,9 +122,14 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}({'project_dir': '{rd}', 'workspace_dir': {wd}})".format(
+        return "{type}({{'project': '{id}', 'project_dir': '{rd}', 'workspace_dir': '{wd}'}})".format(
+            type=self.__class__.__module__ + '.' + self.__class__.__name__,
+            id=self.get_id(),
             rd=self.root_directory(),
             wd=self.workspace())
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     @property
     def config(self):
@@ -367,7 +372,7 @@ class Project(object):
         :rtype: list"""
         warnings.warn(
             "The find_variable_parameters() method is deprecated, please use "
-            "build_job_statepoint_index() instead.", PendingDeprecationWarning)
+            "build_job_statepoint_index() instead.", DeprecationWarning)
         if statepoints is None:
             statepoints = self.find_statepoints()
         return list(_find_unique_keys(statepoints))
@@ -583,7 +588,7 @@ class Project(object):
         :param prefix: Specifies where to create the links."""
         warnings.warn(
             "The create_view() method is deprecated, please use "
-            "create_linked_view() instead.", PendingDeprecationWarning)
+            "create_linked_view() instead.", DeprecationWarning)
         statepoints = list(self.find_statepoints(filter=filter))
         if not len(statepoints):
             if filter is None:
@@ -835,6 +840,7 @@ class Project(object):
             it does not exist yet.
         :type make_dir: bool
         :returns: The project handle of the initialized project.
+        :rtype: :py:class:`~.Project`
         :raises RuntimeError: If the project root path already
             contains a conflicting project configuration."""
         if root is None:
@@ -1046,6 +1052,6 @@ def get_project(root=None):
         within or above the current working directory is returned.
     :type root: str
     :returns: The project handle.
-    :rtype: :class:`Project`
+    :rtype: :py:class:`~.Project`
     :raises LookupError: If no project configuration can be found."""
     return Project.get_project(root=root)

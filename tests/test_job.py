@@ -115,6 +115,16 @@ class JobIDTest(BaseJobTest):
 
 class JobTest(BaseJobTest):
 
+    def test_repr(self):
+        job = self.project.open_job({'a': 0})
+        job2 = self.project.open_job({'a': 0})
+        self.assertEqual(repr(job), repr(job2))
+        self.assertEqual(job, job2)
+
+    def test_str(self):
+        job = self.project.open_job({'a': 0})
+        self.assertEqual(str(job), job.get_id())
+
     def test_isfile(self):
         job = self.project.open_job({'a': 0})
         fn = 'test.txt'

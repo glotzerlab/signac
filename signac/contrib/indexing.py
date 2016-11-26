@@ -479,7 +479,7 @@ def _load_crawler(name):
         return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
-def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60):
+def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_local=False):
     """Fetch the file associated with this document or file id.
 
     This function retrieves a file associated with the provided
@@ -507,7 +507,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60):
     if doc_or_id is None:
         raise ValueError("Argument 'doc_or_id' must not be None!")
     file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get('file_id')
-    if file_id is None or mirrors is None:
+    if not ignore_local:
         try:
             fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
             return open(fn, mode=mode)

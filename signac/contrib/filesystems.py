@@ -186,7 +186,7 @@ if GRIDFS:
                         "Open large GridFS files more efficiently in 'rb' mode.")
                 return file
             elif mode == 'rb':
-                return self.gridfs.get(_id=_id)
+                return self.gridfs.get(file_id=_id)
             else:
                 raise ValueError(mode)
     _register_fs_class(GridFS)
