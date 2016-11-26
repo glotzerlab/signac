@@ -21,7 +21,7 @@
 			errors, such as broken connections.
 		- The export_pymongo() function makes multiple automatic restart attempts
 		  when encountering errors.
-		- All modules related to the statel 'conversion framework' feature have
+		- All modules related to the stale 'conversion framework' feature have
 		  been removed resulting in a removal of the optional networkx dependency.
 		- Documentation: The tutorial is now based on signac-examples jupyter notebooks.
 
@@ -38,7 +38,7 @@
 			of mirror filesystems.
 		- Add 'errors' module to root namespace. Many exceptions raised inherit
 			from the base exception types defined within that module, making it
-			easier to catch signac related  errors.
+			easier to catch signac related errors.
 	  - Multiple modules related to the 'conversion framework' feature have been
 		  removed, including: contrib.formats_network, contrib.conversion, and
 			contrib.adapters.
@@ -49,7 +49,7 @@
 
 		- Opening Job instances with the open() function multiple times,
 			equivalently entering the job context recursively, does not cause an
-			error anymore, but instead the behavior is well-defined (see above).
+			error anymore, but instead the behavior is well-defined (see below).
 
   - Minor updates:
 
@@ -72,7 +72,7 @@
 		- The performance of project indexing and crawling has been improved.
 
 	- API changes:
-		
+
 		- New function: `signac.init_project()` simplifies project initialization
 		within python
 		- Added optional `root` argument to `signac.get_project()` to simplify
@@ -105,12 +105,12 @@
 		- The tutorial is restructured into multiple parts.
 		- Instructions for installation are separated from the guide.
 		- The guide is updated to reflect recent changes.
-		
+
 0.3.0
 
 	- Change license from MIT to BSD 3-clause license.
 	- Add contributing agreement and guidelines.
-			
+
 0.2.9
 
 	- API changes:
