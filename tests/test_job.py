@@ -117,7 +117,9 @@ class JobTest(BaseJobTest):
 
     def test_repr(self):
         job = self.project.open_job({'a': 0})
-        repr(job)
+        job2 = self.project.open_job({'a': 0})
+        self.assertEqual(repr(job), repr(job2))
+        self.assertEqual(job, job2)
 
     def test_str(self):
         job = self.project.open_job({'a': 0})

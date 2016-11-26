@@ -49,8 +49,12 @@ class Job(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}(project={}, id={})".format(
-            type(self).__name__, repr(self._project), self._id)
+        return "{}(project={}, id='{}')".format(
+            self.__class__.__module__ + '.' + self.__class__.__name__,
+            repr(self._project), self._id)
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
 
     def workspace(self):
         """Each job is associated with a unique workspace directory.
