@@ -12,14 +12,16 @@ logger = logging.getLogger(__name__)
 try:
     import PySide  # noqa
     import pymongo  # noqa
-except ImportError as error:
-    logger.debug("{}. The signac gui is not available.".format(error))
+except Exception as error:
+    msg = 'The signac gui is not available, because of an error: "{}".'
+    logger.debug(msg.format(error))
 
     def main():
         """Start signac-gui.
 
         The gui requires PySide and pymongo."""
-        raise ImportError(msg)
+        import PySide  # noqa
+        import pymongo  # noqa
 else:
     from .gui import main
 
