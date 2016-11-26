@@ -372,7 +372,7 @@ class Project(object):
         :rtype: list"""
         warnings.warn(
             "The find_variable_parameters() method is deprecated, please use "
-            "build_job_statepoint_index() instead.", PendingDeprecationWarning)
+            "build_job_statepoint_index() instead.", DeprecationWarning)
         if statepoints is None:
             statepoints = self.find_statepoints()
         return list(_find_unique_keys(statepoints))
@@ -588,7 +588,7 @@ class Project(object):
         :param prefix: Specifies where to create the links."""
         warnings.warn(
             "The create_view() method is deprecated, please use "
-            "create_linked_view() instead.", PendingDeprecationWarning)
+            "create_linked_view() instead.", DeprecationWarning)
         statepoints = list(self.find_statepoints(filter=filter))
         if not len(statepoints):
             if filter is None:
