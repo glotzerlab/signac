@@ -1,3 +1,20 @@
+0.6.1:
+
+	- Bug Fixes:
+
+		- Make package more robust against PySide import errors.
+		- Fix Project.__repr__ method.
+		- Fix critical bug in fs.GridFS class, which rendered it unusuable.
+		- Fix issue in indexing.fetch() resulting in local paths being ignored.
+		- Fix error signac.__all__ namespace directive.
+
+	- API changes:
+
+		- The Project.create_view() method triggers a DeprecationWarning instead
+		  of a PendingDeprecationWarning.
+	  - The Project.find_variable_parameters() method triggers a
+			DeprecationWarning instead of a PendingDeprecationWarning.
+
 0.6.0:
 
 	- Major updates:
