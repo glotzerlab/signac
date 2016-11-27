@@ -12,8 +12,8 @@
 
 		- The Project.create_view() method triggers a DeprecationWarning instead
 		  of a PendingDeprecationWarning.
-	  - The Project.find_variable_parameters() method triggers a
-			DeprecationWarning instead of a PendingDeprecationWarning.
+		- The Project.find_variable_parameters() method triggers a
+		  DeprecationWarning instead of a PendingDeprecationWarning.
 
 0.6.0:
 
