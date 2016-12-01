@@ -1,5 +1,9 @@
 # signac - a simple data management framework
 
+[![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
+[![Binder](http://mybinder.org/badge.svg)](http://www.mybinder.org:/repo/csadorf/signac-examples)
+
+
 ## About
 
 The signac framework aids in the management of large and heterogeneous data spaces.
