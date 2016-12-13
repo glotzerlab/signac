@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![Binder](http://mybinder.org/badge.svg)](http://www.mybinder.org:/repo/csadorf/signac-examples)
-
+[![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://img.shields.io/pypi/v/signac.svg)
 
 ## About
 
