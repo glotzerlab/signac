@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import subprocess
 import logging
-import ssl
 from os.path import expanduser
 
 import pymongo
@@ -17,11 +16,6 @@ AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
 AUTH_SSL = 'SSL'
 AUTH_SSL_x509 = 'SSL-x509'
-SSL_CERT_REQS = {
-    'none': ssl.CERT_NONE,
-    'optional': ssl.CERT_OPTIONAL,
-    'required': ssl.CERT_REQUIRED
-}
 
 
 def get_subject_from_certificate(fn_certificate):  # pragma no cover
@@ -88,22 +82,6 @@ class DBClientConnector(object):
                 read_preference=getattr(
                     pymongo.read_preferences.ReadPreference,
                     self._config_get('read_preference', 'PRIMARY')),
-                ** parameters)
-        elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma  no cover
-            # currently not officially supported
-            client = pymongo.MongoClient(
-                host,
-                ssl=True,
-                ssl_keyfile=expanduser(
-                    self._config_get_required('ssl_keyfile')),
-                ssl_certfile=expanduser(
-                    self._config_get_required('ssl_certfile')),
-                ssl_cert_reqs=SSL_CERT_REQS[
-                    self._config_get('ssl_cert_reqs', 'required')],
-                ssl_ca_certs=expanduser(
-                    self._config_get_required('ssl_ca_certs')),
-                ssl_match_hostname=self._config_get(
-                    'ssl_match_hostname', True),
                 ** parameters)
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
