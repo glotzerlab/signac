@@ -31,6 +31,9 @@ Contents
     :ref:`quickreference`
       Brief overview of the core functions, to serve as reference.
 
+    :ref:`acknowledge`
+      Instructions on how to acknowledge this software in publications.
+
     :ref:`api`
       The complete API reference.
 
@@ -51,6 +54,7 @@ Please use the `repository's issue tracker <https://bitbucket.org/glotzer/signac
    tutorial
    guide
    reference
+   acknowledge
    signac
 
 Indices and tables
