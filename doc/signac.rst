@@ -14,6 +14,9 @@ Module contents
     :show-inheritance:
 
 
+.. automodule:: signac.cite
+    :members:
+
 Subpackages
 -----------
 

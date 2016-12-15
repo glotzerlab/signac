@@ -1,3 +1,11 @@
+0.6.2:
+
+	- Add instructions on how to acknowledge signac in publications to
+	  documentation.
+	- Add cite module for the auto-generation of formatted references and
+	  BibTeX entries.
+	- Remove SSL authentication support.
+
 0.6.1:
 
 	- Bug Fixes:
