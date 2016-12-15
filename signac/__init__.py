@@ -14,8 +14,8 @@ from __future__ import absolute_import
 from . import contrib
 from . import db
 from . import gui
-from . common import errors
-from . common import cite
+from . import cite
+from .common import errors
 from .contrib import Project
 from .contrib import get_project
 from .contrib import init_project
@@ -30,7 +30,8 @@ from .db import get_database
 
 __version__ = '0.6.1'
 
-__all__ = ['__version__', 'contrib', 'db', 'gui', 'errors', 'cite',
+__all__ = ['__version__', 'contrib', 'db', 'gui', 'errors',
+           'cite',
            'Project', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',
            'export_one', 'export', 'export_to_mirror',

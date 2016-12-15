@@ -24,7 +24,7 @@ def bibtex(file=None):
 
     The bibtex entries will be printed to screen unless a
     filename or a file-like object are provided, in which
-    case they will be stored in the corresponding file.
+    case they will be written to the corresponding file.
 
     .. note::
 
@@ -43,11 +43,11 @@ def bibtex(file=None):
 
 
 def reference(file=None):
-    """Generate reference entries for signac.
+    """Generate formatted reference entries for signac.
 
     The references will be printed to screen unless a
     filename or a file-like object are provided, in which
-    case they will be stored in the corresponding file.
+    case they will be written to the corresponding file.
 
     .. note::
 
