@@ -6,6 +6,15 @@
 Welcome to signac's documentation!
 ==================================
 
+.. image:: https://zenodo.org/badge/72946496.svg
+   :target: https://zenodo.org/badge/latestdoi/72946496
+
+.. image:: http://mybinder.org/badge.svg
+   :target: http://www.mybinder.org:/repo/csadorf/signac-examples
+
+.. image:: https://img.shields.io/pypi/v/signac.svg
+   :target: https://img.shields.io/pypi/v/signac.svg
+
 .. image:: images/minimal.svg
     :align: right
 
