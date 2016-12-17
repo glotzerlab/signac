@@ -4,33 +4,42 @@
 Installation
 ============
 
+The recommendend installation method for **signac** is via conda_ or pip_.
+The software is tested for python versions 2.7.x and 3.x and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
+However, some extra features, such as the database integration require additional packages.
+
+.. _conda: https://anaconda.org/
+.. _pip: https://docs.python.org/3.5/installing/index.html
+
 Install with conda
 ==================
 
-To install the package with conda_, execute
+To install **signac** via conda, you first need to add the conda-forge_ channel with:
+
+.. _conda-forge: https://conda-forge.github.io
 
 .. code:: bash
 
-    $ conda install -c glotzer signac
+    $ conda config --add channels conda-forge
 
-To upgrade, execute
+Once the **conda-forge** channel has been enabled, **signac** can be installed with:
+
+.. code:: bash
+
+    $ conda install signac
+
+All additional dependencies will be installed automatically.
+To upgrade the package, execute:
 
 .. code:: bash
 
     $ conda update signac
 
-.. _conda: http://conda.pydata.org
-
-.. note::
-
-    This is the recommended installation method.
 
 Install with pip
 ================
 
 To install the package with the package manager pip_, execute
-
-.. _pip: https://docs.python.org/3.5/installing/index.html
 
 .. code:: bash
 
@@ -39,7 +48,7 @@ To install the package with the package manager pip_, execute
 .. note::
     It is highly recommended to install the package into the user space and not as superuser!
 
-To upgrade the package, simply execute the same command with the `--upgrade` option.
+To upgrade the package, simply execute the same command with the ``--upgrade`` option.
 
 .. code:: bash
 
@@ -51,10 +60,11 @@ Consider to install optional dependencies:
 
     $ pip install pymongo passlib bcrypt --user
 
-Install with git
-================
 
-Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/signac>`_ and use the ``setup.py`` script to install the package.
+Source Code Installation
+========================
+
+Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/signac>`_ and execute the ``setup.py`` script to install the package.
 
 .. code:: bash
 
@@ -64,14 +74,13 @@ Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/s
 
 Consider to install :ref:`optional dependencies <optional_dependencies>`.
 
-
 .. _optional_dependencies:
 
 Optional dependencies
 =====================
 
-When using one of the alternative installation  methods, any optional dependencies may not get automatically installed.
-In the case that you want to use extra features that requires dependencies, you need to install those manually.
+Unless you install via conda_, optional dependencies are not installed automatically.
+In case you want to use extra features that require external packages, you need to install these manually.
 
 Extra features with dependencies:
 
