@@ -49,3 +49,19 @@ pipelines:
             - python -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
+  tags:
+   v*:
+     - step:
+          image: themattrix/tox
+          script:
+            - pip install -U coverage
+            - pip install -U twine
+            - python --version
+            - pip --version
+            - tox --version
+            - twine --version
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+            - tox
+            - coverage report -i --include="signac*"
+            - .deploy.bash
