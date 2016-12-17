@@ -9,11 +9,14 @@ Welcome to signac's documentation!
 .. image:: https://zenodo.org/badge/72946496.svg
    :target: https://zenodo.org/badge/latestdoi/72946496
 
-.. image:: http://mybinder.org/badge.svg
-   :target: http://www.mybinder.org:/repo/csadorf/signac-examples
+.. image:: https://anaconda.org/conda-forge/signac/badges/version.svg
+   :target: https://anaconda.org/conda-forge/signac
 
 .. image:: https://img.shields.io/pypi/v/signac.svg
    :target: https://img.shields.io/pypi/v/signac.svg
+
+.. image:: http://mybinder.org/badge.svg
+   :target: http://www.mybinder.org:/repo/csadorf/signac-examples
 
 .. image:: images/minimal.svg
     :align: right
