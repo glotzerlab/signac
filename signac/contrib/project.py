@@ -174,6 +174,21 @@ class Project(object):
                 "Are you sure '{}' is a signac project path?".format(
                     os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
+    def min_len_unique_id(self):
+        "Determine the minimum length required for an id to be unique."
+        job_ids = list(self.find_job_ids())
+        tmp = set()
+        for i in range(32):
+            tmp.clear()
+            for _id in job_ids:
+                if _id[:i] in tmp:
+                    break
+                else:
+                    tmp.add(_id[:i])
+            else:
+                break
+        return i
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
