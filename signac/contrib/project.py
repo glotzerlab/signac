@@ -213,6 +213,13 @@ class Project(object):
         if id is None:
             return self.Job(project=self, statepoint=statepoint)
         else:
+            if len(id) < 32:
+                job_ids = self.find_job_ids()
+                matches = [_id for _id in job_ids if _id.startswith(id)]
+                if len(matches) == 1:
+                    id = matches[0]
+                elif len(matches) > 1:
+                    raise LookupError(id)
             return self.Job(project=self, statepoint=self.get_statepoint(id))
 
     def _job_dirs(self):
