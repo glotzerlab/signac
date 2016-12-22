@@ -99,8 +99,7 @@ class JobSearchIndex(object):
         if doc_filter is not None:
             f.update(doc_filter)
         f = json.loads(json.dumps(f))  # Normalize
-        for job_id in self._engine.find(filter=f):
-            yield job_id
+        return self._engine.find(filter=f)
 
 
 class Project(object):
@@ -290,9 +289,7 @@ class Project(object):
             by the index.
         """
         if filter is None and doc_filter is None and index is None:
-            for job_id in self._job_dirs():
-                yield job_id
-            return
+            return iter(self._job_dirs())
         if index is None:
             index = self.index(include_job_document=doc_filter is not None)
         if doc_filter is None:
@@ -300,8 +297,7 @@ class Project(object):
         else:
             include = None
         search_index = self.build_job_search_index(index, include)
-        for job_id in search_index.find_job_ids(filter=filter, doc_filter=doc_filter):
-            yield job_id
+        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
@@ -324,8 +320,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        for job_id in self.find_job_ids(filter, doc_filter, index):
-            yield self.open_job(id=job_id)
+        return _JobsIterator(self, self.find_job_ids(filter, doc_filter, index))
+
+    def __iter__(self):
+        return self.find_jobs()
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1024,6 +1022,24 @@ def _skip_errors(iterable, log=print):
             return
         except Exception as error:
             log(error)
+
+
+class _JobsIterator(object):
+
+    def __init__(self, project, ids):
+        self._project = project
+        self._ids = ids
+        self._ids_iterator = iter(ids)
+
+    def __len__(self):
+        return len(self._ids)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self._project.open_job(id=next(self._ids_iterator))
+
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
