@@ -647,12 +647,15 @@ class Project(object):
         :type job: :class:`~.contrib.job.Job`
         :param new_statepoint: The job's new unique set of parameters.
         :type new_statepoint: mapping
+        :returns: The job instance with the new state point.
+        :rtype: :py:class:`~.Job`
         :raises RuntimeError: If a job associated with the new unique set
             of parameters already exists in the workspace."""
         dst = self.open_job(new_statepoint)
         _move_job(job, dst)
         logger.info(
             "Reset statepoint of job {}, moved to {}.".format(job, dst))
+        return dst
 
     def update_statepoint(self, job, update, overwrite=False):
         """Update the statepoint of job.
@@ -670,6 +673,8 @@ class Project(object):
         :param overwrite: Set to true, to ignore whether this
             update overwrites parameters, which are currently
             part of the job's statepoint. Use with caution!
+        :returns: The job instance with the updated state point.
+        :rtype: :py:class:`~.Job`
         :raises KeyError: If the update contains keys, which are
             already part of the job's statepoint and overwrite is False.
         :raises RuntimeError: If a job associated with the new unique set
@@ -680,7 +685,9 @@ class Project(object):
                 if key in statepoint:
                     raise KeyError(key)
         statepoint.update(update)
-        _move_job(job, self.open_job(statepoint))
+        dst = self.open_job(statepoint)
+        _move_job(job, dst)
+        return dst
 
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
