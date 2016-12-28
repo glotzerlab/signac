@@ -215,6 +215,8 @@ class Project(object):
         "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
+    __len__ = num_jobs
+
     def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
 
