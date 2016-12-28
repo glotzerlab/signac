@@ -15,7 +15,7 @@ from . import contrib
 from . import db
 from . import gui
 from . import cite
-from .common import errors
+from . import errors
 from .contrib import Project
 from .contrib import get_project
 from .contrib import init_project

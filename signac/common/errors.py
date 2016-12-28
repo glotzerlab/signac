@@ -2,9 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from . import six
-
-class Error(Exception):
-    pass
+from ..core.errors import Error
 
 
 class ConfigError(Error, RuntimeError):
