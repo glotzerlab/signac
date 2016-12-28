@@ -28,6 +28,8 @@ class Job(object):
     The job manifest, this means a human-readable dump of the job's\
     statepoint is stored in each workspace directory.
     """
+    FN_DOCUMENT = 'signac_job_document.json'
+    "The job's document filename."
 
     def __init__(self, project, statepoint):
         self._project = project
@@ -78,7 +80,7 @@ class Job(object):
         :rtype: :class:`~.JSonDict`"""
         if self._document is None:
             self._create_directory()
-            fn = os.path.join(self.workspace(), 'signac_job_document.json')
+            fn = os.path.join(self.workspace(), self.FN_DOCUMENT)
             self._document = JSonDict(
                 fn, synchronized=True, write_concern=True)
         return self._document
