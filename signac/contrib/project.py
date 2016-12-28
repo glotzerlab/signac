@@ -217,6 +217,16 @@ class Project(object):
         "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
+    def __contains__(self, job):
+        """Determine whether job is in the project's data space.
+
+        :param job: The job to test for initialization.
+        :type job: :py:class:`~.Job`
+        :returns: True when the job is initialized for this project.
+        :rtype: bool
+        """
+        return job.get_id() in self.find_job_ids()
+
     def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
 
