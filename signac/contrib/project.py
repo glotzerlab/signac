@@ -9,6 +9,7 @@ import json
 import errno
 import warnings
 import collections
+import shutil
 
 from ..core.search_engine import DocumentSearchEngine
 from ..common import six
@@ -19,6 +20,7 @@ from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, is_string
+from .errors import DestinationExistsError
 
 if six.PY2:
     from collections import Mapping
@@ -687,6 +689,49 @@ class Project(object):
         statepoint.update(update)
         dst = self.open_job(statepoint)
         _move_job(job, dst)
+        return dst
+
+    def clone(self, job):
+        """Clone job into this project.
+
+        Create an identical copy of job within this project.
+
+        See also: :py:meth:`~.merge`
+
+        :param job: The job to copy into this project.
+        :type job: :py:class:`~.Job`
+        :returns: The job instance corresponding to the copied job.
+        :rtype: :py:class:`~.Job`
+        :raises DestinationExistsError: In case that a job with the same
+            id is already initialized within this project.
+        """
+        dst = self.open_job(job.statepoint())
+        try:
+            shutil.copytree(job.workspace(), dst.workspace())
+        except FileExistsError:
+                raise DestinationExistsError(dst)
+        return dst
+
+    def merge(self, job, force=False):
+        """Merge job into this project.
+
+        Attempt to merge job into a job within this project, with the
+        same id. The job will be initialized if it does not exist yet.
+
+        The behavior of this function is essentially equivalent to:
+
+        .. code-block:: python
+
+            return project.open_job(job.statepoint()).merge(job)
+
+        See also: :py:meth:`~.clone`
+
+        :param job: The job to merge into this project.
+        :type job: :py:class:`~.Job`
+        :raises MergeConflict: In case that merge conflicts occur.
+        """
+        dst = self.open_job(job.statepoint())
+        dst.merge(job, force=force)
         return dst
 
     def repair(self):
