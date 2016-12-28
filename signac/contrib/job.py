@@ -140,13 +140,15 @@ class Job(object):
 
         This function will do nothing if the workspace directory
         does not exist."""
-        if self._document is not None:
-            self._document.clear()
         try:
             shutil.rmtree(self.workspace())
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
+        else:
+            if self._document is not None:
+                self._document.clear()
+                self._document = None
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
