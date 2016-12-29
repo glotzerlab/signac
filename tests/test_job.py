@@ -9,6 +9,8 @@ import random
 import signac.contrib
 import signac.common.config
 from signac.common import six
+from signac.errors import MergeConflict
+from filecmp import clear_cache
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -411,6 +413,65 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(dst2_job.statepoint(), dst2)
         self.assertIn(key, dst2_job.document)
         self.assertEqual(len(dst2_job.document), 1)
+
+
+class MovingMergingTest(BaseJobTest):
+
+    def test_diff(self):
+        sp0 = dict(a=0, ** test_token)
+        sp1 = dict(a=1, ** test_token)
+        job_a = self.open_job(sp0)
+        job_b = self.open_job(sp1)
+        with job_a:
+            with open('hello.txt', 'w') as file:
+                file.write("world1")
+        with job_b:
+            with open('hello.txt', 'w') as file:
+                file.write("world1")
+        diff = job_a._diff(job_b)
+        self.assertEqual(diff.diff_files, [])
+        with job_b:
+            with open('hello.txt', 'w') as file:
+                file.write("world2")
+        clear_cache()
+        diff = job_a._diff(job_b)
+        self.assertEqual(diff.diff_files, ['hello.txt'])
+
+    def test_merge(self):
+        sp0 = dict(a=0, ** test_token)
+        sp1 = dict(a=1, ** test_token)
+        job_a = self.open_job(sp0)
+        job_b = self.open_job(sp1)
+        with job_a:
+            job_a.document['a'] = 0
+            with open('hello.txt', 'w') as file:
+                file.write("world1")
+        job_b.merge(job_a)
+        self.assertEqual(job_b.document, job_a.document)
+        with open(job_b.fn('hello.txt')) as file:
+            self.assertEqual(file.read(), "world1")
+        job_b.merge(job_a)  # that should be fine, too
+        # job_a diverges
+        job_a.document['a'] = 1
+        with open(job_a.fn('hello.txt'), 'w') as file:
+            file.write("world2")
+        with open(job_a.fn('hello.txt'), 'r') as file1:
+            with open(job_b.fn('hello.txt'), 'r') as file2:
+                self.assertNotEqual(file1.read(), file2.read())
+        clear_cache()
+        try:
+            job_b.merge(job_a)
+        except MergeConflict as conflict:
+            self.assertEqual(conflict.keys, ['a'])
+            self.assertEqual(conflict.filenames, ['hello.txt'])
+            merge_conflict_raised = True
+        else:
+            merge_conflict_raised = False
+        self.assertTrue(merge_conflict_raised)
+        job_b.merge(job_a, force=True)
+        self.assertEqual(job_b.document, job_a.document)
+        with open(job_b.fn('hello.txt')) as file:
+            self.assertEqual(file.read(), "world2")
 
 
 if __name__ == '__main__':
