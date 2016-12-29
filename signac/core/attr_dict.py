@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from collections.abc import Mapping
+from contextlib import contextmanager
 
 
 def convert_to_dict(m):
@@ -34,9 +35,9 @@ class AttrDict(object):
     def __init__(self, mapping=None, cb=None):
         self._cb = cb
         self._data_ = dict()
-        super().__init__()
         if mapping is not None:
-            self._update(mapping)
+            with self._no_callback():
+                self._update(mapping)
 
     def __repr__(self):
         return repr(self._data)
@@ -104,3 +105,11 @@ class AttrDict(object):
         ret = self._data.pop(*args, **kwargs)
         self._modified()
         return ret
+
+    @contextmanager
+    def _no_callback(self):
+        "Manipulate data without triggering a callback."
+        cb = self._cb
+        super().__setattr__('_cb', None)
+        yield
+        super().__setattr__('_cb', cb)
