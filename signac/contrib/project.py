@@ -722,28 +722,6 @@ class Project(object):
                 raise DestinationExistsError(dst)
         return dst
 
-    def merge(self, job, force=False):
-        """Merge job into this project.
-
-        Attempt to merge job into a job within this project, with the
-        same id. The job will be initialized if it does not exist yet.
-
-        The behavior of this function is essentially equivalent to:
-
-        .. code-block:: python
-
-            return project.open_job(job.statepoint()).merge(job)
-
-        See also: :py:meth:`~.clone`
-
-        :param job: The job to merge into this project.
-        :type job: :py:class:`~.Job`
-        :raises MergeConflict: In case that merge conflicts occur.
-        """
-        dst = self.open_job(job.statepoint())
-        dst.merge(job, force=force)
-        return dst
-
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
         for job_dir in self._job_dirs():
