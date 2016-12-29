@@ -10,6 +10,8 @@ import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
+from ..core.attr_dict import AttrDict
+from ..core.attr_dict import convert_to_dict
 from .hashing import calc_id
 from .utility import _mkdir_p
 
@@ -38,6 +40,7 @@ class Job(object):
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = list()
+        self._sp = None
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -71,6 +74,37 @@ class Job(object):
         :return: The statepoint mapping.
         :rtype: dict"""
         return copy.deepcopy(self._statepoint)
+
+    def _update_sp(self, new_sp):
+        dst = self._project.open_job(convert_to_dict(new_sp))
+        if dst == self:
+            return
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest_backup = fn_manifest + '~'
+        try:
+            os.rename(fn_manifest, fn_manifest_backup)
+            try:
+                os.rename(self.workspace(), dst.workspace())
+            except OSError:  # rollback
+                os.rename(fn_manifest_backup, fn_manifest)
+                raise RuntimeError("Failed to move '{}' -> '{}'.".format(self, dst))
+            else:
+                dst.init()
+        except OSError:  # job is not initialized
+            pass
+        logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        self.__dict__.update(dst.__dict__)
+
+    @property
+    def sp(self):
+        "Access the job's state point as attribute dictionary."
+        if self._sp is None:
+            self._sp = AttrDict(self.statepoint(), self._update_sp)
+        return self._sp
+
+    @sp.setter
+    def sp(self, new_sp):
+        self._update_sp(new_sp)
 
     @property
     def document(self):
