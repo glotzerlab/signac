@@ -75,8 +75,21 @@ class Job(object):
         :rtype: dict"""
         return copy.deepcopy(self._statepoint)
 
-    def _update_sp(self, new_sp):
-        dst = self._project.open_job(convert_to_dict(new_sp))
+    def reset_statepoint(self, new_statepoint):
+        """Reset the state point of this job.
+
+        .. danger::
+
+            Use this function with caution! Resetting a job's statepoint,
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
+        :param new_statepoint: The job's new unique set of parameters.
+        :type new_statepoint: mapping
+        :raises RuntimeError: If a job associated with the new unique set
+            of parameters already exists in the workspace.
+        """
+        dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
@@ -93,18 +106,22 @@ class Job(object):
         except OSError:  # job is not initialized
             pass
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        dst._sp = self._sp
         self.__dict__.update(dst.__dict__)
+
+    def _reset_sp(self, new_sp):
+        self.reset_statepoint(convert_to_dict(new_sp))
 
     @property
     def sp(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = AttrDict(self.statepoint(), self._update_sp)
+            self._sp = AttrDict(self.statepoint(), self._reset_sp)
         return self._sp
 
     @sp.setter
     def sp(self, new_sp):
-        self._update_sp(new_sp)
+        self._reset_sp(new_sp)
 
     @property
     def document(self):
