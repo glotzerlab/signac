@@ -534,8 +534,10 @@ class Project(object):
         for path, job_id in _make_paths(jsi):
             if job_ids is not None and job_id not in job_ids:
                 continue
-            src = os.path.join(self.open_job(id=job_id).workspace())
             dst = os.path.join(prefix, path)
+            src = os.path.relpath(
+                self.open_job(id=job_id).workspace(),
+                os.path.split(dst)[0])
             logger.info(
                 "Creating link {src} -> {dst}".format(src=src, dst=dst))
             _make_link(src, dst)
