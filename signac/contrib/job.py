@@ -7,10 +7,10 @@ import logging
 import json
 import shutil
 import copy
-import filecmp
 
 from ..common import six
 from ..core.jsondict import JSonDict
+from ..core.filecmp import dircmp
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import MergeConflict
@@ -155,7 +155,7 @@ class Job(object):
 
     def _diff(self, other):
         "Return a filecmp diff instance for the workspaces of self and other."
-        return filecmp.dircmp(
+        return dircmp(
             self.workspace(), other.workspace(),
             ignore=[Job.FN_MANIFEST, Job.FN_DOCUMENT])
 
