@@ -198,7 +198,7 @@ class Job(object):
                 raise
         else:
             if self._document is not None:
-                self._document.clear()
+                self._document.data.clear()
                 self._document = None
 
     def fn(self, filename):
