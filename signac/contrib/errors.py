@@ -16,5 +16,5 @@ class MergeConflict(Error, RuntimeError):
     def __init__(self, keys, filenames):
         self.keys = keys
         "All keys within the job document causing a conflict."
-        self.filnames = filenames
+        self.filenames = filenames
         "The filenames of all files causing a conflict."
