@@ -5,7 +5,10 @@ from ..core.errors import Error
 
 
 class DestinationExistsError(Error, RuntimeError):
-    pass
+    "The destination for a move or copy operation already exists."
+    def __init__(self, destination):
+        self.destination = destination
+        "The destination object causing the error."
 
 
 class MergeConflict(Error, RuntimeError):
