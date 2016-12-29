@@ -289,7 +289,7 @@ class Project(object):
             by the index.
         """
         if filter is None and doc_filter is None and index is None:
-            return iter(self._job_dirs())
+            return list(self._job_dirs())
         if index is None:
             index = self.index(include_job_document=doc_filter is not None)
         if doc_filter is None:
