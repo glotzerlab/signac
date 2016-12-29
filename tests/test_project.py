@@ -7,6 +7,7 @@ import logging
 import signac
 from signac.common import six
 from signac.contrib.formats import TextFile
+from signac.errors import DestinationExistsError
 
 from test_job import BaseJobTest
 
@@ -341,6 +342,85 @@ class ProjectTest(BaseProjectTest):
         self.assertTrue(isinstance(job, CustomJob))
         self.assertTrue(isinstance(job, signac.contrib.job.Job))
 
+    def test_project_contains(self):
+        job = self.open_job(dict(a=0))
+        self.assertNotIn(job, self.project)
+        job.init()
+        self.assertIn(job, self.project)
+
+    def test_job_move(self):
+        root = self._tmp_dir.name
+        project_a = signac.init_project('ProjectA', os.path.join(root, 'a'))
+        project_b = signac.init_project('ProjectB', os.path.join(root, 'b'))
+        job = project_a.open_job(dict(a=0))
+        self.assertNotIn(job, project_a)
+        self.assertNotIn(job, project_b)
+        job.init()
+        self.assertIn(job, project_a)
+        self.assertNotIn(job, project_b)
+        job.move(project_b)
+        self.assertIn(job, project_b)
+        self.assertNotIn(job, project_a)
+        with job:
+            job.document['a'] = 0
+            with open('hello.txt', 'w') as file:
+                file.write('world!')
+        job_ = project_b.open_job(job.statepoint())
+        self.assertTrue(job_.isfile('hello.txt'))
+        self.assertEqual(job_.document['a'], 0)
+
+    def test_job_clone(self):
+        root = self._tmp_dir.name
+        project_a = signac.init_project('ProjectA', os.path.join(root, 'a'))
+        project_b = signac.init_project('ProjectB', os.path.join(root, 'b'))
+        job_a = project_a.open_job(dict(a=0))
+        self.assertNotIn(job_a, project_a)
+        self.assertNotIn(job_a, project_b)
+        with job_a:
+            job_a.document['a'] = 0
+            with open('hello.txt', 'w') as file:
+                file.write('world!')
+        self.assertIn(job_a, project_a)
+        self.assertNotIn(job_a, project_b)
+        job_b = project_b.clone(job_a)
+        self.assertIn(job_a, project_a)
+        self.assertIn(job_a, project_b)
+        self.assertIn(job_b, project_a)
+        self.assertIn(job_b, project_b)
+        self.assertEqual(job_a.document, job_b.document)
+        self.assertTrue(job_a.isfile('hello.txt'))
+        self.assertTrue(job_b.isfile('hello.txt'))
+        with self.assertRaises(DestinationExistsError):
+            project_b.clone(job_a)
+        try:
+            project_b.clone(job_a)
+        except DestinationExistsError as error:
+            self.assertNotEqual(error.destination, job_a)
+            self.assertEqual(error.destination, job_b)
+
+    def test_merge(self):
+        root = self._tmp_dir.name
+        project_a = signac.init_project('ProjectA', os.path.join(root, 'a'))
+        project_b = signac.init_project('ProjectB', os.path.join(root, 'b'))
+        job_a = project_a.open_job(dict(a=0))
+        self.assertNotIn(job_a, project_a)
+        self.assertNotIn(job_a, project_b)
+        with job_a:
+            job_a.document['a'] = 0
+            with open('hello.txt', 'w') as file:
+                file.write('world!')
+        self.assertIn(job_a, project_a)
+        self.assertNotIn(job_a, project_b)
+        job_b = project_b.clone(job_a)
+        self.assertIn(job_a, project_a)
+        self.assertIn(job_a, project_b)
+        self.assertIn(job_b, project_a)
+        self.assertIn(job_b, project_b)
+        try:
+            project_b.clone(job_a)
+        except DestinationExistsError as error:
+            error.destination.merge(job_a)
+
 
 class ProjectInitTest(unittest.TestCase):
 
@@ -400,6 +480,7 @@ class ProjectInitTest(unittest.TestCase):
                 name='testproject2',
                 root=root,
                 workspace='workspace2')
+
 
 if __name__ == '__main__':
     unittest.main()
