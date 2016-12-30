@@ -977,15 +977,20 @@ def _analyze_view(prefix, links, leaf='job'):
         obsolete.append(os.path.join(* (n.name for n in branch)))
     if '.' in obsolete:
         obsolete.remove('.')
-    to_update = existing_paths.intersection(links.keys())
-    new = set(links.keys()).difference(to_update)
+    keep_or_update = existing_paths.intersection(links.keys())
+    new = set(links.keys()).difference(keep_or_update)
+    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
     return obsolete, to_update, new
 
 
 def _update_view(prefix, links, leaf='job'):
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
-    logger.info("Generating current view in '{}' ({} operations)...".format(prefix, num_ops))
+    if num_ops:
+        logger.info("Generating current view in '{}' ({} operations)...".format(prefix, num_ops))
+    else:
+        logger.info("View in '{}' is up to date.".format(prefix))
+        return
     logger.debug("Removing {} obsolete links.".format(len(obsolete)))
     for path in obsolete:
         p = os.path.join(prefix, path)
@@ -995,8 +1000,8 @@ def _update_view(prefix, links, leaf='job'):
             os.rmdir(p)
     logger.debug("Creating {} new and updating {} existing links.".format(
         len(new), len(to_update)))
-    for link in to_update:
-        os.unlink(os.path.join(prefix, link))
+    for path in to_update:
+        os.unlink(os.path.join(prefix, path))
     for path in chain(new, to_update):
         dst = os.path.join(prefix, path)
         src = os.path.relpath(links[path], os.path.split(dst)[0])
