@@ -485,8 +485,7 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_linked_view(self, job_ids=None, prefix=None,
-                           force=False, index=None):
+    def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create a persistent linked view of the selected data space..
 
         This method determines unique paths for each job based on the job's
@@ -519,11 +518,6 @@ class Project(object):
             prefix = 'view'
         if index is None:
             index = self.index(include_job_document=False)
-        if not force and os.listdir(prefix):
-            raise RuntimeError(
-                "Failed to create persistent view in '{}', the directory "
-                "is not empty! Use `force=True` to ignore this and create "
-                "the view anyways.".format(prefix))
 
         if job_ids is not None:
             if not isinstance(job_ids, set):
