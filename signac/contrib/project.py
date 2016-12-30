@@ -485,7 +485,7 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_linked_view(self, prefix=None, job_ids=None, index=None):
+    def create_linked_view(self, prefix=None, index=None):
         """Create a persistent linked view of the selected data space..
 
         This method determines unique paths for each job based on the job's
@@ -519,16 +519,9 @@ class Project(object):
         if index is None:
             index = self.index(include_job_document=False)
 
-        if job_ids is not None:
-            if not isinstance(job_ids, set):
-                job_ids = set(job_ids)
-            index = (doc for doc in index if doc['signac_id'] in job_ids)
-
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
         links = dict()
         for path, job_id in _make_paths(jsi):
-            if job_ids is not None and job_id not in job_ids:
-                continue
             links[path] = self.open_job(id=job_id).workspace()
         if links:
             _update_view(prefix, links)
