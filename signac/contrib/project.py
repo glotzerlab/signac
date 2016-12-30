@@ -523,8 +523,10 @@ class Project(object):
         links = dict()
         for path, job_id in _make_paths(jsi):
             links[path] = self.open_job(id=job_id).workspace()
-        if not links:   # data space contains only one element
-            links['./job'] = next(self.find_jobs()).workspace()
+        if not links:   # data space contains less than two elements
+            for job in self.find_jobs():
+                links['./job'] = job.workspace()
+            assert len(links) < 2
         _update_view(prefix, links)
 
     def create_view(self, filter=None, prefix='view'):
@@ -974,7 +976,8 @@ def _analyze_view(prefix, links, leaf='job'):
     obsolete = []
     dead_branches = _find_dead_branches(existing_tree)
     for branch in reversed(sorted(dead_branches, key=lambda b: len(b))):
-        obsolete.append(os.path.join(* (n.name for n in branch)))
+        if branch:
+            obsolete.append(os.path.join(* (n.name for n in branch)))
     if '.' in obsolete:
         obsolete.remove('.')
     keep_or_update = existing_paths.intersection(links.keys())
