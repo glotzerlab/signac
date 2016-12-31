@@ -22,6 +22,10 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Topic :: Scientific/Engineering :: Physics",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
     ],
 
     extras_require={
