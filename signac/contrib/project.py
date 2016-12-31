@@ -225,7 +225,7 @@ class Project(object):
 
     def _job_dirs(self):
         wd = self.workspace()
-        m = re.compile('[a-z0-9]{32}')
+        m = re.compile('[a-f0-9]{32}')
         try:
             for d in os.listdir(wd):
                 if m.match(d):
