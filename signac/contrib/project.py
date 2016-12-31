@@ -230,7 +230,7 @@ class Project(object):
             for d in os.listdir(wd):
                 if m.match(d):
                     yield d
-        except IOError as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
 
