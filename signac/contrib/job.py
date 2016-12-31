@@ -88,6 +88,7 @@ class Job(object):
         :type new_statepoint: mapping
         :raises RuntimeError: If a job associated with the new unique set
             of parameters already exists in the workspace.
+        :raises OSError: If the move failed due to an unknown system related error.
         """
         dst = self._project.open_job(new_statepoint)
         if dst == self:
@@ -98,13 +99,19 @@ class Job(object):
             os.rename(fn_manifest, fn_manifest_backup)
             try:
                 os.rename(self.workspace(), dst.workspace())
-            except OSError:  # rollback
-                os.rename(fn_manifest_backup, fn_manifest)
-                raise RuntimeError("Failed to move '{}' -> '{}'.".format(self, dst))
+            except OSError as error:
+                os.rename(fn_manifest_backup, fn_manifest)  # rollback
+                if error.errno == errno.ENOTEMPTY:
+                    raise RuntimeError("Destination exists: {}".format(dst))
+                else:
+                    raise
             else:
                 dst.init()
-        except OSError:  # job is not initialized
-            pass
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                pass  # job is not initialized
+            else:
+                raise
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
         dst._sp = self._sp
         self.__dict__.update(dst.__dict__)
