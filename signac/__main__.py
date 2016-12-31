@@ -9,6 +9,7 @@ import argparse
 import json
 import logging
 import getpass
+import difflib
 
 from . import get_project, init_project
 from . import __version__
@@ -142,9 +143,24 @@ def main_statepoint(args):
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(
-            project.open_job(id=job_id).statepoint(),
-            indent=args.indent))
+        try:
+            print(json.dumps(
+                project.open_job(id=job_id).statepoint(),
+                indent=args.indent))
+        except KeyError as error:
+            close_matches = difflib.get_close_matches(
+                job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
+            msg = "Did not find job corresponding to id '{}'.".format(job_id)
+            if len(close_matches) == 1:
+                msg += " Did you mean '{}'?".format(close_matches[0])
+            elif len(close_matches) > 1:
+                msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
+            raise KeyError(msg)
+        except LookupError as error:
+            n = project.min_len_unique_id()
+            raise LookupError("Multiple matches for abbreviated id '{}'. "
+                              "Use at least {} characters for guaranteed "
+                              "unique ids.".format(job_id, n))
 
 
 def main_index(args):
