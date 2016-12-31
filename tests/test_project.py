@@ -7,6 +7,7 @@ import logging
 import signac
 from signac.common import six
 from signac.contrib.formats import TextFile
+from signac.contrib.project import _find_all_links
 
 from test_job import BaseJobTest
 
@@ -205,6 +206,50 @@ class ProjectTest(BaseProjectTest):
             view_prefix = os.path.join(self._tmp_pr, 'view')
             self.project.create_view(prefix=view_prefix)
             self.assertTrue(os.path.isdir(view_prefix))
+
+    def test_create_linked_view(self):
+        sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
+        sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        statepoints = sp_0 + sp_1 + sp_2
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        # empty project
+        self.project.create_linked_view(prefix=view_prefix)
+        # one job
+        self.project.open_job(statepoints[0]).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        # more jobs
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        self.assertTrue(os.path.isdir(view_prefix))
+        all_links = list(_find_all_links(view_prefix))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
+        # some jobs removed
+        for job in self.project.find_jobs({'b': 0}):
+            job.remove()
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        # all jobs removed
+        for job in self.project.find_jobs():
+            job.remove()
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
 
     def test_find_job_documents(self):
         statepoints = [{'a': i} for i in range(5)]
