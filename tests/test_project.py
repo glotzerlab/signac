@@ -459,5 +459,36 @@ class ProjectInitTest(unittest.TestCase):
                 root=root,
                 workspace='workspace2')
 
+    def test_nested_project(self):
+        def check_root(root=None):
+            if root is None:
+                root = os.getcwd()
+            self.assertEqual(
+                os.path.realpath(signac.get_project(root=root).root_directory()),
+                os.path.realpath(root))
+        root = self._tmp_dir.name
+        root_a = os.path.join(root, 'project_a')
+        root_b = os.path.join(root_a, 'project_b')
+        signac.init_project('testprojectA', root_a)
+        self.assertEqual(signac.get_project(root=root_a).get_id(), 'testprojectA')
+        check_root(root_a)
+        signac.init_project('testprojectB', root_b)
+        self.assertEqual(signac.get_project(root=root_b).get_id(), 'testprojectB')
+        check_root(root_b)
+        cwd = os.getcwd()
+        try:
+            os.chdir(root_a)
+            check_root()
+            self.assertEqual(signac.get_project().get_id(), 'testprojectA')
+        finally:
+            os.chdir(cwd)
+        try:
+            os.chdir(root_b)
+            self.assertEqual(signac.get_project().get_id(), 'testprojectB')
+            check_root()
+        finally:
+            os.chdir(cwd)
+
+
 if __name__ == '__main__':
     unittest.main()

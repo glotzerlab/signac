@@ -113,14 +113,23 @@ def load_config(root=None, local=False):
     if root is None:
         root = os.getcwd()
     config = Config(configspec=cfg.split('\n'))
-    for fn in _search(root=root, local=local):
-        tmp = read_config_file(fn)
-        config.merge(tmp)
-        if 'project' in tmp:
-            config['project_dir'] = os.path.dirname(fn)
-            break
+    if local:
+        for fn in _search_local(root):
+            tmp = read_config_file(fn)
+            config.merge(tmp)
+            if 'project' in tmp:
+                config['project_dir'] = os.path.dirname(fn)
+                break
+    else:
+        for fn in search_standard_dirs():
+            config.merge(read_config_file(fn))
+        for fn in search_tree(root):
+            tmp = read_config_file(fn)
+            config.merge(tmp)
+            if 'project' in tmp:
+                config['project_dir'] = os.path.dirname(fn)
+                break
     return config
-
 
 
 class Config(ConfigObj):
