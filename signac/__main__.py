@@ -138,7 +138,7 @@ def main_job(args):
 
 def main_statepoint(args):
     project = get_project()
-    m = re.compile('[a-z0-9]{32}')
+    m = re.compile('[a-f0-9]{1,32}\Z')
     for job_id in args.job_id:
         if not m.match(job_id):
             raise ValueError(
