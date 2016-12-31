@@ -32,7 +32,7 @@ import re
 
 from signac.contrib import RegexFileCrawler
 
-RE_TXT = ".*a_(?P<a>\d)\.txt"
+RE_TXT = r".*a_(?P<a>\d)\.txt"
 
 class Crawler(RegexFileCrawler):
     tags = {'test1', 'test2'}
