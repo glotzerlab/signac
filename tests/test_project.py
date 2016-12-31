@@ -145,6 +145,19 @@ class ProjectTest(BaseProjectTest):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_open_job_by_abbreviated_id(self):
+        statepoints = [{'a': i} for i in range(5)]
+        jobs = [self.project.open_job(sp).init() for sp in statepoints]
+        aid_len = self.project.min_len_unique_id()
+        for job in self.project.find_jobs():
+            aid = job.get_id()[:aid_len]
+            self.assertEqual(self.project.open_job(id=aid), job)
+        with self.assertRaises(LookupError):
+            for job in self.project.find_jobs():
+                self.project.open_job(id=job.get_id()[:aid_len-1])
+        with self.assertRaises(KeyError):
+            self.project.open_job(id='abc')
+
     def test_find_variable_parameters(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
