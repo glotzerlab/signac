@@ -478,6 +478,10 @@ class ProjectTest(BaseProjectTest):
             project_b.clone(job_a)
         except DestinationExistsError as error:
             error.destination.merge(job_a)
+        with job_a:
+            os.mkdir('subdir')
+        with self.assertRaises(RuntimeError):
+            job_b.merge(job_a)
 
 
 class ProjectInitTest(unittest.TestCase):

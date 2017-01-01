@@ -208,6 +208,9 @@ class Job(object):
         :raises MergeConflict: In case that the merge cannot be performed without
             overwriting data.
         """
+        if any(os.path.isdir(os.path.join(other.workspace(), d))
+                for d in os.listdir(other.workspace())):
+            raise RuntimeError("Unable to merge job with sub-directories!")
         if not force:
             key_intersect = set(self.document.keys()).intersection(other.document.keys())
             key_diff = [k for k in key_intersect if self.document[k] != other.document[k]]
@@ -218,7 +221,15 @@ class Job(object):
         for fn in os.listdir(other.workspace()):
             if fn in (Job.FN_MANIFEST, Job.FN_DOCUMENT):
                 continue
-            shutil.copy(other.fn(fn), self.fn(fn))
+            try:
+                shutil.copy2(other.fn(fn), self.fn(fn))
+            except (IOError, OSError) as error:
+                if error.errno == errno.EISDIR:
+                    raise RuntimeError("Unable to merge job with sub-directories!")
+                elif error.errno == errno.EEXIST:
+                    raise RuntimeError("File already exists at destination: '{}'.".format(fn))
+                else:
+                    raise
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
