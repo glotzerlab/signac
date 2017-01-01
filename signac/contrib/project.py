@@ -724,8 +724,11 @@ class Project(object):
         dst = self.open_job(job.statepoint())
         try:
             shutil.copytree(job.workspace(), dst.workspace())
-        except FileExistsError:
+        except OSError as error:
+            if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
+            else:
+                raise
         return dst
 
     def repair(self):

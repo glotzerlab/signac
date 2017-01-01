@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 import os
 import io
@@ -5,12 +6,12 @@ import warnings
 import uuid
 import copy
 import random
+from time import sleep
 
 import signac.contrib
 import signac.common.config
 from signac.common import six
 from signac.errors import MergeConflict
-from filecmp import clear_cache
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -433,7 +434,10 @@ class MovingMergingTest(BaseJobTest):
         with job_b:
             with open('hello.txt', 'w') as file:
                 file.write("world2")
-        clear_cache()
+        if six.PY2:
+            sleep(1)
+        else:
+            clear_cache()
         diff = job_a._diff(job_b)
         self.assertEqual(diff.diff_files, ['hello.txt'])
 
