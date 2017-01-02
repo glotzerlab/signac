@@ -639,61 +639,58 @@ class Project(object):
             yield doc
 
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the statepoint of job.
+        """Reset the state point of job.
 
         .. danger::
 
-            Use this function with caution! Resetting a job's statepoint,
+            Use this function with caution! Resetting a job's state point,
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
-            If you only want to *extend* your statepoint, consider to
-            use :meth:`~.update_statepoint` instead.
 
-        :param job: The job, that should be reset to a new state point.
-        :type job: :class:`~.contrib.job.Job`
-        :param new_statepoint: The job's new unique set of parameters.
-        :type new_statepoint: mapping
-        :returns: The job instance with the new state point.
-        :rtype: :py:class:`~.Job`
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        dst = self.open_job(new_statepoint)
-        _move_job(job, dst)
-        logger.info(
-            "Reset statepoint of job {}, moved to {}.".format(job, dst))
-        return dst
+        :param job:
+            The job, that should be reset to a new state point.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param new_statepoint:
+            The job's new state point.
+        :type new_statepoint:
+            mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.reset_statepoint(new_statepoint=new_statepoint)
 
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the statepoint of job.
+        """Update the statepoint of this job.
 
         .. warning::
 
-            While appending to a job's statepoint is generally safe,
+            While appending to a job's state point is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param job: The job, whose statepoint shall be updated.
-        :type job: :class:`~.contrib.job.Job`
-        :param update: A mapping used for the statepoint update.
-        :type update: mapping
-        :param overwrite: Set to true, to ignore whether this
-            update overwrites parameters, which are currently
-            part of the job's statepoint. Use with caution!
-        :returns: The job instance with the updated state point.
-        :rtype: :py:class:`~.Job`
-        :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint and overwrite is False.
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        statepoint = dict(job.statepoint())
-        if not overwrite:
-            for key in update:
-                if key in statepoint:
-                    raise KeyError(key)
-        statepoint.update(update)
-        dst = self.open_job(statepoint)
-        _move_job(job, dst)
-        return dst
+        :param job:
+            The job, whose statepoint shall be updated.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param update:
+            A mapping used for the statepoint update.
+        :type update:
+            mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.update_statepoint(update=update, overwrite=overwrite)
 
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
@@ -900,23 +897,6 @@ class Project(object):
                 "Unable to determine project id for path '{}'.".format(
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
-
-
-def _move_job(src, dst):
-    logger.debug("Attempting to move job {} to {}".format(src, dst))
-    fn_src_manifest = os.path.join(src.workspace(), src.FN_MANIFEST)
-    fn_src_manifest_backup = fn_src_manifest + '~'
-    os.rename(fn_src_manifest, fn_src_manifest_backup)
-    try:
-        os.rename(src.workspace(), dst.workspace())
-    except OSError:  # rollback
-        os.rename(fn_src_manifest_backup, fn_src_manifest)
-        raise RuntimeError(
-            "Failed to move {} to {}, destination already exists.".format(
-                src, dst))
-    else:
-        dst.init()
-        logger.info("Moved job {} to {}.".format(src, dst))
 
 
 def _find_all_links(root, leaf='job'):

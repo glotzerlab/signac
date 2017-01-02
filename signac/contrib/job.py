@@ -80,15 +80,18 @@ class Job(object):
 
         .. danger::
 
-            Use this function with caution! Resetting a job's statepoint,
+            Use this function with caution! Resetting a job's state point,
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
-        :param new_statepoint: The job's new unique set of parameters.
-        :type new_statepoint: mapping
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace.
-        :raises OSError: If the move failed due to an unknown system related error.
+        :param new_statepoint:
+            The job's new state point.
+        :type new_statepoint:
+            mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
         """
         dst = self._project.open_job(new_statepoint)
         if dst == self:
@@ -118,6 +121,38 @@ class Job(object):
 
     def _reset_sp(self, new_sp):
         self.reset_statepoint(convert_to_dict(new_sp))
+
+    def update_statepoint(self, update, overwrite=False):
+        """Update the statepoint of this job.
+
+        .. warning::
+
+            While appending to a job's state point is generally safe,
+            modifying existing parameters may lead to data
+            inconsistency. Use the overwrite argument with caution!
+
+        :param update:
+            A mapping used for the statepoint update.
+        :type update:
+            mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        statepoint = self.statepoint()
+        if not overwrite:
+            for key, value in update.items():
+                if statepoint.get(key, value) != value:
+                    raise KeyError(key)
+        statepoint.update(update)
+        self.reset_statepoint(statepoint)
 
     @property
     def sp(self):
