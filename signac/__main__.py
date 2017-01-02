@@ -9,6 +9,7 @@ import argparse
 import json
 import logging
 import getpass
+import difflib
 
 from . import get_project, init_project
 from . import __version__
@@ -137,14 +138,29 @@ def main_job(args):
 
 def main_statepoint(args):
     project = get_project()
-    m = re.compile('[a-z0-9]{32}')
+    m = re.compile('[a-f0-9]{1,32}\Z')
     for job_id in args.job_id:
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(
-            project.open_job(id=job_id).statepoint(),
-            indent=args.indent))
+        try:
+            print(json.dumps(
+                project.open_job(id=job_id).statepoint(),
+                indent=args.indent))
+        except KeyError as error:
+            close_matches = difflib.get_close_matches(
+                job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
+            msg = "Did not find job corresponding to id '{}'.".format(job_id)
+            if len(close_matches) == 1:
+                msg += " Did you mean '{}'?".format(close_matches[0])
+            elif len(close_matches) > 1:
+                msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
+            raise KeyError(msg)
+        except LookupError as error:
+            n = project.min_len_unique_id()
+            raise LookupError("Multiple matches for abbreviated id '{}'. "
+                              "Use at least {} characters for guaranteed "
+                              "unique ids.".format(job_id, n))
 
 
 def main_index(args):
@@ -170,9 +186,7 @@ def main_view(args):
     project = get_project()
     index = _read_index(project, args.index)
     project.create_linked_view(
-        job_ids=args.job_id,
         prefix=args.prefix,
-        force=args.force,
         index=index)
 
 
@@ -545,15 +559,6 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
-    parser_view.add_argument(
-        '-j', '--job-id',
-        type=str,
-        nargs='+',
-        help="Limit the view to jobs with these job ids.")
-    parser_view.add_argument(
-        '-f', '--force',
-        action='store_true',
-        help="Ignore whether the view path is not empty.")
     parser_view.add_argument(
         '-i', '--index',
         type=str,

@@ -156,9 +156,23 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                mode = 'w' if overwrite else 'wx' if six.PY2 else 'x'
-                with open(fn_manifest, mode) as file:
-                    file.write(blob)
+                if six.PY2:
+                    # Adapted from: http://stackoverflow.com/questions/10978869/
+                    if overwrite:
+                        flags = os.O_CREAT | os.O_WRONLY
+                    else:
+                        flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
+                    try:
+                        fd = os.open(fn_manifest, flags)
+                    except OSError as error:
+                        if error.errno != errno.EEXIST:
+                            raise
+                    else:
+                        with os.fdopen(fd, 'w') as file:
+                            file.write(blob)
+                else:
+                    with open(fn_manifest, 'w' if overwrite else 'x') as file:
+                        file.write(blob)
             except IOError as error:
                 if not error.errno == errno.EEXIST:
                     raise
