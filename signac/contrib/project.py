@@ -9,6 +9,7 @@ import json
 import errno
 import warnings
 import collections
+from itertools import chain
 
 from ..core.search_engine import DocumentSearchEngine
 from ..common import six
@@ -173,6 +174,21 @@ class Project(object):
                 "Are you sure '{}' is a signac project path?".format(
                     os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
+    def min_len_unique_id(self):
+        "Determine the minimum length required for an id to be unique."
+        job_ids = list(self.find_job_ids())
+        tmp = set()
+        for i in range(32):
+            tmp.clear()
+            for _id in job_ids:
+                if _id[:i] in tmp:
+                    break
+                else:
+                    tmp.add(_id[:i])
+            else:
+                break
+        return i
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
@@ -197,16 +213,23 @@ class Project(object):
         if id is None:
             return self.Job(project=self, statepoint=statepoint)
         else:
+            if len(id) < 32:
+                job_ids = self.find_job_ids()
+                matches = [_id for _id in job_ids if _id.startswith(id)]
+                if len(matches) == 1:
+                    id = matches[0]
+                elif len(matches) > 1:
+                    raise LookupError(id)
             return self.Job(project=self, statepoint=self.get_statepoint(id))
 
     def _job_dirs(self):
         wd = self.workspace()
-        m = re.compile('[a-z0-9]{32}')
+        m = re.compile('[a-f0-9]{32}')
         try:
             for d in os.listdir(wd):
                 if m.match(d):
                     yield d
-        except IOError as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
 
@@ -484,8 +507,7 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_linked_view(self, job_ids=None, prefix=None,
-                           force=False, index=None):
+    def create_linked_view(self, prefix=None, index=None):
         """Create a persistent linked view of the selected data space..
 
         This method determines unique paths for each job based on the job's
@@ -518,32 +540,16 @@ class Project(object):
             prefix = 'view'
         if index is None:
             index = self.index(include_job_document=False)
-        if not force and os.listdir(prefix):
-            raise RuntimeError(
-                "Failed to create persistent view in '{}', the directory "
-                "is not empty! Use `force=True` to ignore this and create "
-                "the view anyways.".format(prefix))
-
-        if job_ids is not None:
-            if not isinstance(job_ids, set):
-                job_ids = set(job_ids)
-            index = (doc for doc in index if doc['signac_id'] in job_ids)
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
-        no_link = True
+        links = dict()
         for path, job_id in _make_paths(jsi):
-            if job_ids is not None and job_id not in job_ids:
-                continue
-            src = os.path.join(self.open_job(id=job_id).workspace())
-            dst = os.path.join(prefix, path)
-            logger.info(
-                "Creating link {src} -> {dst}".format(src=src, dst=dst))
-            _make_link(src, dst)
-            no_link = False
-        if no_link:
-            raise RuntimeError(
-                "The # of jobs selected for the creation of views must "
-                "be greater or equal than 2!")
+            links[path] = self.open_job(id=job_id).workspace()
+        if not links:   # data space contains less than two elements
+            for job in self.find_jobs():
+                links['./job'] = job.workspace()
+            assert len(links) < 2
+        _update_view(prefix, links)
 
     def create_view(self, filter=None, prefix='view'):
         """Create a view of the workspace.
@@ -913,6 +919,120 @@ def _move_job(src, dst):
         logger.info("Moved job {} to {}.".format(src, dst))
 
 
+def _find_all_links(root, leaf='job'):
+    for dirpath, dirnames, filenames in os.walk(root):
+        for dirname in dirnames:
+            if dirname == leaf:
+                yield os.path.relpath(dirpath, root)
+                break
+        for filename in filenames:
+            if filename == leaf:
+                yield os.path.relpath(dirpath, root)
+                break
+
+
+class _Node(object):
+
+    def __init__(self, name=None, value=None):
+        self.name = name
+        self.value = value
+        self.children = dict()
+
+    def get_child(self, name):
+        return self.children.setdefault(name, type(self)(name))
+
+    def __str__(self):
+        return "_Node({}, {})".format(self.name, self.value)
+
+    __repr__ = __str__
+
+
+def _build_tree(paths):
+    root = _Node()
+    for path in paths:
+        node = root
+        for p in path.split(os.sep):
+            node = node.get_child(p)
+    return root
+
+
+def _get_branches(root, branch=None):
+    if branch is None:
+        branch = list()
+    else:
+        branch = list(branch) + [root]
+    if root.children:
+        for child in root.children.values():
+            for b in _get_branches(child, branch):
+                yield b
+    else:
+        yield branch
+
+
+def _color_path(root, path):
+    root.value = True
+    for name in path:
+        root = root.get_child(name)
+        root.value = True
+
+
+def _find_dead_branches(root, branch=None):
+    if branch is None:
+        branch = list()
+    else:
+        branch = list(branch) + [root]
+    if root.children:
+        for child in root.children.values():
+            for b in _find_dead_branches(child, branch):
+                yield b
+    if not root.value:
+        yield branch
+
+
+def _analyze_view(prefix, links, leaf='job'):
+    logger.info("Analyzing view prefix '{}'...".format(prefix))
+    existing_paths = {os.path.join(p, leaf) for p in _find_all_links(prefix, leaf)}
+    existing_tree = _build_tree(existing_paths)
+    for path in links:
+        _color_path(existing_tree, path.split(os.sep))
+    obsolete = []
+    dead_branches = _find_dead_branches(existing_tree)
+    for branch in reversed(sorted(dead_branches, key=lambda b: len(b))):
+        if branch:
+            obsolete.append(os.path.join(* (n.name for n in branch)))
+    if '.' in obsolete:
+        obsolete.remove('.')
+    keep_or_update = existing_paths.intersection(links.keys())
+    new = set(links.keys()).difference(keep_or_update)
+    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    return obsolete, to_update, new
+
+
+def _update_view(prefix, links, leaf='job'):
+    obsolete, to_update, new = _analyze_view(prefix, links)
+    num_ops = len(obsolete) + 2 * len(to_update) + len(new)
+    if num_ops:
+        logger.info("Generating current view in '{}' ({} operations)...".format(prefix, num_ops))
+    else:
+        logger.info("View in '{}' is up to date.".format(prefix))
+        return
+    logger.debug("Removing {} obsolete links.".format(len(obsolete)))
+    for path in obsolete:
+        p = os.path.join(prefix, path)
+        try:
+            os.unlink(p)
+        except OSError:
+            os.rmdir(p)
+    logger.debug("Creating {} new and updating {} existing links.".format(
+        len(new), len(to_update)))
+    for path in to_update:
+        os.unlink(os.path.join(prefix, path))
+    for path in chain(new, to_update):
+        dst = os.path.join(prefix, path)
+        src = os.path.relpath(links[path], os.path.split(dst)[0])
+        _make_link(src, dst)
+
+
 def _make_link(src, dst):
     try:
         os.makedirs(os.path.dirname(dst))
@@ -948,14 +1068,14 @@ def _make_urls(statepoints, key_set):
             yield statepoint, os.path.join(*url)
 
 
-def _make_paths(sp_index):
+def _make_paths(sp_index, leaf='job'):
     tmp = collections.defaultdict(list)
     for key, jids in sp_index:
         for jid in jids:
             tmp[jid].append(key)
     for jid, sps in tmp.items():
         p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
-        path = os.path.join(* list(p) + ['job'])
+        path = os.path.join(* list(p) + [leaf])
         yield path, jid
 
 

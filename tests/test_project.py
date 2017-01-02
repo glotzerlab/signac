@@ -7,6 +7,7 @@ import logging
 import signac
 from signac.common import six
 from signac.contrib.formats import TextFile
+from signac.contrib.project import _find_all_links
 
 from test_job import BaseJobTest
 
@@ -162,6 +163,19 @@ class ProjectTest(BaseProjectTest):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_open_job_by_abbreviated_id(self):
+        statepoints = [{'a': i} for i in range(5)]
+        jobs = [self.project.open_job(sp).init() for sp in statepoints]
+        aid_len = self.project.min_len_unique_id()
+        for job in self.project.find_jobs():
+            aid = job.get_id()[:aid_len]
+            self.assertEqual(self.project.open_job(id=aid), job)
+        with self.assertRaises(LookupError):
+            for job in self.project.find_jobs():
+                self.project.open_job(id=job.get_id()[:aid_len-1])
+        with self.assertRaises(KeyError):
+            self.project.open_job(id='abc')
+
     def test_find_variable_parameters(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -209,6 +223,50 @@ class ProjectTest(BaseProjectTest):
             view_prefix = os.path.join(self._tmp_pr, 'view')
             self.project.create_view(prefix=view_prefix)
             self.assertTrue(os.path.isdir(view_prefix))
+
+    def test_create_linked_view(self):
+        sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
+        sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        statepoints = sp_0 + sp_1 + sp_2
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        # empty project
+        self.project.create_linked_view(prefix=view_prefix)
+        # one job
+        self.project.open_job(statepoints[0]).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        # more jobs
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        self.assertTrue(os.path.isdir(view_prefix))
+        all_links = list(_find_all_links(view_prefix))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
+        # some jobs removed
+        for job in self.project.find_jobs({'b': 0}):
+            job.remove()
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        # all jobs removed
+        for job in self.project.find_jobs():
+            job.remove()
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
 
     def test_find_job_documents(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -417,6 +475,37 @@ class ProjectInitTest(unittest.TestCase):
                 name='testproject2',
                 root=root,
                 workspace='workspace2')
+
+    def test_nested_project(self):
+        def check_root(root=None):
+            if root is None:
+                root = os.getcwd()
+            self.assertEqual(
+                os.path.realpath(signac.get_project(root=root).root_directory()),
+                os.path.realpath(root))
+        root = self._tmp_dir.name
+        root_a = os.path.join(root, 'project_a')
+        root_b = os.path.join(root_a, 'project_b')
+        signac.init_project('testprojectA', root_a)
+        self.assertEqual(signac.get_project(root=root_a).get_id(), 'testprojectA')
+        check_root(root_a)
+        signac.init_project('testprojectB', root_b)
+        self.assertEqual(signac.get_project(root=root_b).get_id(), 'testprojectB')
+        check_root(root_b)
+        cwd = os.getcwd()
+        try:
+            os.chdir(root_a)
+            check_root()
+            self.assertEqual(signac.get_project().get_id(), 'testprojectA')
+        finally:
+            os.chdir(cwd)
+        try:
+            os.chdir(root_b)
+            self.assertEqual(signac.get_project().get_id(), 'testprojectB')
+            check_root()
+        finally:
+            os.chdir(cwd)
+
 
 if __name__ == '__main__':
     unittest.main()
