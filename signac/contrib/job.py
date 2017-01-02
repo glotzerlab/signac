@@ -166,7 +166,7 @@ class Job(object):
                 self._document = None
 
     def move(self, project):
-        """Move this job to project and return new instance of Job.
+        """Move this job to project.
 
         This function will attempt to move this instance of job from
         its original project to a different project.
