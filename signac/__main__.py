@@ -18,6 +18,7 @@ from .common.configobj import flatten_errors, Section
 from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
+from .errors import DestinationExistsError
 try:
     from .common.host import get_database, get_credentials, make_uri
 except ImportError:
@@ -108,6 +109,26 @@ def _read_index(project, fn_index=None):
         return (json.loads(l) for l in fd)
 
 
+def _open_job_by_id(project, job_id):
+    "Attempt to open a job by id and provide user feedback on error."
+    try:
+        return project.open_job(id=job_id)
+    except KeyError as error:
+        close_matches = difflib.get_close_matches(
+            job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
+        msg = "Did not find job corresponding to id '{}'.".format(job_id)
+        if len(close_matches) == 1:
+            msg += " Did you mean '{}'?".format(close_matches[0])
+        elif len(close_matches) > 1:
+            msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
+        raise KeyError(msg)
+    except LookupError as error:
+        n = project.min_len_unique_id()
+        raise LookupError("Multiple matches for abbreviated id '{}'. "
+                          "Use at least {} characters for guaranteed "
+                          "unique ids.".format(job_id, n))
+
+
 def main_project(args):
     project = get_project()
     if args.workspace:
@@ -143,24 +164,33 @@ def main_statepoint(args):
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
+        print(json.dumps(_open_job_id(project, job_id).statepoint(), indent=args.indent))
+
+
+def main_move(args):
+    project = get_project()
+    dst_project = get_project(root=args.project)
+    for job_id in args.job_id:
         try:
-            print(json.dumps(
-                project.open_job(id=job_id).statepoint(),
-                indent=args.indent))
-        except KeyError as error:
-            close_matches = difflib.get_close_matches(
-                job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
-            msg = "Did not find job corresponding to id '{}'.".format(job_id)
-            if len(close_matches) == 1:
-                msg += " Did you mean '{}'?".format(close_matches[0])
-            elif len(close_matches) > 1:
-                msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
-            raise KeyError(msg)
-        except LookupError as error:
-            n = project.min_len_unique_id()
-            raise LookupError("Multiple matches for abbreviated id '{}'. "
-                              "Use at least {} characters for guaranteed "
-                              "unique ids.".format(job_id, n))
+            job = _open_job_by_id(project, job_id)
+            job.move(dst_project)
+        except DestinationExistsError as error:
+            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+        else:
+            _print_err("Moved '{}' to '{}'.".format(job, dst_project))
+
+
+def main_clone(args):
+    project = get_project()
+    dst_project = get_project(root=args.project)
+    for job_id in args.job_id:
+        try:
+            job = _open_job_by_id(project, job_id)
+            dst_project.clone(job)
+        except DestinationExistsError as error:
+            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+        else:
+            _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
 
 
 def main_index(args):
@@ -536,6 +566,32 @@ def main():
         const='2',
         help="Specify the indentation of the JSON formatted state point.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_move = subparsers.add_parser('move')
+    parser_move.add_argument(
+        'project',
+        type=str,
+        help="The root directory of the project to move one or more jobs to.")
+    parser_move.add_argument(
+        'job_id',
+        nargs='+',
+        type=str,
+        help="One or more job ids of jobs to move. The job corresponding to a "
+             "job id must be initialized.")
+    parser_move.set_defaults(func=main_move)
+
+    parser_clone = subparsers.add_parser('clone')
+    parser_clone.add_argument(
+        'project',
+        type=str,
+        help="The root directory of the project to clone one or more jobs in.")
+    parser_clone.add_argument(
+        'job_id',
+        nargs='+',
+        type=str,
+        help="One or more job ids of jobs to clone. The job corresponding to a "
+             "job id must be initialized.")
+    parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
     parser_index.set_defaults(func=main_index)
