@@ -1160,6 +1160,8 @@ class _JobsIterator(object):
     def __next__(self):
         return self._project.open_job(id=next(self._ids_iterator))
 
+    next = __next__  # python 2.7 compatibility
+
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
