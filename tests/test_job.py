@@ -17,6 +17,7 @@ if six.PY2:
     from tempdir import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
+    from filecmp import clear_cache
 
 
 # Make sure the jobs created for this test are unique.
@@ -431,12 +432,12 @@ class MovingMergingTest(BaseJobTest):
                 file.write("world1")
         diff = job_a._diff(job_b)
         self.assertEqual(diff.diff_files, [])
+        if six.PY2:
+            sleep(1)
         with job_b:
             with open('hello.txt', 'w') as file:
                 file.write("world2")
-        if six.PY2:
-            sleep(1)
-        else:
+        if not six.PY2:
             clear_cache()
         diff = job_a._diff(job_b)
         self.assertEqual(diff.diff_files, ['hello.txt'])
@@ -457,12 +458,15 @@ class MovingMergingTest(BaseJobTest):
         job_b.merge(job_a)  # that should be fine, too
         # job_a diverges
         job_a.document['a'] = 1
+        if six.PY2:
+            sleep(1)
         with open(job_a.fn('hello.txt'), 'w') as file:
             file.write("world2")
         with open(job_a.fn('hello.txt'), 'r') as file1:
             with open(job_b.fn('hello.txt'), 'r') as file2:
                 self.assertNotEqual(file1.read(), file2.read())
-        clear_cache()
+        if not six.PY2:
+            clear_cache()
         try:
             job_b.merge(job_a)
         except MergeConflict as conflict:
