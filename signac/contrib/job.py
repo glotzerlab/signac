@@ -10,10 +10,8 @@ import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
-from ..core.filecmp import dircmp
 from .hashing import calc_id
 from .utility import _mkdir_p
-from .errors import MergeConflict
 from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
@@ -167,19 +165,11 @@ class Job(object):
                 self._document.data.clear()
                 self._document = None
 
-    def _diff(self, other):
-        "Return a filecmp diff instance for the workspaces of self and other."
-        return dircmp(
-            self.workspace(), other.workspace(),
-            ignore=[Job.FN_MANIFEST, Job.FN_DOCUMENT])
-
     def move(self, project):
         """Move this job to project and return new instance of Job.
 
         This function will attempt to move this instance of job from
         its original project to a different project.
-
-        See also: :py:meth:`~.merge`
 
         :param project: The project to move this job to.
         :type project: :py:class:`~.project.Project`
@@ -192,44 +182,6 @@ class Job(object):
         except OSError:
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
-
-    def merge(self, other, force=False):
-        """Merge other into this job.
-
-        This function will attempt to merge `other` job into this job.
-        A :py:class:`~.MergeConflict` exception will be raised in case both jobs
-        share job document values or files with the same name, but different values/
-        content.
-
-        :param other: The other job instance to merge into this one.
-        :type other: :py:class:`~.Job`
-        :param force: Ignore all merge conflicts, just merge potentially overwriting data.
-        :type force: bool
-        :raises MergeConflict: In case that the merge cannot be performed without
-            overwriting data.
-        """
-        if any(os.path.isdir(os.path.join(other.workspace(), d))
-                for d in os.listdir(other.workspace())):
-            raise RuntimeError("Unable to merge job with sub-directories!")
-        if not force:
-            key_intersect = set(self.document.keys()).intersection(other.document.keys())
-            key_diff = [k for k in key_intersect if self.document[k] != other.document[k]]
-            diff = self._diff(other)
-            if key_diff or diff.diff_files:
-                raise MergeConflict(key_diff, diff.diff_files)
-        self.document.update(other.document)
-        for fn in os.listdir(other.workspace()):
-            if fn in (Job.FN_MANIFEST, Job.FN_DOCUMENT):
-                continue
-            try:
-                shutil.copy2(other.fn(fn), self.fn(fn))
-            except (IOError, OSError) as error:
-                if error.errno == errno.EISDIR:
-                    raise RuntimeError("Unable to merge job with sub-directories!")
-                elif error.errno == errno.EEXIST:
-                    raise RuntimeError("File already exists at destination: '{}'.".format(fn))
-                else:
-                    raise
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.

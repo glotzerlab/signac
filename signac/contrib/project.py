@@ -712,8 +712,6 @@ class Project(object):
 
         Create an identical copy of job within this project.
 
-        See also: :py:meth:`~.merge`
-
         :param job: The job to copy into this project.
         :type job: :py:class:`~.Job`
         :returns: The job instance corresponding to the copied job.

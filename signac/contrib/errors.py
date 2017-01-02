@@ -9,12 +9,3 @@ class DestinationExistsError(Error, RuntimeError):
     def __init__(self, destination):
         self.destination = destination
         "The destination object causing the error."
-
-
-class MergeConflict(Error, RuntimeError):
-    "Signals a merge conflict when trying to merge a job."
-    def __init__(self, keys, filenames):
-        self.keys = keys
-        "All keys within the job document causing a conflict."
-        self.filenames = filenames
-        "The filenames of all files causing a conflict."

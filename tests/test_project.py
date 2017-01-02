@@ -456,33 +456,6 @@ class ProjectTest(BaseProjectTest):
             self.assertNotEqual(error.destination, job_a)
             self.assertEqual(error.destination, job_b)
 
-    def test_merge(self):
-        root = self._tmp_dir.name
-        project_a = signac.init_project('ProjectA', os.path.join(root, 'a'))
-        project_b = signac.init_project('ProjectB', os.path.join(root, 'b'))
-        job_a = project_a.open_job(dict(a=0))
-        self.assertNotIn(job_a, project_a)
-        self.assertNotIn(job_a, project_b)
-        with job_a:
-            job_a.document['a'] = 0
-            with open('hello.txt', 'w') as file:
-                file.write('world!')
-        self.assertIn(job_a, project_a)
-        self.assertNotIn(job_a, project_b)
-        job_b = project_b.clone(job_a)
-        self.assertIn(job_a, project_a)
-        self.assertIn(job_a, project_b)
-        self.assertIn(job_b, project_a)
-        self.assertIn(job_b, project_b)
-        try:
-            project_b.clone(job_a)
-        except DestinationExistsError as error:
-            error.destination.merge(job_a)
-        with job_a:
-            os.mkdir('subdir')
-        with self.assertRaises(RuntimeError):
-            job_b.merge(job_a)
-
 
 class ProjectInitTest(unittest.TestCase):
 
