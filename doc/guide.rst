@@ -14,4 +14,3 @@ Contents:
    projects
    indexing
    database
-   gui
