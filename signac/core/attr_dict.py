@@ -1,7 +1,11 @@
 # Copyright (c) 2016 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from collections.abc import Mapping
+from ..common import six
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 from contextlib import contextmanager
 
 
@@ -47,7 +51,7 @@ class AttrDict(object):
             self._cb(convert_to_dict(self._data))
 
     def _invalidate(self):
-        super().__setattr__('_data_', None)
+        super(AttrDict, self).__setattr__('_data_', None)
 
     def _is_valid(self):
         if self._data_ is None:
@@ -60,14 +64,14 @@ class AttrDict(object):
 
     def __getattr__(self, key):
         if key.startswith('__'):
-            super().__getattr__(key)
+            super(AttrDict, self).__getattr__(key)
         return self._data[key]
 
     def __setattr__(self, key, value):
         try:
-            super().__getattribute__('_data_')
+            super(AttrDict, self).__getattribute__('_data_')
         except AttributeError:
-            super().__setattr__(key, value)
+            super(AttrDict, self).__setattr__(key, value)
         else:
             self.__setitem__(key, value)
         return value
@@ -110,6 +114,6 @@ class AttrDict(object):
     def _no_callback(self):
         "Manipulate data without triggering a callback."
         cb = self._cb
-        super().__setattr__('_cb', None)
+        super(AttrDict, self).__setattr__('_cb', None)
         yield
-        super().__setattr__('_cb', cb)
+        super(AttrDict, self).__setattr__('_cb', cb)
