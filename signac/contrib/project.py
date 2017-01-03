@@ -551,66 +551,6 @@ class Project(object):
             assert len(links) < 2
         _update_view(prefix, links)
 
-    def create_view(self, filter=None, prefix='view'):
-        """Create a view of the workspace.
-
-        .. warning::
-
-            This method is deprecated.
-            Please use :meth:`~.create_linked_view` instead.
-
-        This method gathers all varying statepoint parameters
-        and creates symbolic links to the workspace directories.
-        This is useful for browsing through the workspace in a
-        human-readable manner.
-
-        Let's assume the parameter space is
-
-            * a=0, b=0
-            * a=1, b=0
-            * a=2, b=0
-            * ...,
-
-        where *b* does not vary over all statepoints.
-
-        Calling this method will generate the following *symbolic links* within
-        the speciefied  view directory:
-
-        .. code-block:: bash
-
-            view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
-            view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
-            ...
-
-        .. note::
-
-            As *b* does not vary over the whole parameter space it is not part
-            of the view url.
-            This maximizes the compactness of each view url.
-
-        :param filter:  If not None,
-            create view only for jobs matching filter.
-        :type filter: mapping
-        :param prefix: Specifies where to create the links."""
-        warnings.warn(
-            "The create_view() method is deprecated, please use "
-            "create_linked_view() instead.", DeprecationWarning)
-        statepoints = list(self.find_statepoints(filter=filter))
-        if not len(statepoints):
-            if filter is None:
-                logger.warning("No state points found!")
-            else:
-                logger.warning("No state points matched the filter.")
-        key_set = list(_find_unique_keys(statepoints))
-        if filter is not None:
-            key_set[:0] = [[key] for key in filter.keys()]
-        for statepoint, url in _make_urls(statepoints, key_set):
-            src = self.open_job(statepoint).workspace()
-            dst = os.path.join(prefix, url)
-            logger.info(
-                "Creating link {src} -> {dst}".format(src=src, dst=dst))
-            _make_link(src, dst)
-
     def find_job_documents(self, filter=None):
         """Find all job documents in the project's workspace.
 
