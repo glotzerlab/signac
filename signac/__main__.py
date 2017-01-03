@@ -558,7 +558,7 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_find.add_argument(
-        '-d', '--doc_filter',
+        '-d', '--doc-filter',
         type=str,
         help="A JSON encoded filter for job documents (key-value pairs).")
     parser_find.set_defaults(func=main_find)
