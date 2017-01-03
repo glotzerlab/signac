@@ -216,6 +216,18 @@ class ProjectTest(BaseProjectTest):
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         self.assertEqual(src, dst)
+        # update with subset
+        subset = list(self.project.find_job_ids({'b': 0}))
+        job_subset = [self.project.open_job(id=id) for id in subset]
+        bad_index = [dict(_id=i) for i in range(3)]
+        with self.assertRaises(ValueError):
+            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), len(subset))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
+        self.assertEqual(src, dst)
         # some jobs removed
         for job in self.project.find_jobs({'b': 0}):
             job.remove()
@@ -224,6 +236,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(all_links), self.project.num_jobs())
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
         # all jobs removed
         for job in self.project.find_jobs():
             job.remove()
@@ -232,6 +245,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(all_links), self.project.num_jobs())
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
 
     def test_find_job_documents(self):
         statepoints = [{'a': i} for i in range(5)]

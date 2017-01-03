@@ -507,7 +507,7 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_linked_view(self, prefix=None, index=None):
+    def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create a persistent linked view of the selected data space..
 
         This method determines unique paths for each job based on the job's
@@ -535,11 +535,27 @@ class Project(object):
 
             To maximize the compactness of each view path, *b* which does not
             vary over the selected data space, is ignored.
+
+        :param prefix:
+            The path where the linked view will be created or updated.
+        :type prefix:
+            str
+        :param job_ids:
+            If None (the default), create the view for the complete data space,
+            otherwise only for the sub space constituted by the provided job ids.
+        :param index:
+            A document index.
         """
         if prefix is None:
             prefix = 'view'
         if index is None:
             index = self.index(include_job_document=False)
+        if job_ids is not None:
+            if not isinstance(job_ids, set):
+                job_ids = set(job_ids)
+            index = [doc for doc in index if doc['_id'] in job_ids]
+            if not job_ids.issubset({doc['_id'] for doc in index}):
+                raise ValueError("Insufficient index for selected data space.")
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
         links = dict()
