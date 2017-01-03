@@ -368,38 +368,6 @@ class Project(object):
         for job in jobs:
             yield job.statepoint()
 
-    def find_variable_parameters(self, statepoints=None):
-        """Find all parameters which vary over the data space.
-
-        .. warning::
-
-            This method is deprecated.
-            Please see :meth:`~.build_job_statepoint_index` for an
-            alternative method.
-
-        This method attempts to detect all parameters, which vary
-        over the parameter space.
-        The parameter sets are ordered decreasingly
-        by data sub space size.
-
-        .. warning::
-
-            This method does not detect linear dependencies
-            within the state points. Linear dependencies should
-            generally be avoided.
-
-        :param statepoints: The statepoints to consider.
-            Defaults to all state points within the data space.
-        :type statepoints: Iterable of parameter mappings.
-        :return: A hierarchical list of variable parameters.
-        :rtype: list"""
-        warnings.warn(
-            "The find_variable_parameters() method is deprecated, please use "
-            "build_job_statepoint_index() instead.", DeprecationWarning)
-        if statepoints is None:
-            statepoints = self.find_statepoints()
-        return list(_find_unique_keys(statepoints))
-
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
 
@@ -1033,61 +1001,6 @@ def _make_paths(sp_index, leaf='job'):
         p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
         path = os.path.join(* list(p) + [leaf])
         yield path, jid
-
-
-def _find_unique_keys(statepoints):
-    key_set = _aggregate_statepoints(statepoints)
-    if six.PY2:
-        def flatten(l):
-            for el in l:
-                if isinstance(el, collections.Iterable) and not \
-                        (isinstance(el, str) or isinstance(el, unicode)):  # noqa
-                    for sub in flatten(el):
-                        yield sub
-                else:
-                    yield el
-    else:
-        def flatten(l):
-            for el in l:
-                if isinstance(el, collections.Iterable) and \
-                        not (isinstance(el, str)):
-                    for sub in flatten(el):
-                        yield sub
-                else:
-                    yield el
-    key_set = (list(flatten(k)) for k in key_set)
-    for key in sorted(key_set, key=len):
-        yield key
-
-
-def _aggregate_statepoints(statepoints, prefix=None):
-    result = list()
-    statepoint_set = collections.defaultdict(set)
-    # Gather all keys.
-    ignore = set()
-    for statepoint in statepoints:
-        for key, value in statepoint.items():
-            if key in ignore:
-                continue
-            try:
-                statepoint_set[key].add(value)
-            except TypeError:
-                if isinstance(value, Mapping):
-                    result.extend(_aggregate_statepoints(
-                        [sp[key] for sp in statepoints if key in sp],
-                        prefix=(key) if prefix is None else (prefix, key)))
-                    ignore.add(key)
-                else:
-                    statepoint_set[key].add(calc_id(value))
-    # Heal heterogenous parameter space.
-    for statepoint in statepoints:
-        for key in statepoint_set.keys():
-            if key not in statepoint:
-                statepoint_set[key].add(None)
-    unique_keys = list(k for k, v in sorted(
-        statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)
-    result.extend((k,) if prefix is None else (prefix, k) for k in unique_keys)
-    return result
 
 
 def _skip_errors(iterable, log=print):
