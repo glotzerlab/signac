@@ -158,7 +158,7 @@ class BasicShellTest(unittest.TestCase):
 
         for i in range(3):
             self.assertEqual(
-                self.call('python -m signac find --doc_filter'.split() + ['{"a": ' + str(i) + '}']).strip(),
+                self.call('python -m signac find --doc-filter'.split() + ['{"a": ' + str(i) + '}']).strip(),
                 list(project.find_job_ids(doc_filter={'a': i}))[0])
 
 
