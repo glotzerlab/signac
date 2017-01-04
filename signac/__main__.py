@@ -207,8 +207,14 @@ def main_find(args):
         f = None
     else:
         f = json.loads(args.filter)
+
+    if args.doc_filter is None:
+        df = None
+    else:
+        df = json.loads(args.doc_filter)
+
     index = _read_index(project, args.index)
-    for job_id in project.find_job_ids(filter=f, index=index):
+    for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
         print(job_id)
 
 
@@ -607,6 +613,10 @@ def main():
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
+    parser_find.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        help="A JSON encoded filter for job documents (key-value pairs).")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
