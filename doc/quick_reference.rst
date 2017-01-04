@@ -10,9 +10,13 @@ Projects
 Start a new project
 -------------------
 
+Python:
+
 .. code-block:: python
 
    project = signac.init_project('MyProject')
+
+Command line:
 
 .. code-block:: bash
 
@@ -21,12 +25,32 @@ Start a new project
     $ signac init MyProject
     Initialized project 'MyProject'.
 
-Open a job
-----------
+Access the project
+------------------
+
+Python:
 
 .. code-block:: python
 
+    # Within or below the project root directory:
     project = signac.get_project()
+
+    # With explicit path specification:
+    project = signac.get_project(root='/path/to/project')
+
+Command line:
+
+.. code-block:: bash
+
+    $ signac project
+    MyProject
+
+Open a job
+----------
+
+Python:
+
+.. code-block:: python
 
     # Open with state point
     with project.open_job({'a': 0}) as job:
@@ -36,10 +60,11 @@ Open a job
      with project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2') as job:
         pass
 
-     # Open with abbreviated id (must be long enough to be unique)
+     # Open with abbreviated job id
      with project.open_job(id='9bfd29') as job:
         pass
 
+Command line:
 
 .. code-block:: bash
 
@@ -56,8 +81,15 @@ Open a job
     {"a": 0}
 
 
+.. note::
+
+    Using an abbreviated job id may result in multiple matches and is primarily designed for interactive use.
+
+
 Find jobs
 ---------
+
+Python:
 
 .. code-block:: python
 
@@ -69,9 +101,15 @@ Find jobs
     for job in project.find_jobs():
         pass
 
-    # Iterate over a data sub space with filter
+    # Iterate over a data sub space with state point filter
     for job in project.find_jobs({'a': 0}):
         pass
+
+    # Iterate over a data sub space with document filter
+    for job in project.find_jobs(doc_filter={'a': 0}):
+        pass
+
+Command line:
 
 .. code-block:: bash
 
@@ -83,6 +121,50 @@ Find jobs
 
     # Find a subset filtered by job document entries
     $ signac find --doc-filter '{"a": 0}'
+
+.. note::
+
+    The state point and document filter can be applied in combination.
+
+Dataspace Operations
+--------------------
+
+Definition:
+
+.. code-block:: python
+
+    def func(job):
+        pass
+
+Execute in serial:
+
+.. code-block:: python
+
+    for job in project:
+        func(job)
+
+    # or:
+    list(map(func, project))
+
+
+Execute in parallel:
+
+.. code-block:: python
+
+    from multiprocessing import Pool
+    with Pool() as pool:
+        pool.map(func, project)
+
+    from multiprocessing.pool import ThreadPool
+    with ThreadPool() as pool:
+        pool.map(func, project)
+
+    from signac.contrib.mpipool import MPIPool
+    with MPIPool() as pool:
+        pool.map(func, project)
+
+Indexing
+========
 
 Index project data
 ------------------
@@ -106,46 +188,15 @@ Index project data
 
         project.create_access_module()
 
-Dataspace Operations
-====================
+Master Crawler
+--------------
 
-Definition
-----------
-
-.. code-block:: python
-
-    def func(job):
-        pass
-
-Execute in serial
------------------
+Using a :py:class:`~.contrib.MasterCrawler` to find slave crawlers in ``/projects``:
 
 .. code-block:: python
 
-    for job in project:
-        func(job)
-
-    # or:
-    list(map(func, project))
-
-
-Execute in parallel
--------------------
-
-.. code-block:: python
-
-    from multiprocessing import Pool
-    with Pool() as pool:
-        pool.map(func, project)
-
-    from multiprocessing.pool import ThreadPool
-    with ThreadPool() as pool:
-        pool.map(func, project)
-
-    from signac.contrib.mpipool import MPIPool
-    with MPIPool() as pool:
-        pool.map(func, project)
-
+    master_crawler = signac.contrib.MasterCrawler('/projects')
+    signac.export(master_crawler.crawl(depth=1), index)
 
 Database Integration
 ====================
@@ -160,15 +211,20 @@ Access a database
 Export an index to a database collection
 ----------------------------------------
 
+Export a project index:
+
 .. code-block:: python
 
-    db = signac.get_database('mydb')
     signac.export(project.index(), db.index)
+
+Export an index from a crawler:
+
+.. code-block:: python
+
+    signac.export(crawler.crawl(), db.index)
 
 Search a database collection
 ----------------------------
-
-Example for a collection named *index*:
 
 .. code-block:: python
 
