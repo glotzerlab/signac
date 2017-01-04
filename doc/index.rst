@@ -37,8 +37,8 @@ Contents
     :ref:`tutorial`
       Compact demonstration of the implementation of a computational workflow.
 
-    :ref:`guide`
-      A complete introduction to the framework's major components.
+    :ref:`reference`
+      A complete reference to the framework's major components.
 
     :ref:`quickreference`
       Brief overview of the core functions, to serve as reference.
@@ -64,8 +64,8 @@ Please use the `repository's issue tracker <https://bitbucket.org/glotzer/signac
    overview
    installation
    tutorial
-   guide
    reference
+   quick_reference
    acknowledge
    signac
 
