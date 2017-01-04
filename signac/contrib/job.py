@@ -10,6 +10,8 @@ import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
+from ..core.attr_dict import AttrDict
+from ..core.attr_dict import convert_to_dict
 from .hashing import calc_id
 from .utility import _mkdir_p
 
@@ -38,6 +40,7 @@ class Job(object):
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = list()
+        self._sp = None
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -71,6 +74,96 @@ class Job(object):
         :return: The statepoint mapping.
         :rtype: dict"""
         return copy.deepcopy(self._statepoint)
+
+    def reset_statepoint(self, new_statepoint):
+        """Reset the state point of this job.
+
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point,
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
+        :param new_statepoint:
+            The job's new state point.
+        :type new_statepoint:
+            mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        dst = self._project.open_job(new_statepoint)
+        if dst == self:
+            return
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest_backup = fn_manifest + '~'
+        try:
+            os.rename(fn_manifest, fn_manifest_backup)
+            try:
+                os.rename(self.workspace(), dst.workspace())
+            except OSError as error:
+                os.rename(fn_manifest_backup, fn_manifest)  # rollback
+                if error.errno == errno.ENOTEMPTY:
+                    raise RuntimeError("Destination exists: {}".format(dst))
+                else:
+                    raise
+            else:
+                dst.init()
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                pass  # job is not initialized
+            else:
+                raise
+        logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        dst._sp = self._sp
+        self.__dict__.update(dst.__dict__)
+
+    def _reset_sp(self, new_sp):
+        self.reset_statepoint(convert_to_dict(new_sp))
+
+    def update_statepoint(self, update, overwrite=False):
+        """Update the statepoint of this job.
+
+        .. warning::
+
+            While appending to a job's state point is generally safe,
+            modifying existing parameters may lead to data
+            inconsistency. Use the overwrite argument with caution!
+
+        :param update:
+            A mapping used for the statepoint update.
+        :type update:
+            mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        statepoint = self.statepoint()
+        if not overwrite:
+            for key, value in update.items():
+                if statepoint.get(key, value) != value:
+                    raise KeyError(key)
+        statepoint.update(update)
+        self.reset_statepoint(statepoint)
+
+    @property
+    def sp(self):
+        "Access the job's state point as attribute dictionary."
+        if self._sp is None:
+            self._sp = AttrDict(self.statepoint(), self._reset_sp)
+        return self._sp
+
+    @sp.setter
+    def sp(self, new_sp):
+        self._reset_sp(new_sp)
 
     @property
     def document(self):
