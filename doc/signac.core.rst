@@ -19,12 +19,3 @@ signac.core.utility module
     :members:
     :undoc-members:
     :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: signac.core
-    :members:
-    :undoc-members:
-    :show-inheritance:

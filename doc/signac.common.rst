@@ -1,13 +1,6 @@
 signac.common package
 =====================
 
-Subpackages
------------
-
-.. toctree::
-
-    signac.common.configobj
-
 Submodules
 ----------
 
@@ -47,15 +40,6 @@ signac.common.validate module
 -----------------------------
 
 .. automodule:: signac.common.validate
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: signac.common
     :members:
     :undoc-members:
     :show-inheritance:
