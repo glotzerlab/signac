@@ -9,6 +9,7 @@ import json
 import errno
 import warnings
 import collections
+import shutil
 from itertools import chain
 
 from ..core.search_engine import DocumentSearchEngine
@@ -20,6 +21,7 @@ from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, is_string
+from .errors import DestinationExistsError
 
 if six.PY2:
     from collections import Mapping
@@ -236,6 +238,16 @@ class Project(object):
     def num_jobs(self):
         "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
+
+    def __contains__(self, job):
+        """Determine whether job is in the project's data space.
+
+        :param job: The job to test for initialization.
+        :type job: :py:class:`~.Job`
+        :returns: True when the job is initialized for this project.
+        :rtype: bool
+        """
+        return job.get_id() in self.find_job_ids()
 
     __len__ = num_jobs
 
@@ -615,6 +627,28 @@ class Project(object):
             If the move failed due to an unknown system related error.
         """
         job.update_statepoint(update=update, overwrite=overwrite)
+
+    def clone(self, job):
+        """Clone job into this project.
+
+        Create an identical copy of job within this project.
+
+        :param job: The job to copy into this project.
+        :type job: :py:class:`~.Job`
+        :returns: The job instance corresponding to the copied job.
+        :rtype: :py:class:`~.Job`
+        :raises DestinationExistsError: In case that a job with the same
+            id is already initialized within this project.
+        """
+        dst = self.open_job(job.statepoint())
+        try:
+            shutil.copytree(job.workspace(), dst.workspace())
+        except OSError as error:
+            if error.errno == errno.EEXIST:
+                raise DestinationExistsError(dst)
+            else:
+                raise
+        return dst
 
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."

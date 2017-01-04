@@ -14,6 +14,7 @@ from ..core.attr_dict import AttrDict
 from ..core.attr_dict import convert_to_dict
 from .hashing import calc_id
 from .utility import _mkdir_p
+from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,24 @@ class Job(object):
             if self._document is not None:
                 self._document.data.clear()
                 self._document = None
+
+    def move(self, project):
+        """Move this job to project.
+
+        This function will attempt to move this instance of job from
+        its original project to a different project.
+
+        :param project: The project to move this job to.
+        :type project: :py:class:`~.project.Project`
+        :raises DestinationExistsError: If the job is already initialized in job.
+        """
+        dst = project.open_job(self.statepoint())
+        _mkdir_p(project.workspace())
+        try:
+            os.rename(self.workspace(), dst.workspace())
+        except OSError:
+            raise DestinationExistsError(dst)
+        self.__dict__.update(dst.__dict__)
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
