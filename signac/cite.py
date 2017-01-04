@@ -16,7 +16,7 @@ ARXIV_BIBTEX = """@online{signac,
 """
 
 
-ARXIV_REFERENCE = "Carl S. Adorf, Paul M. Dodd, and Sharon C. Glotzer. signac - A SimpleData Management Framework. 2016. arXiv:1611.03543 [cs.DB]"
+ARXIV_REFERENCE = "Carl S. Adorf, Paul M. Dodd, and Sharon C. Glotzer. signac - A Simple Data Management Framework. 2016. arXiv:1611.03543 [cs.DB]"
 
 
 def bibtex(file=None):
