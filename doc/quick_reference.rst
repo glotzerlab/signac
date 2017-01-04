@@ -106,6 +106,47 @@ Index project data
 
         project.create_access_module()
 
+Dataspace Operations
+====================
+
+Definition
+----------
+
+.. code-block:: python
+
+    def func(job):
+        pass
+
+Execute in serial
+-----------------
+
+.. code-block:: python
+
+    for job in project:
+        func(job)
+
+    # or:
+    list(map(func, project))
+
+
+Execute in parallel
+-------------------
+
+.. code-block:: python
+
+    from multiprocessing import Pool
+    with Pool() as pool:
+        pool.map(func, project)
+
+    from multiprocessing.pool import ThreadPool
+    with ThreadPool() as pool:
+        pool.map(func, project)
+
+    from signac.contrib.mpipool import MPIPool
+    with MPIPool() as pool:
+        pool.map(func, project)
+
+
 Database Integration
 ====================
 
