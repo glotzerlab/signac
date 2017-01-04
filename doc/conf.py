@@ -307,6 +307,6 @@ texinfo_documents = [
 #texinfo_no_detailmenu = False
 
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.4', None),
-    'pymongo': ('https://api.mongodb.org/python/current/', None)
+    'python': ('https://docs.python.org/3.6', None),
+    'pymongo': ('https://api.mongodb.com/python/current/', None)
 }
