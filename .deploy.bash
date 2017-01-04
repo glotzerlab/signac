@@ -1,6 +1,9 @@
-#!/bin/bash -e -u
+#!/bin/bash
 
-# PYPI_USERNAME - (Requried) Username for the publisher's account on PyPI
+set -e
+set -u
+
+# PYPI_USERNAME - (Required) Username for the publisher's account on PyPI
 # PYPI_PASSWORD - (Required, Secret) Password for the publisher's account on PyPI
 
 cat <<'EOF' >> .pypirc

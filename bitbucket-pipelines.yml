@@ -64,4 +64,4 @@ pipelines:
             - python -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
-            - .deploy.bash
+            - bash .deploy.bash
