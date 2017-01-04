@@ -100,8 +100,7 @@ class JobSearchIndex(object):
         if doc_filter is not None:
             f.update(doc_filter)
         f = json.loads(json.dumps(f))  # Normalize
-        for job_id in self._engine.find(filter=f):
-            yield job_id
+        return self._engine.find(filter=f)
 
 
 class Project(object):
@@ -238,6 +237,8 @@ class Project(object):
         "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
+    __len__ = num_jobs
+
     def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
 
@@ -311,9 +312,7 @@ class Project(object):
             by the index.
         """
         if filter is None and doc_filter is None and index is None:
-            for job_id in self._job_dirs():
-                yield job_id
-            return
+            return list(self._job_dirs())
         if index is None:
             index = self.index(include_job_document=doc_filter is not None)
         if doc_filter is None:
@@ -321,8 +320,7 @@ class Project(object):
         else:
             include = None
         search_index = self.build_job_search_index(index, include)
-        for job_id in search_index.find_job_ids(filter=filter, doc_filter=doc_filter):
-            yield job_id
+        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
@@ -345,8 +343,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        for job_id in self.find_job_ids(filter, doc_filter, index):
-            yield self.open_job(id=job_id)
+        return _JobsIterator(self, self.find_job_ids(filter, doc_filter, index))
+
+    def __iter__(self):
+        return self.find_jobs()
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -563,61 +563,58 @@ class Project(object):
             yield doc
 
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the statepoint of job.
+        """Reset the state point of job.
 
         .. danger::
 
-            Use this function with caution! Resetting a job's statepoint,
+            Use this function with caution! Resetting a job's state point,
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
-            If you only want to *extend* your statepoint, consider to
-            use :meth:`~.update_statepoint` instead.
 
-        :param job: The job, that should be reset to a new state point.
-        :type job: :class:`~.contrib.job.Job`
-        :param new_statepoint: The job's new unique set of parameters.
-        :type new_statepoint: mapping
-        :returns: The job instance with the new state point.
-        :rtype: :py:class:`~.Job`
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        dst = self.open_job(new_statepoint)
-        _move_job(job, dst)
-        logger.info(
-            "Reset statepoint of job {}, moved to {}.".format(job, dst))
-        return dst
+        :param job:
+            The job, that should be reset to a new state point.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param new_statepoint:
+            The job's new state point.
+        :type new_statepoint:
+            mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.reset_statepoint(new_statepoint=new_statepoint)
 
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the statepoint of job.
+        """Update the statepoint of this job.
 
         .. warning::
 
-            While appending to a job's statepoint is generally safe,
+            While appending to a job's state point is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param job: The job, whose statepoint shall be updated.
-        :type job: :class:`~.contrib.job.Job`
-        :param update: A mapping used for the statepoint update.
-        :type update: mapping
-        :param overwrite: Set to true, to ignore whether this
-            update overwrites parameters, which are currently
-            part of the job's statepoint. Use with caution!
-        :returns: The job instance with the updated state point.
-        :rtype: :py:class:`~.Job`
-        :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint and overwrite is False.
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        statepoint = dict(job.statepoint())
-        if not overwrite:
-            for key in update:
-                if key in statepoint:
-                    raise KeyError(key)
-        statepoint.update(update)
-        dst = self.open_job(statepoint)
-        _move_job(job, dst)
-        return dst
+        :param job:
+            The job, whose statepoint shall be updated.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param update:
+            A mapping used for the statepoint update.
+        :type update:
+            mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.update_statepoint(update=update, overwrite=overwrite)
 
     def repair(self):
         "Attempt to repair the workspace after it got corrupted."
@@ -826,23 +823,6 @@ class Project(object):
         return cls(config=config)
 
 
-def _move_job(src, dst):
-    logger.debug("Attempting to move job {} to {}".format(src, dst))
-    fn_src_manifest = os.path.join(src.workspace(), src.FN_MANIFEST)
-    fn_src_manifest_backup = fn_src_manifest + '~'
-    os.rename(fn_src_manifest, fn_src_manifest_backup)
-    try:
-        os.rename(src.workspace(), dst.workspace())
-    except OSError:  # rollback
-        os.rename(fn_src_manifest_backup, fn_src_manifest)
-        raise RuntimeError(
-            "Failed to move {} to {}, destination already exists.".format(
-                src, dst))
-    else:
-        dst.init()
-        logger.info("Moved job {} to {}.".format(src, dst))
-
-
 def _find_all_links(root, leaf='job'):
     for dirpath, dirnames, filenames in os.walk(root):
         for dirname in dirnames:
@@ -1011,6 +991,26 @@ def _skip_errors(iterable, log=print):
             return
         except Exception as error:
             log(error)
+
+
+class _JobsIterator(object):
+
+    def __init__(self, project, ids):
+        self._project = project
+        self._ids = ids
+        self._ids_iterator = iter(ids)
+
+    def __len__(self):
+        return len(self._ids)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self._project.open_job(id=next(self._ids_iterator))
+
+    next = __next__  # python 2.7 compatibility
+
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
