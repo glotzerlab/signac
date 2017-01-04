@@ -34,13 +34,11 @@ setup(
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
-        'gui': ['PySide'],
     },
 
     entry_points={
         'console_scripts': [
             'signac = signac.__main__:main',
-            'signac-gui = signac.gui:main',
         ],
     },
 )
