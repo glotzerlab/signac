@@ -27,7 +27,7 @@ from .contrib import fetch_one  # deprecated
 from .contrib import filesystems as fs
 from .db import get_database
 
-__version__ = '0.6.2'
+__version__ = '0.7.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors',
            'cite',
