@@ -196,7 +196,7 @@ class Project(object):
 
         This method returns the job instance associated with
         the given statepoint or job id.
-        Opening a job by statepoint never fails.
+        Opening a job by a valid statepoint never fails.
         Opening a job by id, requires a lookup of the statepoint
         from the job id, which may fail if the job was not
         previously initialized.
@@ -206,8 +206,11 @@ class Project(object):
         :param id: The job id.
         :type id: str
         :return: The job instance.
-        :rtype: :class:`signac.contrib.job.Job`
-        :raises KeyError: If the attempt to open the job by id fails.
+        :rtype: :class:`~.Job`
+        :raises KeyError:
+            If the attempt to open the job by id fails.
+        :raises LookupError: If the attempt to open the job by an
+            abbreviated id returns more than one match.
         """
         if (id is None) == (statepoint is None):
             raise ValueError(
@@ -239,6 +242,8 @@ class Project(object):
         "Return the number of initialized jobs."
         return len(list(self._job_dirs()))
 
+    __len__ = num_jobs
+
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
 
@@ -248,8 +253,6 @@ class Project(object):
         :rtype: bool
         """
         return job.get_id() in self.find_job_ids()
-
-    __len__ = num_jobs
 
     def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
@@ -488,7 +491,7 @@ class Project(object):
         return statepoint
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
-        """Create a persistent linked view of the selected data space..
+        """Create or update a persistent linked view of the selected data space.
 
         This method determines unique paths for each job based on the job's
         statepoint and creates symbolic links to the associated workspace
@@ -583,14 +586,10 @@ class Project(object):
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
-        :param job:
-            The job, that should be reset to a new state point.
-        :type job:
-            :class:`~.contrib.job.Job`
-        :param new_statepoint:
-            The job's new state point.
-        :type new_statepoint:
-            mapping
+        :param job: The job, that should be reset to a new state point.
+        :type job: :class:`~.contrib.job.Job`
+        :param new_statepoint: The job's new state point.
+        :type new_statepoint: mapping
         :raises RuntimeError:
             If a job associated with the new state point is already initialized.
         :raises OSError:
@@ -607,14 +606,10 @@ class Project(object):
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param job:
-            The job, whose statepoint shall be updated.
-        :type job:
-            :class:`~.contrib.job.Job`
-        :param update:
-            A mapping used for the statepoint update.
-        :type update:
-            mapping
+        :param job: The job, whose statepoint shall be updated.
+        :type job: :class:`~.contrib.job.Job`
+        :param update: A mapping used for the statepoint update.
+        :type update: mapping
         :param overwrite:
             Set to true, to ignore whether this update overwrites parameters,
             which are currently part of the job's state point. Use with caution!
@@ -637,8 +632,9 @@ class Project(object):
         :type job: :py:class:`~.Job`
         :returns: The job instance corresponding to the copied job.
         :rtype: :py:class:`~.Job`
-        :raises DestinationExistsError: In case that a job with the same
-            id is already initialized within this project.
+        :raises DestinationExistsError:
+            In case that a job with the same id is already
+            initialized within this project.
         """
         dst = self.open_job(job.statepoint())
         try:

@@ -85,10 +85,8 @@ class Job(object):
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
-        :param new_statepoint:
-            The job's new state point.
-        :type new_statepoint:
-            mapping
+        :param new_statepoint: The job's new state point.
+        :type new_statepoint: mapping
         :raises RuntimeError:
             If a job associated with the new state point is already initialized.
         :raises OSError:
@@ -132,10 +130,8 @@ class Job(object):
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param update:
-            A mapping used for the statepoint update.
-        :type update:
-            mapping
+        :param update: A mapping used for the statepoint update.
+        :type update: mapping
         :param overwrite:
             Set to true, to ignore whether this update overwrites parameters,
             which are currently part of the job's state point. Use with caution!
@@ -266,7 +262,7 @@ class Job(object):
 
         :param project: The project to move this job to.
         :type project: :py:class:`~.project.Project`
-        :raises DestinationExistsError: If the job is already initialized in job.
+        :raises DestinationExistsError: If the job is already initialized in project.
         """
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
