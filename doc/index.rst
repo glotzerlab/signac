@@ -26,6 +26,18 @@ Welcome to signac's documentation!
 Contents
 --------
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   overview
+   installation
+   tutorial
+   reference
+   quick_reference
+   acknowledge
+   signac
+
 .. glossary::
 
     :ref:`overview`
@@ -37,8 +49,8 @@ Contents
     :ref:`tutorial`
       Compact demonstration of the implementation of a computational workflow.
 
-    :ref:`guide`
-      A complete introduction to the framework's major components.
+    :ref:`reference`
+      A complete reference to the framework's major components.
 
     :ref:`quickreference`
       Brief overview of the core functions, to serve as reference.
@@ -56,18 +68,6 @@ To get help using the signac package, either send an email to `signac-support@um
 
 The **signac** package is hosted on `bitbucket <https://bitbucket.org/glotzer/signac>`_ and licensed under the open-source BSD 3-Clause license.
 Please use the `repository's issue tracker <https://bitbucket.org/glotzer/signac/issues?status=new&status=open>`_ to report bugs or request new features.
-
-.. toctree::
-   :hidden:
-   :maxdepth: 3
-
-   overview
-   installation
-   tutorial
-   guide
-   reference
-   acknowledge
-   signac
 
 Indices and tables
 ==================

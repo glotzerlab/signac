@@ -7,7 +7,7 @@ if sys.version_info < (2, 7, 0):
 
 setup(
     name='signac',
-    version='0.6.2',
+    version='0.7.0',
     packages=find_packages(),
     zip_safe=True,
 
@@ -22,18 +22,23 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Topic :: Scientific/Engineering :: Physics",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
     ],
 
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
-        'gui': ['PySide'],
     },
 
     entry_points={
         'console_scripts': [
             'signac = signac.__main__:main',
-            'signac-gui = signac.gui:main',
         ],
     },
 )

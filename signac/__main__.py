@@ -1,4 +1,4 @@
-# Copyright (c) 2016 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
@@ -9,6 +9,7 @@ import argparse
 import json
 import logging
 import getpass
+import difflib
 
 from . import get_project, init_project
 from . import __version__
@@ -17,6 +18,7 @@ from .common.configobj import flatten_errors, Section
 from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
+from .errors import DestinationExistsError
 try:
     from .common.host import get_database, get_credentials, make_uri
 except ImportError:
@@ -107,6 +109,26 @@ def _read_index(project, fn_index=None):
         return (json.loads(l) for l in fd)
 
 
+def _open_job_by_id(project, job_id):
+    "Attempt to open a job by id and provide user feedback on error."
+    try:
+        return project.open_job(id=job_id)
+    except KeyError as error:
+        close_matches = difflib.get_close_matches(
+            job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
+        msg = "Did not find job corresponding to id '{}'.".format(job_id)
+        if len(close_matches) == 1:
+            msg += " Did you mean '{}'?".format(close_matches[0])
+        elif len(close_matches) > 1:
+            msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
+        raise KeyError(msg)
+    except LookupError as error:
+        n = project.min_len_unique_id()
+        raise LookupError("Multiple matches for abbreviated id '{}'. "
+                          "Use at least {} characters for guaranteed "
+                          "unique ids.".format(job_id, n))
+
+
 def main_project(args):
     project = get_project()
     if args.workspace:
@@ -137,14 +159,38 @@ def main_job(args):
 
 def main_statepoint(args):
     project = get_project()
-    m = re.compile('[a-z0-9]{32}')
+    m = re.compile('[a-f0-9]{1,32}\Z')
     for job_id in args.job_id:
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(
-            project.open_job(id=job_id).statepoint(),
-            indent=args.indent))
+        print(json.dumps(_open_job_id(project, job_id).statepoint(), indent=args.indent))
+
+
+def main_move(args):
+    project = get_project()
+    dst_project = get_project(root=args.project)
+    for job_id in args.job_id:
+        try:
+            job = _open_job_by_id(project, job_id)
+            job.move(dst_project)
+        except DestinationExistsError as error:
+            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+        else:
+            _print_err("Moved '{}' to '{}'.".format(job, dst_project))
+
+
+def main_clone(args):
+    project = get_project()
+    dst_project = get_project(root=args.project)
+    for job_id in args.job_id:
+        try:
+            job = _open_job_by_id(project, job_id)
+            dst_project.clone(job)
+        except DestinationExistsError as error:
+            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+        else:
+            _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
 
 
 def main_index(args):
@@ -161,8 +207,14 @@ def main_find(args):
         f = None
     else:
         f = json.loads(args.filter)
+
+    if args.doc_filter is None:
+        df = None
+    else:
+        df = json.loads(args.doc_filter)
+
     index = _read_index(project, args.index)
-    for job_id in project.find_job_ids(filter=f, index=index):
+    for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
         print(job_id)
 
 
@@ -170,9 +222,8 @@ def main_view(args):
     project = get_project()
     index = _read_index(project, args.index)
     project.create_linked_view(
-        job_ids=args.job_id,
         prefix=args.prefix,
-        force=args.force,
+        job_ids=args.job_id,
         index=index)
 
 
@@ -523,6 +574,32 @@ def main():
         help="Specify the indentation of the JSON formatted state point.")
     parser_statepoint.set_defaults(func=main_statepoint)
 
+    parser_move = subparsers.add_parser('move')
+    parser_move.add_argument(
+        'project',
+        type=str,
+        help="The root directory of the project to move one or more jobs to.")
+    parser_move.add_argument(
+        'job_id',
+        nargs='+',
+        type=str,
+        help="One or more job ids of jobs to move. The job corresponding to a "
+             "job id must be initialized.")
+    parser_move.set_defaults(func=main_move)
+
+    parser_clone = subparsers.add_parser('clone')
+    parser_clone.add_argument(
+        'project',
+        type=str,
+        help="The root directory of the project to clone one or more jobs in.")
+    parser_clone.add_argument(
+        'job_id',
+        nargs='+',
+        type=str,
+        help="One or more job ids of jobs to clone. The job corresponding to a "
+             "job id must be initialized.")
+    parser_clone.set_defaults(func=main_clone)
+
     parser_index = subparsers.add_parser('index')
     parser_index.set_defaults(func=main_index)
 
@@ -536,6 +613,10 @@ def main():
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
+    parser_find.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        help="A JSON encoded filter for job documents (key-value pairs).")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
@@ -550,10 +631,6 @@ def main():
         type=str,
         nargs='+',
         help="Limit the view to jobs with these job ids.")
-    parser_view.add_argument(
-        '-f', '--force',
-        action='store_true',
-        help="Ignore whether the view path is not empty.")
     parser_view.add_argument(
         '-i', '--index',
         type=str,

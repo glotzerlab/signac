@@ -1,3 +1,57 @@
+0.7.0:
+
+	- New features:
+
+		- Simplified iteration over project data spaces.
+		- An existing linked view can be updated by executing the view command
+		  again.
+		- Add attribute interface for the access and modification of
+		  job state points: `Job.sp`.
+		- Enable opening jobs via abbreviated job ids.
+		- Add function for moving and copying of jobs between projects.
+		- All project related iterators support the len-operator.
+
+	- API changes:
+
+	  - Enable iteration over all jobs with: `for job in project:`.
+		- Make `len(project)` an alias for `project.num_jobs()`.
+		- Add in-operator to determine whether a job is initialized within a
+		  project.
+		- Add `Job.sp` attribute to access and modify a job's state point.
+		- The `Project.open_job()` method accepts abbreviated job ids.
+		- Add `Project.min_len_unique_id()` method to determine the minimum
+		  length of job ids to be unique within the project's data space.
+		- Add `Job.move()` method to move jobs between projects.
+		- Add `Project.clone()` method to copy jobs between projects.
+		- Add `signac move` and `signac clone` CLI commands.
+		- Add `Job.reset_statepoint()` method to reset a job's state point.
+		- Add `Job.update_statepoint()` method to update a job's state point.
+		- The `Project.create_linked_view()` `force` argument is removed.
+		- The `Project.find_variable_parameters()` method has been removed
+		- Add a `Job.FN_DOCUMENT` constant which defines the filename of the job
+		  document file
+		- Remove the `Project.create_view()` method; has been deprecated and
+		  replaced by `Project.create_linked_view()` since version 0.4.
+		- The `signac find` command accepts a `--doc-filter` (`-d`) argument to
+		  filter by job document contents.
+
+	- Bug fixes:
+
+		- Fix error when using an instance of `Job` after calling `Job.remove()`.
+		- A project created in one the standard config directories (such as the
+		  home directory) does not take prevalence over project configurations in or
+		  above the current working directory.
+
+	- Miscellaneous:
+
+		- Add support for python version 3.6.
+		- Add support for pypy and pypy3.
+		- The GUI component has been removed.
+		- Linked views use relative paths.
+		- The `Guide` documentation chapter has been renamed to `Reference`
+		  and generally overhauled.
+		- The `Quick Reference` documentation chapter has been extended.
+
 0.6.2:
 
 	- Add instructions on how to acknowledge signac in publications to

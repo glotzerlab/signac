@@ -1,3 +1,7 @@
+# Copyright (c) 2017 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
+from __future__ import absolute_import
 import unittest
 import os
 import io
@@ -135,6 +139,121 @@ class JobTest(BaseJobTest):
         with open(fn_, 'w') as file:
             file.write('hello')
         self.assertTrue(job.isfile(fn))
+
+class JobSPInterfaceTest(BaseJobTest):
+
+    def test_interface_read_only(self):
+        sp = nested_dict()
+        job = self.open_job(sp)
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertEqual(getattr(job.sp, x) , sp[x])
+            self.assertEqual(job.sp[x] , sp[x])
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
+            self.assertEqual(job.sp[x] , sp[x])
+
+    def test_interface_contains(self):
+        sp = nested_dict()
+        job = self.open_job(sp)
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertIn(x, job.sp)
+            self.assertIn(x, job.sp.g)
+
+    def test_interface_read_write(self):
+        sp = nested_dict()
+        job = self.open_job(sp)
+        job.init()
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertEqual(getattr(job.sp, x) , sp[x])
+            self.assertEqual(job.sp[x] , sp[x])
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
+            self.assertEqual(job.sp[x] , sp[x])
+        l = [1, 1.0, '1.0', True, None]
+        b = list(l) + [l] + [tuple(l)]
+        for v in b:
+            for x in ('a', 'b', 'c', 'd', 'e'):
+                setattr(job.sp, x, v)
+                self.assertEqual(getattr(job.sp, x), v)
+                setattr(job.sp.g, x, v)
+                self.assertEqual(getattr(job.sp.g, x), v)
+
+    def test_interface_nested_kws(self):
+        job = self.open_job({'a.b.c': 0})
+        self.assertEqual(job.sp['a.b.c'], 0)
+        with self.assertRaises(KeyError):
+            job.sp.a.b.c
+        job.sp['a.b.c'] = 1
+        self.assertEqual(job.sp['a.b.c'], 1)
+        job.sp.a = dict(b=dict(c=2))
+        self.assertEqual(job.sp.a.b.c, 2)
+        self.assertEqual(job.sp['a']['b']['c'], 2)
+
+    def test_interface_reserved_keywords(self):
+        job = self.open_job({'with': 0, 'pop': 1})
+        self.assertEqual(job.sp['with'], 0)
+        self.assertEqual(job.sp['pop'], 1)
+        self.assertEqual(job.sp.pop('with'), 0)
+        self.assertNotIn('with', job.sp)
+
+    def test_interface_illegal_type(self):
+        job = self.open_job(dict(a=0))
+        self.assertEqual(job.sp.a, 0)
+
+        class Foo(object):
+            pass
+        with self.assertRaises(TypeError):
+            job.sp.a = Foo()
+
+    def test_interface_rename(self):
+        job = self.open_job(dict(a=0))
+        job.init()
+        self.assertEqual(job.sp.a, 0)
+        job.sp.b = job.sp.pop('a')
+        self.assertNotIn('a', job.sp)
+        self.assertEqual(job.sp.b, 0)
+
+    def test_interface_add(self):
+        job = self.open_job(dict(a=0))
+        job.init()
+        with self.assertRaises(KeyError):
+            job.sp.b
+        job.sp.b = 1
+        self.assertIn('b', job.sp)
+        self.assertEqual(job.sp.b, 1)
+
+    def test_interface_delete(self):
+        job = self.open_job(dict(a=0, b=0))
+        job.init()
+        self.assertIn('b', job.sp)
+        self.assertEqual(job.sp.b, 0)
+        del job.sp['b']
+        self.assertNotIn('b', job.sp)
+        with self.assertRaises(KeyError):
+            job.sp.b
+
+    def test_interface_destination_conflict(self):
+        job_a = self.open_job(dict(a=0))
+        job_b = self.open_job(dict(b=0))
+        job_a.init()
+        id_a = job_a.get_id()
+        job_a.sp = dict(b=0)
+        self.assertEqual(job_a.statepoint(), dict(b=0))
+        self.assertEqual(job_a, job_b)
+        self.assertNotEqual(job_a.get_id(), id_a)
+        job_a = self.open_job(dict(a=0))
+        # Moving to existing job, no problem while empty:
+        self.assertNotEqual(job_a, job_b)
+        job_a.sp = dict(b=0)
+        job_a = self.open_job(dict(a=0))
+        job_b.init()
+        # Moving to an existing job with data leads
+        # to an error:
+        job_a.document['a'] = 0
+        job_b.document['a'] = 0
+        self.assertNotEqual(job_a, job_b)
+        with self.assertRaises(RuntimeError):
+            job_a.sp = dict(b=0)
 
 
 class ConfigTest(BaseJobTest):
@@ -362,7 +481,26 @@ class JobDocumentTest(BaseJobTest):
         self.assertNotIn(key, job.document)
         self.assertFalse(os.path.isfile(fn_test))
 
-    def test_reset_statepoint(self):
+    def test_reset_statepoint_job(self):
+        key = 'move_job'
+        d = testdata()
+        src = test_token
+        dst = dict(test_token)
+        dst['dst'] = True
+        src_job = self.open_job(src)
+        src_job.document[key] = d
+        self.assertIn(key, src_job.document)
+        self.assertEqual(len(src_job.document), 1)
+        src_job.reset_statepoint(dst)
+        src_job = self.open_job(src)
+        dst_job = self.open_job(dst)
+        self.assertIn(key, dst_job.document)
+        self.assertEqual(len(dst_job.document), 1)
+        self.assertNotIn(key, src_job.document)
+        with self.assertRaises(RuntimeError):
+            src_job.reset_statepoint(dst)
+
+    def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
         src = test_token

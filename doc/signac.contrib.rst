@@ -1,9 +1,17 @@
 signac.contrib package
 ======================
 
+Module contents
+---------------
+
+.. automodule:: signac.contrib
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
-
 
 signac.contrib.indexing module
 ------------------------------
@@ -49,6 +57,7 @@ signac.contrib.job module
 -------------------------
 
 .. automodule:: signac.contrib.job
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
@@ -65,6 +74,7 @@ signac.contrib.project module
 -----------------------------
 
 .. automodule:: signac.contrib.project
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
@@ -73,15 +83,6 @@ signac.contrib.utility module
 -----------------------------
 
 .. automodule:: signac.contrib.utility
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: signac.contrib
     :members:
     :undoc-members:
     :show-inheritance:

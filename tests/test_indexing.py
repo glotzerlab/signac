@@ -1,3 +1,6 @@
+# Copyright (c) 2017 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
 import io
@@ -32,7 +35,7 @@ import re
 
 from signac.contrib import RegexFileCrawler
 
-RE_TXT = ".*a_(?P<a>\d)\.txt"
+RE_TXT = r".*a_(?P<a>\d)\.txt"
 
 class Crawler(RegexFileCrawler):
     tags = {'test1', 'test2'}

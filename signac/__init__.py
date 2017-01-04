@@ -1,4 +1,4 @@
-# Copyright (c) 2016 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """The signac framework aids in the management of large and
@@ -13,9 +13,8 @@ collectively accessible."""
 from __future__ import absolute_import
 from . import contrib
 from . import db
-from . import gui
 from . import cite
-from .common import errors
+from . import errors
 from .contrib import Project
 from .contrib import get_project
 from .contrib import init_project
@@ -28,9 +27,9 @@ from .contrib import fetch_one  # deprecated
 from .contrib import filesystems as fs
 from .db import get_database
 
-__version__ = '0.6.2'
+__version__ = '0.7.0'
 
-__all__ = ['__version__', 'contrib', 'db', 'gui', 'errors',
+__all__ = ['__version__', 'contrib', 'db', 'errors',
            'cite',
            'Project', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',

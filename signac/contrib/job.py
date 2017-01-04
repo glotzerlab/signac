@@ -1,4 +1,4 @@
-# Copyright (c) 2016 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
@@ -10,8 +10,11 @@ import copy
 
 from ..common import six
 from ..core.jsondict import JSonDict
+from ..core.attr_dict import AttrDict
+from ..core.attr_dict import convert_to_dict
 from .hashing import calc_id
 from .utility import _mkdir_p
+from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +31,8 @@ class Job(object):
     The job manifest, this means a human-readable dump of the job's\
     statepoint is stored in each workspace directory.
     """
+    FN_DOCUMENT = 'signac_job_document.json'
+    "The job's document filename."
 
     def __init__(self, project, statepoint):
         self._project = project
@@ -36,6 +41,7 @@ class Job(object):
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = list()
+        self._sp = None
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -70,6 +76,92 @@ class Job(object):
         :rtype: dict"""
         return copy.deepcopy(self._statepoint)
 
+    def reset_statepoint(self, new_statepoint):
+        """Reset the state point of this job.
+
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point,
+            may sometimes be necessary, but can possibly lead to incoherent
+            data spaces.
+
+        :param new_statepoint: The job's new state point.
+        :type new_statepoint: mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        dst = self._project.open_job(new_statepoint)
+        if dst == self:
+            return
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest_backup = fn_manifest + '~'
+        try:
+            os.rename(fn_manifest, fn_manifest_backup)
+            try:
+                os.rename(self.workspace(), dst.workspace())
+            except OSError as error:
+                os.rename(fn_manifest_backup, fn_manifest)  # rollback
+                if error.errno == errno.ENOTEMPTY:
+                    raise RuntimeError("Destination exists: {}".format(dst))
+                else:
+                    raise
+            else:
+                dst.init()
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                pass  # job is not initialized
+            else:
+                raise
+        logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        dst._sp = self._sp
+        self.__dict__.update(dst.__dict__)
+
+    def _reset_sp(self, new_sp):
+        self.reset_statepoint(convert_to_dict(new_sp))
+
+    def update_statepoint(self, update, overwrite=False):
+        """Update the statepoint of this job.
+
+        .. warning::
+
+            While appending to a job's state point is generally safe,
+            modifying existing parameters may lead to data
+            inconsistency. Use the overwrite argument with caution!
+
+        :param update: A mapping used for the statepoint update.
+        :type update: mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        statepoint = self.statepoint()
+        if not overwrite:
+            for key, value in update.items():
+                if statepoint.get(key, value) != value:
+                    raise KeyError(key)
+        statepoint.update(update)
+        self.reset_statepoint(statepoint)
+
+    @property
+    def sp(self):
+        "Access the job's state point as attribute dictionary."
+        if self._sp is None:
+            self._sp = AttrDict(self.statepoint(), self._reset_sp)
+        return self._sp
+
+    @sp.setter
+    def sp(self, new_sp):
+        self._reset_sp(new_sp)
+
     @property
     def document(self):
         """The document associated with this job.
@@ -78,7 +170,7 @@ class Job(object):
         :rtype: :class:`~.JSonDict`"""
         if self._document is None:
             self._create_directory()
-            fn = os.path.join(self.workspace(), 'signac_job_document.json')
+            fn = os.path.join(self.workspace(), self.FN_DOCUMENT)
             self._document = JSonDict(
                 fn, synchronized=True, write_concern=True)
         return self._document
@@ -96,9 +188,23 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                mode = 'w' if overwrite else 'wx' if six.PY2 else 'x'
-                with open(fn_manifest, mode) as file:
-                    file.write(blob)
+                if six.PY2:
+                    # Adapted from: http://stackoverflow.com/questions/10978869/
+                    if overwrite:
+                        flags = os.O_CREAT | os.O_WRONLY
+                    else:
+                        flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
+                    try:
+                        fd = os.open(fn_manifest, flags)
+                    except OSError as error:
+                        if error.errno != errno.EEXIST:
+                            raise
+                    else:
+                        with os.fdopen(fd, 'w') as file:
+                            file.write(blob)
+                else:
+                    with open(fn_manifest, 'w' if overwrite else 'x') as file:
+                        file.write(blob)
             except IOError as error:
                 if not error.errno == errno.EEXIST:
                     raise
@@ -138,13 +244,33 @@ class Job(object):
 
         This function will do nothing if the workspace directory
         does not exist."""
-        if self._document is not None:
-            self._document.clear()
         try:
             shutil.rmtree(self.workspace())
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
+        else:
+            if self._document is not None:
+                self._document.data.clear()
+                self._document = None
+
+    def move(self, project):
+        """Move this job to project.
+
+        This function will attempt to move this instance of job from
+        its original project to a different project.
+
+        :param project: The project to move this job to.
+        :type project: :py:class:`~.project.Project`
+        :raises DestinationExistsError: If the job is already initialized in project.
+        """
+        dst = project.open_job(self.statepoint())
+        _mkdir_p(project.workspace())
+        try:
+            os.rename(self.workspace(), dst.workspace())
+        except OSError:
+            raise DestinationExistsError(dst)
+        self.__dict__.update(dst.__dict__)
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.

@@ -1,3 +1,6 @@
+# Copyright (c) 2017 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 import os
 import json
 import unittest
@@ -151,6 +154,16 @@ class BasicShellTest(unittest.TestCase):
         self.assertEqual(
             self.call('python -m signac find'.split() + ['{"a": 0}']).strip(),
             list(project.find_job_ids({'a': 0}))[0])
+
+        # Test the doc_filter
+        for job in project.find_jobs():
+            job.document['a'] = job.statepoint()['a']
+
+        for i in range(3):
+            self.assertEqual(
+                self.call('python -m signac find --doc-filter'.split() + ['{"a": ' + str(i) + '}']).strip(),
+                list(project.find_job_ids(doc_filter={'a': i}))[0])
+
 
 
 if __name__ == '__main__':
