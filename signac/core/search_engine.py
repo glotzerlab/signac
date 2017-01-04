@@ -178,8 +178,7 @@ class DocumentSearchEngine(object):
         """
         self.check_filter(filter)
         if filter is None or not len(filter):
-            for _id in self.ids:
-                yield _id
+            return _DocumentSearchEngineResults(self.ids)
         else:
             result = None
             for branch in _traverse_filter(filter):
@@ -195,9 +194,20 @@ class DocumentSearchEngine(object):
             if result is None:
                 return
             else:
-                for _id in result:
-                    yield _id
+                return _DocumentSearchEngineResults(result)
 
     def __len__(self):
         """Return the number of indexed documents."""
         return len(self.ids)
+
+
+class _DocumentSearchEngineResults(object):
+
+    def __init__(self, ids):
+        self._ids = ids
+
+    def __len__(self):
+        return len(self._ids)
+
+    def __iter__(self):
+        return iter(self._ids)

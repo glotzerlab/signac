@@ -217,6 +217,7 @@ def main_view(args):
     index = _read_index(project, args.index)
     project.create_linked_view(
         prefix=args.prefix,
+        job_ids=args.job_id,
         index=index)
 
 
@@ -615,6 +616,11 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
+    parser_view.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs with these job ids.")
     parser_view.add_argument(
         '-i', '--index',
         type=str,

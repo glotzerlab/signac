@@ -124,7 +124,24 @@ class ProjectTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         self.assertEqual(len(statepoints), self.project.num_jobs())
-        self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
+        self.assertEqual(len(statepoints), len(self.project))
+        docs = self.project.find_jobs()
+        self.assertEqual(len(statepoints), len(self.project.find_jobs()))
+
+    def test_len_find_jobs(self):
+        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.assertEqual(len(self.project), len(self.project.find_jobs()))
+        self.assertEqual(3, len(self.project.find_jobs({'b': True})))
+
+    def test_iteration(self):
+        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        for i, job in enumerate(self.project):
+            pass
+        self.assertEqual(i, len(self.project)-1)
 
     def test_open_job_by_id(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -160,54 +177,6 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
 
-    def test_find_variable_parameters(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            # Test for highly heterogenous parameter space
-            sp_0 = [{'a': i, 'b': 0} for i in range(5)]
-            sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
-            sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
-                    for i in range(5)]
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_0),
-                [['a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_1),
-                [['a'], ['c', 'a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_2),
-                [['a'], ['c', 'a'], ['c', 'c', 'a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_0 + sp_1),
-                [['a'], ['c', 'a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_0 + sp_2),
-                [['a'], ['c', 'a'], ['c', 'c', 'a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_1 + sp_2),
-                [['a'], ['c', 'a'], ['c', 'c', 'a']])
-            self.assertEqual(
-                self.project.find_variable_parameters(sp_0 + sp_1 + sp_2),
-                [['a'], ['c', 'a'], ['c', 'c', 'a']])
-
-    def test_create_view(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            # Test for highly heterogenous parameter space
-            sp_0 = [{'a': i, 'b': 0} for i in range(5)]
-            sp_1 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0}} for i in range(5)]
-            sp_2 = [{'a': i, 'b': 0, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
-                    for i in range(5)]
-            statepoints = sp_0 + sp_1 + sp_2
-            for sp in statepoints:
-                self.project.open_job(sp).document['test'] = True
-            key_set = list(signac.contrib.project._find_unique_keys(statepoints))
-            self.assertEqual(len(statepoints), len(
-                list(signac.contrib.project._make_urls(statepoints, key_set))))
-            view_prefix = os.path.join(self._tmp_pr, 'view')
-            self.project.create_view(prefix=view_prefix)
-            self.assertTrue(os.path.isdir(view_prefix))
-
     def test_create_linked_view(self):
         sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
         sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
@@ -235,6 +204,18 @@ class ProjectTest(BaseProjectTest):
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         self.assertEqual(src, dst)
+        # update with subset
+        subset = list(self.project.find_job_ids({'b': 0}))
+        job_subset = [self.project.open_job(id=id) for id in subset]
+        bad_index = [dict(_id=i) for i in range(3)]
+        with self.assertRaises(ValueError):
+            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), len(subset))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
+        self.assertEqual(src, dst)
         # some jobs removed
         for job in self.project.find_jobs({'b': 0}):
             job.remove()
@@ -243,6 +224,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(all_links), self.project.num_jobs())
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
         # all jobs removed
         for job in self.project.find_jobs():
             job.remove()
@@ -251,6 +233,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(all_links), self.project.num_jobs())
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
 
     def test_find_job_documents(self):
         statepoints = [{'a': i} for i in range(5)]

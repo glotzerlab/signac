@@ -102,8 +102,7 @@ class JobSearchIndex(object):
         if doc_filter is not None:
             f.update(doc_filter)
         f = json.loads(json.dumps(f))  # Normalize
-        for job_id in self._engine.find(filter=f):
-            yield job_id
+        return self._engine.find(filter=f)
 
 
 class Project(object):
@@ -250,6 +249,8 @@ class Project(object):
         """
         return job.get_id() in self.find_job_ids()
 
+    __len__ = num_jobs
+
     def build_job_search_index(self, index, include=None, hash_=None):
         """Build a job search index.
 
@@ -323,9 +324,7 @@ class Project(object):
             by the index.
         """
         if filter is None and doc_filter is None and index is None:
-            for job_id in self._job_dirs():
-                yield job_id
-            return
+            return list(self._job_dirs())
         if index is None:
             index = self.index(include_job_document=doc_filter is not None)
         if doc_filter is None:
@@ -333,8 +332,7 @@ class Project(object):
         else:
             include = None
         search_index = self.build_job_search_index(index, include)
-        for job_id in search_index.find_job_ids(filter=filter, doc_filter=doc_filter):
-            yield job_id
+        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
@@ -357,8 +355,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        for job_id in self.find_job_ids(filter, doc_filter, index):
-            yield self.open_job(id=job_id)
+        return _JobsIterator(self, self.find_job_ids(filter, doc_filter, index))
+
+    def __iter__(self):
+        return self.find_jobs()
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -379,38 +379,6 @@ class Project(object):
             jobs = _skip_errors(jobs, logger.critical)
         for job in jobs:
             yield job.statepoint()
-
-    def find_variable_parameters(self, statepoints=None):
-        """Find all parameters which vary over the data space.
-
-        .. warning::
-
-            This method is deprecated.
-            Please see :meth:`~.build_job_statepoint_index` for an
-            alternative method.
-
-        This method attempts to detect all parameters, which vary
-        over the parameter space.
-        The parameter sets are ordered decreasingly
-        by data sub space size.
-
-        .. warning::
-
-            This method does not detect linear dependencies
-            within the state points. Linear dependencies should
-            generally be avoided.
-
-        :param statepoints: The statepoints to consider.
-            Defaults to all state points within the data space.
-        :type statepoints: Iterable of parameter mappings.
-        :return: A hierarchical list of variable parameters.
-        :rtype: list"""
-        warnings.warn(
-            "The find_variable_parameters() method is deprecated, please use "
-            "build_job_statepoint_index() instead.", DeprecationWarning)
-        if statepoints is None:
-            statepoints = self.find_statepoints()
-        return list(_find_unique_keys(statepoints))
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -519,7 +487,7 @@ class Project(object):
         assert str(self.open_job(statepoint)) == jobid
         return statepoint
 
-    def create_linked_view(self, prefix=None, index=None):
+    def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create a persistent linked view of the selected data space..
 
         This method determines unique paths for each job based on the job's
@@ -547,11 +515,27 @@ class Project(object):
 
             To maximize the compactness of each view path, *b* which does not
             vary over the selected data space, is ignored.
+
+        :param prefix:
+            The path where the linked view will be created or updated.
+        :type prefix:
+            str
+        :param job_ids:
+            If None (the default), create the view for the complete data space,
+            otherwise only for the sub space constituted by the provided job ids.
+        :param index:
+            A document index.
         """
         if prefix is None:
             prefix = 'view'
         if index is None:
             index = self.index(include_job_document=False)
+        if job_ids is not None:
+            if not isinstance(job_ids, set):
+                job_ids = set(job_ids)
+            index = [doc for doc in index if doc['_id'] in job_ids]
+            if not job_ids.issubset({doc['_id'] for doc in index}):
+                raise ValueError("Insufficient index for selected data space.")
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
         links = dict()
@@ -562,66 +546,6 @@ class Project(object):
                 links['./job'] = job.workspace()
             assert len(links) < 2
         _update_view(prefix, links)
-
-    def create_view(self, filter=None, prefix='view'):
-        """Create a view of the workspace.
-
-        .. warning::
-
-            This method is deprecated.
-            Please use :meth:`~.create_linked_view` instead.
-
-        This method gathers all varying statepoint parameters
-        and creates symbolic links to the workspace directories.
-        This is useful for browsing through the workspace in a
-        human-readable manner.
-
-        Let's assume the parameter space is
-
-            * a=0, b=0
-            * a=1, b=0
-            * a=2, b=0
-            * ...,
-
-        where *b* does not vary over all statepoints.
-
-        Calling this method will generate the following *symbolic links* within
-        the speciefied  view directory:
-
-        .. code-block:: bash
-
-            view/a/0 -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
-            view/a/1 -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
-            ...
-
-        .. note::
-
-            As *b* does not vary over the whole parameter space it is not part
-            of the view url.
-            This maximizes the compactness of each view url.
-
-        :param filter:  If not None,
-            create view only for jobs matching filter.
-        :type filter: mapping
-        :param prefix: Specifies where to create the links."""
-        warnings.warn(
-            "The create_view() method is deprecated, please use "
-            "create_linked_view() instead.", DeprecationWarning)
-        statepoints = list(self.find_statepoints(filter=filter))
-        if not len(statepoints):
-            if filter is None:
-                logger.warning("No state points found!")
-            else:
-                logger.warning("No state points matched the filter.")
-        key_set = list(_find_unique_keys(statepoints))
-        if filter is not None:
-            key_set[:0] = [[key] for key in filter.keys()]
-        for statepoint, url in _make_urls(statepoints, key_set):
-            src = self.open_job(statepoint).workspace()
-            dst = os.path.join(prefix, url)
-            logger.info(
-                "Creating link {src} -> {dst}".format(src=src, dst=dst))
-            _make_link(src, dst)
 
     def find_job_documents(self, filter=None):
         """Find all job documents in the project's workspace.
@@ -651,61 +575,58 @@ class Project(object):
             yield doc
 
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the statepoint of job.
+        """Reset the state point of job.
 
         .. danger::
 
-            Use this function with caution! Resetting a job's statepoint,
+            Use this function with caution! Resetting a job's state point,
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
-            If you only want to *extend* your statepoint, consider to
-            use :meth:`~.update_statepoint` instead.
 
-        :param job: The job, that should be reset to a new state point.
-        :type job: :class:`~.contrib.job.Job`
-        :param new_statepoint: The job's new unique set of parameters.
-        :type new_statepoint: mapping
-        :returns: The job instance with the new state point.
-        :rtype: :py:class:`~.Job`
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        dst = self.open_job(new_statepoint)
-        _move_job(job, dst)
-        logger.info(
-            "Reset statepoint of job {}, moved to {}.".format(job, dst))
-        return dst
+        :param job:
+            The job, that should be reset to a new state point.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param new_statepoint:
+            The job's new state point.
+        :type new_statepoint:
+            mapping
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.reset_statepoint(new_statepoint=new_statepoint)
 
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the statepoint of job.
+        """Update the statepoint of this job.
 
         .. warning::
 
-            While appending to a job's statepoint is generally safe,
+            While appending to a job's state point is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param job: The job, whose statepoint shall be updated.
-        :type job: :class:`~.contrib.job.Job`
-        :param update: A mapping used for the statepoint update.
-        :type update: mapping
-        :param overwrite: Set to true, to ignore whether this
-            update overwrites parameters, which are currently
-            part of the job's statepoint. Use with caution!
-        :returns: The job instance with the updated state point.
-        :rtype: :py:class:`~.Job`
-        :raises KeyError: If the update contains keys, which are
-            already part of the job's statepoint and overwrite is False.
-        :raises RuntimeError: If a job associated with the new unique set
-            of parameters already exists in the workspace."""
-        statepoint = dict(job.statepoint())
-        if not overwrite:
-            for key in update:
-                if key in statepoint:
-                    raise KeyError(key)
-        statepoint.update(update)
-        dst = self.open_job(statepoint)
-        _move_job(job, dst)
-        return dst
+        :param job:
+            The job, whose statepoint shall be updated.
+        :type job:
+            :class:`~.contrib.job.Job`
+        :param update:
+            A mapping used for the statepoint update.
+        :type update:
+            mapping
+        :param overwrite:
+            Set to true, to ignore whether this update overwrites parameters,
+            which are currently part of the job's state point. Use with caution!
+        :raises KeyError:
+            If the update contains keys, which are already part of the job's
+            state point and overwrite is False.
+        :raises RuntimeError:
+            If a job associated with the new state point is already initialized.
+        :raises OSError:
+            If the move failed due to an unknown system related error.
+        """
+        job.update_statepoint(update=update, overwrite=overwrite)
 
     def clone(self, job):
         """Clone job into this project.
@@ -936,23 +857,6 @@ class Project(object):
         return cls(config=config)
 
 
-def _move_job(src, dst):
-    logger.debug("Attempting to move job {} to {}".format(src, dst))
-    fn_src_manifest = os.path.join(src.workspace(), src.FN_MANIFEST)
-    fn_src_manifest_backup = fn_src_manifest + '~'
-    os.rename(fn_src_manifest, fn_src_manifest_backup)
-    try:
-        os.rename(src.workspace(), dst.workspace())
-    except OSError:  # rollback
-        os.rename(fn_src_manifest_backup, fn_src_manifest)
-        raise RuntimeError(
-            "Failed to move {} to {}, destination already exists.".format(
-                src, dst))
-    else:
-        dst.init()
-        logger.info("Moved job {} to {}.".format(src, dst))
-
-
 def _find_all_links(root, leaf='job'):
     for dirpath, dirnames, filenames in os.walk(root):
         for dirname in dirnames:
@@ -1113,61 +1017,6 @@ def _make_paths(sp_index, leaf='job'):
         yield path, jid
 
 
-def _find_unique_keys(statepoints):
-    key_set = _aggregate_statepoints(statepoints)
-    if six.PY2:
-        def flatten(l):
-            for el in l:
-                if isinstance(el, collections.Iterable) and not \
-                        (isinstance(el, str) or isinstance(el, unicode)):  # noqa
-                    for sub in flatten(el):
-                        yield sub
-                else:
-                    yield el
-    else:
-        def flatten(l):
-            for el in l:
-                if isinstance(el, collections.Iterable) and \
-                        not (isinstance(el, str)):
-                    for sub in flatten(el):
-                        yield sub
-                else:
-                    yield el
-    key_set = (list(flatten(k)) for k in key_set)
-    for key in sorted(key_set, key=len):
-        yield key
-
-
-def _aggregate_statepoints(statepoints, prefix=None):
-    result = list()
-    statepoint_set = collections.defaultdict(set)
-    # Gather all keys.
-    ignore = set()
-    for statepoint in statepoints:
-        for key, value in statepoint.items():
-            if key in ignore:
-                continue
-            try:
-                statepoint_set[key].add(value)
-            except TypeError:
-                if isinstance(value, Mapping):
-                    result.extend(_aggregate_statepoints(
-                        [sp[key] for sp in statepoints if key in sp],
-                        prefix=(key) if prefix is None else (prefix, key)))
-                    ignore.add(key)
-                else:
-                    statepoint_set[key].add(calc_id(value))
-    # Heal heterogenous parameter space.
-    for statepoint in statepoints:
-        for key in statepoint_set.keys():
-            if key not in statepoint:
-                statepoint_set[key].add(None)
-    unique_keys = list(k for k, v in sorted(
-        statepoint_set.items(), key=lambda i: len(i[1])) if len(v) > 1)
-    result.extend((k,) if prefix is None else (prefix, k) for k in unique_keys)
-    return result
-
-
 def _skip_errors(iterable, log=print):
     while True:
         try:
@@ -1176,6 +1025,26 @@ def _skip_errors(iterable, log=print):
             return
         except Exception as error:
             log(error)
+
+
+class _JobsIterator(object):
+
+    def __init__(self, project, ids):
+        self._project = project
+        self._ids = ids
+        self._ids_iterator = iter(ids)
+
+    def __len__(self):
+        return len(self._ids)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self._project.open_job(id=next(self._ids_iterator))
+
+    next = __next__  # python 2.7 compatibility
+
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
