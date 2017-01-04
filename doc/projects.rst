@@ -308,6 +308,16 @@ Or even with `Open MPI`_ using a :py:class:`~.contrib.mpipool.MPIPool`:
     with MPIPool() as pool:
         pool.map(func, tqdm(project))
 
+.. warning::
+
+    Make sure to execute write-operations only on one MPI rank, e.g.:
+
+    .. code-block:: python
+
+      if comm.Get_rank() == 0:
+          job.document['a'] = 0
+      comm.Barrier()
+
 
 .. note::
 
