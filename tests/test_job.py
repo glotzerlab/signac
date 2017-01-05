@@ -13,6 +13,7 @@ import random
 import signac.contrib
 import signac.common.config
 from signac.common import six
+from signac.errors import DestinationExistsError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -253,6 +254,8 @@ class JobSPInterfaceTest(BaseJobTest):
         job_b.document['a'] = 0
         self.assertNotEqual(job_a, job_b)
         with self.assertRaises(RuntimeError):
+            job_a.sp = dict(b=0)
+        with self.assertRaises(DestinationExistsError):
             job_a.sp = dict(b=0)
 
 
@@ -499,6 +502,8 @@ class JobDocumentTest(BaseJobTest):
         self.assertNotIn(key, src_job.document)
         with self.assertRaises(RuntimeError):
             src_job.reset_statepoint(dst)
+        with self.assertRaises(DestinationExistsError):
+            src_job.reset_statepoint(dst)
 
     def test_reset_statepoint_project(self):
         key = 'move_job'
@@ -517,6 +522,8 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(len(dst_job.document), 1)
         self.assertNotIn(key, src_job.document)
         with self.assertRaises(RuntimeError):
+            self.project.reset_statepoint(src_job, dst)
+        with self.assertRaises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
 
     def test_update_statepoint(self):
@@ -541,6 +548,8 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(len(dst_job.document), 1)
         self.assertNotIn(key, src_job.document)
         with self.assertRaises(RuntimeError):
+            self.project.reset_statepoint(src_job, dst)
+        with self.assertRaises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
         with self.assertRaises(KeyError):
             self.project.update_statepoint(dst_job, extension2)
