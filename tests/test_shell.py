@@ -113,6 +113,14 @@ class BasicShellTest(unittest.TestCase):
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         self.assertTrue(os.path.isdir(wd_path))
 
+    def test_statepoint(self):
+        self.call('python -m signac init my_project'.split())
+        self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
+        project = signac.Project()
+        for job in project:
+            sp = self.call('python -m signac statepoint {}'.format(job).split())
+            self.assertEqual(project.open_job(json.loads(sp)), job)
+
     def test_index(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
