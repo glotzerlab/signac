@@ -164,7 +164,10 @@ def main_statepoint(args):
         if not m.match(job_id):
             raise ValueError(
                 "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(_open_job_by_id(project, job_id).statepoint(), indent=args.indent))
+        print(json.dumps(
+                _open_job_by_id(project, job_id).statepoint(),
+                indent=args.indent,
+                sort_keys=args.sort))
 
 
 def main_move(args):
@@ -572,6 +575,10 @@ def main():
         nargs='?',
         const='2',
         help="Specify the indentation of the JSON formatted state point.")
+    parser_statepoint.add_argument(
+        '-s', '--sort',
+        action='store_true',
+        help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
 
     parser_move = subparsers.add_parser('move')
