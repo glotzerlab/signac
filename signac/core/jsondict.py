@@ -15,10 +15,6 @@ if six.PY2:
 else:
     from collections import UserDict
 
-try:
-    import bson.json_util as json
-except ImportError:
-    import json
 
 logger = logging.getLogger(__name__)
 
