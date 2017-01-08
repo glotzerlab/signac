@@ -451,7 +451,7 @@ class Project(object):
         fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'r') as manifest:
-                return json.load(manifest)
+                return json.loads(manifest.read())
         except (IOError, ValueError) as error:
             if os.path.isfile(fn_manifest):
                 msg = "Error while trying to access manifest file: "\
@@ -653,7 +653,7 @@ class Project(object):
             fn_manifest = os.path.join(job_dir, self.Job.FN_MANIFEST)
             try:
                 with open(fn_manifest) as manifest:
-                    statepoint = json.load(manifest)
+                    statepoint = json.loads(manifest.read())
             except Exception as error:
                 logger.warning(
                     "Encountered error while reading from '{}'. "

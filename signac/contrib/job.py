@@ -224,7 +224,7 @@ class Job(object):
         try:
             try:
                 with open(fn_manifest) as file:
-                    assert calc_id(json.load(file)) == self._id
+                    assert calc_id(json.loads(file.read())) == self._id
             except IOError as error:
                 if not error.errno == errno.ENOENT:
                     raise error
