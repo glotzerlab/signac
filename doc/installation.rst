@@ -90,6 +90,3 @@ Extra features with dependencies:
       required: ``pymongo``
 
       recommended: ``passlib``, ``bcrypt``
-
-    Graphical User Interface (GUI)
-      required: ``PySide``
