@@ -4,11 +4,11 @@
 import os
 import errno
 import logging
-import json
 import shutil
 import copy
 
 from ..common import six
+from ..core.json import json
 from ..core.jsondict import JSonDict
 from ..core.attr_dict import AttrDict
 from ..core.attr_dict import convert_to_dict

@@ -5,13 +5,13 @@ from __future__ import print_function
 import os
 import re
 import logging
-import json
 import errno
 import warnings
 import collections
 import shutil
 from itertools import chain
 
+from ..core.json import json
 from ..core.search_engine import DocumentSearchEngine
 from ..common import six
 from ..common.config import load_config

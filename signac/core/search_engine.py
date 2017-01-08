@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
-import json
 
+from .json import json
 from ..common import six
 if six.PY2:
     from collections import Mapping

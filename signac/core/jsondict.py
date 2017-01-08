@@ -7,6 +7,7 @@ import errno
 import logging
 import uuid
 
+from .json import json
 from ..common import six
 
 if six.PY2:

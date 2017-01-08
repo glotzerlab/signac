@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import re
-import json
 import math
 import hashlib
 import logging
@@ -11,6 +10,7 @@ import warnings
 import errno
 from time import sleep
 
+from ..core.json import json
 from ..common import six
 from ..common import errors
 from .utility import walkdepth, is_string
