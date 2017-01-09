@@ -1,11 +1,13 @@
 0.7.1:
 
 	- All job move-related methods raise DestinationExistsError in case of
-		destination conflicts.
+	  destination conflicts.
 	- Fixed bug in `signac statepoint`.
 	- Optimized `signac find` command.
 	- When the `python-rapidjson` package is installed, it will be used for JSON
-		encoding/decoding.
+	  encoding/decoding.
+	- Surpress 'broken pipe error' message when using `signac find` for example
+	  in combination with `head`.
 
 0.7.0:
 
