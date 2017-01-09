@@ -100,10 +100,7 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 
 
 def _read_index(project, fn_index=None):
-    if fn_index is None:
-        _print_err("Indexing project...")
-        return project.index()
-    else:
+    if fn_index is not None:
         _print_err("Reading index from file '{}'...".format(fn_index))
         fd = open(fn_index)
         return (json.loads(l) for l in fd)
