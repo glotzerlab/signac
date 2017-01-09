@@ -10,6 +10,7 @@ import json
 import logging
 import getpass
 import difflib
+import errno
 
 from . import get_project, init_project
 from . import __version__
@@ -214,8 +215,14 @@ def main_find(args):
         df = json.loads(args.doc_filter)
 
     index = _read_index(project, args.index)
-    for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
-        print(job_id)
+    try:
+        for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
+            print(job_id)
+    except IOError as error:
+        if error.errno == errno.EPIPE:
+            sys.stderr.close()
+        else:
+            raise
 
 
 def main_view(args):
