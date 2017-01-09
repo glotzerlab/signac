@@ -590,7 +590,7 @@ class Project(object):
         :type job: :class:`~.contrib.job.Job`
         :param new_statepoint: The job's new state point.
         :type new_statepoint: mapping
-        :raises RuntimeError:
+        :raises DestinationExistsError:
             If a job associated with the new state point is already initialized.
         :raises OSError:
             If the move failed due to an unknown system related error.
@@ -616,7 +616,7 @@ class Project(object):
         :raises KeyError:
             If the update contains keys, which are already part of the job's
             state point and overwrite is False.
-        :raises RuntimeError:
+        :raises DestinationExistsError:
             If a job associated with the new state point is already initialized.
         :raises OSError:
             If the move failed due to an unknown system related error.
