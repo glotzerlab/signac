@@ -33,5 +33,5 @@ Contents:
    signac_105_Command_Line_Interface.ipynb
    signac_201_Advanced_Indexing.ipynb
    signac_202_Integration_with_pandas.ipynb
-   signac_203_Database_integration.ipynb
+   signac_203_Database_Integration.ipynb
    signac_204_External_Tools.ipynb
