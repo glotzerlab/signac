@@ -17,36 +17,36 @@ pipelines:
       - step:
           image: themattrix/tox
           script:
-            - pip install -U coverage
-            - python --version
-            - pip --version
+            - pip3.6 install -U coverage
+            - python3.6 --version
+            - pip3.6 --version
             - tox --version
-            - python setup.py build
-            - python -m unittest discover tests/ -v
+            - python3.6 setup.py build
+            - python3.6 -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
     develop:
       - step:
           image: themattrix/tox
           script:
-            - pip install -U coverage
-            - python --version
-            - pip --version
+            - pip3.6 install -U coverage
+            - python3.6 --version
+            - pip3.6 --version
             - tox --version
-            - python setup.py build
-            - python -m unittest discover tests/ -v
+            - python3.6 setup.py build
+            - python3.6 -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
     v*:
       - step:
           image: themattrix/tox
           script:
-            - pip install -U coverage
-            - python --version
-            - pip --version
+            - pip3.6 install -U coverage
+            - python3.6 --version
+            - pip3.6 --version
             - tox --version
-            - python setup.py build
-            - python -m unittest discover tests/ -v
+            - python3.6 setup.py build
+            - python3.6 -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
   tags:
@@ -54,14 +54,14 @@ pipelines:
      - step:
           image: themattrix/tox
           script:
-            - pip install -U coverage
-            - pip install -U twine
-            - python --version
-            - pip --version
+            - pip3.6 install -U coverage
+            - pip3.6 install -U twine
+            - python3.6 --version
+            - pip3.6 --version
             - tox --version
             - twine --version
-            - python setup.py build
-            - python -m unittest discover tests/ -v
+            - python3.6 setup.py build
+            - python3.6 -m unittest discover tests/ -v
             - tox
             - coverage report -i --include="signac*"
             - bash .deploy.bash

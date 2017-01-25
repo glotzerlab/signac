@@ -12,5 +12,5 @@ repository=https://pypi.python.org/pypi
 username=$PYPI_USERNAME
 password=$PYPI_PASSWORD
 EOF
-python setup.py bdist_wheel
-twine upload dist/*
+python3 setup.py bdist_wheel
+python3 -m twine upload dist/*
