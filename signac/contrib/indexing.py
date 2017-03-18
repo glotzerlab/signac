@@ -713,3 +713,14 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
     if len(operations):
         logger.debug("Pushing final chunk.")
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
+
+
+def index(root='.', formats=None):
+    if formats is None:
+        yield from MasterCrawler(root).crawl()
+    else:
+        class Crawler(RegexFileCrawler):
+            pass
+        for regex, fmt in formats.items():
+            Crawler.define(regex, fmt)
+        yield from Crawler(root).crawl()

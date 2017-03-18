@@ -19,6 +19,7 @@ from .indexing import export_one
 from .indexing import export
 from .indexing import export_to_mirror
 from .indexing import export_pymongo
+from .indexing import index
 from .collection import Collection
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ __all__ = [
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
     'export_one', 'export', 'export_to_mirror', 'export_pymongo',
+    'index',
     'Collection',
 ]
 

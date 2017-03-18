@@ -26,6 +26,7 @@ from .contrib import export_pymongo
 from .contrib import fetch_one  # deprecated
 from .contrib import filesystems as fs
 from .contrib import Collection
+from .contrib import index
 from .db import get_database
 
 __version__ = '0.7.1'
@@ -37,4 +38,6 @@ __all__ = ['__version__', 'contrib', 'db', 'errors',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
            'export_pymongo', 'fs'
+           'export_pymongo', 'fs',
+           'index',
            ]
