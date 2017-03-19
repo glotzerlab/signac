@@ -191,7 +191,7 @@ class DocumentSearchEngine(object):
                 else:
                     result = result.intersection(matches)
             if result is None:
-                return
+                return _DocumentSearchEngineResults([])
             else:
                 return _DocumentSearchEngineResults(result)
 
