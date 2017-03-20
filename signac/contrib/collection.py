@@ -5,6 +5,7 @@ import sys
 import io
 import logging
 from collections import defaultdict
+from uuid import uuid4
 
 from ..core.json import json
 from ..common import six
@@ -60,9 +61,10 @@ def _traverse_tree(t, include=None, encode=None):
         yield t
 
 
-def _traverse_filter(t, include=None):
+def traverse_filter(t, include=None):
     for b in _traverse_tree(t, include=include, encode=_encode_tree):
-        yield b
+        nodes = list(_flatten(b))
+        yield '.'.join(nodes[:-1]), nodes[-1]
 
 
 def _valid_filter(f, top=True):
@@ -85,8 +87,12 @@ def _build_index(docs, key, primary_key):
             return doc
 
     for doc in docs:
-        v = _get_value(doc, nodes)
-        index[_encode_tree(v)].add(doc[primary_key])
+        try:
+            v = _get_value(doc, nodes)
+        except KeyError:
+            continue
+        else:
+            index[_encode_tree(v)].add(doc[primary_key])
     return index
 
 
@@ -112,10 +118,11 @@ class Collection(object):
         self._file = io.StringIO()
         self._dirty = set()
         self._indeces = dict()
-        if docs is None:
-            self._docs = dict()
-        else:
-            self._docs = _index(docs, self.primary_key)
+        self._docs = dict()
+        if docs is not None:
+            for doc in docs:
+                self[doc[self.primary_key]] = doc
+            self._dirty.clear()
 
     def _assert_open(self):
         if self._docs is None:
@@ -180,8 +187,8 @@ class Collection(object):
 
     def __setitem__(self, _id, doc):
         self._assert_open()
-        if not isinstance(_id, int):
-            raise TypeError("The primary key must be an integer type!")
+        if not isinstance(_id, str):
+            raise TypeError("The primary key must be an str type!")
         doc.setdefault(self.primary_key, _id)
         if doc[self.primary_key] != _id:
             raise ValueError("Primary key ('{}') mismatch!".format(self.primary_key))
@@ -205,7 +212,7 @@ class Collection(object):
 
     def update(self, docs):
         for doc in docs:
-            doc.setdefault(self.primary_key, len(self))
+            doc.setdefault(self.primary_key, str(uuid4()))
             self[doc[self.primary_key]] = doc
 
     def _check_filter(self, filter):
@@ -224,10 +231,7 @@ class Collection(object):
             result = {_id}
         else:
             result = None
-        for branch in _traverse_filter(filter):
-            nodes = list(_flatten(branch))
-            key = '.'.join(nodes[:-1])
-            value = nodes[-1]
+        for key, value in traverse_filter(filter):
             index = self.index(key, build=True)
             matches = index.get(value, set())
             if result is None:
