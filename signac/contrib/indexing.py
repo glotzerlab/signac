@@ -349,7 +349,8 @@ def _index_signac_project_workspace(root,
                 if error.errno != errno.ENOENT:
                     raise
         yield doc
-    logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
+    if job_ids:
+        logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
 class SignacProjectCrawler(RegexFileCrawler):
