@@ -316,6 +316,7 @@ def _index_signac_project_workspace(root,
                                     encoding='utf-8',
                                     statepoint_dict=None):
     "Yields standard index documents for a signac project workspace."
+    logger.debug("Indexing workspace '{}'...".format(root))
     m = re.compile(r'[a-f0-9]{32}')
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
@@ -324,7 +325,7 @@ def _index_signac_project_workspace(root,
             return
         else:
             raise
-    for job_id in job_ids:
+    for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
         doc = dict(signac_id=job_id)
@@ -348,6 +349,7 @@ def _index_signac_project_workspace(root,
                 if error.errno != errno.ENOENT:
                     raise
         yield doc
+    logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
 class SignacProjectCrawler(RegexFileCrawler):

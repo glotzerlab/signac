@@ -92,14 +92,14 @@ class DocumentSearchEngine(object):
     """
     def __init__(self, docs=None, include=None, hash_=None):
         self._hash = hash if hash_ is None else hash_
-        logger.debug("Building index...")
         self._docs = docs
         self._indeces = dict()
 
     def _get_index(self, key, docs):
         if key not in self._indeces:
-            logger.debug("Building index for key '{}'.".format(key))
+            logger.debug("Building index for key '{}'...".format(key))
             self._indeces[key] = self._build_index(docs, key)
+            logger.debug("Built index for key '{}'.".format(key))
         return self._indeces[key]
 
     def _build_index(self, docs, key):
@@ -114,8 +114,7 @@ class DocumentSearchEngine(object):
                 return doc
 
         if docs is not None:
-            from tqdm import tqdm
-            for doc in tqdm(docs):
+            for doc in docs:
                 try:
                     index[_get_value(doc, nodes)].add(doc['_id'])
                 except (KeyError, TypeError):
