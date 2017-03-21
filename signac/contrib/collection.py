@@ -237,6 +237,7 @@ class Collection(object):
             raise ValueError(filter)
 
     def _find(self, filter=None, limit=0):
+        self._assert_open()
         filter = json.loads(json.dumps(filter))  # Normalize
         self._check_filter(filter)
         if filter is None or not len(filter):
@@ -296,8 +297,11 @@ class Collection(object):
 
     @classmethod
     def _open(cls, file):
-        docs = (json.loads(line) for line in file)
-        collection = cls(docs=docs)
+        try:
+            docs = (json.loads(line) for line in file)
+            collection = cls(docs=docs)
+        except io.UnsupportedOperation:
+            collection = cls()
         collection._file = file
         return collection
 
@@ -327,11 +331,13 @@ class Collection(object):
 
     def close(self):
         if self._file is not None:
-            self.flush()
-            self._file.close()
-            self._indeces.clear()
-            self._docs = None
-            self._file = None
+            try:
+                self.flush()
+            finally:
+                self._file.close()
+                self._indeces.clear()
+                self._docs = None
+                self._file = None
 
     def __enter__(self):
         return self

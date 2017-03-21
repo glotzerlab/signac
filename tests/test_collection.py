@@ -1,4 +1,5 @@
 import os
+import io
 import unittest
 
 from signac import Collection
@@ -192,13 +193,43 @@ class CollectionTest(unittest.TestCase):
         self.c.delete_one({})
         self.assertEqual(len(self.c), len(docs)-2)
 
-class FileCollectionTest(CollectionTest):
+class FileCollectionTestReadOnly(unittest.TestCase):
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         self.addCleanup(self._tmp_dir.cleanup)
-        self.c = Collection.open(self._fn_collection)
+        with Collection.open(self._fn_collection, 'w') as c:
+            c.update([dict(_id=str(i)) for i in range(10)])
+
+    def test_read(self):
+        c = Collection.open(self._fn_collection, mode='r')
+        self.assertEqual(len(list(c)), 10)
+        self.assertEqual(len(list(c)), 10)
+        self.assertEqual(len(c.find()), 10)
+        c.close()
+
+    def test_write_on_readonly(self):
+        c = Collection.open(self._fn_collection, mode='r')
+        self.assertEqual(len(list(c)), 10)
+        c.insert_one(dict())
+        self.assertEqual(len(list(c)), 11)
+        with self.assertRaises(io.UnsupportedOperation):
+            c.flush()
+        with self.assertRaises(io.UnsupportedOperation):
+            c.close()
+        with self.assertRaises(RuntimeError):
+            c.find()
+
+
+class FileCollectionTest(CollectionTest):
+    mode='w'
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.c = Collection.open(self._fn_collection, mode=self.mode)
         self.addCleanup(self.c.close)
 
     def test_reopen(self):
@@ -209,6 +240,9 @@ class FileCollectionTest(CollectionTest):
             self.assertEqual(len(c), len(self.c))
             for doc in self.c:
                 self.assertTrue(doc['_id'] in c)
+
+class FileCollectionTestAppendPlus(FileCollectionTest):
+    mode='a+'
 
 
 if __name__ == '__main__':
