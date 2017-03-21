@@ -2,8 +2,9 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import unittest
+import warnings
 
-from signac.core.search_engine import DocumentSearchEngine as DSE
+from signac.core.search_engine import DocumentSearchEngine
 
 TEST_INDEX = [
     {'a': 0},
@@ -16,7 +17,12 @@ TEST_INDEX = [
     ]
 
 
-@unittest.skip("refactored")
+def DSE(*args, **kwargs):
+    with warnings.catch_warnings() as w:
+        warnings.simplefilter('ignore')
+        return DocumentSearchEngine(*args, **kwargs)
+
+
 class DocumentSearchEngineTest(unittest.TestCase):
 
     def test_index(self):

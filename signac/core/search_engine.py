@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from collections import defaultdict
+import warnings
 import logging
 
 from .json import json
@@ -91,35 +92,47 @@ class DocumentSearchEngine(object):
     :type hash_: callable
     """
     def __init__(self, docs=None, include=None, hash_=None):
+        warnings.warn(
+            "The {} class is deprecated. Please use the Collection class instead.".format(
+                type(self).__name__),
+                DeprecationWarning)
         self._hash = hash if hash_ is None else hash_
-        self._docs = docs
-        self._indeces = dict()
+        logger.debug("Building index...")
+        self.ids, self.index, self.included = self._build_index(docs, include)
+        logger.debug("Built index with {} entries.".format(len(self.index)))
 
-    def _get_index(self, key, docs):
-        if key not in self._indeces:
-            logger.debug("Building index for key '{}'...".format(key))
-            self._indeces[key] = self._build_index(docs, key)
-            logger.debug("Built index for key '{}'.".format(key))
-        return self._indeces[key]
-
-    def _build_index(self, docs, key):
-        nodes = key.split('.')
+    def _build_index(self, docs, include=None):
         index = defaultdict(set)
         ids = set()
-
-        def _get_value(doc, nodes):
-            if nodes:
-                return _get_value(doc[nodes[0]], nodes[1:])
-            else:
-                return doc
-
+        if include is None:
+            included = None
+        else:
+            included = dict()
+            for branch in _traverse_docs(include):
+                f = tuple(_flatten(branch))
+                included[self._hash(f[:-1])] = f[-1]
         if docs is not None:
             for doc in docs:
-                try:
-                    index[_get_value(doc, nodes)].add(doc['_id'])
-                except (KeyError, TypeError):
-                    continue
-        return index
+                ids.add(doc['_id'])
+                for branch in _traverse_docs(doc, include=include):
+                    f = tuple(_flatten(branch))
+                    index[self._hash(f)].add(doc['_id'])
+        return ids, index, included
+
+    def _filter_supported(self, filter):
+        if self.included is None:
+            return True
+        else:
+            for branch in _traverse_tree(filter):
+                f = tuple(_flatten(branch))
+                for i in range(len(f)):
+                    h = self._hash(f[:-i])
+                    if self.included.get(h, False):
+                        break
+                else:
+                    return False
+            else:
+                return True
 
     def check_filter(self, filter):
         """Check whether the filter is valid and supported.
@@ -155,9 +168,9 @@ class DocumentSearchEngine(object):
             return True
         if not _valid_filter(filter):
             raise ValueError(filter)
-        #elif not self._filter_supported(filter):
-        #    msg = "{} not indexed for filter: '{}'."
-        #    raise RuntimeError(msg.format(type(self).__name__, filter))
+        elif not self._filter_supported(filter):
+            msg = "{} not indexed for filter: '{}'."
+            raise RuntimeError(msg.format(type(self).__name__, filter))
 
     def find(self, filter=None):
         """Find all documents matching filter.
@@ -177,20 +190,17 @@ class DocumentSearchEngine(object):
         else:
             result = None
             for branch in _traverse_filter(filter):
-                nodes = list(_flatten(branch))
-                key = '.'.join(nodes[:-1])
-                value = nodes[-1]
-                index = self._get_index(key, self._docs)
-                matches = index.get(value)
+                h = self._hash(tuple(_flatten(branch)))
+                m = self.index.get(h, set())
                 if result is None:
-                    result = matches
+                    result = m
                     continue
-                if matches is None:
+                if m is None:
                     return
                 else:
-                    result = result.intersection(matches)
+                    result = result.intersection(m)
             if result is None:
-                return _DocumentSearchEngineResults([])
+                return
             else:
                 return _DocumentSearchEngineResults(result)
 
