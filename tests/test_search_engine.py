@@ -18,7 +18,7 @@ TEST_INDEX = [
 
 
 def DSE(*args, **kwargs):
-    with warnings.catch_warnings() as w:
+    with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         return DocumentSearchEngine(*args, **kwargs)
 

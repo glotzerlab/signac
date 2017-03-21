@@ -136,7 +136,6 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c.find()), 0)
         self.assertEqual(list(self.c.find()), [])
         self.assertEqual(len(self.c.find({'a': 0})), 0)
-        self.assertEqual(list(self.c.find()), [])
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
         self.assertEqual(len(self.c.find()), len(docs))
