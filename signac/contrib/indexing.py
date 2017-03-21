@@ -446,6 +446,8 @@ class MasterCrawler(BaseCrawler):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
 
+        logger.info("Crawling from module '{}'.".format(module.__file__))
+
         if _is_blank_module(module):
             from .project import get_project
             for doc in get_project(root=dirpath).index():
@@ -453,7 +455,6 @@ class MasterCrawler(BaseCrawler):
 
         if hasattr(module, 'get_indeces'):
             for index in module.get_indeces(dirpath):
-                logger.info("Indexing from '{}'.".format(index))
                 for doc in index:
                     yield doc
 
