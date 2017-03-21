@@ -150,8 +150,10 @@ class Collection(object):
             for _id in self._dirty:
                 self._remove_from_indeces(_id)
             docs = [self[_id] for _id in self._dirty]
-            for key in self._indeces:
-                self._indeces[key].update(_build_index(docs, key, self.primary_key))
+            for key, index in self._indeces.items():
+                tmp = _build_index(docs, key, self.primary_key)
+                for v, group in tmp.items():
+                    index[v].update(group)
             self._dirty.clear()
 
     def _build_index(self, key):

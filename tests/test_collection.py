@@ -99,6 +99,16 @@ class CollectionTest(unittest.TestCase):
             for _id in _ids:
                 self.assertEqual(self.c[_id]['a'], value)
 
+    def test_reindex(self):
+        self.assertEqual(len(self.c), 0)
+        docs = [dict(a=i) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c), len(docs))
+        self.assertEqual(len(self.c.find({'a': 0})), 1)
+        docs = [dict(a=i) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c.find({'a': 0})), 2)
+
     def test_clear(self):
         self.assertEqual(len(self.c), 0)
         self.c['0'] = dict(a=0)
