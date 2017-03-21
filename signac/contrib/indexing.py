@@ -42,6 +42,11 @@ def md5(file):
     return m.hexdigest()
 
 
+def _is_blank_module(module):
+    with open(module.__file__) as file:
+        return not bool(file.read().strip())
+
+
 class BaseCrawler(object):
     """Crawl through `root` and index all files.
 
@@ -440,22 +445,10 @@ class MasterCrawler(BaseCrawler):
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
-        for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
-            tags = getattr(crawler, 'tags', set())
-            if tags is not None and len(set(tags)):
-                if self.tags is None or not len(set(self.tags)):
-                    logger.info("Skipping, crawler has defined tags.")
-                    continue
-                elif not set(self.tags).intersection(set(crawler.tags)):
-                    logger.info("Skipping, tag mismatch.")
-                    continue
-            elif self.tags is not None and len(set(self.tags)):
-                logger.info("Skipping, crawler has no defined tags.")
-                continue
-            for doc in crawler.crawl():
-                doc.setdefault(
-                    KEY_PROJECT, os.path.relpath(dirpath, self.root))
+
+        if _is_blank_module(module):
+            from .project import get_project
+            for doc in get_project(root=dirpath).index():
                 yield doc
 
     def docs_from_file(self, dirpath, fn):
