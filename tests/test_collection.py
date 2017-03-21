@@ -30,6 +30,14 @@ class CollectionTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
 
+    def test_copy(self):
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        c2 = Collection(self.c)
+        self.assertEqual(len(self.c), len(c2))
+        for doc in c2:
+            self.assertEqual(len(self.c.find(doc)), 1)
+
     def test_insert_and_remove(self):
         doc = dict(a=0)
         self.c['0'] = doc
@@ -43,13 +51,13 @@ class CollectionTest(unittest.TestCase):
 
     def test_contains(self):
         self.assertFalse('0' in self.c)
-        self.c['0'] = dict()
-        self.assertTrue('0' in self.c)
-        del self.c['0']
-        self.assertFalse('0' in self.c)
+        _id = self.c.insert_one(dict())
+        self.assertTrue(_id in self.c)
+        del self.c[_id]
+        self.assertFalse(_id in self.c)
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
-        for _id in self.c:
+        for _id in self.c.ids:
             self.assertTrue(_id in self.c)
         for doc in docs:
             self.assertTrue(doc['_id'] in self.c)
@@ -99,32 +107,33 @@ class CollectionTest(unittest.TestCase):
 
     def test_iteration(self):
         self.assertEqual(len(self.c), 0)
-        self.assertEqual(len(list(self.c.find())), 0)
+        self.assertEqual(len(self.c.find()), 0)
         docs = self.c['0'] = dict(a=0)
         self.assertEqual(len(self.c), 1)
-        self.assertEqual(len(list(self.c.find())), 1)
+        self.assertEqual(len(self.c.find()), 1)
         self.c.clear()
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
         self.assertEqual(len(self.c), len(docs))
-        self.assertEqual(len(list(self.c.find())), len(docs))
+        self.assertEqual(len(self.c.find()), len(docs))
         self.assertEqual(
             {doc['a'] for doc in docs},
             {doc['a'] for doc in self.c.find()})
 
     def test_find(self):
-        self.assertEqual(len(list(self.c.find())), 0)
+        self.assertEqual(len(self.c.find()), 0)
         self.assertEqual(list(self.c.find()), [])
-        self.assertEqual(len(list(self.c.find({'a': 0}))), 0)
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
         self.assertEqual(list(self.c.find()), [])
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
-        self.assertEqual(len(list(self.c.find())), len(docs))
-        self.assertEqual(len(list(self.c.find({'a': 0}))), 1)
+        self.assertEqual(len(self.c.find()), len(docs))
+        self.assertEqual(len(self.c.find({'a': 0})), 1)
         self.assertEqual(list(self.c.find({'a': 0}))[0], docs[0])
-        self.assertEqual(len(list(self.c.find({'a': -1}))), 0)
+        self.assertEqual(len(self.c.find({'a': -1})), 0)
+        self.assertEqual(len(self.c.find(limit=5)), 5)
         del self.c[docs[0]['_id']]
-        self.assertEqual(len(list(self.c.find({'a': 0}))), 0)
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!
@@ -134,16 +143,22 @@ class CollectionTest(unittest.TestCase):
             doc = self.c[str(i)] = dict( a=t)
             self.assertEqual(list(self.c.find(doc)), [self.c[str(i)]])
 
+    def test_find_one(self):
+        self.assertIsNone(self.c.find_one())
+        self.c.insert_one(dict())
+        self.assertIsNotNone(self.c.find_one())
+        self.assertEqual(len(self.c.find()), 1)
+
     def test_find_nested(self):
         docs = [dict(a=dict(b=i)) for i in range(10)]
         self.c.update(docs)
-        self.assertEqual(len(list(self.c.find())), len(docs))
-        self.assertEqual(len(list(self.c.find({'a.b': 0}))), 1)
-        self.assertEqual(len(list(self.c.find({'a': {'b': 0}}))), 1)
+        self.assertEqual(len(self.c.find()), len(docs))
+        self.assertEqual(len(self.c.find({'a.b': 0})), 1)
+        self.assertEqual(len(self.c.find({'a': {'b': 0}})), 1)
         self.assertEqual(list(self.c.find({'a.b': 0}))[0], docs[0])
         del self.c[docs[0]['_id']]
-        self.assertEqual(len(list(self.c.find({'a.b': 0}))), 0)
-        self.assertEqual(len(list(self.c.find({'a': {'b': 0}}))), 0)
+        self.assertEqual(len(self.c.find({'a.b': 0})), 0)
+        self.assertEqual(len(self.c.find({'a': {'b': 0}})), 0)
 
     def test_replace_one(self):
         docs = [dict(a=i) for i in range(10)]
@@ -152,11 +167,30 @@ class CollectionTest(unittest.TestCase):
         for doc, doc_ in zip(docs, docs_):
             self.c.replace_one(doc, doc_)
         self.assertEqual(len(self.c), len(docs_))
-        self.assertEqual(len(list(self.c.find())), len(docs_))
+        self.assertEqual(len(self.c.find()), len(docs_))
         self.assertEqual(
             set((doc['a'] for doc in docs_)),
             set((doc['a'] for doc in self.c.find())))
 
+    def test_delete(self):
+        self.c.delete_many({})
+        docs = [dict(a=i) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c), len(docs))
+        self.c.delete_many({'a': 0})
+        self.assertEqual(len(self.c), len(docs)-1)
+        self.c.delete_many({})
+        self.assertEqual(len(self.c), 0)
+
+    def test_delete_one(self):
+        self.c.delete_one({})
+        docs = [dict(a=i) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c), len(docs))
+        self.c.delete_one({'a': 0})
+        self.assertEqual(len(self.c), len(docs)-1)
+        self.c.delete_one({})
+        self.assertEqual(len(self.c), len(docs)-2)
 
 class FileCollectionTest(CollectionTest):
 
@@ -173,8 +207,8 @@ class FileCollectionTest(CollectionTest):
         self.c.flush()
         with Collection.open(self._fn_collection) as c:
             self.assertEqual(len(c), len(self.c))
-            for _id in self.c:
-                self.assertTrue(_id in c)
+            for doc in self.c:
+                self.assertTrue(doc['_id'] in c)
 
 
 if __name__ == '__main__':

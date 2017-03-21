@@ -5,6 +5,7 @@ import sys
 import io
 import logging
 from collections import defaultdict
+from itertools import islice
 from uuid import uuid4
 
 from ..core.json import json
@@ -112,9 +113,9 @@ class _CollectionSearchResults(object):
 
 
 class Collection(object):
-    primary_key = '_id'
 
-    def __init__(self, docs=None):
+    def __init__(self, docs=None, primary_key='_id'):
+        self._primary_key = primary_key
         self._file = io.StringIO()
         self._dirty = set()
         self._indeces = dict()
@@ -172,7 +173,16 @@ class Collection(object):
 
     def __iter__(self):
         self._assert_open()
+        return iter(self._docs.values())
+
+    @property
+    def ids(self):
+        self._assert_open()
         return iter(self._docs)
+
+    @property
+    def primary_key(self):
+        return self._primary_key
 
     def __len__(self):
         self._assert_open()
@@ -188,13 +198,18 @@ class Collection(object):
     def __setitem__(self, _id, doc):
         self._assert_open()
         if not isinstance(_id, str):
-            raise TypeError("The primary key must be an str type!")
+            raise TypeError("The primary key must be of type str!")
         doc.setdefault(self.primary_key, _id)
-        if doc[self.primary_key] != _id:
-            raise ValueError("Primary key ('{}') mismatch!".format(self.primary_key))
-        doc = json.loads(json.dumps(doc))
+        if _id != doc[self.primary_key]:
+            raise ValueError("Primary key mismatch!")
         self._dirty.add(_id)
+        self._docs[_id] = json.loads(json.dumps(doc))
+
+    def insert_one(self, doc):
+        self._assert_open()
+        _id = doc.setdefault(self.primary_key, str(uuid4()))
         self._docs[_id] = doc
+        return _id
 
     def __delitem__(self, _id):
         self._assert_open()
@@ -221,11 +236,11 @@ class Collection(object):
         if not _valid_filter(filter):
             raise ValueError(filter)
 
-    def _find(self, filter=None):
+    def _find(self, filter=None, limit=0):
         filter = json.loads(json.dumps(filter))  # Normalize
         self._check_filter(filter)
         if filter is None or not len(filter):
-            return self._docs.keys()
+            return set(islice(self._docs.keys(), limit if limit else None))
         _id = filter.pop(self.primary_key, None)
         if _id is not None and _id in self:
             result = {_id}
@@ -240,20 +255,39 @@ class Collection(object):
                 result = result.intersection(matches)
             if not result:
                 break
-        return result
+            if limit and len(result) >= limit:
+                break
+        return set(islice(result, limit if limit else None))
 
-    def find(self, filter=None):
+    def find(self, filter=None, limit=0):
         """Find all documents matching filter."""
-        return _CollectionSearchResults(self, self._find(filter))
+        return _CollectionSearchResults(self, self._find(filter, limit=limit))
 
-    def replace_one(self, filter, doc, upsert=False):
+    def find_one(self, filter=None):
+        for doc in self.find(filter, limit=1):
+            return doc
+
+    def replace_one(self, filter, replacement, upsert=False):
         self._assert_open()
-        if len(filter) == 1 and '_id' in filter:
-            self[filter['_id']] = doc
+        if len(filter) == 1 and self.primary_key in filter:
+            self[filter[self.primary_key]] = replacement
         else:
             for _id in self._find(filter):
-                self[_id] = doc
+                self[_id] = replacement
                 break
+            else:
+                if upsert:
+                    self.insert_one(replacement)
+
+    def delete_many(self, filter):
+        to_delete = set(self._find(filter))
+        for _id in to_delete:
+            del self[_id]
+
+    def delete_one(self, filter):
+        to_delete = set(self._find(filter, limit=1))
+        for _id in to_delete:
+            del self[_id]
 
     def dump(self, file=sys.stdout):
         self._assert_open()
