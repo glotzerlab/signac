@@ -285,6 +285,7 @@ class IndexingBaseTest(unittest.TestCase):
         root = self._tmp_dir.name
         self.assertEqual(len(list(signac.index(root=root))), 0)
         index = signac.index(root=self._tmp_dir.name, tags={'test1'})
+        no_find = True
         for doc in index:
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
