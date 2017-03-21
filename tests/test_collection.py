@@ -1,5 +1,6 @@
 import os
 import io
+import warnings
 import unittest
 
 from signac import Collection
@@ -145,6 +146,27 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c.find(limit=5)), 5)
         del self.c[docs[0]['_id']]
         self.assertEqual(len(self.c.find({'a': 0})), 0)
+
+    def test_find_with_dots(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('once')
+            self.assertEqual(len(self.c.find()), 0)
+            self.assertEqual(list(self.c.find()), [])
+            self.assertEqual(len(self.c.find({'a.b': 0})), 0)
+            docs = [{'a.b': i} for i in range(10)]
+            self.c.update(docs)
+            self.assertEqual(len(self.c.find()), len(docs))
+            self.assertEqual(len(self.c.find({'a.b': 0})), 1)
+            self.assertEqual(list(self.c.find({'a.b': 0}))[0], docs[0])
+            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
+            docs = [{'a': {'b': i}} for i in range(10)]
+            self.c.update(docs)
+            self.assertEqual(len(self.c.find()), 2 * len(docs))
+            self.assertEqual(len(self.c.find({'a.b': 0})), 2)
+            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
+            assert len(w) == 1
+            assert issubclass(w[0].category, PendingDeprecationWarning)
+            assert 'deprecation' in str(w[0].message)
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!

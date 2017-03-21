@@ -4,6 +4,7 @@
 import sys
 import io
 import logging
+import warnings
 from collections import defaultdict
 from itertools import islice
 from uuid import uuid4
@@ -91,9 +92,19 @@ def _build_index(docs, key, primary_key):
         try:
             v = _get_value(doc, nodes)
         except KeyError:
-            continue
+            pass
         else:
             index[_encode_tree(v)].add(doc[primary_key])
+        if len(nodes) > 1:
+            try:
+                v = doc['.'.join(nodes)]
+            except KeyError:
+                pass
+            else:
+                warnings.warn(
+                    "Using keys with dots ('.') is pending deprecation in the future!",
+                    PendingDeprecationWarning)
+                index[_encode_tree(v)].add(doc[primary_key])
     return index
 
 
