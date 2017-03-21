@@ -734,6 +734,9 @@ def index_files(root='.', formats=None):
 
 def index(root='.', tags=None):
     class Crawler(MasterCrawler):
-        tags = tags
+        pass
+
+    Crawler.tags = tags
+
     for doc in Crawler(root).crawl():
         yield doc
