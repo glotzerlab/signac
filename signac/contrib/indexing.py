@@ -735,11 +735,12 @@ def index_files(root='.', formats=None):
         yield doc
 
 
-def index(root='.', tags=None):
+def index(root='.', tags=None, **kwargs):
     class Crawler(MasterCrawler):
         pass
 
-    Crawler.tags = tags
+    if tags is not None:
+        Crawler.tags = tags
 
-    for doc in Crawler(root).crawl():
+    for doc in Crawler(root, **kwargs).crawl():
         yield doc
