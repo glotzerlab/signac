@@ -432,8 +432,9 @@ class MasterCrawler(BaseCrawler):
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root):
+    def __init__(self, root, raise_on_error=False):
         self._crawlers = dict()
+        self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
@@ -471,6 +472,8 @@ class MasterCrawler(BaseCrawler):
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
+                if self.raise_on_error:
+                    raise
             else:
                 logger.debug("Executed slave crawlers.")
 
