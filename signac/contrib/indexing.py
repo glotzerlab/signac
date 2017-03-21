@@ -451,6 +451,31 @@ class MasterCrawler(BaseCrawler):
             for doc in get_project(root=dirpath).index():
                 yield doc
 
+        if hasattr(module, 'get_indeces'):
+            for index in module.get_indeces(dirpath):
+                logger.info("Indexing from '{}'.".format(index))
+                for doc in index:
+                    yield doc
+
+        if hasattr(module, 'get_crawlers'):
+            for crawler_id, crawler in module.get_crawlers(dirpath).items():
+                logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
+                tags = getattr(crawler, 'tags', set())
+                if tags is not None and len(set(tags)):
+                    if self.tags is None or not len(set(self.tags)):
+                        logger.info("Skipping, crawler has defined tags.")
+                        continue
+                    elif not set(self.tags).intersection(set(crawler.tags)):
+                        logger.info("Skipping, tag mismatch.")
+                        continue
+                elif self.tags is not None and len(set(self.tags)):
+                    logger.info("Skipping, crawler has no defined tags.")
+                    continue
+                for doc in crawler.crawl():
+                    doc.setdefault(
+                        KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                    yield doc
+
     def docs_from_file(self, dirpath, fn):
         if fn == self.FN_ACCESS_MODULE:
             try:
