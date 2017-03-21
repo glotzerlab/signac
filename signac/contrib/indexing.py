@@ -738,7 +738,7 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
 
 
-def index_files(root='.', formats=None):
+def index_files(root='.', formats=None, depth=0):
     if formats is None:
         formats = {'.*': 'File'}
     elif isinstance(formats, str):
@@ -750,16 +750,16 @@ def index_files(root='.', formats=None):
     for regex, fmt in formats.items():
         Crawler.define(regex, fmt)
 
-    for doc in Crawler(root).crawl():
+    for doc in Crawler(root).crawl(depth=depth):
         yield doc
 
 
-def index(root='.', tags=None, **kwargs):
+def index(root='.', tags=None, depth=0, **kwargs):
     class Crawler(MasterCrawler):
         pass
 
     if tags is not None:
         Crawler.tags = tags
 
-    for doc in Crawler(root, **kwargs).crawl():
+    for doc in Crawler(root, **kwargs).crawl(depth=depth):
         yield doc
