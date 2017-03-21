@@ -117,13 +117,15 @@ class Collection(object):
     def __init__(self, docs=None, primary_key='_id'):
         self._primary_key = primary_key
         self._file = io.StringIO()
+        self._requires_flush = False
         self._dirty = set()
         self._indeces = dict()
         self._docs = dict()
         if docs is not None:
             for doc in docs:
                 self[doc[self.primary_key]] = doc
-            self._dirty.clear()
+            self._requires_flush = False  # not needed after initial read!
+            self._update_indeces()
 
     def _assert_open(self):
         if self._docs is None:
@@ -202,8 +204,9 @@ class Collection(object):
         doc.setdefault(self.primary_key, _id)
         if _id != doc[self.primary_key]:
             raise ValueError("Primary key mismatch!")
-        self._dirty.add(_id)
         self._docs[_id] = json.loads(json.dumps(doc))
+        self._dirty.add(_id)
+        self._requires_flush = True
 
     def insert_one(self, doc):
         self._assert_open()
@@ -219,11 +222,13 @@ class Collection(object):
             self._dirty.remove(_id)
         except KeyError:
             pass
+        self._requires_flush = True
 
     def clear(self):
         self._docs.clear()
         self._indeces.clear()
         self._dirty.clear()
+        self._requires_flush = True
 
     def update(self, docs):
         for doc in docs:
@@ -317,7 +322,7 @@ class Collection(object):
 
     def flush(self):
         self._assert_open()
-        if self._dirty:
+        if self._requires_flush:
             if self._file is None:
                 logger.debug("Flushed collection.")
             else:
@@ -325,7 +330,7 @@ class Collection(object):
                 self._file.truncate()
                 self.dump(self._file)
                 self._file.flush()
-            self._dirty = False
+            self._requires_flush = False
         else:
             logger.debug("Flushed collection (no changes).")
 

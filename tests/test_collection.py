@@ -234,10 +234,12 @@ class FileCollectionTest(CollectionTest):
 
     def test_reopen(self):
         docs = [dict(_id=str(i)) for i in range(10)]
-        self.c.update(docs)
-        self.c.flush()
+
         with Collection.open(self._fn_collection) as c:
-            self.assertEqual(len(c), len(self.c))
+            c.update(docs)
+
+        with Collection.open(self._fn_collection) as c:
+            self.assertEqual(len(c), len(docs))
             for doc in self.c:
                 self.assertTrue(doc['_id'] in c)
 
