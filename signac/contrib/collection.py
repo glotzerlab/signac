@@ -208,7 +208,7 @@ class Collection(object):
     def insert_one(self, doc):
         self._assert_open()
         _id = doc.setdefault(self.primary_key, str(uuid4()))
-        self._docs[_id] = doc
+        self[_id] = doc
         return _id
 
     def __delitem__(self, _id):
