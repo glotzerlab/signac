@@ -9,6 +9,7 @@ import logging
 import warnings
 import errno
 from time import sleep
+from collections import defaultdict
 
 from ..core.json import json
 from ..common import six
@@ -333,7 +334,7 @@ def _index_signac_project_workspace(root,
     for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
-        doc = dict(signac_id=job_id)
+        doc = {'signac_id': job_id, KEY_PATH: root}
         if signac_id_alias:
             doc[signac_id_alias] = job_id
         fn_sp = os.path.join(root, job_id, fn_statepoint)
@@ -634,7 +635,8 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
         return doc['_id'], None
 
 
-def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
+def export(docs, index, mirrors=None, update=False,
+           num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -671,8 +673,22 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
             return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
+    ids = defaultdict(list)
     for doc in docs:
-        export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        if update:
+            root = doc.get('root')
+            if root is not None:
+                ids[root].append(_id)
+    if update:
+        stale = set()
+        for root in ids:
+            docs_ = index.find({'root': root})
+            all_ = {doc['_id'] for doc in docs_}
+            stale.update(all_.difference(ids[root]))
+        logger.info("Removing {} stale documents.".format(len(stale)))
+        for _id in set(stale):
+            index.delete_one(dict(_id=_id))
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
