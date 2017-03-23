@@ -1,6 +1,17 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+# The API of the Collection class is adapted from the API of
+# the pymongo.Collection class provided as part of the
+# mongo-python-driver library [1], which is licensed under the
+# Apache License 2.0.
+#
+# The implementation found here is designed to replicate a subset
+# of the behavior of a pymongo.Collection while operating directly
+# on files on the local file system instead of a MongoDB database.
+#
+# [1]: https://github.com/mongodb/mongo-python-driver
 import sys
 import io
 import logging
