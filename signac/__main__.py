@@ -21,7 +21,7 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
 from .errors import DestinationExistsError
 try:
-    from .common.host import get_database, get_credentials, make_uri
+    from .common.host import get_client, get_database, get_credentials, make_uri
 except ImportError:
     HOST = False
 else:
@@ -409,6 +409,22 @@ def main_config_host(args):
         return cfg.setdefault(
             'hosts', dict()).setdefault(args.hostname, dict())
 
+    if args.test:
+        if hostcfg():
+            _print_err("Trying to connect to host '{}'...".format(args.hostname))
+            try:
+                client = get_client(hostcfg())
+                client.address
+            except Exception:
+                _print_err("Encountered error while tyring to "
+                           "connect to host '{}'.".format(args.hostname))
+                raise
+            else:
+                print("Successfully connected to host '{}'.".format(args.hostname))
+        else:
+            _print_err("Host '{}' is not configured.".format(args.hostname))
+        return
+
     if args.remove:
         if hostcfg():
             q = "Are you sure you want to remove host '{}'."
@@ -730,6 +746,10 @@ def main():
         '-r', '--remove',
         action='store_true',
         help="Remove the specified resource.")
+    parser_host.add_argument(
+        '--test',
+        action='store_true',
+        help="Attempt connecting to the specified host.")
     parser_host.set_defaults(func=main_config_host)
 
     parser_verify = config_subparsers.add_parser('verify')
