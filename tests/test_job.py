@@ -306,6 +306,11 @@ class JobOpenAndClosingTest(BaseJobTest):
         self.assertTrue(os.path.isdir(job.workspace()))
         self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
 
+    def test_construction(self):
+        job = self.open_job(test_token)
+        job2 = eval(repr(job))
+        self.assertEqual(job, job2)
+
     def test_open_job_close(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')

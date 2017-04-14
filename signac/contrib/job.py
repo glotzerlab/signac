@@ -58,9 +58,9 @@ class Job(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}(project={}, id='{}')".format(
+        return "{}(project={}, statepoint={})".format(
             self.__class__.__module__ + '.' + self.__class__.__name__,
-            repr(self._project), self._id)
+            repr(self._project), self._statepoint)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
