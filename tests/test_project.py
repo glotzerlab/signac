@@ -397,6 +397,9 @@ class ProjectTest(BaseProjectTest):
         project_a = signac.init_project('ProjectA', os.path.join(root, 'a'))
         project_b = signac.init_project('ProjectB', os.path.join(root, 'b'))
         job = project_a.open_job(dict(a=0))
+        job_b = project_b.open_job(dict(a=0))
+        self.assertNotEqual(job, job_b)
+        self.assertNotEqual(hash(job), hash(job_b))
         self.assertNotIn(job, project_a)
         self.assertNotIn(job, project_b)
         job.init()
@@ -405,11 +408,17 @@ class ProjectTest(BaseProjectTest):
         job.move(project_b)
         self.assertIn(job, project_b)
         self.assertNotIn(job, project_a)
+        self.assertEqual(job, job_b)
+        self.assertEqual(hash(job), hash(job_b))
         with job:
             job.document['a'] = 0
             with open('hello.txt', 'w') as file:
                 file.write('world!')
         job_ = project_b.open_job(job.statepoint())
+        self.assertEqual(job, job_)
+        self.assertEqual(hash(job), hash(job_))
+        self.assertEqual(job_, job_b)
+        self.assertEqual(hash(job_), hash(job_b))
         self.assertTrue(job_.isfile('hello.txt'))
         self.assertEqual(job_.document['a'], 0)
 

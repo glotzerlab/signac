@@ -50,6 +50,9 @@ class Job(object):
         :rtype: str"""
         return self._id
 
+    def __hash__(self):
+        return hash(self._wd)
+
     def __str__(self):
         "Returns the job's id."
         return str(self.get_id())
@@ -60,7 +63,7 @@ class Job(object):
             repr(self._project), self._id)
 
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return hash(self) == hash(other)
 
     def workspace(self):
         """Each job is associated with a unique workspace directory.
