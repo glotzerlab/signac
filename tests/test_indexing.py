@@ -10,6 +10,7 @@ import logging
 
 import signac
 import signac.db
+from signac import Collection
 from signac.contrib import indexing
 from signac.common import six
 from signac.common import errors
@@ -56,28 +57,15 @@ class TestFormat(object):
         assert 0
 
 
-class TestCollection(object):
+class TestCollection(Collection):
 
-    def __init__(self):
-        self.docs = dict()
+    def __init__(self, *args, **kwargs):
         self.called = False
+        super(TestCollection, self).__init__(*args, **kwargs)
 
-    def replace_one(self, filter, doc, upsert=False):
+    def replace_one(self, *args, **kwargs):
         self.called = True
-        assert len(filter) == 1
-        _id = filter['_id']
-        assert doc['_id'] == _id
-        if not upsert and _id not in self.docs:
-            return
-        else:
-            self.docs[_id] = doc
-
-    def find_one(self, filter):
-        assert len(filter) == 1
-        return self.docs.get(filter['_id'])
-
-    def __contains__(self, _id):
-        return _id in self.docs
+        super(TestCollection, self).replace_one(*args, **kwargs)
 
 
 class TestFS(object):
@@ -195,7 +183,6 @@ class IndexingBaseTest(unittest.TestCase):
 
         # Now with pattern(s)
         pattern = ".*a_(?P<a>\d)\.txt"
-        pattern_false = "nomatch"
         regex = re.compile(pattern)
         Crawler.define(pattern, TestFormat)
         Crawler.define("negativematch", "negativeformat")
@@ -241,6 +228,31 @@ class IndexingBaseTest(unittest.TestCase):
         self.assertEqual(len(CrawlerB.definitions), 1)
         self.assertEqual(len(CrawlerC.definitions), 2)
 
+    def test_index_files(self):
+        self.setup_project()
+
+        # First test without pattern
+        root = self._tmp_dir.name
+        self.assertEqual(len(list(signac.index_files(root))), 5)
+
+        # Now with pattern(s)
+        pattern_positive = ".*a_(?P<a>\d)\.txt"
+        pattern_negative = "nomatch"
+
+        self.assertEqual(len(list(signac.index_files(root, pattern_positive))), 2)
+        self.assertEqual(len(list(signac.index_files(root, pattern_negative))), 0)
+
+        no_find = True
+        for doc in signac.index_files(root, pattern_positive):
+            no_find = False
+            ffn = os.path.join(doc['root'], doc['filename'])
+            self.assertIsNotNone(re.match(".*a_(?P<a>\d)\.txt", ffn))
+            self.assertTrue(os.path.isfile(ffn))
+            with open(ffn) as file:
+                doc2 = json.load(file)
+                self.assertEqual(doc2['a'], doc['a'])
+        self.assertFalse(no_find)
+
     def test_json_crawler(self):
         self.setup_project()
         crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
@@ -258,6 +270,23 @@ class IndexingBaseTest(unittest.TestCase):
         crawler.tags = {'test1'}
         no_find = True
         for doc in crawler.crawl():
+            no_find = False
+            ffn = os.path.join(doc['root'], doc['filename'])
+            self.assertTrue(os.path.isfile(ffn))
+            with open(ffn) as file:
+                doc2 = json.load(file)
+                self.assertEqual(doc2['a'], doc['a'])
+            with signac.fetch(doc) as file:
+                pass
+        self.assertFalse(no_find)
+
+    def test_index(self):
+        self.setup_project()
+        root = self._tmp_dir.name
+        self.assertEqual(len(list(signac.index(root=root))), 0)
+        index = signac.index(root=self._tmp_dir.name, tags={'test1'})
+        no_find = True
+        for doc in index:
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
             self.assertTrue(os.path.isfile(ffn))
@@ -359,6 +388,7 @@ class IndexingPyMongoTest(IndexingBaseTest):
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         return db.test_index
+
 
 if __name__ == '__main__':
     unittest.main()

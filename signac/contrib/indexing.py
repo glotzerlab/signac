@@ -9,6 +9,7 @@ import logging
 import warnings
 import errno
 from time import sleep
+from collections import defaultdict
 
 from ..core.json import json
 from ..common import six
@@ -40,6 +41,11 @@ def md5(file):
     for chunk in iter(lambda: file.read(4096), b''):
         m.update(chunk)
     return m.hexdigest()
+
+
+def _is_blank_module(module):
+    with open(module.__file__) as file:
+        return not bool(file.read().strip())
 
 
 class BaseCrawler(object):
@@ -316,6 +322,7 @@ def _index_signac_project_workspace(root,
                                     encoding='utf-8',
                                     statepoint_dict=None):
     "Yields standard index documents for a signac project workspace."
+    logger.debug("Indexing workspace '{}'...".format(root))
     m = re.compile(r'[a-f0-9]{32}')
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
@@ -324,10 +331,10 @@ def _index_signac_project_workspace(root,
             return
         else:
             raise
-    for job_id in job_ids:
+    for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
-        doc = dict(signac_id=job_id)
+        doc = {'signac_id': job_id, KEY_PATH: root}
         if signac_id_alias:
             doc[signac_id_alias] = job_id
         fn_sp = os.path.join(root, job_id, fn_statepoint)
@@ -348,6 +355,8 @@ def _index_signac_project_workspace(root,
                 if error.errno != errno.ENOENT:
                     raise
         yield doc
+    if job_ids:
+        logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
 class SignacProjectCrawler(RegexFileCrawler):
@@ -429,30 +438,45 @@ class MasterCrawler(BaseCrawler):
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root):
+    def __init__(self, root, raise_on_error=False):
         self._crawlers = dict()
+        self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
-        for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
-            tags = getattr(crawler, 'tags', set())
-            if tags is not None and len(set(tags)):
-                if self.tags is None or not len(set(self.tags)):
-                    logger.info("Skipping, crawler has defined tags.")
-                    continue
-                elif not set(self.tags).intersection(set(crawler.tags)):
-                    logger.info("Skipping, tag mismatch.")
-                    continue
-            elif self.tags is not None and len(set(self.tags)):
-                logger.info("Skipping, crawler has no defined tags.")
-                continue
-            for doc in crawler.crawl():
-                doc.setdefault(
-                    KEY_PROJECT, os.path.relpath(dirpath, self.root))
+
+        logger.info("Crawling from module '{}'.".format(module.__file__))
+
+        if _is_blank_module(module):
+            from .project import get_project
+            for doc in get_project(root=dirpath).index():
                 yield doc
+
+        if hasattr(module, 'get_indeces'):
+            for index in module.get_indeces(dirpath):
+                for doc in index:
+                    yield doc
+
+        if hasattr(module, 'get_crawlers'):
+            for crawler_id, crawler in module.get_crawlers(dirpath).items():
+                logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
+                tags = getattr(crawler, 'tags', set())
+                if tags is not None and len(set(tags)):
+                    if self.tags is None or not len(set(self.tags)):
+                        logger.info("Skipping, crawler has defined tags.")
+                        continue
+                    elif not set(self.tags).intersection(set(crawler.tags)):
+                        logger.info("Skipping, tag mismatch.")
+                        continue
+                elif self.tags is not None and len(set(self.tags)):
+                    logger.info("Skipping, crawler has no defined tags.")
+                    continue
+                for doc in crawler.crawl():
+                    doc.setdefault(
+                        KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                    yield doc
 
     def docs_from_file(self, dirpath, fn):
         if fn == self.FN_ACCESS_MODULE:
@@ -468,6 +492,8 @@ class MasterCrawler(BaseCrawler):
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
+                if self.raise_on_error:
+                    raise
             else:
                 logger.debug("Executed slave crawlers.")
 
@@ -609,7 +635,8 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
         return doc['_id'], None
 
 
-def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
+def export(docs, index, mirrors=None, update=False,
+           num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -646,8 +673,22 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
             return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
+    ids = defaultdict(list)
     for doc in docs:
-        export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        if update:
+            root = doc.get('root')
+            if root is not None:
+                ids[root].append(_id)
+    if update:
+        stale = set()
+        for root in ids:
+            docs_ = index.find({'root': root})
+            all_ = {doc['_id'] for doc in docs_}
+            stale.update(all_.difference(ids[root]))
+        logger.info("Removing {} stale documents.".format(len(stale)))
+        for _id in set(stale):
+            index.delete_one(dict(_id=_id))
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
@@ -711,3 +752,30 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
     if len(operations):
         logger.debug("Pushing final chunk.")
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
+
+
+def index_files(root='.', formats=None, depth=0):
+    if formats is None:
+        formats = {'.*': 'File'}
+    elif isinstance(formats, str):
+        formats = {formats: 'File'}
+
+    class Crawler(RegexFileCrawler):
+        pass
+
+    for regex, fmt in formats.items():
+        Crawler.define(regex, fmt)
+
+    for doc in Crawler(root).crawl(depth=depth):
+        yield doc
+
+
+def index(root='.', tags=None, depth=0, **kwargs):
+    class Crawler(MasterCrawler):
+        pass
+
+    if tags is not None:
+        Crawler.tags = tags
+
+    for doc in Crawler(root, **kwargs).crawl(depth=depth):
+        yield doc
