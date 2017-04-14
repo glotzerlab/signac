@@ -754,16 +754,61 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
 
 
-def index_files(root='.', formats=None, depth=0):
-    if formats is None:
-        formats = {'.*': 'File'}
-    elif isinstance(formats, str):
-        formats = {formats: 'File'}
+def index_files(root='.', pattern=None, depth=0):
+    """Generate a file index.
+
+    This generator function yields file index documents,
+    where each index document corresponds to one file.
+
+    To index all files in the current working directory,
+    simply execute:
+
+    .. code-block:: python
+
+        for doc in signac.index_files():
+            print(doc)
+
+    A file associated with a file index document can be
+    fetched via the :py:func:`fetch` function:
+
+    .. code-block:: python
+
+        for doc in signac.index_files():
+            with signac.fetch(doc) as file:
+                print(file.read())
+
+    This is especially useful if the file index is part of
+    a collection (:py:class:`.Collection`) which can be searched
+    for specific entries.
+
+    To limit the file index to files with a specific filename
+    pattern, provide a regular expression as the pattern argument.
+    To index all files that have file ending `.txt`, execute:
+
+    .. code-block:: python
+
+        for doc in signac.index_files(pattern='.*\.txt'):
+            print(doc)
+
+    :param root: The directory to index, defaults to the
+        current working directory.
+    :type root: str
+    :param pattern: Limit the index to files that match the
+        given regular expression.
+    :type pattern: str
+    :param depth: Limit the search to the specified directory depth.
+    :type depth: int
+    :yields: The file index documents as dicts.
+    """
+    if pattern is None:
+        pattern = {'.*': 'File'}
+    elif isinstance(pattern, str):
+        pattern = {pattern: 'File'}
 
     class Crawler(RegexFileCrawler):
         pass
 
-    for regex, fmt in formats.items():
+    for regex, fmt in pattern.items():
         Crawler.define(regex, fmt)
 
     for doc in Crawler(root).crawl(depth=depth):
@@ -771,6 +816,27 @@ def index_files(root='.', formats=None, depth=0):
 
 
 def index(root='.', tags=None, depth=0, **kwargs):
+    """Generate a master index
+
+    A master index is compiled from other indexes by searching
+    for files named `signac_access.py` and executing all crawlers
+    defined within those modules.
+
+    This function constructs an instance of :py:class:`.MasterCrawler`
+    internally and all extra key-word arguments will be forwarded
+    to the constructor of said master crawler.
+
+    :param root: Look for access modules under this directory path.
+    :type root: str
+    :param tags: If tags are provided, do not execute slave crawlers
+        that don't match the same tags.
+    :param depth: Limit the search to the specified directory depth.
+    :param kwargs: These keyword-arguments are forwarded to the
+        internal MasterCrawler instance.
+    :type depth: int
+    :yields: The master index documents as instances of dict.
+    """
+
     class Crawler(MasterCrawler):
         pass
 
