@@ -80,7 +80,7 @@ class DBClientConnector(object):
             if parameter in self._config:
                 parameters[parameter] = self._config_get(parameter)
 
-        auth_mechanism = self._config_get('auth_mechanism')
+        auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
             client = pymongo.MongoClient(
                 host,
