@@ -105,6 +105,9 @@ class AttrDict(object):
     def __len__(self):
         return len(self._data)
 
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
     def pop(self, *args, **kwargs):
         ret = self._data.pop(*args, **kwargs)
         self._modified()
