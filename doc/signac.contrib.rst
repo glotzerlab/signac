@@ -21,6 +21,14 @@ signac.contrib.indexing module
     :undoc-members:
     :show-inheritance:
 
+signac.contrib.collection module
+--------------------------------
+
+.. automodule:: signac.contrib.collection
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 signac.contrib.errors module
 ----------------------------
 
