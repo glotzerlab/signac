@@ -203,16 +203,25 @@ def main_index(args):
 
 
 def main_find(args):
+
+    def parse(q):
+        try:
+            return json.loads(q)
+        except json.decoder.JSONDecodeError:
+            _print_err("Failed to parse query argument. "
+                       "Ensure that '{}' is valid JSON!".format(q))
+            raise
+
     project = get_project()
     if args.filter is None:
         f = None
     else:
-        f = json.loads(args.filter)
+        f = parse(args.filter)
 
     if args.doc_filter is None:
         df = None
     else:
-        df = json.loads(args.doc_filter)
+        df = parse(args.doc_filter)
 
     index = _read_index(project, args.index)
     try:
