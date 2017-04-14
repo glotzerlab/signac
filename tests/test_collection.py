@@ -163,7 +163,7 @@ class CollectionTest(unittest.TestCase):
             self.assertEqual(len(self.c.find()), 2 * len(docs))
             self.assertEqual(len(self.c.find({'a.b': 0})), 2)
             self.assertEqual(len(self.c.find({'a.b': -1})), 0)
-            if not six.PY2:  # unable to clear warning registry
+            if six.PY34:  # warning registry not cleared in earlier versions
                 assert len(w) == 1
                 assert issubclass(w[0].category, PendingDeprecationWarning)
                 assert 'deprecation' in str(w[0].message)
