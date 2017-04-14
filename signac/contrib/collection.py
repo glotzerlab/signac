@@ -223,8 +223,12 @@ class Collection(object):
 
     def __setitem__(self, _id, doc):
         self._assert_open()
-        if not isinstance(_id, str):
-            raise TypeError("The primary key must be of type str!")
+        if six.PY2:
+            if not isinstance(_id, basestring):
+                raise TypeError("The primary key must be of type str!")
+        else:
+            if not isinstance(_id, str):
+                raise TypeError("The primary key must be of type str!")
         doc.setdefault(self.primary_key, _id)
         if _id != doc[self.primary_key]:
             raise ValueError("Primary key mismatch!")
@@ -329,7 +333,7 @@ class Collection(object):
         try:
             docs = (json.loads(line) for line in file)
             collection = cls(docs=docs)
-        except io.UnsupportedOperation:
+        except (IOError, io.UnsupportedOperation):
             collection = cls()
         collection._file = file
         return collection

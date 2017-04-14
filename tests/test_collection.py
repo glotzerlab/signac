@@ -163,9 +163,10 @@ class CollectionTest(unittest.TestCase):
             self.assertEqual(len(self.c.find()), 2 * len(docs))
             self.assertEqual(len(self.c.find({'a.b': 0})), 2)
             self.assertEqual(len(self.c.find({'a.b': -1})), 0)
-            assert len(w) == 1
-            assert issubclass(w[0].category, PendingDeprecationWarning)
-            assert 'deprecation' in str(w[0].message)
+            if not six.PY2:  # unable to clear warning registry
+                assert len(w) == 1
+                assert issubclass(w[0].category, PendingDeprecationWarning)
+                assert 'deprecation' in str(w[0].message)
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!
@@ -245,10 +246,16 @@ class FileCollectionTestReadOnly(unittest.TestCase):
         self.assertEqual(len(list(c)), 10)
         c.insert_one(dict())
         self.assertEqual(len(list(c)), 11)
-        with self.assertRaises(io.UnsupportedOperation):
-            c.flush()
-        with self.assertRaises(io.UnsupportedOperation):
-            c.close()
+        if six.PY2:
+            with self.assertRaises(IOError):
+                c.flush()
+            with self.assertRaises(IOError):
+                c.close()
+        else:
+            with self.assertRaises(io.UnsupportedOperation):
+                c.flush()
+            with self.assertRaises(io.UnsupportedOperation):
+                c.close()
         with self.assertRaises(RuntimeError):
             c.find()
 
