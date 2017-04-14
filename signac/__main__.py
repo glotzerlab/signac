@@ -409,6 +409,11 @@ def main_config_host(args):
         return cfg.setdefault(
             'hosts', dict()).setdefault(args.hostname, dict())
 
+    if len((args.test, args.remove, args.show_pw)) > 1:
+        raise ValueError(
+            "Please select only one of the following options: "
+            "[--test | -r/--remove | --show-pw].")
+
     if args.test:
         if hostcfg():
             _print_err("Trying to connect to host '{}'...".format(args.hostname))
