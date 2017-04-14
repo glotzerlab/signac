@@ -6,7 +6,7 @@ import stat
 import logging
 import warnings
 
-from .configobj import ConfigObj
+from .configobj import ConfigObj, ConfigObjError
 from .validate import get_validator, cfg
 from .errors import ConfigError
 
@@ -75,7 +75,11 @@ def check_and_fix_permissions(filename):
 
 def read_config_file(filename):
     logger.debug("Reading config file '{}'.".format(filename))
-    config = Config(filename, configspec=cfg.split('\n'))
+    try:
+        config = Config(filename, configspec=cfg.split('\n'))
+    except (IOError, OSError, ConfigObjError) as error:
+        msg = "Failed to read configuration file '{}':\n{}"
+        raise ConfigError(msg.format(filename, error))
     verification = config.verify(skip_missing=True)
     if verification is not True:
         logger.debug("Config file '{}' may contain invalid values.".format(
