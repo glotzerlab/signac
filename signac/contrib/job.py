@@ -72,6 +72,11 @@ class Job(object):
         :rtype: str"""
         return self._wd
 
+    @property
+    def ws(self):
+        "The job's workspace directory."
+        return self.workspace()
+
     def statepoint(self):
         """The statepoint associated with this job.
 
