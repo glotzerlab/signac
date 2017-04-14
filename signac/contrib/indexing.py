@@ -706,8 +706,8 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
         if len(chunk) >= chunksize:
             logger.debug("Pushing chunk.")
             _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
-            chunk.clear()
-            operations.clear()
+            chunk[:] = []
+            operations[:] = []
     if len(operations):
         logger.debug("Pushing final chunk.")
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
