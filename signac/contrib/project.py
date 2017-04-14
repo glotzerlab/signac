@@ -276,12 +276,12 @@ class Project(object):
         :yields: Key-value pairs of JSON-encoded statepoint parameters and
             and a set of corresponding job ids.
         """
-        from .collection import traverse_filter
+        from .collection import _traverse_filter
         if index is None:
             index = self.index(include_job_document=False)
         collection = Collection(index)
         for doc in collection.find():
-            for key, _ in traverse_filter(doc):
+            for key, _ in _traverse_filter(doc):
                 if key == '_id' or key.split('.')[0] != 'statepoint':
                     continue
                 collection.index(key, build=True)
