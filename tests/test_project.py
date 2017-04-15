@@ -330,7 +330,7 @@ class ProjectTest(BaseProjectTest):
             index[doc['_id']] = doc
         self.assertEqual(len(index), len(job_ids))
         self.assertEqual(set(index.keys()), set(job_ids))
-        crawler = signac.contrib.SignacProjectCrawler(self.project.workspace())
+        crawler = signac.contrib.SignacProjectCrawler(self.project.root_directory())
         index2 = dict()
         for doc in crawler.crawl():
             index2[doc['_id']] = doc
@@ -356,7 +356,7 @@ class ProjectTest(BaseProjectTest):
         for p, fmt in formats.items():
             Crawler.define(p, fmt)
         index2 = dict()
-        for doc in Crawler(root=self.project.workspace()).crawl():
+        for doc in Crawler(root=self.project.root_directory()).crawl():
             index2[doc['_id']] = doc
         self.assertEqual(index, index2)
         self.assertTrue(Crawler.called)

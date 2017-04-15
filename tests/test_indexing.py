@@ -44,7 +44,7 @@ class Crawler(RegexFileCrawler):
 Crawler.define(RE_TXT, 'TextFile')
 
 def get_crawlers(root):
-    return {'main':  Crawler(os.path.join(root, '.'))}
+    yield Crawler(root)
 """
 
 
