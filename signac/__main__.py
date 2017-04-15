@@ -201,7 +201,7 @@ def main_clone(args):
 def main_index(args):
     _print_err("Compiling master index for path '{}'...".format(
         os.path.realpath(args.root)))
-    for doc in index(root=args.root):
+    for doc in index(root=args.root, raise_on_error=args.debug):
         print(json.dumps(doc))
 
 
