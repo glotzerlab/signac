@@ -145,32 +145,15 @@ class RegexFileCrawler(BaseCrawler):
         ~/my_project/a_1.txt
         ...
 
-    A valid regular expression to match
-    this pattern would be: ``a_(?P<a>\d+)\.txt``.
-
-    A regular expression crawler for this structure could be implemented
-    like this:
+    A valid regular expression to match this pattern would
+    be: ``.*\/a_(?P<a>\d+)\.txt`` which may be defined for a crawler as such:
 
     .. code-block:: python
-
-        import re
-
-        class TextFile(object):
-            def __init__(self, file):
-                # file is a file-like object
-                return file.read()
 
         MyCrawler(RegexFileCrawler):
             pass
 
-        MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
-
-    In this case we could also use :class:`.formats.TextFile`
-    as data type which is an implementation of the example shown above.
-    However we could use any other type, as long as its constructor
-    expects a `file-like object`_ as its first argument.
-
-    .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+        MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
     """
     "Mapping of compiled regex objects and associated formats."
     definitions = dict()
@@ -181,11 +164,10 @@ class RegexFileCrawler(BaseCrawler):
 
         :param regex: All files of the specified format
             must match this regular expression.
-        :type regex: :class:`str` or `compiled regular expression`_
+        :type regex: :class:`str`
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
-
-        .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
+        """
         if six.PY2:
             if isinstance(regex, basestring):  # noqa
                 regex = re.compile(regex)
