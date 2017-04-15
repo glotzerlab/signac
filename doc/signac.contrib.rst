@@ -17,6 +17,7 @@ signac.contrib.indexing module
 ------------------------------
 
 .. automodule:: signac.contrib.indexing
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
@@ -25,6 +26,7 @@ signac.contrib.collection module
 --------------------------------
 
 .. automodule:: signac.contrib.collection
+    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
