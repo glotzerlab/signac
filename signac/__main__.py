@@ -129,6 +129,10 @@ def _open_job_by_id(project, job_id):
 
 def main_project(args):
     project = get_project()
+    if args.access:
+        fn = project.create_access_module()
+        _print_err("Created access module '{}'.".format(fn))
+        return
     if args.workspace:
         print(project.workspace())
     else:
@@ -572,6 +576,10 @@ def main():
         '-i', '--index',
         action='store_true',
         help="Generate and print an index for the project.")
+    parser_project.add_argument(
+        '-a', '--access',
+        action='store_true',
+        help="Create access module for indexing.")
     parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser('job')
