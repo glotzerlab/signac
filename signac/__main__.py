@@ -12,7 +12,7 @@ import getpass
 import difflib
 import errno
 
-from . import get_project, init_project
+from . import get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
@@ -195,10 +195,9 @@ def main_clone(args):
 
 
 def main_index(args):
-    project = get_project()
-    _print_err("Indexing project...")
-    index = project.index()
-    for doc in index:
+    _print_err("Compiling master index for path '{}'...".format(
+        os.path.realpath(args.root)))
+    for doc in index(root=args.root):
         print(json.dumps(doc))
 
 
@@ -642,6 +641,11 @@ def main():
     parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
+    parser_index.add_argument(
+        'root',
+        nargs='?',
+        default='.',
+        help="Specify the root path from where the master index is to be compiled.")
     parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser('find')
