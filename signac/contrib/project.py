@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
+import stat
 import re
 import logging
 import errno
@@ -27,27 +28,22 @@ logger = logging.getLogger(__name__)
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
 
-ACCESS_MODULE_TEMPLATE = """#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import os
+ACCESS_MODULE_MINIMAL = """import signac
 
-from signac.contrib import SignacProjectCrawler
-{imports}
-
-
-class {crawlername}(SignacProjectCrawler):
-    pass
-{definitions}
-
-
-def get_crawlers(root):
-    return {{'main': {crawlername}(os.path.join(root, '{wd}'))}}
+def get_indeces(root):
+    yield signac.get_project(root).index()
 """
 
-ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
-    master_crawler = MasterCrawler('.')
-    for doc in master_crawler.crawl(depth={depth}):
-        print(doc)
+ACCESS_MODULE_MASTER = """#!/usr/bin/env python
+# -*- condig: utf-8 -*-
+import signac
+
+def get_indeces(root):
+    yield signac.get_project(root).index()
+
+if __name__ == '__main__':
+    with signac.Collection.open('index.txt') as index:
+        signac.export(signac.index(), index, update=True)
 """
 
 
@@ -710,68 +706,36 @@ class Project(object):
         for doc in docs:
             yield doc
 
-    def create_access_module(self, formats=None, crawlername=None,
-                             filename=None, master=True, depth=1):
+    def create_access_module(self, filename=None, master=True):
         """Create the access module for indexing
 
-        This method generates the acess module containing indexing
-        directives for master crawlers.
+        This method generates the access module required to make
+        this project's index part of a master index.
 
-        :param formats: The format definitions as mapping.
-        :type formats: dict
-        :param crawlername: Specify a name for the crawler class.
-            Defaults to a name based on the project's name.
-        :type crawlername: str
         :param filename: The name of the access module file.
             Defaults to the standard name and should ususally
             not be changed.
         :type filename: str
-        :param master: If True, will add master crawler execution
-            commands to the bottom of the file.
+        :param master: If True, add directives for the compilation
+            of a master index when executing the module.
         :type master: bool
-        :param depth: Specifies the depth of the master crawler
-            definitions (if `master` is True). Defaults to 1 to
-            reduce the crawling depth of the master crawler.
-            A value of 0 means no limit.
-        :type depth: int"""
-        if crawlername is None:
-            crawlername = str(self) + 'Crawler'
+        :returns: The name of the created access module.
+        :rtype: str
+        """
         if filename is None:
             filename = os.path.join(
                 self.root_directory(),
                 MasterCrawler.FN_ACCESS_MODULE)
-        workspace = os.path.relpath(self.workspace(), self.root_directory())
-
-        imports = set()
-        if formats is None:
-            definitions = ''
-        else:
-            dl = "{}.define('{}', {})"
-            defs = list()
-            for expr, fmt in formats.items():
-                if is_string(fmt):
-                    defs.append(dl.format(crawlername, expr, "'{}'".format(fmt)))
-                else:
-                    defs.append(dl.format(crawlername, expr, fmt.__name__))
-                    imports.add(
-                        'from {} import {}'.format(fmt.__module__, fmt.__name__))
-            definitions = '\n'.join(defs)
-        if master:
-            imports.add('from signac.contrib import MasterCrawler')
-        imports = '\n'.join(imports)
-
-        module = ACCESS_MODULE_TEMPLATE.format(
-            crawlername=crawlername,
-            imports=imports,
-            definitions=definitions,
-            wd=workspace)
-        if master:
-            module += '\n\n' + ACCESS_MODULE_MC_TEMPLATE.format(
-                depth=depth)
-
         with open(filename, 'wx' if six.PY2 else 'x') as file:
-            file.write(module)
+            if master:
+                file.write(ACCESS_MODULE_MASTER)
+            else:
+                file.write(ACCESS_MODULE_MINIMAL)
+        if master:
+            mode = os.stat(filename).st_mode | stat.S_IEXEC
+            os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))
+        return filename
 
     @classmethod
     def init_project(cls, name, root=None, workspace=None, make_dir=True):
