@@ -754,7 +754,7 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
 
 
-def index_files(root='.', pattern=None, depth=0):
+def index_files(root='.', formats=None, depth=0):
     """Generate a file index.
 
     This generator function yields file index documents,
@@ -782,33 +782,43 @@ def index_files(root='.', pattern=None, depth=0):
     for specific entries.
 
     To limit the file index to files with a specific filename
-    pattern, provide a regular expression as the pattern argument.
+    formats, provide a regular expression as the formats argument.
     To index all files that have file ending `.txt`, execute:
 
     .. code-block:: python
 
-        for doc in signac.index_files(pattern='.*\.txt'):
+        for doc in signac.index_files(formats='.*\.txt'):
+            print(doc)
+
+    We can specify specific formats by providing a dictionary as
+    ``formats`` argument, where the key is the filename pattern and
+    the value is an arbitrary formats string, e.g.:
+
+    .. code-block:: python
+
+        for doc in signac.index_files(formats=
+            {'.*\.txt': 'TextFile', '.*\.zip': 'ZipFile'}):
             print(doc)
 
     :param root: The directory to index, defaults to the
         current working directory.
     :type root: str
-    :param pattern: Limit the index to files that match the
-        given regular expression.
-    :type pattern: str
+    :param formats: Limit the index to files that match the
+        given regular expression and optionally associate formats
+        with given patterns.
     :param depth: Limit the search to the specified directory depth.
     :type depth: int
     :yields: The file index documents as dicts.
     """
-    if pattern is None:
-        pattern = {'.*': 'File'}
-    elif isinstance(pattern, str):
-        pattern = {pattern: 'File'}
+    if formats is None:
+        formats = {'.*': 'File'}
+    elif isinstance(formats, str):
+        formats = {formats: 'File'}
 
     class Crawler(RegexFileCrawler):
         pass
 
-    for regex, fmt in pattern.items():
+    for regex, fmt in formats.items():
         Crawler.define(regex, fmt)
 
     for doc in Crawler(root).crawl(depth=depth):
