@@ -60,7 +60,7 @@ class BaseCrawler(object):
 
         :param root: The path to the root directory to crawl through.
         :type root: str"""
-        self.root = root
+        self.root = os.path.expanduser(root)
         self.tags = set() if self.tags is None else set(self.tags)
 
     def docs_from_file(self, dirpath, fn):
@@ -360,8 +360,9 @@ class SignacProjectCrawler(RegexFileCrawler):
 
     def __init__(self, root):
         from .project import get_project
-        self.root = get_project(root=root).workspace()
+        root = get_project(root=root).workspace()
         self._statepoints = dict()
+        return super(SignacProjectCrawler, self).__init__(root=root)
 
     def _get_job_id(self, dirpath):
         return os.path.relpath(dirpath, self.root).split('/')[0]
