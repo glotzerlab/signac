@@ -359,7 +359,8 @@ class SignacProjectCrawler(RegexFileCrawler):
     signac_id_alias = '_id'
 
     def __init__(self, root):
-        self.root = root
+        from .project import get_project
+        self.root = get_project(root=root).workspace()
         self._statepoints = dict()
 
     def _get_job_id(self, dirpath):

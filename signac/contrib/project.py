@@ -703,7 +703,7 @@ class Project(object):
                 pass
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
-            crawler = Crawler(self.workspace())
+            crawler = Crawler(self.root_directory())
             docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
