@@ -437,10 +437,11 @@ class MasterCrawler(BaseCrawler):
             for doc in get_project(root=dirpath).index():
                 yield doc
 
-        if hasattr(module, 'get_indeces'):
-            for index in module.get_indeces(dirpath):
-                for doc in index:
-                    yield doc
+        if self.tags is None or not len(set(self.tags)):
+            if hasattr(module, 'get_indeces'):
+                for index in module.get_indeces(dirpath):
+                    for doc in index:
+                        yield doc
 
         if hasattr(module, 'get_crawlers'):
             for crawler_id, crawler in module.get_crawlers(dirpath).items():
