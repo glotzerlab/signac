@@ -247,11 +247,11 @@ def main_view(args):
 
 
 def main_init(args):
-    init_project(
+    project = init_project(
         name=args.project_id,
         root=os.getcwd(),
         workspace=args.workspace)
-    _print_err("Initialized project '{}'.".format(args.project_id))
+    _print_err("Initialized project '{}'.".format(project))
 
 
 def verify_config(cfg, preserve_errors=True):
