@@ -133,6 +133,10 @@ def main_project(args):
         fn = project.create_access_module()
         _print_err("Created access module '{}'.".format(fn))
         return
+    if args.index:
+        for doc in project.index():
+            print(json.dumps(doc))
+        return
     if args.workspace:
         print(project.workspace())
     else:
