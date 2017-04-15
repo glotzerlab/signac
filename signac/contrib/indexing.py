@@ -444,8 +444,8 @@ class MasterCrawler(BaseCrawler):
                         yield doc
 
         if hasattr(module, 'get_crawlers'):
-            for crawler_id, crawler in module.get_crawlers(dirpath).items():
-                logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
+            for crawler in module.get_crawlers(dirpath):
+                logger.info("Executing slave crawler:\n {}".format(crawler))
                 tags = getattr(crawler, 'tags', set())
                 if tags is not None and len(set(tags)):
                     if self.tags is None or not len(set(self.tags)):
