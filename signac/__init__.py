@@ -28,6 +28,9 @@ from .contrib import filesystems as fs
 from .contrib import Collection
 from .contrib import index_files
 from .contrib import index
+from .contrib import RegexFileCrawler
+from .contrib import MasterCrawler
+from .contrib import SignacProjectCrawler
 from .db import get_database
 
 __version__ = '0.7.1'
@@ -39,6 +42,8 @@ __all__ = ['__version__', 'contrib', 'db', 'errors',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
            'export_pymongo', 'fs'
-           'export_pymongo', 'fs',
            'index_files', 'index',
+           'RegexFileCrawler',
+           'MasterCrawler',
+           'SignacProjectCrawler',
            ]
