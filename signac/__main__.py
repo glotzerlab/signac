@@ -205,7 +205,10 @@ def main_clone(args):
 def main_index(args):
     _print_err("Compiling master index for path '{}'...".format(
         os.path.realpath(args.root)))
-    for doc in index(root=args.root, raise_on_error=args.debug):
+    if args.tags:
+        args.tags = set(args.tags)
+        _print_err("Provided tags: {}".format(', '.join(sorted(args.tags))))
+    for doc in index(root=args.root, tags=args.tags, raise_on_error=args.debug):
         print(json.dumps(doc))
 
 
@@ -658,6 +661,10 @@ def main():
         nargs='?',
         default='.',
         help="Specify the root path from where the master index is to be compiled.")
+    parser_index.add_argument(
+        '-t', '--tags',
+        nargs='+',
+        help="Specify tags for this master index compilation.")
     parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser('find')
