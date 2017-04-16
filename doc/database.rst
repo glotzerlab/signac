@@ -73,29 +73,3 @@ or an MPI pool, which is bundled with signac:
 
    with signac.contrib.MPIPool() as pool:
       results = pool.map(process, docs, ntask=docs.count())
-
-Reduction
----------
-
-We can then operate with the results collection and for example reduce the data with aggregation operations.
-This is an example of how we could calculate the average of our calculated value grouped by a second parameter b:
-
-.. code-block:: python
-
-    reduced_result = db.results.aggregate(
-      [
-        {'$group: {
-            '_id': 'b',
-            'avgValue': {'$avg': 'calc_value'}
-            }
-        }
-      ]
-    )
-
-.. seealso::
-
-  The combined process of mapping and reducing is called MapReduce_.
-  For more information on the aggregation syntax, please refer to the `MongoDB reference on aggregation`_.
-
-.. _MapReduce: https://en.wikipedia.org/wiki/MapReduce
-.. _`MongoDB reference on aggregation`: https://docs.mongodb.org/manual/reference/aggregation/

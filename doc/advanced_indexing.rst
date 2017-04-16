@@ -2,12 +2,6 @@
 Advanced Indexing
 =================
 
-.. sidebar:: Warning: SYSADMIN ZONE
-
-    The following topics are considered *advanced* and most likely only interesting to system administrators.
-
-.. _data_mirroring:
-
 The Crawler Concept
 ===================
 
@@ -70,8 +64,10 @@ We could put this definition into a ``signac_access.py`` module and make it part
     def get_indeces(root):
         yield MyCrawler(root).crawl()
 
-Data mirroring
-==============
+.. _data_mirroring:
+
+Mirroring of Data
+=================
 
 Using the :py:func:`signac.fetch` function it is possible retrieve files that are associated with index documents.
 Those files will preferably be opened directly via a local system path.
@@ -89,7 +85,7 @@ Use the mirrors argument in the :py:func:`signac.export` function to automatical
     localfs = fs.LocalFS('/path/to/mirror')
     gridfs = fs.GridFS(db)
 
-    export(crawler.crawl(), index, mirrors=[localfs, gridfs])
+    export(crawler.crawl(), db.index, mirrors=[localfs, gridfs])
 
 .. _`GridFS`: https://docs.mongodb.org/manual/core/gridfs/
 
@@ -108,10 +104,10 @@ To access the data, provide the mirrors argument to the :py:func:`signac.fetch` 
     with the native data path.
 
 
-Tagging
-=======
+Using Tags to Control Access
+============================
 
-It may be desirable to only index select projects for a specific index for example to distinguish between public and private indexes.
+It may be desirable to only index select projects for a specific index, e.g., to distinguish between public and private indeces.
 For this purpose it is possible to provide  a set of tags to any crawler, as such:
 
 .. code-block:: python
@@ -137,7 +133,7 @@ This means for the example above, we need to provide either the ``public`` or ``
     signac.index(tags={'foo', 'public'})
     signac.index(tags={'foo', 'private'})
 
-Essentially, there must be an overlap between the crawler's tags and the tags provided during master index compilation.
+In summary, there must be an overlap between the crawler's tags and the tags provided during master index compilation.
 
 How to publish an index
 =======================

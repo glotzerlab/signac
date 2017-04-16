@@ -70,9 +70,10 @@ class BaseCrawler(object):
         :type dirpath: str
         :param fn: The filename.
         :type fn: str
-        :returns: A document, that means an instance of mapping.
-        :rtype: mapping"""
+        :yields: Index documents.
+        """
         raise NotImplementedError()
+        yield
 
     def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
@@ -192,11 +193,19 @@ class RegexFileCrawler(BaseCrawler):
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
 
-        This method is an implementation of the abstract method
-        of :class:`~.BaseCrawler`.
-        It is not recommended to reimplement this method to modify
-        documents generated from filenames.
-        See :meth:`~RegexFileCrawler.process` instead."""
+        This method implements the abstract
+        :py:meth:~.BaseCrawler.docs_from_file` and yields index
+        documents associated with files.
+
+        .. note::
+            It is not recommended to reimplement this method to modify
+            documents generated from filenames.
+            See :meth:`~RegexFileCrawler.process` instead.
+
+        :param dirpath: The path of the file relative to root.
+        :param fn: The filename of the file.
+        :yields: Index documents.
+        """
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
             if m:
@@ -253,7 +262,7 @@ class RegexFileCrawler(BaseCrawler):
         :type dirpath: str
         :param fn: The filename.
         :type fn: str
-        :returns: A document, that means an instance of mapping.
+        :returns: An index document, that means an instance of mapping.
         :rtype: mapping"""
         result = dict()
         for key, value in doc.items():
@@ -407,17 +416,52 @@ class SignacProjectCrawler(RegexFileCrawler):
 
 
 class MasterCrawler(BaseCrawler):
-    """Crawl the data space and search for signac crawlers.
+    """Compiles a master index from indeces defined in access modules.
 
-    The MasterCrawler executes signac slave crawlers
-    defined in signac_access.py modules.
+    An instance of this crawler will search the data space for access
+    modules, which by default are named ``signac_access.py``. Once such
+    a file is found, the crawler will import the module and try to execute
+    two special functions given that they are defined within the module's
+    global namespace: ``get_indeces()`` and ``get_crawlers()``.
 
-    If the master crawlers has defined tags, it will only
-    execute slave crawlers with at least one matching tag.
+    The ``get_indeces()`` is assumed to yield one or multiple index generator
+    functions, while the ``get_crawlers()`` function is assumed to yield
+    one or more crawler instances.
+
+    This is an example for such an access module:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.index_files(root, '.*\.txt')
+
+        def get_crawlers(root):
+            yield MyCrawler(root)
+
+    In case that the master crawler has tags, the ``get_indeces()`` function
+    will always be ignored while crawlers yielded from the ``get_crawlers()``
+    function will only be executed in case that they match at least one
+    of the tags.
+
+    In case that the access module is completely empty, it will be executed
+    as if it had the following directives:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.get_project(root).index()
+
 
     :param root: The path to the root directory to crawl through.
     :type root: str
-    :param mirrors: An optional set of mirrors, to export data to."""
+    :param raise_on_error: Raise all exceptions encountered during
+        during crawling instead of ignoring them.
+    :type raise_on_error: bool
+    """
 
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
@@ -464,23 +508,23 @@ class MasterCrawler(BaseCrawler):
                     yield doc
 
     def docs_from_file(self, dirpath, fn):
+        """Compile master index from file in case it is an access module.
+
+        :param dirpath: The path of the file relative to root.
+        :param fn: The filename of the file.
+        :yields: Index documents.
+        """
         if fn == self.FN_ACCESS_MODULE:
             try:
                 for doc in self._docs_from_module(dirpath, fn):
                     yield doc
-            except AttributeError as error:
-                if str(error) == 'get_crawlers':
-                    logger.warning(
-                        "Module has no '{}' function.".format(error))
-                else:
-                    raise
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
                 if self.raise_on_error:
                     raise
             else:
-                logger.debug("Executed slave crawlers.")
+                logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
 
 
 def _load_crawler(name):
@@ -811,15 +855,27 @@ def index_files(root='.', formats=None, depth=0):
 
 
 def index(root='.', tags=None, depth=0, **kwargs):
-    """Generate a master index
+    """Generate a master index.
 
     A master index is compiled from other indexes by searching
-    for files named `signac_access.py` and executing all crawlers
-    defined within those modules.
+    for modules named ``signac_access.py`` and compiling all
+    indeces which are yielded from a function ``get_indeces(root)``
+    defined within that module as well as the indeces generated by
+    crawlers yielded from a function ``get_crawlers(root)`` defined
+    within that module.
 
-    This function constructs an instance of :py:class:`.MasterCrawler`
-    internally and all extra key-word arguments will be forwarded
-    to the constructor of said master crawler.
+    This is a minimal example for a ``signac_access.py`` file:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.index_files(root, '.*\.txt')
+
+    Internally, this function constructs an instance of
+    :py:class:`.MasterCrawler` and all extra key-word arguments
+    will be forwarded to the constructor of said master crawler.
 
     :param root: Look for access modules under this directory path.
     :type root: str

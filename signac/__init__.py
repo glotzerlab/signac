@@ -41,7 +41,7 @@ __all__ = ['__version__', 'contrib', 'db', 'errors',
            'get_database', 'fetch', 'fetch_one',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
-           'export_pymongo', 'fs'
+           'export_pymongo', 'fs',
            'index_files', 'index',
            'RegexFileCrawler',
            'MasterCrawler',

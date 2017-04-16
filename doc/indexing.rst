@@ -13,6 +13,19 @@ The data index contains all information about the project's data structure and c
 While **signac**'s project interface is specifically useful during the data curation and generation phase, working with indeces may be useful in later stages of an investigation.
 Especially when data is curated from multiple different projects and sources or if data spaces do not use the signac project schema.
 
+For example, we may want to calculate the average of some values that we read from files associated with a specific data sub space:
+
+.. code-block:: python
+
+    def extract_value(doc):
+        with signac.fetch(doc) as file:
+            return float(file.read())
+
+    docs = index.find({'statepoint.a': 42})
+    average = sum(map(extract_value, docs)) / len(docs)
+
+The next few sections will outline in detail how such a workflow can be realized.
+
 Generating a File Index
 =======================
 
@@ -44,12 +57,12 @@ For example, to index all files in the ``/data`` directory that end in ``.txt``,
     for doc in signac.index_files('/data', '.*\.txt'):
         print(doc)
 
-We can gather more metadata directly from the filename, by using regular expressions with *named groups*.
-For example, if we have a filename pattern: ``a_0.txt``, ``a_1.txt`` and so on, we can extract the ``a`` value using the following expression:
+We can extract metadata directly from the filename by using regular expressions with *named groups*.
+For example, if we have a filename pattern: ``a_0.txt``, ``a_1.txt`` and so on, where the number following ``a_`` is to be extracted as the ``a`` field, we can use the following expression:
 
 .. code-block:: python
 
-    for doc in signac.index_files('.*(?P<a>\d+)'):
+    for doc in signac.index_files('/data', '.*a_(?P<a>\d+)'):
         print(doc['a'])
 
 To further simplify the selection of different files from the index, we may provide multiple patterns with an optional *format definition*.
@@ -73,7 +86,7 @@ This is how we could generate the index:
 
 .. _`regex101`: https://regex101.com
 
-Indexing a signac project
+Indexing a signac Project
 =========================
 
 A signac project index is like a regular file index, but contains the following additional fields:
@@ -102,7 +115,7 @@ This special index document is associated with the job's :ref:`document <job-doc
 
 Just like for regular file indeces generated with :py:func:`.index_files`, we can still define regular expressions to limit the indexing to specific files and to extract additional metadata.
 
-Generating a master index
+Generating a Master Index
 =========================
 
 A master index is a compilation of multiple indexes, which simplifies the operation on a larger data space.
@@ -121,7 +134,7 @@ Executing the :py:func:`~.index` function for the home directory
 
 .. code-block:: python
 
-    for doc in signac.index(`~`):
+    for doc in signac.index('~'):
         print(doc)
 
 will now yield a joint index for both projects in ``~/project_a`` and ``~/project_b``.
@@ -136,8 +149,8 @@ For more information on how to have more control over the index creation, see th
 
       $ signac index > index.txt
 
-Index Collections
-=================
+Managing Index Collections
+==========================
 
 Once we have generated an index, we can use it to search our data space.
 For example, if we are looking for all files that correspond to a state point variable ``a=42``, we could implement the following for-loop:
@@ -158,8 +171,8 @@ This is the same logic implemented more concisely as a list comprehension:
     docs = [doc for doc in index if doc['statepoint']['a'] == 42]
 
 This is a very viable approach as long as the index is not too large and the search queries are relatively simple.
-An alternative way to manage an index is to use an index :py:class:`.Collection`.
-For example, to execute the same search operation from above, we would execute:
+An alternative way to manage an index is to use a :py:class:`.Collection`.
+For example, to execute the same search operation from above, we could use the :py:meth:`~.Collection.find` method:
 
 .. code-block:: python
 
@@ -178,34 +191,21 @@ This allows us to generate a index once and then load it from disk, which is muc
             index.update(signac.index())
         docs = index.find({'statepoint.a': 42})
 
-Since **signac**'s decentralized approach does not allow for the automatic tracking of changes, it is up to the user to determine when a particular index needs to be updated.
-To automatically identify stale documents, that means documents that refer to files which no longer exist, use the :py:func:`signac.export` function:
+Since **signac**'s decentralized approach is not designed to automatically keep track of changes, it is up to the user to determine when a particular index needs to be updated.
+To automatically identify and remove stale documents [#f3]_, use the :py:func:`signac.export` function:
+
 
 .. code-block:: python
 
     with Collection.open('index.txt') as index:
         signac.export(signac.index(), index, update=True)
 
+.. [#f3] A *stale* document is associated with a file or state point that has been removed.
+
 .. tip::
 
     The :py:class:`.Collection` class has the same interface as a :py:class:`pymongo.collection.Collection` class.
     That means you can use these two types of collections interchangeably.
-
-Accelerating search operations
-==============================
-
-Many project search operations internally rely on an index and can be accelerated by providing a pre-generated index, e.g.,
-
-.. code-block:: python
-
-    with Collection.open('index.txt') as index:
-        project.find_jobs({'a': 0}, index=index)
-
-or on the command line:
-
-.. code-block:: bash
-
-    $ signac find --index index.txt '{"a": 0}'
 
 Fetching Data
 =============
@@ -227,11 +227,11 @@ Overall, this enables us to operate on indexed project data in a way which is mo
 
 .. _access-module:
 
-The *signac_access.py* module
+The *signac_access.py* Module
 =============================
 
 We can use the ``signac_access.py`` module to control the index generation across projects.
-An empty module is equivalent to a module which contains the following directives:
+An **empty** module is equivalent to a module which contains the following directives:
 
 .. code-block:: python
 
@@ -251,3 +251,5 @@ For example, to index all files with a ``.txt`` filename suffix, we would put th
 
     def get_indeces(root):
         yield signac.get_project(root).index(formats='.*\.txt')
+
+You can generate a basic access module for a **signac** project using the :py:meth:`~.Project.create_access_module` method.

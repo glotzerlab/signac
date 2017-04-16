@@ -7,6 +7,8 @@ Quick Reference
 Projects
 ========
 
+A **signac** :py:class:`.Project` is the primary data interface for the generation and management of project data spaces.
+
 Start a new project
 -------------------
 
@@ -129,11 +131,12 @@ Command line:
 Dataspace Operations
 --------------------
 
-Definition:
+A dataspace operation in the context of **signac projects** is defined as any process which creates, modifies or deletes project data as part of the project's dataspace.
+Implemented in Python, such a operation should only require one argument, an instance of :py:class:`.Job`, in order to be well-defined:
 
 .. code-block:: python
 
-    def func(job):
+    def operate(job):
         pass
 
 Execute in serial:
@@ -141,10 +144,10 @@ Execute in serial:
 .. code-block:: python
 
     for job in project:
-        func(job)
+        operate(job)
 
     # or:
-    list(map(func, project))
+    list(map(operate, project))
 
 
 Execute in parallel:
@@ -153,53 +156,126 @@ Execute in parallel:
 
     from multiprocessing import Pool
     with Pool() as pool:
-        pool.map(func, project)
+        pool.map(operate, project)
 
     from multiprocessing.pool import ThreadPool
     with ThreadPool() as pool:
-        pool.map(func, project)
+        pool.map(operate, project)
 
     from signac.contrib.mpipool import MPIPool
     with MPIPool() as pool:
-        pool.map(func, project)
+        pool.map(operate, project)
 
 Indexing
 ========
 
-Index project data
-------------------
+An index is collection of documents which describe an existing data space.
 
-1. Use the :py:meth:`~signac.contrib.project.Project.index` method:
-
-    .. code-block:: python
-
-        for doc in project.index():
-            print(doc)
-
-2. Use the ``signac index`` function:
-
-    .. code-block:: bash
-
-        $ signac index
-
-3. Define a custom crawler for example for a ``signac_access.py`` module:
-
-    .. code-block:: python
-
-        project.create_access_module()
-
-Master Crawler
---------------
-
-Using a :py:class:`~.contrib.MasterCrawler` to find slave crawlers in ``/projects``:
+Generate a file index
+---------------------
 
 .. code-block:: python
 
-    master_crawler = signac.contrib.MasterCrawler('/projects')
-    signac.export(master_crawler.crawl(depth=1), index)
+    singac.index_files('/data', '.*\.txt')
+
+Generate a signac project index
+-------------------------------
+
+Python:
+
+.. code-block:: python
+
+    project.index('.*\.txt')
+
+Command line:
+
+.. code-block:: bash
+
+    $ signac project --index
+
+Create an access module:
+------------------------
+
+Python:
+
+.. code-block:: python
+
+    project.create_access_module()
+
+Command line:
+
+.. code-block:: bash
+
+    $ touch signac_access.py
+    $ # or:
+    $ signac project --access
+
+Generate a master index
+-----------------------
+
+Python:
+
+.. code-block:: python
+
+    signac.index('/data')
+
+Command line:
+
+.. code-block:: bash
+
+    $ signac index
+
+Fetch Data
+----------
+
+Fetch files from an index document with :py:func:`.fetch`:
+
+.. code-block:: python
+
+    for doc in index:
+        with signac.fetch(doc) as file:
+            print(file.read())
+
+Collections
+===========
+
+A :py:class:`.Collection` is a set of documents (mappings of key-value pairs).
+
+Initialize a collection
+-----------------------
+
+.. code-block:: python
+
+    collection = signac.Collection(docs)
+
+Iterate through a collection
+----------------------------
+
+.. code-block:: python
+
+    for doc in collection:
+        print(doc)
+
+Search for documents
+--------------------
+
+.. code-block:: python
+
+    for doc in collection.find({'a': 42}):
+        print(doc)
+
+Open a collection associated with a file
+----------------------------------------
+
+.. code-block:: python
+
+    with Collection.open('index.txt') as collection:
+        pass
 
 Database Integration
 ====================
+
+The **signac** framework allows for the simple integration of databases, for example for the management of index collections.
 
 Access a database
 -----------------
@@ -207,21 +283,6 @@ Access a database
 .. code-block:: python
 
     db = signac.get_database('my_database')
-
-Export an index to a database collection
-----------------------------------------
-
-Export a project index:
-
-.. code-block:: python
-
-    signac.export(project.index(), db.index)
-
-Export an index from a crawler:
-
-.. code-block:: python
-
-    signac.export(crawler.crawl(), db.index)
 
 Search a database collection
 ----------------------------
@@ -233,15 +294,3 @@ Search a database collection
 
     # a = 2
     doc = db.index.find_one({'a': 2})
-
-Access data using an index
---------------------------
-
-Access files using an index with :py:func:`signac.fetch`:
-
-.. code-block:: python
-
-    docs = db.index.find({'a': 0, 'format': 'TextFile'})
-    for doc in docs:
-        with signac.fetch(doc) as file:
-            print(file.read())

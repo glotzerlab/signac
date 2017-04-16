@@ -249,7 +249,9 @@ class Collection(object):
                 print(member_collection[_id]['name'])
 
         This means we can access documents by the 'age' key in O(1) time on
-        average in addition to the primary key.
+        average in addition to the primary key. Using the :py:meth:`.find`
+        method will automatically build all required indeces for the particular
+        search.
 
         :param key: The primary key of the requested index.
         :type key: str
@@ -283,7 +285,7 @@ class Collection(object):
 
     @property
     def primary_key(self):
-        "The name of the collection's primary key."
+        "The name of the collection's primary key (default='_id')."
         return self._primary_key
 
     def __len__(self):
@@ -432,6 +434,14 @@ class Collection(object):
 
             for doc in collection.find(my_filter):
                 print(doc)
+
+        Nested values should be searched using the ``.`` operator, for example:
+
+        .. code-block:: python
+
+            docs = collection.find({'nested.value': 42})
+
+        will return documents with a nested structure: ``{'nested': {'value': 42}}``.
 
         The result of :py:meth:`~.find` can be stored and iterated over multiple times.
         In addition, the result vector can be queried for its size:
