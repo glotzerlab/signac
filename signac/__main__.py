@@ -665,7 +665,7 @@ def main():
         'filter',
         type=str,
         nargs='?',
-        help="A JSON encoded filter (key-value pairs).")
+        help="A JSON encoded state point filter (key-value pairs).")
     parser_find.add_argument(
         '-i', '--index',
         type=str,
@@ -673,7 +673,7 @@ def main():
     parser_find.add_argument(
         '-d', '--doc-filter',
         type=str,
-        help="A JSON encoded filter for job documents (key-value pairs).")
+        help="A JSON encoded general filter (key-value pairs).")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
