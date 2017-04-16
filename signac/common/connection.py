@@ -7,6 +7,8 @@ from os.path import expanduser
 
 import pymongo
 
+from .errors import ConfigError
+
 
 PYMONGO_2 = pymongo.version_tuple[0] == 2
 
@@ -63,7 +65,10 @@ class DBClientConnector(object):
         return self._config.get(key, default)
 
     def _config_get_required(self, key):
-        return self._config[key]
+        try:
+            return self._config[key]
+        except KeyError as e:
+            raise ConfigError("Missing required key '{}'.".format(e))
 
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
@@ -75,7 +80,7 @@ class DBClientConnector(object):
             if parameter in self._config:
                 parameters[parameter] = self._config_get(parameter)
 
-        auth_mechanism = self._config_get('auth_mechanism')
+        auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism in (AUTH_NONE, AUTH_SCRAM_SHA_1):
             client = pymongo.MongoClient(
                 host,

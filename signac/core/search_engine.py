@@ -1,4 +1,8 @@
+# Copyright (c) 2017 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 from collections import defaultdict
+import warnings
 import logging
 
 from .json import json
@@ -88,6 +92,10 @@ class DocumentSearchEngine(object):
     :type hash_: callable
     """
     def __init__(self, docs=None, include=None, hash_=None):
+        warnings.warn(
+            "The {} class is deprecated. Please use the Collection class instead.".format(
+                type(self).__name__),
+                DeprecationWarning)
         self._hash = hash if hash_ is None else hash_
         logger.debug("Building index...")
         self.ids, self.index, self.included = self._build_index(docs, include)

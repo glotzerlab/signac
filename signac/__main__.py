@@ -12,7 +12,7 @@ import getpass
 import difflib
 import errno
 
-from . import get_project, init_project
+from . import get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
@@ -21,7 +21,7 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
 from .errors import DestinationExistsError
 try:
-    from .common.host import get_database, get_credentials, make_uri
+    from .common.host import get_client, get_database, get_credentials, make_uri
 except ImportError:
     HOST = False
 else:
@@ -129,6 +129,14 @@ def _open_job_by_id(project, job_id):
 
 def main_project(args):
     project = get_project()
+    if args.access:
+        fn = project.create_access_module()
+        _print_err("Created access module '{}'.".format(fn))
+        return
+    if args.index:
+        for doc in project.index():
+            print(json.dumps(doc))
+        return
     if args.workspace:
         print(project.workspace())
     else:
@@ -195,24 +203,35 @@ def main_clone(args):
 
 
 def main_index(args):
-    project = get_project()
-    _print_err("Indexing project...")
-    index = project.index()
-    for doc in index:
+    _print_err("Compiling master index for path '{}'...".format(
+        os.path.realpath(args.root)))
+    if args.tags:
+        args.tags = set(args.tags)
+        _print_err("Provided tags: {}".format(', '.join(sorted(args.tags))))
+    for doc in index(root=args.root, tags=args.tags, raise_on_error=args.debug):
         print(json.dumps(doc))
 
 
 def main_find(args):
+
+    def parse(q):
+        try:
+            return json.loads(q)
+        except json.decoder.JSONDecodeError:
+            _print_err("Failed to parse query argument. "
+                       "Ensure that '{}' is valid JSON!".format(q))
+            raise
+
     project = get_project()
     if args.filter is None:
         f = None
     else:
-        f = json.loads(args.filter)
+        f = parse(args.filter)
 
     if args.doc_filter is None:
         df = None
     else:
-        df = json.loads(args.doc_filter)
+        df = parse(args.doc_filter)
 
     index = _read_index(project, args.index)
     try:
@@ -235,11 +254,11 @@ def main_view(args):
 
 
 def main_init(args):
-    init_project(
+    project = init_project(
         name=args.project_id,
         root=os.getcwd(),
         workspace=args.workspace)
-    _print_err("Initialized project '{}'.".format(args.project_id))
+    _print_err("Initialized project '{}'.".format(project))
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -409,6 +428,27 @@ def main_config_host(args):
         return cfg.setdefault(
             'hosts', dict()).setdefault(args.hostname, dict())
 
+    if len((args.test, args.remove, args.show_pw)) > 1:
+        raise ValueError(
+            "Please select only one of the following options: "
+            "[--test | -r/--remove | --show-pw].")
+
+    if args.test:
+        if hostcfg():
+            _print_err("Trying to connect to host '{}'...".format(args.hostname))
+            try:
+                client = get_client(hostcfg())
+                client.address
+            except Exception:
+                _print_err("Encountered error while tyring to "
+                           "connect to host '{}'.".format(args.hostname))
+                raise
+            else:
+                print("Successfully connected to host '{}'.".format(args.hostname))
+        else:
+            _print_err("Host '{}' is not configured.".format(args.hostname))
+        return
+
     if args.remove:
         if hostcfg():
             q = "Are you sure you want to remove host '{}'."
@@ -543,6 +583,10 @@ def main():
         '-i', '--index',
         action='store_true',
         help="Generate and print an index for the project.")
+    parser_project.add_argument(
+        '-a', '--access',
+        action='store_true',
+        help="Create access module for indexing.")
     parser_project.set_defaults(func=main_project)
 
     parser_job = subparsers.add_parser('job')
@@ -612,6 +656,15 @@ def main():
     parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
+    parser_index.add_argument(
+        'root',
+        nargs='?',
+        default='.',
+        help="Specify the root path from where the master index is to be compiled.")
+    parser_index.add_argument(
+        '-t', '--tags',
+        nargs='+',
+        help="Specify tags for this master index compilation.")
     parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser('find')
@@ -619,7 +672,7 @@ def main():
         'filter',
         type=str,
         nargs='?',
-        help="A JSON encoded filter (key-value pairs).")
+        help="A JSON encoded state point filter (key-value pairs).")
     parser_find.add_argument(
         '-i', '--index',
         type=str,
@@ -627,7 +680,7 @@ def main():
     parser_find.add_argument(
         '-d', '--doc-filter',
         type=str,
-        help="A JSON encoded filter for job documents (key-value pairs).")
+        help="A JSON encoded general filter (key-value pairs).")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
@@ -730,6 +783,10 @@ def main():
         '-r', '--remove',
         action='store_true',
         help="Remove the specified resource.")
+    parser_host.add_argument(
+        '--test',
+        action='store_true',
+        help="Attempt connecting to the specified host.")
     parser_host.set_defaults(func=main_config_host)
 
     parser_verify = config_subparsers.add_parser('verify')

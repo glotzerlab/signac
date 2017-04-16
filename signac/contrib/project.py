@@ -3,16 +3,16 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
+import stat
 import re
 import logging
 import errno
-import warnings
 import collections
 import shutil
 from itertools import chain
 
 from ..core.json import json
-from ..core.search_engine import DocumentSearchEngine
+from .collection import Collection
 from ..common import six
 from ..common.config import load_config
 from .job import Job
@@ -23,37 +23,27 @@ from .indexing import MasterCrawler
 from .utility import _mkdir_p, is_string
 from .errors import DestinationExistsError
 
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
-
 logger = logging.getLogger(__name__)
 
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
 
-ACCESS_MODULE_TEMPLATE = """#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import os
+ACCESS_MODULE_MINIMAL = """import signac
 
-from signac.contrib import SignacProjectCrawler
-{imports}
-
-
-class {crawlername}(SignacProjectCrawler):
-    pass
-{definitions}
-
-
-def get_crawlers(root):
-    return {{'main': {crawlername}(os.path.join(root, '{wd}'))}}
+def get_indeces(root):
+    yield signac.get_project(root).index()
 """
 
-ACCESS_MODULE_MC_TEMPLATE = """if __name__ == '__main__':
-    master_crawler = MasterCrawler('.')
-    for doc in master_crawler.crawl(depth={depth}):
-        print(doc)
+ACCESS_MODULE_MASTER = """#!/usr/bin/env python
+# -*- condig: utf-8 -*-
+import signac
+
+def get_indeces(root):
+    yield signac.get_project(root).index()
+
+if __name__ == '__main__':
+    with signac.Collection.open('index.txt') as index:
+        signac.export(signac.index(), index, update=True)
 """
 
 
@@ -64,20 +54,14 @@ class JobSearchIndex(object):
     that are part of an index, which match specific
     statepoint filters or job document filters.
 
-    :param project: The project the jobs are associated with.
-    :type project: :class:`~.Project`
     :param index: A document index.
-    :param include: A mapping of keys that shall be
-        included (True) or excluded (False).
-    :type include: Mapping
     """
 
-    def __init__(self, index, include=None, hash_=None):
-        self._engine = DocumentSearchEngine(
-            index, include=include, hash_=hash_)
+    def __init__(self, index):
+        self._collection = Collection(index)
 
     def __len__(self):
-        return len(self._engine)
+        return len(self._collection)
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
@@ -101,8 +85,7 @@ class JobSearchIndex(object):
             f['statepoint'] = filter
         if doc_filter is not None:
             f.update(doc_filter)
-        f = json.loads(json.dumps(f))  # Normalize
-        return self._engine.find(filter=f)
+        return self._collection._find(f)
 
 
 class Project(object):
@@ -254,18 +237,15 @@ class Project(object):
         """
         return job.get_id() in self.find_job_ids()
 
-    def build_job_search_index(self, index, include=None, hash_=None):
+    def build_job_search_index(self, index):
         """Build a job search index.
 
         :param index: A document index.
         :type index: list
-        :param include: A mapping of keys that shall be
-            included (True) or excluded (False).
-        :type include: Mapping
         :returns: A job search index based on the provided index.
         :rtype: :class:`~.JobSearchIndex`
         """
-        return JobSearchIndex(index=index, include=include, hash_=hash_)
+        return JobSearchIndex(index=index)
 
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
@@ -292,17 +272,20 @@ class Project(object):
         :yields: Key-value pairs of JSON-encoded statepoint parameters and
             and a set of corresponding job ids.
         """
+        from .collection import _traverse_filter
         if index is None:
             index = self.index(include_job_document=False)
-        include = {'statepoint': True}
-        search_index = self.build_job_search_index(
-            index, include, hash_=json.dumps)
-        tmp = search_index._engine.index
-        N = len(search_index)
+        collection = Collection(index)
+        for doc in collection.find():
+            for key, _ in _traverse_filter(doc):
+                if key == '_id' or key.split('.')[0] != 'statepoint':
+                    continue
+                collection.index(key, build=True)
+        tmp = collection._indeces
         for k in sorted(tmp, key=lambda k: len(tmp[k])):
-            if exclude_const and len(tmp[k]) == N:
+            if exclude_const and len(tmp[k]) == 1:
                 continue
-            yield json.dumps(json.loads(k)[1:]), tmp[k]
+            yield tuple(k.split('.')[1:]), tmp[k]
 
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
@@ -330,11 +313,7 @@ class Project(object):
             return list(self._job_dirs())
         if index is None:
             index = self.index(include_job_document=doc_filter is not None)
-        if doc_filter is None:
-            include = {'statepoint': True}
-        else:
-            include = None
-        search_index = self.build_job_search_index(index, include)
+        search_index = self.build_job_search_index(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
@@ -541,8 +520,16 @@ class Project(object):
                 raise ValueError("Insufficient index for selected data space.")
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
+        sp_index = dict(jsi)
+        tmp = collections.defaultdict(list)
+        for key, values in sp_index.items():
+            for value, group in values.items():
+                p = '_'.join(str(_) for _ in (key + (value, )))
+                for job_id in group:
+                    tmp[job_id].append(p)
         links = dict()
-        for path, job_id in _make_paths(jsi):
+        for job_id, p in tmp.items():
+            path = os.path.join(* p + ['job'])
             links[path] = self.open_job(id=job_id).workspace()
         if not links:   # data space contains less than two elements
             for job in self.find_jobs():
@@ -708,79 +695,54 @@ class Project(object):
                 include_job_document=include_job_document,
                 fn_statepoint=self.Job.FN_MANIFEST)
         else:
+            if six.PY2:
+                if isinstance(formats, basestring):  # noqa
+                    formats = {formats: 'File'}
+            else:
+                if isinstance(formats, str):
+                    formats = {formats: 'File'}
+
             class Crawler(SignacProjectCrawler):
                 pass
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
-            crawler = Crawler(self.workspace())
+            crawler = Crawler(self.root_directory())
             docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
         for doc in docs:
             yield doc
 
-    def create_access_module(self, formats=None, crawlername=None,
-                             filename=None, master=True, depth=1):
+    def create_access_module(self, filename=None, master=True):
         """Create the access module for indexing
 
-        This method generates the acess module containing indexing
-        directives for master crawlers.
+        This method generates the access module required to make
+        this project's index part of a master index.
 
-        :param formats: The format definitions as mapping.
-        :type formats: dict
-        :param crawlername: Specify a name for the crawler class.
-            Defaults to a name based on the project's name.
-        :type crawlername: str
         :param filename: The name of the access module file.
             Defaults to the standard name and should ususally
             not be changed.
         :type filename: str
-        :param master: If True, will add master crawler execution
-            commands to the bottom of the file.
+        :param master: If True, add directives for the compilation
+            of a master index when executing the module.
         :type master: bool
-        :param depth: Specifies the depth of the master crawler
-            definitions (if `master` is True). Defaults to 1 to
-            reduce the crawling depth of the master crawler.
-            A value of 0 means no limit.
-        :type depth: int"""
-        if crawlername is None:
-            crawlername = str(self) + 'Crawler'
+        :returns: The name of the created access module.
+        :rtype: str
+        """
         if filename is None:
             filename = os.path.join(
                 self.root_directory(),
                 MasterCrawler.FN_ACCESS_MODULE)
-        workspace = os.path.relpath(self.workspace(), self.root_directory())
-
-        imports = set()
-        if formats is None:
-            definitions = ''
-        else:
-            dl = "{}.define('{}', {})"
-            defs = list()
-            for expr, fmt in formats.items():
-                if is_string(fmt):
-                    defs.append(dl.format(crawlername, expr, "'{}'".format(fmt)))
-                else:
-                    defs.append(dl.format(crawlername, expr, fmt.__name__))
-                    imports.add(
-                        'from {} import {}'.format(fmt.__module__, fmt.__name__))
-            definitions = '\n'.join(defs)
-        if master:
-            imports.add('from signac.contrib import MasterCrawler')
-        imports = '\n'.join(imports)
-
-        module = ACCESS_MODULE_TEMPLATE.format(
-            crawlername=crawlername,
-            imports=imports,
-            definitions=definitions,
-            wd=workspace)
-        if master:
-            module += '\n\n' + ACCESS_MODULE_MC_TEMPLATE.format(
-                depth=depth)
-
         with open(filename, 'wx' if six.PY2 else 'x') as file:
-            file.write(module)
+            if master:
+                file.write(ACCESS_MODULE_MASTER)
+            else:
+                file.write(ACCESS_MODULE_MINIMAL)
+        if master:
+            mode = os.stat(filename).st_mode | stat.S_IEXEC
+            os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))
+        return filename
 
     @classmethod
     def init_project(cls, name, root=None, workspace=None, make_dir=True):
@@ -1002,17 +964,6 @@ def _make_urls(statepoints, key_set):
             yield statepoint, os.path.join(*url)
 
 
-def _make_paths(sp_index, leaf='job'):
-    tmp = collections.defaultdict(list)
-    for key, jids in sp_index:
-        for jid in jids:
-            tmp[jid].append(key)
-    for jid, sps in tmp.items():
-        p = ('_'.join(str(x) for x in json.loads(sp)) for sp in sorted(sps))
-        path = os.path.join(* list(p) + [leaf])
-        yield path, jid
-
-
 def _skip_errors(iterable, log=print):
     while True:
         try:
@@ -1040,7 +991,6 @@ class _JobsIterator(object):
         return self._project.open_job(id=next(self._ids_iterator))
 
     next = __next__  # python 2.7 compatibility
-
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

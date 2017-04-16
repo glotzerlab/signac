@@ -50,17 +50,20 @@ class Job(object):
         :rtype: str"""
         return self._id
 
+    def __hash__(self):
+        return hash(self._wd)
+
     def __str__(self):
         "Returns the job's id."
         return str(self.get_id())
 
     def __repr__(self):
-        return "{}(project={}, id='{}')".format(
+        return "{}(project={}, statepoint={})".format(
             self.__class__.__module__ + '.' + self.__class__.__name__,
-            repr(self._project), self._id)
+            repr(self._project), self._statepoint)
 
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return hash(self) == hash(other)
 
     def workspace(self):
         """Each job is associated with a unique workspace directory.
@@ -68,6 +71,11 @@ class Job(object):
         :return: The path to the job's workspace directory.
         :rtype: str"""
         return self._wd
+
+    @property
+    def ws(self):
+        "The job's workspace directory."
+        return self.workspace()
 
     def statepoint(self):
         """The statepoint associated with this job.

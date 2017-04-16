@@ -152,6 +152,16 @@ class JobSPInterfaceTest(BaseJobTest):
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
             self.assertEqual(job.sp[x] , sp[x])
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            self.assertEqual(job.sp.get(x), sp[x])
+            self.assertEqual(job.sp.get(x), sp[x])
+            self.assertEqual(job.sp.g.get(x), sp['g'][x])
+        self.assertIsNone(job.sp.get('not_in_sp'))
+        self.assertIsNone(job.sp.g.get('not_in_sp'))
+        self.assertIsNone(job.sp.get('not_in_sp', None))
+        self.assertIsNone(job.sp.g.get('not_in_sp', None))
+        self.assertEqual(job.sp.get('not_in_sp', 23), 23)
+        self.assertEqual(job.sp.g.get('not_in_sp', 23), 23)
 
     def test_interface_contains(self):
         sp = nested_dict()
@@ -293,8 +303,15 @@ class JobOpenAndClosingTest(BaseJobTest):
         job = self.open_job(test_token)
         self.assertFalse(os.path.isdir(job.workspace()))
         job.init()
+        self.assertEqual(job.workspace(), job.ws)
         self.assertTrue(os.path.isdir(job.workspace()))
+        self.assertTrue(os.path.isdir(job.ws))
         self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
+
+    def test_construction(self):
+        job = self.open_job(test_token)
+        job2 = eval(repr(job))
+        self.assertEqual(job, job2)
 
     def test_open_job_close(self):
         with warnings.catch_warnings():

@@ -13,4 +13,5 @@ Contents:
    configuration
    projects
    indexing
+   advanced_indexing
    database

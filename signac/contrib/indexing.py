@@ -9,6 +9,7 @@ import logging
 import warnings
 import errno
 from time import sleep
+from collections import defaultdict
 
 from ..core.json import json
 from ..common import six
@@ -42,6 +43,11 @@ def md5(file):
     return m.hexdigest()
 
 
+def _is_blank_module(module):
+    with open(module.__file__) as file:
+        return not bool(file.read().strip())
+
+
 class BaseCrawler(object):
     """Crawl through `root` and index all files.
 
@@ -54,7 +60,7 @@ class BaseCrawler(object):
 
         :param root: The path to the root directory to crawl through.
         :type root: str"""
-        self.root = root
+        self.root = os.path.expanduser(root)
         self.tags = set() if self.tags is None else set(self.tags)
 
     def docs_from_file(self, dirpath, fn):
@@ -64,9 +70,10 @@ class BaseCrawler(object):
         :type dirpath: str
         :param fn: The filename.
         :type fn: str
-        :returns: A document, that means an instance of mapping.
-        :rtype: mapping"""
+        :yields: Index documents.
+        """
         raise NotImplementedError()
+        yield
 
     def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
@@ -139,32 +146,15 @@ class RegexFileCrawler(BaseCrawler):
         ~/my_project/a_1.txt
         ...
 
-    A valid regular expression to match
-    this pattern would be: ``a_(?P<a>\d+)\.txt``.
-
-    A regular expression crawler for this structure could be implemented
-    like this:
+    A valid regular expression to match this pattern would
+    be: ``.*\/a_(?P<a>\d+)\.txt`` which may be defined for a crawler as such:
 
     .. code-block:: python
-
-        import re
-
-        class TextFile(object):
-            def __init__(self, file):
-                # file is a file-like object
-                return file.read()
 
         MyCrawler(RegexFileCrawler):
             pass
 
-        MyCrawler.define('a_(?P<a>\d+)\.txt, TextFile)
-
-    In this case we could also use :class:`.formats.TextFile`
-    as data type which is an implementation of the example shown above.
-    However we could use any other type, as long as its constructor
-    expects a `file-like object`_ as its first argument.
-
-    .. _`file-like object`: https://docs.python.org/3/glossary.html#term-file-object
+        MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
     """
     "Mapping of compiled regex objects and associated formats."
     definitions = dict()
@@ -175,11 +165,10 @@ class RegexFileCrawler(BaseCrawler):
 
         :param regex: All files of the specified format
             must match this regular expression.
-        :type regex: :class:`str` or `compiled regular expression`_
+        :type regex: :class:`str`
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
-
-        .. _`compiled regular expression`: https://docs.python.org/3.4/library/re.html#re-objects"""
+        """
         if six.PY2:
             if isinstance(regex, basestring):  # noqa
                 regex = re.compile(regex)
@@ -204,11 +193,19 @@ class RegexFileCrawler(BaseCrawler):
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
 
-        This method is an implementation of the abstract method
-        of :class:`~.BaseCrawler`.
-        It is not recommended to reimplement this method to modify
-        documents generated from filenames.
-        See :meth:`~RegexFileCrawler.process` instead."""
+        This method implements the abstract
+        :py:meth:~.BaseCrawler.docs_from_file` and yields index
+        documents associated with files.
+
+        .. note::
+            It is not recommended to reimplement this method to modify
+            documents generated from filenames.
+            See :meth:`~RegexFileCrawler.process` instead.
+
+        :param dirpath: The path of the file relative to root.
+        :param fn: The filename of the file.
+        :yields: Index documents.
+        """
         for regex, format_ in self.definitions.items():
             m = regex.match(os.path.join(dirpath, fn))
             if m:
@@ -265,7 +262,7 @@ class RegexFileCrawler(BaseCrawler):
         :type dirpath: str
         :param fn: The filename.
         :type fn: str
-        :returns: A document, that means an instance of mapping.
+        :returns: An index document, that means an instance of mapping.
         :rtype: mapping"""
         result = dict()
         for key, value in doc.items():
@@ -316,6 +313,7 @@ def _index_signac_project_workspace(root,
                                     encoding='utf-8',
                                     statepoint_dict=None):
     "Yields standard index documents for a signac project workspace."
+    logger.debug("Indexing workspace '{}'...".format(root))
     m = re.compile(r'[a-f0-9]{32}')
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
@@ -324,10 +322,10 @@ def _index_signac_project_workspace(root,
             return
         else:
             raise
-    for job_id in job_ids:
+    for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
-        doc = dict(signac_id=job_id)
+        doc = {'signac_id': job_id, KEY_PATH: root}
         if signac_id_alias:
             doc[signac_id_alias] = job_id
         fn_sp = os.path.join(root, job_id, fn_statepoint)
@@ -348,6 +346,8 @@ def _index_signac_project_workspace(root,
                 if error.errno != errno.ENOENT:
                     raise
         yield doc
+    if job_ids:
+        logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
 class SignacProjectCrawler(RegexFileCrawler):
@@ -359,7 +359,7 @@ class SignacProjectCrawler(RegexFileCrawler):
 
     See also: :py:class:`~.RegexFileCrawler`
 
-    :param root: The path to the project workspace.
+    :param root: The path to the project's root directory.
     :type root: str"""
     encoding = 'utf-8'
     statepoint_index = 'statepoint'
@@ -368,8 +368,10 @@ class SignacProjectCrawler(RegexFileCrawler):
     signac_id_alias = '_id'
 
     def __init__(self, root):
-        self.root = root
+        from .project import get_project
+        root = get_project(root=root).workspace()
         self._statepoints = dict()
+        return super(SignacProjectCrawler, self).__init__(root=root)
 
     def _get_job_id(self, dirpath):
         return os.path.relpath(dirpath, self.root).split('/')[0]
@@ -414,62 +416,134 @@ class SignacProjectCrawler(RegexFileCrawler):
 
 
 class MasterCrawler(BaseCrawler):
-    """Crawl the data space and search for signac crawlers.
+    """Compiles a master index from indeces defined in access modules.
 
-    The MasterCrawler executes signac slave crawlers
-    defined in signac_access.py modules.
+    An instance of this crawler will search the data space for access
+    modules, which by default are named ``signac_access.py``. Once such
+    a file is found, the crawler will import the module and try to execute
+    two special functions given that they are defined within the module's
+    global namespace: ``get_indeces()`` and ``get_crawlers()``.
 
-    If the master crawlers has defined tags, it will only
-    execute slave crawlers with at least one matching tag.
+    The ``get_indeces()`` is assumed to yield one or multiple index generator
+    functions, while the ``get_crawlers()`` function is assumed to yield
+    one or more crawler instances.
+
+    This is an example for such an access module:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.index_files(root, '.*\.txt')
+
+        def get_crawlers(root):
+            yield MyCrawler(root)
+
+    In case that the master crawler has tags, the ``get_indeces()`` function
+    will always be ignored while crawlers yielded from the ``get_crawlers()``
+    function will only be executed in case that they match at least one
+    of the tags.
+
+    In case that the access module is completely empty, it will be executed
+    as if it had the following directives:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.get_project(root).index()
+
+    Tags for indexes yielded from the `get_indeces()` function can be specified
+    by assigning them directly to the function:
+
+    .. code-block:: python
+
+        def get_indeces(root):
+            yield signac.get_project(root).index()
+
+        get_indeces.tags = {'foo'}
+
 
     :param root: The path to the root directory to crawl through.
     :type root: str
-    :param mirrors: An optional set of mirrors, to export data to."""
+    :param raise_on_error: Raise all exceptions encountered during
+        during crawling instead of ignoring them.
+    :type raise_on_error: bool
+    """
 
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
-    def __init__(self, root):
+    def __init__(self, root, raise_on_error=False):
         self._crawlers = dict()
+        self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = _load_crawler(name)
-        for crawler_id, crawler in module.get_crawlers(dirpath).items():
-            logger.info("Executing slave crawler:\n {}: {}".format(crawler_id, crawler))
-            tags = getattr(crawler, 'tags', set())
-            if tags is not None and len(set(tags)):
-                if self.tags is None or not len(set(self.tags)):
-                    logger.info("Skipping, crawler has defined tags.")
-                    continue
-                elif not set(self.tags).intersection(set(crawler.tags)):
+
+        logger.info("Crawling from module '{}'.".format(module.__file__))
+
+        has_tags = self.tags is not None and len(set(self.tags))
+
+        def _check_tags(tags):
+            if tags is None or not len(set(tags)):
+                if has_tags:
+                    logger.info("Skipping, index has no defined tags.")
+                    return False
+                else:
+                    return True
+            else:
+                if not has_tags:
+                    logger.info("Skipping, index requires tags.")
+                    return False
+                elif set(self.tags).intersection(set(tags)):
+                    return True   # at least one tag matches!
+                else:
                     logger.info("Skipping, tag mismatch.")
-                    continue
-            elif self.tags is not None and len(set(self.tags)):
-                logger.info("Skipping, crawler has no defined tags.")
-                continue
-            for doc in crawler.crawl():
-                doc.setdefault(
-                    KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                    return False
+
+        if not has_tags and _is_blank_module(module):
+            from .project import get_project
+            for doc in get_project(root=dirpath).index():
                 yield doc
 
+        if hasattr(module, 'get_indeces'):
+            if _check_tags(getattr(module.get_indeces, 'tags', None)):
+                for index in module.get_indeces(dirpath):
+                    for doc in index:
+                        yield doc
+
+        if hasattr(module, 'get_crawlers'):
+            for crawler in module.get_crawlers(dirpath):
+                logger.info("Executing slave crawler:\n {}".format(crawler))
+                if _check_tags(getattr(crawler, 'tags', None)):
+                    for doc in crawler.crawl():
+                        doc.setdefault(
+                            KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                        yield doc
+
     def docs_from_file(self, dirpath, fn):
+        """Compile master index from file in case it is an access module.
+
+        :param dirpath: The path of the file relative to root.
+        :param fn: The filename of the file.
+        :yields: Index documents.
+        """
         if fn == self.FN_ACCESS_MODULE:
             try:
                 for doc in self._docs_from_module(dirpath, fn):
                     yield doc
-            except AttributeError as error:
-                if str(error) == 'get_crawlers':
-                    logger.warning(
-                        "Module has no '{}' function.".format(error))
-                else:
-                    raise
             except Exception:
                 logger.error("Error while indexing from module '{}'.".format(
                     os.path.join(dirpath, fn)))
+                if self.raise_on_error:
+                    raise
             else:
-                logger.debug("Executed slave crawlers.")
+                logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
 
 
 def _load_crawler(name):
@@ -609,7 +683,8 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
         return doc['_id'], None
 
 
-def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
+def export(docs, index, mirrors=None, update=False,
+           num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -646,8 +721,22 @@ def export(docs, index, mirrors=None, num_tries=3, timeout=60, **kwargs):
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
             return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
+    ids = defaultdict(list)
     for doc in docs:
-        export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
+        if update:
+            root = doc.get('root')
+            if root is not None:
+                ids[root].append(_id)
+    if update:
+        stale = set()
+        for root in ids:
+            docs_ = index.find({'root': root})
+            all_ = {doc['_id'] for doc in docs_}
+            stale.update(all_.difference(ids[root]))
+        logger.info("Removing {} stale documents.".format(len(stale)))
+        for _id in set(stale):
+            index.delete_one(dict(_id=_id))
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
@@ -706,8 +795,127 @@ def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize
         if len(chunk) >= chunksize:
             logger.debug("Pushing chunk.")
             _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
-            chunk.clear()
-            operations.clear()
+            chunk[:] = []
+            operations[:] = []
     if len(operations):
         logger.debug("Pushing final chunk.")
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
+
+
+def index_files(root='.', formats=None, depth=0):
+    """Generate a file index.
+
+    This generator function yields file index documents,
+    where each index document corresponds to one file.
+
+    To index all files in the current working directory,
+    simply execute:
+
+    .. code-block:: python
+
+        for doc in signac.index_files():
+            print(doc)
+
+    A file associated with a file index document can be
+    fetched via the :py:func:`fetch` function:
+
+    .. code-block:: python
+
+        for doc in signac.index_files():
+            with signac.fetch(doc) as file:
+                print(file.read())
+
+    This is especially useful if the file index is part of
+    a collection (:py:class:`.Collection`) which can be searched
+    for specific entries.
+
+    To limit the file index to files with a specific filename
+    formats, provide a regular expression as the formats argument.
+    To index all files that have file ending `.txt`, execute:
+
+    .. code-block:: python
+
+        for doc in signac.index_files(formats='.*\.txt'):
+            print(doc)
+
+    We can specify specific formats by providing a dictionary as
+    ``formats`` argument, where the key is the filename pattern and
+    the value is an arbitrary formats string, e.g.:
+
+    .. code-block:: python
+
+        for doc in signac.index_files(formats=
+            {'.*\.txt': 'TextFile', '.*\.zip': 'ZipFile'}):
+            print(doc)
+
+    :param root: The directory to index, defaults to the
+        current working directory.
+    :type root: str
+    :param formats: Limit the index to files that match the
+        given regular expression and optionally associate formats
+        with given patterns.
+    :param depth: Limit the search to the specified directory depth.
+    :type depth: int
+    :yields: The file index documents as dicts.
+    """
+    if formats is None:
+        formats = {'.*': 'File'}
+    if six.PY2:
+        if isinstance(formats, basestring):  # noqa
+            formats = {formats: 'File'}
+    else:
+        if isinstance(formats, str):
+            formats = {formats: 'File'}
+
+    class Crawler(RegexFileCrawler):
+        pass
+
+    for regex, fmt in formats.items():
+        Crawler.define(regex, fmt)
+
+    for doc in Crawler(root).crawl(depth=depth):
+        yield doc
+
+
+def index(root='.', tags=None, depth=0, **kwargs):
+    """Generate a master index.
+
+    A master index is compiled from other indexes by searching
+    for modules named ``signac_access.py`` and compiling all
+    indeces which are yielded from a function ``get_indeces(root)``
+    defined within that module as well as the indeces generated by
+    crawlers yielded from a function ``get_crawlers(root)`` defined
+    within that module.
+
+    This is a minimal example for a ``signac_access.py`` file:
+
+    .. code-block:: python
+
+        import signac
+
+        def get_indeces(root):
+            yield signac.index_files(root, '.*\.txt')
+
+    Internally, this function constructs an instance of
+    :py:class:`.MasterCrawler` and all extra key-word arguments
+    will be forwarded to the constructor of said master crawler.
+
+    :param root: Look for access modules under this directory path.
+    :type root: str
+    :param tags: If tags are provided, do not execute slave crawlers
+        that don't match the same tags.
+    :param depth: Limit the search to the specified directory depth.
+    :param kwargs: These keyword-arguments are forwarded to the
+        internal MasterCrawler instance.
+    :type depth: int
+    :yields: The master index documents as instances of dict.
+    """
+
+    class Crawler(MasterCrawler):
+        pass
+
+    if tags is not None:
+        Crawler.tags = tags
+
+    for doc in Crawler(root, **kwargs).crawl(depth=depth):
+        yield doc
