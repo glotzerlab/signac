@@ -246,31 +246,53 @@ Initialize a collection
 
 .. code-block:: python
 
+    # Directly in-memory:
     collection = signac.Collection(docs)
+
+    # Associated with a file object:
+    with Collection.open('index.txt') as collection:
+        pass
+
+Setup a command line interface
+------------------------------
+
+.. code-block:: python
+
+    # find.py
+    with signac.Collection.open('collection.txt') as collection:
+        collection.main()
 
 Iterate through a collection
 ----------------------------
+
+Python:
 
 .. code-block:: python
 
     for doc in collection:
         print(doc)
 
+Command line:
+
+.. code-block:: bash
+
+    $ python find.py
+
 Search for documents
 --------------------
+
+Python:
 
 .. code-block:: python
 
     for doc in collection.find({'a': 42}):
         print(doc)
 
-Open a collection associated with a file
-----------------------------------------
+Command line:
 
-.. code-block:: python
+.. code-block:: bash
 
-    with Collection.open('index.txt') as collection:
-        pass
+    $ python find.py '{"a": 42}'
 
 Database Integration
 ====================

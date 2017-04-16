@@ -16,6 +16,7 @@ import sys
 import io
 import logging
 import warnings
+import argparse
 from collections import defaultdict
 from itertools import islice
 from uuid import uuid4
@@ -302,7 +303,7 @@ class Collection(object):
     def __setitem__(self, _id, doc):
         self._assert_open()
         if six.PY2:
-            if not isinstance(_id, basestring):
+            if not isinstance(_id, basestring):  # noqa
                 raise TypeError("The primary key must be of type str!")
         else:
             if not isinstance(_id, str):
@@ -635,3 +636,61 @@ class Collection(object):
 
     def __exit__(self, t, v, tb):
         self.close()
+
+    def main(self):
+        """Start a command line interface for this Collection.
+
+        Use this function to interact with this instance of Collection
+        on the command line. For example, executing the following script:
+
+        .. code-block:: python
+
+            # find.py
+            with Collection.open('my_collection.txt') as c:
+                c.main()
+
+        will enable use to search for documents on the command line like this:
+
+        .. code-block:: bash
+
+            $ python find.py '{"age": 32}'
+            {"name": "John", "age": 32}
+            {"name": "Kevin", "age": 32}
+
+        """
+        parser = argparse.ArgumentParser(
+            "Command line interface for instances of Collection.")
+        parser.add_argument(
+            'filter',
+            nargs='?',
+            default='{}',
+            help="The search filter provided in JSON encoding. "
+                 "Leave empty to return all documents.")
+        parser.add_argument(
+            '-l', '--limit',
+            type=int,
+            default=0,
+            help="Limit the number of search results that are "
+                 "maximally returned. A value of 0 (the default) "
+                 "means no limit.")
+        parser.add_argument(
+            '--id',
+            dest='_id',
+            action='store_true',
+            help="Print a document's primary key instead of the whole document.")
+        parser.add_argument(
+            '-i', '--indent',
+            action='store_true',
+            help="Print results in indented format.")
+        args = parser.parse_args()
+        if args._id and args.indent:
+            raise ValueError("Select either `--id` or `--indent`, not both.")
+        f = json.loads(args.filter)
+        for doc in self.find(f, limit=args.limit):
+            if args._id:
+                print(doc[self.primary_key])
+            else:
+                if args.indent:
+                    print(json.dumps(doc, indent=2))
+                else:
+                    print(json.dumps(doc))

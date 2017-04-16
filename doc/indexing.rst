@@ -180,6 +180,10 @@ For example, to execute the same search operation from above, we could use the :
 
     docs = index.find({'statepoint.a': 42})
 
+.. sidebar:: Tip
+
+    You can search a collection on the command line by calling it's :py:meth:`~.Collection.main` method.
+
 Searching a collection is usually **much more efficient** compared to the *pure-python* approach especially when searching multiple times within the same session.
 Furthermore, a collection may be saved to and loaded from a file.
 This allows us to generate a index once and then load it from disk, which is much faster then regenerating it each time we use it:
