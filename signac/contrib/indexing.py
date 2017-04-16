@@ -455,6 +455,16 @@ class MasterCrawler(BaseCrawler):
         def get_indeces(root):
             yield signac.get_project(root).index()
 
+    Tags for indexes yielded from the `get_indeces()` function can be specified
+    by assigning them directly to the function:
+
+    .. code-block:: python
+
+        def get_indeces(root):
+            yield signac.get_project(root).index()
+
+        get_indeces.tags = {'foo'}
+
 
     :param root: The path to the root directory to crawl through.
     :type root: str
@@ -477,14 +487,32 @@ class MasterCrawler(BaseCrawler):
 
         logger.info("Crawling from module '{}'.".format(module.__file__))
 
-        if self.tags is None or not len(set(self.tags)):
+        has_tags = self.tags is not None and len(set(self.tags))
 
-            if _is_blank_module(module):
-                from .project import get_project
-                for doc in get_project(root=dirpath).index():
-                    yield doc
+        def _check_tags(tags):
+            if tags is None or not len(set(tags)):
+                if has_tags:
+                    logger.info("Skipping, index has no defined tags.")
+                    return False
+                else:
+                    return True
+            else:
+                if not has_tags:
+                    logger.info("Skipping, index requires tags.")
+                    return False
+                elif set(self.tags).intersection(set(tags)):
+                    return True   # at least one tag matches!
+                else:
+                    logger.info("Skipping, tag mismatch.")
+                    return False
 
-            if hasattr(module, 'get_indeces'):
+        if not has_tags and _is_blank_module(module):
+            from .project import get_project
+            for doc in get_project(root=dirpath).index():
+                yield doc
+
+        if hasattr(module, 'get_indeces'):
+            if _check_tags(getattr(module.get_indeces, 'tags', None)):
                 for index in module.get_indeces(dirpath):
                     for doc in index:
                         yield doc
@@ -492,21 +520,11 @@ class MasterCrawler(BaseCrawler):
         if hasattr(module, 'get_crawlers'):
             for crawler in module.get_crawlers(dirpath):
                 logger.info("Executing slave crawler:\n {}".format(crawler))
-                tags = getattr(crawler, 'tags', set())
-                if tags is not None and len(set(tags)):
-                    if self.tags is None or not len(set(self.tags)):
-                        logger.info("Skipping, crawler has defined tags.")
-                        continue
-                    elif not set(self.tags).intersection(set(crawler.tags)):
-                        logger.info("Skipping, tag mismatch.")
-                        continue
-                elif self.tags is not None and len(set(self.tags)):
-                    logger.info("Skipping, crawler has no defined tags.")
-                    continue
-                for doc in crawler.crawl():
-                    doc.setdefault(
-                        KEY_PROJECT, os.path.relpath(dirpath, self.root))
-                    yield doc
+                if _check_tags(getattr(crawler, 'tags', None)):
+                    for doc in crawler.crawl():
+                        doc.setdefault(
+                            KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                        yield doc
 
     def docs_from_file(self, dirpath, fn):
         """Compile master index from file in case it is an access module.

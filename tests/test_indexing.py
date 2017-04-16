@@ -31,7 +31,7 @@ else:
     from tempfile import TemporaryDirectory
 
 
-SIGNAC_ACCESS_MODULE = """import os
+SIGNAC_ACCESS_MODULE_LEGACY = """import os
 import re
 
 from signac.contrib import RegexFileCrawler
@@ -42,6 +42,24 @@ class Crawler(RegexFileCrawler):
     tags = {'test1', 'test2'}
 
 Crawler.define(RE_TXT, 'TextFile')
+
+def get_crawlers(root):
+    yield Crawler(root)
+"""
+
+SIGNAC_ACCESS_MODULE = """import signac
+
+def get_indeces(root):
+    yield signac.index_files(root, '.*a_(?P<a>\d)\.txt')
+
+get_indeces.tags = {'test1', 'test2'}
+"""
+
+SIGNAC_ACCESS_MODULE_GET_CRAWLERS = """import signac
+
+class Crawler(signac.RegexFileCrawler):
+    tags = {'test1', 'test2'}
+Crawler.define('.*_(?P<a>\d)\.txt')
 
 def get_crawlers(root):
     yield Crawler(root)
@@ -119,6 +137,8 @@ class TestFS(object):
 
 class IndexingBaseTest(unittest.TestCase):
 
+    access_module = SIGNAC_ACCESS_MODULE
+
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
@@ -135,7 +155,7 @@ class IndexingBaseTest(unittest.TestCase):
         with open(fn('a_1.json'), 'w') as file:
             json.dump(dict(a=1), file)
         with open(fn('signac_access.py'), 'w') as module:
-            module.write(SIGNAC_ACCESS_MODULE)
+            module.write(self.access_module)
 
     def get_index_collection(self):
         return TestCollection()
@@ -148,7 +168,8 @@ class IndexingBaseTest(unittest.TestCase):
             self.assertIsNone(crawler.fetch(doc))
         self.assertEqual(doc, crawler.process(doc, None, None))
         with self.assertRaises(NotImplementedError):
-            crawler.docs_from_file(None, None)
+            for doc in crawler.docs_from_file(None, None):
+                pass
 
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
@@ -388,6 +409,14 @@ class IndexingPyMongoTest(IndexingBaseTest):
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         return db.test_index
+
+
+class IndexingBaseGetCrawlersTest(IndexingBaseTest):
+    access_module = SIGNAC_ACCESS_MODULE_GET_CRAWLERS
+
+
+class IndexingBaseLegacyTest(IndexingBaseTest):
+    access_module = SIGNAC_ACCESS_MODULE_LEGACY
 
 
 if __name__ == '__main__':
