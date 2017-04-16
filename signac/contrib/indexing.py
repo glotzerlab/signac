@@ -359,7 +359,7 @@ class SignacProjectCrawler(RegexFileCrawler):
 
     See also: :py:class:`~.RegexFileCrawler`
 
-    :param root: The path to the project workspace.
+    :param root: The path to the project's root directory.
     :type root: str"""
     encoding = 'utf-8'
     statepoint_index = 'statepoint'
@@ -477,12 +477,13 @@ class MasterCrawler(BaseCrawler):
 
         logger.info("Crawling from module '{}'.".format(module.__file__))
 
-        if _is_blank_module(module):
-            from .project import get_project
-            for doc in get_project(root=dirpath).index():
-                yield doc
-
         if self.tags is None or not len(set(self.tags)):
+
+            if _is_blank_module(module):
+                from .project import get_project
+                for doc in get_project(root=dirpath).index():
+                    yield doc
+
             if hasattr(module, 'get_indeces'):
                 for index in module.get_indeces(dirpath):
                     for doc in index:
