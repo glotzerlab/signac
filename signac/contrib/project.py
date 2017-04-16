@@ -695,6 +695,13 @@ class Project(object):
                 include_job_document=include_job_document,
                 fn_statepoint=self.Job.FN_MANIFEST)
         else:
+            if six.PY2:
+                if isinstance(formats, basestring):  # noqa
+                    formats = {formats: 'File'}
+            else:
+                if isinstance(formats, str):
+                    formats = {formats: 'File'}
+
             class Crawler(SignacProjectCrawler):
                 pass
             for pattern, fmt in formats.items():

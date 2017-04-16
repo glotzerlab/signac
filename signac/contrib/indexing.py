@@ -860,8 +860,12 @@ def index_files(root='.', formats=None, depth=0):
     """
     if formats is None:
         formats = {'.*': 'File'}
-    elif isinstance(formats, str):
-        formats = {formats: 'File'}
+    if six.PY2:
+        if isinstance(formats, basestring):  # noqa
+            formats = {formats: 'File'}
+    else:
+        if isinstance(formats, str):
+            formats = {formats: 'File'}
 
     class Crawler(RegexFileCrawler):
         pass
