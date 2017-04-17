@@ -694,6 +694,13 @@ def export(docs, index, mirrors=None, update=False,
         for doc in docs:
             export_one(doc, index, mirrors, num_tries)
 
+    If the `update` argument is set to True, the export algorithm will
+    automatically identify stale index documents, that means documents
+    that refer to files or state points that have been removed and are
+    no longer part of the data space. Any document which shares the
+    `root`, but not the `_id` field with any of the updated documents
+    is considered stale and removed.
+
     .. note::
 
         This function will automatically delegate to specialized
@@ -704,6 +711,9 @@ def export(docs, index, mirrors=None, update=False,
     :param docs: The index documents to export.
     :param index: The collection to export the index to.
     :param mirrors: An optional set of mirrors to export files to.
+    :param update: If True, remove stale index documents, that means
+        documents that refer to files or state points that no longer exist.
+    :type update: bool
     :param num_tries: The number of automatic retry attempts in case of
         mirror connection errors.
     :type num_tries: int
