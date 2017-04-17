@@ -1,3 +1,7 @@
+0.8.1:
+
+	- Fixes wide-spread typo.
+
 0.8.0:
 
 	- Major updates and new features:

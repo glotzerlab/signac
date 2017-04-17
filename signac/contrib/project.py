@@ -30,7 +30,7 @@ FN_STATEPOINTS = 'signac_statepoints.json'
 
 ACCESS_MODULE_MINIMAL = """import signac
 
-def get_indeces(root):
+def get_indexes(root):
     yield signac.get_project(root).index()
 """
 
@@ -38,7 +38,7 @@ ACCESS_MODULE_MASTER = """#!/usr/bin/env python
 # -*- condig: utf-8 -*-
 import signac
 
-def get_indeces(root):
+def get_indexes(root):
     yield signac.get_project(root).index()
 
 if __name__ == '__main__':
@@ -281,7 +281,7 @@ class Project(object):
                 if key == '_id' or key.split('.')[0] != 'statepoint':
                     continue
                 collection.index(key, build=True)
-        tmp = collection._indeces
+        tmp = collection._indexes
         for k in sorted(tmp, key=lambda k: len(tmp[k])):
             if exclude_const and len(tmp[k]) == 1:
                 continue

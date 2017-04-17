@@ -10,7 +10,7 @@ Concept
 To create a homogeneous data access layer, **signac** encourages the creation of a data index.
 The data index contains all information about the project's data structure and can be stored in a database or data frame which then allows the execution of query and aggregation operations on the data.
 
-While **signac**'s project interface is specifically useful during the data curation and generation phase, working with indeces may be useful in later stages of an investigation.
+While **signac**'s project interface is specifically useful during the data curation and generation phase, working with indexes may be useful in later stages of an investigation.
 Especially when data is curated from multiple different projects and sources or if data spaces do not use the signac project schema.
 
 For example, we may want to calculate the average of some values that we read from files associated with a specific data sub space:
@@ -113,7 +113,7 @@ This special index document is associated with the job's :ref:`document <job-doc
     for doc in project.index():
         assert doc['foo'] == 'bar'
 
-Just like for regular file indeces generated with :py:func:`.index_files`, we can still define regular expressions to limit the indexing to specific files and to extract additional metadata.
+Just like for regular file indexes generated with :py:func:`.index_files`, we can still define regular expressions to limit the indexing to specific files and to extract additional metadata.
 
 Generating a Master Index
 =========================
@@ -241,10 +241,10 @@ An **empty** module is equivalent to a module which contains the following direc
 
     import signac
 
-    def get_indeces(root):
+    def get_indexes(root):
         yield signac.get_project(root).index()
 
-This means that any index yielded from a ``get_indeces()`` function defined within the access module will be compiled into the master index.
+This means that any index yielded from a ``get_indexes()`` function defined within the access module will be compiled into the master index.
 
 By putting this code explicitly into the module, we have full control over the index generation.
 For example, to index all files with a ``.txt`` filename suffix, we would put the following code into the module:
@@ -253,7 +253,7 @@ For example, to index all files with a ``.txt`` filename suffix, we would put th
 
     import signac
 
-    def get_indeces(root):
+    def get_indexes(root):
         yield signac.get_project(root).index(formats='.*\.txt')
 
 You can generate a basic access module for a **signac** project using the :py:meth:`~.Project.create_access_module` method.
