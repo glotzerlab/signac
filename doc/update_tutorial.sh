@@ -20,4 +20,4 @@ git clone git@github.com:csadorf/signac-examples.git
 cd signac-examples/
 scons signac
 cd ../
-find signac-examples/notebooks/static/ -regex '.*\/signac_[a-zA-Z0-9\_]+\.ipynb' -exec cp {} ./ \;
+find signac-examples/notebooks/static/ -regex '.*signac_[a-zA-Z0-9_]*\.ipynb' -exec cp {} ./ \;
