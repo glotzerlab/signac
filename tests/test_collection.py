@@ -142,6 +142,7 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c.find({'a': 0})), 1)
         self.assertEqual(list(self.c.find({'a': 0}))[0], docs[0])
         self.assertEqual(len(self.c.find({'a': -1})), 0)
+        self.assertEqual(len(self.c.find({'a.b': 0})), 0)
         self.assertEqual(len(self.c.find(limit=5)), 5)
         del self.c[docs[0]['_id']]
         self.assertEqual(len(self.c.find({'a': 0})), 0)
