@@ -20,6 +20,9 @@ import argparse
 from collections import defaultdict
 from itertools import islice
 from uuid import uuid4
+from threading import Thread
+from threading import Timer
+from multiprocessing import Event
 
 from ..core.json import json
 from ..common import six
@@ -30,6 +33,43 @@ else:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _read_with_progressbar(collection, file):
+    lines = file.readlines()
+
+    def _add(line):
+        doc = json.loads(line)
+        collection._setitem(doc[collection.primary_key], doc)
+
+    def _read():
+        i = 0
+
+        def _print_status():
+            if collection._stop.is_set():
+                return
+            logger.debug("Reading documents {}/{}...".format(i, len(lines)))
+            if i < len(lines):
+                t = Timer(1, _print_status)
+                t.start()
+
+        t = Timer(1, _print_status)
+        t.start()
+
+        for line in lines:
+            i += 1
+            if collection._stop.is_set():
+                t.cancel()
+                break
+            _add(line)
+        else:
+            logger.debug("Read {} documents.".format(len(lines)))
+        collection._requires_flush = False
+        collection._ready.set()
+
+    collection._ready.clear()
+    collection._read_thread = Thread(target=_read)
+    collection._read_thread.start()
 
 
 def _index(docs, key):
@@ -191,6 +231,9 @@ class Collection(object):
     """
 
     def __init__(self, docs=None, primary_key='_id'):
+        self._ready = Event()
+        self._stop = Event()
+        self._read_thread = None
         self._primary_key = primary_key
         self._file = io.StringIO()
         self._requires_flush = False
@@ -204,6 +247,7 @@ class Collection(object):
             self._update_indeces()
 
     def _assert_open(self):
+        self._ready.wait()
         if self._docs is None:
             raise RuntimeError("Trying to access closed {}.".format(
                 type(self).__name__))
@@ -300,8 +344,7 @@ class Collection(object):
         self._assert_open()
         return self._docs[_id].copy()
 
-    def __setitem__(self, _id, doc):
-        self._assert_open()
+    def _setitem(self, _id, doc):
         if six.PY2:
             if not isinstance(_id, basestring):  # noqa
                 raise TypeError("The primary key must be of type str!")
@@ -311,9 +354,13 @@ class Collection(object):
         doc.setdefault(self.primary_key, _id)
         if _id != doc[self.primary_key]:
             raise ValueError("Primary key mismatch!")
-        self._docs[_id] = json.loads(json.dumps(doc))
+        self._docs[_id] = doc
         self._dirty.add(_id)
         self._requires_flush = True
+
+    def __setitem__(self, _id, doc):
+        self._assert_open()
+        self._setitem(_id, json.loads(json.dumps(doc)))
 
     def insert_one(self, doc):
         """Insert one document into the collection
@@ -546,8 +593,8 @@ class Collection(object):
     @classmethod
     def _open(cls, file):
         try:
-            docs = (json.loads(line) for line in file)
-            collection = cls(docs=docs)
+            collection = cls()
+            _read_with_progressbar(collection, file)
         except (IOError, io.UnsupportedOperation):
             collection = cls()
         collection._file = file
@@ -600,8 +647,8 @@ class Collection(object):
         This method is also called when the collection is explicitly or
         implicitly closed.
         """
-        self._assert_open()
         if self._requires_flush:
+            self._assert_open()
             if self._file is None:
                 logger.debug("Flushed collection.")
             else:
@@ -624,6 +671,9 @@ class Collection(object):
         """
         if self._file is not None:
             try:
+                self._stop.set()
+                if self._read_thread is not None:
+                    self._read_thread.join()
                 self.flush()
             finally:
                 self._file.close()
