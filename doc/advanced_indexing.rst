@@ -61,7 +61,7 @@ We could put this definition into a ``signac_access.py`` module and make it part
     class MyCrawler(signac.contrib.RegexFileCrawler):
         # ...
 
-    def get_indeces(root):
+    def get_indexes(root):
         yield MyCrawler(root).crawl()
 
 .. _data_mirroring:
@@ -107,18 +107,18 @@ To access the data, provide the mirrors argument to the :py:func:`signac.fetch` 
 Using Tags to Control Access
 ============================
 
-It may be desirable to only index select projects for a specific *master index*, e.g., to distinguish between public and private indeces.
+It may be desirable to only index select projects for a specific *master index*, e.g., to distinguish between public and private indexes.
 For this purpose, it is possible to specify **tags** that are **required** by a *crawler* or *index*.
 This means that an index **requiring** tags will be ignored during a master index compilation, unless at least one of the tags is also **provided**.
 
-For example, you can define **required** tags for indeces returned from the ``get_indeces()`` function, by attaching them to the function like this:
+For example, you can define **required** tags for indexes returned from the ``get_indexes()`` function, by attaching them to the function like this:
 
 .. code-block:: python
 
-    def get_indeces(root):
+    def get_indexes(root):
         yield signac.get_project(root).index()
 
-    get_indeces.tags = {'public', 'foo'}
+    get_indexes.tags = {'public', 'foo'}
 
 Similarly, you can require tags for specific crawlers:
 

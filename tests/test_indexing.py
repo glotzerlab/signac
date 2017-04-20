@@ -49,10 +49,10 @@ def get_crawlers(root):
 
 SIGNAC_ACCESS_MODULE = """import signac
 
-def get_indeces(root):
+def get_indexes(root):
     yield signac.index_files(root, '.*a_(?P<a>\d)\.txt')
 
-get_indeces.tags = {'test1', 'test2'}
+get_indexes.tags = {'test1', 'test2'}
 """
 
 SIGNAC_ACCESS_MODULE_GET_CRAWLERS = """import signac

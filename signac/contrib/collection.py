@@ -134,17 +134,24 @@ def _build_index(docs, key, primary_key):
     nodes = key.split('.')
     index = defaultdict(set)
 
-    def _get_value(doc, nodes):
+    def _get_value(doc_, nodes):
         if nodes:
-            return _get_value(doc[nodes[0]], nodes[1:])
+            if isinstance(doc_, dict):
+                return _get_value(doc_[nodes[0]], nodes[1:])
+            else:
+                raise KeyError()
         else:
-            return doc
+            return doc_
 
     for doc in docs:
         try:
             v = _get_value(doc, nodes)
         except KeyError:
             pass
+        except Exception as error:
+            raise RuntimeError(
+                "An exepected error occured while processing "
+                "doc '{}': {}.".format(doc, error))
         else:
             index[_encode_tree(v)].add(doc[primary_key])
         if len(nodes) > 1:
@@ -238,13 +245,13 @@ class Collection(object):
         self._file = io.StringIO()
         self._requires_flush = False
         self._dirty = set()
-        self._indeces = dict()
+        self._indexes = dict()
         self._docs = dict()
         if docs is not None:
             for doc in docs:
                 self[doc[self.primary_key]] = doc
             self._requires_flush = False  # not needed after initial read!
-            self._update_indeces()
+            self._update_indexes()
 
     def _assert_open(self):
         self._ready.wait()
@@ -252,8 +259,8 @@ class Collection(object):
             raise RuntimeError("Trying to access closed {}.".format(
                 type(self).__name__))
 
-    def _remove_from_indeces(self, _id):
-        for index in self._indeces.values():
+    def _remove_from_indexes(self, _id):
+        for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
                 try:
@@ -265,12 +272,12 @@ class Collection(object):
             for key in remove_keys:
                 del index[key]
 
-    def _update_indeces(self):
+    def _update_indexes(self):
         if self._dirty:
             for _id in self._dirty:
-                self._remove_from_indeces(_id)
+                self._remove_from_indexes(_id)
             docs = [self[_id] for _id in self._dirty]
-            for key, index in self._indeces.items():
+            for key, index in self._indexes.items():
                 tmp = _build_index(docs, key, self.primary_key)
                 for v, group in tmp.items():
                     index[v].update(group)
@@ -278,7 +285,7 @@ class Collection(object):
 
     def _build_index(self, key):
         logger.debug("Building index for key '{}'...".format(key))
-        self._indeces[key] = _build_index(self._docs.values(), key, self.primary_key)
+        self._indexes[key] = _build_index(self._docs.values(), key, self.primary_key)
         logger.debug("Built index for key '{}'.".format(key))
 
     def index(self, key, build=False):
@@ -295,7 +302,7 @@ class Collection(object):
 
         This means we can access documents by the 'age' key in O(1) time on
         average in addition to the primary key. Using the :py:meth:`.find`
-        method will automatically build all required indeces for the particular
+        method will automatically build all required indexes for the particular
         search.
 
         :param key: The primary key of the requested index.
@@ -307,13 +314,13 @@ class Collection(object):
         """
         if key == self.primary_key:
             raise KeyError("Can't access index for primary key via index() method.")
-        elif key not in self._indeces:
+        elif key not in self._indexes:
             if build:
                 self._build_index(key)
             else:
                 raise KeyError("No index for key '{}'.".format(key))
-        self._update_indeces()
-        return self._indeces[key]
+        self._update_indexes()
+        return self._indexes[key]
 
     def __str__(self):
         return "<{} file={}>".format(type(self).__name__, self._file)
@@ -389,7 +396,7 @@ class Collection(object):
     def __delitem__(self, _id):
         self._assert_open()
         del self._docs[_id]
-        self._remove_from_indeces(_id)
+        self._remove_from_indexes(_id)
         try:
             self._dirty.remove(_id)
         except KeyError:
@@ -399,7 +406,7 @@ class Collection(object):
     def clear(self):
         "Remove all documents from the collection."
         self._docs.clear()
-        self._indeces.clear()
+        self._indexes.clear()
         self._dirty.clear()
         self._requires_flush = True
 
@@ -677,7 +684,7 @@ class Collection(object):
                 self.flush()
             finally:
                 self._file.close()
-                self._indeces.clear()
+                self._indexes.clear()
                 self._docs = None
                 self._file = None
 
