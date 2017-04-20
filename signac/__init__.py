@@ -33,7 +33,7 @@ from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
 from .db import get_database
 
-__version__ = '0.8.1'
+__version__ = '0.8.2'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors',
            'cite',
