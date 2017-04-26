@@ -58,7 +58,7 @@ We could put this definition into a ``signac_access.py`` module and make it part
 
     import signac
 
-    class MyCrawler(signac.contrib.RegexFileCrawler):
+    class MyCrawler(signac.RegexFileCrawler):
         # ...
 
     def get_indexes(root):

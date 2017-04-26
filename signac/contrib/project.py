@@ -674,7 +674,7 @@ class Project(object):
 
         .. code-block:: python
 
-            for doc in project.index('.*\.txt', TextFile):
+            for doc in project.index({'.*\.txt', 'TextFile'}):
                 print(doc)
 
         :param formats: The format definitions as mapping.
