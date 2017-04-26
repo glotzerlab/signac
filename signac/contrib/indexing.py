@@ -699,7 +699,9 @@ def export(docs, index, mirrors=None, update=False,
     that refer to files or state points that have been removed and are
     no longer part of the data space. Any document which shares the
     `root`, but not the `_id` field with any of the updated documents
-    is considered stale and removed.
+    is considered stale and removed. Using `update` in combination with
+    an empty docs sequence will raise `ExportError`, since it is not
+    possible to identify stale documents in that case.
 
     .. note::
 
@@ -722,6 +724,8 @@ def export(docs, index, mirrors=None, update=False,
     :type timeout: int
     :param kwargs: Optional keyword arguments to pass to
         delegate implementations.
+    :raises ExportError: When using the update argument in combination with
+        an empty docs sequence.
     """
     try:
         import pymongo
@@ -739,14 +743,18 @@ def export(docs, index, mirrors=None, update=False,
             if root is not None:
                 ids[root].append(_id)
     if update:
-        stale = set()
-        for root in ids:
-            docs_ = index.find({'root': root})
-            all_ = {doc['_id'] for doc in docs_}
-            stale.update(all_.difference(ids[root]))
-        logger.info("Removing {} stale documents.".format(len(stale)))
-        for _id in set(stale):
-            index.delete_one(dict(_id=_id))
+        if ids:
+            stale = set()
+            for root in ids:
+                docs_ = index.find({'root': root})
+                all_ = {doc['_id'] for doc in docs_}
+                stale.update(all_.difference(ids[root]))
+            logger.info("Removing {} stale documents.".format(len(stale)))
+            for _id in set(stale):
+                index.delete_one(dict(_id=_id))
+        else:
+            raise errors.ExportError(
+                "The exported docs sequence is empty! Unable to update!")
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
