@@ -84,7 +84,6 @@ class BaseCrawler(object):
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
-        import hashlib
         blob = json.dumps(doc, sort_keys=True)
         m = hashlib.md5()
         m.update(dirpath.encode('utf-8'))
