@@ -513,7 +513,9 @@ class Collection(object):
         """
         self._assert_open()
         if len(filter) == 1 and self.primary_key in filter:
-            self[filter[self.primary_key]] = replacement
+            _id = filter[self.primary_key]
+            if upsert or _id in self:
+                self[_id] = replacement
         else:
             for _id in self._find(filter):
                 self[_id] = replacement
