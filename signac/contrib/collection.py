@@ -261,6 +261,10 @@ class Collection(object):
         method will automatically build all required indexes for the particular
         search.
 
+        Once an index has been built, it will be internally managed by the
+        class and updated with subsequent changes. An index returned by this
+        method is always current with the latest state of the collection.
+
         :param key: The primary key of the requested index.
         :type key: str
         :param build: If True, build a non-existing index if necessary,
@@ -509,7 +513,9 @@ class Collection(object):
         """
         self._assert_open()
         if len(filter) == 1 and self.primary_key in filter:
-            self[filter[self.primary_key]] = replacement
+            _id = filter[self.primary_key]
+            if upsert or _id in self:
+                self[_id] = replacement
         else:
             for _id in self._find(filter):
                 self[_id] = replacement
@@ -656,7 +662,7 @@ class Collection(object):
             with Collection.open('my_collection.txt') as c:
                 c.main()
 
-        will enable use to search for documents on the command line like this:
+        will enable us to search for documents on the command line like this:
 
         .. code-block:: bash
 

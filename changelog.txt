@@ -1,3 +1,15 @@
+0.8.3:
+
+	- Fix command line logic issue with `signac config host`.
+	- Raise `ExportError` when updating with an empty index.
+	- Fix bug, where `Collection.replace_one()` would ignore the upsert argument
+		under specific conditions.
+
+0.8.2:
+
+	- Fixes a `TypeError` which occured under specific conditions when calling
+		`Collection.find()` with nested filter arguments.
+
 0.8.1:
 
 	- Fixes wide-spread typo.

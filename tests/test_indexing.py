@@ -357,6 +357,36 @@ class IndexingBaseTest(unittest.TestCase):
         for doc in crawler.crawl():
             self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
 
+    def test_export_with_update(self):
+        self.setup_project()
+        index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
+        collection = self.get_index_collection()
+        signac.export(index, collection, update=True)
+        self.assertTrue(collection.called)
+        for doc in index:
+            self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
+        collection.called = False
+        self.assertEqual(len(index), collection.find().count())
+        signac.export(index, collection, update=True)
+        self.assertTrue(collection.called)
+        for doc in index:
+            self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
+        self.assertEqual(len(index), collection.find().count())
+        for fn in ('a_0.txt', 'a_1.txt'):
+            os.remove(os.path.join(self._tmp_dir.name, fn))
+            N = len(index)
+            index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
+            self.assertEqual(len(index), N-1)
+            collection.called = False
+            if index:
+                signac.export(index, collection, update=True)
+                self.assertTrue(collection.called)
+                self.assertEqual(len(index), collection.find().count())
+            else:
+                with self.assertRaises(errors.ExportError):
+                    signac.export(index, collection, update=True)
+
+
     def test_export_to_mirror(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)

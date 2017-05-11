@@ -428,7 +428,7 @@ def main_config_host(args):
         return cfg.setdefault(
             'hosts', dict()).setdefault(args.hostname, dict())
 
-    if len((args.test, args.remove, args.show_pw)) > 1:
+    if sum((args.test, args.remove, args.show_pw)) > 1:
         raise ValueError(
             "Please select only one of the following options: "
             "[--test | -r/--remove | --show-pw].")

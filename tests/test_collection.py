@@ -194,6 +194,16 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c.find({'a.b': 0})), 0)
         self.assertEqual(len(self.c.find({'a': {'b': 0}})), 0)
 
+    def test_replace_one_simple(self):
+        self.assertEqual(len(self.c), 0)
+        doc = {'_id': '0', 'a': 0}
+        self.c.replace_one({'_id': '0'}, doc, upsert=False)
+        self.assertEqual(len(self.c), 0)
+        self.c.replace_one({'_id': '0'}, doc, upsert=True)
+        self.assertEqual(len(self.c), 1)
+        self.c.replace_one({'_id': '0'}, doc, upsert=True)
+        self.assertEqual(len(self.c), 1)
+
     def test_replace_one(self):
         docs = [dict(a=i) for i in range(10)]
         docs_ = [dict(a=-i) for i in range(10)]
