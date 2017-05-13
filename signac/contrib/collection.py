@@ -47,7 +47,7 @@ def _flatten(container):
 
 def _encode_tree(x):
     if isinstance(x, list):
-        return json.dumps(x)
+        return hash(tuple(x))
     else:
         return x
 
