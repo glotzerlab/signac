@@ -17,6 +17,7 @@ import io
 import logging
 import warnings
 import argparse
+import operator
 from collections import defaultdict
 from itertools import islice
 from uuid import uuid4
@@ -116,6 +117,7 @@ def _build_index(docs, key, primary_key):
                 "doc '{}': {}.".format(doc, error))
         else:
             index[_encode_tree(v)].add(doc[primary_key])
+
         if len(nodes) > 1:
             try:
                 v = doc['.'.join(nodes)]
@@ -127,6 +129,18 @@ def _build_index(docs, key, primary_key):
                     PendingDeprecationWarning)
                 index[_encode_tree(v)].add(doc[primary_key])
     return index
+
+
+def _find_with_index_operator(index, op, argument):
+    try:
+        op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
+    except AttributeError:
+        raise KeyError("Unknown operator '{}'.".format(op))
+    matches = set()
+    for value in index:
+        if op(value, argument):
+            matches.update(index[value])
+    return matches
 
 
 class _CollectionSearchResults(object):
@@ -425,9 +439,20 @@ class Collection(object):
             result = {_id}
         else:
             result = None
+
         for key, value in _traverse_filter(filter):
-            index = self.index(key, build=True)
-            matches = index.get(value, set())
+            if '$' in key:
+                nodes = key.split('.')
+                ops = [i for i, n in enumerate(nodes) if '$' in n]
+                assert len(ops) == 1
+                assert ops[0] == len(nodes) - 1
+                op = nodes[ops[0]]
+                key = '.'.join(nodes[:-1])
+                index = self.index(key, build=True)
+                matches = _find_with_index_operator(index, op, value)
+            else:
+                index = self.index(key, build=True)
+                matches = index.get(value, set())
             if result is None:
                 result = matches
             else:
