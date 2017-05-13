@@ -395,6 +395,63 @@ class Collection(object):
         if not _valid_filter(filter):
             raise ValueError(filter)
 
+    def _find_expression(self, expr, result=None):
+
+        def _reduce_result(match):
+            nonlocal result
+            if result is None:  # First match
+                result = match
+            else:               # Update previous matches
+                result = result.intersection(match)
+
+        # Check if filter contains primary key, in which case we can
+        # immediately reduce the result.
+        _id = expr.pop(self.primary_key, None)
+        if _id is not None and _id in self:
+            _reduce_result({_id})
+
+        # Extract all logical-operator expressions for now.
+        or_expressions = expr.pop('$or', None)
+        and_expressions = expr.pop('$and', None)
+        not_expression = expr.pop('$not', None)
+
+        # Reduce the result based on the remaining non-logical expression:
+        for key, value in _traverse_filter(expr):
+            if '$' in key:
+                nodes = key.split('.')
+                ops = [i for i, n in enumerate(nodes) if n.startswith('$')]
+                assert len(ops) == 1
+                assert ops[0] == len(nodes) - 1
+                op = nodes[ops[0]]
+                key = '.'.join(nodes[:-1])
+                index = self.index(key, build=True)
+                matches = _find_with_index_operator(index, op, value)
+            else:
+                index = self.index(key, build=True)
+                matches = index.get(value, set())
+            _reduce_result(matches)
+            if not result:          # No match, no need to continue...
+                return set()
+
+        # Reduce the result based on the logical-operator expressions:
+        if not_expression is not None:
+            not_match = self._find_expression(not_expression)
+            _reduce_result(set(self.ids).difference(not_match))
+
+        if and_expressions is not None:
+            assert isinstance(and_expressions, list) and len(and_expressions)
+            for expr_ in and_expressions:
+                _reduce_result(self._find_expression(expr_, result))
+
+        if or_expressions is not None:
+            assert isinstance(or_expressions, list) and len(or_expressions)
+            or_results = set()
+            for expr_ in or_expressions:
+                or_results.update(self._find_expression(expr_))
+            _reduce_result(or_results)
+
+        return result
+
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.
 
@@ -426,33 +483,7 @@ class Collection(object):
         self._check_filter(filter)
         if filter is None or not len(filter):
             return set(islice(self._docs.keys(), limit if limit else None))
-        _id = filter.pop(self.primary_key, None)
-        if _id is not None and _id in self:
-            result = {_id}
-        else:
-            result = None
-
-        for key, value in _traverse_filter(filter):
-            if '$' in key:
-                nodes = key.split('.')
-                ops = [i for i, n in enumerate(nodes) if '$' in n]
-                assert len(ops) == 1
-                assert ops[0] == len(nodes) - 1
-                op = nodes[ops[0]]
-                key = '.'.join(nodes[:-1])
-                index = self.index(key, build=True)
-                matches = _find_with_index_operator(index, op, value)
-            else:
-                index = self.index(key, build=True)
-                matches = index.get(value, set())
-            if result is None:
-                result = matches
-            else:
-                result = result.intersection(matches)
-            if not result:
-                break
-            if limit and len(result) >= limit:
-                break
+        result = self._find_expression(filter)
         return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
