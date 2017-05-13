@@ -106,6 +106,8 @@ def _build_index(docs, key, primary_key):
     for doc in docs:
         try:
             v = _get_value(doc, nodes)
+            if isinstance(v, dict):
+                continue
         except KeyError:
             pass
         except Exception as error:
