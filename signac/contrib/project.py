@@ -20,7 +20,7 @@ from .hashing import calc_id
 from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .utility import _mkdir_p, is_string
+from .utility import _mkdir_p
 from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
@@ -107,11 +107,12 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{type}({{'project': '{id}', 'project_dir': '{rd}', 'workspace_dir': '{wd}'}})".format(
-            type=self.__class__.__module__ + '.' + self.__class__.__name__,
-            id=self.get_id(),
-            rd=self.root_directory(),
-            wd=self.workspace())
+        return "{type}({{'project': '{id}', 'project_dir': '{rd}',"\
+               " 'workspace_dir': '{wd}'}})".format(
+                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
+                    id=self.get_id(),
+                    rd=self.root_directory(),
+                    wd=self.workspace())
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -263,7 +264,7 @@ class Project(object):
             ...
             ["a", 1] {'b7568fa73881d27cbf24bf58d226d80e'}
             ["a", 0] {'54b61a7adbe004b30b39aa399d04f483'}
-            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b39aa399d04f483'}
+            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b...
 
         :param exclude_const: Exclude entries that are shared by all jobs
             that are part of the index.
