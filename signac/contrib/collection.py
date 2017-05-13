@@ -53,31 +53,23 @@ def _encode_tree(x):
         return x
 
 
-def _traverse_tree(t, include=None, encode=None):
+def _traverse_tree(t, encode=None):
     if encode is not None:
         t = encode(t)
-    if include is False:
-        return
     if isinstance(t, list):
         for i in t:
-            for b in _traverse_tree(i, include, encode):
+            for b in _traverse_tree(i, encode):
                 yield b
     elif isinstance(t, Mapping):
         for k in t:
-            if include is None or include is True:
-                for i in _traverse_tree(t[k], encode=encode):
-                    yield k, i
-            else:
-                if not include.get(k, False):
-                    continue
-                for i in _traverse_tree(t[k], include.get(k), encode=encode):
-                    yield k, i
+            for i in _traverse_tree(t[k], encode=encode):
+                yield k, i
     else:
         yield t
 
 
-def _traverse_filter(t, include=None):
-    for b in _traverse_tree(t, include=include, encode=_encode_tree):
+def _traverse_filter(t):
+    for b in _traverse_tree(t, encode=_encode_tree):
         nodes = list(_flatten(b))
         yield '.'.join(nodes[:-1]), nodes[-1]
 
