@@ -127,6 +127,57 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
+def _process_selection_args(args):
+    if getattr(args, 'job_id', None):
+        if args.filter or args.doc_filter:
+            raise ValueError("Can't provide both '--job-id' and filter arguments!")
+        else:
+            return args.job_id
+
+    project = get_project()
+    index = _read_index(project, args.index)
+
+    def parse_json(q):
+        try:
+            return json.loads(q)
+        except json.decoder.JSONDecodeError:
+            _print_err("Failed to parse query argument. "
+                       "Ensure that '{}' is valid JSON!".format(q))
+            raise
+
+    def cast(x):
+        try:
+            if x in ('true', 'false', 'none'):
+                print("Did you mean {}?".format(x.capitalize()), file=sys.stderr)
+            return {"True": True, "False": False, "None": None}[x]
+        except KeyError:
+            try:
+                return int(x)
+            except ValueError:
+                try:
+                    return float(x)
+                except ValueError:
+                    return x
+
+    def parse(q):
+        if q is None:
+            return None
+        elif len(q) == 0:
+            return None
+        if len(q) == 1 and q[0].strip().startswith('{') and q[0].strip().endswith('}'):
+            return parse_json(q[0])
+        elif len(q) == 2:
+            f = {q[0]: cast(q[1])}
+            print("Interpreted filter argument as: '{}'.".format(f), file=sys.stderr)
+            return f
+        else:
+            raise ValueError("Illegal filter argument.")
+
+    f = parse(args.filter)
+    df = parse(args.doc_filter)
+    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+
+
 def main_project(args):
     project = get_project()
     if args.access:
@@ -213,29 +264,8 @@ def main_index(args):
 
 
 def main_find(args):
-
-    def parse(q):
-        try:
-            return json.loads(q)
-        except json.decoder.JSONDecodeError:
-            _print_err("Failed to parse query argument. "
-                       "Ensure that '{}' is valid JSON!".format(q))
-            raise
-
-    project = get_project()
-    if args.filter is None:
-        f = None
-    else:
-        f = parse(args.filter)
-
-    if args.doc_filter is None:
-        df = None
-    else:
-        df = parse(args.doc_filter)
-
-    index = _read_index(project, args.index)
     try:
-        for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
+        for job_id in _process_selection_args(args):
             print(job_id)
     except IOError as error:
         if error.errno == errno.EPIPE:
@@ -249,7 +279,7 @@ def main_view(args):
     index = _read_index(project, args.index)
     project.create_linked_view(
         prefix=args.prefix,
-        job_ids=args.job_id,
+        job_ids=_process_selection_args(args),
         index=index)
 
 
@@ -671,16 +701,17 @@ def main():
     parser_find.add_argument(
         'filter',
         type=str,
-        nargs='?',
+        nargs='*',
         help="A JSON encoded state point filter (key-value pairs).")
+    parser_find.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="A JSON encoded general filter (key-value pairs).")
     parser_find.add_argument(
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
-    parser_find.add_argument(
-        '-d', '--doc-filter',
-        type=str,
-        help="A JSON encoded general filter (key-value pairs).")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
@@ -690,12 +721,23 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
-    parser_view.add_argument(
+    selection_group = parser_view.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs matching this state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs matching this document filter.")
+    selection_group.add_argument(
         '-j', '--job-id',
         type=str,
         nargs='+',
         help="Limit the view to jobs with these job ids.")
-    parser_view.add_argument(
+    selection_group.add_argument(
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
