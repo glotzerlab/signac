@@ -51,6 +51,10 @@ def _flatten(container):
             yield i
 
 
+class _DictPlaceholder(object):
+    pass
+
+
 def _encode_tree(x):
     if isinstance(x, list):
         return tuple(x)
@@ -101,7 +105,7 @@ def _build_index(docs, key, primary_key):
         try:
             v = _get_value(doc, nodes)
             if isinstance(v, dict):
-                continue
+                v = _DictPlaceholder
         except KeyError:
             pass
         except Exception as error:
@@ -420,6 +424,7 @@ class Collection(object):
             raise ValueError(filter)
 
     def _find_expression(self, key, value):
+        logger.debug("Find documents for expression '{}: {}'.".format(key, value))
         if '$' in key:
             if key.count('$') > 1:
                 raise KeyError("Bad operator expression '{}'.".format(key))
