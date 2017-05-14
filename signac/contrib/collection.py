@@ -38,6 +38,15 @@ logger = logging.getLogger(__name__)
 _INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
                     '$in', '$nin', '$regex', '$type', '$where')
 
+_TYPES = {
+    'int': int,
+    'float': float,
+    'bool': bool,
+    'str': str,
+    'list': tuple,
+    'null': type(None),
+}
+
 
 def _index(docs, key):
     return {doc[key]: doc for doc in docs}
@@ -67,10 +76,13 @@ def _traverse_tree(t, encode=None, key=None):
     if encode is not None:
         t = encode(t)
     if isinstance(t, Mapping):
-        for k in t:
-            k_ = k if key is None else '.'.join((key, k))
-            for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
-                yield k__, v
+        if t:
+            for k in t:
+                k_ = k if key is None else '.'.join((key, k))
+                for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
+                    yield k__, v
+        elif key is not None:
+            yield key, t
     else:
         yield key, t
 
@@ -144,13 +156,10 @@ def _find_with_index_operator(index, op, argument):
                 return False
     elif op == '$type':
         def op(value, argument):
-            if argument in ('int', 'float', 'bool', 'str', 'list'):
-                t = eval(argument)
+            if argument in _TYPES:
+                t = _TYPES[argument]
             else:
                 raise ValueError("Unknown argument for $type operator: '{}'.".format(argument))
-            t = eval(argument)
-            if t == list:
-                t = tuple
             return isinstance(value, t)
     elif op == '$where':
         def op(value, argument):
@@ -162,6 +171,13 @@ def _find_with_index_operator(index, op, argument):
         if op(value, argument):
             matches.update(index[value])
     return matches
+
+
+def _check_logical_operator_argument(op, argument):
+    if not isinstance(argument, list):
+        raise ValueError("The argument of logical-operator '{}' must be a list!".format(op))
+    if not len(argument):
+        raise ValueError("The argument of logical-operator '{}' cannot be empty!".format(op))
 
 
 class _CollectionSearchResults(object):
@@ -444,7 +460,7 @@ class Collection(object):
                 match = {elem for elems in index.values() for elem in elems}
                 return match if value else set(self.ids).difference(match)
             else:
-                raise KeyError("Unknown operator '{}'.".format(op))
+                raise KeyError("Unknown expression-operator '{}'.".format(op))
         else:
             index = self.index(key, build=True)
             return index.get(value, set())
@@ -481,17 +497,18 @@ class Collection(object):
             _reduce_result(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
-            assert isinstance(and_expressions, list) and len(and_expressions)
+            _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
                 _reduce_result(self._find_result(expr_, result))
 
         if or_expressions is not None:
-            assert isinstance(or_expressions, list) and len(or_expressions)
+            _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
             _reduce_result(or_results)
 
+        assert result is not None
         return result
 
     def _find(self, filter=None, limit=0):

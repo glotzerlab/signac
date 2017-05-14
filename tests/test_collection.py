@@ -10,6 +10,46 @@ if six.PY2:
 else:
     from tempfile import TemporaryDirectory
 
+n = 42
+N = 100
+
+ARITHMETIC_DOCS = [{'a': i} for i in range(N)]
+
+ARITHMETIC_EXPRESSIONS = [
+   ({'$eq': n}, 1),
+   ({'$ne': n}, N-1),
+   ({'$lt': n}, n),
+   ({'$gt': n}, N-n-1),
+   ({'$lte': n}, n+1),
+   ({'$gte': n}, N-n),
+]
+
+
+ARRAY_EXPRESSIONS = [
+    ({'$in': []}, 0),
+    ({'$in': [0, 1, 2]}, 3),
+    ({'$in': ['a', 'b', 'c']}, 0),
+    ({'$nin': []}, N),
+    ({'$nin': [0, 1, 2]}, N-3),
+    ({'$nin': ['a', 'b', 'c']}, N),
+]
+
+LOGICAL_EXPRESSIONS = [
+    ({'$and': []}, ValueError),
+    ({'a': {'$and': []}}, KeyError),
+    ({'a': {'$and': [{'b': 0}]}}, KeyError),
+    ({'$and': [{'a': n}]}, 1),
+    ({'$and': [{'$not': {'a': n}}]}, N-1),
+    ({'$and': [{'a': n}, {'a': n+1}]}, 0),
+    ({'$and': [{'a': n}, {'$not': {'a': n}}]}, 0),
+    ({'$or': []}, ValueError),
+    ({'a': {'$or': []}}, KeyError),
+    ({'a': {'$or': [{'b': 0}]}}, KeyError),
+    ({'$or': [{'$not': {'a': n}}]}, N-1),
+    ({'$or': [{'a': n}, {'a': n+1}]}, 2),
+    ({'$or': [{'a': n}, {'$not': {'a': n}}]}, N),
+]
+
 
 class CollectionTest(unittest.TestCase):
 
@@ -235,6 +275,70 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c), len(docs)-1)
         self.c.delete_one({})
         self.assertEqual(len(self.c), len(docs)-2)
+
+    def test_find_arithmetic_operators(self):
+        self.assertEqual(len(self.c), 0)
+        for expr, n in ARITHMETIC_EXPRESSIONS:
+            self.assertEqual(len(self.c.find({'a': expr})), 0)
+        self.c.update(ARITHMETIC_DOCS)
+        self.assertEqual(len(self.c), len(ARITHMETIC_DOCS))
+        for expr, n in ARITHMETIC_EXPRESSIONS:
+            self.assertEqual(len(self.c.find({'a': expr})), n)
+
+    def test_find_array_operators(self):
+        self.assertEqual(len(self.c), 0)
+        for expr, n in ARRAY_EXPRESSIONS:
+            self.assertEqual(len(self.c.find({'a': expr})), 0)
+        self.c.update(ARITHMETIC_DOCS)
+        self.assertEqual(len(self.c), len(ARITHMETIC_DOCS))
+        for expr, n in ARRAY_EXPRESSIONS:
+            self.assertEqual(len(self.c.find({'a': expr})), n)
+
+    def test_find_regular_expression(self):
+        self.assertEqual(len(self.c), 0)
+        self.assertEqual(len(self.c.find({'a': {'$regex': 'foo'}})), 0)
+        self.assertEqual(len(self.c.find({'a': {'$regex': 'hello'}})), 0)
+        self.c.update([{'a': 'hello world'}])
+        self.assertEqual(len(self.c.find({'a': {'$regex': 'foo'}})), 0)
+        self.assertEqual(len(self.c.find({'a': {'$regex': 'hello'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$regex': 'hello world'}})), 1)
+
+    def test_find_type_expression(self):
+        self.assertEqual(len(self.c), 0)
+        types = [(1, 'int'), (1.0, 'float'), ('1.0', 'str'), (True, 'bool'), (None, 'null')]
+        for (v, t) in types:
+            self.assertEqual(len(self.c.find({'a': {'$type': t}})), 0)
+        for i, (v, t) in enumerate(types):
+            self.c.insert_one({i: v})
+        self.assertEqual(len(self.c), len(types))
+        for i, (v, t) in enumerate(types):
+            self.assertEqual(len(self.c.find({i: {'$type': t}})), 1)
+
+    def test_find_where_expression(self):
+        self.assertEqual(len(self.c), 0)
+        self.assertEqual(len(self.c.find({'a': {'$where': 'lambda x: x < 42'}})), 0)
+        self.c.update(ARITHMETIC_DOCS)
+        self.assertEqual(len(self.c.find({'a': {'$where': 'lambda x: x < 42'}})), 42)
+
+    def test_find_logical_operators(self):
+        self.assertEqual(len(self.c), 0)
+        for expr, expectation in LOGICAL_EXPRESSIONS:
+            if not isinstance(expectation, int):
+                with self.assertRaises(expectation):
+                    self.c.find(expr)
+            else:
+                self.assertEqual(len(self.c.find(expr)), 0)
+        self.c.update(ARITHMETIC_DOCS)
+        self.assertEqual(len(self.c), len(ARITHMETIC_DOCS))
+        for expr, expectation in LOGICAL_EXPRESSIONS:
+            if not isinstance(expectation, int):
+                with self.assertRaises(expectation):
+                    self.c.find(expr)
+            else:
+                self.assertEqual(len(self.c.find(expr)), expectation)
+                self.assertEqual(len(self.c.find({'$not': expr})), N-expectation)
+                self.assertEqual(len(self.c.find({'$not': {'$not': expr}})), expectation)
+
 
 class FileCollectionTestReadOnly(unittest.TestCase):
 
