@@ -410,6 +410,12 @@ class Collection(object):
             if op in _INDEX_OPERATORS:
                 index = self.index(key, build=True)
                 return _find_with_index_operator(index, op, value)
+            elif op == '$exists':
+                if not isinstance(value, bool):
+                    raise ValueError("The value of the '$exists' operator must be boolean.")
+                index = self.index(key, build=True)
+                match = {elem for elems in index.values() for elem in elems}
+                return match if value else set(self.ids).difference(match)
             else:
                 raise KeyError("Unknown operator '{}'.".format(op))
         else:
