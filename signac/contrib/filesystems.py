@@ -101,6 +101,8 @@ class LocalFS(object):
         if 'r' not in mode:
             raise ValueError(mode)
         return open(self._fn(_id), mode=mode)
+
+
 _register_fs_class(LocalFS)
 
 if GRIDFS:

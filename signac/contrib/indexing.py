@@ -647,13 +647,15 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
             with fetch(doc, mode='rb') as file:
                 _export_to_mirror(file, doc['file_id'], mirror)
         except mirror.FileExistsError:
-            logger.debug("File with id '{}' already exported, skipping.".format(doc['file_id']))
+            logger.debug(
+                "File with id '{}' already exported, skipping.".format(doc['file_id']))
             break
         except mirror.AutoRetry as error:
             logger.warning("Error during export: '{}', retrying...".format(error))
             sleep(timeout)
         else:
-            logger.debug("Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
+            logger.debug(
+                "Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
             return doc['file_id']
     else:
         raise errors.ExportError(doc)

@@ -75,15 +75,25 @@ class TestFormat(object):
         assert 0
 
 
-class TestCollection(Collection):
+class TestCollection(object):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, collection):
         self.called = False
-        super(TestCollection, self).__init__(*args, **kwargs)
+        self.collection = collection
 
-    def replace_one(self, *args, **kwargs):
-        self.called = True
-        super(TestCollection, self).replace_one(*args, **kwargs)
+    def __getattr__(self, attr):
+        try:
+            return super(TestCollection, self).__getattr__(attr)
+        except AttributeError:
+            a = getattr(self.collection, attr)
+            if callable(a):
+                def method(*args, **kwargs):
+                    self.called = True
+                    return a(*args, **kwargs)
+                return method
+            else:
+                return a
+
 
 
 class TestFS(object):
@@ -158,7 +168,7 @@ class IndexingBaseTest(unittest.TestCase):
             module.write(self.access_module)
 
     def get_index_collection(self):
-        return TestCollection()
+        return TestCollection(Collection())
 
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
@@ -438,7 +448,8 @@ class IndexingPyMongoTest(IndexingBaseTest):
 
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
-        return db.test_index
+        db.test_index.drop()
+        return TestCollection(db.test_index)
 
 
 class IndexingBaseGetCrawlersTest(IndexingBaseTest):

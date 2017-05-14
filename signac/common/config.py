@@ -4,7 +4,6 @@
 import os
 import stat
 import logging
-import warnings
 
 from .configobj import ConfigObj, ConfigObjError
 from .validate import get_validator, cfg

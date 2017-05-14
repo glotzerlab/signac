@@ -1,12 +1,12 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+from contextlib import contextmanager
 from ..common import six
 if six.PY2:
     from collections import Mapping
 else:
     from collections.abc import Mapping
-from contextlib import contextmanager
 
 
 def convert_to_dict(m):
