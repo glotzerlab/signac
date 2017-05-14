@@ -10,6 +10,8 @@ import logging
 import getpass
 import difflib
 import errno
+from itertools import chain
+from textwrap import TextWrapper
 
 from . import get_project, init_project, index
 from . import __version__
@@ -225,9 +227,33 @@ def main_index(args):
 
 
 def main_find(args):
+    project = get_project()
+
+    if args.overview:
+        wrapper = TextWrapper(width=120)
+        len_id = project.min_len_unique_id()
+
+        def format_lines(cat, _id, s):
+            if isinstance(s, dict):
+                s = json.dumps(s, sort_keys=True)
+            if args.one_line:
+                yield _id[:len_id] + ' ' + cat + '\t' + s
+            else:
+                for i, line in enumerate(wrapper.wrap(s)):
+                    yield ('\t' if i else cat + '\t') + line
+
     try:
-        for job_id in _process_selection_args(args):
-            print(job_id)
+        for job_id in find_with_filter(args):
+            if args.overview:
+                job = project.open_job(id=job_id)
+                jid = job.get_id()
+                for line in chain(
+                        format_lines('id ', jid, jid),
+                        format_lines('sp ', jid, job.statepoint()),
+                        format_lines('doc', jid, dict(job.document))):
+                        print(line)
+            else:
+                print(job_id)
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -672,6 +698,14 @@ def main():
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
+    parser_find.add_argument(
+        '-o', '--overview',
+        action='store_true',
+        help="Show an overview of each job.")
+    parser_find.add_argument(
+        '-1', '--one-line',
+        action='store_true',
+        help="Format output for simpler use in combination with grep.")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
