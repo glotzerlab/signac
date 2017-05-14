@@ -133,7 +133,10 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            return re.search(argument, value)
+            if isinstance(value, str):
+                return re.search(argument, value)
+            else:
+                return False
     elif op == '$type':
         def op(value, argument):
             if argument in ('int', 'float', 'bool', 'str', 'list'):
