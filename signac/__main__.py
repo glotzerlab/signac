@@ -202,7 +202,7 @@ def main_document(args):
         if args.pretty:
             pprint(dict(job.document), depth=args.pretty, compact=True)
         else:
-            print(dict(job.document), indent=args.indent, sort_keys=args.sort)
+            print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
 
 
 def main_move(args):
