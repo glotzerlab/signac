@@ -33,6 +33,9 @@ else:
 logger = logging.getLogger(__name__)
 
 
+_INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin')
+
+
 def _index(docs, key):
     return {doc[key]: doc for doc in docs}
 
@@ -48,30 +51,26 @@ def _flatten(container):
 
 def _encode_tree(x):
     if isinstance(x, list):
-        return hash(tuple(x))
+        return tuple(x)
     else:
         return x
 
 
-def _traverse_tree(t, encode=None):
+def _traverse_tree(t, encode=None, key=None):
     if encode is not None:
         t = encode(t)
-    if isinstance(t, list):
-        for i in t:
-            for b in _traverse_tree(i, encode):
-                yield b
-    elif isinstance(t, Mapping):
+    if isinstance(t, Mapping):
         for k in t:
-            for i in _traverse_tree(t[k], encode=encode):
-                yield k, i
+            k_ = k if key is None else '.'.join((key, k))
+            for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
+                yield k__, v
     else:
-        yield t
+        yield key, t
 
 
 def _traverse_filter(t):
-    for b in _traverse_tree(t, encode=_encode_tree):
-        nodes = list(_flatten(b))
-        yield '.'.join(nodes[:-1]), nodes[-1]
+    for key, value in _traverse_tree(t, encode=_encode_tree):
+        yield key, value
 
 
 def _valid_filter(f, top=True):
@@ -124,10 +123,14 @@ def _build_index(docs, key, primary_key):
 
 
 def _find_with_index_operator(index, op, argument):
-    try:
+    if op == '$in':
+        def op(value, argument):
+            return value in argument
+    elif op == '$nin':
+        def op(value, argument):
+            return value not in argument
+    else:
         op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
-    except AttributeError:
-        raise KeyError("Unknown operator '{}'.".format(op))
     matches = set()
     for value in index:
         if op(value, argument):
@@ -395,7 +398,25 @@ class Collection(object):
         if not _valid_filter(filter):
             raise ValueError(filter)
 
-    def _find_expression(self, expr, result=None):
+    def _find_expression(self, key, value):
+        if '$' in key:
+            if key.count('$') > 1:
+                raise KeyError("Bad operator expression '{}'.".format(key))
+            nodes = key.split('.')
+            op = nodes[-1]
+            if not op.startswith('$'):
+                raise KeyError("Bad operator placement '{}'.".format(key))
+            key = '.'.join(nodes[:-1])
+            if op in _INDEX_OPERATORS:
+                index = self.index(key, build=True)
+                return _find_with_index_operator(index, op, value)
+            else:
+                raise KeyError("Unknown operator '{}'.".format(op))
+        else:
+            index = self.index(key, build=True)
+            return index.get(value, set())
+
+    def _find_result(self, expr, result=None):
 
         def _reduce_result(match):
             nonlocal result
@@ -417,37 +438,25 @@ class Collection(object):
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
-            if '$' in key:
-                nodes = key.split('.')
-                ops = [i for i, n in enumerate(nodes) if n.startswith('$')]
-                assert len(ops) == 1
-                assert ops[0] == len(nodes) - 1
-                op = nodes[ops[0]]
-                key = '.'.join(nodes[:-1])
-                index = self.index(key, build=True)
-                matches = _find_with_index_operator(index, op, value)
-            else:
-                index = self.index(key, build=True)
-                matches = index.get(value, set())
-            _reduce_result(matches)
+            _reduce_result(self._find_expression(key, value))
             if not result:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
-            not_match = self._find_expression(not_expression)
+            not_match = self._find_result(not_expression)
             _reduce_result(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             assert isinstance(and_expressions, list) and len(and_expressions)
             for expr_ in and_expressions:
-                _reduce_result(self._find_expression(expr_, result))
+                _reduce_result(self._find_result(expr_, result))
 
         if or_expressions is not None:
             assert isinstance(or_expressions, list) and len(or_expressions)
             or_results = set()
             for expr_ in or_expressions:
-                or_results.update(self._find_expression(expr_))
+                or_results.update(self._find_result(expr_))
             _reduce_result(or_results)
 
         return result
@@ -469,8 +478,7 @@ class Collection(object):
                all documents will match an empty filter.
             2. If the filter argument contains a primary key, the result
                is directly returned since no search operation is necessary.
-            3. The filter is processed key by key, once the result vector is empty
-               or its size is equal or larger to the specified limit value,
+            3. The filter is processed key by key, once the result vector is empt
                it is immediately returned.
 
         :param filter: The filter argument that all documents must match.
@@ -483,7 +491,7 @@ class Collection(object):
         self._check_filter(filter)
         if filter is None or not len(filter):
             return set(islice(self._docs.keys(), limit if limit else None))
-        result = self._find_expression(filter)
+        result = self._find_result(filter)
         return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
