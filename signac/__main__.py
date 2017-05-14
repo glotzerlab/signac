@@ -10,8 +10,7 @@ import logging
 import getpass
 import difflib
 import errno
-from itertools import chain
-from textwrap import TextWrapper
+from pprint import pprint, pformat
 
 from . import get_project, init_project, index
 from . import __version__
@@ -183,11 +182,14 @@ def main_job(args):
 def main_statepoint(args):
     project = get_project()
     if args.job_id:
-        jobs = (project.open_job(id=jid) for jid in args.job_id)
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
     else:
         jobs = project
     for job in jobs:
-        print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
+        if args.pretty:
+            pprint(job.statepoint(), depth=args.pretty, compact=True)
+        else:
+            print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
 
 def main_move(args):
@@ -230,28 +232,24 @@ def main_find(args):
     project = get_project()
 
     if args.overview:
-        wrapper = TextWrapper(width=120)
-        len_id = project.min_len_unique_id()
+        len_id = max(6, project.min_len_unique_id())
 
         def format_lines(cat, _id, s):
-            if isinstance(s, dict):
-                s = json.dumps(s, sort_keys=True)
             if args.one_line:
-                yield _id[:len_id] + ' ' + cat + '\t' + s
+                if isinstance(s, dict):
+                    s = json.dumps(s, sort_keys=True)
+                return _id[:len_id] + ' ' + cat + '\t' + s
             else:
-                for i, line in enumerate(wrapper.wrap(s)):
-                    yield ('\t' if i else cat + '\t') + line
+                return pformat(s, depth=args.overview, compact=True)
 
     try:
         for job_id in find_with_filter(args):
             if args.overview:
                 job = project.open_job(id=job_id)
                 jid = job.get_id()
-                for line in chain(
-                        format_lines('id ', jid, jid),
-                        format_lines('sp ', jid, job.statepoint()),
-                        format_lines('doc', jid, dict(job.document))):
-                        print(line)
+                print(format_lines('id ', jid, jid))
+                print(format_lines('sp ', jid, job.statepoint()))
+                print(format_lines('doc', jid, dict(job.document)))
             else:
                 print(job_id)
     except IOError as error:
@@ -634,6 +632,14 @@ def main():
         help="One or more job ids. The job corresponding to a job "
              "id must be initialized.")
     parser_statepoint.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print state point in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a state point is printed.")
+    parser_statepoint.add_argument(
         '-i', '--indent',
         type=int,
         nargs='?',
@@ -700,12 +706,14 @@ def main():
         help="The filename of an index file.")
     parser_find.add_argument(
         '-o', '--overview',
-        action='store_true',
+        type=int,
+        nargs='?',
+        const=3,
         help="Show an overview of each job.")
     parser_find.add_argument(
         '-1', '--one-line',
         action='store_true',
-        help="Format output for simpler use in combination with grep.")
+        help="Print output in JSON and on one line.")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
