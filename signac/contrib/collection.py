@@ -465,7 +465,8 @@ class Collection(object):
             index = self.index(key, build=True)
             return index.get(value, set())
 
-    def _find_result(self, expr, result=None):
+    def _find_result(self, expr):
+        result = None
 
         def _reduce_result(match):
             nonlocal result
@@ -473,6 +474,7 @@ class Collection(object):
                 result = match
             else:               # Update previous matches
                 result = result.intersection(match)
+            logger.debug("Current result set size: {}.".format(len(result)))
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
@@ -499,7 +501,7 @@ class Collection(object):
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                _reduce_result(self._find_result(expr_, result))
+                _reduce_result(self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
