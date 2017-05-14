@@ -164,10 +164,20 @@ def _process_selection_args(args):
             return None
         elif len(q) == 0:
             return None
-        if len(q) == 1 and q[0].strip().startswith('{') and q[0].strip().endswith('}'):
-            return parse_json(q[0])
+        if len(q) == 1:
+            if q[0].strip().startswith('{') and q[0].strip().endswith('}'):
+                return parse_json(q[0])
+            else:
+                f = {q[0]: {"$exists": True}}
+                print("Interpreted filter argument as: '{}'.".format(f), file=sys.stderr)
+                return f
         elif len(q) == 2:
-            f = {q[0]: cast(q[1])}
+            if q[1].startswith('/') and q[1].endswith('/'):
+                f = {q[0]: {'$regex': q[1][1:-1]}}
+            elif q[1].startswith('{') and q[1].endswith('}'):
+                f = {q[0]: parse_json(q[1])}
+            else:
+                f = {q[0]: cast(q[1])}
             print("Interpreted filter argument as: '{}'.".format(f), file=sys.stderr)
             return f
         else:
