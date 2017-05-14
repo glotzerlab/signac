@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
-import re
 import sys
 import argparse
 import json
@@ -19,6 +18,7 @@ from .common.configobj import flatten_errors, Section
 from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
+from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -127,64 +127,18 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
-def _process_selection_args(args):
+def find_with_filter(args):
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
-            raise ValueError("Can't provide both '--job-id' and filter arguments!")
+            raise ValueError("Can't provide both 'job-id' and filter arguments!")
         else:
             return args.job_id
 
     project = get_project()
     index = _read_index(project, args.index)
 
-    def parse_json(q):
-        try:
-            return json.loads(q)
-        except json.decoder.JSONDecodeError:
-            _print_err("Failed to parse query argument. "
-                       "Ensure that '{}' is valid JSON!".format(q))
-            raise
-
-    def cast(x):
-        try:
-            if x in ('true', 'false', 'none'):
-                print("Did you mean {}?".format(x.capitalize()), file=sys.stderr)
-            return {"True": True, "False": False, "None": None}[x]
-        except KeyError:
-            try:
-                return int(x)
-            except ValueError:
-                try:
-                    return float(x)
-                except ValueError:
-                    return x
-
-    def parse(q):
-        if q is None:
-            return None
-        elif len(q) == 0:
-            return None
-        if len(q) == 1:
-            if q[0].strip().startswith('{') and q[0].strip().endswith('}'):
-                return parse_json(q[0])
-            else:
-                f = {q[0]: {"$exists": True}}
-                print("Interpreted filter argument as: '{}'.".format(f), file=sys.stderr)
-                return f
-        elif len(q) == 2:
-            if q[1].startswith('/') and q[1].endswith('/'):
-                f = {q[0]: {'$regex': q[1][1:-1]}}
-            elif q[1].startswith('{') and q[1].endswith('}'):
-                f = {q[0]: parse_json(q[1])}
-            else:
-                f = {q[0]: cast(q[1])}
-            print("Interpreted filter argument as: '{}'.".format(f), file=sys.stderr)
-            return f
-        else:
-            raise ValueError("Illegal filter argument.")
-
-    f = parse(args.filter)
-    df = parse(args.doc_filter)
+    f = parse_filter_arg(args.filter)
+    df = parse_filter_arg(args.doc_filter)
     return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
 
 
@@ -226,15 +180,12 @@ def main_job(args):
 
 def main_statepoint(args):
     project = get_project()
-    m = re.compile('[a-f0-9]{1,32}\Z')
-    for job_id in args.job_id:
-        if not m.match(job_id):
-            raise ValueError(
-                "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(
-                _open_job_by_id(project, job_id).statepoint(),
-                indent=args.indent,
-                sort_keys=args.sort))
+    if args.job_id:
+        jobs = (project.open_job(id=jid) for jid in args.job_id)
+    else:
+        jobs = project
+    for job in jobs:
+        print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
 
 def main_move(args):
@@ -286,11 +237,10 @@ def main_find(args):
 
 def main_view(args):
     project = get_project()
-    index = _read_index(project, args.index)
     project.create_linked_view(
         prefix=args.prefix,
-        job_ids=_process_selection_args(args),
-        index=index)
+        job_ids=find_with_filter(args),
+        index=_read_index(args.index))
 
 
 def main_init(args):
@@ -653,7 +603,7 @@ def main():
                     "more job ids.")
     parser_statepoint.add_argument(
         'job_id',
-        nargs='+',
+        nargs='*',
         type=str,
         help="One or more job ids. The job corresponding to a job "
              "id must be initialized.")

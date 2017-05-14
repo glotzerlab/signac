@@ -25,6 +25,7 @@ from uuid import uuid4
 
 from ..core.json import json
 from ..common import six
+from .filterparse import parse_filter_arg
 if six.PY2:
     from collections import Mapping
 else:
@@ -765,8 +766,7 @@ class Collection(object):
             "Command line interface for instances of Collection.")
         parser.add_argument(
             'filter',
-            nargs='?',
-            default='{}',
+            nargs='*',
             help="The search filter provided in JSON encoding. "
                  "Leave empty to return all documents.")
         parser.add_argument(
@@ -788,7 +788,7 @@ class Collection(object):
         args = parser.parse_args()
         if args._id and args.indent:
             raise ValueError("Select either `--id` or `--indent`, not both.")
-        f = json.loads(args.filter)
+        f = parse_filter_arg(args.filter)
         for doc in self.find(f, limit=args.limit):
             if args._id:
                 print(doc[self.primary_key])
