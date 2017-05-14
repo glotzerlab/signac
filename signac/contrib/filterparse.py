@@ -66,12 +66,7 @@ def _cast(x):
 
 
 def _parse_simple(key, value=None):
-    if value is None:
-        if _is_json(key):
-            return _parse_json(key)
-        else:
-            return {key: {'$exists': True}}
-    elif value == '!':
+    if value is None or value == '!':
         return {key: {'$exists': True}}
     elif _is_json(value):
         return {key: _parse_json(value)}
@@ -89,7 +84,10 @@ def parse_filter_arg(args, file=sys.stderr):
     if args is None or len(args) == 0:
         return None
     elif len(args) == 1:
-        return _with_message(_parse_simple(args[0]), file)
+        if _is_json(args[0]):
+            return _parse_json(args[0])
+        else:
+            return _with_message(_parse_simple(args[0]), file)
     else:
         q = dict()
         for i in range(0, len(args), 2):
