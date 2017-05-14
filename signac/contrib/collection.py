@@ -14,6 +14,7 @@
 # [1]: https://github.com/mongodb/mongo-python-driver
 import sys
 import io
+import re
 import logging
 import warnings
 import argparse
@@ -33,7 +34,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-_INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin')
+_INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne', '$in', '$nin', '$regex')
 
 
 def _index(docs, key):
@@ -129,6 +130,9 @@ def _find_with_index_operator(index, op, argument):
     elif op == '$nin':
         def op(value, argument):
             return value not in argument
+    elif op == '$regex':
+        def op(value, argument):
+            return re.search(argument, value)
     else:
         op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
     matches = set()
