@@ -192,6 +192,19 @@ def main_statepoint(args):
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
 
+def main_document(args):
+    project = get_project()
+    if args.job_id:
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+    else:
+        jobs = project
+    for job in jobs:
+        if args.pretty:
+            pprint(dict(job.document), depth=args.pretty, compact=True)
+        else:
+            print(dict(job.document), indent=args.indent, sort_keys=args.sort)
+
+
 def main_move(args):
     project = get_project()
     dst_project = get_project(root=args.project)
@@ -650,6 +663,36 @@ def main():
         action='store_true',
         help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_document = subparsers.add_parser(
+        'document',
+        description="Print the document(s) corresponding to one or "
+                    "more job ids.")
+    parser_document.add_argument(
+        'job_id',
+        nargs='*',
+        type=str,
+        help="One or more job ids. The job corresponding to a job "
+             "id must be initialized.")
+    parser_document.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print document in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a document is printed.")
+    parser_document.add_argument(
+        '-i', '--indent',
+        type=int,
+        nargs='?',
+        const='2',
+        help="Specify the indentation of the JSON formatted state point.")
+    parser_document.add_argument(
+        '-s', '--sort',
+        action='store_true',
+        help="Sort the document keys for output in JSON format.")
+    parser_document.set_defaults(func=main_document)
 
     parser_move = subparsers.add_parser('move')
     parser_move.add_argument(
