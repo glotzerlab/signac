@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 _INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
-                    '$in', '$nin', '$regex', '$type')
+                    '$in', '$nin', '$regex', '$type', '$where')
 
 
 def _index(docs, key):
@@ -144,6 +144,9 @@ def _find_with_index_operator(index, op, argument):
             if t == list:
                 t = tuple
             return isinstance(value, t)
+    elif op == '$where':
+        def op(value, argument):
+            return eval(argument)(value)
     else:
         op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
     matches = set()
