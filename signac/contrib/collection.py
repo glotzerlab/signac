@@ -614,7 +614,8 @@ class Collection(object):
 
         Array operator
 
-            To determine whether specific elements are in (*$in*), or not in (*$nin*) an array, e.g.:
+            To determine whether specific elements are in (*$in*), or not in (*$nin*)
+            an array, e.g.:
 
                     .. code-block:: python
 

@@ -912,7 +912,8 @@ def _analyze_view(prefix, links, leaf='job'):
         obsolete.remove('.')
     keep_or_update = existing_paths.intersection(links.keys())
     new = set(links.keys()).difference(keep_or_update)
-    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    to_update = [p for p in keep_or_update if
+                 os.path.realpath(os.path.join(prefix, p)) != links[p]]
     return obsolete, to_update, new
 
 
@@ -920,7 +921,8 @@ def _update_view(prefix, links, leaf='job'):
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
     if num_ops:
-        logger.info("Generating current view in '{}' ({} operations)...".format(prefix, num_ops))
+        logger.info("Generating current view in '{}' ({} operations)...".format(
+            prefix, num_ops))
     else:
         logger.info("View in '{}' is up to date.".format(prefix))
         return
