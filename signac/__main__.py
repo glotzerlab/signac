@@ -743,7 +743,12 @@ def main():
         help="Specify tags for this master index compilation.")
     parser_index.set_defaults(func=main_index)
 
-    parser_find = subparsers.add_parser('find')
+    parser_find = subparsers.add_parser(
+        'find',
+        description="""All filter arguments may be provided either directly in JSON
+                       encoding or in a simplified form, e.g., -- $ signac find a 42 --
+                       is equivalent to -- $ signac find '{"a": 42}'."""
+                       )
     parser_find.add_argument(
         'filter',
         type=str,
@@ -753,7 +758,7 @@ def main():
         '-d', '--doc-filter',
         type=str,
         nargs='+',
-        help="A JSON encoded general filter (key-value pairs).")
+        help="A document filter.")
     parser_find.add_argument(
         '-i', '--index',
         type=str,

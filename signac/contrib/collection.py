@@ -579,6 +579,80 @@ class Collection(object):
             for doc in docs:    # iterate over the result vector
                 pass
 
+        Arithmetic Operators
+
+                * *$eq*: equal
+                * *$neq*: not equal
+                * *$gt*: greater than
+                * *$gte*: greater or equal than
+                * *$lt*: less than
+                * *$lte*: less or equal than
+
+            .. code-block:: python
+
+                project.find({"a": {"$lt": 5})
+
+            Matches all docs with *a* less than 5.
+
+        Logical Operators
+
+            That includes *$and* and *$or*; both expect a list of expressions.
+
+                .. code-block:: python
+
+                    project.find({"$or": [{"a": 4}, {"b": {"$gt": 3}}]})
+
+            Matches all docs, where *a* is 4 or *b* is greater than 3.
+
+        Exists operator
+
+            Determines whether a specific key exists, or not, e.g.:
+
+                    .. code-block:: python
+
+                        project.find({"a": {"$exists": True}})
+
+        Array operator
+
+            To determine whether specific elements are in (*$in*), or not in (*$nin*) an array, e.g.:
+
+                    .. code-block:: python
+
+                        project.find({"a": {"$in": [0, 1, 2]}})
+
+            Matches all docs, where *a* is either 0, 1, or 2. Usage of *$nin* is equivalent.
+
+        Regular expression operator
+
+            Allows the “on-the-fly” evaluation of regular expressoions, e.g.:
+
+                    .. code-block:: python
+
+                        project.find({"protocol": {"$regex": "foo"}})
+
+            Will match all docs with a protocol that contains the term 'foo'.
+
+        $type operator
+
+            Matches when a value is of specific type, e.g.:
+
+                    .. code-block:: python
+
+                        project.find({"protocol": {"$type": str}})
+
+            Finds all docs, where the value of protocol is of type str.
+            Other types that can be checked are: *int*, *float*, *bool*, *list*, and *null*.
+
+        $where operator
+
+            Matches an arbitrary python expression, e.g.:
+
+                    .. code-block:: python
+
+                        project.find({"foo": {"$where": "lambda x: x.startswith('bar')"}})
+
+            Matches all docs, where the value for foo starts with the word 'bar'.
+
         :param filter: All documents must match the given filter.
         :type filter: Mapping
         :param limit: Do not return more than limit number of documents.
