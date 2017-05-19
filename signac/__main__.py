@@ -241,7 +241,7 @@ def main_index(args):
 def main_find(args):
     project = get_project()
 
-    if args.overview:
+    if args.show:
         len_id = max(6, project.min_len_unique_id())
 
         def format_lines(cat, _id, s):
@@ -250,11 +250,11 @@ def main_find(args):
                     s = json.dumps(s, sort_keys=True)
                 return _id[:len_id] + ' ' + cat + '\t' + s
             else:
-                return pformat(s, depth=args.overview, compact=True)
+                return pformat(s, depth=args.show, compact=True)
 
     try:
         for job_id in find_with_filter(args):
-            if args.overview:
+            if args.show:
                 job = project.open_job(id=job_id)
                 jid = job.get_id()
                 print(format_lines('id ', jid, jid))
@@ -759,11 +759,11 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_find.add_argument(
-        '-o', '--overview',
+        '-s', '--show',
         type=int,
         nargs='?',
         const=3,
-        help="Show an overview of each job.")
+        help="Show the state point and document of each job.")
     parser_find.add_argument(
         '-1', '--one-line',
         action='store_true',
