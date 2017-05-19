@@ -14,15 +14,18 @@
 # [1]: https://github.com/mongodb/mongo-python-driver
 import sys
 import io
+import re
 import logging
 import warnings
 import argparse
+import operator
 from collections import defaultdict
 from itertools import islice
 from uuid import uuid4
 
 from ..core.json import json
 from ..common import six
+from .filterparse import parse_filter_arg
 if six.PY2:
     from collections import Mapping
 else:
@@ -30,6 +33,19 @@ else:
 
 
 logger = logging.getLogger(__name__)
+
+
+_INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
+                    '$in', '$nin', '$regex', '$type', '$where')
+
+_TYPES = {
+    'int': int,
+    'float': float,
+    'bool': bool,
+    'str': str,
+    'list': tuple,
+    'null': type(None),
+}
 
 
 def _index(docs, key):
@@ -45,40 +61,35 @@ def _flatten(container):
             yield i
 
 
+class _DictPlaceholder(object):
+    pass
+
+
 def _encode_tree(x):
     if isinstance(x, list):
-        return hash(tuple(x))
+        return tuple(x)
     else:
         return x
 
 
-def _traverse_tree(t, include=None, encode=None):
+def _traverse_tree(t, encode=None, key=None):
     if encode is not None:
         t = encode(t)
-    if include is False:
-        return
-    if isinstance(t, list):
-        for i in t:
-            for b in _traverse_tree(i, include, encode):
-                yield b
-    elif isinstance(t, Mapping):
-        for k in t:
-            if include is None or include is True:
-                for i in _traverse_tree(t[k], encode=encode):
-                    yield k, i
-            else:
-                if not include.get(k, False):
-                    continue
-                for i in _traverse_tree(t[k], include.get(k), encode=encode):
-                    yield k, i
+    if isinstance(t, Mapping):
+        if t:
+            for k in t:
+                k_ = k if key is None else '.'.join((key, k))
+                for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
+                    yield k__, v
+        elif key is not None:
+            yield key, t
     else:
-        yield t
+        yield key, t
 
 
-def _traverse_filter(t, include=None):
-    for b in _traverse_tree(t, include=include, encode=_encode_tree):
-        nodes = list(_flatten(b))
-        yield '.'.join(nodes[:-1]), nodes[-1]
+def _traverse_filter(t):
+    for key, value in _traverse_tree(t, encode=_encode_tree):
+        yield key, value
 
 
 def _valid_filter(f, top=True):
@@ -107,7 +118,7 @@ def _build_index(docs, key, primary_key):
         try:
             v = _get_value(doc, nodes)
             if isinstance(v, dict):
-                continue
+                v = _DictPlaceholder
         except KeyError:
             pass
         except Exception as error:
@@ -116,6 +127,7 @@ def _build_index(docs, key, primary_key):
                 "doc '{}': {}.".format(doc, error))
         else:
             index[_encode_tree(v)].add(doc[primary_key])
+
         if len(nodes) > 1:
             try:
                 v = doc['.'.join(nodes)]
@@ -127,6 +139,45 @@ def _build_index(docs, key, primary_key):
                     PendingDeprecationWarning)
                 index[_encode_tree(v)].add(doc[primary_key])
     return index
+
+
+def _find_with_index_operator(index, op, argument):
+    if op == '$in':
+        def op(value, argument):
+            return value in argument
+    elif op == '$nin':
+        def op(value, argument):
+            return value not in argument
+    elif op == '$regex':
+        def op(value, argument):
+            if isinstance(value, str):
+                return re.search(argument, value)
+            else:
+                return False
+    elif op == '$type':
+        def op(value, argument):
+            if argument in _TYPES:
+                t = _TYPES[argument]
+            else:
+                raise ValueError("Unknown argument for $type operator: '{}'.".format(argument))
+            return isinstance(value, t)
+    elif op == '$where':
+        def op(value, argument):
+            return eval(argument)(value)
+    else:
+        op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
+    matches = set()
+    for value in index:
+        if op(value, argument):
+            matches.update(index[value])
+    return matches
+
+
+def _check_logical_operator_argument(op, argument):
+    if not isinstance(argument, list):
+        raise ValueError("The argument of logical-operator '{}' must be a list!".format(op))
+    if not len(argument):
+        raise ValueError("The argument of logical-operator '{}' cannot be empty!".format(op))
 
 
 class _CollectionSearchResults(object):
@@ -389,6 +440,79 @@ class Collection(object):
         if not _valid_filter(filter):
             raise ValueError(filter)
 
+    def _find_expression(self, key, value):
+        logger.debug("Find documents for expression '{}: {}'.".format(key, value))
+        if '$' in key:
+            if key.count('$') > 1:
+                raise KeyError("Bad operator expression '{}'.".format(key))
+            nodes = key.split('.')
+            op = nodes[-1]
+            if not op.startswith('$'):
+                raise KeyError("Bad operator placement '{}'.".format(key))
+            key = '.'.join(nodes[:-1])
+            if op in _INDEX_OPERATORS:
+                index = self.index(key, build=True)
+                return _find_with_index_operator(index, op, value)
+            elif op == '$exists':
+                if not isinstance(value, bool):
+                    raise ValueError("The value of the '$exists' operator must be boolean.")
+                index = self.index(key, build=True)
+                match = {elem for elems in index.values() for elem in elems}
+                return match if value else set(self.ids).difference(match)
+            else:
+                raise KeyError("Unknown expression-operator '{}'.".format(op))
+        else:
+            index = self.index(key, build=True)
+            return index.get(value, set())
+
+    def _find_result(self, expr):
+        result = None
+
+        def _reduce_result(match):
+            nonlocal result
+            if result is None:  # First match
+                result = match
+            else:               # Update previous matches
+                result = result.intersection(match)
+            logger.debug("Current result set size: {}.".format(len(result)))
+
+        # Check if filter contains primary key, in which case we can
+        # immediately reduce the result.
+        _id = expr.pop(self.primary_key, None)
+        if _id is not None and _id in self:
+            _reduce_result({_id})
+
+        # Extract all logical-operator expressions for now.
+        or_expressions = expr.pop('$or', None)
+        and_expressions = expr.pop('$and', None)
+        not_expression = expr.pop('$not', None)
+
+        # Reduce the result based on the remaining non-logical expression:
+        for key, value in _traverse_filter(expr):
+            _reduce_result(self._find_expression(key, value))
+            if not result:          # No match, no need to continue...
+                return set()
+
+        # Reduce the result based on the logical-operator expressions:
+        if not_expression is not None:
+            not_match = self._find_result(not_expression)
+            _reduce_result(set(self.ids).difference(not_match))
+
+        if and_expressions is not None:
+            _check_logical_operator_argument('$and', and_expressions)
+            for expr_ in and_expressions:
+                _reduce_result(self._find_result(expr_))
+
+        if or_expressions is not None:
+            _check_logical_operator_argument('$or', or_expressions)
+            or_results = set()
+            for expr_ in or_expressions:
+                or_results.update(self._find_result(expr_))
+            _reduce_result(or_results)
+
+        assert result is not None
+        return result
+
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.
 
@@ -406,8 +530,7 @@ class Collection(object):
                all documents will match an empty filter.
             2. If the filter argument contains a primary key, the result
                is directly returned since no search operation is necessary.
-            3. The filter is processed key by key, once the result vector is empty
-               or its size is equal or larger to the specified limit value,
+            3. The filter is processed key by key, once the result vector is empt
                it is immediately returned.
 
         :param filter: The filter argument that all documents must match.
@@ -420,22 +543,7 @@ class Collection(object):
         self._check_filter(filter)
         if filter is None or not len(filter):
             return set(islice(self._docs.keys(), limit if limit else None))
-        _id = filter.pop(self.primary_key, None)
-        if _id is not None and _id in self:
-            result = {_id}
-        else:
-            result = None
-        for key, value in _traverse_filter(filter):
-            index = self.index(key, build=True)
-            matches = index.get(value, set())
-            if result is None:
-                result = matches
-            else:
-                result = result.intersection(matches)
-            if not result:
-                break
-            if limit and len(result) >= limit:
-                break
+        result = self._find_result(filter)
         return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
@@ -677,8 +785,7 @@ class Collection(object):
             "Command line interface for instances of Collection.")
         parser.add_argument(
             'filter',
-            nargs='?',
-            default='{}',
+            nargs='*',
             help="The search filter provided in JSON encoding. "
                  "Leave empty to return all documents.")
         parser.add_argument(
@@ -700,7 +807,7 @@ class Collection(object):
         args = parser.parse_args()
         if args._id and args.indent:
             raise ValueError("Select either `--id` or `--indent`, not both.")
-        f = json.loads(args.filter)
+        f = parse_filter_arg(args.filter)
         for doc in self.find(f, limit=args.limit):
             if args._id:
                 print(doc[self.primary_key])
