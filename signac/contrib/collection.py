@@ -625,7 +625,7 @@ class Collection(object):
 
         Regular expression operator
 
-            Allows the “on-the-fly” evaluation of regular expressoions, e.g.:
+            Allows the "on-the-fly" evaluation of regular expressoions, e.g.:
 
                     .. code-block:: python
 
