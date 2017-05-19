@@ -42,7 +42,7 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': basestring if six.PY2 else str,
+    'str': basestring if six.PY2 else str,   # noqa
     'list': tuple,
     'null': type(None),
 }
@@ -150,7 +150,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, basestring if six.PY2 else str):
+            if isinstance(value, basestring if six.PY2 else str):  # noqa
                 return re.search(argument, value)
             else:
                 return False
