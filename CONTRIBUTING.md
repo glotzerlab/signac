@@ -13,9 +13,9 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement.
 
 General guidelines:
 
-  * The signac development is based on the [git flow model][gitflow], which means new features should be developed within a feature branch based on the 'develop' branch.
-  * Try to avoid external library dependencies.
-  * All contributed code should pass the default `flake8` checks.
-  * New features require unit tests.
+  * The signac development is based on the [git flow model][gitflow], which means new features should be developed within a feature branch based off the 'develop' branch.
+  * If external library depedencies cannot be avoided, they must be added as *soft depedencies*.
+  * All contributed code should pass `flake8` checks as specified in the tox.ini configuration file.
+  * All new features require unit tests.
 
 [gitflow]: https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow

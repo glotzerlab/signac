@@ -1,3 +1,19 @@
+0.8.4:
+
+	- All search queries on project and collection objects support various
+		operaters including: $and, $or, $gt, $gte, $lt, $lte, $eq, $ne, $exists,
+		$regex, $where, $in, $nin, and $type.
+	- The $ signac find command supports a simple filter syntax, where key value
+		pairs can be provided as individual arguments.
+	- The $ signac find command is extended by a --show option, to display the
+		state point and the document contents directly. The contents are truncated
+		to an adjustable depth to reduce output noise.
+	- The $ signac view command has an additional filter option to select a
+		a sub data space directly without needing to pipe job ids.
+	- The new $ signac document command can be used to display a job's document
+		directly.
+	- Minor performance improvements.
+
 0.8.3:
 
 	- Fix command line logic issue with `signac config host`.

@@ -20,7 +20,7 @@ from .hashing import calc_id
 from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .utility import _mkdir_p, is_string
+from .utility import _mkdir_p
 from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,16 @@ class JobSearchIndex(object):
     def __len__(self):
         return len(self._collection)
 
+    def _resolve_statepoint_filter(self, q):
+        for k, v in q.items():
+            if k in ('$and', '$or'):
+                if not isinstance(v, list) or isinstance(v, tuple):
+                    raise ValueError(
+                        "The argument to a logical operator must be a sequence (e.g. a list)!")
+                yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
+            else:
+                yield 'statepoint.{}'.format(k), v
+
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
@@ -80,9 +90,10 @@ class JobSearchIndex(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        f = dict()
-        if filter is not None:
-            f['statepoint'] = filter
+        if filter is None:
+            f = dict()
+        else:
+            f = dict(self._resolve_statepoint_filter(filter))
         if doc_filter is not None:
             f.update(doc_filter)
         return self._collection._find(f)
@@ -107,11 +118,12 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{type}({{'project': '{id}', 'project_dir': '{rd}', 'workspace_dir': '{wd}'}})".format(
-            type=self.__class__.__module__ + '.' + self.__class__.__name__,
-            id=self.get_id(),
-            rd=self.root_directory(),
-            wd=self.workspace())
+        return "{type}({{'project': '{id}', 'project_dir': '{rd}',"\
+               " 'workspace_dir': '{wd}'}})".format(
+                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
+                    id=self.get_id(),
+                    rd=self.root_directory(),
+                    wd=self.workspace())
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -263,7 +275,7 @@ class Project(object):
             ...
             ["a", 1] {'b7568fa73881d27cbf24bf58d226d80e'}
             ["a", 0] {'54b61a7adbe004b30b39aa399d04f483'}
-            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b39aa399d04f483'}
+            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b...
 
         :param exclude_const: Exclude entries that are shared by all jobs
             that are part of the index.
@@ -900,7 +912,8 @@ def _analyze_view(prefix, links, leaf='job'):
         obsolete.remove('.')
     keep_or_update = existing_paths.intersection(links.keys())
     new = set(links.keys()).difference(keep_or_update)
-    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    to_update = [p for p in keep_or_update if
+                 os.path.realpath(os.path.join(prefix, p)) != links[p]]
     return obsolete, to_update, new
 
 
@@ -908,7 +921,8 @@ def _update_view(prefix, links, leaf='job'):
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
     if num_ops:
-        logger.info("Generating current view in '{}' ({} operations)...".format(prefix, num_ops))
+        logger.info("Generating current view in '{}' ({} operations)...".format(
+            prefix, num_ops))
     else:
         logger.info("View in '{}' is up to date.".format(prefix))
         return

@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import os
-import re
 import sys
 import argparse
 import json
@@ -11,6 +10,7 @@ import logging
 import getpass
 import difflib
 import errno
+from pprint import pprint, pformat
 
 from . import get_project, init_project, index
 from . import __version__
@@ -19,6 +19,7 @@ from .common.configobj import flatten_errors, Section
 from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
+from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -127,6 +128,21 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
+def find_with_filter(args):
+    if getattr(args, 'job_id', None):
+        if args.filter or args.doc_filter:
+            raise ValueError("Can't provide both 'job-id' and filter arguments!")
+        else:
+            return args.job_id
+
+    project = get_project()
+    index = _read_index(project, args.index)
+
+    f = parse_filter_arg(args.filter)
+    df = parse_filter_arg(args.doc_filter)
+    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+
+
 def main_project(args):
     project = get_project()
     if args.access:
@@ -165,15 +181,25 @@ def main_job(args):
 
 def main_statepoint(args):
     project = get_project()
-    m = re.compile('[a-f0-9]{1,32}\Z')
-    for job_id in args.job_id:
-        if not m.match(job_id):
-            raise ValueError(
-                "'{}' is not a valid job id!".format(job_id))
-        print(json.dumps(
-                _open_job_by_id(project, job_id).statepoint(),
-                indent=args.indent,
-                sort_keys=args.sort))
+    if args.job_id:
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+    else:
+        jobs = project
+    for job in jobs:
+        if args.pretty:
+            pprint(job.statepoint(), depth=args.pretty, compact=True)
+        else:
+            print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
+
+
+def main_document(args):
+    project = get_project()
+    for job_id in find_with_filter(args):
+        job = _open_job_by_id(project, job_id)
+        if args.pretty:
+            pprint(dict(job.document), depth=args.pretty, compact=True)
+        else:
+            print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
 
 
 def main_move(args):
@@ -213,30 +239,29 @@ def main_index(args):
 
 
 def main_find(args):
-
-    def parse(q):
-        try:
-            return json.loads(q)
-        except json.decoder.JSONDecodeError:
-            _print_err("Failed to parse query argument. "
-                       "Ensure that '{}' is valid JSON!".format(q))
-            raise
-
     project = get_project()
-    if args.filter is None:
-        f = None
-    else:
-        f = parse(args.filter)
 
-    if args.doc_filter is None:
-        df = None
-    else:
-        df = parse(args.doc_filter)
+    if args.show:
+        len_id = max(6, project.min_len_unique_id())
 
-    index = _read_index(project, args.index)
+        def format_lines(cat, _id, s):
+            if args.one_line:
+                if isinstance(s, dict):
+                    s = json.dumps(s, sort_keys=True)
+                return _id[:len_id] + ' ' + cat + '\t' + s
+            else:
+                return pformat(s, depth=args.show, compact=True)
+
     try:
-        for job_id in project.find_job_ids(index=index, filter=f, doc_filter=df):
-            print(job_id)
+        for job_id in find_with_filter(args):
+            if args.show:
+                job = project.open_job(id=job_id)
+                jid = job.get_id()
+                print(format_lines('id ', jid, jid))
+                print(format_lines('sp ', jid, job.statepoint()))
+                print(format_lines('doc', jid, dict(job.document)))
+            else:
+                print(job_id)
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -246,11 +271,10 @@ def main_find(args):
 
 def main_view(args):
     project = get_project()
-    index = _read_index(project, args.index)
     project.create_linked_view(
         prefix=args.prefix,
-        job_ids=args.job_id,
-        index=index)
+        job_ids=find_with_filter(args),
+        index=_read_index(args.index))
 
 
 def main_init(args):
@@ -613,10 +637,18 @@ def main():
                     "more job ids.")
     parser_statepoint.add_argument(
         'job_id',
-        nargs='+',
+        nargs='*',
         type=str,
         help="One or more job ids. The job corresponding to a job "
              "id must be initialized.")
+    parser_statepoint.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print state point in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a state point is printed.")
     parser_statepoint.add_argument(
         '-i', '--indent',
         type=int,
@@ -628,6 +660,50 @@ def main():
         action='store_true',
         help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_document = subparsers.add_parser(
+        'document',
+        description="Print the document(s) corresponding to one or "
+                    "more job ids.")
+    parser_document.add_argument(
+        'job_id',
+        nargs='*',
+        type=str,
+        help="One or more job ids. The job corresponding to a job "
+             "id must be initialized.")
+    parser_document.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print document in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a document is printed.")
+    parser_document.add_argument(
+        '-i', '--indent',
+        type=int,
+        nargs='?',
+        const='2',
+        help="Specify the indentation of the JSON formatted state point.")
+    parser_document.add_argument(
+        '-s', '--sort',
+        action='store_true',
+        help="Sort the document keys for output in JSON format.")
+    parser_document.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Show documents of jobs matching this state point filter.")
+    parser_document.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Show documents of job matching this document filter.")
+    parser_document.add_argument(
+        '--index',
+        type=str,
+        help="The filename of an index file.")
+    parser_document.set_defaults(func=main_document)
 
     parser_move = subparsers.add_parser('move')
     parser_move.add_argument(
@@ -667,20 +743,36 @@ def main():
         help="Specify tags for this master index compilation.")
     parser_index.set_defaults(func=main_index)
 
-    parser_find = subparsers.add_parser('find')
+    parser_find = subparsers.add_parser(
+        'find',
+        description="""All filter arguments may be provided either directly in JSON
+                       encoding or in a simplified form, e.g., -- $ signac find a 42 --
+                       is equivalent to -- $ signac find '{"a": 42}'."""
+                       )
     parser_find.add_argument(
         'filter',
         type=str,
-        nargs='?',
+        nargs='*',
         help="A JSON encoded state point filter (key-value pairs).")
+    parser_find.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="A document filter.")
     parser_find.add_argument(
         '-i', '--index',
         type=str,
         help="The filename of an index file.")
     parser_find.add_argument(
-        '-d', '--doc-filter',
-        type=str,
-        help="A JSON encoded general filter (key-value pairs).")
+        '-s', '--show',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Show the state point and document of each job.")
+    parser_find.add_argument(
+        '-1', '--one-line',
+        action='store_true',
+        help="Print output in JSON and on one line.")
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser('view')
@@ -690,12 +782,23 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
-    parser_view.add_argument(
+    selection_group = parser_view.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs matching this state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Limit the view to jobs matching this document filter.")
+    selection_group.add_argument(
         '-j', '--job-id',
         type=str,
         nargs='+',
         help="Limit the view to jobs with these job ids.")
-    parser_view.add_argument(
+    selection_group.add_argument(
         '-i', '--index',
         type=str,
         help="The filename of an index file.")

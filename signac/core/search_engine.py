@@ -91,11 +91,12 @@ class DocumentSearchEngine(object):
     :param hash_: The hash function to use, defaults to :func:`hash`.
     :type hash_: callable
     """
+
     def __init__(self, docs=None, include=None, hash_=None):
         warnings.warn(
             "The {} class is deprecated. Please use the Collection class instead.".format(
                 type(self).__name__),
-                DeprecationWarning)
+            DeprecationWarning)
         self._hash = hash if hash_ is None else hash_
         logger.debug("Building index...")
         self.ids, self.index, self.included = self._build_index(docs, include)
