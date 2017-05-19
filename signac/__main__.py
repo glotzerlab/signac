@@ -194,11 +194,8 @@ def main_statepoint(args):
 
 def main_document(args):
     project = get_project()
-    if args.job_id:
-        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
-    else:
-        jobs = project
-    for job in jobs:
+    for job_id in find_with_filter(args):
+        job = _open_job_by_id(project, job_id)
         if args.pretty:
             pprint(dict(job.document), depth=args.pretty, compact=True)
         else:
@@ -692,6 +689,20 @@ def main():
         '-s', '--sort',
         action='store_true',
         help="Sort the document keys for output in JSON format.")
+    parser_document.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Show documents of jobs matching this state point filter.")
+    parser_document.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Show documents of job matching this document filter.")
+    parser_document.add_argument(
+        '--index',
+        type=str,
+        help="The filename of an index file.")
     parser_document.set_defaults(func=main_document)
 
     parser_move = subparsers.add_parser('move')
