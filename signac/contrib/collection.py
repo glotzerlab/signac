@@ -42,7 +42,7 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': str,
+    'str': basestring if six.PY2 else str,
     'list': tuple,
     'null': type(None),
 }
@@ -150,7 +150,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, str):
+            if isinstance(value, basestring if six.PY2 else str):
                 return re.search(argument, value)
             else:
                 return False
@@ -472,19 +472,17 @@ class Collection(object):
         else:
             result = None
 
-        def _reduce_result(match):
-            nonlocal result
+        def _reduce_result(result, match):
             if result is None:  # First match
-                result = match
-            else:               # Update previous matches
-                result = result.intersection(match)
-            logger.debug("Current result set size: {}.".format(len(result)))
+                return match
+            else:               # Update previous match
+                return result.intersection(match)
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self.primary_key, None)
         if _id is not None and _id in self:
-            _reduce_result({_id})
+            result = _reduce_result(result, {_id})
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
@@ -493,26 +491,26 @@ class Collection(object):
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
-            _reduce_result(self._find_expression(key, value))
+            result = _reduce_result(result, self._find_expression(key, value))
             if not result:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            _reduce_result(set(self.ids).difference(not_match))
+            result = _reduce_result(result, set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                _reduce_result(self._find_result(expr_))
+                result = _reduce_result(result, self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
-            _reduce_result(or_results)
+            result = _reduce_result(result, or_results)
 
         assert result is not None
         return result
