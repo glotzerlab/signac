@@ -467,6 +467,10 @@ class Collection(object):
 
     def _find_result(self, expr):
         result = None
+        if not len(expr):
+            return set(self.ids)    # Empty expression yields all ids...
+        else:
+            result = None
 
         def _reduce_result(match):
             nonlocal result

@@ -118,9 +118,52 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        self.assertEqual(len(statepoints), len(list(self.project.find_jobs())))
+        self.assertEqual(len(self.project), len(self.project.find_jobs()))
+        self.assertEqual(len(self.project), len(self.project.find_jobs({})))
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
+
+    def test_find_jobs_arithmetic_operators(self):
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(len(self.project.find_jobs({'a': {'$lt': 5}})), 5)
+        self.assertEqual(len(self.project.find_jobs({'a.$lt': 5})), 5)
+
+    def test_find_jobs_logical_operators(self):
+        for i in range(10):
+            self.project.open_job({'a': i, 'b': {'c': i}}).init()
+        self.assertEqual(len(self.project), 10)
+        with self.assertRaises(ValueError):
+            self.project.find_jobs({'$and': {'foo': 'bar'}})
+        self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'a': 0}]})), 1)
+        self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'a': 0}]})), len(self.project))
+        q = {'$and': [{'a': 0}, {'a': 1}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
+        q = {'$or': [{'a': 0}, {'a': 1}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$and': [{'$and': [{'a': 0}, {'a': 1}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
+        q = {'$and': [{'$or': [{'a': 0}, {'a': 1}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$or': [{'$or': [{'a': 0}, {'a': 1}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$or': [{'$and': [{'a': 0}, {'a': 1}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
+        self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'b': {'c': 0}}]})), 1)
+        self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'b': {'c': 0}}]})), len(self.project))
+        q = {'$and': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
+        q = {'$or': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$and': [{'$and': [{'b': {'c': 0}}, {'b': {'c': 1}}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
+        q = {'$and': [{'$or': [{'b': {'c': 0}}, {'b': {'c': 1}}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$or': [{'$or': [{'b': {'c': 0}}, {'b': {'c': 1}}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 2)
+        q = {'$or': [{'$and': [{'b': {'c': 0}}, {'b': {'c': 1}}]}]}
+        self.assertEqual(len(self.project.find_jobs(q)), 0)
 
     def test_num_jobs(self):
         statepoints = [{'a': i} for i in range(5)]
