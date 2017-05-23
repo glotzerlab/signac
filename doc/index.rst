@@ -15,6 +15,9 @@ Welcome to signac's documentation!
 .. image:: https://img.shields.io/pypi/v/signac.svg
    :target: https://img.shields.io/pypi/v/signac.svg
 
+.. image:: https://pipelines-badges-service.useast.staging.atlassian.io/badge/glotzer/signac.svg
+    :target: https://coveralls.io/bitbucket/glotzer/signac?branch=master
+
 .. image:: http://mybinder.org/badge.svg
    :target: http://www.mybinder.org:/repo/csadorf/signac-examples
 
