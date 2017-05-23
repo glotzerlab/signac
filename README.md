@@ -1,4 +1,4 @@
-# signac - a simple data management framework
+# signac - simple data management
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/signac/badges/version.svg)](https://anaconda.org/conda-forge/signac)
@@ -25,7 +25,6 @@ Installing **signac** from the **conda-forge** channel can be achieved by adding
 
     conda config --add channels conda-forge
 
-
 Once the **conda-forge** channel has been enabled, **signac** can be installed with:
 
     conda install signac
@@ -35,7 +34,6 @@ Once the **conda-forge** channel has been enabled, **signac** can be installed w
 To install **signac** via **pip**, execute:
 
     pip install --user signac
-
 
 **Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://signac.readthedocs.io/en/latest/installation.html).**
 
@@ -49,13 +47,16 @@ Setup a new project:
     $ signac init MyProject
 
 and access the project handle:
-   
+
     >>> project = signac.get_project()
 
 ## Documentation
 
 The documentation is available **online** at [https://signac.readthedocs.io](https://signac.readthedocs.io).
-We further invite you to check out the collection of [Jupyter notebooks](http://www.mybinder.org:/repo/csadorf/signac-examples) hosted on [mybinder.org](http://www.mybinder.org), which serve both as **tutorial** and **examples collection**.
+We further invite you to check out the collection of [Jupyter notebooks](https://bitbucket.org/glotzer/signac-examples), which serve both as **tutorial** and **examples collection**.
+
+The **tutorial** is also hosted [online](http://www.mybinder.org:/repo/csadorf/signac-examples) by curtesy of the free service offered by [mybinder.org](http://www.mybinder.org).
+Please note, that the online hosting of notebooks is not always available.
 
 ## Acknowledgment
 
