@@ -55,7 +55,7 @@ and access the project handle:
 The documentation is available **online** at [https://signac.readthedocs.io](https://signac.readthedocs.io).
 We further invite you to check out the collection of [Jupyter notebooks](https://bitbucket.org/glotzer/signac-examples), which serve both as **tutorial** and **examples collection**.
 
-The **tutorial** is also hosted [online](http://www.mybinder.org:/repo/csadorf/signac-examples) by curtesy of the free service offered by [mybinder.org](http://www.mybinder.org).
+The **tutorial** is also hosted [online](http://www.mybinder.org:/repo/csadorf/signac-examples) as a free service by courtesy of [mybinder.org](http://www.mybinder.org).
 Please note, that the online hosting of notebooks is not always available.
 
 ## Acknowledgment
