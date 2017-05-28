@@ -187,7 +187,7 @@ def main_statepoint(args):
         jobs = project
     for job in jobs:
         if args.pretty:
-            pprint(job.statepoint(), depth=args.pretty, compact=True)
+            pprint(job.statepoint(), depth=args.pretty)
         else:
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
@@ -197,7 +197,7 @@ def main_document(args):
     for job_id in find_with_filter(args):
         job = _open_job_by_id(project, job_id)
         if args.pretty:
-            pprint(dict(job.document), depth=args.pretty, compact=True)
+            pprint(dict(job.document), depth=args.pretty)
         else:
             print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
 
@@ -250,7 +250,7 @@ def main_find(args):
                     s = json.dumps(s, sort_keys=True)
                 return _id[:len_id] + ' ' + cat + '\t' + s
             else:
-                return pformat(s, depth=args.show, compact=True)
+                return pformat(s, depth=args.show)
 
     try:
         for job_id in find_with_filter(args):
