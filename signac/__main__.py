@@ -257,7 +257,7 @@ def main_find(args):
             if args.show:
                 job = project.open_job(id=job_id)
                 jid = job.get_id()
-                print(format_lines('id ', jid, jid))
+                print(jid)
                 print(format_lines('sp ', jid, job.statepoint()))
                 print(format_lines('doc', jid, dict(job.document)))
             else:
