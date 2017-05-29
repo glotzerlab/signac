@@ -295,7 +295,8 @@ class Project(object):
                 collection.index(key, build=True)
         tmp = collection._indexes
         for k in sorted(tmp, key=lambda k: len(tmp[k])):
-            if exclude_const and len(tmp[k]) == 1:
+            if exclude_const and len(tmp[k]) == 1 \
+                    and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
             yield tuple(k.split('.')[1:]), tmp[k]
 
