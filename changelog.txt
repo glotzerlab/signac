@@ -1,3 +1,12 @@
+0.8.5:
+
+	- Fix compatibility issue that broke the `signac find --view` and all `--pretty`
+		commands on Python 2.7.
+	- Fix issue where view directories would be incomplete in combination with
+		heterogeneous state point schemas.
+	- The signac ids in the `signac find --show` view are no longer enclosed by
+		quotation marks.
+
 0.8.4:
 
 	- All search queries on project and collection objects support various
