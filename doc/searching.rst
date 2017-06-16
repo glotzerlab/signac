@@ -4,7 +4,7 @@
 Searching
 =========
 
-One of the key features of *signac* is the posibility to immediately search managed data spaces and for example select specific jobs or state points from a managed data space.
+One of the key features of *signac* is the possibility to immediately search managed data spaces and for example select specific jobs or state points from a managed data space.
 All **find()** functions within the framework accept filter arguments that will return a selection of jobs or documents.
 
 Internally, all search operations are processed by an instance of :py:class:`~.Collection`, that means they all follow the same syntax.
@@ -141,7 +141,7 @@ Likewise, using ``False`` as argument would return all documents that have no ke
 
 .. _array-operator:
 
-Array Operatoe
+Array Operator
 --------------
 
 This operator may be used to determine whether specific keys have values, that are **in** (``$in``), or **not in** (``$nin``) a given array, e.g.:
@@ -200,8 +200,7 @@ Simplified Syntax on the Command Line
 =====================================
 
 It is possible to use search expressions directy on the command line, for example in combination with the ``$ signac find`` command.
-In this case filter arguments are expected to provided as valid JSON-expressions.
-
+In this case filter arguments are expected to be provided as valid JSON-expressions.
 However for simple filters, you can also use a *simplified syntax*!
 For example, instead of ``{'p': 2}``, you can write ``p 2``.
 

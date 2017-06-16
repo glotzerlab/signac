@@ -126,14 +126,6 @@ You can iterate over all initialized jobs using the :py:meth:`~.Project.find_job
     for job in project.find_jobs():
         pass
 
-Or you can select a subspace by defining a *filter*.
-For example, to iterate over all jobs that have a *state point* parameter ``b=0``, execute:
-
-.. code-block:: python
-
-    for job in project.find_jobs({'b': 0}):
-        pass
-
 .. tip::
 
     Since iterating over all jobs, that means ommitting the ``filter`` argument or setting it to ``None``, is a very common pattern, you can use the following short-hand notation:
@@ -143,6 +135,15 @@ For example, to iterate over all jobs that have a *state point* parameter ``b=0`
         for job in project:
             pass
 
+Or you can select a subspace by defining a *filter*.
+For example, to iterate over all jobs that have a *state point* parameter ``b=0``, execute:
+
+.. code-block:: python
+
+    for job in project.find_jobs({'b': 0}):
+        pass
+
+For more information on how to search for specific jobs in Python and on the command line, please see the :ref:`searching` chapter.
 
 .. _job-document:
 
