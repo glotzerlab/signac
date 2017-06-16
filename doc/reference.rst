@@ -12,6 +12,7 @@ Contents:
 
    configuration
    projects
+   searching
    indexing
    advanced_indexing
    database
