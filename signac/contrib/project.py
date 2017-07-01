@@ -262,27 +262,43 @@ class Project(object):
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
 
-        This method generates unordered key-value pairs, with complete
-        statepoint paths as keys, encoded in JSON, and a set of job ids
-        of all corresponding jobs, e.g.:
+        This method generates unordered key-value pairs, with the state point
+        as key and a mapping of values to a set of all corresponding job ids.
+        Since state point keys may be nested, they are represented as a tuple.
+        For example:
 
         .. code-block:: python
 
-            >>> project.open_job({'a': 0, 'b': {'c': 'const'}}).init()
-            >>> project.open_job({'a': 1, 'b': {'c': 'const'}}).init()
-            >>> for k, v in project.job_statepoint_index():
-            ...     print(k, v)
+            >>> for i in range(4):
+            ...     project.open_job({'a': i, 'b': {'c': i % 2}}).init()
             ...
-            ["a", 1] {'b7568fa73881d27cbf24bf58d226d80e'}
-            ["a", 0] {'54b61a7adbe004b30b39aa399d04f483'}
-            ["b", "c", "abc"] {'b7568fa73881d27cbf24bf58d226d80e', '54b61a7adbe004b30b...
+            >>> for key, value in project.build_job_statepoint_index():
+            ...     print(key)
+            ...     pprint.pprint(value)
+            ...
+            ('a',)
+            defaultdict(<class 'set'>,
+                        {0: {'4e9a45a922eae6bb5d144b36d82526e4'},
+                         1: {'d49c6609da84251ab096654971115d0c'},
+                         2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
+                         3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
+            ('b', 'c')
+            defaultdict(<class 'set'>,
+                        {0: {'3a530c13bfaf57517b4e81ecab6aec7f',
+                             '4e9a45a922eae6bb5d144b36d82526e4'},
+                         1: {'d49c6609da84251ab096654971115d0c',
+                             '5c2658722218d48a5eb1e0ef7c26240b'}})
+
+        Values that are constant over the complete data space can be optionally
+        ignored with the exclude_const argument set to True. That would mean the key `a`
+        would be excluded in the example above.
 
         :param exclude_const: Exclude entries that are shared by all jobs
             that are part of the index.
         :type exclude_const: bool
         :param index: A document index.
-        :yields: Key-value pairs of JSON-encoded statepoint parameters and
-            and a set of corresponding job ids.
+        :yields: Key-value pairs with the (nested) state point as key and a mapping of
+            of values and corresponding job id sets.
         """
         from .collection import _traverse_filter
         if index is None:
