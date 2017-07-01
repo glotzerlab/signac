@@ -298,7 +298,7 @@ class Project(object):
             if exclude_const and len(tmp[k]) == 1 \
                     and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
-            yield tuple(k.split('.')[1:]), tmp[k]
+            yield tuple(k.split('.')[1:]), dict(tmp[k])
 
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
