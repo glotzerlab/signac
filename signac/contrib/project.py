@@ -277,13 +277,17 @@ class Project(object):
             ...     pprint.pprint(value)
             ...
             ('a',)
-            {0: {'4e9a45a922eae6bb5d144b36d82526e4'},
-             1: {'d49c6609da84251ab096654971115d0c'},
-             2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
-             3: {'5c2658722218d48a5eb1e0ef7c26240b'}}
+            defaultdict(<class 'set'>,
+                        {0: {'4e9a45a922eae6bb5d144b36d82526e4'},
+                         1: {'d49c6609da84251ab096654971115d0c'},
+                         2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
+                         3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
             ('b', 'c')
-            {0: {'3a530c13bfaf57517b4e81ecab6aec7f', '4e9a45a922eae6bb5d144b36d82526e4'},
-             1: {'d49c6609da84251ab096654971115d0c', '5c2658722218d48a5eb1e0ef7c26240b'}}
+            defaultdict(<class 'set'>,
+                        {0: {'3a530c13bfaf57517b4e81ecab6aec7f',
+                             '4e9a45a922eae6bb5d144b36d82526e4'},
+                         1: {'d49c6609da84251ab096654971115d0c',
+                             '5c2658722218d48a5eb1e0ef7c26240b'}})
 
         Values that are constant over the complete data space can be optionally
         ignored with the exclude_const argument set to True. That would mean the key `a`
