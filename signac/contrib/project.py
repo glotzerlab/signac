@@ -35,7 +35,7 @@ def get_indexes(root):
 """
 
 ACCESS_MODULE_MASTER = """#!/usr/bin/env python
-# -*- condig: utf-8 -*-
+# -*- coding: utf-8 -*-
 import signac
 
 def get_indexes(root):
