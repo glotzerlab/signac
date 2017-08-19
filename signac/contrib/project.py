@@ -238,6 +238,8 @@ class Project(object):
                 elif len(matches) > 1:
                     raise LookupError(id)
             job = self.Job(project=self, statepoint=self.get_statepoint(id))
+            if job not in self:  # pen by id must fail if job not initialized
+                raise KeyError(id)
         if job.get_id() not in self._index:
             self._index[job.get_id()] = dict(statepoint=job.statepoint())
         return job

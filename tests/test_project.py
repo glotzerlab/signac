@@ -334,6 +334,7 @@ class ProjectTest(BaseProjectTest):
                     skip_errors=True)):
                 pass
             with self.assertRaises(RuntimeWarning):
+                self.project._index.clear()
                 self.project.repair()
             self.project.write_statepoints(statepoints)
             self.project.repair()
