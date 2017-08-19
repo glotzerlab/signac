@@ -17,7 +17,6 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
-from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
@@ -111,7 +110,7 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = config
-        self._index = Collection()
+        self._sp_cache = Collection()
         self.get_id()
 
     def __str__(self):
@@ -156,22 +155,6 @@ class Project(object):
             return wd
         else:
             return os.path.join(self.root_directory(), wd)
-
-    def _update_index(self):
-        assert self._index is not None
-        current_ids = set(self.find_job_ids())
-        cached_ids = set(self._index.ids)
-        to_update = current_ids.difference(cached_ids)
-        to_remove = cached_ids.difference(current_ids)
-        if to_remove:
-            logger.debug("Removing {} cached entries...".format(len(to_remove)))
-        for _id in to_remove:
-            del self._index[_id]
-        if to_update:
-            logger.debug("Updating {} cache entries...".format(len(to_update)))
-        if to_update:
-            for _id in to_update:
-                self.open_job(id=_id)   # triggers index update
 
     def get_id(self):
         """Get the project identifier.
@@ -238,10 +221,8 @@ class Project(object):
                 elif len(matches) > 1:
                     raise LookupError(id)
             job = self.Job(project=self, statepoint=self.get_statepoint(id))
-            if job not in self:  # pen by id must fail if job not initialized
-                raise KeyError(id)
-        if job.get_id() not in self._index:
-            self._index[job.get_id()] = dict(statepoint=job.statepoint())
+        if job.get_id() not in self._sp_cache:
+            self._register(job)
         return job
 
     def _job_dirs(self):
@@ -363,11 +344,7 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            if self._index is None or doc_filter is not None:
-                index = self.index(include_job_document=doc_filter is not None)
-            else:
-                self._update_index()
-                index = self._index
+            index = self.index(include_job_document=doc_filter is not None)
         search_index = self.build_job_search_index(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
@@ -481,7 +458,12 @@ class Project(object):
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
+    def _register(self, job):
+        "Register the job within the local index."
+        self._sp_cache[job.get_id()] = dict(statepoint=job.statepoint())
+
     def _get_statepoint_from_workspace(self, jobid):
+        "Attempt to read the statepoint from the workspace."
         fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'r') as manifest:
@@ -496,8 +478,8 @@ class Project(object):
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
-        The statepoint is retrieved from the workspace or
-        from the statepoints file if the former attempt fails.
+        The state point is retrieved from the internal cache, from
+        the workspace or from a state points file.
 
         :param jobid: A job id to get the statepoint for.
         :type jobid: str
@@ -512,20 +494,17 @@ class Project(object):
         See also :meth:`dump_statepoints`.
         """
         try:
-            if self._index is None or jobid not in self._index:
-                statepoint = self._get_statepoint_from_workspace(jobid)
+            if jobid in self._sp_cache:
+                return self._sp_cache[jobid]['statepoint']
             else:
-                statepoint = self._index[jobid]['statepoint']
+                return self._get_statepoint_from_workspace(jobid)
         except KeyError:
             try:
-                statepoint = self.read_statepoints(fn=fn)[jobid]
+                return self.read_statepoints(fn=fn)[jobid]
             except IOError as error:
                 if not error.errno == errno.ENOENT:
                     raise
                 raise KeyError(jobid)
-        assert statepoint is not None
-        assert str(self.open_job(statepoint)) == jobid
-        return statepoint
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create or update a persistent linked view of the selected data space.
@@ -721,6 +700,15 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
+    def _build_index(self, include_job_document=False):
+        "Return a basic state point index."
+        for _id in self.find_job_ids():
+            job = self.open_job(id=_id)
+            doc = dict(_id=job.get_id(), statepoint=job.statepoint())
+            if include_job_document:
+                doc.update(job.document)
+            yield doc
+
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
         """Generate an index of the project's workspace.
@@ -748,10 +736,14 @@ class Project(object):
         :type include_job_document: bool
         :yields: index documents"""
         if formats is None:
-            docs = _index_signac_project_workspace(
-                root=self.workspace(),
-                include_job_document=include_job_document,
-                fn_statepoint=self.Job.FN_MANIFEST)
+
+            def _full_doc(doc):
+                doc['signac_id'] = doc['_id']
+                doc['root'] = self.workspace()
+                return doc
+
+            docs = self._build_index(include_job_document=include_job_document)
+            docs = map(_full_doc, docs)
         else:
             if six.PY2:
                 if isinstance(formats, basestring):  # noqa
