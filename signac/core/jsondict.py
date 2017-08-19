@@ -30,8 +30,6 @@ class JSonDict(UserDict):
         self._filename = filename
         self._synchronized = synchronized
         self._write_concern = write_concern
-        if self._synchronized:
-            self.load()
 
     def __setitem__(self, key, value):
         if self._synchronized:
