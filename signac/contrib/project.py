@@ -1009,22 +1009,6 @@ def _make_link(src, dst):
         raise
 
 
-def _make_urls(statepoints, key_set):
-    "Create unique URLs for all jobs matching filter."
-    for statepoint in statepoints:
-        url = []
-        for keys in key_set:
-            url.append('.'.join(keys))
-            v = statepoint
-            for key in keys:
-                v = v.get(key)
-                if v is None:
-                    break
-            url.append(str(v))
-        if len(url):
-            yield statepoint, os.path.join(*url)
-
-
 def _skip_errors(iterable, log=print):
     while True:
         try:
