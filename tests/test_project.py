@@ -9,7 +9,6 @@ import logging
 
 import signac
 from signac.common import six
-from signac.contrib.formats import TextFile
 from signac.errors import DestinationExistsError
 from signac.contrib.project import _find_all_links
 
@@ -366,7 +365,7 @@ class ProjectTest(BaseProjectTest):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index({'.*/test.txt': TextFile}))
+        docs = list(self.project.index({'.*/test.txt': 'TextFile'}))
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
@@ -391,7 +390,7 @@ class ProjectTest(BaseProjectTest):
         for job in self.project.find_jobs():
             with open(job.fn('test.txt'), 'w') as file:
                 file.write('test\n')
-        formats = {r'.*/test\.txt': signac.contrib.formats.TextFile}
+        formats = {r'.*/test\.txt': 'TextFile'}
         index = dict()
         for doc in self.project.index(formats):
             index[doc['_id']] = doc
