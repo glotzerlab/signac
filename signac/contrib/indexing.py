@@ -472,7 +472,6 @@ class MasterCrawler(BaseCrawler):
     "The filename of modules containing crawler definitions."
 
     def __init__(self, root, raise_on_error=False):
-        self._crawlers = dict()
         self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
