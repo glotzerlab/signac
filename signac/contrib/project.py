@@ -13,6 +13,7 @@ from itertools import chain
 
 from ..core.json import json
 from .collection import Collection
+from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
 from .job import Job
@@ -302,7 +303,6 @@ class Project(object):
         :yields: Pairs of state point keys and mappings of values to a set of all
             corresponding job ids.
         """
-        from .collection import _traverse_filter
         if index is None:
             index = self.index(include_job_document=False)
         collection = Collection(index)
