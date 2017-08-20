@@ -47,10 +47,6 @@ _TYPES = {
 }
 
 
-def _index(docs, key):
-    return {doc[key]: doc for doc in docs}
-
-
 def _flatten(container):
     for i in container:
         if isinstance(i, (list, tuple)):
