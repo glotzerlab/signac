@@ -29,10 +29,6 @@ KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
-KEY_LINK = 'signac_link'
-KEY_CRAWLER_PATH = 'access_crawler_root'
-KEY_CRAWLER_MODULE = 'access_module'
-KEY_CRAWLER_ID = 'access_crawler_id'
 
 
 def md5(file):
