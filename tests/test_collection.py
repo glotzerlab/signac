@@ -234,6 +234,13 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c.find({'a.b': 0})), 0)
         self.assertEqual(len(self.c.find({'a': {'b': 0}})), 0)
 
+    def test_nested_lists(self):
+        docs = [dict(a=[[[i]]]) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c.find()), len(docs))
+        self.assertEqual(len(self.c.find({'a': [[[-1]]]})), 0)
+        self.assertEqual(len(self.c.find({'a': [[[0]]]})), 1)
+
     def test_replace_one_simple(self):
         self.assertEqual(len(self.c), 0)
         doc = {'_id': '0', 'a': 0}
