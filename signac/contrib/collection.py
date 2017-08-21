@@ -368,8 +368,14 @@ class Collection(object):
         return _id in self._docs
 
     def __getitem__(self, _id):
-        self._assert_open()
-        return self._docs[_id].copy()
+        # The _assert_open() check is only performed after an
+        # exception has been caught, which is slightly faster
+        # than running the check every time.
+        try:
+            return self._docs[_id].copy()
+        except TypeError:
+            self._assert_open()
+            raise
 
     def __setitem__(self, _id, doc):
         self._assert_open()
