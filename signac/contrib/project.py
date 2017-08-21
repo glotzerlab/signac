@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
 
+
 ACCESS_MODULE_MINIMAL = """import signac
 
 def get_indexes(root):
@@ -110,7 +111,7 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = config
-        self._sp_cache = Collection()
+        self._sp_cache = dict()
         self.get_id()
 
     def __str__(self):
@@ -460,7 +461,7 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job.get_id()] = dict(statepoint=job.statepoint())
+        self._sp_cache[job.get_id()] = job.statepoint()
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
@@ -495,7 +496,7 @@ class Project(object):
         """
         try:
             if jobid in self._sp_cache:
-                return self._sp_cache[jobid]['statepoint']
+                return self._sp_cache[jobid]
             else:
                 return self._get_statepoint_from_workspace(jobid)
         except KeyError:
