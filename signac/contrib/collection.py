@@ -258,6 +258,7 @@ class Collection(object):
     """
 
     def __init__(self, docs=None, primary_key='_id'):
+        self.index_rebuild_threshold = 0.1
         self._primary_key = primary_key
         self._file = io.StringIO()
         self._requires_flush = False
@@ -334,12 +335,19 @@ class Collection(object):
         """
         if key == self.primary_key:
             raise KeyError("Can't access index for primary key via index() method.")
-        elif key not in self._indexes:
+        elif key in self._indexes:
+            if len(self._dirty) > self.index_rebuild_threshold * len(self):
+                logger.debug("Indexes outdated, rebuilding...")
+                self._indexes.clear()
+                self._build_index(key)
+                self._dirty.clear()
+            else:
+                self._update_indexes()
+        else:
             if build:
                 self._build_index(key)
             else:
                 raise KeyError("No index for key '{}'.".format(key))
-        self._update_indexes()
         return self._indexes[key]
 
     def __str__(self):
@@ -368,8 +376,14 @@ class Collection(object):
         return _id in self._docs
 
     def __getitem__(self, _id):
-        self._assert_open()
-        return self._docs[_id].copy()
+        # The _assert_open() check is only performed after an
+        # exception has been caught, which is slightly faster
+        # than running the check every time.
+        try:
+            return self._docs[_id].copy()
+        except TypeError:
+            self._assert_open()
+            raise
 
     def __setitem__(self, _id, doc):
         self._assert_open()
