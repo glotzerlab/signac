@@ -21,7 +21,6 @@ import argparse
 import operator
 from collections import defaultdict
 from itertools import islice
-from uuid import uuid4
 
 from ..core.json import json
 from ..common import six
@@ -271,6 +270,7 @@ class Collection(object):
                 self[doc[self.primary_key]] = doc
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
+        self._next_default_id = len(self)
 
     def _assert_open(self):
         if self._docs is None:
@@ -421,7 +421,10 @@ class Collection(object):
         :returns: The _id of the inserted documented.
         """
         self._assert_open()
-        _id = doc.setdefault(self.primary_key, str(uuid4()))
+        _id = doc.setdefault(self.primary_key, str(self._next_default_id))
+        self._next_default_id += 1
+        if _id in self:
+            raise KeyError('Primary key collision!')
         self[_id] = doc
         return _id
 
@@ -452,8 +455,11 @@ class Collection(object):
             into the collection.
         """
         for doc in docs:
-            doc.setdefault(self.primary_key, str(uuid4()))
-            self[doc[self.primary_key]] = doc
+            _id = doc.setdefault(self.primary_key, str(self._next_default_id))
+            self._next_default_id += 1
+            if _id in self:
+                raise KeyError('Primary key collision!')
+            self[_id] = doc
 
     def _check_filter(self, filter):
         "Check if filter is a valid filter argument."
