@@ -281,10 +281,8 @@ class Collection(object):
         for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
-                try:
+                if _id in group:    # faster than exception handling (performance)
                     group.remove(_id)
-                except KeyError:
-                    pass
                 if not len(group):
                     remove_keys.add(key)
             for key in remove_keys:
