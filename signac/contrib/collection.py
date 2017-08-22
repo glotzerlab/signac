@@ -355,8 +355,11 @@ class Collection(object):
         return "<{} file={}>".format(type(self).__name__, self._file)
 
     def __iter__(self):
-        self._assert_open()
-        return iter(self._docs.values())
+        try:
+            return iter(self._docs.values())
+        except AttributeError:
+            raise RuntimeError("Trying to access closed {}.".format(
+                type(self).__name__))
 
     @property
     def ids(self):
