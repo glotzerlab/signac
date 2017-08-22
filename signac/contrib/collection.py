@@ -112,25 +112,18 @@ def _build_index(docs, key, primary_key):
     nodes = key.split('.')
     index = defaultdict(set)
 
-    def _get_value(doc_, nodes):
-        if nodes:
-            if isinstance(doc_, dict):
-                return _get_value(doc_[nodes[0]], nodes[1:])
-            else:
-                raise KeyError()
-        else:
-            return doc_
-
     for doc in docs:
         try:
-            v = _get_value(doc, nodes)
+            v = doc[nodes[0]]
+            for n in nodes[1:]:
+                v = v[n]
             if isinstance(v, dict):
                 v = _DictPlaceholder
-        except KeyError:
+        except (KeyError, TypeError):
             pass
         except Exception as error:
             raise RuntimeError(
-                "An exepected error occured while processing "
+                "An unexpected error occured while processing "
                 "doc '{}': {}.".format(doc, error))
         else:
             index[_encode_tree(v)].add(doc[primary_key])
