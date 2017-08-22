@@ -126,7 +126,11 @@ def _build_index(docs, key, primary_key):
                 "An unexpected error occured while processing "
                 "doc '{}': {}.".format(doc, error))
         else:
-            index[_encode_tree(v)].add(doc[primary_key])
+            # inlined for performance
+            if isinstance(v, list):
+                index[_to_tuples(v)].add(doc[primary_key])
+            else:
+                index[v].add(doc[primary_key])
 
         if len(nodes) > 1:
             try:
@@ -137,7 +141,11 @@ def _build_index(docs, key, primary_key):
                 warnings.warn(
                     "Using keys with dots ('.') is pending deprecation in the future!",
                     PendingDeprecationWarning)
-                index[_encode_tree(v)].add(doc[primary_key])
+                # inlined for performance
+                if isinstance(v, list):
+                    index[_to_tuples(v)].add(doc[primary_key])
+                else:
+                    index[v].add(doc[primary_key])
     return index
 
 
