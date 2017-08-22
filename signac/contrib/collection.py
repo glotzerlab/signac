@@ -117,7 +117,7 @@ def _build_index(docs, key, primary_key):
             v = doc[nodes[0]]
             for n in nodes[1:]:
                 v = v[n]
-            if isinstance(v, dict):
+            if type(v) == dict:
                 v = _DictPlaceholder
         except (KeyError, TypeError):
             pass
@@ -127,7 +127,7 @@ def _build_index(docs, key, primary_key):
                 "doc '{}': {}.".format(doc, error))
         else:
             # inlined for performance
-            if isinstance(v, list):
+            if type(v) == list:   # performance
                 index[_to_tuples(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
@@ -142,7 +142,7 @@ def _build_index(docs, key, primary_key):
                     "Using keys with dots ('.') is pending deprecation in the future!",
                     PendingDeprecationWarning)
                 # inlined for performance
-                if isinstance(v, list):
+                if type(v) == list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
                 else:
                     index[v].add(doc[primary_key])
