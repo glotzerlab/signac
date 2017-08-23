@@ -707,10 +707,10 @@ class Project(object):
             doc = dict(_id=_id, statepoint=sp)
             if include_job_document:
                 if wd is None:
-                    doc.update(job.document)
+                    doc.update(self.open_job(id=_id).document)
                 else:   # use optimized path
                     try:
-                        with open(os.path.join(wd, self.Job.FN_DOCUMENT), 'rb') as file:
+                        with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
                             doc.update(json.loads(file.read().decode()))
                     except OSError as error:
                         if error.errno != errno.ENOENT:
