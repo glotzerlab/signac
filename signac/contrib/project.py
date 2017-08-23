@@ -712,7 +712,7 @@ class Project(object):
                     try:
                         with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
                             doc.update(json.loads(file.read().decode()))
-                    except OSError as error:
+                    except IOError as error:
                         if error.errno != errno.ENOENT:
                             raise
             yield doc
