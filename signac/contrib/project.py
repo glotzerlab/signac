@@ -703,16 +703,20 @@ class Project(object):
 
     def _build_index(self, include_job_document=False):
         "Return a basic state point index."
+        wd = self.workspace() if self.Job == Job else None
         for _id in self.find_job_ids():
-            job = self.open_job(id=_id)
-            doc = dict(_id=job.get_id(), statepoint=job.statepoint())
+            sp = self.get_statepoint(_id)
+            doc = dict(_id=_id, statepoint=sp)
             if include_job_document:
-                try:
-                    with open(job.fn(job.FN_DOCUMENT), 'rb') as file:
-                        doc.update(json.loads(file.read().decode()))
-                except OSError as error:
-                    if error.errno != errno.ENOENT:
-                        raise
+                if wd is None:
+                    doc.update(job.document)
+                else:   # use optimized path
+                    try:
+                        with open(os.path.join(wd, self.Job.FN_DOCUMENT), 'rb') as file:
+                            doc.update(json.loads(file.read().decode()))
+                    except OSError as error:
+                        if error.errno != errno.ENOENT:
+                            raise
             yield doc
 
     def index(self, formats=None, depth=0,
@@ -742,10 +746,11 @@ class Project(object):
         :type include_job_document: bool
         :yields: index documents"""
         if formats is None:
+            root = self.workspace()
 
             def _full_doc(doc):
                 doc['signac_id'] = doc['_id']
-                doc['root'] = self.workspace()
+                doc['root'] = root
                 return doc
 
             docs = self._build_index(include_job_document=include_job_document)
