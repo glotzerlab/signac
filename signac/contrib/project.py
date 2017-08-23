@@ -17,7 +17,6 @@ from ..common import six
 from ..common.config import load_config
 from .job import Job
 from .hashing import calc_id
-from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
@@ -27,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 #: The default filename to read from and write statepoints to.
 FN_STATEPOINTS = 'signac_statepoints.json'
+
 
 ACCESS_MODULE_MINIMAL = """import signac
 
@@ -111,7 +111,11 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = config
+        self._sp_cache = dict()
         self.get_id()
+        self._wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
+        if not os.path.isabs(self._wd):
+            self._wd = os.path.join(self.root_directory(), self._wd)
 
     def __str__(self):
         "Returns the project's id."
@@ -150,11 +154,7 @@ class Project(object):
         .. note::
             The configuration will respect environment variables,
             such as $HOME."""
-        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
-        if os.path.isabs(wd):
-            return wd
-        else:
-            return os.path.join(self.root_directory(), wd)
+        return self._wd
 
     def get_id(self):
         """Get the project identifier.
@@ -211,7 +211,7 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
-            return self.Job(project=self, statepoint=statepoint)
+            job = self.Job(project=self, statepoint=statepoint)
         else:
             if len(id) < 32:
                 job_ids = self.find_job_ids()
@@ -220,13 +220,15 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            return self.Job(project=self, statepoint=self.get_statepoint(id))
+            job = self.Job(project=self, statepoint=self.get_statepoint(id))
+        if job.get_id() not in self._sp_cache:
+            self._register(job)
+        return job
 
     def _job_dirs(self):
-        wd = self.workspace()
         m = re.compile('[a-f0-9]{32}')
         try:
-            for d in os.listdir(wd):
+            for d in os.listdir(self._wd):
                 if m.match(d):
                     yield d
         except OSError as error:
@@ -455,11 +457,16 @@ class Project(object):
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
+    def _register(self, job):
+        "Register the job within the local index."
+        self._sp_cache[job._id] = job._statepoint
+
     def _get_statepoint_from_workspace(self, jobid):
-        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
+        "Attempt to read the statepoint from the workspace."
+        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'r') as manifest:
-                return json.loads(manifest.read())
+            with open(fn_manifest, 'rb') as manifest:
+                return json.loads(manifest.read().decode())
         except (IOError, ValueError) as error:
             if os.path.isfile(fn_manifest):
                 msg = "Error while trying to access manifest file: "\
@@ -470,8 +477,8 @@ class Project(object):
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
-        The statepoint is retrieved from the workspace or
-        from the statepoints file if the former attempt fails.
+        The state point is retrieved from the internal cache, from
+        the workspace or from a state points file.
 
         :param jobid: A job id to get the statepoint for.
         :type jobid: str
@@ -486,17 +493,17 @@ class Project(object):
         See also :meth:`dump_statepoints`.
         """
         try:
-            statepoint = self._get_statepoint_from_workspace(jobid)
+            if jobid in self._sp_cache:
+                return self._sp_cache[jobid]
+            else:
+                return self._get_statepoint_from_workspace(jobid)
         except KeyError:
             try:
-                statepoint = self.read_statepoints(fn=fn)[jobid]
+                return self.read_statepoints(fn=fn)[jobid]
             except IOError as error:
                 if not error.errno == errno.ENOENT:
                     raise
                 raise KeyError(jobid)
-        assert statepoint is not None
-        assert str(self.open_job(statepoint)) == jobid
-        return statepoint
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create or update a persistent linked view of the selected data space.
@@ -692,6 +699,24 @@ class Project(object):
                 else:
                     logger.info("Successfully recovered state point.")
 
+    def _build_index(self, include_job_document=False):
+        "Return a basic state point index."
+        wd = self.workspace() if self.Job == Job else None
+        for _id in self.find_job_ids():
+            sp = self.get_statepoint(_id)
+            doc = dict(_id=_id, statepoint=sp)
+            if include_job_document:
+                if wd is None:
+                    doc.update(self.open_job(id=_id).document)
+                else:   # use optimized path
+                    try:
+                        with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
+                            doc.update(json.loads(file.read().decode()))
+                    except OSError as error:
+                        if error.errno != errno.ENOENT:
+                            raise
+            yield doc
+
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
         """Generate an index of the project's workspace.
@@ -719,10 +744,15 @@ class Project(object):
         :type include_job_document: bool
         :yields: index documents"""
         if formats is None:
-            docs = _index_signac_project_workspace(
-                root=self.workspace(),
-                include_job_document=include_job_document,
-                fn_statepoint=self.Job.FN_MANIFEST)
+            root = self.workspace()
+
+            def _full_doc(doc):
+                doc['signac_id'] = doc['_id']
+                doc['root'] = root
+                return doc
+
+            docs = self._build_index(include_job_document=include_job_document)
+            docs = map(_full_doc, docs)
         else:
             if six.PY2:
                 if isinstance(formats, basestring):  # noqa

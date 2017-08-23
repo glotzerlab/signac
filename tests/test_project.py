@@ -192,6 +192,7 @@ class ProjectTest(BaseProjectTest):
     def test_open_job_by_id(self):
         statepoints = [{'a': i} for i in range(5)]
         jobs = [self.project.open_job(sp) for sp in statepoints]
+        self.project._sp_cache.clear()
         try:
             logging.disable(logging.WARNING)
             for job in jobs:
@@ -316,6 +317,7 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
+
         # no manifest file
         with self.project.open_job(statepoints[0]) as job:
             os.remove(job.FN_MANIFEST)
@@ -323,6 +325,10 @@ class ProjectTest(BaseProjectTest):
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
+
+        # Need to clear internal cache to detect error.
+        self.project._sp_cache.clear()
+
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
@@ -334,6 +340,7 @@ class ProjectTest(BaseProjectTest):
                     skip_errors=True)):
                 pass
             with self.assertRaises(RuntimeWarning):
+                self.project._sp_cache.clear()
                 self.project.repair()
             self.project.write_statepoints(statepoints)
             self.project.repair()
@@ -377,6 +384,9 @@ class ProjectTest(BaseProjectTest):
         index2 = dict()
         for doc in crawler.crawl():
             index2[doc['_id']] = doc
+        for _id, _id2 in zip(index, index2):
+            self.assertEqual(_id, _id2)
+            self.assertEqual(index[_id], index2[_id])
         self.assertEqual(index, index2)
         for job in self.project.find_jobs():
             with open(job.fn('test.txt'), 'w') as file:
