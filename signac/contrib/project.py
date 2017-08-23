@@ -467,8 +467,8 @@ class Project(object):
         "Attempt to read the statepoint from the workspace."
         fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'r') as manifest:
-                return json.loads(manifest.read())
+            with open(fn_manifest, 'rb') as manifest:
+                return json.loads(manifest.read().decode())
         except (IOError, ValueError) as error:
             if os.path.isfile(fn_manifest):
                 msg = "Error while trying to access manifest file: "\
@@ -707,7 +707,12 @@ class Project(object):
             job = self.open_job(id=_id)
             doc = dict(_id=job.get_id(), statepoint=job.statepoint())
             if include_job_document:
-                doc.update(job.document)
+                try:
+                    with open(job.fn(job.FN_DOCUMENT), 'rb') as file:
+                        doc.update(json.loads(file.read().decode()))
+                except OSError as error:
+                    if error.errno != errno.ENOENT:
+                        raise
             yield doc
 
     def index(self, formats=None, depth=0,
