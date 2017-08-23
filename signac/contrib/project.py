@@ -113,6 +113,9 @@ class Project(object):
         self._config = config
         self._sp_cache = dict()
         self.get_id()
+        self._wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
+        if not os.path.isabs(self._wd):
+            self._wd = os.path.join(self.root_directory(), self._wd)
 
     def __str__(self):
         "Returns the project's id."
@@ -151,11 +154,7 @@ class Project(object):
         .. note::
             The configuration will respect environment variables,
             such as $HOME."""
-        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
-        if os.path.isabs(wd):
-            return wd
-        else:
-            return os.path.join(self.root_directory(), wd)
+        return self._wd
 
     def get_id(self):
         """Get the project identifier.
@@ -227,10 +226,9 @@ class Project(object):
         return job
 
     def _job_dirs(self):
-        wd = self.workspace()
         m = re.compile('[a-f0-9]{32}')
         try:
-            for d in os.listdir(wd):
+            for d in os.listdir(self._wd):
                 if m.match(d):
                     yield d
         except OSError as error:
@@ -461,11 +459,11 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job.get_id()] = job.statepoint()
+        self._sp_cache[job._id] = job._statepoint
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
-        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as manifest:
                 return json.loads(manifest.read().decode())
