@@ -118,12 +118,18 @@ class AttrDict(object):
             self._update(other)
         self._modified()
 
+    def keys(self):
+        return self._data.keys()
+
     def clear(self):
         self._data.clear()
         self._modified()
 
     def __call__(self):
         return convert_to_dict(self._data)
+
+    def __eq__(self, other):
+        return self._data.__eq__(other._data)
 
     @contextmanager
     def _no_callback(self):

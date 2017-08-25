@@ -6,6 +6,7 @@ import errno
 import logging
 import shutil
 import copy
+import uuid
 
 from ..common import six
 from ..core.json import json
@@ -36,11 +37,12 @@ class Job(object):
 
     def __init__(self, project, statepoint):
         self._project = project
-        self._statepoint = json.loads(json.dumps(statepoint))
         self._sp = None
+        self._statepoint = json.loads(json.dumps(statepoint))
         self._id = calc_id(self.statepoint())
+        self._wd = os.path.join(project.workspace(), self._id)
+        self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
-        self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = list()
 
     def get_id(self):
@@ -172,6 +174,21 @@ class Job(object):
         #self.statepoint = new_sp
         self._reset_sp(new_sp)
 
+    def _read_document(self):
+        with open(self._fn_doc, 'rb') as file:
+            return json.loads(file.read().decode())
+
+    def _reset_document(self, new_doc):
+        dirname, filename = os.path.split(self._fn_doc)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
+        with open(fn_tmp, 'wb') as tmpfile:
+            tmpfile.write(json.dumps(new_doc).encode())
+        if six.PY2:
+            os.rename(fn_tmp, self._fn_doc)
+        else:
+            os.replace(fn_tmp, self._fn_doc)
+
     @property
     def document(self):
         """The document associated with this job.
@@ -180,9 +197,10 @@ class Job(object):
         :rtype: :class:`~.JSonDict`"""
         if self._document is None:
             self._create_directory()
-            fn = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = JSonDict(
-                fn, synchronized=True, write_concern=True)
+            try:
+                self._document = AttrDict(self._read_document(), self._reset_document)
+            except FileNotFoundError as e:
+                self._document = AttrDict(dict(), self._reset_document)
         return self._document
 
     def _create_directory(self, overwrite=False):
@@ -261,7 +279,11 @@ class Job(object):
                 raise
         else:
             if self._document is not None:
-                self._document.data.clear()
+                try:
+                    self._document.clear()
+                except IOError as error:
+                    if not error.errno == errno.ENOENT:
+                        raise error
                 self._document = None
 
     def move(self, project):
