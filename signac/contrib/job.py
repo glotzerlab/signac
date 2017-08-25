@@ -203,6 +203,18 @@ class Job(object):
                 self._document = AttrDict(dict(), self._reset_document)
         return self._document
 
+    @document.setter
+    def document(self, new_doc):
+        self._reset_document(new_doc)
+
+    @property
+    def doc(self):
+        return self.document
+
+    @doc.setter
+    def doc(self, new_doc):
+        sef._reset_document(new_doc)
+
     def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
