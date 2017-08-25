@@ -1,3 +1,7 @@
+0.8.6:
+
+	- Fix Collection append truncation issue (see issue #66).
+
 0.8.5:
 
 	- Fix compatibility issue that broke the `signac find --view` and all `--pretty`
