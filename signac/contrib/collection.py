@@ -806,7 +806,7 @@ class Collection(object):
                 logger.debug("Flushed collection.")
             else:
                 logger.debug("Flush collection to file '{}'.".format(self._file))
-                self._file.truncate()
+                self._file.truncate(0)
                 self.dump(self._file)
                 self._file.flush()
             self._requires_flush = False
