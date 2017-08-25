@@ -396,8 +396,28 @@ class FileCollectionTest(CollectionTest):
             for doc in self.c:
                 self.assertTrue(doc['_id'] in c)
 
+
 class FileCollectionTestAppendPlus(FileCollectionTest):
     mode='a+'
+
+    def test_file_size(self):
+        docs = [dict(_id=str(i)) for i in range(10)]
+
+        with open(self._fn_collection) as f:
+            self.assertEqual(len(list(f)), 0)
+        with Collection.open(self._fn_collection) as c:
+            c.update(docs)
+        with open(self._fn_collection) as f:
+            self.assertEqual(len(list(f)), len(docs))
+        with Collection.open(self._fn_collection) as c:
+            self.assertEqual(len(c), len(docs))
+            for doc in docs:
+                c.replace_one({'_id': doc['_id']}, doc)
+        with Collection.open(self._fn_collection) as c:
+            self.assertEqual(len(c), len(docs))
+        with open(self._fn_collection) as f:
+            self.assertEqual(len(list(f)), len(docs))
+
 
 
 if __name__ == '__main__':
