@@ -113,6 +113,18 @@ class AttrDict(object):
         self._modified()
         return ret
 
+    def update(self, other):
+        with self._no_callback():
+            self._update(other)
+        self._modified()
+
+    def clear(self):
+        self._data.clear()
+        self._modified()
+
+    def __call__(self):
+        return convert_to_dict(self._data)
+
     @contextmanager
     def _no_callback(self):
         "Manipulate data without triggering a callback."

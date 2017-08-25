@@ -37,11 +37,11 @@ class Job(object):
     def __init__(self, project, statepoint):
         self._project = project
         self._statepoint = json.loads(json.dumps(statepoint))
-        self._id = calc_id(self._statepoint)
+        self._sp = None
+        self._id = calc_id(self.statepoint())
         self._document = None
         self._wd = os.path.join(project.workspace(), str(self))
         self._cwd = list()
-        self._sp = None
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -76,13 +76,6 @@ class Job(object):
     def ws(self):
         "The job's workspace directory."
         return self.workspace()
-
-    def statepoint(self):
-        """The statepoint associated with this job.
-
-        :return: The statepoint mapping.
-        :rtype: dict"""
-        return copy.deepcopy(self._statepoint)
 
     def reset_statepoint(self, new_statepoint):
         """Reset the state point of this job.
@@ -123,7 +116,7 @@ class Job(object):
             else:
                 raise
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
-        dst._sp = self._sp
+        dst._statepoint = self._statepoint
         self.__dict__.update(dst.__dict__)
 
     def _reset_sp(self, new_sp):
@@ -160,14 +153,23 @@ class Job(object):
         self.reset_statepoint(statepoint)
 
     @property
-    def sp(self):
+    def statepoint(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = AttrDict(self.statepoint(), self._reset_sp)
+            self._sp = AttrDict(self._statepoint, self._reset_sp)
         return self._sp
+
+    @statepoint.setter
+    def statepoint(self, new_sp):
+        self._reset_sp(new_sp)
+
+    @property
+    def sp(self):
+        return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
+        #self.statepoint = new_sp
         self._reset_sp(new_sp)
 
     @property
