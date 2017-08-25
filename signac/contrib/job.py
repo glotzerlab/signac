@@ -5,12 +5,10 @@ import os
 import errno
 import logging
 import shutil
-import copy
 import uuid
 
 from ..common import six
 from ..core.json import json
-from ..core.jsondict import JSonDict
 from ..core.attr_dict import AttrDict
 from ..core.attr_dict import convert_to_dict
 from .hashing import calc_id
@@ -171,7 +169,6 @@ class Job(object):
 
     @sp.setter
     def sp(self, new_sp):
-        #self.statepoint = new_sp
         self._reset_sp(new_sp)
 
     def _read_document(self):
@@ -213,7 +210,7 @@ class Job(object):
 
     @doc.setter
     def doc(self, new_doc):
-        sef._reset_document(new_doc)
+        self._reset_document(new_doc)
 
     def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."
