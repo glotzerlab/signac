@@ -8,18 +8,12 @@ from contextlib import contextmanager
 from ..common import six
 
 if six.PY2:
-    from UserDict import UserDict as UD
     from collections import Mapping
 else:
-    from collections import UserDict
     from collections.abc import Mapping
 
 
 logger = logging.getLogger(__name__)
-
-if six.PY2:
-    class UserDict(UD, object):  # noqa
-        pass
 
 
 def _convert_to_dict(m):
@@ -38,19 +32,14 @@ def _convert_to_dict(m):
     return ret
 
 
-def _convert_nested(m, dict_type, **kwargs):
+def _dfs_conversion(root, dict_type, **kwargs):
     "Convert (nested) values of AttrDict to dict."
-    if m is None:
-        return dict()
-    ret = dict_type(None, **kwargs)
-    if isinstance(m, Mapping):
-        for k in m:
-            ret[k] = _convert_nested(m[k], dict_type, load=ret.load, save=ret.save)
-    elif isinstance(m, list):
-        return [_convert_nested(i, dict_type, load=ret.load, save=ret.save) for i in m]
-    else:
-        return m
-    return ret
+    if type(root) != dict_type and isinstance(root, Mapping):
+        ret = dict_type(None, **kwargs)
+        for k in root:
+            ret[k] = _dfs_conversion(root[k], dict_type, **kwargs)
+        return ret
+    return root
 
 
 class _SyncedDict(object):
@@ -58,7 +47,10 @@ class _SyncedDict(object):
     def __init__(self, initialdata=None, load=None, save=None):
         self._load, self._save = None, None
         super(_SyncedDict, self).__init__()
-        self._data = _convert_nested(initialdata, type(self), load=self.load, save=self.save)
+        if initialdata is None:
+            self._data = dict()
+        else:
+            self._data = _dfs_conversion(initialdata, type(self), load=self.load, save=self.save)
         self._load, self._save = load, save
 
     @contextmanager
@@ -79,9 +71,7 @@ class _SyncedDict(object):
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():
-            if isinstance(value, Mapping):
-                value = _convert_nested(value, type(self), load=self.load, save=self.save)
-            self._data[key] = value
+            self._data[key] = _dfs_conversion(value, type(self), load=self.load, save=self.save)
         self.save()
         return value
 
