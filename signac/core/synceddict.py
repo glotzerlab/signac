@@ -38,16 +38,16 @@ def _convert_to_dict(m):
     return ret
 
 
-def _convert_to_synced_dict(m, dict_type, **kwargs):
+def _convert_nested(m, dict_type, **kwargs):
     "Convert (nested) values of AttrDict to dict."
     if m is None:
         return dict()
     ret = dict_type(None, **kwargs)
     if isinstance(m, Mapping):
         for k in m:
-            ret[k] = _convert_to_synced_dict(m[k], dict_type, load=ret.load, save=ret.save)
+            ret[k] = _convert_nested(m[k], dict_type, load=ret.load, save=ret.save)
     elif isinstance(m, list):
-        return [_convert_to_synced_dict(i, dict_type, load=ret.load, save=ret.save) for i in m]
+        return [_convert_nested(i, dict_type, load=ret.load, save=ret.save) for i in m]
     else:
         return m
     return ret
@@ -58,10 +58,7 @@ class _SyncedDict(object):
     def __init__(self, initialdata=None, load=None, save=None):
         self._load, self._save = None, None
         super(_SyncedDict, self).__init__()
-        if initialdata is None:
-            self._data = _convert_to_synced_dict(None, type(self), load=self.load, save=self.save)
-        else:
-            self._data = _convert_to_synced_dict(initialdata, type(self), load=self.load, save=self.save)
+        self._data = _convert_nested(initialdata, type(self), load=self.load, save=self.save)
         self._load, self._save = load, save
 
     @contextmanager
@@ -83,7 +80,7 @@ class _SyncedDict(object):
         self.load()
         with self._suspend_sync():
             if isinstance(value, Mapping):
-                value = _convert_to_synced_dict(value, type(self), load=self.load, save=self.save)
+                value = _convert_nested(value, type(self), load=self.load, save=self.save)
             self._data[key] = value
         self.save()
         return value
