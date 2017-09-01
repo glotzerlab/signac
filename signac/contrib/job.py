@@ -9,8 +9,7 @@ import uuid
 
 from ..common import six
 from ..core.json import json
-from ..core.attr_dict import AttrDict
-from ..core.attr_dict import convert_to_dict
+from ..core.attr_dict import SyncedAttrDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
@@ -119,8 +118,10 @@ class Job(object):
         dst._statepoint = self._statepoint
         self.__dict__.update(dst.__dict__)
 
-    def _reset_sp(self, new_sp):
-        self.reset_statepoint(convert_to_dict(new_sp))
+    def _reset_sp(self, new_sp=None):
+        if new_sp is None:
+            new_sp = self.statepoint()
+        self.reset_statepoint(new_sp)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the statepoint of this job.
@@ -156,7 +157,7 @@ class Job(object):
     def statepoint(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = AttrDict(self._statepoint, self._reset_sp)
+            self._sp = SyncedAttrDict(self._statepoint, load=None, save=self._reset_sp)
         return self._sp
 
     @statepoint.setter
@@ -172,10 +173,15 @@ class Job(object):
         self._reset_sp(new_sp)
 
     def _read_document(self):
-        with open(self._fn_doc, 'rb') as file:
-            return json.loads(file.read().decode())
+        try:
+            with open(self._fn_doc, 'rb') as file:
+                return json.loads(file.read().decode())
+        except FileNotFoundError as e:
+            return dict()
 
-    def _reset_document(self, new_doc):
+    def _reset_document(self, new_doc=None):
+        if new_doc is None:
+            new_doc = self.document()
         dirname, filename = os.path.split(self._fn_doc)
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
@@ -194,10 +200,8 @@ class Job(object):
         :rtype: :class:`~.JSonDict`"""
         if self._document is None:
             self._create_directory()
-            try:
-                self._document = AttrDict(self._read_document(), self._reset_document)
-            except FileNotFoundError as e:
-                self._document = AttrDict(dict(), self._reset_document)
+            self._document = SyncedAttrDict(
+                self._read_document(), load=self._read_document, save=self._reset_document)
         return self._document
 
     @document.setter

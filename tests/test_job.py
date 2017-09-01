@@ -9,6 +9,7 @@ import warnings
 import uuid
 import copy
 import random
+import json
 
 import signac.contrib
 import signac.common.config
@@ -146,6 +147,7 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_read_only(self):
         sp = nested_dict()
         job = self.open_job(sp)
+        self.assertEqual(job.statepoint(), json.loads(json.dumps(sp)))
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertEqual(getattr(job.sp, x) , sp[x])
             self.assertEqual(job.sp[x] , sp[x])
