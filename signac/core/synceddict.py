@@ -16,32 +16,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def _convert_to_dict(m):
-    "Convert (nested) values of AttrDict to dict."
-    ret = dict()
-    if isinstance(m, _SyncedDict):
-        for k in m:
-            ret[k] = _convert_to_dict(m[k])
-    elif isinstance(m, Mapping):
-        for k, v in m.items():
-            ret[k] = _convert_to_dict(v)
-    elif isinstance(m, list):
-        return [_convert_to_dict(x) for x in m]
-    else:
-        return m
-    return ret
-
-
-def _dfs_conversion(root, dict_type, **kwargs):
-    "Convert (nested) values of AttrDict to dict."
-    if type(root) != dict_type and isinstance(root, Mapping):
-        ret = dict_type(None, **kwargs)
-        for k in root:
-            ret[k] = _dfs_conversion(root[k], dict_type, **kwargs)
-        return ret
-    return root
-
-
 class _SyncedDict(object):
 
     def __init__(self, initialdata=None, load=None, save=None):
@@ -50,8 +24,36 @@ class _SyncedDict(object):
         if initialdata is None:
             self._data = dict()
         else:
-            self._data = _dfs_conversion(initialdata, type(self), load=self.load, save=self.save)
+            self._data = {
+                k: self._dfs_convert(v, load=self.load, save=self.save)
+                for k, v in initialdata.items()
+            }
         self._load, self._save = load, save
+
+    @classmethod
+    def _dfs_convert(cls, root, **kwargs):
+        if type(root) == cls:
+            for k in root:
+                root[k] = cls._dfs_convert(root[k], **kwargs)
+        elif isinstance(root, Mapping):
+            ret = cls(None, **kwargs)
+            for k in root:
+                ret[k] = cls._dfs_convert(root[k], **kwargs)
+            return ret
+        return root
+
+    @classmethod
+    def _convert_to_dict(cls, root):
+        "Convert (nested) values to dict."
+        if type(root) == cls:
+            ret = dict()
+            for k in root:
+                ret[k] = cls._convert_to_dict(root[k])
+            return ret
+        elif type(root) == dict:
+            for k in root:
+                root[k] = cls._convert_to_dict(root[k])
+        return root
 
     @contextmanager
     def _suspend_sync(self):
@@ -71,7 +73,7 @@ class _SyncedDict(object):
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():
-            self._data[key] = _dfs_conversion(value, type(self), load=self.load, save=self.save)
+            self._data[key] = self._dfs_convert(value, load=self.load, save=self.save)
         self.save()
         return value
 
@@ -133,22 +135,6 @@ class _SyncedDict(object):
     def __repr__(self):
         self.load()
         return super(_SyncedDict, self).__repr__()
-
-    @classmethod
-    def _convert_to_dict(cls, m):
-        "Convert (nested) values to dict."
-        ret = dict()
-        if isinstance(m, cls):
-            for k in m:
-                ret[k] = _convert_to_dict(m[k])
-        elif isinstance(m, Mapping):
-            for k, v in m.items():
-                ret[k] = _convert_to_dict(v)
-        elif isinstance(m, list):
-            return [_convert_to_dict(x) for x in m]
-        else:
-            return m
-        return ret
 
     def __call__(self):
         return self._convert_to_dict(self)
