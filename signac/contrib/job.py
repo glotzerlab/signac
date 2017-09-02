@@ -170,7 +170,7 @@ class Job(object):
 
     @sp.setter
     def sp(self, new_sp):
-        self._reset_sp(new_sp)
+        self.statepoint = new_sp
 
     def _read_document(self):
         try:
@@ -214,7 +214,7 @@ class Job(object):
 
     @doc.setter
     def doc(self, new_doc):
-        self._reset_document(new_doc)
+        self.document = new_doc
 
     def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."

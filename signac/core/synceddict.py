@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 class _SyncedDict(object):
 
     def __init__(self, initialdata=None, load=None, save=None):
-        self._load, self._save = None, None
+        self._suspend_sync_ = 1
+        self._load, self._save = load, save
         super(_SyncedDict, self).__init__()
         if initialdata is None:
             self._data = dict()
@@ -28,7 +29,7 @@ class _SyncedDict(object):
                 k: self._dfs_convert(v, load=self.load, save=self.save)
                 for k, v in initialdata.items()
             }
-        self._load, self._save = load, save
+        self._suspend_sync_ = 0
 
     @classmethod
     def _dfs_convert(cls, root, **kwargs):
@@ -47,8 +48,10 @@ class _SyncedDict(object):
         "Convert (nested) values to dict."
         if type(root) == cls:
             ret = dict()
-            for k in root:
-                ret[k] = cls._convert_to_dict(root[k])
+            root.load()
+            with root._suspend_sync():
+                for k in root:
+                    ret[k] = cls._convert_to_dict(root[k])
             return ret
         elif type(root) == dict:
             for k in root:
@@ -57,17 +60,16 @@ class _SyncedDict(object):
 
     @contextmanager
     def _suspend_sync(self):
-        load_save = self._load, self._save
-        self._load, self._save = None, None
+        self._suspend_sync_ += 1
         yield
-        self._load, self._save = load_save
+        self._suspend_sync_ -= 1
 
     def load(self):
-        if self._load is not None:
+        if self._suspend_sync_ <= 0 and self._load is not None:
             self._load()
 
     def save(self):
-        if self._save is not None:
+        if self._suspend_sync_ <= 0 and self._save is not None:
             self._save()
 
     def __setitem__(self, key, value):
@@ -103,8 +105,9 @@ class _SyncedDict(object):
 
     def update(self, mapping):
         self.load()
-        for key in mapping:
-            self._data[key] = mapping[key]
+        with self._suspend_sync():
+            for key in mapping.keys():
+                self[key] = mapping[key]
         self.save()
 
     def __len__(self):
@@ -117,27 +120,36 @@ class _SyncedDict(object):
 
     def __iter__(self):
         self.load()
-        for d in self._data:
-            yield d
+        for k in self._data:
+            yield k
 
     def keys(self):
         self.load()
         return self._data.keys()
 
+    def values(self):
+        self.load()
+        return self._convert_to_dict(self._data).values()
+
     def items(self):
         self.load()
-        return self._data.items()
+        return self._convert_to_dict(self._data).items()
 
     def __str__(self):
+        return str(self())
         self.load()
-        return super(_SyncedDict, self).__str__()
+        return self._data.__str__()
 
     def __repr__(self):
         self.load()
-        return super(_SyncedDict, self).__repr__()
+        return '{}({})'.format(type(self).__name__, repr(self()))
 
     def __call__(self):
         return self._convert_to_dict(self)
 
     def __eq__(self, other):
-        return self._data == other._data
+        self.load()
+        if type(other) == type(self):
+            return self._data == other._data
+        else:
+            return self._data == other

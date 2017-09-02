@@ -4,43 +4,27 @@
 from .synceddict import _SyncedDict
 
 
-class _AttrDict(object):
-    """A mapping where (nested) values can be accessed as attributes.
+class SyncedAttrDict(_SyncedDict):
+    """A synced dictionary where (nested) values can be accessed as attributes.
 
     For example:
 
     .. code-block:: python
 
         nested_dict = dict(a=dict(b=0))
-        ad = _AttrDict(nested_dict)
+        ad = SyncedAttrDict(nested_dict)
         assert ad.a.b == 0
     """
-    def __init__(self, initialdata=None):
-        super(_AttrDict, self).__init__()
-        if initialdata is None:
-            initialdata = dict()
-        else:
-            initialdata = dict(initialdata)
-        self._data = initialdata
-
-    def __getattr__(self, key):
+    def __getattr__(self, name):
         try:
-            return super(_AttrDict, self).__getattribute__(key)
+            return super(SyncedAttrDict, self).__getattribute__(name)
         except AttributeError:
-            return self._data[key]
+            if name.startswith('__'):
+                raise
+            return self.__getitem__(name)
 
     def __setattr__(self, key, value):
-        if key.startswith('_'):
-            super(_AttrDict, self).__setattr__(key, value)
+        if key.startswith('__') or key in ('_data', '_suspend_sync_', '_load', '_save'):
+            super(SyncedAttrDict, self).__setattr__(key, value)
         else:
-            try:
-                super(_AttrDict, self).__getattribute__('_data')
-            except AttributeError:
-                super(_AttrDict, self).__setattr__(key, value)
-            else:
-                self.__setitem__(key, value)
-        return value
-
-
-class SyncedAttrDict(_SyncedDict, _AttrDict):
-    pass
+            self.__setitem__(key, value)
