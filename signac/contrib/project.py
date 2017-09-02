@@ -391,7 +391,7 @@ class Project(object):
         if skip_errors:
             jobs = _skip_errors(jobs, logger.critical)
         for job in jobs:
-            yield job.statepoint()
+            yield dict(job._statepoint)
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -459,7 +459,7 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job._id] = job._statepoint
+        self._sp_cache[job._id] = dict(job._statepoint)
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
@@ -597,7 +597,7 @@ class Project(object):
                 raise KeyError(
                     "The job document already contains a field 'statepoint'!")
             doc['_id'] = str(job)
-            doc['statepoint'] = job.statepoint()
+            doc['statepoint'] = dict(job._statepoint)
             yield doc
 
     def reset_statepoint(self, job, new_statepoint):
@@ -659,7 +659,7 @@ class Project(object):
             In case that a job with the same id is already
             initialized within this project.
         """
-        dst = self.open_job(job.statepoint())
+        dst = self.open_job(job._statepoint)
         try:
             shutil.copytree(job.workspace(), dst.workspace())
         except OSError as error:

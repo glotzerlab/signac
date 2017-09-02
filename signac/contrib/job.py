@@ -5,13 +5,11 @@ import os
 import errno
 import logging
 import shutil
-import copy
+import uuid
 
 from ..common import six
 from ..core.json import json
-from ..core.jsondict import JSonDict
-from ..core.attr_dict import AttrDict
-from ..core.attr_dict import convert_to_dict
+from ..core.attr_dict import SyncedAttrDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
@@ -36,12 +34,13 @@ class Job(object):
 
     def __init__(self, project, statepoint):
         self._project = project
-        self._statepoint = json.loads(json.dumps(statepoint))
-        self._id = calc_id(self._statepoint)
-        self._document = None
-        self._wd = os.path.join(project.workspace(), str(self))
-        self._cwd = list()
         self._sp = None
+        self._statepoint = json.loads(json.dumps(statepoint))
+        self._id = calc_id(self.statepoint())
+        self._wd = os.path.join(project.workspace(), self._id)
+        self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
+        self._document = None
+        self._cwd = list()
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -76,13 +75,6 @@ class Job(object):
     def ws(self):
         "The job's workspace directory."
         return self.workspace()
-
-    def statepoint(self):
-        """The statepoint associated with this job.
-
-        :return: The statepoint mapping.
-        :rtype: dict"""
-        return copy.deepcopy(self._statepoint)
 
     def reset_statepoint(self, new_statepoint):
         """Reset the state point of this job.
@@ -123,11 +115,13 @@ class Job(object):
             else:
                 raise
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
-        dst._sp = self._sp
+        dst._statepoint = self._statepoint
         self.__dict__.update(dst.__dict__)
 
-    def _reset_sp(self, new_sp):
-        self.reset_statepoint(convert_to_dict(new_sp))
+    def _reset_sp(self, new_sp=None):
+        if new_sp is None:
+            new_sp = self.statepoint()
+        self.reset_statepoint(new_sp)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the statepoint of this job.
@@ -160,15 +154,43 @@ class Job(object):
         self.reset_statepoint(statepoint)
 
     @property
-    def sp(self):
+    def statepoint(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = AttrDict(self.statepoint(), self._reset_sp)
+            self._sp = SyncedAttrDict(self._statepoint, load=None, save=self._reset_sp)
         return self._sp
+
+    @statepoint.setter
+    def statepoint(self, new_sp):
+        self._reset_sp(new_sp)
+
+    @property
+    def sp(self):
+        return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        self._reset_sp(new_sp)
+        self.statepoint = new_sp
+
+    def _read_document(self):
+        try:
+            with open(self._fn_doc, 'rb') as file:
+                return json.loads(file.read().decode())
+        except FileNotFoundError as e:
+            return dict()
+
+    def _reset_document(self, new_doc=None):
+        if new_doc is None:
+            new_doc = self.document()
+        dirname, filename = os.path.split(self._fn_doc)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
+        with open(fn_tmp, 'wb') as tmpfile:
+            tmpfile.write(json.dumps(new_doc).encode())
+        if six.PY2:
+            os.rename(fn_tmp, self._fn_doc)
+        else:
+            os.replace(fn_tmp, self._fn_doc)
 
     @property
     def document(self):
@@ -178,10 +200,21 @@ class Job(object):
         :rtype: :class:`~.JSonDict`"""
         if self._document is None:
             self._create_directory()
-            fn = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = JSonDict(
-                fn, synchronized=True, write_concern=True)
+            self._document = SyncedAttrDict(
+                self._read_document(), load=self._read_document, save=self._reset_document)
         return self._document
+
+    @document.setter
+    def document(self, new_doc):
+        self._reset_document(new_doc)
+
+    @property
+    def doc(self):
+        return self.document
+
+    @doc.setter
+    def doc(self, new_doc):
+        self.document = new_doc
 
     def _create_directory(self, overwrite=False):
         "Create the workspace directory and write the manifest file."
@@ -259,7 +292,11 @@ class Job(object):
                 raise
         else:
             if self._document is not None:
-                self._document.data.clear()
+                try:
+                    self._document.clear()
+                except IOError as error:
+                    if not error.errno == errno.ENOENT:
+                        raise error
                 self._document = None
 
     def move(self, project):
