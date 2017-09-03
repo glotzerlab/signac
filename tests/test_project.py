@@ -86,7 +86,7 @@ class ProjectTest(BaseProjectTest):
             1, len(list(self.project.find_statepoints({'a': 0}))))
 
     def test_find_statepoint_sequences(self):
-        statepoints = [{'a': (i, i+1)} for i in range(5)]
+        statepoints = [{'a': (i, i + 1)} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
         self.assertEqual(
@@ -151,7 +151,8 @@ class ProjectTest(BaseProjectTest):
         q = {'$or': [{'$and': [{'a': 0}, {'a': 1}]}]}
         self.assertEqual(len(self.project.find_jobs(q)), 0)
         self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'b': {'c': 0}}]})), 1)
-        self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'b': {'c': 0}}]})), len(self.project))
+        self.assertEqual(len(self.project.find_jobs(
+            {'$or': [{}, {'b': {'c': 0}}]})), len(self.project))
         q = {'$and': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
         self.assertEqual(len(self.project.find_jobs(q)), 0)
         q = {'$or': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
@@ -171,23 +172,22 @@ class ProjectTest(BaseProjectTest):
             self.project.open_job(sp).init()
         self.assertEqual(len(statepoints), self.project.num_jobs())
         self.assertEqual(len(statepoints), len(self.project))
-        docs = self.project.find_jobs()
         self.assertEqual(len(statepoints), len(self.project.find_jobs()))
 
     def test_len_find_jobs(self):
-        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        statepoints = [{'a': i, 'b': i < 3} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
         self.assertEqual(len(self.project), len(self.project.find_jobs()))
         self.assertEqual(3, len(self.project.find_jobs({'b': True})))
 
     def test_iteration(self):
-        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        statepoints = [{'a': i, 'b': i < 3} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
         for i, job in enumerate(self.project):
             pass
-        self.assertEqual(i, len(self.project)-1)
+        self.assertEqual(i, len(self.project) - 1)
 
     def test_open_job_by_id(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -213,14 +213,14 @@ class ProjectTest(BaseProjectTest):
 
     def test_open_job_by_abbreviated_id(self):
         statepoints = [{'a': i} for i in range(5)]
-        jobs = [self.project.open_job(sp).init() for sp in statepoints]
+        [self.project.open_job(sp).init() for sp in statepoints]
         aid_len = self.project.min_len_unique_id()
         for job in self.project.find_jobs():
             aid = job.get_id()[:aid_len]
             self.assertEqual(self.project.open_job(id=aid), job)
         with self.assertRaises(LookupError):
             for job in self.project.find_jobs():
-                self.project.open_job(id=job.get_id()[:aid_len-1])
+                self.project.open_job(id=job.get_id()[:aid_len - 1])
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
 

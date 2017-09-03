@@ -16,12 +16,12 @@ N = 100
 ARITHMETIC_DOCS = [{'a': i} for i in range(N)]
 
 ARITHMETIC_EXPRESSIONS = [
-   ({'$eq': n}, 1),
-   ({'$ne': n}, N-1),
-   ({'$lt': n}, n),
-   ({'$gt': n}, N-n-1),
-   ({'$lte': n}, n+1),
-   ({'$gte': n}, N-n),
+    ({'$eq': n}, 1),
+    ({'$ne': n}, N - 1),
+    ({'$lt': n}, n),
+    ({'$gt': n}, N - n - 1),
+    ({'$lte': n}, n + 1),
+    ({'$gte': n}, N - n),
 ]
 
 
@@ -30,7 +30,7 @@ ARRAY_EXPRESSIONS = [
     ({'$in': [0, 1, 2]}, 3),
     ({'$in': ['a', 'b', 'c']}, 0),
     ({'$nin': []}, N),
-    ({'$nin': [0, 1, 2]}, N-3),
+    ({'$nin': [0, 1, 2]}, N - 3),
     ({'$nin': ['a', 'b', 'c']}, N),
 ]
 
@@ -39,14 +39,14 @@ LOGICAL_EXPRESSIONS = [
     ({'a': {'$and': []}}, KeyError),
     ({'a': {'$and': [{'b': 0}]}}, KeyError),
     ({'$and': [{'a': n}]}, 1),
-    ({'$and': [{'$not': {'a': n}}]}, N-1),
-    ({'$and': [{'a': n}, {'a': n+1}]}, 0),
+    ({'$and': [{'$not': {'a': n}}]}, N - 1),
+    ({'$and': [{'a': n}, {'a': n + 1}]}, 0),
     ({'$and': [{'a': n}, {'$not': {'a': n}}]}, 0),
     ({'$or': []}, ValueError),
     ({'a': {'$or': []}}, KeyError),
     ({'a': {'$or': [{'b': 0}]}}, KeyError),
-    ({'$or': [{'$not': {'a': n}}]}, N-1),
-    ({'$or': [{'a': n}, {'a': n+1}]}, 2),
+    ({'$or': [{'$not': {'a': n}}]}, N - 1),
+    ({'$or': [{'a': n}, {'a': n + 1}]}, 2),
     ({'$or': [{'a': n}, {'$not': {'a': n}}]}, N),
 ]
 
@@ -121,7 +121,7 @@ class CollectionTest(unittest.TestCase):
                 self.assertEqual(self.c[_id]['a'], value)
         index = self.c.index('b', build=True)
         del self.c[docs[0]['_id']]
-        self.assertEqual(len(self.c), len(docs)-1)
+        self.assertEqual(len(self.c), len(docs) - 1)
         index = self.c.index('a', build=True)
         self.assertEqual(len(index), len(self.c))
         for value, _ids in index.items():
@@ -214,7 +214,7 @@ class CollectionTest(unittest.TestCase):
         t = [1, 1.0, '1', [1], tuple([1])]
         for i, t in enumerate(t):
             self.c.clear()
-            doc = self.c[str(i)] = dict( a=t)
+            doc = self.c[str(i)] = dict(a=t)
             self.assertEqual(list(self.c.find(doc)), [self.c[str(i)]])
 
     def test_find_one(self):
@@ -269,7 +269,7 @@ class CollectionTest(unittest.TestCase):
         self.c.update(docs)
         self.assertEqual(len(self.c), len(docs))
         self.c.delete_many({'a': 0})
-        self.assertEqual(len(self.c), len(docs)-1)
+        self.assertEqual(len(self.c), len(docs) - 1)
         self.c.delete_many({})
         self.assertEqual(len(self.c), 0)
 
@@ -279,9 +279,9 @@ class CollectionTest(unittest.TestCase):
         self.c.update(docs)
         self.assertEqual(len(self.c), len(docs))
         self.c.delete_one({'a': 0})
-        self.assertEqual(len(self.c), len(docs)-1)
+        self.assertEqual(len(self.c), len(docs) - 1)
         self.c.delete_one({})
-        self.assertEqual(len(self.c), len(docs)-2)
+        self.assertEqual(len(self.c), len(docs) - 2)
 
     def test_find_arithmetic_operators(self):
         self.assertEqual(len(self.c), 0)
@@ -343,7 +343,7 @@ class CollectionTest(unittest.TestCase):
                     self.c.find(expr)
             else:
                 self.assertEqual(len(self.c.find(expr)), expectation)
-                self.assertEqual(len(self.c.find({'$not': expr})), N-expectation)
+                self.assertEqual(len(self.c.find({'$not': expr})), N - expectation)
                 self.assertEqual(len(self.c.find({'$not': {'$not': expr}})), expectation)
 
 
@@ -383,7 +383,7 @@ class FileCollectionTestReadOnly(unittest.TestCase):
 
 
 class FileCollectionTest(CollectionTest):
-    mode='w'
+    mode = 'w'
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
@@ -405,7 +405,7 @@ class FileCollectionTest(CollectionTest):
 
 
 class FileCollectionTestAppendPlus(FileCollectionTest):
-    mode='a+'
+    mode = 'a+'
 
     def test_file_size(self):
         docs = [dict(_id=str(i)) for i in range(10)]
@@ -424,7 +424,6 @@ class FileCollectionTestAppendPlus(FileCollectionTest):
             self.assertEqual(len(c), len(docs))
         with open(self._fn_collection) as f:
             self.assertEqual(len(list(f)), len(docs))
-
 
 
 if __name__ == '__main__':

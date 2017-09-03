@@ -95,7 +95,6 @@ class TestCollection(object):
                 return a
 
 
-
 class TestFS(object):
     name = 'inmemorytestgrid'
     files = dict()
@@ -386,7 +385,7 @@ class IndexingBaseTest(unittest.TestCase):
             os.remove(os.path.join(self._tmp_dir.name, fn))
             N = len(index)
             index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
-            self.assertEqual(len(index), N-1)
+            self.assertEqual(len(index), N - 1)
             collection.called = False
             if index:
                 signac.export(index, collection, update=True)
@@ -395,7 +394,6 @@ class IndexingBaseTest(unittest.TestCase):
             else:
                 with self.assertRaises(errors.ExportError):
                     signac.export(index, collection, update=True)
-
 
     def test_export_to_mirror(self):
         self.setup_project()

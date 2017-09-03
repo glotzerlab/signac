@@ -46,6 +46,8 @@ def builtins_dict():
     for b in BUILTINS:
         d.update(b[0])
     return d
+
+
 BUILTINS_HASH = '7a80b58db53bbc544fc27fcaaba2ce44'
 
 
@@ -53,6 +55,8 @@ def nested_dict():
     d = dict(builtins_dict())
     d['g'] = builtins_dict()
     return d
+
+
 NESTED_HASH = 'bd6f5828f4410b665bffcec46abeb8f3'
 
 
@@ -81,7 +85,7 @@ class BaseJobTest(unittest.TestCase):
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
         self.project = signac.Project.init_project(
-            name = 'testing_test_project',
+            name='testing_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
         self.project.config['default_host'] = 'testing'
@@ -134,13 +138,14 @@ class JobTest(BaseJobTest):
     def test_isfile(self):
         job = self.project.open_job({'a': 0})
         fn = 'test.txt'
-        fn_  = os.path.join(job.workspace(), fn)
+        fn_ = os.path.join(job.workspace(), fn)
         self.assertFalse(job.isfile(fn))
         job.init()
         self.assertFalse(job.isfile(fn))
         with open(fn_, 'w') as file:
             file.write('hello')
         self.assertTrue(job.isfile(fn))
+
 
 class JobSPInterfaceTest(BaseJobTest):
 
@@ -149,11 +154,11 @@ class JobSPInterfaceTest(BaseJobTest):
         job = self.open_job(sp)
         self.assertEqual(job.statepoint(), json.loads(json.dumps(sp)))
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp, x) , sp[x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp, x), sp[x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertEqual(job.sp.get(x), sp[x])
             self.assertEqual(job.sp.get(x), sp[x])
@@ -177,11 +182,11 @@ class JobSPInterfaceTest(BaseJobTest):
         job = self.open_job(sp)
         job.init()
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp, x) , sp[x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp, x), sp[x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
+            self.assertEqual(job.sp[x], sp[x])
         l = [1, 1.0, '1.0', True, None]
         b = list(l) + [l] + [tuple(l)]
         for v in b:
