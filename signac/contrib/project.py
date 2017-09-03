@@ -187,6 +187,26 @@ class Project(object):
                 break
         return i
 
+    def fn(self, filename):
+        """Prepend a filename with the project's root directory path.
+
+        :param filename: The filename of the file.
+        :type filename: str
+        :return: The joined path of project root directory and filename.
+        """
+        return os.path.join(self.root_directory(), filename)
+
+    def isfile(self, filename):
+        """True if a file with filename exists in the project's root directory.
+
+        :param filename: The filename of the file.
+        :type filename: str
+        :return: True if a file with filename exists in the project's root
+            directory.
+        :rtype: bool
+        """
+        return os.path.isfile(self.fn(filename))
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 

@@ -61,6 +61,17 @@ class ProjectTest(BaseProjectTest):
         self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
+    def test_fn(self):
+        self.assertEqual(
+            self.project.fn('test/abc'),
+            os.path.join(self.project.root_directory(), 'test/abc'))
+
+    def test_isfile(self):
+        self.assertFalse(self.project.isfile('test'))
+        with open(self.project.fn('test'), 'w'):
+            pass
+        self.assertTrue(self.project.isfile('test'))
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
