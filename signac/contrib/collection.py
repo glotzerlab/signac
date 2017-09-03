@@ -266,7 +266,7 @@ class Collection(object):
         self._docs = dict()
         if docs is not None:
             for doc in docs:
-                self[doc[self.primary_key]] = doc
+                self[doc[self._primary_key]] = doc
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
         self._next_default_id_ = None
@@ -304,14 +304,14 @@ class Collection(object):
                 self._remove_from_indexes(_id)
             docs = [self[_id] for _id in self._dirty]
             for key, index in self._indexes.items():
-                tmp = _build_index(docs, key, self.primary_key)
+                tmp = _build_index(docs, key, self._primary_key)
                 for v, group in tmp.items():
                     index[v].update(group)
             self._dirty.clear()
 
     def _build_index(self, key):
         logger.debug("Building index for key '{}'...".format(key))
-        self._indexes[key] = _build_index(self._docs.values(), key, self.primary_key)
+        self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
         logger.debug("Built index for key '{}'.".format(key))
 
     def index(self, key, build=False):
@@ -342,7 +342,7 @@ class Collection(object):
         :raises KeyError: In case that build is False and the index has not
             been built yet.
         """
-        if key == self.primary_key:
+        if key == self._primary_key:
             raise KeyError("Can't access index for primary key via index() method.")
         elif key in self._indexes:
             if len(self._dirty) > self.index_rebuild_threshold * len(self):
@@ -405,8 +405,8 @@ class Collection(object):
         else:
             if not isinstance(_id, str):
                 raise TypeError("The primary key must be of type str!")
-        doc.setdefault(self.primary_key, _id)
-        if _id != doc[self.primary_key]:
+        doc.setdefault(self._primary_key, _id)
+        if _id != doc[self._primary_key]:
             raise ValueError("Primary key mismatch!")
         self._docs[_id] = json.loads(json.dumps(doc))
         self._dirty.add(_id)
@@ -523,7 +523,7 @@ class Collection(object):
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
-        _id = expr.pop(self.primary_key, None)
+        _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
             result = _reduce_result(result, {_id})
 
@@ -742,8 +742,8 @@ class Collection(object):
         :returns: The _id of the replaced (or upserted) documented.
         """
         self._assert_open()
-        if len(filter) == 1 and self.primary_key in filter:
-            _id = filter[self.primary_key]
+        if len(filter) == 1 and self._primary_key in filter:
+            _id = filter[self._primary_key]
             if upsert or _id in self:
                 self[_id] = replacement
         else:
@@ -930,7 +930,7 @@ class Collection(object):
         f = parse_filter_arg(args.filter)
         for doc in self.find(f, limit=args.limit):
             if args._id:
-                print(doc[self.primary_key])
+                print(doc[self._primary_key])
             else:
                 if args.indent:
                     print(json.dumps(doc, indent=2))
