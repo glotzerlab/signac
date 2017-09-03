@@ -66,14 +66,19 @@ class _SyncedDict(object):
 
     def load(self):
         if self._suspend_sync_ <= 0 and self._load is not None:
-            self._load()
+            data = self._load()
+            if data is not None:
+                with self._suspend_sync():
+                    self._data = {
+                        k: self._dfs_convert(v, load=self.load, save=self.save)
+                        for k, v in data.items()
+                    }
 
     def save(self):
         if self._suspend_sync_ <= 0 and self._save is not None:
             self._save()
 
     def __setitem__(self, key, value):
-        self.load()
         with self._suspend_sync():
             self._data[key] = self._dfs_convert(value, load=self.load, save=self.save)
         self.save()
@@ -137,15 +142,19 @@ class _SyncedDict(object):
 
     def __str__(self):
         return str(self())
-        self.load()
-        return self._data.__str__()
 
     def __repr__(self):
         self.load()
-        return '{}({})'.format(type(self).__name__, repr(self()))
+        with self._suspend_sync():
+            return '{}({})'.format(type(self).__name__, repr(self()))
+
+    def _as_dict(self):
+        with self._suspend_sync():
+            return self._convert_to_dict(self._data.copy())
 
     def __call__(self):
-        return self._convert_to_dict(self)
+        self.load()
+        return self._as_dict()
 
     def __eq__(self, other):
         self.load()
