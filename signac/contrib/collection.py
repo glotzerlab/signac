@@ -47,6 +47,9 @@ _TYPES = {
 }
 
 
+MAX_DEFAULT_ID = int('F' * 32, 16)
+
+
 def _flatten(container):
     for i in container:
         if isinstance(i, (list, tuple)):
@@ -266,12 +269,23 @@ class Collection(object):
                 self[doc[self.primary_key]] = doc
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
-        self._next_default_id = len(self)
+        self._next_default_id_ = None
 
     def _assert_open(self):
         if self._docs is None:
             raise RuntimeError("Trying to access closed {}.".format(
                 type(self).__name__))
+
+    def _next_default_id(self):
+        if self._next_default_id_ is None:
+            self._next_default_id_ = len(self)
+        for i in range(len(self)+1):
+            assert self._next_default_id_ < MAX_DEFAULT_ID
+            _id = str(hex(self._next_default_id_))[2:].rjust(32, '0')
+            self._next_default_id_ += 1
+            if _id not in self:
+                return _id
+        raise RuntimeError("Unable to determine default id.")
 
     def _remove_from_indexes(self, _id):
         for index in self._indexes.values():
@@ -418,8 +432,10 @@ class Collection(object):
         :returns: The _id of the inserted documented.
         """
         self._assert_open()
-        _id = doc.setdefault(self.primary_key, str(self._next_default_id))
-        self._next_default_id += 1
+        if self._primary_key in doc:
+            _id = doc[self._primary_key]
+        else:
+            _id = doc[self._primary_key] = self._next_default_id()
         if _id in self:
             raise KeyError('Primary key collision!')
         self[_id] = doc
@@ -452,8 +468,10 @@ class Collection(object):
             into the collection.
         """
         for doc in docs:
-            _id = doc.setdefault(self.primary_key, str(self._next_default_id))
-            self._next_default_id += 1
+            if self._primary_key in doc:
+                _id = doc[self._primary_key]
+            else:
+                _id = doc[self._primary_key] = self._next_default_id()
             if _id in self:
                 raise KeyError('Primary key collision!')
             self[_id] = doc
