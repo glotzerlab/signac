@@ -282,6 +282,34 @@ class Job(object):
         the job manifest already exist."""
         self._create_directory()
 
+    def clear(self):
+        """Remove all job data, but not the job itself.
+
+        This function will do nothing if the job was not previously
+        initialized.
+        """
+        try:
+            for fn in os.listdir(self._wd):
+                if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
+                    continue
+                path = os.path.join(self._wd, fn)
+                if os.path.isfile(path):
+                    os.remove(path)
+                elif os.path.isdir(path):
+                    shutil.rmtree(path)
+            self.document.clear()
+        except (OSError, IOError) as error:
+            if error.errno != errno.ENOENT:
+                raise error
+
+    def reset(self):
+        """Remove all job data, but not the job itself.
+
+        This function will initialize the job if it was not previously
+        initialized."""
+        self.clear()
+        self.init()
+
     def remove(self):
         """Remove the job's workspace including the job document.
 

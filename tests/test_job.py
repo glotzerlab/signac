@@ -458,7 +458,7 @@ class JobDocumentTest(BaseJobTest):
         job.document.update({key: d})
         self.assertIn(key, job.document)
 
-    def test_clear(self):
+    def test_clear_document(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -495,6 +495,49 @@ class JobDocumentTest(BaseJobTest):
         job.remove()
         self.assertNotIn(key, job.document)
         self.assertFalse(os.path.isfile(fn_test))
+
+    def test_clear_job(self):
+        key = 'clear'
+        job = self.open_job(test_token)
+        self.assertNotIn(job, self.project)
+        job.clear()
+        self.assertNotIn(job, self.project)
+        job.clear()
+        self.assertNotIn(job, self.project)
+        job.init()
+        self.assertIn(job, self.project)
+        job.clear()
+        self.assertIn(job, self.project)
+        job.clear()
+        job.clear()
+        self.assertIn(job, self.project)
+        d = testdata()
+        job.document[key] = d
+        self.assertIn(job, self.project)
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        job.clear()
+        self.assertEqual(len(job.document), 0)
+        with open(job.fn('test'), 'w') as file:
+            file.write('test')
+        self.assertTrue(job.isfile('test'))
+        self.assertIn(job, self.project)
+        job.clear()
+        self.assertFalse(job.isfile('test'))
+        self.assertEqual(len(job.document), 0)
+
+    def test_reset(self):
+        key = 'reset'
+        job = self.open_job(test_token)
+        self.assertNotIn(job, self.project)
+        job.reset()
+        self.assertIn(job, self.project)
+        self.assertEqual(len(job.document), 0)
+        job.document[key] = testdata()
+        self.assertEqual(len(job.document), 1)
+        job.reset()
+        self.assertIn(job, self.project)
+        self.assertEqual(len(job.document), 0)
 
     def test_doc(self):
         key = 'test_doc'
