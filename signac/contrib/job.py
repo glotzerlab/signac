@@ -176,7 +176,9 @@ class Job(object):
         try:
             with open(self._fn_doc, 'rb') as file:
                 return json.loads(file.read().decode())
-        except FileNotFoundError as e:
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise
             return dict()
 
     def _reset_document(self, new_doc=None):
@@ -267,7 +269,7 @@ class Job(object):
                 with open(fn_manifest) as file:
                     assert calc_id(json.loads(file.read())) == self._id
             except IOError as error:
-                if not error.errno == errno.ENOENT:
+                if error.errno != errno.ENOENT:
                     raise error
         except Exception as error:
             msg = "Manifest file of job '{}' is corrupted: {}."
