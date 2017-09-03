@@ -1,10 +1,10 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
 import unittest
 import uuid
 from copy import copy, deepcopy
+from itertools import chain
 
 from signac.core.attr_dict import SyncedAttrDict as SAD
 
@@ -117,7 +117,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertIn(key2, sad)
         self.assertEqual(sad[key2], d)
 
-    def test_copy(self):
+    def test_copy_as_dict_sync(self):
         sad = self.get_sad()
         self.assert_no_read_write()
         sad['a'] = {'b': 0}
@@ -270,7 +270,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertEqual(len(sad), 0)
         self.assert_only_read()
 
-    def test_copy_as_dict(self):
+    def test_copy(self):
         sad = self.get_sad()
         key = 'copy'
         d = self.get_testdata()
@@ -361,12 +361,50 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assert_read_write(2)
         check_nested({'b': 3}, 3)
 
+    def test_attr_reference_modification(self):
+        sad = self.get_sad()
+        self.assertEqual(len(sad), 0)
+        self.assertNotIn('a', sad)
+        with self.assertRaises(KeyError):
+            sad.a
+        pairs = [(0, 1), (0.0, 1.0), ('0', '1'), (False, True)]
+        dict_pairs = [(dict(c=a), dict(c=b)) for a, b in pairs]
+        for A, B in chain(pairs, dict_pairs):
+            sad.a = A
+            a = sad.a
+            self.assertEqual(a, A)
+            self.assertEqual(sad.a, A)
+            a = B
+            self.assertEqual(a, B)
+            self.assertEqual(sad.a, A)
+            a = sad['a']
+            self.assertEqual(a, A)
+            self.assertEqual(sad.a, A)
+            a = B
+            self.assertEqual(a, B)
+            self.assertEqual(sad.a, A)
 
-class SyncedAttrDictNestedDataTest(SyncedAttrDictTest):
-
-    def get_testadata(self):
-        return {'a': super(SyncedAttrDictNestedDataTest, self).get_testadata()}
-
+            # with nested values
+            sad['a'] = dict(b=A)
+            self.assertEqual(sad.a.b, A)
+            b = sad.a.b
+            self.assertEqual(b, A)
+            self.assertEqual(sad.a.b, A)
+            b = B
+            self.assertEqual(b, B)
+            self.assertEqual(sad.a.b, A)
+            b = sad['a']['b']
+            self.assertEqual(b, A)
+            self.assertEqual(sad.a.b, A)
+            b = B
+            self.assertEqual(b, B)
+            self.assertEqual(sad.a.b, A)
+            b = sad['a'].b
+            self.assertEqual(b, A)
+            self.assertEqual(sad.a.b, A)
+            b = B
+            self.assertEqual(b, B)
+            self.assertEqual(sad.a.b, A)
 
 if __name__ == '__main__':
     unittest.main()
