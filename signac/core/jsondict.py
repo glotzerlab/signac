@@ -56,8 +56,6 @@ def _convert_to_synced_dict(m, parent):
 
 
 def _update_synced_dict(orig, new):
-    assert isinstance(orig, Mapping)
-    assert isinstance(new, Mapping)
     for k in new:
         if k in orig and isinstance(orig[k], Mapping) and isinstance(new[k], Mapping):
             _update_synced_dict(orig[k], new[k])
