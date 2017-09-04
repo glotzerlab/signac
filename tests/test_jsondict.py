@@ -159,8 +159,8 @@ class JSONDictWriteConcernTest(JSONDictTest):
 
 class JSONDictNestedDataTest(JSONDictTest):
 
-    def get_testadata(self):
-        return dict(a=super(JSONDictNestedDataTest, self).get_testadata())
+    def get_testdata(self):
+        return dict(a=super(JSONDictNestedDataTest, self).get_testdata())
 
 
 class JSONDictNestedDataWriteConcernTest(JSONDictNestedDataTest, JSONDictWriteConcernTest):
