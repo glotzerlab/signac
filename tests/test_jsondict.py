@@ -5,7 +5,7 @@ import os
 import unittest
 import uuid
 
-from signac.core.jsondict import JSonDict
+from signac.core.jsondict import JSONDict
 from signac.common import six
 
 if six.PY2:
@@ -20,7 +20,7 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class BaseJSonDictTest(unittest.TestCase):
+class BaseJSONDictTest(unittest.TestCase):
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
@@ -28,10 +28,13 @@ class BaseJSonDictTest(unittest.TestCase):
         self.addCleanup(self._tmp_dir.cleanup)
 
 
-class JSonDictTest(BaseJSonDictTest):
+class JSONDictTest(BaseJSONDictTest):
 
     def get_json_dict(self):
-        return JSonDict(self._fn_dict)
+        return JSONDict(filename=self._fn_dict)
+
+    def get_testdata(self):
+        return str(uuid.uuid4())
 
     def test_init(self):
         self.get_json_dict()
@@ -39,7 +42,8 @@ class JSonDictTest(BaseJSonDictTest):
     def test_set_get(self):
         jsd = self.get_json_dict()
         key = 'setget'
-        d = testdata()
+        d = self.get_testdata()
+        jsd.clear()
         self.assertFalse(bool(jsd))
         self.assertEqual(len(jsd), 0)
         self.assertNotIn(key, jsd)
@@ -56,7 +60,7 @@ class JSonDictTest(BaseJSonDictTest):
         jsd = self.get_json_dict()
         key = 'copy_value'
         key2 = 'copy_value2'
-        d = testdata()
+        d = self.get_testdata()
         self.assertNotIn(key, jsd)
         self.assertNotIn(key2, jsd)
         jsd[key] = d
@@ -73,8 +77,8 @@ class JSonDictTest(BaseJSonDictTest):
         jsd = self.get_json_dict()
         key1 = 'iter1'
         key2 = 'iter2'
-        d1 = testdata()
-        d2 = testdata()
+        d1 = self.get_testdata()
+        d2 = self.get_testdata()
         d = {key1: d1, key2: d2}
         jsd.update(d)
         self.assertIn(key1, jsd)
@@ -87,7 +91,7 @@ class JSonDictTest(BaseJSonDictTest):
     def test_delete(self):
         jsd = self.get_json_dict()
         key = 'delete'
-        d = testdata()
+        d = self.get_testdata()
         jsd[key] = d
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d)
@@ -99,7 +103,7 @@ class JSonDictTest(BaseJSonDictTest):
     def test_update(self):
         jsd = self.get_json_dict()
         key = 'update'
-        d = {key: testdata()}
+        d = {key: self.get_testdata()}
         jsd.update(d)
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d[key])
@@ -107,7 +111,7 @@ class JSonDictTest(BaseJSonDictTest):
     def test_clear(self):
         jsd = self.get_json_dict()
         key = 'clear'
-        d = testdata()
+        d = self.get_testdata()
         jsd[key] = d
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d)
@@ -117,7 +121,7 @@ class JSonDictTest(BaseJSonDictTest):
     def test_reopen(self):
         jsd = self.get_json_dict()
         key = 'reopen'
-        d = testdata()
+        d = self.get_testdata()
         jsd[key] = d
         jsd.save()
         del jsd  # possibly unsafe
@@ -129,23 +133,17 @@ class JSonDictTest(BaseJSonDictTest):
     def test_copy_as_dict(self):
         jsd = self.get_json_dict()
         key = 'copy'
-        d = testdata()
+        d = self.get_testdata()
         jsd[key] = d
         copy = dict(jsd)
         del jsd
         self.assertTrue(key in copy)
         self.assertEqual(copy[key], d)
 
-
-class SynchronizedDictTest(JSonDictTest):
-
-    def get_json_dict(self):
-        return JSonDict(self._fn_dict, synchronized=True)
-
-    def test_reopen(self):
+    def test_reopen2(self):
         jsd = self.get_json_dict()
         key = 'reopen'
-        d = testdata()
+        d = self.get_testdata()
         jsd[key] = d
         del jsd  # possibly unsafe
         jsd2 = self.get_json_dict()
@@ -153,10 +151,22 @@ class SynchronizedDictTest(JSonDictTest):
         self.assertEqual(jsd2[key], d)
 
 
-class SynchronizedWithWriteConcern(SynchronizedDictTest):
+class JSONDictWriteConcernTest(JSONDictTest):
 
     def get_json_dict(self):
-        return JSonDict(self._fn_dict, synchronized=True, write_concern=True)
+        return JSONDict(filename=self._fn_dict, write_concern=True)
+
+
+class JSONDictNestedDataTest(JSONDictTest):
+
+    def get_testadata(self):
+        return dict(a=super(JSONDictNestedDataTest, self).get_testadata())
+
+
+class JSONDictNestedDataWriteConcernTest(JSONDictNestedDataTest, JSONDictWriteConcernTest):
+
+    pass
+
 
 if __name__ == '__main__':
     unittest.main()

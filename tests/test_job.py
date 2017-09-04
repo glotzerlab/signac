@@ -480,6 +480,17 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job2.document)
         self.assertEqual(len(job2.document), 1)
 
+    def test_concurrency(self):
+        key = 'concurrent'
+        d = testdata()
+        job = self.open_job(test_token)
+        job2 = self.open_job(test_token)
+        self.assertNotIn(key, job.document)
+        self.assertNotIn(key, job2.document)
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertIn(key, job2.document)
+
     def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)

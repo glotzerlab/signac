@@ -9,12 +9,25 @@ import uuid
 
 from ..common import six
 from ..core.json import json
-from ..core.attr_dict import SyncedAttrDict
+from ..core.attrdict import SyncedAttrDict
+from ..core.jsondict import JSONDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
 
 logger = logging.getLogger(__name__)
+
+
+class _sp_save_hook(object):
+
+    def __init__(self, job):
+        self.job = job
+
+    def load(self):
+        pass
+
+    def save(self):
+        self.job._reset_sp()
 
 
 class Job(object):
@@ -157,7 +170,7 @@ class Job(object):
     def statepoint(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = SyncedAttrDict(self._statepoint, load=None, save=self._reset_sp)
+            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         return self._sp
 
     @statepoint.setter
@@ -183,7 +196,8 @@ class Job(object):
 
     def _reset_document(self, new_doc=None):
         if new_doc is None:
-            new_doc = self.document()
+            with self.document._suspend_sync():
+                new_doc = self.document()
         dirname, filename = os.path.split(self._fn_doc)
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
@@ -199,11 +213,10 @@ class Job(object):
         """The document associated with this job.
 
         :return: The job document handle.
-        :rtype: :class:`~.JSonDict`"""
+        :rtype: :class:`~.JSONDict`"""
         if self._document is None:
             self._create_directory()
-            self._document = SyncedAttrDict(
-                self._read_document(), load=self._read_document, save=self._reset_document)
+            self._document = JSONDict(filename=self._fn_doc)
         return self._document
 
     @document.setter

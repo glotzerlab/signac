@@ -6,7 +6,7 @@ import uuid
 from copy import copy, deepcopy
 from itertools import chain
 
-from signac.core.attr_dict import SyncedAttrDict as SAD
+from signac.core.attrdict import SyncedAttrDict as SAD
 
 
 class _SyncPoint(object):
@@ -44,7 +44,7 @@ class SyncedAttrDictTest(unittest.TestCase):
 
     def get_sad(self, initialdata=None):
         self.sync_point = _SyncPoint()
-        return SAD(initialdata, load=self.sync_point.load, save=self.sync_point.save)
+        return SAD(initialdata, parent=self.sync_point)
 
     def assert_no_read_write(self):
         self.assertEqual(self.sync_point.loaded, 0)
@@ -131,9 +131,9 @@ class SyncedAttrDictTest(unittest.TestCase):
         sad2 = copy(sad)
         sad3 = deepcopy(sad)
         self.assertEqual(sad, sad2)
-        self.assert_only_read()
-        self.assertEqual(sad, sad3)
         self.assert_only_read(2)
+        self.assertEqual(sad, sad3)
+        self.assert_only_read(1)
         sad.a.b = 1
         self.assert_read_write(1, 1)
         self.assertEqual(sad.a.b, 1)
@@ -339,13 +339,13 @@ class SyncedAttrDictTest(unittest.TestCase):
             self.assert_only_read(2)
             self.assertEqual(sad.a, a)
             self.assert_only_read(2)
+            self.assertEqual(sad['a']['b'], b)
+            self.assert_only_read(2)
             self.assertEqual(sad.a.b, b)
             self.assert_only_read(2)
             self.assertEqual(sad.a(), a)
             self.assert_only_read(2)
             self.assertEqual(sad['a'], a)
-            self.assert_only_read(2)
-            self.assertEqual(sad['a']['b'], b)
             self.assert_only_read(2)
             self.assertEqual(sad()['a'], a)
             self.assert_only_read(1)

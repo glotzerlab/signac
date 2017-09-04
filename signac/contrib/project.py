@@ -12,6 +12,7 @@ import shutil
 from itertools import chain
 
 from ..core.json import json
+from ..core.jsondict import JSONDict
 from .collection import Collection
 from .collection import _traverse_filter
 from ..common import six
@@ -108,6 +109,9 @@ class Project(object):
     :func:`signac.get_project` instead."""
     Job = Job
 
+    FN_DOCUMENT = 'signac_project_document.json'
+    "The project's document filename."
+
     def __init__(self, config=None):
         if config is None:
             config = load_config()
@@ -117,6 +121,8 @@ class Project(object):
         self._wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
         if not os.path.isabs(self._wd):
             self._wd = os.path.join(self.root_directory(), self._wd)
+        self._fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+        self._document = None
 
     def __str__(self):
         "Returns the project's id."
@@ -206,6 +212,12 @@ class Project(object):
         :rtype: bool
         """
         return os.path.isfile(self.fn(filename))
+
+    @property
+    def document(self):
+        if self._document is None:
+            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+        return self._document
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.

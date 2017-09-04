@@ -72,6 +72,21 @@ class ProjectTest(BaseProjectTest):
             pass
         self.assertTrue(self.project.isfile('test'))
 
+    def test_document(self):
+        self.assertFalse(self.project.document)
+        self.assertEqual(len(self.project.document), 0)
+        self.project.document['a'] = 42
+        self.assertEqual(len(self.project.document), 1)
+        self.assertTrue(self.project.document)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        self.assertTrue(prj2.document)
+        self.assertEqual(len(prj2.document), 1)
+        self.project.document.clear()
+        self.assertFalse(self.project.document)
+        self.assertEqual(len(self.project.document), 0)
+        self.assertFalse(prj2.document)
+        self.assertEqual(len(prj2.document), 0)
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)

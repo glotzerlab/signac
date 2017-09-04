@@ -24,7 +24,12 @@ class SyncedAttrDict(_SyncedDict):
             return self.__getitem__(name)
 
     def __setattr__(self, key, value):
-        if key.startswith('__') or key in ('_data', '_suspend_sync_', '_load', '_save'):
+        try:
+            super(SyncedAttrDict, self).__getattribute__('_data')
+        except AttributeError:
             super(SyncedAttrDict, self).__setattr__(key, value)
         else:
-            self.__setitem__(key, value)
+            if key.startswith('__') or key in ('_data', '_suspend_sync_', '_load', '_save'):
+                super(SyncedAttrDict, self).__setattr__(key, value)
+            else:
+                self.__setitem__(key, value)
