@@ -6,6 +6,7 @@ import os
 import stat
 import re
 import logging
+import warnings
 import errno
 import collections
 import shutil
@@ -23,11 +24,10 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
+from .errors import JobsCorruptedError
+
 
 logger = logging.getLogger(__name__)
-
-#: The default filename to read from and write statepoints to.
-FN_STATEPOINTS = 'signac_statepoints.json'
 
 
 ACCESS_MODULE_MINIMAL = """import signac
@@ -111,6 +111,9 @@ class Project(object):
 
     FN_DOCUMENT = 'signac_project_document.json'
     "The project's document filename."
+
+    FN_STATEPOINTS = 'signac_statepoints.json'
+    "The default filename to read from and write statepoints to."
 
     def __init__(self, config=None):
         if config is None:
@@ -415,6 +418,10 @@ class Project(object):
             a corrupted workspace.
         :type skip_errors: bool
         :yields: statepoints as dict"""
+        warnings.warn(
+            "The Project.find_statepoints() method is deprecated.",
+            DeprecationWarning)
+
         if index is None:
             index = self.index(include_job_document=False)
         if skip_errors:
@@ -429,13 +436,13 @@ class Project(object):
         """Read all statepoints from a file.
 
         :param fn: The filename of the file containing the statepoints,
-            defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
+            defaults to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
         :type fn: str
 
         See also :meth:`dump_statepoints` and :meth:`write_statepoints`.
         """
         if fn is None:
-            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+            fn = self.fn(self.FN_STATEPOINTS)
         # See comment in write statepoints.
         with open(fn, 'r') as file:
             return json.loads(file.read())
@@ -475,7 +482,7 @@ class Project(object):
         See also :meth:`dump_statepoints`.
         """
         if fn is None:
-            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+            fn = self.fn(self.FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
         # except FileNotFoundError:
@@ -500,10 +507,11 @@ class Project(object):
             with open(fn_manifest, 'rb') as manifest:
                 return json.loads(manifest.read().decode())
         except (IOError, ValueError) as error:
-            if os.path.isfile(fn_manifest):
-                msg = "Error while trying to access manifest file: "\
-                      "'{}'. Error: '{}'.".format(fn_manifest, error)
-                logger.critical(msg)
+            if os.path.isdir(os.path.join(self._wd, jobid)):
+                logger.error(
+                    "Error while trying to access state "
+                    "point manifest file of job '{}': '{}'.".format(jobid, error))
+                raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
     def get_statepoint(self, jobid, fn=None):
@@ -512,30 +520,38 @@ class Project(object):
         The state point is retrieved from the internal cache, from
         the workspace or from a state points file.
 
-        :param jobid: A job id to get the statepoint for.
-        :type jobid: str
-        :param fn: The filename of the file containing the statepoints,
-            defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
-        :type fn: str
-        :return: The statepoint.
-        :rtype: dict
-        :raises KeyError: If the statepoint associated with \
-            jobid could not be found.
-
-        See also :meth:`dump_statepoints`.
+        :param jobid:
+            A job id to get the statepoint for.
+        :type jobid:
+            str
+        :param fn:
+            The filename of the file containing the statepoints, defaults
+            to :const:`~signac.contrib.project.FN_STATEPOINTS`.
+        :type fn:
+            str
+        :return:
+            The state point corresponding to jobid.
+        :rtype:
+            dict
+        :raises KeyError:
+            If the state point associated with jobid could not be found.
+        :raises JobsCorruptedError:
+            If the state point manifest file corresponding to jobid is
+            inaccessible or corrupted.
         """
         try:
             if jobid in self._sp_cache:
                 return self._sp_cache[jobid]
             else:
                 return self._get_statepoint_from_workspace(jobid)
-        except KeyError:
+        except KeyError as error:
             try:
                 return self.read_statepoints(fn=fn)[jobid]
-            except IOError as error:
-                if not error.errno == errno.ENOENT:
-                    raise
-                raise KeyError(jobid)
+            except IOError as io_error:
+                if io_error.errno != errno.ENOENT:
+                    raise io_error
+                else:
+                    raise error
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create or update a persistent linked view of the selected data space.
@@ -701,35 +717,55 @@ class Project(object):
                 raise
         return dst
 
-    def repair(self):
-        "Attempt to repair the workspace after it got corrupted."
-        for job_dir in self._job_dirs():
-            jobid = os.path.split(job_dir)[-1]
-            fn_manifest = os.path.join(job_dir, self.Job.FN_MANIFEST)
+    def repair(self, fn_statepoints=None, index=None):
+        """Attempt to repair the workspace after it got corrupted.
+
+        This method will attempt to repair lost or corrupted job state point
+        manifest files using a state points file or a document index or both.
+
+        :param fn_statepoints:
+            The filename of the file containing the statepoints, defaults
+            to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
+        :type fn_statepoints:
+            str
+        :param index:
+            A document index
+        :raises JobsCorruptedError:
+            When one or more corrupted job could not be repaired.
+        """
+        corrupted = []
+        for job_id in self.find_job_ids():
             try:
-                with open(fn_manifest) as manifest:
-                    statepoint = json.loads(manifest.read())
-            except Exception as error:
-                logger.warning(
-                    "Encountered error while reading from '{}'. "
-                    "Error: {}".format(fn_manifest, error))
+                self.open_job(id=job_id)
+            except KeyError as error:
+                logger.critical(
+                    "Unable to recover state point for job with "
+                    "id '{}'.".format(job_id))
+                corrupted.append(job_id)
+            except JobsCorruptedError as error:
+                logger.warning("Attempt to recover state point from file: {}.".format(job_id))
+                try:    # Try to recover from state points file.
+                    sp = self.read_statepoints(fn_statepoints)[job_id]
+                except IOError as io_error:
+                    if io_error.errno != errno.ENOENT:
+                        raise
+                if index is not None:
+                    try:    # Try to recover from index.
+                        sp = index[job_id]
+                    except KeyError:
+                        pass
                 try:
-                    logger.info("Attempt to recover statepoint from file.")
-                    statepoint = self.get_statepoint(jobid)
-                    self.open_job(statepoint)._create_directory(overwrite=True)
-                except KeyError as error:
-                    raise RuntimeWarning(
-                        "Use write_statepoints() before attempting to repair!")
-                except IOError as error:
-                    if FN_STATEPOINTS in str(error):
-                        raise RuntimeWarning(
-                            "Use write_statepoints() before attempting to repair!")
-                    raise
-                except Exception:
-                    logger.error("Attemp to repair job space failed.")
-                    raise
-                else:
-                    logger.info("Successfully recovered state point.")
+                    self.open_job(sp).init(force=True)
+                except Exception as error_during_recovery:
+                    logger.critical(
+                        "Failed to recover job with id '{}', error: '{}'.".format(
+                            job_id, error_during_recovery))
+                    corrupted.append(job_id)
+            except Exception as error:
+                logger.critical("Unknown error during recovery: '{}'".format(error))
+                raise
+        if corrupted:
+            raise JobsCorruptedError(corrupted)
 
     def _build_index(self, include_job_document=False):
         "Return a basic state point index."

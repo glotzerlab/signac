@@ -215,7 +215,7 @@ class Job(object):
         :return: The job document handle.
         :rtype: :class:`~.JSONDict`"""
         if self._document is None:
-            self._create_directory()
+            self.init()
             self._document = JSONDict(filename=self._fn_doc)
         return self._document
 
@@ -231,8 +231,16 @@ class Job(object):
     def doc(self, new_doc):
         self.document = new_doc
 
-    def _create_directory(self, overwrite=False):
-        "Create the workspace directory and write the manifest file."
+    def init(self, force=False):
+        """Initialize the job's workspace directory.
+
+        This function will do nothing if the directory and
+        the job manifest already exist.
+
+        :param force: Overwrite any existing state points manifest
+            files, e.g., to repair them when they got corrupted.
+        :type force: bool
+        """
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
@@ -246,7 +254,7 @@ class Job(object):
                 # Open the file for writing only if it does not exist yet.
                 if six.PY2:
                     # Adapted from: http://stackoverflow.com/questions/10978869/
-                    if overwrite:
+                    if force:
                         flags = os.O_CREAT | os.O_WRONLY
                     else:
                         flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
@@ -259,7 +267,7 @@ class Job(object):
                         with os.fdopen(fd, 'w') as file:
                             file.write(blob)
                 else:
-                    with open(fn_manifest, 'w' if overwrite else 'x') as file:
+                    with open(fn_manifest, 'w' if force else 'x') as file:
                         file.write(blob)
             except IOError as error:
                 if not error.errno == errno.EEXIST:
@@ -287,13 +295,6 @@ class Job(object):
         except Exception as error:
             msg = "Manifest file of job '{}' is corrupted: {}."
             raise RuntimeError(msg.format(self, error))
-
-    def init(self):
-        """Initialize the job's workspace directory.
-
-        This function will do nothing if the directory and
-        the job manifest already exist."""
-        self._create_directory()
 
     def clear(self):
         """Remove all job data, but not the job itself.
@@ -391,7 +392,7 @@ class Job(object):
         leaving it will switch back to the previous working directory.
         """
         self._cwd.append(os.getcwd())
-        self._create_directory()
+        self.init()
         logger.info("Enter workspace '{}'.".format(self.workspace()))
         os.chdir(self.workspace())
 

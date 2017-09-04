@@ -11,6 +11,7 @@ import signac
 from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.contrib.project import _find_all_links
+from signac.contrib.errors import JobsCorruptedError
 
 from test_job import BaseJobTest
 
@@ -101,28 +102,32 @@ class ProjectTest(BaseProjectTest):
             self.project.get_statepoint(id_)
 
     def test_find_statepoints(self):
-        statepoints = [{'a': i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        self.assertEqual(
-            len(statepoints),
-            len(list(self.project.find_statepoints())))
-        self.assertEqual(
-            1, len(list(self.project.find_statepoints({'a': 0}))))
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': i} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).init()
+            self.assertEqual(
+                len(statepoints),
+                len(list(self.project.find_statepoints())))
+            self.assertEqual(
+                1, len(list(self.project.find_statepoints({'a': 0}))))
 
     def test_find_statepoint_sequences(self):
-        statepoints = [{'a': (i, i + 1)} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        self.assertEqual(
-            len(statepoints),
-            len(list(self.project.find_statepoints())))
-        self.assertEqual(
-            1,
-            len(list(self.project.find_statepoints({'a': [0, 1]}))))
-        self.assertEqual(
-            1,
-            len(list(self.project.find_statepoints({'a': (0, 1)}))))
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': (i, i + 1)} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).init()
+            self.assertEqual(
+                len(statepoints),
+                len(list(self.project.find_statepoints())))
+            self.assertEqual(
+                1,
+                len(list(self.project.find_statepoints({'a': [0, 1]}))))
+            self.assertEqual(
+                1,
+                len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
     def test_find_job_ids(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -338,10 +343,44 @@ class ProjectTest(BaseProjectTest):
         del self.project.open_job({'a': 1}).document['statepoint']
         list(self.project.find_job_documents())
 
+    def test_missing_statepoint_file(self):
+        job = self.project.open_job(dict(a=0))
+        job.init()
+
+        os.remove(job.fn(job.FN_MANIFEST))
+
+        self.project._sp_cache.clear()
+        try:
+            logging.disable(logging.CRITICAL)
+            with self.assertRaises(JobsCorruptedError):
+                self.project.open_job(id=job.get_id())
+        finally:
+            logging.disable(logging.NOTSET)
+
+    def test_corrupted_statepoint_file(self):
+        job = self.project.open_job(dict(a=0))
+        job.init()
+
+        # overwrite state point manifest file
+        with open(job.fn(job.FN_MANIFEST), 'w'):
+            pass
+
+        self.project._sp_cache.clear()
+        try:
+            logging.disable(logging.CRITICAL)
+            with self.assertRaises(JobsCorruptedError):
+                self.project.open_job(id=job.get_id())
+        finally:
+            logging.disable(logging.NOTSET)
+
     def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
-            self.project.open_job(sp).document['test'] = True
+            self.project.open_job(sp).init()
+
+        for i, job in enumerate(self.project):
+            pass
+        self.assertEqual(i, 4)
 
         # no manifest file
         with self.project.open_job(statepoints[0]) as job:
@@ -351,25 +390,30 @@ class ProjectTest(BaseProjectTest):
             with open(job.FN_MANIFEST, 'w'):
                 pass
 
-        # Need to clear internal cache to detect error.
+        # Need to clear internal cache to encounter error.
         self.project._sp_cache.clear()
+
+        # Ensure that state point hash table does not exist.
+        self.assertFalse(os.path.isfile(self.project.fn(self.project.FN_STATEPOINTS)))
 
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(Exception):
-                for i, statepoint in enumerate(self.project.find_statepoints()):
+
+            # Iterating through the jobs should now result in an error.
+            with self.assertRaises(JobsCorruptedError):
+                for job in self.project:
                     pass
-            # The skip_errors function helps to identify corrupt directories.
-            for i, statepoint in enumerate(self.project.find_statepoints(
-                    skip_errors=True)):
-                pass
-            with self.assertRaises(RuntimeWarning):
-                self.project._sp_cache.clear()
+
+            with self.assertRaises(JobsCorruptedError):
                 self.project.repair()
+
             self.project.write_statepoints(statepoints)
             self.project.repair()
-            for i, statepoint in enumerate(self.project.find_statepoints()):
+
+            os.remove(self.project.fn(self.project.FN_STATEPOINTS))
+            self.project._sp_cache.clear()
+            for job in self.project:
                 pass
         finally:
             logging.disable(logging.NOTSET)
