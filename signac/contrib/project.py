@@ -376,7 +376,8 @@ class Project(object):
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc['_id'] in subset]
-        return ProjectSchema.detect(self, exclude_const=exclude_const, index=index)
+        statepoint_index = self.build_job_statepoint_index(exclude_const=exclude_const, index=index)
+        return ProjectSchema.detect(statepoint_index)
 
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.

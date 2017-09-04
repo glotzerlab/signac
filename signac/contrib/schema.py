@@ -27,9 +27,8 @@ class ProjectSchema(object):
         self._schema = schema
 
     @classmethod
-    def detect(cls, project, exclude_const=False, index=None):
-        sp_index_ = project.build_job_statepoint_index(exclude_const=exclude_const, index=index)
-        return cls({k: _collect_by_type(v) for k, v in sp_index_})
+    def detect(cls, statepoint_index):
+        return cls({k: _collect_by_type(v) for k, v in statepoint_index})
 
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
