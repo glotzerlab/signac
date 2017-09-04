@@ -3,6 +3,10 @@ from collections import defaultdict as ddict
 from numbers import Number
 
 from ..common import six
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 
 class _Vividict(dict):
@@ -114,6 +118,9 @@ class ProjectSchema(object):
             key_or_keys = key_or_keys.split('.')
         return self._schema.__getitem__(tuple(key_or_keys))
 
+    def __iter__(self):
+        return iter(self._schema)
+
     def keys(self):
         return self._schema.keys()
 
@@ -141,3 +148,18 @@ class ProjectSchema(object):
         if not ignore_values:
             ret.update({k for k, v in self.items() if k in other and other[k] != v})
         return ret
+
+    def __call__(self, jobs_or_statepoints):
+        "Evaluate the schema for the given state points."
+        s = dict()
+        for key in self:
+            values = []
+            for sp in jobs_or_statepoints:
+                if not isinstance(sp, Mapping):
+                    sp = sp.statepoint
+                v = sp[key[0]]
+                for k in key[1:]:
+                    v = v[k]
+                values.append(v)
+            s[key] = _collect_by_type(values)
+        return ProjectSchema(s)
