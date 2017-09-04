@@ -625,6 +625,13 @@ class ProjectTest(BaseProjectTest):
         s = self.project.detect_schema(subset=self.project.find_job_ids({'a.$lt': 5}))
         self.assertEqual(s, s_sub)
 
+    def test_schema_eval(self):
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        s = self.project.detect_schema()
+        self.assertEqual(s, s(self.project))
+        self.assertEqual(s, s([job.sp for job in self.project]))
+
     def test_schema_difference(self):
         def get_sp(i):
             return {
