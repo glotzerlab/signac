@@ -9,14 +9,16 @@ from ..common import six
 
 if six.PY2:
     from collections import Mapping
+    from collections import MutableMapping
 else:
     from collections.abc import Mapping
+    from collections.abc import MutableMapping
 
 
 logger = logging.getLogger(__name__)
 
 
-class _SyncedDict(object):
+class _SyncedDict(MutableMapping):
 
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
@@ -106,6 +108,18 @@ class _SyncedDict(object):
         self.save()
         return ret
 
+    def popitem(self):
+        self.load()
+        key, value = self._data.popitem()
+        self.save()
+        return key, value._as_dict()
+
+    def setdefault(self, key, default=None):
+        self.load()
+        ret = self._data.setdefault(key, default)
+        self.save()
+        return ret
+
     def __delitem__(self, key):
         self.load()
         del self._data[key]
@@ -136,8 +150,8 @@ class _SyncedDict(object):
 
     def __iter__(self):
         self.load()
-        for k in self._data:
-            yield k
+        with self._suspend_sync():
+            return iter(self._data)
 
     def keys(self):
         self.load()
@@ -172,3 +186,6 @@ class _SyncedDict(object):
             return self() == other()
         else:
             return self() == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

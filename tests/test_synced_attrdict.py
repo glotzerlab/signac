@@ -7,6 +7,12 @@ from copy import copy, deepcopy
 from itertools import chain
 
 from signac.core.attrdict import SyncedAttrDict as SAD
+from signac.core.synceddict import _SyncedDict
+from signac.common import six
+if six.PY2:
+    from collections import MutableMapping
+else:
+    from collections.abc import MutableMapping
 
 
 class _SyncPoint(object):
@@ -66,6 +72,11 @@ class SyncedAttrDictTest(unittest.TestCase):
         SAD()
         SAD(dict(a=0))
         self.get_sad()
+
+    def test_is_object_and_mapping(self):
+        self.assertTrue(isinstance(_SyncedDict(), object))
+        self.assertTrue(isinstance(_SyncedDict(), MutableMapping))
+        self.assertTrue(isinstance(self.get_sad(), _SyncedDict))
 
     def test_str(self):
         sad = self.get_sad()
