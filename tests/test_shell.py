@@ -177,6 +177,23 @@ class BasicShellTest(unittest.TestCase):
                           ['{"a": ' + str(i) + '}']).strip(),
                 list(project.find_job_ids(doc_filter={'a': i}))[0])
 
+    def test_remove(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        sps = [{'a': i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        job_to_remove = project.open_job({'a': 1})
+        job_to_remove.doc.a = 0
+        self.assertIn(job_to_remove, project)
+        self.assertEqual(job_to_remove.doc.a, 0)
+        self.assertEqual(len(job_to_remove.doc), 1)
+        self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
+        self.assertIn(job_to_remove, project)
+        self.assertEqual(len(job_to_remove.doc), 0)
+        self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
+        self.assertNotIn(job_to_remove, project)
+
 
 if __name__ == '__main__':
     unittest.main()

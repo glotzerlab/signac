@@ -202,6 +202,23 @@ def main_document(args):
             print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
 
 
+def main_remove(args):
+    project = get_project()
+    for job_id in args.job_id:
+        job = _open_job_by_id(project, job_id)
+        if args.interactive and not query_yes_no(
+            "Are you sure you want to {action} job with id '{job._id}'?".format(
+                action='clear' if args.clear else 'remove',
+                job=job), default='no'):
+                continue
+        if args.clear:
+            job.clear()
+        else:
+            job.remove()
+        if args.verbose:
+            print(job_id)
+
+
 def main_move(args):
     project = get_project()
     dst_project = get_project(root=args.project)
@@ -704,6 +721,27 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_document.set_defaults(func=main_document)
+
+    parser_remove = subparsers.add_parser('rm')
+    parser_remove.add_argument(
+        'job_id',
+        type=str,
+        nargs='+',
+        help="One or more job ids of jobs to remove.")
+    parser_remove.add_argument(
+        '-c', '--clear',
+        action='store_true',
+        help="Do not completely remove, but only clear the job.")
+    parser_remove.add_argument(
+        '-i', '--interactive',
+        action='store_true',
+        help="Request confirmation before attempting to remove/clear "
+             "each job.")
+    parser_remove.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help="Be verbose when removing/clearing files.")
+    parser_remove.set_defaults(func=main_remove)
 
     parser_move = subparsers.add_parser('move')
     parser_move.add_argument(
