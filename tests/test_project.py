@@ -11,6 +11,7 @@ import signac
 from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.contrib.project import _find_all_links
+from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 
 from test_job import BaseJobTest
@@ -576,6 +577,95 @@ class ProjectTest(BaseProjectTest):
         except DestinationExistsError as error:
             self.assertNotEqual(error.destination, job_a)
             self.assertEqual(error.destination, job_b)
+
+    def test_schema_init(self):
+        s = ProjectSchema()
+        self.assertEqual(len(s), 0)
+        self.assertFalse(s)
+
+    def test_schema(self):
+        for i in range(10):
+            self.project.open_job({
+                'const': 0,
+                'const2': {'const3': 0},
+                'a': i,
+                'b': {'b2': i},
+                'c': [i, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]},
+                'f': {'f2': [[i, 0, 0]]},
+            }).init()
+
+        s = self.project.detect_schema()
+        self.assertEqual(len(s), 8)
+        for k in 'const', 'const2.const3', 'a', 'b.b2', 'c', 'd', 'e.e2', 'f.f2':
+            self.assertIn(k, s)
+            self.assertIn(k.split('.'), s)
+            # The following calls should not error out.
+            s[k]
+            s[k.split('.')]
+        repr(s)
+        self.assertEqual(s.format(), str(s))
+        s = self.project.detect_schema(exclude_const=True)
+        self.assertEqual(len(s), 6)
+        self.assertNotIn('const', s)
+        self.assertNotIn(('const2', 'const3'), s)
+        self.assertNotIn('const2.const3', s)
+
+    def test_schema_subset(self):
+        for i in range(5):
+            self.project.open_job(dict(a=i)).init()
+        s_sub = self.project.detect_schema()
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+
+        self.assertNotEqual(s_sub, self.project.detect_schema())
+        s = self.project.detect_schema(subset=self.project.find_jobs({'a.$lt': 5}))
+        self.assertEqual(s, s_sub)
+        s = self.project.detect_schema(subset=self.project.find_job_ids({'a.$lt': 5}))
+        self.assertEqual(s, s_sub)
+
+    def test_schema_difference(self):
+        def get_sp(i):
+            return {
+                'const': 0,
+                'const2': {'const3': 0},
+                'a': i,
+                'b': {'b2': i},
+                'c': [i, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]},
+                'f': {'f2': [[i, 0, 0]]},
+            }
+
+        for i in range(10):
+            self.project.open_job(get_sp(i)).init()
+
+        s = self.project.detect_schema()
+        s2 = self.project.detect_schema()
+        s3 = self.project.detect_schema(exclude_const=True)
+        s4 = self.project.detect_schema(exclude_const=True)
+
+        self.assertEqual(len(s), 8)
+        self.assertEqual(len(s2), 8)
+        self.assertEqual(len(s3), 6)
+        self.assertEqual(len(s4), 6)
+
+        self.assertEqual(s, s2)
+        self.assertNotEqual(s, s3)
+        self.assertNotEqual(s, s4)
+        self.assertEqual(s3, s4)
+
+        self.assertEqual(len(s.difference(s3)), len(s) - len(s3))
+        self.project.open_job(get_sp(11)).init()
+        s_ = self.project.detect_schema()
+        s3_ = self.project.detect_schema(exclude_const=True)
+
+        self.assertNotEqual(s, s_)
+        self.assertNotEqual(s3, s3_)
+        self.assertEqual(s.difference(s_), s3.difference(s3_))
+        self.assertEqual(len(s.difference(s_, ignore_values=True)), 0)
+        self.assertEqual(len(s3.difference(s3_, ignore_values=True)), 0)
 
 
 class ProjectInitTest(unittest.TestCase):

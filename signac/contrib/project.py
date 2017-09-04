@@ -23,6 +23,7 @@ from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
+from .schema import ProjectSchema
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 
@@ -352,6 +353,30 @@ class Project(object):
                     and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
             yield tuple(k.split('.')[1:]), tmp[k]
+
+    def detect_schema(self, exclude_const=False, subset=None, index=None):
+        """Detect the project's state point schema.
+
+        :param exclude_const:
+            Exclude all state point keys that are shared by all jobs within this project.
+        :type exclude_const:
+            bool
+        :param subset:
+            A sequence of jobs or job ids specifying a subset over which the state point
+            schema should be detected.
+        :param index:
+            A document index.
+        :returns:
+            The detected project schema.
+        :rtype:
+            `signac.contrib.schema.ProjectSchema`
+        """
+        if index is None:
+            index = self.index(include_job_document=False)
+        if subset is not None:
+            subset = {str(s) for s in subset}
+            index = [doc for doc in index if doc['_id'] in subset]
+        return ProjectSchema.detect(self, exclude_const=exclude_const, index=index)
 
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.

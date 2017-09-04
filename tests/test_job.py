@@ -50,13 +50,6 @@ def builtins_dict():
 
 BUILTINS_HASH = '7a80b58db53bbc544fc27fcaaba2ce44'
 
-
-def nested_dict():
-    d = dict(builtins_dict())
-    d['g'] = builtins_dict()
-    return d
-
-
 NESTED_HASH = 'bd6f5828f4410b665bffcec46abeb8f3'
 
 
@@ -97,6 +90,12 @@ class BaseJobTest(unittest.TestCase):
         project = self.project
         return project.open_job(*args, **kwargs)
 
+    @classmethod
+    def nested_dict(self):
+        d = dict(builtins_dict())
+        d['g'] = builtins_dict()
+        return d
+
 
 class JobIDTest(BaseJobTest):
 
@@ -114,7 +113,7 @@ class JobIDTest(BaseJobTest):
     def test_nested(self):
         for i in range(10):
             self.assertEqual(
-                str(self.project.open_job(nested_dict())), NESTED_HASH)
+                str(self.project.open_job(self.nested_dict())), NESTED_HASH)
 
     def test_sequences_identity(self):
         job1 = self.project.open_job({'a': [1.0, '1.0', 1, True]})
@@ -150,7 +149,7 @@ class JobTest(BaseJobTest):
 class JobSPInterfaceTest(BaseJobTest):
 
     def test_interface_read_only(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
         self.assertEqual(job.statepoint(), json.loads(json.dumps(sp)))
         for x in ('a', 'b', 'c', 'd', 'e'):
@@ -171,14 +170,14 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertEqual(job.sp.g.get('not_in_sp', 23), 23)
 
     def test_interface_contains(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertIn(x, job.sp)
             self.assertIn(x, job.sp.g)
 
     def test_interface_read_write(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
         job.init()
         for x in ('a', 'b', 'c', 'd', 'e'):
