@@ -636,6 +636,10 @@ class Project(object):
         :yields: Instances of dict.
         :raises KeyError: If the job document already contains the fields
             '_id' or 'statepoint'."""
+        warnings.warn(
+            "The Project.find_job_documents() method is deprecated.",
+            DeprecationWarning)
+
         for job in self.find_jobs(filter=filter):
             doc = dict(job.document)
             if '_id' in doc:
