@@ -23,3 +23,10 @@ class MergeConflict(Error, RuntimeError):
     def __init__(self, filename):
         self.filename = filename
         "The filename of the file that could not be merged."
+
+
+class MergeSchemaConflict(Error, RuntimeError):
+    "Raised when the schema of two projects to be merged differs."
+    def __init__(self, schema_src, schema_dst):
+        self.schema_src = schema_src
+        self.schema_dst = schema_dst

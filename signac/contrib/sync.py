@@ -10,6 +10,7 @@ from collections import OrderedDict
 
 from .errors import DestinationExistsError
 from .errors import MergeConflict
+from .errors import MergeSchemaConflict
 from .utility import query_yes_no
 
 
@@ -160,17 +161,27 @@ def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None)
     return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy)
 
 
-def merge_projects(source, destination, strategy=None, doc_strategy=None, selection=None):
+def merge_projects(source, destination, strategy=None, doc_strategy=None,
+                   selection=None, check_schema=True):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
     If the destination job already exist, try to merge the job using the
     optionally specified strategy.
     """
-    if selection is not None:  # The selection argument may be a jobs or job ids sequence.
-        selection = {str(j) for j in selection}
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
+
+    # Perform a schema check in an attempt to avoid bad merge operations.
+    if check_schema:
+        schema_src = source.detect_schema()
+        schema_dst = destination.detect_schema()
+        if schema_dst and schema_src != schema_dst:
+            if schema_src.difference(schema_dst) or schema_dst.difference(schema_src):
+                raise MergeSchemaConflict(schema_src, schema_dst)
+
+    if selection is not None:  # The selection argument may be a jobs or job ids sequence.
+        selection = {str(j) for j in selection}
 
     # Provide some information about this merge process.
     if selection:

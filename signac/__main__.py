@@ -23,6 +23,7 @@ from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 from signac.contrib.sync import MERGE_STRATEGIES
 from signac.contrib.errors import MergeConflict
+from signac.contrib.errors import MergeSchemaConflict
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -338,12 +339,19 @@ def main_merge(args):
 
     try:
         print("Merging '{}' -> {}'...".format(source, destination))
-        skipped = destination.merge(source, strategy, doc_strategy, selection)
+        skipped = destination.merge(
+            source, strategy, doc_strategy, selection, check_schema=not args.force)
         if skipped:
             print("Skipped key(s):", ', '.join(sorted(skipped)))
         print("Done.")
+        return
+    except MergeSchemaConflict as error:
+        print(
+            "WARNING: The detected schemas of the two projects differ! "
+            "Use --force to ignore.")
     except MergeConflict as error:
         print("Error: No strategy defined to merge file '{}'.".format(error))
+    print("Merge aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -909,6 +917,10 @@ def main():
              "as part of the project and job documents. Defaults to all keys "
              "if the argument to this option is omitted. By default no keys "
              "will be merged.")
+    parser_merge.add_argument(
+        '--force',
+        action='store_true',
+        help="Ignore warnings, just merge.")
     selection_group = parser_merge.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
