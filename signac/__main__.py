@@ -350,7 +350,12 @@ def main_merge(args):
     try:
         print("Merging '{}' -> {}'...".format(source, destination))
         skipped = destination.merge(
-            source, strategy, doc_strategy, selection, check_schema=not args.force)
+            other=source,
+            strategy=strategy,
+            doc_strategy=doc_strategy,
+            exclude=args.exclude,
+            selection=selection,
+            check_schema=not args.force)
         if skipped:
             print("Skipped key(s):", ', '.join(sorted(skipped)))
         print("Done.")
@@ -953,6 +958,10 @@ def main():
         nargs='?',
         help="Optional: The root directory of the project that should be "
              "merged into, defaults to the local project.")
+    parser_merge.add_argument(
+        '-x', '--exclude',
+        type=str,
+        help="Exclude all files matching the given pattern.")
     parser_merge.add_argument(
         '-s', '--strategy',
         choices=MERGE_STRATEGIES.keys(),

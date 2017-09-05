@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import re
 import shutil
 import filecmp
 import logging
@@ -115,7 +116,7 @@ def _merge_json_dicts(src, dst, strategy):
             os.remove(dst._filename + '~')
 
 
-def _merge_dirs(src, dst, strategy, exclude):
+def _merge_dirs(src, dst, exclude, strategy):
     "Merge two directories."
     diff = filecmp.dircmp(src, dst)
     for fn in diff.left_only:
@@ -130,7 +131,7 @@ def _merge_dirs(src, dst, strategy, exclude):
             logger.debug("Copy tree '{}'.".format(fn))
             shutil.copytree(os.path.join(src, fn), os.path.join(dst, fn))
     for fn in diff.diff_files:
-        if fn in exclude:
+        if exclude and any([re.match(p, fn) for p in exclude]):
             continue
         if strategy is None:
             raise MergeConflict(fn)
@@ -143,25 +144,26 @@ def _merge_dirs(src, dst, strategy, exclude):
             else:
                 logger.debug("Skip file '{}'.".format(fn))
     for subdir in diff.subdirs:
-        _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), strategy, exclude)
+        _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy)
 
 
-def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None):
+def merge_jobs(src_job, dst_job, exclude=None, strategy=None, doc_strategy=None):
     "Merge two jobs."
     if exclude is None:
         exclude = []
+    elif not isinstance(exclude, list):
+        exclude = [exclude]
     logger.debug("Merging job '{}'...".format(src_job))
     assert type(src_job) == type(dst_job)
     assert src_job.get_id() == dst_job.get_id()
     assert src_job.FN_MANIFEST == dst_job.FN_MANIFEST
     assert src_job.FN_DOCUMENT == dst_job.FN_DOCUMENT
-    exclude.append(src_job.FN_MANIFEST)
-    exclude.append(src_job.FN_DOCUMENT)
-    _merge_dirs(src_job.workspace(), dst_job.workspace(), strategy, exclude=exclude)
+    exclude.extend((src_job.FN_MANIFEST, src_job.FN_DOCUMENT))
+    _merge_dirs(src_job.workspace(), dst_job.workspace(), exclude, strategy)
     return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy)
 
 
-def merge_projects(source, destination, strategy=None, doc_strategy=None,
+def merge_projects(source, destination, exclude=None, strategy=None, doc_strategy=None,
                    selection=None, check_schema=True):
     """Merge the source project into the destination project.
 
@@ -190,6 +192,7 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None,
     else:
         logger.info("Merging project '{}' into '{}'.".format(source, destination))
     logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
+    logger.more("Exclude pattern: '{}'".format(exclude))
     logger.more("Merge strategy: '{}'".format(strategy))
 
     # Keep track of all document keys skipped during merging.
@@ -210,7 +213,7 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None,
             logger.more("Cloned job '{}'.".format(src_job))
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            skipped_keys.update(merge_jobs(src_job, dst_job, strategy, doc_strategy))
+            skipped_keys.update(merge_jobs(src_job, dst_job, exclude, strategy, doc_strategy))
             merged += 1
             logger.more("Merged job '{}'.".format(src_job))
     logger.info("Cloned {} and merged {} job(s).".format(cloned, merged))
