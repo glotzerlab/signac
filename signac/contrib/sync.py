@@ -16,35 +16,50 @@ from .utility import query_yes_no
 logger = logging.getLogger(__name__)
 
 
-# Strategies
+__all__ = [
+    'merge_jobs',
+    'merge_projects',
+    'MERGE_STRATEGIES',
+    'ask',
+    'ours',
+    'theirs',
+    'last_modified',
+    ]
 
-def by_timestamp(fn_src, fn_dst):
-    return os.path.getmtime(fn_src) > os.path.getmtime(fn_dst)
 
-
-def ours(fn_src, fn_dst):
-    return False
-
-
+# Definition of default merge strategies
 def theirs(fn_src, fn_dst):
+    "Merge strategy: Always merge files on conflict."
     return True
 
 
+def ours(fn_src, fn_dst):
+    "Merge strategy: Never merge files on conflict."
+    return False
+
+
 def ask(fn_src, fn_dst):
+    "Merge strategy: Ask whether a file should be merged interactively."
     return query_yes_no(
         "Overwrite file '{}' with '{}'?".format(fn_src, fn_dst),
         'no')
+
+
+def last_modified(fn_src, fn_dst):
+    "Merge strategy: Merge a file based on its modification time stamp."
+    return os.path.getmtime(fn_src) > os.path.getmtime(fn_dst)
 
 
 MERGE_STRATEGIES = OrderedDict([
     ('ask', ask),
     ('ours', ours),
     ('theirs', theirs),
-    ('by_timestamp', by_timestamp),
+    ('last_modified', last_modified),
 ])
+"A ordered dictionary of default merge strategies."
 
 
-# Merge implementation
+# Merge algorithms
 
 def _merge_dicts(src, dst, strategy, log):
     if src == dst:
