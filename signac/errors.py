@@ -11,6 +11,7 @@ from .common.errors import FileNotFoundError
 from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
+from .contrib.errors import MergeConflict
 
 __all__ = [
     'Error',
@@ -20,4 +21,5 @@ __all__ = [
     'FileNotFoundError',
     'FetchError',
     'DestinationExistsError',
+    'MergeConflict',
 ]

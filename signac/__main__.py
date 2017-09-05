@@ -23,8 +23,8 @@ from .contrib.utility import query_yes_no, prompt_password
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 from signac.contrib.sync import MERGE_STRATEGIES
-from signac.contrib.errors import NoMergeStrategyError
-from signac.contrib.sync import merge
+from signac.contrib.errors import MergeConflict
+from signac.contrib.sync import merge_projects
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -333,10 +333,10 @@ def main_merge(args):
 
     try:
         print("Merging project '{}' into project {}'.".format(source, destination))
-        skipped = merge(source, destination, strategy, doc_strategy, log=log)
+        skipped = merge_projects(source, destination, strategy, doc_strategy, log=log)
         if skipped:
             print("Skipped keys:", ', '.join(sorted(skipped)))
-    except NoMergeStrategyError as error:
+    except MergeConflict as error:
         print("Error: No strategy defined to merge file '{}'.".format(error))
 
 

@@ -22,6 +22,7 @@ from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
+from .sync import merge_projects
 from .utility import _mkdir_p
 from .schema import ProjectSchema
 from .errors import DestinationExistsError
@@ -746,6 +747,15 @@ class Project(object):
             else:
                 raise
         return dst
+
+    def merge(self, other, strategy=None, doc_strategy=None, log=None):
+        "Merge other project into this project."
+        return merge_projects(
+            source=other,
+            destination=self,
+            strategy=strategy,
+            doc_strategy=doc_strategy,
+            log=log)
 
     def repair(self, fn_statepoints=None, index=None):
         """Attempt to repair the workspace after it got corrupted.

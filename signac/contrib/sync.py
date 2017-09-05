@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from collections import OrderedDict
 
 from .errors import DestinationExistsError
-from .errors import NoMergeStrategyError
+from .errors import MergeConflict
 from .utility import query_yes_no
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ def _merge_dirs(src, dst, strategy, exclude, log):
         if fn in exclude:
             continue
         if strategy is None:
-            raise NoMergeStrategyError(fn)
+            raise MergeConflict(fn)
         else:
             fn_src = os.path.join(src, fn)
             fn_dst = os.path.join(dst, fn)
@@ -136,7 +136,7 @@ def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None,
     return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy, log)
 
 
-def merge(source, destination, strategy=None, doc_strategy=None, log=None):
+def merge_projects(source, destination, strategy=None, doc_strategy=None, log=None):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
