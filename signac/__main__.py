@@ -314,6 +314,16 @@ def main_init(args):
     _print_err("Initialized project '{}'.".format(project))
 
 
+def main_schema(args):
+    project = get_project()
+    print(project.detect_schema(
+        exclude_const=args.exclude_const,
+        subset=find_with_filter_or_none(args)).format(
+            depth=args.depth,
+            precision=args.precision,
+            max_num_range=args.max_num_range))
+
+
 def main_merge(args):
     source = get_project(root=args.source)
     destination = get_project(root=args.destination)
@@ -894,6 +904,45 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_view.set_defaults(func=main_view)
+
+    parser_schema = subparsers.add_parser('schema')
+    parser_schema.add_argument(
+        '-x', '--exclude-const',
+        action='store_true',
+        help="Exclude state point parameters, which are constant over the "
+             "complete project data space.")
+    parser_schema.add_argument(
+        '-t', '--depth',
+        type=int,
+        default=0,
+        help="A non-zero value will format the schema in a nested representation "
+             "up to the specified depth. The default is a flat view (depth=0).")
+    parser_schema.add_argument(
+        '-p', '--precision',
+        type=int,
+        help="Round all numerical values up to the given precision.")
+    parser_schema.add_argument(
+        '-r', '--max-num-range',
+        type=int,
+        default=5,
+        help="The maximum number of entries shown for a value range, defaults to 5.")
+    selection_group = parser_schema.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs with the given job ids.")
+    parser_schema.set_defaults(func=main_schema)
 
     parser_merge = subparsers.add_parser('merge')
     parser_merge.add_argument(
