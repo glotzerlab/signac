@@ -74,26 +74,26 @@ MERGE_STRATEGIES = OrderedDict([
 def _merge_dicts(src, dst, strategy):
     if src == dst:
         return set()
-    skipped = set()
+    skipped_keys = set()
     for key, value in src.items():
         if key in dst:
             if dst[key] == value:
                 continue
             elif strategy is None or not strategy(key):
-                skipped.add(key)
+                skipped_keys.add(key)
                 continue
             elif isinstance(value, Mapping):
                 try:
                     child = dst[key]
-                    skipped.update(_merge_dicts(src[key], child, strategy))
+                    skipped_keys.update(_merge_dicts(src[key], child, strategy))
                     assert src[key] == child
                     continue
                 except KeyError:
                     pass
 
-        logger.more("Merge key '{}'.".format(key))
+        logger.debug("Merge key '{}'.".format(key))
         dst[key] = value
-    return skipped
+    return skipped_keys
 
 
 def _merge_json_dicts(src, dst, strategy):
@@ -122,10 +122,10 @@ def _merge_dirs(src, dst, strategy, exclude):
         fn_src = os.path.join(src, fn)
         fn_dst = os.path.join(dst, fn)
         if os.path.isfile(fn_src):
-            logger.more("Copy file '{}'.".format(fn))
+            logger.debug("Copy file '{}'.".format(fn))
             shutil.copy(fn_src, fn_dst)
         else:
-            logger.more("Copy tree '{}'.".format(fn))
+            logger.debug("Copy tree '{}'.".format(fn))
             shutil.copytree(os.path.join(src, fn), os.path.join(dst, fn))
     for fn in diff.diff_files:
         if fn in exclude:
@@ -136,10 +136,10 @@ def _merge_dirs(src, dst, strategy, exclude):
             fn_src = os.path.join(src, fn)
             fn_dst = os.path.join(dst, fn)
             if strategy(fn_src, fn_dst):
-                logger.more("Copy file '{}'.".format(fn))
+                logger.debug("Copy file '{}'.".format(fn))
                 shutil.copy(fn_src, fn_dst)
             else:
-                logger.more("Skip file '{}'.".format(fn))
+                logger.debug("Skip file '{}'.".format(fn))
     for subdir in diff.subdirs:
         _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), strategy, exclude)
 
@@ -148,7 +148,7 @@ def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None)
     "Merge two jobs."
     if exclude is None:
         exclude = []
-    logger.info("Merging job '{}'...".format(src_job))
+    logger.debug("Merging job '{}'...".format(src_job))
     assert type(src_job) == type(dst_job)
     assert src_job.get_id() == dst_job.get_id()
     assert src_job.FN_MANIFEST == dst_job.FN_MANIFEST
@@ -159,34 +159,42 @@ def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None)
     return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy)
 
 
-def merge_projects(source, destination, strategy=None, doc_strategy=None, subset=None):
+def merge_projects(source, destination, strategy=None, doc_strategy=None, selection=None):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
     If the destination job already exist, try to merge the job using the
     optionally specified strategy.
     """
-    if subset is not None:  # The subset argument may be a jobs or job ids sequence.
-        subset = {str(j) for j in subset}
+    if selection is not None:  # The selection argument may be a jobs or job ids sequence.
+        selection = {str(j) for j in selection}
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
-    logger.info("Merging project '{}' into '{}'.".format(source, destination))
+    if selection:
+        logger.info("Merging selection ({}) of project '{}' into '{}'.".format(
+            len(selection), source, destination))
+    else:
+        logger.info("Merging project '{}' into '{}'.".format(source, destination))
     logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
     logger.more("Merge strategy: '{}'".format(strategy))
-    if subset:
-        logger.more("Merging over subset (size={}).".format(len(subset)))
-    skipped = set()
+    skipped_keys = set()
+    cloned, merged = 0, 0
     for src_job in source:
-        if subset is not None and src_job.get_id() not in subset:
-            logger.more("{} not in selected subset.".format(src_job))
+        if selection is not None and src_job.get_id() not in selection:
+            logger.more("{} not in selection.".format(src_job))
             continue
         try:
             destination.clone(src_job)
+            cloned += 1
+            logger.more("Cloned job '{}'.".format(src_job))
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            skipped.update(merge_jobs(src_job, dst_job, strategy, doc_strategy))
-    skipped.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
-    if skipped:
-        logger.info("Skipped {} document keys.".format(len(skipped)))
-        logger.more("Skipped keys: {}".format(', '.join(skipped)))
-    return skipped
+            skipped_keys.update(merge_jobs(src_job, dst_job, strategy, doc_strategy))
+            merged += 1
+            logger.more("Merged job '{}'.".format(src_job))
+    logger.info("Cloned {} and merged {} job(s).".format(cloned, merged))
+    skipped_keys.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
+    if skipped_keys:
+        logger.info("Skipped {} document key(s).".format(len(skipped_keys)))
+        logger.more("Skipped key(s): {}".format(', '.join(skipped_keys)))
+    return skipped_keys

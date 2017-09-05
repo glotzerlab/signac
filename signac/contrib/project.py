@@ -748,14 +748,14 @@ class Project(object):
                 raise
         return dst
 
-    def merge(self, other, strategy=None, doc_strategy=None, subset=None):
+    def merge(self, other, strategy=None, doc_strategy=None, selection=None):
         "Merge other project into this project."
         return merge_projects(
             source=other,
             destination=self,
             strategy=strategy,
             doc_strategy=doc_strategy,
-            subset=subset,
+            selection=selection,
             )
 
     def repair(self, fn_statepoints=None, index=None):

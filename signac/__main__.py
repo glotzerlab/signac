@@ -316,7 +316,7 @@ def main_init(args):
 def main_merge(args):
     source = get_project(root=args.source)
     destination = get_project(root=args.destination)
-    subset = find_with_filter_or_none(args)
+    selection = find_with_filter_or_none(args)
 
     if args.strategy:
         strategy = MERGE_STRATEGIES[args.strategy]
@@ -337,10 +337,11 @@ def main_merge(args):
         doc_strategy = None
 
     try:
-        print("Merging project '{}' into project {}'.".format(source, destination))
-        skipped = destination.merge(source, strategy, doc_strategy, subset)
+        print("Merging '{}' -> {}'...".format(source, destination))
+        skipped = destination.merge(source, strategy, doc_strategy, selection)
         if skipped:
-            print("Skipped keys:", ', '.join(sorted(skipped)))
+            print("Skipped key(s):", ', '.join(sorted(skipped)))
+        print("Done.")
     except MergeConflict as error:
         print("Error: No strategy defined to merge file '{}'.".format(error))
 
@@ -1031,7 +1032,7 @@ def main():
         log_level = logging.DEBUG if args.debug else [
             logging.CRITICAL, logging.ERROR,
             logging.WARNING, logging.INFO,
-            logging.MORE, logging.DEBUG][args.verbosity]
+            logging.MORE, logging.DEBUG][min(args.verbosity, 5)]
         logging.basicConfig(level=log_level)
 
     if not hasattr(args, 'func'):
