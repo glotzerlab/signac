@@ -46,3 +46,6 @@ class JSONDict(SyncedAttrDict):
         else:
             with open(self._filename, 'wb') as file:
                 file.write(json.dumps(self._as_dict()).encode())
+
+    def __repr__(self):
+        return "{}(filename='{}')".format(type(self).__name__, self._filename)

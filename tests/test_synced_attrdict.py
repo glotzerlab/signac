@@ -88,12 +88,7 @@ class SyncedAttrDictTest(unittest.TestCase):
 
     def test_repr(self):
         sad = self.get_sad()
-        self.assertEqual(repr(sad), 'SyncedAttrDict(' + repr(dict(sad())) + ')')
-        sad['a'] = 0
-        self.assertEqual(repr(sad), 'SyncedAttrDict(' + repr(dict(sad())) + ')')
-        sad['a'] = {'b': 0}
-        self.assertEqual(repr(sad), 'SyncedAttrDict(' + repr(dict(sad())) + ')')
-        sad = self.get_sad()
+        repr(sad)
 
     def test_call(self):
         sad = self.get_sad()
@@ -116,6 +111,28 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertTrue(key in sad)
         self.assertEqual(sad[key], d)
         self.assertEqual(sad.get(key), d)
+
+    def test_set_get_explicit_nested(self):
+        sad = self.get_sad()
+        key = 'setgetexplicitnested'
+        d = self.get_testdata()
+        self.assertFalse(bool(sad))
+        self.assertEqual(len(sad), 0)
+        self.assertNotIn(key, sad)
+        self.assertFalse(key in sad)
+        sad.setdefault('a', dict())
+        child1 = sad['a']
+        child2 = sad['a']
+        self.assertFalse(child1)
+        self.assertFalse(child2)
+        child1[key] = d
+        self.assertTrue(child1)
+        self.assertTrue(child2)
+        self.assertIn(key, child1)
+        self.assertIn(key, child2)
+        self.assertEqual(child1, child2)
+        self.assertEqual(child1[key], d)
+        self.assertEqual(child2[key], d)
 
     def test_copy_value(self):
         sad = self.get_sad()

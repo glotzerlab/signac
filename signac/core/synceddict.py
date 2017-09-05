@@ -71,13 +71,32 @@ class _SyncedDict(MutableMapping):
     def _save(self):
         pass
 
+    def _dfs_update(self, old, new):
+        for key in new:
+            if key in old:
+                if old[key] == new[key]:
+                    continue
+                elif isinstance(new[key], Mapping) and isinstance(old[key], Mapping):
+                    self._dfs_update(old[key], new[key])
+                    continue
+            old[key] = self._dfs_convert(new[key])
+        remove = set()
+        for key in old:
+            if key not in new:
+                remove.add(key)
+        for key in remove:
+            del old[key]
+
     def load(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 data = self._load()
                 if data is not None:
-                    self._data.clear()
-                    self._update(data)
+                    with self._suspend_sync():
+                        self._dfs_update(self._data, data)
+                    for value in self._data:
+                        if isinstance(value, Mapping):
+                            assert type(value) == type(self)
             else:
                 self._parent.load()
 
@@ -116,7 +135,7 @@ class _SyncedDict(MutableMapping):
 
     def setdefault(self, key, default=None):
         self.load()
-        ret = self._data.setdefault(key, default)
+        ret = self._data.setdefault(key, self._dfs_convert(default))
         self.save()
         return ret
 
@@ -167,11 +186,6 @@ class _SyncedDict(MutableMapping):
 
     def __str__(self):
         return str(self())
-
-    def __repr__(self):
-        self.load()
-        with self._suspend_sync():
-            return '{}({})'.format(type(self).__name__, repr(self()))
 
     def _as_dict(self):
         with self._suspend_sync():
