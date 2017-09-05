@@ -349,13 +349,19 @@ def main_merge(args):
 
     try:
         print("Merging '{}' -> {}'...".format(source, destination))
+
+        if args.dry_run and args.verbosity <= 2:
+            print("WARNING: Performing dry run, consider to increase output "
+                  "verbosity with -v / --verbose.")
+
         skipped = destination.merge(
             other=source,
             strategy=strategy,
             doc_strategy=doc_strategy,
             exclude=args.exclude,
             selection=selection,
-            check_schema=not args.force)
+            check_schema=not args.force,
+            dry_run=args.dry_run)
         if skipped:
             print("Skipped key(s):", ', '.join(sorted(skipped)))
         print("Done.")
@@ -961,7 +967,10 @@ def main():
     parser_merge.add_argument(
         '-x', '--exclude',
         type=str,
-        help="Exclude all files matching the given pattern.")
+        nargs='?',
+        const='.*',
+        help="Exclude all files matching the given pattern. Exclude all files "
+             "if this option is provided without any argument.")
     parser_merge.add_argument(
         '-s', '--strategy',
         choices=MERGE_STRATEGIES.keys(),
@@ -975,6 +984,11 @@ def main():
              "as part of the project and job documents. Defaults to all keys "
              "if the argument to this option is omitted. By default no keys "
              "will be merged.")
+    parser_merge.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help="Do not actually execute merge actions. You may still need to "
+             "increase the output verbosity to see what would happen.")
     parser_merge.add_argument(
         '--force',
         action='store_true',

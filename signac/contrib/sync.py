@@ -8,6 +8,7 @@ import filecmp
 import logging
 from collections.abc import Mapping
 from collections import OrderedDict
+from contextlib import contextmanager
 
 from .errors import DestinationExistsError
 from .errors import MergeConflict
@@ -37,7 +38,7 @@ __all__ = [
     'ours',
     'theirs',
     'last_modified',
-    ]
+]
 
 
 # Definition of default merge strategies
@@ -72,9 +73,67 @@ MERGE_STRATEGIES = OrderedDict([
 "A ordered dictionary of default merge strategies."
 
 
+# Modification Proxy
+
+class _DataModifyProxy(object):
+    """This proxy used for data modification.
+
+    By performing all data modification operations on the proxy,
+    we can ensure consistent logging and dry run behavior.
+
+    :param dry_run:
+        Do not actually perform any data modification operation, but
+        still log the action.
+    :type dry_run:
+        bool
+    """
+
+    def __init__(self, dry_run=False):
+        self.dry_run = dry_run
+
+    def set_value(self, doc, key, value):
+        logger.more("Set '{}'='{}'.".format(key, value))
+        if not self.dry_run:
+            doc[key] = value
+
+    def copy(self, src, dst):
+        logger.more("Copy file '{}' -> '{}'.".format(src, dst))
+        if not self.dry_run:
+            shutil.copy(src, dst)
+
+    def copytree(self, src, dst):
+        logger.more("Copy tree '{}' -> '{}'.".format(src, dst))
+        if not self.dry_run:
+            shutil.copytree(src, dst)
+
+    def remove(self, path):
+        logger.more("Remove path '{}'.".format(path))
+        if not self.dry_run:
+            os.remove(path)
+
+    @contextmanager
+    def create_backup(self, path):
+        logger.debug("Create backup of '{}'.".format(path))
+        path_backup = path + '~'
+        if os.path.isfile(path_backup):
+            raise RuntimeError(
+                "Failed to create backup, file already exists: '{}'.".format(path_backup))
+        try:
+            if not self.dry_run:
+                shutil.copy(path, path_backup)
+            yield path_backup
+        finally:
+            logger.debug("Remove backup of '{}'.".format(path))
+            if not self.dry_run:
+                try:
+                    os.remove(path_backup)
+                except IOError as error:
+                    logger.error(error)
+
+
 # Merge algorithms
 
-def _merge_dicts(src, dst, strategy):
+def _merge_dicts(src, dst, strategy, proxy):
     if src == dst:
         return set()
     skipped_keys = set()
@@ -87,53 +146,45 @@ def _merge_dicts(src, dst, strategy):
                 continue
             elif isinstance(value, Mapping):
                 try:
-                    child = dst[key]
-                    skipped_keys.update(_merge_dicts(src[key], child, strategy))
-                    assert src[key] == child
+                    skipped_keys.update(_merge_dicts(src[key], dst[key], strategy, proxy))
                     continue
                 except KeyError:
                     pass
 
-        logger.debug("Merge key '{}'.".format(key))
-        dst[key] = value
+        proxy.set_value(dst, key, value)
     return skipped_keys
 
 
-def _merge_json_dicts(src, dst, strategy):
+def _merge_json_dicts(src, dst, strategy, proxy):
     if dst._filename is None or not os.path.isfile(dst._filename):
-        return _merge_dicts(src, dst, strategy)
+        return _merge_dicts(src, dst, strategy, proxy)
     else:
-        try:
-            # Create backup copy
-            shutil.copy(dst._filename, dst._filename + '~')
-            return _merge_dicts(src, dst, strategy)
-        except Exception:
-            # Try to restore backup
-            logger.warning("Error during json dict merge, restoring backup...")
-            shutil.copy(dst._filename + '~', dst._filename)
-            raise
-        finally:
-            os.remove(dst._filename + '~')
+        with proxy.create_backup(dst._filename) as fn_backup:
+            try:
+                return _merge_dicts(src, dst, strategy, proxy)
+            except Exception:
+                # Try to restore backup
+                logger.warning("Error during json dict merge, restoring backup...")
+                proxy.copy(fn_backup, dst._filename)
+                raise
 
 
-def _merge_dirs(src, dst, exclude, strategy):
+def _merge_dirs(src, dst, exclude, strategy, proxy):
     "Merge two directories."
     diff = filecmp.dircmp(src, dst)
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            loger.debug("File '{}' is skipped (excluded).".format(fn))
+            logger.debug("File '{}' is skipped (excluded).".format(fn))
             continue
         fn_src = os.path.join(src, fn)
         fn_dst = os.path.join(dst, fn)
         if os.path.isfile(fn_src):
-            logger.debug("Copy file '{}'.".format(fn))
-            shutil.copy(fn_src, fn_dst)
+            proxy.copy(fn_src, fn_dst)
         else:
-            logger.debug("Copy tree '{}'.".format(fn))
-            shutil.copytree(os.path.join(src, fn), os.path.join(dst, fn))
+            proxy.copytree(os.path.join(src, fn), os.path.join(dst, fn))
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            loger.debug("File '{}' is skipped (excluded).".format(fn))
+            logger.debug("File '{}' is skipped (excluded).".format(fn))
             continue
         if strategy is None:
             raise MergeConflict(fn)
@@ -141,32 +192,39 @@ def _merge_dirs(src, dst, exclude, strategy):
             fn_src = os.path.join(src, fn)
             fn_dst = os.path.join(dst, fn)
             if strategy(fn_src, fn_dst):
-                logger.debug("Copy file '{}'.".format(fn))
-                shutil.copy(fn_src, fn_dst)
+                proxy.copy(fn_src, fn_dst)
             else:
                 logger.debug("Skip file '{}'.".format(fn))
     for subdir in diff.subdirs:
-        _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy)
+        _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy, proxy)
 
 
-def merge_jobs(src_job, dst_job, exclude=None, strategy=None, doc_strategy=None):
+def merge_jobs(src_job, dst_job, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
     "Merge two jobs."
     if exclude is None:
         exclude = []
     elif not isinstance(exclude, list):
         exclude = [exclude]
-    logger.debug("Merging job '{}'...".format(src_job))
+    if type(dry_run) == _DataModifyProxy:
+        proxy = dry_run
+    else:
+        proxy = _DataModifyProxy(dry_run=bool(dry_run))
+
+    if proxy.dry_run:
+        logger.debug("Merging job '{}' (dry run)...".format(src_job))
+    else:
+        logger.debug("Merging job '{}'...".format(src_job))
     assert type(src_job) == type(dst_job)
     assert src_job.get_id() == dst_job.get_id()
     assert src_job.FN_MANIFEST == dst_job.FN_MANIFEST
     assert src_job.FN_DOCUMENT == dst_job.FN_DOCUMENT
     exclude.extend((src_job.FN_MANIFEST, src_job.FN_DOCUMENT))
-    _merge_dirs(src_job.workspace(), dst_job.workspace(), exclude, strategy)
-    return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy)
+    _merge_dirs(src_job.workspace(), dst_job.workspace(), exclude, strategy, proxy)
+    return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy, proxy)
 
 
 def merge_projects(source, destination, exclude=None, strategy=None, doc_strategy=None,
-                   selection=None, check_schema=True):
+                   selection=None, check_schema=True, dry_run=False):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
@@ -175,6 +233,9 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_strateg
     """
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
+
+    # Setup data modification proxy
+    proxy = _DataModifyProxy(dry_run=dry_run)
 
     # Perform a schema check in an attempt to avoid bad merge operations.
     if check_schema:
@@ -194,14 +255,18 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_strateg
     else:
         logger.info("Merging project '{}' into '{}'.".format(source, destination))
     logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
-    logger.more("Exclude pattern: '{}'".format(exclude))
+    if dry_run:
+        logger.info("Performing dry run!")
+    if exclude is not None:
+        logger.more("Exclude pattern: '{}'".format(exclude))
     logger.more("Merge strategy: '{}'".format(strategy))
 
     # Keep track of all document keys skipped during merging.
     skipped_keys = set()
 
     # Merge the Project document.
-    skipped_keys.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
+    skipped_keys.update(_merge_json_dicts(
+        source.document, destination.document, doc_strategy, proxy))
 
     # Merge jobs from source to destination.
     cloned, merged = 0, 0
@@ -215,7 +280,8 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_strateg
             logger.more("Cloned job '{}'.".format(src_job))
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            skipped_keys.update(merge_jobs(src_job, dst_job, exclude, strategy, doc_strategy))
+            skipped_keys.update(merge_jobs(src_job, dst_job, exclude,
+                                           strategy, doc_strategy, proxy))
             merged += 1
             logger.more("Merged job '{}'.".format(src_job))
     logger.info("Cloned {} and merged {} job(s).".format(cloned, merged))
