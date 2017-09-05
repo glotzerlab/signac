@@ -97,33 +97,34 @@ class _DataModifyProxy(object):
             doc[key] = value
 
     def copy(self, src, dst):
-        logger.more("Copy file '{}' -> '{}'.".format(src, dst))
+        logger.more("Copy file '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
         if not self.dry_run:
             shutil.copy(src, dst)
 
     def copytree(self, src, dst):
-        logger.more("Copy tree '{}' -> '{}'.".format(src, dst))
+        logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
         if not self.dry_run:
             shutil.copytree(src, dst)
 
     def remove(self, path):
-        logger.more("Remove path '{}'.".format(path))
+        logger.more("Remove path '{}'.".format(os.path.relpath(path)))
         if not self.dry_run:
             os.remove(path)
 
     @contextmanager
     def create_backup(self, path):
-        logger.debug("Create backup of '{}'.".format(path))
+        logger.debug("Create backup of '{}'.".format(os.path.relpath(path)))
         path_backup = path + '~'
         if os.path.isfile(path_backup):
             raise RuntimeError(
-                "Failed to create backup, file already exists: '{}'.".format(path_backup))
+                "Failed to create backup, file already exists: '{}'.".format(
+                    os.path.relpath(path_backup)))
         try:
             if not self.dry_run:
                 shutil.copy(path, path_backup)
             yield path_backup
         finally:
-            logger.debug("Remove backup of '{}'.".format(path))
+            logger.debug("Remove backup of '{}'.".format(os.path.relpath(path)))
             if not self.dry_run:
                 try:
                     os.remove(path_backup)
