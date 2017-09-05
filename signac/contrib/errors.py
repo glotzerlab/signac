@@ -16,3 +16,15 @@ class JobsCorruptedError(Error, RuntimeError):
     def __init_(self, job_ids):
         self.job_ids = job_ids
         "The job id(s) of the corrupted job(s)."
+
+
+class MergeError(Error, RuntimeError):
+    "Raised when the merging of two jobs fails."
+    def __init__(self, filename):
+        self.filename = filename
+        "The filename of the file that could not be merged."
+
+
+class NoMergeStrategyError(MergeError):
+    "Raised when the merging of two job fails, because no strategy was defined."
+    pass

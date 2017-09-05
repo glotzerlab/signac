@@ -9,6 +9,7 @@ import json
 import logging
 import getpass
 import difflib
+import re
 import errno
 from pprint import pprint, pformat
 
@@ -21,6 +22,10 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
+from signac.contrib.sync import MERGE_STRATEGIES
+from signac.contrib.errors import NoMergeStrategyError
+from signac.contrib.sync import merge
+
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
 except ImportError:
@@ -300,6 +305,39 @@ def main_init(args):
         root=os.getcwd(),
         workspace=args.workspace)
     _print_err("Initialized project '{}'.".format(project))
+
+
+def main_merge(args):
+    source = get_project(root=args.source)
+    destination = get_project(root=args.destination)
+
+    if args.strategy:
+        strategy = MERGE_STRATEGIES[args.strategy]
+    else:
+        strategy = None
+
+    if args.keys:
+        try:
+            re.compile(args.keys)
+        except re.error as e:
+            raise RuntimeError(
+                "Illegal regular expression '{}': '{}'.".format(args.keys, e))
+
+        def doc_strategy(key):
+            return re.match(args.keys, key)
+
+    else:
+        doc_strategy = None
+
+    log = print if args.verbose else logging.info
+
+    try:
+        print("Merging project '{}' into project {}'.".format(source, destination))
+        skipped = merge(source, destination, strategy, doc_strategy, log=log)
+        if skipped:
+            print("Skipped keys:", ', '.join(sorted(skipped)))
+    except NoMergeStrategyError as error:
+        print("Error: No strategy defined to merge file '{}'.".format(error))
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -841,6 +879,34 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_view.set_defaults(func=main_view)
+
+    parser_merge = subparsers.add_parser('merge')
+    parser_merge.add_argument(
+        'source',
+        help="The root directory of the project that should be merged.")
+    parser_merge.add_argument(
+        'destination',
+        nargs='?',
+        help="Optional: The root directory of the project that should be "
+             "merged into, defaults to the local project.")
+    parser_merge.add_argument(
+        '-s', '--strategy',
+        choices=MERGE_STRATEGIES.keys(),
+        help="Specify a merge strategy, for differing files.")
+    parser_merge.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help="Increase output verbosity for the merge procedure.")
+    parser_merge.add_argument(
+        '-k', '--keys',
+        type=str,
+        nargs='?',
+        const='.*',
+        help="Specify a regular expression for keys that should be merged "
+             "as part of the project and job documents. Defaults to all keys "
+             "if the argument to this option is omitted. By default no keys "
+             "will be merged.")
+    parser_merge.set_defaults(func=main_merge)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
