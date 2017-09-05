@@ -120,7 +120,8 @@ def _merge_dirs(src, dst, exclude, strategy):
     "Merge two directories."
     diff = filecmp.dircmp(src, dst)
     for fn in diff.left_only:
-        if fn in exclude:
+        if exclude and any([re.match(p, fn) for p in exclude]):
+            loger.debug("File '{}' is skipped (excluded).".format(fn))
             continue
         fn_src = os.path.join(src, fn)
         fn_dst = os.path.join(dst, fn)
@@ -132,6 +133,7 @@ def _merge_dirs(src, dst, exclude, strategy):
             shutil.copytree(os.path.join(src, fn), os.path.join(dst, fn))
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
+            loger.debug("File '{}' is skipped (excluded).".format(fn))
             continue
         if strategy is None:
             raise MergeConflict(fn)
