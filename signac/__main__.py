@@ -23,7 +23,6 @@ from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 from signac.contrib.sync import MERGE_STRATEGIES
 from signac.contrib.errors import MergeConflict
-from signac.contrib.sync import merge_projects
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -132,6 +131,11 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
+def find_with_filter_or_none(args):
+    if args.job_id or args.filter or args.doc_filter:
+        return find_with_filter(args)
+
+
 def find_with_filter(args):
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
@@ -140,7 +144,10 @@ def find_with_filter(args):
             return args.job_id
 
     project = get_project()
-    index = _read_index(project, args.index)
+    if hasattr(args, 'index'):
+        index = _read_index(project, args.index)
+    else:
+        index = None
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
@@ -309,6 +316,7 @@ def main_init(args):
 def main_merge(args):
     source = get_project(root=args.source)
     destination = get_project(root=args.destination)
+    subset = find_with_filter_or_none(args)
 
     if args.strategy:
         strategy = MERGE_STRATEGIES[args.strategy]
@@ -330,7 +338,7 @@ def main_merge(args):
 
     try:
         print("Merging project '{}' into project {}'.".format(source, destination))
-        skipped = merge_projects(source, destination, strategy, doc_strategy)
+        skipped = destination.merge(source, strategy, doc_strategy, subset)
         if skipped:
             print("Skipped keys:", ', '.join(sorted(skipped)))
     except MergeConflict as error:
@@ -900,6 +908,22 @@ def main():
              "as part of the project and job documents. Defaults to all keys "
              "if the argument to this option is omitted. By default no keys "
              "will be merged.")
+    selection_group = parser_merge.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Only merge jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Only merge jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Only merge jobs with the given job ids.")
     parser_merge.set_defaults(func=main_merge)
 
     parser_config = subparsers.add_parser('config')

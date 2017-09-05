@@ -23,6 +23,8 @@ logging.MORE = LEVEL_MORE
 def log_more(msg, *args, **kwargs):
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
+logger.more = log_more
+
 
 __all__ = [
     'merge_jobs',
@@ -89,7 +91,7 @@ def _merge_dicts(src, dst, strategy):
                 except KeyError:
                     pass
 
-        log_more("Merge key '{}'.".format(key))
+        logger.more("Merge key '{}'.".format(key))
         dst[key] = value
     return skipped
 
@@ -120,10 +122,10 @@ def _merge_dirs(src, dst, strategy, exclude):
         fn_src = os.path.join(src, fn)
         fn_dst = os.path.join(dst, fn)
         if os.path.isfile(fn_src):
-            log_more("Copy file '{}'.".format(fn))
+            logger.more("Copy file '{}'.".format(fn))
             shutil.copy(fn_src, fn_dst)
         else:
-            log_more("Copy tree '{}'.".format(fn))
+            logger.more("Copy tree '{}'.".format(fn))
             shutil.copytree(os.path.join(src, fn), os.path.join(dst, fn))
     for fn in diff.diff_files:
         if fn in exclude:
@@ -134,10 +136,10 @@ def _merge_dirs(src, dst, strategy, exclude):
             fn_src = os.path.join(src, fn)
             fn_dst = os.path.join(dst, fn)
             if strategy(fn_src, fn_dst):
-                log_more("Copy file '{}'.".format(fn))
+                logger.more("Copy file '{}'.".format(fn))
                 shutil.copy(fn_src, fn_dst)
             else:
-                log_more("Skip file '{}'.".format(fn))
+                logger.more("Skip file '{}'.".format(fn))
     for subdir in diff.subdirs:
         _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), strategy, exclude)
 
@@ -157,20 +159,27 @@ def merge_jobs(src_job, dst_job, strategy=None, doc_strategy=None, exclude=None)
     return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy)
 
 
-def merge_projects(source, destination, strategy=None, doc_strategy=None):
+def merge_projects(source, destination, strategy=None, doc_strategy=None, subset=None):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
     If the destination job already exist, try to merge the job using the
     optionally specified strategy.
     """
+    if subset is not None:  # The subset argument may be a jobs or job ids sequence.
+        subset = {str(j) for j in subset}
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
     logger.info("Merging project '{}' into '{}'.".format(source, destination))
-    log_more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
-    logger.info("Merge strategy: '{}'".format(strategy))
+    logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
+    logger.more("Merge strategy: '{}'".format(strategy))
+    if subset:
+        logger.more("Merging over subset (size={}).".format(len(subset)))
     skipped = set()
     for src_job in source:
+        if subset is not None and src_job.get_id() not in subset:
+            logger.more("{} not in selected subset.".format(src_job))
+            continue
         try:
             destination.clone(src_job)
         except DestinationExistsError as e:
@@ -179,5 +188,5 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None):
     skipped.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
     if skipped:
         logger.info("Skipped {} document keys.".format(len(skipped)))
-        log_more("Skipped keys: {}".format(', '.join(skipped)))
+        logger.more("Skipped keys: {}".format(', '.join(skipped)))
     return skipped
