@@ -200,7 +200,7 @@ def _merge_dirs(src, dst, exclude, strategy, proxy):
         _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy, proxy)
 
 
-def merge_jobs(src_job, dst_job, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
+def merge_jobs(source, destination, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
     "Merge two jobs."
     if exclude is None:
         exclude = []
@@ -212,16 +212,16 @@ def merge_jobs(src_job, dst_job, exclude=None, strategy=None, doc_strategy=None,
         proxy = _DataModifyProxy(dry_run=bool(dry_run))
 
     if proxy.dry_run:
-        logger.debug("Merging job '{}' (dry run)...".format(src_job))
+        logger.debug("Merging job '{}' (dry run)...".format(source))
     else:
-        logger.debug("Merging job '{}'...".format(src_job))
-    assert type(src_job) == type(dst_job)
-    assert src_job.get_id() == dst_job.get_id()
-    assert src_job.FN_MANIFEST == dst_job.FN_MANIFEST
-    assert src_job.FN_DOCUMENT == dst_job.FN_DOCUMENT
-    exclude.extend((src_job.FN_MANIFEST, src_job.FN_DOCUMENT))
-    _merge_dirs(src_job.workspace(), dst_job.workspace(), exclude, strategy, proxy)
-    return _merge_json_dicts(src_job.doc, dst_job.doc, doc_strategy, proxy)
+        logger.debug("Merging job '{}'...".format(source))
+    assert type(source) == type(destination)
+    assert source.get_id() == destination.get_id()
+    assert source.FN_MANIFEST == destination.FN_MANIFEST
+    assert source.FN_DOCUMENT == destination.FN_DOCUMENT
+    exclude.extend((source.FN_MANIFEST, source.FN_DOCUMENT))
+    _merge_dirs(source.workspace(), destination.workspace(), exclude, strategy, proxy)
+    return _merge_json_dicts(source.doc, destination.doc, doc_strategy, proxy)
 
 
 def merge_projects(source, destination, exclude=None, strategy=None, doc_strategy=None,

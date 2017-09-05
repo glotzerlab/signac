@@ -14,6 +14,7 @@ from ..core.jsondict import JSONDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
+from .sync import merge_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -360,6 +361,35 @@ class Job(object):
         except OSError:
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
+
+    def merge(self, other, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
+        """Merge other job into this job.
+
+        :param other:
+            The other job to merge into this one.
+        :type other:
+            `.Job`
+        :param exclude:
+            An filename exclude pattern. All files matching this pattern will be
+            excluded from merging.
+        :type exclude:
+            str
+        :param strategy:
+            A merge strategy for file conflicts. If no strategy is provided, a
+            MergeConflict exception will be raised upon conflict.
+        :param doc_strategy:
+            A merge strategy for document keys. If this argument is None, by default
+            no keys will be merged upon conflict.
+        :param dry_run:
+            If True, do not actually perform any merge actions.
+        """
+        return merge_jobs(
+            source=other,
+            destination=self,
+            exclude=exclude,
+            strategy=strategy,
+            doc_strategy=doc_strategy,
+            dry_run=dry_run)
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
