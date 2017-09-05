@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import logging
 
 from . import indexing
+from . import sync
 from .project import Project, get_project, init_project
 from .indexing import BaseCrawler
 from .indexing import RegexFileCrawler
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = [
-    'indexing',
+    'indexing', 'sync',
     'Project', 'get_project', 'init_project',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
