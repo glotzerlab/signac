@@ -17,9 +17,8 @@ from . import get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
-from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .contrib.utility import query_yes_no, prompt_password
+from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 from signac.contrib.sync import MERGE_STRATEGIES
@@ -329,11 +328,9 @@ def main_merge(args):
     else:
         doc_strategy = None
 
-    log = print if args.verbose else logging.info
-
     try:
         print("Merging project '{}' into project {}'.".format(source, destination))
-        skipped = merge_projects(source, destination, strategy, doc_strategy, log=log)
+        skipped = merge_projects(source, destination, strategy, doc_strategy)
         if skipped:
             print("Skipped keys:", ', '.join(sorted(skipped)))
     except MergeConflict as error:
@@ -635,6 +632,7 @@ def main():
         '--version',
         action='store_true',
         help="Display the version number and exit.")
+    add_verbosity_argument(parser, default=2)
     parser.add_argument(
         '-y', '--yes',
         action='store_true',
@@ -894,10 +892,6 @@ def main():
         choices=MERGE_STRATEGIES.keys(),
         help="Specify a merge strategy, for differing files.")
     parser_merge.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help="Increase output verbosity for the merge procedure.")
-    parser_merge.add_argument(
         '-k', '--keys',
         type=str,
         nargs='?',
@@ -1009,8 +1003,13 @@ def main():
     args = parser.parse_args()
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    elif six.PY2:
-        logging.basicConfig(level=logging.WARNING)
+    else:
+        log_level = logging.DEBUG if args.debug else [
+            logging.CRITICAL, logging.ERROR,
+            logging.WARNING, logging.INFO,
+            logging.MORE, logging.DEBUG][args.verbosity]
+        logging.basicConfig(level=log_level)
+
     if not hasattr(args, 'func'):
         parser.print_usage()
         sys.exit(2)

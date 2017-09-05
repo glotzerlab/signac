@@ -748,14 +748,14 @@ class Project(object):
                 raise
         return dst
 
-    def merge(self, other, strategy=None, doc_strategy=None, log=None):
+    def merge(self, other, strategy=None, doc_strategy=None):
         "Merge other project into this project."
         return merge_projects(
             source=other,
             destination=self,
             strategy=strategy,
             doc_strategy=doc_strategy,
-            log=log)
+            )
 
     def repair(self, fn_statepoints=None, index=None):
         """Attempt to repair the workspace after it got corrupted.
