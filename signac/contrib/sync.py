@@ -23,6 +23,7 @@ logging.MORE = LEVEL_MORE
 def log_more(msg, *args, **kwargs):
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
+
 logger.more = log_more
 
 
@@ -170,6 +171,8 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None, select
         selection = {str(j) for j in selection}
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
+
+    # Provide some information about this merge process.
     if selection:
         logger.info("Merging selection ({}) of project '{}' into '{}'.".format(
             len(selection), source, destination))
@@ -177,7 +180,14 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None, select
         logger.info("Merging project '{}' into '{}'.".format(source, destination))
     logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
     logger.more("Merge strategy: '{}'".format(strategy))
+
+    # Keep track of all document keys skipped during merging.
     skipped_keys = set()
+
+    # Merge the Project document.
+    skipped_keys.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
+
+    # Merge jobs from source to destination.
     cloned, merged = 0, 0
     for src_job in source:
         if selection is not None and src_job.get_id() not in selection:
@@ -193,7 +203,8 @@ def merge_projects(source, destination, strategy=None, doc_strategy=None, select
             merged += 1
             logger.more("Merged job '{}'.".format(src_job))
     logger.info("Cloned {} and merged {} job(s).".format(cloned, merged))
-    skipped_keys.update(_merge_json_dicts(source.document, destination.document, doc_strategy))
+
+    # Provide some information about skipped document keys.
     if skipped_keys:
         logger.info("Skipped {} document key(s).".format(len(skipped_keys)))
         logger.more("Skipped key(s): {}".format(', '.join(skipped_keys)))
