@@ -121,6 +121,7 @@ class Project(object):
             config = load_config()
         self._config = config
         self._sp_cache = dict()
+        self._index_cache = dict()
         self.get_id()
         self._wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
         if not os.path.isabs(self._wd):
@@ -404,7 +405,10 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            index = self.index(include_job_document=doc_filter is not None)
+            if doc_filter is None:
+                index = self._sp_index()
+            else:
+                index = self.index(include_job_document=True)
         search_index = self.build_job_search_index(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
@@ -798,6 +802,16 @@ class Project(object):
                 raise
         if corrupted:
             raise JobsCorruptedError(corrupted)
+
+    def _sp_index(self):
+        job_ids = set(self._job_dirs())
+        to_add = job_ids.difference(self._index_cache)
+        to_remove = set(self._index_cache).difference(job_ids)
+        for _id in to_remove:
+            del self._index_cache[_id]
+        for _id in to_add:
+            self._index_cache[_id] = dict(statepoint=self.get_statepoint(_id), _id=_id)
+        return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
         "Return a basic state point index."
