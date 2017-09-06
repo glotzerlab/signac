@@ -569,15 +569,17 @@ class Project(object):
             if jobid in self._sp_cache:
                 return self._sp_cache[jobid]
             else:
-                return self._get_statepoint_from_workspace(jobid)
+                sp = self._get_statepoint_from_workspace(jobid)
         except KeyError as error:
             try:
-                return self.read_statepoints(fn=fn)[jobid]
+                sp = self.read_statepoints(fn=fn)[jobid]
             except IOError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
                     raise error
+        self._sp_cache[jobid] = sp
+        return sp
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create or update a persistent linked view of the selected data space.
