@@ -70,12 +70,44 @@ MERGE_STRATEGIES = OrderedDict([
     ('theirs', theirs),
     ('last_modified', last_modified),
 ])
-"A ordered dictionary of default merge strategies."
+"An ordered dictionary of default merge strategies."
 
 
 # Modification Proxy
 
-class _DataModifyProxy(object):
+
+class _DocProxy(object):
+
+    def __init__(self, doc, dry_run=False):
+        self.doc = doc
+        self.dry_run = dry_run
+
+    def __str__(self):
+        return "_DocProxy({})".format(str(self.doc))
+
+    def __repr__(self):
+        return "_DocProxy({})".format(repr(self.doc))
+
+    def __getitem__(self, key):
+        return self.doc[key]
+
+    def __setitem__(self, key, value):
+        logger.more("Set '{}'='{}'.".format(key, value))
+        if not self.dry_run:
+            self.doc[key] = value
+
+    def keys(self):
+        return self.docs.keys()
+
+    def __iter__(self):
+        return iter(self.doc)
+
+    def __contains__(self, key):
+        return key in self.doc
+
+
+
+class _FileModifyProxy(object):
     """This proxy used for data modification.
 
     By performing all data modification operations on the proxy,
@@ -134,7 +166,7 @@ class _DataModifyProxy(object):
 
 # Merge algorithms
 
-def _merge_dicts(src, dst, strategy, proxy):
+def _merge_dicts_by_key(src, dst, strategy):
     if src == dst:
         return set()
     skipped_keys = set()
@@ -147,27 +179,13 @@ def _merge_dicts(src, dst, strategy, proxy):
                 continue
             elif isinstance(value, Mapping):
                 try:
-                    skipped_keys.update(_merge_dicts(src[key], dst[key], strategy, proxy))
+                    skipped_keys.update(_merge_dicts_by_key(src[key], dst[key], strategy))
                     continue
                 except KeyError:
                     pass
 
-        proxy.set_value(dst, key, value)
+        dst[key] = value
     return skipped_keys
-
-
-def _merge_json_dicts(src, dst, strategy, proxy):
-    if dst._filename is None or not os.path.isfile(dst._filename):
-        return _merge_dicts(src, dst, strategy, proxy)
-    else:
-        with proxy.create_backup(dst._filename) as fn_backup:
-            try:
-                return _merge_dicts(src, dst, strategy, proxy)
-            except Exception:
-                # Try to restore backup
-                logger.warning("Error during json dict merge, restoring backup...")
-                proxy.copy(fn_backup, dst._filename)
-                raise
 
 
 def _merge_dirs(src, dst, exclude, strategy, proxy):
@@ -200,31 +218,88 @@ def _merge_dirs(src, dst, exclude, strategy, proxy):
         _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy, proxy)
 
 
-def merge_jobs(source, destination, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
+@contextmanager
+def _create_doc_backup(proxy, dst):
+    fn = getattr(dst, 'filename', getattr(dst, '_filename', None))
+
+    if fn is None or not os.path.isfile(fn):
+        yield
+    else:
+        with proxy.create_backup(fn) as fn_backup:
+            try:
+                yield
+            except:
+                logger.warning("Error during doc merge, restoring backup...")
+                proxy.copy(fn_backup, dst._filename)
+                raise
+
+
+class MergeDocsStrategy(object):
+    pass
+
+
+class MergeDocsByKey(MergeDocsStrategy):
+
+    def __init__(self, key_strategy):
+        if isinstance(key_strategy, str):
+
+#            def _key_strategy(key):
+#                print("_key_strategy", key, re.match(key_strategy, key))
+#                return re.match(key_strategy, key)
+#
+            self.key_strategy = lambda k: re.match(key_strategy, k)
+            #self.key_strategy = _key_strategy
+        else:
+            self.key_strategy = key_strategy
+
+    def __call__(self, src, dst):
+        return _merge_dicts_by_key(src, dst, self.key_strategy)
+
+
+class MergeDocsSimpleUpdate(MergeDocsStrategy):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, src, dst):
+        for key in src.keys():
+            dst[key] = src[key]
+
+
+def merge_jobs(src, dst, exclude=None, strategy=None, doc_merge=None, dry_run=False):
     "Merge two jobs."
+
+    # check src and dst compatiblity
+    assert type(src) == type(dst)
+    assert src.get_id() == dst.get_id()
+    assert src.FN_MANIFEST == dst.FN_MANIFEST
+    assert src.FN_DOCUMENT == dst.FN_DOCUMENT
+
+    # the exclude argument must be a list
     if exclude is None:
         exclude = []
     elif not isinstance(exclude, list):
         exclude = [exclude]
-    if type(dry_run) == _DataModifyProxy:
+
+    if type(dry_run) == _FileModifyProxy:
         proxy = dry_run
     else:
-        proxy = _DataModifyProxy(dry_run=bool(dry_run))
-
+        proxy = _FileModifyProxy(dry_run=bool(dry_run))
     if proxy.dry_run:
-        logger.debug("Merging job '{}' (dry run)...".format(source))
+        logger.debug("Merging job '{}' (dry run)...".format(src))
     else:
-        logger.debug("Merging job '{}'...".format(source))
-    assert type(source) == type(destination)
-    assert source.get_id() == destination.get_id()
-    assert source.FN_MANIFEST == destination.FN_MANIFEST
-    assert source.FN_DOCUMENT == destination.FN_DOCUMENT
-    exclude.extend((source.FN_MANIFEST, source.FN_DOCUMENT))
-    _merge_dirs(source.workspace(), destination.workspace(), exclude, strategy, proxy)
-    return _merge_json_dicts(source.doc, destination.doc, doc_strategy, proxy)
+        logger.debug("Merging job '{}'...".format(src))
+
+    exclude.extend((src.FN_MANIFEST, src.FN_DOCUMENT))
+    _merge_dirs(src.workspace(), dst.workspace(), exclude, strategy, proxy)
+    with _create_doc_backup(proxy, dst.document):
+        try:
+            return doc_merge(src.document, _DocProxy(dst.document))
+        except TypeError:
+            return MergeDocsByKey(doc_merge)(src.document, _DocProxy(dst.document))
 
 
-def merge_projects(source, destination, exclude=None, strategy=None, doc_strategy=None,
+def merge_projects(source, destination, exclude=None, strategy=None, doc_merge=None,
                    selection=None, check_schema=True, dry_run=False):
     """Merge the source project into the destination project.
 
@@ -236,7 +311,7 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_strateg
         raise ValueError("Source and destination can't be the same!")
 
     # Setup data modification proxy
-    proxy = _DataModifyProxy(dry_run=dry_run)
+    proxy = _FileModifyProxy(dry_run=dry_run)
 
     # Perform a schema check in an attempt to avoid bad merge operations.
     if check_schema:
@@ -259,33 +334,38 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_strateg
     if dry_run:
         logger.info("Performing dry run!")
     if exclude is not None:
-        logger.more("Exclude pattern: '{}'".format(exclude))
+        logger.more("File name exclude pattern: '{}'".format(exclude))
     logger.more("Merge strategy: '{}'".format(strategy))
 
     # Keep track of all document keys skipped during merging.
     skipped_keys = set()
 
     # Merge the Project document.
-    skipped_keys.update(_merge_json_dicts(
-        source.document, destination.document, doc_strategy, proxy))
+    with _create_doc_backup(proxy, destination.document):
+        try:
+            doc_merge(source.document, _DocProxy(destination.document))
+        except TypeError as e1:
+            logger.more("Assume doc_merge function is key_strategy.")
+            MergeDocsByKey(doc_merge)(source.document, _DocProxy(destination.document))
 
     # Merge jobs from source to destination.
-    cloned, merged = 0, 0
+    num_cloned, num_merged = 0, 0
     for src_job in source:
         if selection is not None and src_job.get_id() not in selection:
             logger.more("{} not in selection.".format(src_job))
             continue
         try:
             destination.clone(src_job)
-            cloned += 1
+            num_cloned += 1
             logger.more("Cloned job '{}'.".format(src_job))
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            skipped_keys.update(merge_jobs(src_job, dst_job, exclude,
-                                           strategy, doc_strategy, proxy))
-            merged += 1
+            keys = merge_jobs(src_job, dst_job, exclude, strategy, doc_merge, proxy)
+            if keys is not None:
+                skipped_keys.update(keys)
+            num_merged += 1
             logger.more("Merged job '{}'.".format(src_job))
-    logger.info("Cloned {} and merged {} job(s).".format(cloned, merged))
+    logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))
 
     # Provide some information about skipped document keys.
     if skipped_keys:

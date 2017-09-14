@@ -341,11 +341,11 @@ def main_merge(args):
             raise RuntimeError(
                 "Illegal regular expression '{}': '{}'.".format(args.keys, e))
 
-        def doc_strategy(key):
+        def doc_merge(key):
             return re.match(args.keys, key)
 
     else:
-        doc_strategy = None
+        doc_merge = None
 
     try:
         print("Merging '{}' -> {}'...".format(source, destination))
@@ -357,7 +357,7 @@ def main_merge(args):
         skipped = destination.merge(
             other=source,
             strategy=strategy,
-            doc_strategy=doc_strategy,
+            doc_merge=doc_merge,
             exclude=args.exclude,
             selection=selection,
             check_schema=not args.force,

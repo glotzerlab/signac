@@ -22,6 +22,10 @@ class JSONDict(SyncedAttrDict):
         self._write_concern = write_concern
         super(JSONDict, self).__init__(parent=parent)
 
+    #@property
+    #def filename(self):
+    #    return self._filename
+
     def _load(self):
         assert self._filename is not None
         try:

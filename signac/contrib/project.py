@@ -754,7 +754,7 @@ class Project(object):
                 raise
         return dst
 
-    def merge(self, other, exclude=None, strategy=None, doc_strategy=None,
+    def merge(self, other, exclude=None, strategy=None, doc_merge=None,
               selection=None, check_schema=True, dry_run=False):
         "Merge other project into this project."
         return merge_projects(
@@ -762,7 +762,7 @@ class Project(object):
             destination=self,
             exclude=exclude,
             strategy=strategy,
-            doc_strategy=doc_strategy,
+            doc_merge=doc_merge,
             selection=selection,
             check_schema=check_schema,
             dry_run=dry_run,
