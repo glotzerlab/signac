@@ -209,9 +209,9 @@ def main_document(args):
     for job_id in find_with_filter(args):
         job = _open_job_by_id(project, job_id)
         if args.pretty:
-            pprint(dict(job.document), depth=args.pretty)
+            pprint(job.document(), depth=args.pretty)
         else:
-            print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
+            print(json.dumps(job.document(), indent=args.indent, sort_keys=args.sort))
 
 
 def main_remove(args):
@@ -288,7 +288,7 @@ def main_find(args):
                 jid = job.get_id()
                 print(jid)
                 print(format_lines('sp ', jid, job.statepoint()))
-                print(format_lines('doc', jid, dict(job.document)))
+                print(format_lines('doc', jid, job.document()))
             else:
                 print(job_id)
     except IOError as error:
