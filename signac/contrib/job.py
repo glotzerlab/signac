@@ -14,7 +14,7 @@ from ..core.jsondict import JSONDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
-from .sync import merge_jobs
+from ..sync import merge_jobs
 
 logger = logging.getLogger(__name__)
 

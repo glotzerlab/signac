@@ -11,7 +11,21 @@ from .common.errors import FileNotFoundError
 from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
-from .contrib.errors import MergeConflict
+
+
+class MergeConflict(Error, RuntimeError):
+    "Raised when the merging of two jobs fails."
+    def __init__(self, filename):
+        self.filename = filename
+        "The filename of the file that could not be merged."
+
+
+class MergeSchemaConflict(Error, RuntimeError):
+    "Raised when the schema of two projects to be merged differs."
+    def __init__(self, schema_src, schema_dst):
+        self.schema_src = schema_src
+        self.schema_dst = schema_dst
+
 
 __all__ = [
     'Error',
@@ -22,4 +36,5 @@ __all__ = [
     'FetchError',
     'DestinationExistsError',
     'MergeConflict',
+    'MergeSchemaConflict',
 ]

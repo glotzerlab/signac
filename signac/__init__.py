@@ -15,7 +15,7 @@ from . import contrib
 from . import db
 from . import cite
 from . import errors
-from .contrib import sync
+from . import sync
 from .contrib import Project
 from .contrib import get_project
 from .contrib import init_project

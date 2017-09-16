@@ -21,7 +21,8 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
-from signac.contrib.sync import MERGE_STRATEGIES
+from signac.contrib.sync import FileMerge
+from signac.contrib.sync import DocMerge
 from signac.contrib.errors import MergeConflict
 from signac.contrib.errors import MergeSchemaConflict
 
@@ -330,7 +331,7 @@ def main_merge(args):
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
-        strategy = MERGE_STRATEGIES[args.strategy]
+        strategy = getattr(FileMerge, args.strategy)
     else:
         strategy = None
 
@@ -341,20 +342,18 @@ def main_merge(args):
             raise RuntimeError(
                 "Illegal regular expression '{}': '{}'.".format(args.keys, e))
 
-        def doc_merge(key):
-            return re.match(args.keys, key)
-
+        doc_merge = DocMerge.ByKey(lambda key: re.match(args.keys, key))
     else:
-        doc_merge = None
+        doc_merge = DocMerge.ByKey()
 
     try:
-        print("Merging '{}' -> {}'...".format(source, destination))
+        _print_err("Merging '{}' -> {}'...".format(source, destination))
 
         if args.dry_run and args.verbosity <= 2:
-            print("WARNING: Performing dry run, consider to increase output "
+            _print_err("WARNING: Performing dry run, consider to increase output "
                   "verbosity with -v / --verbose.")
 
-        skipped = destination.merge(
+        destination.merge(
             other=source,
             strategy=strategy,
             doc_merge=doc_merge,
@@ -362,17 +361,19 @@ def main_merge(args):
             selection=selection,
             check_schema=not args.force,
             dry_run=args.dry_run)
-        if skipped:
-            print("Skipped key(s):", ', '.join(sorted(skipped)))
-        print("Done.")
+        if doc_merge.skipped_keys:
+            _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
+        _print_err("Done.")
         return
     except MergeSchemaConflict as error:
-        print(
+        _print_err(
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")
     except MergeConflict as error:
-        print("Error: No strategy defined to merge file '{}'.".format(error))
-    print("Merge aborted.")
+        _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
+        _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
+        _print_err("Execute 'signac merge --help' for more information.")
+    _print_err("Merge aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -973,7 +974,7 @@ def main():
              "if this option is provided without any argument.")
     parser_merge.add_argument(
         '-s', '--strategy',
-        choices=MERGE_STRATEGIES.keys(),
+        choices=FileMerge.keys(),
         help="Specify a merge strategy, for differing files.")
     parser_merge.add_argument(
         '-k', '--keys',

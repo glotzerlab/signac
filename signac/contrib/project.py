@@ -18,11 +18,11 @@ from .collection import Collection
 from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
+from ..sync import merge_projects
 from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .sync import merge_projects
 from .utility import _mkdir_p
 from .schema import ProjectSchema
 from .errors import DestinationExistsError
