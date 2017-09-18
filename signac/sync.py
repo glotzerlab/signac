@@ -37,36 +37,6 @@ __all__ = [
 ]
 
 
-def _merge_dirs(src, dst, exclude, strategy, proxy):
-    "Merge two directories file by file, following the provided strategy."
-    diff = filecmp.dircmp(src, dst)
-    for fn in diff.left_only:
-        if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File '{}' is skipped (excluded).".format(fn))
-            continue
-        fn_src = os.path.join(src, fn)
-        fn_dst = os.path.join(dst, fn)
-        if os.path.isfile(fn_src):
-            proxy.copy(fn_src, fn_dst)
-        else:
-            proxy.copytree(os.path.join(src, fn), os.path.join(dst, fn))
-    for fn in diff.diff_files:
-        if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File '{}' is skipped (excluded).".format(fn))
-            continue
-        if strategy is None:
-            raise MergeConflict(fn)
-        else:
-            fn_src = os.path.join(src, fn)
-            fn_dst = os.path.join(dst, fn)
-            if strategy(fn_src, fn_dst):
-                proxy.copy(fn_src, fn_dst)
-            else:
-                logger.debug("Skip file '{}'.".format(fn))
-    for subdir in diff.subdirs:
-        _merge_dirs(os.path.join(src, subdir), os.path.join(dst, subdir), exclude, strategy, proxy)
-
-
 class _DocProxy(object):
     """Proxy object for document (mapping) modifications.
 
@@ -187,25 +157,40 @@ class FileMerge(object):
 
     @classmethod
     def keys(cls):
-        return ('theirs', 'ours', 'ask', 'by_timestamp')
+        return ('theirs', 'ours', 'Ask', 'by_timestamp')
 
-    def theirs(fn_src, fn_dst):
+    def theirs(src, dst, fn):
         "Always merge files on conflict."
         return True
 
-    def ours(fn_src, fn_dst):
+    def ours(src, dst, fn):
         "Never merge files on conflict."
         return False
 
-    def ask(fn_src, fn_dst):
+    class Ask(object):
         "Ask whether a file should be merged interactively."
-        return query_yes_no(
-            "Overwrite file '{}' with '{}'?".format(fn_src, fn_dst),
-            'no')
 
-    def by_timestamp(fn_src, fn_dst):
+        def __init__(self):
+            self.yes = set()
+            self.no = set()
+
+        def __call__(self, src, dst, fn):
+            if fn in self.yes:
+                return True
+            elif fn in self.no:
+                return False
+            else:
+                overwrite = query_yes_no("Overwrite files named '{}'?".format(fn), 'no')
+                if overwrite:
+                    self.yes.add(fn)
+                    return True
+                else:
+                    self.no.add(fn)
+                    return False
+
+    def by_timestamp(src, dst, fn):
         "Merge a file based on its modification time stamp."
-        return os.path.getmtime(fn_src) > os.path.getmtime(fn_dst)
+        return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
 
 class DocMerge(object):
@@ -254,6 +239,36 @@ class DocMerge(object):
                 dst[key] = value
 
 
+def _merge_job_workspaces(src, dst, exclude, strategy, proxy, subdir=''):
+    "Merge two job workspaces file by file, following the provided strategy."
+    diff = filecmp.dircmp(src.fn(subdir), dst.fn(subdir))
+    for fn in diff.left_only:
+        if exclude and any([re.match(p, fn) for p in exclude]):
+            logger.debug("File '{}' is skipped (excluded).".format(fn))
+            continue
+        fn_src = os.path.join(src.workspace(), subdir, fn)
+        fn_dst = os.path.join(dst.workspace(), subdir, fn)
+        if os.path.isfile(fn_src):
+            proxy.copy(fn_src, fn_dst)
+        else:
+            proxy.copytree(fn_src, fn_dst)
+    for fn in diff.diff_files:
+        if exclude and any([re.match(p, fn) for p in exclude]):
+            logger.debug("File '{}' is skipped (excluded).".format(fn))
+            continue
+        if strategy is None:
+            raise MergeConflict(fn)
+        else:
+            fn_src = os.path.join(src.workspace(), subdir, fn)
+            fn_dst = os.path.join(dst.workspace(), subdir, fn)
+            if strategy(src, dst, os.path.join(subdir, fn)):
+                proxy.copy(fn_src, fn_dst)
+            else:
+                logger.debug("Skip file '{}'.".format(fn))
+    for _subdir in diff.subdirs:
+        _merge_job_workspaces(src, dst, exclude, strategy, proxy, os.path.join(subdir, _subdir))
+
+
 def merge_jobs(src, dst, exclude=None, strategy=None, doc_merge=None, dry_run=False):
     "Merge two jobs."
 
@@ -281,7 +296,7 @@ def merge_jobs(src, dst, exclude=None, strategy=None, doc_merge=None, dry_run=Fa
     else:
         logger.debug("Merging job '{}'...".format(src))
 
-    _merge_dirs(src.workspace(), dst.workspace(), exclude, strategy, proxy)
+    _merge_job_workspaces(src, dst, exclude, strategy, proxy)
 
     if not (doc_merge is DocMerge.NO_MERGE or doc_merge == DocMerge.COPY):
         with proxy.create_doc_backup(dst.document) as dst_proxy:

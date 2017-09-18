@@ -53,8 +53,8 @@ CONFIG_HOST_CHOICES = {
 }
 
 
-def _print_err(msg=None):
-    print(msg, file=sys.stderr)
+def _print_err(msg=None, *args):
+    print(msg, *args, file=sys.stderr)
 
 
 def _passlib_available():
@@ -331,7 +331,10 @@ def main_merge(args):
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
-        strategy = getattr(FileMerge, args.strategy)
+        if args.strategy[0].isupper():
+            strategy = getattr(FileMerge, args.strategy)()
+        else:
+            strategy = getattr(FileMerge, args.strategy)
     else:
         strategy = None
 
@@ -351,7 +354,7 @@ def main_merge(args):
 
         if args.dry_run and args.verbosity <= 2:
             _print_err("WARNING: Performing dry run, consider to increase output "
-                  "verbosity with -v / --verbose.")
+                       "verbosity with -v / --verbose.")
 
         destination.merge(
             other=source,
