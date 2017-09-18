@@ -198,7 +198,7 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_nested_kws(self):
         job = self.open_job({'a.b.c': 0})
         self.assertEqual(job.sp['a.b.c'], 0)
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.a.b.c
         job.sp['a.b.c'] = 1
         self.assertEqual(job.sp['a.b.c'], 1)
@@ -233,7 +233,7 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_add(self):
         job = self.open_job(dict(a=0))
         job.init()
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.b
         job.sp.b = 1
         self.assertIn('b', job.sp)
@@ -246,7 +246,7 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertEqual(job.sp.b, 0)
         del job.sp['b']
         self.assertNotIn('b', job.sp)
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.b
 
     def test_interface_destination_conflict(self):

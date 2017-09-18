@@ -326,7 +326,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assert_only_read()
         self.assertNotIn('a', sad)
         self.assert_only_read()
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             sad.a
         self.assert_only_read()
         a = 0
@@ -399,7 +399,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         sad = self.get_sad()
         self.assertEqual(len(sad), 0)
         self.assertNotIn('a', sad)
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             sad.a
         pairs = [(0, 1), (0.0, 1.0), ('0', '1'), (False, True)]
         dict_pairs = [(dict(c=a), dict(c=b)) for a, b in pairs]
