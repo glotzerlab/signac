@@ -754,14 +754,50 @@ class Project(object):
                 raise
         return dst
 
-    def merge(self, other, exclude=None, strategy=None, doc_merge=None,
+    def merge(self, other, strategy=None, exclude=None, doc_merge=None,
               selection=None, check_schema=True, dry_run=False):
-        "Merge other project into this project."
+        """Merge other project into this project.
+
+        Try to clone all jobs from the other project to this project.
+        If a job is already part of this project, try to merge the job
+        using the optionally specified strategies.
+
+        :param other:
+            The other project to merge into this project.
+        :type other:
+            :py:class:`~.Project`
+        :param strategy:
+            A file merging strategy.
+        :param exclude:
+            Files with names matching the given pattern will be excluded
+            from the merge operation.
+        :param doc_merge:
+            The function applied for merging documents.
+        :param selection:
+            Only merge the given jobs.
+        :param check_schema:
+            If True, only merge if this and the other project have a matching
+            state point schema. See also: :py:meth:`~.detect_schema`.
+        :type check_schema:
+            bool
+        :param dry_run:
+            If True (the default), do not actually perform the merge operation,
+            just log what would happen theoretically. Useful to test merge strategies
+            without the risk of data loss.
+        :type dry_run:
+            bool
+        :raises MergeConflict:
+            If there are differing files that cannot be resolved with the given strategy
+            or if no strategy is provided.
+        :raises MergeSchemaConflict:
+            In case that the check_schema argument is True and the detected state point
+            schema of this and the other project differ.
+        """
         return merge_projects(
             source=other,
             destination=self,
-            exclude=exclude,
             strategy=strategy,
+            exclude=exclude,
             doc_merge=doc_merge,
             selection=selection,
             check_schema=check_schema,

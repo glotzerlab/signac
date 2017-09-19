@@ -362,33 +362,50 @@ class Job(object):
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
 
-    def merge(self, other, exclude=None, strategy=None, doc_strategy=None, dry_run=False):
-        """Merge other job into this job.
+    def merge(self, other, strategy=None, exclude=None, doc_merge=None, dry_run=False):
+        """Merge all data from the other job into this job.
+
+        By default, this method will merge all files and document data from the
+        other job into this job until a merge conflict occurs. There are two
+        different kinds of merge conflicts:
+
+            1. The two jobs have files with the same, but different content.
+            2. The two jobs have documents that share keys, but those keys are
+               associated with different values.
+
+        A file conflict can be resolved by providing a 'FileMerge' *strategy* or by
+        *excluding* files from the merge. An unresolvable conflict is indicated with
+        the raise of a :py:class:`~.errors.FileMergeConflict` exception.
+
+        A document merge conflict can be resolved by providing a doc_merge function
+        that takes the source and the destination document as first and second argument.
 
         :param other:
             The other job to merge into this one.
         :type other:
             `.Job`
+        :param strategy:
+            A merge strategy for file conflicts. If no strategy is provided, a
+            MergeConflict exception will be raised upon conflict.
         :param exclude:
             An filename exclude pattern. All files matching this pattern will be
             excluded from merging.
         :type exclude:
             str
-        :param strategy:
-            A merge strategy for file conflicts. If no strategy is provided, a
-            MergeConflict exception will be raised upon conflict.
-        :param doc_strategy:
+        :param doc_merge:
             A merge strategy for document keys. If this argument is None, by default
             no keys will be merged upon conflict.
         :param dry_run:
             If True, do not actually perform any merge actions.
+        :raises FileMergeConflict:
+            In case that a file merge results in a conflict.
         """
         return merge_jobs(
             source=other,
             destination=self,
-            exclude=exclude,
             strategy=strategy,
-            doc_strategy=doc_strategy,
+            exclude=exclude,
+            doc_merge=doc_merge,
             dry_run=dry_run)
 
     def fn(self, filename):

@@ -14,13 +14,18 @@ from .contrib.errors import DestinationExistsError
 
 
 class MergeConflict(Error, RuntimeError):
-    "Raised when the merging of two jobs fails."
+    "Raised when the merge of two jobs fails."
+    pass
+
+
+class FileMergeConflict(MergeConflict):
+    "Raised when a merge fails due to a file conflict."
     def __init__(self, filename):
         self.filename = filename
-        "The filename of the file that could not be merged."
+        "The filename of the file that caused the conflict."
 
 
-class MergeSchemaConflict(Error, RuntimeError):
+class SchemaMergeConflict(MergeConflict):
     "Raised when the schema of two projects to be merged differs."
     def __init__(self, schema_src, schema_dst):
         self.schema_src = schema_src
@@ -36,5 +41,6 @@ __all__ = [
     'FetchError',
     'DestinationExistsError',
     'MergeConflict',
-    'MergeSchemaConflict',
+    'FileMergeConflict',
+    'SchemaMergeConflict',
 ]

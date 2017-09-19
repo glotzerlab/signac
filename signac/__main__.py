@@ -359,8 +359,8 @@ def main_merge(args):
         destination.merge(
             other=source,
             strategy=strategy,
-            doc_merge=doc_merge,
             exclude=args.exclude,
+            doc_merge=doc_merge,
             selection=selection,
             check_schema=not args.force,
             dry_run=args.dry_run)

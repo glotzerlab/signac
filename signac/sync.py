@@ -10,8 +10,8 @@ from collections.abc import Mapping
 from contextlib import contextmanager
 
 from .errors import DestinationExistsError
-from .errors import MergeConflict
-from .errors import MergeSchemaConflict
+from .errors import FileMergeConflict
+from .errors import SchemaMergeConflict
 from .contrib.utility import query_yes_no
 
 
@@ -157,15 +157,19 @@ class FileMerge(object):
 
     @classmethod
     def keys(cls):
-        return ('theirs', 'ours', 'Ask', 'by_timestamp')
+        return ('always', 'never', 'time', 'Ask')
 
-    def theirs(src, dst, fn):
+    def always(src, dst, fn):
         "Always merge files on conflict."
         return True
 
-    def ours(src, dst, fn):
+    def never(src, dst, fn):
         "Never merge files on conflict."
         return False
+
+    def time(src, dst, fn):
+        "Merge a file based on its modification time stamp."
+        return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
     class Ask(object):
         "Ask whether a file should be merged interactively."
@@ -187,10 +191,6 @@ class FileMerge(object):
                 else:
                     self.no.add(fn)
                     return False
-
-    def by_timestamp(src, dst, fn):
-        "Merge a file based on its modification time stamp."
-        return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
 
 class DocMerge(object):
@@ -239,12 +239,12 @@ class DocMerge(object):
                 dst[key] = value
 
 
-def _merge_job_workspaces(src, dst, exclude, strategy, proxy, subdir=''):
+def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir=''):
     "Merge two job workspaces file by file, following the provided strategy."
     diff = filecmp.dircmp(src.fn(subdir), dst.fn(subdir))
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File '{}' is skipped (excluded).".format(fn))
+            logger.debug("File named '{}' is skipped (excluded).".format(fn))
             continue
         fn_src = os.path.join(src.workspace(), subdir, fn)
         fn_dst = os.path.join(dst.workspace(), subdir, fn)
@@ -254,10 +254,10 @@ def _merge_job_workspaces(src, dst, exclude, strategy, proxy, subdir=''):
             proxy.copytree(fn_src, fn_dst)
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File '{}' is skipped (excluded).".format(fn))
+            logger.debug("File named '{}' is skipped (excluded).".format(fn))
             continue
         if strategy is None:
-            raise MergeConflict(fn)
+            raise FileMergeConflict(fn)
         else:
             fn_src = os.path.join(src.workspace(), subdir, fn)
             fn_dst = os.path.join(dst.workspace(), subdir, fn)
@@ -266,10 +266,10 @@ def _merge_job_workspaces(src, dst, exclude, strategy, proxy, subdir=''):
             else:
                 logger.debug("Skip file '{}'.".format(fn))
     for _subdir in diff.subdirs:
-        _merge_job_workspaces(src, dst, exclude, strategy, proxy, os.path.join(subdir, _subdir))
+        _merge_job_workspaces(src, dst, strategy, exclude, proxy, os.path.join(subdir, _subdir))
 
 
-def merge_jobs(src, dst, exclude=None, strategy=None, doc_merge=None, dry_run=False):
+def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=False):
     "Merge two jobs."
 
     # check src and dst compatiblity
@@ -296,14 +296,14 @@ def merge_jobs(src, dst, exclude=None, strategy=None, doc_merge=None, dry_run=Fa
     else:
         logger.debug("Merging job '{}'...".format(src))
 
-    _merge_job_workspaces(src, dst, exclude, strategy, proxy)
+    _merge_job_workspaces(src, dst, strategy, exclude, proxy)
 
     if not (doc_merge is DocMerge.NO_MERGE or doc_merge == DocMerge.COPY):
         with proxy.create_doc_backup(dst.document) as dst_proxy:
             doc_merge(src.document, dst_proxy)
 
 
-def merge_projects(source, destination, exclude=None, strategy=None, doc_merge=None,
+def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=None,
                    selection=None, check_schema=True, dry_run=False):
     """Merge the source project into the destination project.
 
@@ -323,7 +323,7 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_merge=N
         schema_dst = destination.detect_schema()
         if schema_dst and schema_src != schema_dst:
             if schema_src.difference(schema_dst) or schema_dst.difference(schema_src):
-                raise MergeSchemaConflict(schema_src, schema_dst)
+                raise SchemaMergeConflict(schema_src, schema_dst)
 
     if doc_merge is None:
         doc_merge = DocMerge.ByKey()
@@ -362,7 +362,7 @@ def merge_projects(source, destination, exclude=None, strategy=None, doc_merge=N
             logger.more("Cloned job '{}'.".format(src_job))
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            merge_jobs(src_job, dst_job, exclude, strategy, doc_merge, proxy)
+            merge_jobs(src_job, dst_job, strategy, exclude, doc_merge, proxy)
             num_merged += 1
             logger.more("Merged job '{}'.".format(src_job))
     logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))
