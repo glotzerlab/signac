@@ -6,13 +6,20 @@ import re
 import shutil
 import filecmp
 import logging
-from collections.abc import Mapping
+from copy import deepcopy
 from contextlib import contextmanager
 
 from .errors import DestinationExistsError
 from .errors import FileMergeConflict
+from .errors import DocumentMergeConflict
 from .errors import SchemaMergeConflict
 from .contrib.utility import query_yes_no
+from .common import six
+from filecmp import dircmp
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 
 LEVEL_MORE = logging.INFO - 5
@@ -35,6 +42,16 @@ __all__ = [
     'FileMerge',
     'DocMerge',
 ]
+
+
+class dircmp_deep(dircmp):
+
+    def phase3(self):  # Find out differences between common files
+        xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
+        self.same_files, self.diff_files, self.funny_files = xx
+
+    methodmap = dict(dircmp.methodmap)
+    methodmap['samefiles'] = methodmap['diff_files'] = phase3
 
 
 class _DocProxy(object):
@@ -69,13 +86,26 @@ class _DocProxy(object):
             self.doc[key] = value
 
     def keys(self):
-        return self.docs.keys()
+        return self.doc.keys()
+
+    def clear(self):
+        self.doc.clear()
+
+    def update(self, other):
+        for key in other.keys():
+            self[key] = other[key]
 
     def __iter__(self):
         return iter(self.doc)
 
     def __contains__(self, key):
         return key in self.doc
+
+    def __eq__(self, other):
+        return self.doc.__eq__(other)
+
+    def __len__(self):
+        return len(self.doc)
 
 
 class _FileModifyProxy(object):
@@ -94,11 +124,6 @@ class _FileModifyProxy(object):
 
     def __init__(self, dry_run=False):
         self.dry_run = dry_run
-
-    def set_value(self, doc, key, value):
-        logger.more("Set '{}'='{}'.".format(key, value))
-        if not self.dry_run:
-            doc[key] = value
 
     def copy(self, src, dst):
         logger.more("Copy file '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
@@ -124,30 +149,31 @@ class _FileModifyProxy(object):
                 "Failed to create backup, file already exists: '{}'.".format(
                     os.path.relpath(path_backup)))
         try:
-            if not self.dry_run:
-                shutil.copy(path, path_backup)
+            self.copy(path, path_backup)
             yield path_backup
+        except:
+            logger.more("Error occured, restoring backup...")
+            self.copy(path_backup, path)
+            raise
         finally:
             logger.debug("Remove backup of '{}'.".format(os.path.relpath(path)))
-            if not self.dry_run:
-                try:
-                    os.remove(path_backup)
-                except IOError as error:
-                    logger.error(error)
+            self.remove(path_backup)
 
     @contextmanager
     def create_doc_backup(self, doc):
+        proxy = _DocProxy(doc, dry_run=self.dry_run)
         fn = getattr(doc, 'filename', getattr(doc, '_filename', None))
-        if fn is None or not os.path.isfile(fn):
-            yield _DocProxy(doc, dry_run=self.dry_run)
+        if not len(proxy) or fn is None or not os.path.isfile(fn):
+            backup = deepcopy(doc)  # use in-memory backup
+            try:
+                yield proxy
+            except:     # roll-back
+                proxy.clear()
+                proxy.update(backup)
+                raise
         else:
-            with self.create_backup(fn) as fn_backup:
-                try:
-                    yield _DocProxy(doc, dry_run=self.dry_run)
-                except:
-                    logger.warning("Error during doc merge, restoring backup...")
-                    self.copy(fn_backup, doc._filename)
-                    raise
+            with self.create_backup(fn):
+                yield proxy
 
 
 # Definition of default merge strategies
@@ -159,14 +185,17 @@ class FileMerge(object):
     def keys(cls):
         return ('always', 'never', 'time', 'Ask')
 
+    @staticmethod
     def always(src, dst, fn):
         "Always merge files on conflict."
         return True
 
+    @staticmethod
     def never(src, dst, fn):
         "Never merge files on conflict."
         return False
 
+    @staticmethod
     def time(src, dst, fn):
         "Merge a file based on its modification time stamp."
         return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
@@ -202,6 +231,7 @@ class DocMerge(object):
     COPY = 'copy'
     "Copy documents like all other files."
 
+    @staticmethod
     def update(src, dst):
         "Perform simple update."
         for key in src.keys():
@@ -212,7 +242,11 @@ class DocMerge(object):
 
         def __init__(self, key_strategy=None):
             if isinstance(key_strategy, str):
-                self.key_strategy = lambda k: re.match(key_strategy, k)
+
+                def regex_key_strategy(key):
+                    return re.match(key_strategy, key)
+
+                self.key_strategy = regex_key_strategy
             else:
                 self.key_strategy = key_strategy
             self.skipped_keys = set()
@@ -220,28 +254,30 @@ class DocMerge(object):
         def __str__(self):
             return "{}({})".format(type(self).__name__, self.key_strategy)
 
-        def __call__(self, src, dst):
+        def __call__(self, src, dst, root=''):
             if src == dst:
                 return
             for key, value in src.items():
                 if key in dst:
                     if dst[key] == value:
                         continue
-                    elif self.key_strategy is None or not self.key_strategy(key):
+                    elif isinstance(value, Mapping):
+                        self(src[key], dst[key], key + '.')
+                        continue
+                    elif self.key_strategy is None:
+                        raise DocumentMergeConflict(root + key)
+                    elif not self.key_strategy(root + key):
                         self.skipped_keys.add(key)
                         continue
-                    elif isinstance(value, Mapping):
-                        try:
-                            self(src[key], dst[key])
-                            continue
-                        except KeyError:
-                            pass
                 dst[key] = value
 
 
-def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir=''):
+def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=False):
     "Merge two job workspaces file by file, following the provided strategy."
-    diff = filecmp.dircmp(src.fn(subdir), dst.fn(subdir))
+    if deep:
+        diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
+    else:
+        diff = dircmp(src.fn(subdir), dst.fn(subdir))
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
             logger.debug("File named '{}' is skipped (excluded).".format(fn))
@@ -266,17 +302,61 @@ def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir=''):
             else:
                 logger.debug("Skip file '{}'.".format(fn))
     for _subdir in diff.subdirs:
-        _merge_job_workspaces(src, dst, strategy, exclude, proxy, os.path.join(subdir, _subdir))
+        _merge_job_workspaces(
+            src, dst, strategy, exclude, proxy, os.path.join(subdir, _subdir), deep=deep)
 
 
-def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=False):
-    "Merge two jobs."
+def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=False, deep=False):
+    """Merge the data of the src job into the dst job.
 
+        By default, this method will merge all files and document data from the src job
+        to the dst job until a merge conflict occurs. There are two different kinds of
+        merge conflicts:
+
+            1. The two jobs have files with the same, but different content.
+            2. The two jobs have documents that share keys, but those keys are
+               associated with different values.
+
+        A file conflict can be resolved by providing a 'FileMerge' *strategy* or by
+        *excluding* files from the merge. An unresolvable conflict is indicated with
+        the raise of a :py:class:`~.errors.FileMergeConflict` exception.
+
+        A document merge conflict can be resolved by providing a doc_merge function
+        that takes the source and the destination document as first and second argument.
+
+        :param src:
+            The src job, data will be copied from this job's workspace.
+        :type src:
+            `~.Job`
+        :param dst:
+            The dst job, data will be merged with this job's data.
+        :type dst:
+            `~.Job`
+        :param strategy:
+            A merge strategy for file conflicts. If no strategy is provided, a
+            MergeConflict exception will be raised upon conflict.
+        :param exclude:
+            An filename exclude pattern. All files matching this pattern will be
+            excluded from merging.
+        :type exclude:
+            str
+        :param doc_merge:
+            A merge strategy for document keys. If this argument is None, by default
+            no keys will be merged upon conflict.
+        :param dry_run:
+            If True, do not actually perform any merge actions.
+    """
     # check src and dst compatiblity
-    assert type(src) == type(dst)
-    assert src.get_id() == dst.get_id()
     assert src.FN_MANIFEST == dst.FN_MANIFEST
     assert src.FN_DOCUMENT == dst.FN_DOCUMENT
+
+    # Nothing to be done if the src is not initialized.
+    if src not in src._project:
+        return
+
+    # The doc_merge functions defaults to a safe "by_key" strategy.
+    if doc_merge is None:
+        doc_merge = DocMerge.ByKey()
 
     # the exclude argument must be a list
     if exclude is None:
@@ -296,7 +376,9 @@ def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=Fa
     else:
         logger.debug("Merging job '{}'...".format(src))
 
-    _merge_job_workspaces(src, dst, strategy, exclude, proxy)
+    if os.path.isdir(src.workspace()):
+        dst.init()
+        _merge_job_workspaces(src, dst, strategy, exclude, proxy, deep=deep)
 
     if not (doc_merge is DocMerge.NO_MERGE or doc_merge == DocMerge.COPY):
         with proxy.create_doc_backup(dst.document) as dst_proxy:
@@ -321,7 +403,7 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
     if check_schema:
         schema_src = source.detect_schema()
         schema_dst = destination.detect_schema()
-        if schema_dst and schema_src != schema_dst:
+        if schema_dst and schema_src and schema_src != schema_dst:
             if schema_src.difference(schema_dst) or schema_dst.difference(schema_src):
                 raise SchemaMergeConflict(schema_src, schema_dst)
 

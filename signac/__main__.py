@@ -24,7 +24,7 @@ from .errors import DestinationExistsError
 from signac.sync import FileMerge
 from signac.sync import DocMerge
 from signac.errors import MergeConflict
-from signac.errors import MergeSchemaConflict
+from signac.errors import SchemaMergeConflict
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -368,7 +368,7 @@ def main_merge(args):
             _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
         _print_err("Done.")
         return
-    except MergeSchemaConflict as error:
+    except SchemaMergeConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")

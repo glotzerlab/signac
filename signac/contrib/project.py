@@ -750,12 +750,13 @@ class Project(object):
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
+            elif error.errno == errno.ENOENT:
+                raise ValueError("Source job not initalized.")
             else:
                 raise
         return dst
 
-    def merge(self, other, strategy=None, exclude=None, doc_merge=None,
-              selection=None, check_schema=True, dry_run=False):
+    def merge(self, other, strategy=None, exclude=None, doc_merge=None, selection=None, **kwargs):
         """Merge other project into this project.
 
         Try to clone all jobs from the other project to this project.
@@ -800,9 +801,7 @@ class Project(object):
             exclude=exclude,
             doc_merge=doc_merge,
             selection=selection,
-            check_schema=check_schema,
-            dry_run=dry_run,
-            )
+            **kwargs)
 
     def repair(self, fn_statepoints=None, index=None):
         """Attempt to repair the workspace after it got corrupted.

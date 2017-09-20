@@ -362,7 +362,7 @@ class Job(object):
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
 
-    def merge(self, other, strategy=None, exclude=None, doc_merge=None, dry_run=False):
+    def merge(self, other, strategy=None, exclude=None, doc_merge=None, **kwargs):
         """Merge all data from the other job into this job.
 
         By default, this method will merge all files and document data from the
@@ -397,16 +397,19 @@ class Job(object):
             no keys will be merged upon conflict.
         :param dry_run:
             If True, do not actually perform any merge actions.
+        :param kwargs:
+            Extra keyword arguments will be forward to the :py:func:`~.sync.merge_jobs`
+            function which actually excutes the merge operation.
         :raises FileMergeConflict:
             In case that a file merge results in a conflict.
         """
-        return merge_jobs(
-            source=other,
-            destination=self,
+        merge_jobs(
+            src=other,
+            dst=self,
             strategy=strategy,
             exclude=exclude,
             doc_merge=doc_merge,
-            dry_run=dry_run)
+            **kwargs)
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.

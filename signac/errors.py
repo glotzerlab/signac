@@ -25,6 +25,13 @@ class FileMergeConflict(MergeConflict):
         "The filename of the file that caused the conflict."
 
 
+class DocumentMergeConflict(MergeConflict):
+    "Raised when a merge fails due to a document conflict."
+    def __init__(self, key):
+        self.key = key
+        "The key that caused the conflict."
+
+
 class SchemaMergeConflict(MergeConflict):
     "Raised when the schema of two projects to be merged differs."
     def __init__(self, schema_src, schema_dst):
@@ -42,5 +49,6 @@ __all__ = [
     'DestinationExistsError',
     'MergeConflict',
     'FileMergeConflict',
+    'DocumentMergeConflict',
     'SchemaMergeConflict',
 ]
