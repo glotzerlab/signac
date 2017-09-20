@@ -23,7 +23,8 @@ from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
 from signac.sync import FileMerge
 from signac.sync import DocMerge
-from signac.errors import MergeConflict
+from signac.errors import FileMergeConflict
+from signac.errors import DocumentMergeConflict
 from signac.errors import SchemaMergeConflict
 
 try:
@@ -372,7 +373,10 @@ def main_merge(args):
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")
-    except MergeConflict as error:
+    except DocumentMergeConflict as error:
+        _print_err("Merge conflict occured: No strategy defined to merge key '{}'.".format(error))
+        _print_err("Use the '-k/ --keys' argument to specify a key merge strategy.")
+    except FileMergeConflict as error:
         _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
         _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
         _print_err("Execute 'signac merge --help' for more information.")
