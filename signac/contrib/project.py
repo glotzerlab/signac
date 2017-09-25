@@ -739,7 +739,7 @@ class Project(object):
         :param job: The job to copy into this project.
         :type job: :py:class:`~.Job`
         :returns: The job instance corresponding to the copied job.
-        :rtype: :py:class:`~.Job`
+        :rtype: :class:`~.Job`
         :raises DestinationExistsError:
             In case that a job with the same id is already
             initialized within this project.
@@ -776,18 +776,13 @@ class Project(object):
             The function applied for merging documents.
         :param selection:
             Only merge the given jobs.
-        :param check_schema:
-            If True, only merge if this and the other project have a matching
-            state point schema. See also: :py:meth:`~.detect_schema`.
-        :type check_schema:
-            bool
-        :param dry_run:
-            If True (the default), do not actually perform the merge operation,
-            just log what would happen theoretically. Useful to test merge strategies
-            without the risk of data loss.
-        :type dry_run:
-            bool
-        :raises MergeConflict:
+        :param kwargs:
+            This method accepts the same keyword arguments as the :func:`~.sync.merge_projects`
+            function.
+        :raises DocumentMergeConflict:
+            If there are conflicting keys within the project or job documents that cannot
+            be resolved with the given strategy or if there is no strategy provided.
+        :raises FileMergeConflict:
             If there are differing files that cannot be resolved with the given strategy
             or if no strategy is provided.
         :raises MergeSchemaConflict:

@@ -27,9 +27,9 @@ class FileMergeConflict(MergeConflict):
 
 class DocumentMergeConflict(MergeConflict):
     "Raised when a merge fails due to a document conflict."
-    def __init__(self, key):
-        self.key = key
-        "The key that caused the conflict."
+    def __init__(self, keys):
+        self.keys = keys
+        "The keys that caused the conflict."
 
 
 class SchemaMergeConflict(MergeConflict):

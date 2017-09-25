@@ -966,7 +966,15 @@ def main():
         help="Detect schema only for jobs with the given job ids.")
     parser_schema.set_defaults(func=main_schema)
 
-    parser_merge = subparsers.add_parser('merge')
+    parser_merge = subparsers.add_parser(
+        'merge',
+        description="""Use this command to merge another project into this project.
+For example: `signac merge /path/to/other/project --strategy always --keys foo`
+means "Merge all jobs from the other project into this project; *always* overwrite files
+on conflict and merge all keys that match the 'foo' expression when there are conflicting
+keys in the project or job documents." See help(signac.sync) for more information.
+        """
+        )
     parser_merge.add_argument(
         'source',
         help="The root directory of the project that should be merged.")

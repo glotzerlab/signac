@@ -1,6 +1,78 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Synchronization of jobs and projects.
+
+Jobs may be merged by copying all data from the source job to the
+destination job. This means all files are copied and the documents
+are synchronized. Conflicts, that means both jobs contain conflicting
+data, may be resolved with a user defined strategy.
+
+A merge of projects is in essence the merge of all jobs which are in the
+source project into the destination project and the merge of the project
+document. If a specific job does not exist yet at the destination it is
+simply cloned, otherwise it is merged.
+
+A merge strategy is a function (or functor) that takes the source job,
+the destination job, and the name of the file generating the conflict
+as arguments and returns the decision whether to overwrite the file as
+Boolean. There are some default strategies defined within this module as
+part of the :class:`~.FileMerge` class. These are the default strategies:
+
+    1. always -- Always overwrite on conflict.
+    2. never -- Never overwrite on conflict.
+    3. time -- Overwrite when the modification time of the source file is newer.
+    4. Ask -- Ask the user interactively about each conflicting filename.
+
+For example, to merge two projects resolving conflicts by modification time, use:
+
+.. code-block:: python
+
+    dest_projet.merge(source_project, strategy=sync.FileMerge.time)
+
+Unlike files, which are always either overwritten as a whole or not, documents
+can be merged more fine-grained with a *merge function*. Such a function (or
+functor) takes the source and the destination document as arguments and performs
+the merge. The user is encouraged to implement their own merge functions, but there
+are a few default functions implemented as part of the :class:`~.DocMerge` class:
+
+    1. NO_MERGE -- Do not perform a merge.
+    2. COPY -- Apply the same strategy used to resolve file conflicts.
+    3. update -- Equivalent to dst.update(src).
+    4. ByKey -- Merge the source document key by key, more information below.
+
+This is how we could merge two jobs, where the documents are merged with a simple
+update function:
+
+.. code-block:: python
+
+    dst_job.merge(src_job, doc_merge=sync.DocMerge.update)
+
+The :class:`.DocMerge.ByKey` functor attempts to merge the source document into
+the destination document without overwriting any data. That means this function
+behaves similar to :func:`~.DocMerge.update` for a non-intersecting set of keys,
+but in addition will preserve nested mappings without overwriting values. In addition,
+any key conflict, that means keys that are present in both documents, but have
+differing data, will lead to the raise of a :class:`.DocumentMergeConflict` exception.
+The user may expclitly decide to overwrite certain keys by providing a "key-strategy",
+which is a function that takes the conflicting key as argument, and returns the
+decision whether to overwrite that specific key as Boolean. For example, to merge
+two jobs, where conflicting keys should only be overwritten if they contain the
+term 'foo', we could execute:
+
+.. code-block:: python
+
+    dst_job.merge(src_job, doc_merge=sync.DocMerge.ByKey(lambda key: 'foo' in key))
+
+This means that all documents are merged 'key-by-key' and only conflicting keys that
+contain the word "foo" will be overwritten, any other conflicts would lead to the
+raise of a :class:`~.DocumentMergeConflict` exception. A key-strategy may also be
+a regular expression, so the merge above could also be achieved with:
+
+.. code-block:: python
+
+    dst_job.merge(src_job, doc_merge=sync.DocMerge.ByKey('foo'))
+"""
 import os
 import re
 import shutil
@@ -37,10 +109,10 @@ logger.more = log_more
 
 
 __all__ = [
-    'merge_jobs',
-    'merge_projects',
     'FileMerge',
     'DocMerge',
+    'merge_jobs',
+    'merge_projects',
 ]
 
 
@@ -325,7 +397,7 @@ def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=Fa
 
         A file conflict can be resolved by providing a 'FileMerge' *strategy* or by
         *excluding* files from the merge. An unresolvable conflict is indicated with
-        the raise of a :py:class:`~.errors.FileMergeConflict` exception.
+        the raise of a :class:`~.errors.FileMergeConflict` exception.
 
         A document merge conflict can be resolved by providing a doc_merge function
         that takes the source and the destination document as first and second argument.
@@ -398,6 +470,44 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
     Try to clone all jobs from the source to the destination.
     If the destination job already exist, try to merge the job using the
     optionally specified strategy.
+
+    :param source:
+        The project to merge from.
+    :type source:
+        :class:`~.Project`
+    :param destination:
+        The project to merge to.
+    :type destination:
+        :class:`~.Project`
+    :param strategy:
+        A file merging strategy.
+    :param exclude:
+        Files with names matching the given pattern will be excluded
+        from the merge operation.
+    :param doc_merge:
+        The function applied for merging documents.
+    :param selection:
+        Only merge the given jobs.
+    :param check_schema:
+        If True, only merge if this and the other project have a matching
+        state point schema. See also: :meth:`~.detect_schema`.
+    :type check_schema:
+        bool
+    :param dry_run:
+        If True (the default), do not actually perform the merge operation,
+        just log what would happen theoretically. Useful to test merge strategies
+        without the risk of data loss.
+    :type dry_run:
+        bool
+    :raises DocumentMergeConflict:
+        If there are conflicting keys within the project or job documents that cannot
+        be resolved with the given strategy or if there is no strategy provided.
+    :raises FileMergeConflict:
+        If there are differing files that cannot be resolved with the given strategy
+        or if no strategy is provided.
+    :raises MergeSchemaConflict:
+        In case that the check_schema argument is True and the detected state point
+        schema of this and the other project differ.
     """
     if source == destination:
         raise ValueError("Source and destination can't be the same!")
