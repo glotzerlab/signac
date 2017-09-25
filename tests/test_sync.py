@@ -364,7 +364,6 @@ class JobMergeTest(BaseJobTest):
         touch(job_src.fn('subdir/test2'))
         job_dst.merge(job_src, sync.FileMerge.time, exclude='test2')
         self.assertFalse(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
         job_dst.merge(job_src, sync.FileMerge.time)
         self.assertFalse(differs('subdir/test2'))
 
