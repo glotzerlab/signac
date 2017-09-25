@@ -264,12 +264,18 @@ class DocMerge(object):
                     elif isinstance(value, Mapping):
                         self(src[key], dst[key], key + '.')
                         continue
-                    elif self.key_strategy is None:
-                        raise DocumentMergeConflict(root + key)
-                    elif not self.key_strategy(root + key):
-                        self.skipped_keys.add(key)
+                    elif self.key_strategy is None or not self.key_strategy(root + key):
+                        self.skipped_keys.add(root + key)
                         continue
                 dst[key] = value
+
+            # Check for skipped keys and raise an exception in case that no strategy
+            # was provided, otherwise just log them.
+            if self.skipped_keys and not root:
+                if self.key_strategy is None:
+                    raise DocumentMergeConflict(self.skipped_keys)
+                else:
+                    logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
 
 
 def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=False):
@@ -448,10 +454,3 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
             num_merged += 1
             logger.more("Merged job '{}'.".format(src_job))
     logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))
-
-    # Provide some information about skipped document keys.
-    skipped_keys = getattr(doc_merge, 'skipped_keys', None)
-    if skipped_keys:
-        logger.info("Skipped {} document key(s).".format(len(skipped_keys)))
-        logger.more("Skipped key(s): {}".format(', '.join(skipped_keys)))
-    return skipped_keys

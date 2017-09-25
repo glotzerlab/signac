@@ -374,8 +374,11 @@ def main_merge(args):
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")
     except DocumentMergeConflict as error:
-        _print_err("Merge conflict occured: No strategy defined to merge key '{}'.".format(error))
-        _print_err("Use the '-k/ --keys' argument to specify a key merge strategy.")
+        _print_err(
+            "Merge conflict occured: No strategy defined "
+            "to merge key(s): '{}'.".format(', '.join(error.keys)))
+        _print_err("Use the '-k/ --keys' argument to specify a key merge strategy, "
+                   "e.g., '.*' for all keys.")
     except FileMergeConflict as error:
         _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
         _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
@@ -986,12 +989,9 @@ def main():
     parser_merge.add_argument(
         '-k', '--keys',
         type=str,
-        nargs='?',
-        const='.*',
         help="Specify a regular expression for keys that should be merged "
-             "as part of the project and job documents. Defaults to all keys "
-             "if the argument to this option is omitted. By default no keys "
-             "will be merged.")
+             "as part of the project and job documents. To merge all keys, "
+             "use '.*'.")
     parser_merge.add_argument(
         '-n', '--dry-run',
         action='store_true',
