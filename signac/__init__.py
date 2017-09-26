@@ -15,6 +15,7 @@ from . import contrib
 from . import db
 from . import cite
 from . import errors
+from . import sync
 from .contrib import Project
 from .contrib import get_project
 from .contrib import init_project
@@ -35,7 +36,7 @@ from .db import get_database
 
 __version__ = '0.8.6'
 
-__all__ = ['__version__', 'contrib', 'db', 'errors',
+__all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'cite',
            'Project', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',

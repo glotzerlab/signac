@@ -21,7 +21,10 @@ class SyncedAttrDict(_SyncedDict):
         except AttributeError:
             if name.startswith('__'):
                 raise
-            return self.__getitem__(name)
+            try:
+                return self.__getitem__(name)
+            except KeyError as e:
+                raise AttributeError(e)
 
     def __setattr__(self, key, value):
         try:

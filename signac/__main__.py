@@ -9,6 +9,7 @@ import json
 import logging
 import getpass
 import difflib
+import re
 import errno
 from pprint import pprint, pformat
 
@@ -16,11 +17,16 @@ from . import get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
-from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .contrib.utility import query_yes_no, prompt_password
+from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
+from signac.sync import FileMerge
+from signac.sync import DocMerge
+from signac.errors import FileMergeConflict
+from signac.errors import DocumentMergeConflict
+from signac.errors import SchemaMergeConflict
+
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
 except ImportError:
@@ -48,8 +54,8 @@ CONFIG_HOST_CHOICES = {
 }
 
 
-def _print_err(msg=None):
-    print(msg, file=sys.stderr)
+def _print_err(msg=None, *args):
+    print(msg, *args, file=sys.stderr)
 
 
 def _passlib_available():
@@ -128,6 +134,11 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
+def find_with_filter_or_none(args):
+    if args.job_id or args.filter or args.doc_filter:
+        return find_with_filter(args)
+
+
 def find_with_filter(args):
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
@@ -136,7 +147,10 @@ def find_with_filter(args):
             return args.job_id
 
     project = get_project()
-    index = _read_index(project, args.index)
+    if hasattr(args, 'index'):
+        index = _read_index(project, args.index)
+    else:
+        index = None
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
@@ -300,6 +314,76 @@ def main_init(args):
         root=os.getcwd(),
         workspace=args.workspace)
     _print_err("Initialized project '{}'.".format(project))
+
+
+def main_schema(args):
+    project = get_project()
+    print(project.detect_schema(
+        exclude_const=args.exclude_const,
+        subset=find_with_filter_or_none(args)).format(
+            depth=args.depth,
+            precision=args.precision,
+            max_num_range=args.max_num_range))
+
+
+def main_merge(args):
+    source = get_project(root=args.source)
+    destination = get_project(root=args.destination)
+    selection = find_with_filter_or_none(args)
+
+    if args.strategy:
+        if args.strategy[0].isupper():
+            strategy = getattr(FileMerge, args.strategy)()
+        else:
+            strategy = getattr(FileMerge, args.strategy)
+    else:
+        strategy = None
+
+    if args.keys:
+        try:
+            re.compile(args.keys)
+        except re.error as e:
+            raise RuntimeError(
+                "Illegal regular expression '{}': '{}'.".format(args.keys, e))
+
+        doc_merge = DocMerge.ByKey(lambda key: re.match(args.keys, key))
+    else:
+        doc_merge = DocMerge.ByKey()
+
+    try:
+        _print_err("Merging '{}' -> {}'...".format(source, destination))
+
+        if args.dry_run and args.verbosity <= 2:
+            _print_err("WARNING: Performing dry run, consider to increase output "
+                       "verbosity with -v / --verbose.")
+
+        destination.merge(
+            other=source,
+            strategy=strategy,
+            exclude=args.exclude,
+            doc_merge=doc_merge,
+            selection=selection,
+            check_schema=not args.force,
+            dry_run=args.dry_run)
+        if doc_merge.skipped_keys:
+            _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
+        _print_err("Done.")
+        return
+    except SchemaMergeConflict as error:
+        _print_err(
+            "WARNING: The detected schemas of the two projects differ! "
+            "Use --force to ignore.")
+    except DocumentMergeConflict as error:
+        _print_err(
+            "Merge conflict occured: No strategy defined "
+            "to merge key(s): '{}'.".format(', '.join(error.keys)))
+        _print_err("Use the '-k/ --keys' argument to specify a key merge strategy, "
+                   "e.g., '.*' for all keys.")
+    except FileMergeConflict as error:
+        _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
+        _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
+        _print_err("Execute 'signac merge --help' for more information.")
+    _print_err("Merge aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -597,6 +681,7 @@ def main():
         '--version',
         action='store_true',
         help="Display the version number and exit.")
+    add_verbosity_argument(parser, default=2)
     parser.add_argument(
         '-y', '--yes',
         action='store_true',
@@ -842,6 +927,106 @@ def main():
         help="The filename of an index file.")
     parser_view.set_defaults(func=main_view)
 
+    parser_schema = subparsers.add_parser('schema')
+    parser_schema.add_argument(
+        '-x', '--exclude-const',
+        action='store_true',
+        help="Exclude state point parameters, which are constant over the "
+             "complete project data space.")
+    parser_schema.add_argument(
+        '-t', '--depth',
+        type=int,
+        default=0,
+        help="A non-zero value will format the schema in a nested representation "
+             "up to the specified depth. The default is a flat view (depth=0).")
+    parser_schema.add_argument(
+        '-p', '--precision',
+        type=int,
+        help="Round all numerical values up to the given precision.")
+    parser_schema.add_argument(
+        '-r', '--max-num-range',
+        type=int,
+        default=5,
+        help="The maximum number of entries shown for a value range, defaults to 5.")
+    selection_group = parser_schema.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs with the given job ids.")
+    parser_schema.set_defaults(func=main_schema)
+
+    parser_merge = subparsers.add_parser(
+        'merge',
+        description="""Use this command to merge another project into this project.
+For example: `signac merge /path/to/other/project --strategy always --keys foo`
+means "Merge all jobs from the other project into this project; *always* overwrite files
+on conflict and merge all keys that match the 'foo' expression when there are conflicting
+keys in the project or job documents." See help(signac.sync) for more information.
+        """
+        )
+    parser_merge.add_argument(
+        'source',
+        help="The root directory of the project that should be merged.")
+    parser_merge.add_argument(
+        'destination',
+        nargs='?',
+        help="Optional: The root directory of the project that should be "
+             "merged into, defaults to the local project.")
+    parser_merge.add_argument(
+        '-x', '--exclude',
+        type=str,
+        nargs='?',
+        const='.*',
+        help="Exclude all files matching the given pattern. Exclude all files "
+             "if this option is provided without any argument.")
+    parser_merge.add_argument(
+        '-s', '--strategy',
+        choices=FileMerge.keys(),
+        help="Specify a merge strategy, for differing files.")
+    parser_merge.add_argument(
+        '-k', '--keys',
+        type=str,
+        help="Specify a regular expression for keys that should be merged "
+             "as part of the project and job documents. To merge all keys, "
+             "use '.*'.")
+    parser_merge.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help="Do not actually execute merge actions. You may still need to "
+             "increase the output verbosity to see what would happen.")
+    parser_merge.add_argument(
+        '--force',
+        action='store_true',
+        help="Ignore warnings, just merge.")
+    selection_group = parser_merge.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Only merge jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Only merge jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Only merge jobs with the given job ids.")
+    parser_merge.set_defaults(func=main_merge)
+
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
         '-g', '--global',
@@ -943,8 +1128,13 @@ def main():
     args = parser.parse_args()
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    elif six.PY2:
-        logging.basicConfig(level=logging.WARNING)
+    else:
+        log_level = logging.DEBUG if args.debug else [
+            logging.CRITICAL, logging.ERROR,
+            logging.WARNING, logging.INFO,
+            logging.MORE, logging.DEBUG][min(args.verbosity, 5)]
+        logging.basicConfig(level=log_level)
+
     if not hasattr(args, 'func'):
         parser.print_usage()
         sys.exit(2)
