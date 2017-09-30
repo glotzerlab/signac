@@ -439,7 +439,7 @@ class Project(object):
     def __iter__(self):
         return self.find_jobs()
 
-    def groupby(self, key):
+    def groupby(self, key=None):
         """Groups jobs according to one or more statepoint parameters.
         This method can also be called on any `_JobsIterator` such as
         :meth:`find_jobs`. Example:
@@ -1226,12 +1226,18 @@ class _JobsIterator(object):
             that will be passed one argument, the job.
         :type key: str, tuple, or function
         """
-        if isinstance(key, str):
-            keyfunction = lambda job: job.sp[key]
-        elif isinstance(key, tuple):
-            keyfunction = lambda job: tuple(job.sp[k] for k in key)
-        else:
+        if isinstance(key, six.string_types):
+            def keyfunction(job):
+                return job.sp[key]
+        elif isinstance(key, collections.Iterable):
+            def keyfunction(job):
+                return tuple(job.sp[k] for k in key)
+        elif callable(key):
             keyfunction = key
+        else:
+            # Must return a type that can be ordered with <, >
+            def keyfunction(job):
+                return str(job)
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
 

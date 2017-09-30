@@ -693,6 +693,8 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(len(list(g)), 2)
         for k, g in self.project.groupby(lambda job: job.sp['a'] % 4):
             self.assertEqual(len(list(g)), 3)
+        for k, g in self.project.groupby(lambda job: str(job)):
+            self.assertEqual(len(list(g)), 1)
 
 
 class ProjectInitTest(unittest.TestCase):
