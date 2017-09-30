@@ -674,6 +674,26 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(s.difference(s_, ignore_values=True)), 0)
         self.assertEqual(len(s3.difference(s3_, ignore_values=True)), 0)
 
+    def test_jobs_groupby(self):
+        def get_sp(i):
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
+        for i in range(12):
+            self.project.open_job(get_sp(i)).init()
+
+        for k, g in self.project.groupby('a'):
+            self.assertEqual(len(list(g)), 1)
+        for k, g in self.project.groupby('b'):
+            self.assertEqual(len(list(g)), 6)
+        for k, g in self.project.groupby(('b', 'c')):
+            self.assertEqual(len(list(g)), 2)
+        for k, g in self.project.groupby(lambda job: job.sp['a'] % 4):
+            self.assertEqual(len(list(g)), 3)
+
 
 class ProjectInitTest(unittest.TestCase):
 

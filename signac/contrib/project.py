@@ -10,7 +10,7 @@ import warnings
 import errno
 import collections
 import shutil
-from itertools import chain
+from itertools import chain, groupby
 
 from ..core.json import json
 from ..core.jsondict import JSONDict
@@ -438,6 +438,28 @@ class Project(object):
 
     def __iter__(self):
         return self.find_jobs()
+
+    def groupby(self, key):
+        """Groups jobs according to one or more statepoint parameters.
+        This method can also be called on any `_JobsIterator` such as
+        :meth:`find_jobs`. Example:
+
+        .. code-block:: python
+
+            # Group jobs by statepoint parameter 'a'.
+            for key, group in project.groupby('a'):
+                print(key, list(group))
+
+            # Find jobs where 'a' is 1 and group them by 'b' and 'c'.
+            for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
+                print(key, list(group))
+
+        :param key: The statepoint grouping parameter(s) passed
+            as a string, tuple of strings, or a function
+            that will be passed one argument, the job.
+        :type key: str, tuple, or function
+        """
+        return self.__iter__().groupby(key)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1195,6 +1217,22 @@ class _JobsIterator(object):
         return self._project.open_job(id=next(self._ids_iterator))
 
     next = __next__  # python 2.7 compatibility
+
+    def groupby(self, key=None):
+        """Groups jobs according to one or more statepoint parameters.
+
+        :param key: The statepoint grouping parameter(s) passed
+            as a string, tuple of strings, or a function
+            that will be passed one argument, the job.
+        :type key: str, tuple, or function
+        """
+        if isinstance(key, str):
+            keyfunction = lambda job: job.sp[key]
+        elif isinstance(key, tuple):
+            keyfunction = lambda job: tuple(job.sp[k] for k in key)
+        else:
+            keyfunction = key
+        return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
