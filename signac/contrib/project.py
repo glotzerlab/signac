@@ -434,15 +434,16 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        return _JobsIterator(self, self.find_job_ids(filter, doc_filter, index))
+        return JobsCursor(self, self.find_job_ids(filter, doc_filter, index))
 
     def __iter__(self):
         return self.find_jobs()
 
     def groupby(self, key=None):
         """Groups jobs according to one or more statepoint parameters.
-        This method can also be called on any `_JobsIterator` such as
-        :meth:`find_jobs`. Example:
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
 
         .. code-block:: python
 
@@ -450,14 +451,24 @@ class Project(object):
             for key, group in project.groupby('a'):
                 print(key, list(group))
 
-            # Find jobs where 'a' is 1 and group them by 'b' and 'c'.
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.sp['b'] and job.sp['c'].
             for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
                 print(key, list(group))
 
+            # Group by job.sp['d'] and job.document['count'] using a lambda.
+            for key, group in project.groupby(
+                lambda job: (job.sp.['d'], job.document['count'])
+            ):
+                print(key, list(group))
+
+        If `key` is unrecognized, the default behavior is to group by job id,
+        putting one job into each group.
+
         :param key: The statepoint grouping parameter(s) passed
-            as a string, tuple of strings, or a function
+            as a string, iterable of strings, or a function
             that will be passed one argument, the job.
-        :type key: str, tuple, or function
+        :type key: str, iterable, or function
         """
         return self.__iter__().groupby(key)
 
@@ -1200,7 +1211,10 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
-class _JobsIterator(object):
+class JobsCursor(object):
+    """Generator returned by search queries enabling simple iteration
+    over search results and grouping operations.
+    """
 
     def __init__(self, project, ids):
         self._project = project
@@ -1220,11 +1234,34 @@ class _JobsIterator(object):
 
     def groupby(self, key=None):
         """Groups jobs according to one or more statepoint parameters.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by statepoint parameter 'a'.
+            for key, group in project.groupby('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.sp['b'] and job.sp['c'].
+            for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
+                print(key, list(group))
+
+            # Group by job.sp['d'] and job.document['count'] using a lambda.
+            for key, group in project.groupby(
+                lambda job: (job.sp.['d'], job.document['count'])
+            ):
+                print(key, list(group))
+
+        If `key` is unrecognized, the default behavior is to group by job id,
+        putting one job into each group.
 
         :param key: The statepoint grouping parameter(s) passed
-            as a string, tuple of strings, or a function
+            as a string, iterable of strings, or a function
             that will be passed one argument, the job.
-        :type key: str, tuple, or function
+        :type key: str, iterable, or function
         """
         if isinstance(key, six.string_types):
             def keyfunction(job):
