@@ -21,11 +21,11 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
-from signac.sync import FileMerge
-from signac.sync import DocMerge
-from signac.errors import FileMergeConflict
-from signac.errors import DocumentMergeConflict
-from signac.errors import SchemaMergeConflict
+from .sync import FileMerge
+from .sync import DocMerge
+from .errors import FileMergeConflict
+from .errors import DocumentMergeConflict
+from .errors import SchemaMergeConflict
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
