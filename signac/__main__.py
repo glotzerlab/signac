@@ -339,14 +339,14 @@ def main_merge(args):
     else:
         strategy = None
 
-    if args.keys:
+    if args.key:
         try:
-            re.compile(args.keys)
+            re.compile(args.key)
         except re.error as e:
             raise RuntimeError(
-                "Illegal regular expression '{}': '{}'.".format(args.keys, e))
+                "Illegal regular expression '{}': '{}'.".format(args.key, e))
 
-        doc_merge = DocMerge.ByKey(lambda key: re.match(args.keys, key))
+        doc_merge = DocMerge.ByKey(lambda key: re.match(args.key, key))
     else:
         doc_merge = DocMerge.ByKey()
 
@@ -995,7 +995,7 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         choices=FileMerge.keys(),
         help="Specify a merge strategy, for differing files.")
     parser_merge.add_argument(
-        '-k', '--keys',
+        '-k', '--key',
         type=str,
         help="Specify a regular expression for keys that should be merged "
              "as part of the project and job documents. To merge all keys, "
