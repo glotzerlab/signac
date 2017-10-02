@@ -80,6 +80,8 @@ import filecmp
 import logging
 from copy import deepcopy
 from contextlib import contextmanager
+from collections import defaultdict as ddict
+from multiprocessing.pool import ThreadPool
 
 from .errors import DestinationExistsError
 from .errors import FileMergeConflict
@@ -474,7 +476,7 @@ def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=Fa
 
 
 def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=None,
-                   selection=None, check_schema=True, dry_run=False):
+                   selection=None, check_schema=True, dry_run=False, parallel=False):
     """Merge the source project into the destination project.
 
     Try to clone all jobs from the source to the destination.
@@ -559,20 +561,36 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
             doc_merge(source.document, dst_proxy)
 
     # Merge jobs from source to destination.
-    num_cloned, num_merged = 0, 0
-    N = len(source)
-    for i, src_job in enumerate(source):
-        if selection is not None and src_job.get_id() not in selection:
-            logger.more("{} not in selection.".format(src_job))
-            continue
+    logger.more("Collect all jobs to merge...")
+    if selection is None:
+        jobs_to_merge = list(source)
+    else:
+        jobs_to_merge = [job for job in source if job.get_id() in selection]
+
+    N = len(jobs_to_merge)
+    logger.more("Need to merge {} jobs.".format(N))
+    count = ddict(int)
+
+    def _clone_or_merge(src_job):
         try:
             destination.clone(src_job)
-            num_cloned += 1
             logger.more("Cloned job '{}'.".format(src_job))
+            return 1
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
             merge_jobs(src_job, dst_job, strategy, exclude, doc_merge, proxy)
-            num_merged += 1
             logger.more("Merged job '{}'.".format(src_job))
-        logger.info("Project merge progress: {}/{}".format(i+1, N))
+            return 2
+
+    if parallel is not None:
+        logger.more("Using multiple threads for merging.")
+        with ThreadPool(None if parallel is True else parallel) as pool:
+            for i, ret in enumerate(pool.map(_clone_or_merge, jobs_to_merge)):
+                count[ret] += 1
+                logger.info("Project merge progress: {}/{}".format(i+1, N))
+    else:
+        for i, src_job in enumerate(jobs_to_merge):
+            count[_clone_or_merge(src_job)] += 1
+            logger.info("Project merge progress: {}/{}".format(i+1, N))
+    num_cloned, num_merged = count[1], count[2]
     logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))

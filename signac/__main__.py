@@ -377,7 +377,8 @@ def main_merge(args):
             doc_merge=doc_merge,
             selection=selection,
             check_schema=not args.force,
-            dry_run=args.dry_run)
+            dry_run=args.dry_run,
+            parallel=args.parallel)
     except SchemaMergeConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
@@ -1031,6 +1032,10 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         '--force',
         action='store_true',
         help="Ignore warnings, just merge.")
+    parser_merge.add_argument(
+        '--parallel',
+        action='store_true',
+        help="Use multiple threads for merging.")
     selection_group = parser_merge.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
