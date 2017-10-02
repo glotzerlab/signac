@@ -560,7 +560,8 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
 
     # Merge jobs from source to destination.
     num_cloned, num_merged = 0, 0
-    for src_job in source:
+    N = len(source)
+    for i, src_job in enumerate(source):
         if selection is not None and src_job.get_id() not in selection:
             logger.more("{} not in selection.".format(src_job))
             continue
@@ -573,4 +574,5 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
             merge_jobs(src_job, dst_job, strategy, exclude, doc_merge, proxy)
             num_merged += 1
             logger.more("Merged job '{}'.".format(src_job))
+        logger.info("Project merge progress: {}/{}".format(i+1, N))
     logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))
