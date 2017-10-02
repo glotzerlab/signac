@@ -365,10 +365,6 @@ def main_merge(args):
             selection=selection,
             check_schema=not args.force,
             dry_run=args.dry_run)
-        if doc_merge.skipped_keys:
-            _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
-        _print_err("Done.")
-        return
     except SchemaMergeConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
@@ -383,7 +379,12 @@ def main_merge(args):
         _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
         _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
         _print_err("Execute 'signac merge --help' for more information.")
-    _print_err("Merge aborted.")
+    else:
+        if doc_merge.skipped_keys:
+            _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
+        _print_err("Done.")
+        return
+    raise RuntimeWarning("Merge aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -1146,8 +1147,13 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         if args.debug:
             raise
         sys.exit(1)
+    except RuntimeWarning as warning:
+        _print_err("Warning: {}".format(warning))
+        if args.debug:
+            raise
+        sys.exit(1)
     except Exception as error:
-        _print_err('Error: {}'.format(str(error)))
+        _print_err('Error: {}'.format(error))
         if args.debug:
             raise
         sys.exit(1)
