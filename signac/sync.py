@@ -356,6 +356,7 @@ def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=Fa
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
     else:
         diff = dircmp(src.fn(subdir), dst.fn(subdir))
+
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
             logger.debug("File named '{}' is skipped (excluded).".format(fn))
@@ -382,6 +383,10 @@ def _merge_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=Fa
     for _subdir in diff.subdirs:
         _merge_job_workspaces(
             src, dst, strategy, exclude, proxy, os.path.join(subdir, _subdir), deep=deep)
+
+
+def _identical_path(a, b):
+    return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
 def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=False, deep=False):
@@ -424,6 +429,11 @@ def merge_jobs(src, dst, strategy=None, exclude=None, doc_merge=None, dry_run=Fa
         :param dry_run:
             If True, do not actually perform any merge actions.
     """
+    # Check identity
+    if _identical_path(src.workspace(), dst.workspace()):
+        logger.more("Source and destination path are identical.")
+        return
+
     # check src and dst compatiblity
     assert src.FN_MANIFEST == dst.FN_MANIFEST
     assert src.FN_DOCUMENT == dst.FN_DOCUMENT
