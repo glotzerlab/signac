@@ -999,9 +999,11 @@ keys in the project or job documents." See help(signac.sync) for more informatio
     parser_merge.add_argument(
         '-k', '--key',
         type=str,
+        nargs='?',
+        const='.*',
         help="Specify a regular expression for keys that should be merged "
-             "as part of the project and job documents. To merge all keys, "
-             "use '.*'.")
+             "as part of the project and job documents. Use this option "
+             "without argument to merge all keys; equivalent to `--key='.*'`.")
     parser_merge.add_argument(
         '-n', '--dry-run',
         action='store_true',
