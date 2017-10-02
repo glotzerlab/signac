@@ -1033,8 +1033,10 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         action='store_true',
         help="Ignore warnings, just merge.")
     parser_merge.add_argument(
-        '--parallel',
-        action='store_true',
+        '-p', '--parallel',
+        type=int,
+        nargs='?',
+        const=True,
         help="Use multiple threads for merging.")
     selection_group = parser_merge.add_argument_group('select')
     selection_group.add_argument(

@@ -582,8 +582,10 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
             logger.more("Merged job '{}'.".format(src_job))
             return 2
 
-    if parallel is not None:
-        logger.more("Using multiple threads for merging.")
+    if parallel:
+        num_processes = None if parallel is True else parallel
+        logger.more("Parallelizing over {} threads for merging.".format(
+            'multiple' if num_processes is None else num_processes))
         with ThreadPool(None if parallel is True else parallel) as pool:
             for i, ret in enumerate(pool.map(_clone_or_merge, jobs_to_merge)):
                 count[ret] += 1
@@ -592,5 +594,6 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
         for i, src_job in enumerate(jobs_to_merge):
             count[_clone_or_merge(src_job)] += 1
             logger.info("Project merge progress: {}/{}".format(i+1, N))
+
     num_cloned, num_merged = count[1], count[2]
     logger.info("Cloned {} and merged {} job(s).".format(num_cloned, num_merged))
