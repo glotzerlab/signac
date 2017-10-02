@@ -587,7 +587,7 @@ def merge_projects(source, destination, strategy=None, exclude=None, doc_merge=N
         logger.more("Parallelizing over {} threads for merging.".format(
             'multiple' if num_processes is None else num_processes))
         with ThreadPool(None if parallel is True else parallel) as pool:
-            for i, ret in enumerate(pool.map(_clone_or_merge, jobs_to_merge)):
+            for i, ret in enumerate(pool.imap(_clone_or_merge, jobs_to_merge)):
                 count[ret] += 1
                 logger.info("Project merge progress: {}/{}".format(i+1, N))
     else:
