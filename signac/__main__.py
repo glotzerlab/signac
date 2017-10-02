@@ -993,6 +993,7 @@ keys in the project or job documents." See help(signac.sync) for more informatio
              "if this option is provided without any argument.")
     parser_merge.add_argument(
         '-s', '--strategy',
+        type=str,
         choices=FileMerge.keys(),
         help="Specify a merge strategy, for differing files.")
     parser_merge.add_argument(
