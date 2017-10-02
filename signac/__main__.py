@@ -13,7 +13,7 @@ import re
 import errno
 from pprint import pprint, pformat
 
-from . import get_project, init_project, index
+from . import Project, get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
@@ -328,7 +328,20 @@ def main_schema(args):
 
 def main_merge(args):
     source = get_project(root=args.source)
-    destination = get_project(root=args.destination)
+    try:
+        destination = get_project(root=args.destination)
+    except LookupError:
+        if args.allow_workspace:
+            destination = Project(config={
+                'project': args.destination,
+                'project_dir': args.destination,
+                'workspace_dir': '.'})
+        else:
+            _print_err(
+                "WARNING: The destination appears to not be a project path. "
+                "Use the '-w/--allow-workspace' option if you want to "
+                "merge into a workspace directory directly.")
+            raise
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
@@ -1009,6 +1022,11 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         action='store_true',
         help="Do not actually execute merge actions. You may still need to "
              "increase the output verbosity to see what would happen.")
+    parser_merge.add_argument(
+        '-w', '--allow-workspace',
+        action='store_true',
+        help="Allow the specification of a workspace (instead of a project) "
+             "as destination path.")
     parser_merge.add_argument(
         '--force',
         action='store_true',
