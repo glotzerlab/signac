@@ -1037,7 +1037,9 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         type=int,
         nargs='?',
         const=True,
-        help="Use multiple threads for merging.")
+        help="Use multiple threads for merging. This may speed up the "
+             "process. You may optionally specify how many threads to "
+             "use, otherwise all available processing units will be utilized.")
     selection_group = parser_merge.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
