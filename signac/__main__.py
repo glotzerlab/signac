@@ -333,7 +333,7 @@ def main_merge(args):
     except LookupError:
         if args.allow_workspace:
             destination = Project(config={
-                'project': args.destination,
+                'project': os.path.relpath(args.destination),
                 'project_dir': args.destination,
                 'workspace_dir': '.'})
         else:
@@ -364,7 +364,7 @@ def main_merge(args):
         doc_merge = DocMerge.ByKey()
 
     try:
-        _print_err("Merging '{}' -> {}'...".format(source, destination))
+        _print_err("Merging '{}' -> '{}'...".format(source, destination))
 
         if args.dry_run and args.verbosity <= 2:
             _print_err("WARNING: Performing dry run, consider to increase output "
@@ -529,7 +529,7 @@ def main_config_set(args):
         sec = sec.setdefault(key, dict())
     try:
         sec[keys[-1]] = args.value
-        _print_err("Updated value for '{}'.".format(args.key))
+        _print_err("Updated value '{}'='{}'.".format(args.key, args.value))
     except TypeError:
         raise KeyError(args.key)
     _print_err("Writing configuration to '{}'.".format(
