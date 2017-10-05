@@ -327,6 +327,12 @@ def main_schema(args):
 
 
 def main_sync(args):
+    if args.update and args.strategy is not None:
+        raise ValueError(
+            "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
+    else:
+        args.strategy = 'update'
+
     source = get_project(root=args.source)
     try:
         destination = get_project(root=args.destination)
@@ -1014,6 +1020,11 @@ more information.
         type=str,
         choices=FileSync.keys(),
         help="Specify a synchronization strategy, for differing files.")
+    parser_sync.add_argument(
+        '-u', '--update',
+        action='store_true',
+        help="Do not overwrite files that have a newer modification time stamp. "
+             "This is a short-cut for: --strategy=update.")
     parser_sync.add_argument(
         '-k', '--key',
         type=str,
