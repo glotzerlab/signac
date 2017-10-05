@@ -61,13 +61,20 @@ def _flatten(container):
             yield i
 
 
+def _to_tuples(l):
+    if isinstance(l, list):
+        return tuple(_to_tuples(_) for _ in l)
+    else:
+        return l
+
+
 class _DictPlaceholder(object):
     pass
 
 
 def _encode_tree(x):
     if isinstance(x, list):
-        return tuple(x)
+        return _to_tuples(x)
     else:
         return x
 

@@ -310,7 +310,7 @@ class Project(object):
                     continue
                 collection.index(key, build=True)
         tmp = collection._indexes
-        for k in sorted(tmp, key=lambda k: len(tmp[k])):
+        for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
             if exclude_const and len(tmp[k]) == 1 \
                     and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
@@ -549,7 +549,7 @@ class Project(object):
                 raise ValueError("Insufficient index for selected data space.")
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
-        sp_index = dict(jsi)
+        sp_index = collections.OrderedDict(jsi)
         tmp = collections.defaultdict(list)
         for key, values in sp_index.items():
             for value, group in values.items():
