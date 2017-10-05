@@ -384,7 +384,8 @@ def main_sync(args):
             selection=selection,
             check_schema=not args.force,
             dry_run=args.dry_run,
-            parallel=args.parallel)
+            parallel=args.parallel,
+            deep=args.deep)
     except SchemaSyncConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
@@ -1044,6 +1045,13 @@ more information.
         action='store_true',
         help="Allow the specification of a workspace (instead of a project) directory "
              "as destination path.")
+    parser_sync.add_argument(
+        '--deep',
+        action='store_true',
+        help="Never rely on file meta data such as the size or the modification time "
+             "when determining file differences. This check will take much longer and "
+             "is usually not needed, but use this option if you run into issues during "
+             "file comparison.")
     parser_sync.add_argument(
         '--force',
         action='store_true',
