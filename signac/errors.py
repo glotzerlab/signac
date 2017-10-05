@@ -13,27 +13,27 @@ from .common.errors import FetchError
 from .contrib.errors import DestinationExistsError
 
 
-class MergeConflict(Error, RuntimeError):
-    "Raised when the merge of two jobs fails."
+class SyncConflict(Error, RuntimeError):
+    "Raised when a synchronization operation fails."
     pass
 
 
-class FileMergeConflict(MergeConflict):
-    "Raised when a merge fails due to a file conflict."
+class FileSyncConflict(SyncConflict):
+    "Raised when a synchronization operation fails due to a file conflict."
     def __init__(self, filename):
         self.filename = filename
         "The filename of the file that caused the conflict."
 
 
-class DocumentMergeConflict(MergeConflict):
-    "Raised when a merge fails due to a document conflict."
+class DocumentSyncConflict(SyncConflict):
+    "Raised when a synchronization operation fails due to a document conflict."
     def __init__(self, keys):
         self.keys = keys
         "The keys that caused the conflict."
 
 
-class SchemaMergeConflict(MergeConflict):
-    "Raised when the schema of two projects to be merged differs."
+class SchemaSyncConflict(SyncConflict):
+    "Raised when a synchronization operation fails due to schema differences."
     def __init__(self, schema_src, schema_dst):
         self.schema_src = schema_src
         self.schema_dst = schema_dst
@@ -47,8 +47,8 @@ __all__ = [
     'FileNotFoundError',
     'FetchError',
     'DestinationExistsError',
-    'MergeConflict',
-    'FileMergeConflict',
-    'DocumentMergeConflict',
-    'SchemaMergeConflict',
+    'SyncConflict',
+    'FileSyncConflict',
+    'DocumentSyncConflict',
+    'SchemaSyncConflict',
 ]
