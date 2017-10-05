@@ -458,7 +458,7 @@ class Project(object):
 
             # Group by job.sp['d'] and job.document['count'] using a lambda.
             for key, group in project.groupby(
-                lambda job: (job.sp.['d'], job.document['count'])
+                lambda job: (job.sp['d'], job.document['count'])
             ):
                 print(key, list(group))
 
@@ -471,6 +471,37 @@ class Project(object):
         :type key: str, iterable, or function
         """
         return self.__iter__().groupby(key)
+
+    def groupbydoc(self, key=None):
+        """Groups jobs according to one or more document values.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by document value 'a'.
+            for key, group in project.groupbydoc('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.document['b'] and job.document['c'].
+            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
+                print(key, list(group))
+
+            # Group by whether 'd' is a field in the job.document using a lambda.
+            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
+                print(key, list(group))
+
+        If `key` is unrecognized, the default behavior is to group by job id,
+        putting one job into each group.
+
+        :param key: The statepoint grouping parameter(s) passed
+            as a string, iterable of strings, or a function
+            that will be passed one argument, `job.document`.
+        :type key: str, iterable, or function
+        """
+        return self.__iter__().groupbydoc(key)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1212,8 +1243,8 @@ def _skip_errors(iterable, log=print):
 
 
 class JobsCursor(object):
-    """Generator returned by search queries enabling simple iteration
-    over search results and grouping operations.
+    """An iterator over a search query result, enabling simple iteration and
+    grouping operations.
     """
 
     def __init__(self, project, ids):
@@ -1251,7 +1282,7 @@ class JobsCursor(object):
 
             # Group by job.sp['d'] and job.document['count'] using a lambda.
             for key, group in project.groupby(
-                lambda job: (job.sp.['d'], job.document['count'])
+                lambda job: (job.sp['d'], job.document['count'])
             ):
                 print(key, list(group))
 
@@ -1269,12 +1300,57 @@ class JobsCursor(object):
         elif isinstance(key, collections.Iterable):
             def keyfunction(job):
                 return tuple(job.sp[k] for k in key)
-        elif callable(key):
-            keyfunction = key
-        else:
+        elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
                 return str(job)
+        else:
+            keyfunction = key
+        return groupby(sorted(self, key=keyfunction), key=keyfunction)
+
+    def groupbydoc(self, key=None):
+        """Groups jobs according to one or more document values.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by document value 'a'.
+            for key, group in project.groupbydoc('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.document['b'] and job.document['c'].
+            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
+                print(key, list(group))
+
+            # Group by whether 'd' is a field in the job.document using a lambda.
+            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
+                print(key, list(group))
+
+        If `key` is unrecognized, the default behavior is to group by job id,
+        putting one job into each group.
+
+        :param key: The statepoint grouping parameter(s) passed
+            as a string, iterable of strings, or a function
+            that will be passed one argument, `job.document`.
+        :type key: str, iterable, or function
+        """
+        if isinstance(key, six.string_types):
+            def keyfunction(job):
+                return job.document[key]
+        elif isinstance(key, collections.Iterable):
+            def keyfunction(job):
+                return tuple(job.document[k] for k in key)
+        elif key is None:
+            # Must return a type that can be ordered with <, >
+            def keyfunction(job):
+                return str(job)
+        else:
+            # Pass the job document to lambda functions
+            def keyfunction(job):
+                return key(job.document)
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
 
