@@ -390,7 +390,8 @@ def main_sync(args):
         _print_err("Use the '-k/ --keys' argument to specify a key synchronization strategy, "
                    "e.g., '.*' for all keys.")
     except FileSyncConflict as error:
-        _print_err("Synchronization conflict occured: No strategy defined to synchronize file '{}'.".format(error))
+        _print_err("Synchronization conflict occured: No strategy defined to "
+                   "synchronize file '{}'.".format(error))
         _print_err("Use the '-s/ --strategy' argument to specify a file synchronization strategy.")
         _print_err("Execute 'signac sync --help' for more information.")
     else:
@@ -987,9 +988,10 @@ def main():
 similar to the synchronization of two directories with `rsync`.
 Data is always copied from the source to the destination.
 For example: `signac sync /path/to/other/project --strategy always --keys foo`
-means "Synchronize all jobs within this project with those in the other project; *always* overwrite files
-on conflict and overwrite all keys that match the 'foo' expression when there are conflicting
-keys in the project or job documents." See help(signac.sync) for more information.
+means "Synchronize all jobs within this project with those in the other project; *always*
+overwrite files on conflict and overwrite all keys that match the 'foo' expression when
+there are conflicting keys in the project or job documents." See help(signac.sync) for
+more information.
         """
         )
     parser_sync.add_argument(
