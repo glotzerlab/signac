@@ -369,7 +369,7 @@ class JobSyncTest(BaseJobTest):
         self.assertTrue(differs('subdir/test2'))
         with self.assertRaises(FileSyncConflict):
             job_dst.sync(job_src, recursive=True)
-        job_dst.sync(job_src, sync.FileSync.never)
+        job_dst.sync(job_src, sync.FileSync.never, recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
         job_dst.sync(job_src, sync.FileSync.always, exclude='test', recursive=True)

@@ -132,8 +132,8 @@ class _FileModifyProxy(object):
         self.follow_symlinks = follow_symlinks
         self.permissions = permissions
         self.times = times
-        self.owner = owner,
-        self.group = group,
+        self.owner = owner
+        self.group = group
         self.dry_run = dry_run
 
     # Internal proxy functions
