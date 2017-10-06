@@ -389,7 +389,7 @@ def main_sync(args):
         doc_sync = DocSync.ByKey()
 
     try:
-        _print_err("Merging '{}' -> '{}'...".format(source, destination))
+        _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
 
         if args.dry_run and args.verbosity <= 2:
             _print_err("WARNING: Performing dry run, consider to increase output "
