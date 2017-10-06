@@ -118,6 +118,32 @@ __all__ = [
 ]
 
 
+def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
+    "Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example'."
+    names = os.listdir(src)
+    os.makedirs(dst)
+    errors = []
+    for name in names:
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        try:
+            if symlinks and os.path.islink(srcname):
+                linkto = os.readlink(srcname)
+                os.symlink(linkto, dstname)
+            elif os.path.isdir(srcname):
+                copytree(srcname, dstname, copy_function, symlinks)
+            else:
+                copy_function(srcname, dstname)
+        except OSError as why:
+            errors.append((srcname, dstname, str(why)))
+        # catch the Error from the recursive copytree so that we can
+        # continue with other files
+        except shutil.Error as err:
+            errors.extend(err.args[0])
+    if errors:
+        raise shutil.Error(errors)
+
+
 class dircmp_deep(dircmp):
 
     def phase3(self):  # Find out differences between common files
@@ -238,7 +264,7 @@ class _FileModifyProxy(object):
 
     def copytree(self, src, dst, **kwargs):
         logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
-        shutil.copytree(src, dst, copy_function=self.copy, **kwargs)
+        copytree(src, dst, copy_function=self.copy, **kwargs)
 
     def remove(self, path):
         logger.more("Remove path '{}'.".format(os.path.relpath(path)))
@@ -398,7 +424,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, recursive=True, deep
         if os.path.isfile(fn_src):
             copy(fn_src, fn_dst)
         elif recursive:
-            shutil.copytree(fn_src, fn_dst, copy_function=copy)
+            copytree(fn_src, fn_dst, copy_function=copy)
         else:
             logger.warning("Skip directory '{}'.".format(fn_src))
     for fn in diff.diff_files:
