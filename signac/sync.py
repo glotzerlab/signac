@@ -545,8 +545,9 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Tr
             deep=deep)
 
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
-        with proxy.create_doc_backup(dst.document) as dst_proxy:
-            doc_sync(src.document, dst_proxy)
+        if src.document != dst.document:
+            with proxy.create_doc_backup(dst.document) as dst_proxy:
+                doc_sync(src.document, dst_proxy)
 
 
 def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
@@ -636,8 +637,9 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
 
     # Sync the Project document.
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
-        with proxy.create_doc_backup(destination.document) as dst_proxy:
-            doc_sync(source.document, dst_proxy)
+        if source.document != destination.document:
+            with proxy.create_doc_backup(destination.document) as dst_proxy:
+                doc_sync(source.document, dst_proxy)
 
     # Sync jobs from source to destination.
     logger.more("Collect all jobs to synchronize...")
