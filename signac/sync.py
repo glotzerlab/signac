@@ -292,6 +292,30 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             A synchronization strategy for document keys. The default is to use a safe key-by-key
             strategy that will not overwrite any values on conflict, but instead raises a
             :class:`~.errors.DocumentSyncConflict` exception.
+        :param recursive:
+            Recursively synchronize sub-directories encountered within the job workspace directories.
+        :type recursive:
+            bool
+        :param follow_symlinks:
+            Follow and copy the target of symbolic links.
+        :type follow_symlinks:
+            bool
+        :param preserve_permissions:
+            Preserve file permissions
+        :type preserve_permissions:
+            bool
+        :param preserve_times:
+            Preserve file modification times
+        :type preserve_times:
+            bool
+        :param preserve_owner:
+            Preserve file owner
+        :type preserve_owner:
+            bool
+        :param preserve_group:
+            Preserve file group ownership
+        :type preserve_group:
+            bool
         :param dry_run:
             If True, do not actually perform any synchronization operations.
     """
@@ -386,8 +410,32 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         state point schema. See also: :meth:`~.detect_schema`.
     :type check_schema:
         bool
+    :param recursive:
+        Recursively synchronize sub-directories encountered within the job workspace directories.
+    :type recursive:
+        bool
+    :param follow_symlinks:
+        Follow and copy the target of symbolic links.
+    :type follow_symlinks:
+        bool
+    :param preserve_permissions:
+        Preserve file permissions
+    :type preserve_permissions:
+        bool
+    :param preserve_times:
+        Preserve file modification times
+    :type preserve_times:
+        bool
+    :param preserve_owner:
+        Preserve file owner
+    :type preserve_owner:
+        bool
+    :param preserve_group:
+        Preserve file group ownership
+    :type preserve_group:
+        bool
     :param dry_run:
-        If True (the default), do not actually perform the synchronization operation,
+        If True, do not actually perform the synchronization operation,
         just log what would happen theoretically. Useful to test synchronization strategies
         without the risk of data loss.
     :type dry_run:
