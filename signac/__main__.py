@@ -1052,6 +1052,7 @@ more information.
         nargs='?',
         help="Optional: The root directory of the project that should be modified for "
              "synchronization, defaults to the local project.")
+    add_verbosity_argument(parser_sync, default=2)
 
     sync_group = parser_sync.add_argument_group('copy options')
     sync_group.add_argument(
