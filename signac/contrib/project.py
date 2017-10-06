@@ -9,9 +9,9 @@ import logging
 import warnings
 import errno
 import collections
-import shutil
 from itertools import chain
 
+from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
 from .collection import Collection
@@ -731,7 +731,7 @@ class Project(object):
         """
         job.update_statepoint(update=update, overwrite=overwrite)
 
-    def clone(self, job):
+    def clone(self, job, copytree=syncutil.copytree):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -746,7 +746,7 @@ class Project(object):
         """
         dst = self.open_job(job._statepoint)
         try:
-            shutil.copytree(job.workspace(), dst.workspace())
+            copytree(job.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)

@@ -241,7 +241,8 @@ def main_move(args):
             job = _open_job_by_id(project, job_id)
             job.move(dst_project)
         except DestinationExistsError as error:
-            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+            _print_err(
+                "Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
             _print_err("Moved '{}' to '{}'.".format(job, dst_project))
 
@@ -330,6 +331,13 @@ def main_sync(args):
     #
     # Valid provided argument combinations
     #
+    if args.archive:
+        args.recursive = True
+        args.links = True
+        args.times = True
+        args.perms = True
+        args.owner = True
+        args.group = True
 
     if args.update and args.strategy is not None:
         raise ValueError(
@@ -339,8 +347,8 @@ def main_sync(args):
 
     if args.times and not args.perms:
         raise NotImplementedError(
-            "With the current implementation you need to always provide "
-            "the '-p/--perms' argument when using the '-t/--times' argument.")
+            "The '-t/--times' option can only be used in combination with the "
+            "'-p/--perms argument.")
 
     if args.all_keys:
         if args.key is None:
@@ -399,8 +407,11 @@ def main_sync(args):
             other=source,
             strategy=strategy,
             recursive=args.recursive,
+            follow_symlinks=not args.links,
             preserve_permissions=args.perms,
             preserve_times=args.times,
+            preserve_owner=args.owner,
+            preserve_group=args.group,
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
@@ -414,10 +425,13 @@ def main_sync(args):
             "Use --force to ignore.")
         only_in_src = error.schema_src.difference(error.schema_dst)
         if only_in_src:
-            _print_err("Keys found only in the source schema: {}".format(', '.join(only_in_src)))
+            keys_formatted = ('.'.join(k) for k in only_in_src)
+            _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
         only_in_dst = error.schema_dst.difference(error.schema_src)
         if only_in_dst:
-            _print_err("Keys found only in the destination schema: {}".format(', '.join(only_in_dst)))
+            keys_formatted = ('.'.join(k) for k in only_in_dst)
+            _print_err(
+                "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
         _print_err(
             "Synchronization conflict occured: No strategy defined "
@@ -1041,13 +1055,29 @@ more information.
 
     sync_group = parser_sync.add_argument_group('copy options')
     sync_group.add_argument(
+        '-a', '--archive',
+        action='store_true',
+        help="archive mode; equivalent to: '-rltpog'")
+    sync_group.add_argument(
         '-r', '--recursive',
         action='store_true',
         help="Do not skip sub-directories, but synchronize recursively.")
     sync_group.add_argument(
+        '-l', '--links',
+        action='store_true',
+        help="Copy symbolic links as symbolic links pointing to the original source.")
+    sync_group.add_argument(
         '-p', '--perms',
         action='store_true',
-        help="Try to preserve permissions.")
+        help="Preserve permissions.")
+    sync_group.add_argument(
+        '-o', '--owner',
+        action='store_true',
+        help="Preserve owner.")
+    sync_group.add_argument(
+        '-g', '--group',
+        action='store_true',
+        help="Preserve group.")
     sync_group.add_argument(
         '-t', '--times',
         action='store_true',

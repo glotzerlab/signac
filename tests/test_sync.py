@@ -10,7 +10,7 @@ import signac
 from signac import sync
 from signac.common import six
 from signac.core.jsondict import JSONDict
-from signac.sync import _DocProxy
+from signac.syncutil import _DocProxy
 from signac.sync import _FileModifyProxy
 from signac.errors import FileSyncConflict
 from signac.errors import DocumentSyncConflict
@@ -78,7 +78,6 @@ class DocProxyTest(unittest.TestCase):
         self.assertEqual(proxy, doc)
 
     def test_dry_run(self):
-        from signac.sync import _DocProxy
         doc = dict(a=0)
         proxy = _DocProxy(doc, dry_run=True)
         self.assertEqual(proxy, proxy)
@@ -285,7 +284,7 @@ class JobSyncTest(BaseJobTest):
         job_dst.sync(job_src)
         self.assertIn(job_dst, self.project)
 
-    def test_file_sync_non_recursive(self):
+    def test_file_sync(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -297,7 +296,7 @@ class JobSyncTest(BaseJobTest):
         self.assertTrue(job_src.isfile('test'))
         try:
             logging.disable(logging.WARNING)
-            job_dst.sync(job_src, recursive=False)
+            job_dst.sync(job_src)
         finally:
             logging.disable(logging.NOTSET)
         self.assertIn(job_dst, self.project)
@@ -306,7 +305,7 @@ class JobSyncTest(BaseJobTest):
         with open(job_dst.fn('test')) as file:
             self.assertEqual(file.read(), 'test')
 
-    def test_file_sync(self):
+    def test_file_sync_recursive(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -316,7 +315,7 @@ class JobSyncTest(BaseJobTest):
             with open('subdir/test2', 'w') as file:
                 file.write('test2')
         self.assertTrue(job_src.isfile('test'))
-        job_dst.sync(job_src)
+        job_dst.sync(job_src, recursive=True)
         self.assertIn(job_dst, self.project)
         self.assertTrue(job_dst.isfile('test'))
         self.assertTrue(job_dst.isfile('subdir/test2'))
@@ -369,24 +368,24 @@ class JobSyncTest(BaseJobTest):
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
         with self.assertRaises(FileSyncConflict):
-            job_dst.sync(job_src)
+            job_dst.sync(job_src, recursive=True)
         job_dst.sync(job_src, sync.FileSync.never)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.always, exclude='test')
+        job_dst.sync(job_src, sync.FileSync.always, exclude='test', recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.always, exclude=['test', 'bs'])
+        job_dst.sync(job_src, sync.FileSync.always, exclude=['test', 'bs'], recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
         sleep(1)
         touch(job_src.fn('test'))
-        job_dst.sync(job_src, sync.FileSync.update)
+        job_dst.sync(job_src, sync.FileSync.update, recursive=True)
         self.assertFalse(differs('test'))
         touch(job_src.fn('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.update, exclude='test2')
+        job_dst.sync(job_src, sync.FileSync.update, exclude='test2', recursive=True)
         self.assertFalse(differs('test'))
-        job_dst.sync(job_src, sync.FileSync.update)
+        job_dst.sync(job_src, sync.FileSync.update, recursive=True)
         self.assertFalse(differs('subdir/test2'))
 
     def test_file_sync_strategies(self):
@@ -400,13 +399,13 @@ class JobSyncTest(BaseJobTest):
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
         with self.assertRaises(FileSyncConflict):
-            job_dst.sync(job_src)
+            job_dst.sync(job_src, recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.never)
+        job_dst.sync(job_src, sync.FileSync.never, recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.always)
+        job_dst.sync(job_src, sync.FileSync.always, recursive=True)
         self.assertFalse(differs('test'))
         self.assertFalse(differs('subdir/test2'))
         reset()
@@ -414,10 +413,10 @@ class JobSyncTest(BaseJobTest):
         self.assertTrue(differs('subdir/test2'))
         sleep(1)
         touch(job_src.fn('test'))
-        job_dst.sync(job_src, sync.FileSync.update)
+        job_dst.sync(job_src, sync.FileSync.update, recursive=True)
         self.assertFalse(differs('test'))
         touch(job_src.fn('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.update)
+        job_dst.sync(job_src, sync.FileSync.update, recursive=True)
         self.assertFalse(differs('test'))
         self.assertFalse(differs('subdir/test2'))
 
