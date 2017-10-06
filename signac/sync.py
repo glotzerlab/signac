@@ -594,7 +594,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
     :raises FileSyncConflict:
         If there are differing files that cannot be resolved with the given strategy
         or if no strategy is provided.
-    :raises SyncSchemaConflict:
+    :raises SchemaSyncConflict:
         In case that the check_schema argument is True and the detected state point
         schema of this and the other project differ.
     """
@@ -612,7 +612,9 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         schema_src = source.detect_schema()
         schema_dst = destination.detect_schema()
         if schema_dst and schema_src and schema_src != schema_dst:
-            if schema_src.difference(schema_dst) or schema_dst.difference(schema_src):
+            only_in_src = schema_src.difference(schema_dst)
+            only_in_dst = schema_dst.difference(schema_src)
+            if only_in_src or only_in_dst:
                 raise SchemaSyncConflict(schema_src, schema_dst)
 
     if doc_sync is None:
@@ -649,7 +651,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         jobs_to_sync = [job for job in source if job.get_id() in selection]
 
     N = len(jobs_to_sync)
-    logger.more("Need to synchronize {} jobs.".format(N))
+    logger.more("Synchronizing {} jobs.".format(N))
     count = ddict(int)
 
     def _clone_or_sync(src_job):

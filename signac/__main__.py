@@ -412,6 +412,12 @@ def main_sync(args):
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")
+        only_in_src = error.schema_src.difference(error.schema_dst)
+        if only_in_src:
+            _print_err("Keys found only in the source schema: {}".format(', '.join(only_in_src)))
+        only_in_dst = error.schema_dst.difference(error.schema_src)
+        if only_in_dst:
+            _print_err("Keys found only in the destination schema: {}".format(', '.join(only_in_dst)))
     except DocumentSyncConflict as error:
         _print_err(
             "Synchronization conflict occured: No strategy defined "
