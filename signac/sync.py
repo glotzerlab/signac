@@ -398,8 +398,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, recursive=True, deep
         if os.path.isfile(fn_src):
             copy(fn_src, fn_dst)
         elif recursive:
-            from shutils import copytree    # TODO Move to imports.
-            copytree(fn_src, fn_dst, copy_function=copy)
+            shutil.copytree(fn_src, fn_dst, copy_function=copy)
         else:
             logger.warning("Skip directory '{}'.".format(fn_src))
     for fn in diff.diff_files:
@@ -428,7 +427,7 @@ def _identical_path(a, b):
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
-def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=False,
+def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=True,
               preserve_permissions=False, preserve_times=False,
               deep=False, dry_run=False):
     """Synchronize the src job with the dst job.
@@ -501,7 +500,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
     else:
         proxy = _FileModifyProxy(
             permissions=preserve_permissions,
-            time=preserve_times,
+            times=preserve_times,
             dry_run=bool(dry_run))
     if proxy.dry_run:
         logger.debug("Synchronizing job '{}' (dry run)...".format(src))
@@ -526,7 +525,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
 
 def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
                   selection=None, check_schema=True,
-                  recursive=False, preserve_permissions=False, preserve_times=False,
+                  recursive=True, preserve_permissions=False, preserve_times=False,
                   deep=False, dry_run=False, parallel=False):
     """Synchronize the destination project with the source project.
 

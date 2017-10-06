@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import unittest
+import logging
 from time import sleep
 
 import signac
@@ -284,6 +285,27 @@ class JobSyncTest(BaseJobTest):
         job_dst.sync(job_src)
         self.assertIn(job_dst, self.project)
 
+    def test_file_sync_non_recursive(self):
+        job_dst = self.open_job({'a': 0})
+        job_src = self.open_job({'a': 1})
+        with job_src:
+            with open('test', 'w') as file:
+                file.write('test')
+            os.makedirs('subdir')
+            with open('subdir/test2', 'w') as file:
+                file.write('test2')
+        self.assertTrue(job_src.isfile('test'))
+        try:
+            logging.disable(logging.WARNING)
+            job_dst.sync(job_src, recursive=False)
+        finally:
+            logging.disable(logging.NOTSET)
+        self.assertIn(job_dst, self.project)
+        self.assertTrue(job_dst.isfile('test'))
+        self.assertFalse(job_dst.isfile('subdir/test2'))
+        with open(job_dst.fn('test')) as file:
+            self.assertEqual(file.read(), 'test')
+
     def test_file_sync(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
@@ -313,7 +335,7 @@ class JobSyncTest(BaseJobTest):
             with open('subdir/test2', 'w') as file:
                 file.write('test2')
         self.assertTrue(job_src.isfile('test'))
-        job_dst.sync(job_src, deep=True)
+        job_dst.sync(job_src, deep=True, recursive=True)
         self.assertIn(job_dst, self.project)
         self.assertTrue(job_dst.isfile('test'))
         self.assertTrue(job_dst.isfile('subdir/test2'))
