@@ -196,23 +196,53 @@ class _FileModifyProxy(object):
         bool
     """
 
-    def __init__(self, dry_run=False):
+    def __init__(self, permissions=False, times=False, dry_run=False):
+        self.permissions = permissions
+        self.times = times
         self.dry_run = dry_run
 
-    def copy(self, src, dst):
-        logger.more("Copy file '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
+    # Internal proxy functions
+
+    def _copy(self, src, dst):
         if not self.dry_run:
             shutil.copy(src, dst)
 
-    def copytree(self, src, dst):
-        logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
+    def _copy_p(self, src, dst):
         if not self.dry_run:
-            shutil.copytree(src, dst)
+            shutil.copy(src, dst)
+            shutil.copymode(src, dst)
+
+    def _copy2(self, src, dst):
+        if not self.dry_run:
+            shutil.copy2(src, dst)
+
+    def _remove(self, path):
+        if not self.dry_run:
+            os.remove(path)
+
+    # Public copy functions
+
+    def copy(self, src, dst):
+        msg = "Copy file{{}} '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
+        if self.permissions and self.times:
+            logger.more(msg.format(' (with metadata)'))
+            self._copy2(src, dst)
+        elif self.permissions:
+            logger.more(msg.format(' (with permissions)'))
+            self._copy_p(src, dst)
+        elif self.times:
+            raise ValueError("Cannot copy timestamps without permissions.")
+        else:
+            logger.more(msg.format(''))
+            self._copy(src, dst)
+
+    def copytree(self, src, dst, **kwargs):
+        logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
+        shutil.copytree(src, dst, copy_function=self.copy, **kwargs)
 
     def remove(self, path):
         logger.more("Remove path '{}'.".format(os.path.relpath(path)))
-        if not self.dry_run:
-            os.remove(path)
+        self._remove(path)
 
     @contextmanager
     def create_backup(self, path):
@@ -223,15 +253,15 @@ class _FileModifyProxy(object):
                 "Failed to create backup, file already exists: '{}'.".format(
                     os.path.relpath(path_backup)))
         try:
-            self.copy(path, path_backup)
+            self._copy2(path, path_backup)
             yield path_backup
         except:
             logger.more("Error occured, restoring backup...")
-            self.copy(path_backup, path)
+            self._copy2(path_backup, path)
             raise
         finally:
             logger.debug("Remove backup of '{}'.".format(os.path.relpath(path)))
-            self.remove(path_backup)
+            self._remove(path_backup)
 
     @contextmanager
     def create_doc_backup(self, doc):
@@ -352,7 +382,7 @@ class DocSync(object):
                     logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
 
 
-def _sync_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=False):
+def _sync_job_workspaces(src, dst, strategy, exclude, copy, recursive=True, deep=False, subdir=''):
     "Synchronize two job workspaces file by file, following the provided strategy."
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
@@ -366,9 +396,12 @@ def _sync_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=Fal
         fn_src = os.path.join(src.workspace(), subdir, fn)
         fn_dst = os.path.join(dst.workspace(), subdir, fn)
         if os.path.isfile(fn_src):
-            proxy.copy(fn_src, fn_dst)
+            copy(fn_src, fn_dst)
+        elif recursive:
+            from shutils import copytree    # TODO Move to imports.
+            copytree(fn_src, fn_dst, copy_function=copy)
         else:
-            proxy.copytree(fn_src, fn_dst)
+            logger.warning("Skip directory '{}'.".format(fn_src))
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
             logger.debug("File named '{}' is skipped (excluded).".format(fn))
@@ -379,19 +412,25 @@ def _sync_job_workspaces(src, dst, strategy, exclude, proxy, subdir='', deep=Fal
             fn_src = os.path.join(src.workspace(), subdir, fn)
             fn_dst = os.path.join(dst.workspace(), subdir, fn)
             if strategy(src, dst, os.path.join(subdir, fn)):
-                proxy.copy(fn_src, fn_dst)
+                copy(fn_src, fn_dst)
             else:
                 logger.debug("Skip file '{}'.".format(fn))
     for _subdir in diff.subdirs:
-        _sync_job_workspaces(
-            src, dst, strategy, exclude, proxy, os.path.join(subdir, _subdir), deep=deep)
+        if recursive:
+            _sync_job_workspaces(
+                src=src, dst=dst, strategy=strategy, exclude=exclude, copy=copy,
+                recursive=recursive, deep=deep, subdir=os.path.join(subdir, _subdir))
+        else:
+            logger.warning("Skip directory '{}'.".format(os.path.join(subdir, _subdir)))
 
 
 def _identical_path(a, b):
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
-def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, dry_run=False, deep=False):
+def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=False,
+              preserve_permissions=False, preserve_times=False,
+              deep=False, dry_run=False):
     """Synchronize the src job with the dst job.
 
         By default, this method will synchronize all files and document data
@@ -460,7 +499,10 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, dry_run=Fals
     if type(dry_run) == _FileModifyProxy:
         proxy = dry_run
     else:
-        proxy = _FileModifyProxy(dry_run=bool(dry_run))
+        proxy = _FileModifyProxy(
+            permissions=preserve_permissions,
+            time=preserve_times,
+            dry_run=bool(dry_run))
     if proxy.dry_run:
         logger.debug("Synchronizing job '{}' (dry run)...".format(src))
     else:
@@ -468,7 +510,14 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, dry_run=Fals
 
     if os.path.isdir(src.workspace()):
         dst.init()
-        _sync_job_workspaces(src, dst, strategy, exclude, proxy, deep=deep)
+        _sync_job_workspaces(
+            src=src,
+            dst=dst,
+            strategy=strategy,
+            exclude=exclude,
+            copy=proxy.copy,
+            recursive=recursive,
+            deep=deep)
 
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
         with proxy.create_doc_backup(dst.document) as dst_proxy:
@@ -476,7 +525,9 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, dry_run=Fals
 
 
 def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
-                  selection=None, check_schema=True, dry_run=False, parallel=False):
+                  selection=None, check_schema=True,
+                  recursive=False, preserve_permissions=False, preserve_times=False,
+                  deep=False, dry_run=False, parallel=False):
     """Synchronize the destination project with the source project.
 
     Try to clone all jobs from the source to the destination.
@@ -525,7 +576,10 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         raise ValueError("Source and destination project cannot be identical!")
 
     # Setup data modification proxy
-    proxy = _FileModifyProxy(dry_run=dry_run)
+    proxy = _FileModifyProxy(
+        permissions=preserve_permissions,
+        times=preserve_times,
+        dry_run=dry_run)
 
     # Perform a schema check in an attempt to avoid bad sync operations.
     if check_schema:
@@ -578,7 +632,15 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
             return 1
         except DestinationExistsError as e:
             dst_job = destination.open_job(id=src_job.get_id())
-            sync_jobs(src_job, dst_job, strategy, exclude, doc_sync, proxy)
+            sync_jobs(
+                src=src_job,
+                dst=dst_job,
+                strategy=strategy,
+                exclude=exclude,
+                doc_sync=doc_sync,
+                recursive=recursive,
+                dry_run=proxy,   # used as internal argument to forward the proxy
+                )
             logger.more("Synchonized job '{}'.".format(src_job))
             return 2
 

@@ -333,6 +333,11 @@ def main_sync(args):
     else:
         args.strategy = 'update'
 
+    if args.times and not args.perms:
+        raise NotImplementedError(
+            "With the current implementation you need to always provide "
+            "the '-p/--perms' argument when using the '-t/--times' argument.")
+
     source = get_project(root=args.source)
     try:
         destination = get_project(root=args.destination)
@@ -379,6 +384,9 @@ def main_sync(args):
         destination.sync(
             other=source,
             strategy=strategy,
+            recursive=args.recursive,
+            preserve_permissions=args.perms,
+            preserve_times=args.times,
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
@@ -394,8 +402,9 @@ def main_sync(args):
         _print_err(
             "Synchronization conflict occured: No strategy defined "
             "to synchronize key(s): '{}'.".format(', '.join(error.keys)))
-        _print_err("Use the '-k/ --keys' argument to specify a key synchronization strategy, "
-                   "e.g., '.*' for all keys.")
+        _print_err("Use the '-k/--key' option to specify a regular expression pattern matching "
+                   "all keys that should be overwritten. Providing this option *without pattern* "
+                   "is equivalent to `--key='.\*'`, which means *overwrite all keys*.")
     except FileSyncConflict as error:
         _print_err("Synchronization conflict occured: No strategy defined to "
                    "synchronize file '{}'.".format(error))
@@ -1010,6 +1019,18 @@ more information.
         help="Optional: The root directory of the project that should be modified for "
              "synchronization, defaults to the local project.")
     parser_sync.add_argument(
+        '-r', '--recursive',
+        action='store_true',
+        help="Synchronize recursively.")
+    parser_sync.add_argument(
+        '-p', '--perms',
+        action='store_true',
+        help="Try to preserve permissions.")
+    parser_sync.add_argument(
+        '-t', '--times',
+        action='store_true',
+        help="Preserve file modification times.")
+    parser_sync.add_argument(
         '-x', '--exclude',
         type=str,
         nargs='?',
@@ -1057,7 +1078,7 @@ more information.
         action='store_true',
         help="Ignore warnings, just sync.")
     parser_sync.add_argument(
-        '-p', '--parallel',
+        '--parallel',
         type=int,
         nargs='?',
         const=True,
