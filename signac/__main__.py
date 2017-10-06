@@ -327,6 +327,10 @@ def main_schema(args):
 
 
 def main_sync(args):
+    #
+    # Valid provided argument combinations
+    #
+
     if args.update and args.strategy is not None:
         raise ValueError(
             "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
@@ -337,6 +341,16 @@ def main_sync(args):
         raise NotImplementedError(
             "With the current implementation you need to always provide "
             "the '-p/--perms' argument when using the '-t/--times' argument.")
+
+    if args.all_keys:
+        if args.key is None:
+            args.key = '.*'
+        else:
+            raise ValueError("Cannot provide both '--all-keys' and '-k/--key'.")
+
+    #
+    # Setup synchronization process
+    #
 
     source = get_project(root=args.source)
     try:
@@ -1018,72 +1032,76 @@ more information.
         nargs='?',
         help="Optional: The root directory of the project that should be modified for "
              "synchronization, defaults to the local project.")
-    parser_sync.add_argument(
+
+    sync_group = parser_sync.add_argument_group('copy options')
+    sync_group.add_argument(
         '-r', '--recursive',
         action='store_true',
-        help="Synchronize recursively.")
-    parser_sync.add_argument(
+        help="Do not skip sub-directories, but synchronize recursively.")
+    sync_group.add_argument(
         '-p', '--perms',
         action='store_true',
         help="Try to preserve permissions.")
-    parser_sync.add_argument(
+    sync_group.add_argument(
         '-t', '--times',
         action='store_true',
-        help="Preserve file modification times.")
-    parser_sync.add_argument(
+        help="Preserve file modification times (requires -p).")
+    sync_group.add_argument(
         '-x', '--exclude',
         type=str,
         nargs='?',
         const='.*',
         help="Exclude all files matching the given pattern. Exclude all files "
              "if this option is provided without any argument.")
-    parser_sync.add_argument(
+    sync_group.add_argument(
+        '-I', '--ignore-times',
+        action='store_true',
+        dest='deep',
+        help="Never rely on file meta data such as the size or the modification time "
+             "when determining file differences.")
+    sync_group.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help="Do not actually execute the synchronization. Increase the output verbosity "
+             "to see messages about what would potentially happen.")
+    sync_group.add_argument(
+        '-u', '--update',
+        action='store_true',
+        help="Skip files with newer modification time stamp."
+             "This is a short-cut for: --strategy=update.")
+
+    strategy_group = parser_sync.add_argument_group('sync strategy')
+    strategy_group.add_argument(
         '-s', '--strategy',
         type=str,
         choices=FileSync.keys(),
         help="Specify a synchronization strategy, for differing files.")
-    parser_sync.add_argument(
-        '-u', '--update',
-        action='store_true',
-        help="Do not overwrite files that have a newer modification time stamp. "
-             "This is a short-cut for: --strategy=update.")
-    parser_sync.add_argument(
+    strategy_group.add_argument(
         '-k', '--key',
         type=str,
-        nargs='?',
-        const='.*',
         help="Specify a regular expression for keys that should be overwritten "
-             "as part of the project and job document synchronization. Use this "
-             "option without argument to overwrite all keys; this is "
-             "equivalent to `--key='.*'`.")
-    parser_sync.add_argument(
-        '-n', '--dry-run',
+             "as part of the project and job document synchronization.")
+    strategy_group.add_argument(
+        '--all-keys',
         action='store_true',
-        help="Do not actually execute the synchronization. You may still need to "
-             "increase the output verbosity to see what would potentially happen.")
+        help="Overwrite all conflicting keys. Equivalent to `--key='.*'`.")
+
     parser_sync.add_argument(
         '-w', '--allow-workspace',
         action='store_true',
         help="Allow the specification of a workspace (instead of a project) directory "
              "as destination path.")
     parser_sync.add_argument(
-        '--deep',
-        action='store_true',
-        help="Never rely on file meta data such as the size or the modification time "
-             "when determining file differences. This check will take much longer and "
-             "is usually not needed, but use this option if you run into issues during "
-             "file comparison.")
-    parser_sync.add_argument(
         '--force',
         action='store_true',
-        help="Ignore warnings, just sync.")
+        help="Ignore all warnings, just synchronize.")
     parser_sync.add_argument(
         '--parallel',
         type=int,
         nargs='?',
         const=True,
-        help="Use multiple threads for synchronization. This may speed up the "
-             "process. You may optionally specify how many threads to "
+        help="Use multiple threads for synchronization."
+             "You may optionally specify how many threads to "
              "use, otherwise all available processing units will be utilized.")
     selection_group = parser_sync.add_argument_group('select')
     selection_group.add_argument(
