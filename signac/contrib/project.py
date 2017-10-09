@@ -439,7 +439,7 @@ class Project(object):
     def __iter__(self):
         return self.find_jobs()
 
-    def groupby(self, key=None):
+    def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
@@ -465,14 +465,18 @@ class Project(object):
         If `key` is None, jobs are grouped by identity (by id), placing one job
         into each group.
 
-        :param key: The statepoint grouping parameter(s) passed
-            as a string, iterable of strings, or a function
-            that will be passed one argument, the job.
-        :type key: str, iterable, or function
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, the job.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
         """
-        return self.__iter__().groupby(key)
+        return self.__iter__().groupby(key, default=default)
 
-    def groupbydoc(self, key=None):
+    def groupbydoc(self, key=None, default=None):
         """Groups jobs according to one or more document values.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
@@ -496,12 +500,16 @@ class Project(object):
         If `key` is None, jobs are grouped by identity (by id), placing one job
         into each group.
 
-        :param key: The statepoint grouping parameter(s) passed
-            as a string, iterable of strings, or a function
-            that will be passed one argument, `job.document`.
-        :type key: str, iterable, or function
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, `job.document`.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
         """
-        return self.__iter__().groupbydoc(key)
+        return self.__iter__().groupbydoc(key, default=default)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1263,7 +1271,7 @@ class JobsCursor(object):
 
     next = __next__  # python 2.7 compatibility
 
-    def groupby(self, key=None):
+    def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
@@ -1289,26 +1297,42 @@ class JobsCursor(object):
         If `key` is None, jobs are grouped by identity (by id), placing one job
         into each group.
 
-        :param key: The statepoint grouping parameter(s) passed
-            as a string, iterable of strings, or a function
-            that will be passed one argument, the job.
-        :type key: str, iterable, or function
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, the job.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
         """
         if isinstance(key, six.string_types):
-            def keyfunction(job):
-                return job.sp[key]
+            if default is None:
+                def keyfunction(job):
+                        return job.sp[key]
+            else:
+                def keyfunction(job):
+                    return job.sp.get(key, default)
+
         elif isinstance(key, collections.Iterable):
-            def keyfunction(job):
-                return tuple(job.sp[k] for k in key)
+            if default is None:
+                def keyfunction(job):
+                    return tuple(job.sp[k] for k in key)
+            else:
+                def keyfunction(job):
+                    return tuple(job.sp.get(k, default) for k in key)
+
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
                 return str(job)
+
         else:
             keyfunction = key
+
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
-    def groupbydoc(self, key=None):
+    def groupbydoc(self, key=None, default=None):
         """Groups jobs according to one or more document values.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
@@ -1332,17 +1356,29 @@ class JobsCursor(object):
         If `key` is None, jobs are grouped by identity (by id), placing one job
         into each group.
 
-        :param key: The statepoint grouping parameter(s) passed
-            as a string, iterable of strings, or a function
-            that will be passed one argument, `job.document`.
-        :type key: str, iterable, or function
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, `job.document`.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
         """
         if isinstance(key, six.string_types):
-            def keyfunction(job):
-                return job.document[key]
+            if default is None:
+                def keyfunction(job):
+                    return job.document[key]
+            else:
+                def keyfunction(job):
+                    return job.document.get(key, default)
         elif isinstance(key, collections.Iterable):
-            def keyfunction(job):
-                return tuple(job.document[k] for k in key)
+            if default is None:
+                def keyfunction(job):
+                    return tuple(job.document[k] for k in key)
+            else:
+                def keyfunction(job):
+                    return tuple(job.document.get(k, default) for k in key)
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):

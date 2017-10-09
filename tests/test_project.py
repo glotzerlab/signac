@@ -862,6 +862,12 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(len(list(g)), 6)
             for job in list(g):
                 self.assertEqual(job.sp['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupby('d'):
+                pass
+        for k, g in self.project.groupby('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
         for k, g in self.project.groupby(('b', 'c')):
             self.assertEqual(len(list(g)), 2)
             for job in list(g):
@@ -904,6 +910,12 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(len(list(g)), 6)
             for job in list(g):
                 self.assertEqual(job.document['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupbydoc('d'):
+                pass
+        for k, g in self.project.groupbydoc('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
         for k, g in self.project.groupbydoc(('b', 'c')):
             self.assertEqual(len(list(g)), 2)
             for job in list(g):
