@@ -45,7 +45,7 @@ pipelines:
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
-    v*:
+    release-*:
       - step:
           image: themattrix/tox
           script:
@@ -61,7 +61,7 @@ pipelines:
             - tox
             - python3.6 -m coverage report -i --include="signac*"
   tags:
-   v*:
+   release-*:
      - step:
           image: themattrix/tox
           script:

@@ -47,13 +47,6 @@ signac.contrib.filesystems module
     :undoc-members:
     :show-inheritance:
 
-signac.contrib.formats module
------------------------------
-
-.. automodule:: signac.contrib.formats
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 signac.contrib.hashing module
 -----------------------------

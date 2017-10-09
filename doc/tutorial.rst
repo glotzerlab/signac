@@ -3,7 +3,7 @@
 Tutorial
 ========
 
-.. sidebar:: Requirementes
+.. sidebar:: Requirements
 
     The tutorial assumes a basic proficiency in python.
     The first chapter will take about 20 to 30 minutes to complete.

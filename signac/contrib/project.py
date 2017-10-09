@@ -9,16 +9,16 @@ import logging
 import warnings
 import errno
 import collections
-import shutil
 from itertools import chain, groupby
 
+from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
 from .collection import Collection
 from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
-from ..sync import merge_projects
+from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
@@ -350,7 +350,7 @@ class Project(object):
                     continue
                 collection.index(key, build=True)
         tmp = collection._indexes
-        for k in sorted(tmp, key=lambda k: len(tmp[k])):
+        for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
             if exclude_const and len(tmp[k]) == 1 \
                     and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
@@ -701,7 +701,7 @@ class Project(object):
                 raise ValueError("Insufficient index for selected data space.")
 
         jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
-        sp_index = dict(jsi)
+        sp_index = collections.OrderedDict(jsi)
         tmp = collections.defaultdict(list)
         for key, values in sp_index.items():
             for value, group in values.items():
@@ -795,7 +795,7 @@ class Project(object):
         """
         job.update_statepoint(update=update, overwrite=overwrite)
 
-    def clone(self, job):
+    def clone(self, job, copytree=syncutil.copytree):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -810,7 +810,7 @@ class Project(object):
         """
         dst = self.open_job(job._statepoint)
         try:
-            shutil.copytree(job.workspace(), dst.workspace())
+            copytree(job.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
@@ -820,45 +820,45 @@ class Project(object):
                 raise
         return dst
 
-    def merge(self, other, strategy=None, exclude=None, doc_merge=None, selection=None, **kwargs):
-        """Merge other project into this project.
+    def sync(self, other, strategy=None, exclude=None, doc_sync=None, selection=None, **kwargs):
+        """Synchronize this project with the other project.
 
         Try to clone all jobs from the other project to this project.
-        If a job is already part of this project, try to merge the job
+        If a job is already part of this project, try to synchronize the job
         using the optionally specified strategies.
 
         :param other:
-            The other project to merge into this project.
+            The other project to synchronize this project with.
         :type other:
             :py:class:`~.Project`
         :param strategy:
-            A file merging strategy.
+            A file synchronization strategy.
         :param exclude:
             Files with names matching the given pattern will be excluded
-            from the merge operation.
-        :param doc_merge:
-            The function applied for merging documents.
+            from the synchronization.
+        :param doc_sync:
+            The function applied for synchronizing documents.
         :param selection:
-            Only merge the given jobs.
+            Only sync the given jobs.
         :param kwargs:
-            This method accepts the same keyword arguments as the :func:`~.sync.merge_projects`
+            This method accepts the same keyword arguments as the :func:`~.sync.sync_projects`
             function.
-        :raises DocumentMergeConflict:
+        :raises DocumentSyncConflict:
             If there are conflicting keys within the project or job documents that cannot
             be resolved with the given strategy or if there is no strategy provided.
-        :raises FileMergeConflict:
+        :raises FileSyncConflict:
             If there are differing files that cannot be resolved with the given strategy
             or if no strategy is provided.
-        :raises MergeSchemaConflict:
+        :raises SyncSchemaConflict:
             In case that the check_schema argument is True and the detected state point
             schema of this and the other project differ.
         """
-        return merge_projects(
+        return sync_projects(
             source=other,
             destination=self,
             strategy=strategy,
             exclude=exclude,
-            doc_merge=doc_merge,
+            doc_sync=doc_sync,
             selection=selection,
             **kwargs)
 

@@ -13,7 +13,7 @@ import re
 import errno
 from pprint import pprint, pformat
 
-from . import get_project, init_project, index
+from . import Project, get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
@@ -21,11 +21,11 @@ from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
-from signac.sync import FileMerge
-from signac.sync import DocMerge
-from signac.errors import FileMergeConflict
-from signac.errors import DocumentMergeConflict
-from signac.errors import SchemaMergeConflict
+from .sync import FileSync
+from .sync import DocSync
+from .errors import FileSyncConflict
+from .errors import DocumentSyncConflict
+from .errors import SchemaSyncConflict
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -241,7 +241,8 @@ def main_move(args):
             job = _open_job_by_id(project, job_id)
             job.move(dst_project)
         except DestinationExistsError as error:
-            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+            _print_err(
+                "Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
             _print_err("Moved '{}' to '{}'.".format(job, dst_project))
 
@@ -326,64 +327,129 @@ def main_schema(args):
             max_num_range=args.max_num_range))
 
 
-def main_merge(args):
+def main_sync(args):
+    #
+    # Valid provided argument combinations
+    #
+    if args.archive:
+        args.recursive = True
+        args.links = True
+        args.times = True
+        args.perms = True
+        args.owner = True
+        args.group = True
+
+    if args.update and args.strategy is not None:
+        raise ValueError(
+            "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
+    else:
+        args.strategy = 'update'
+
+    if args.times and not args.perms:
+        raise NotImplementedError(
+            "The '-t/--times' option can only be used in combination with the "
+            "'-p/--perms argument.")
+
+    if args.all_keys:
+        if args.key is None:
+            args.key = '.*'
+        else:
+            raise ValueError("Cannot provide both '--all-keys' and '-k/--key'.")
+
+    #
+    # Setup synchronization process
+    #
+
     source = get_project(root=args.source)
-    destination = get_project(root=args.destination)
+    try:
+        destination = get_project(root=args.destination)
+    except LookupError:
+        if args.allow_workspace:
+            destination = Project(config={
+                'project': os.path.relpath(args.destination),
+                'project_dir': args.destination,
+                'workspace_dir': '.'})
+        else:
+            _print_err(
+                "WARNING: The destination appears to not be a project path. "
+                "Use the '-w/--allow-workspace' option if you want to "
+                "synchronize to a workspace directory directly.")
+            raise
     selection = find_with_filter_or_none(args)
 
     if args.strategy:
         if args.strategy[0].isupper():
-            strategy = getattr(FileMerge, args.strategy)()
+            strategy = getattr(FileSync, args.strategy)()
         else:
-            strategy = getattr(FileMerge, args.strategy)
+            strategy = getattr(FileSync, args.strategy)
     else:
         strategy = None
 
-    if args.keys:
+    if args.key:
         try:
-            re.compile(args.keys)
+            re.compile(args.key)
         except re.error as e:
             raise RuntimeError(
-                "Illegal regular expression '{}': '{}'.".format(args.keys, e))
+                "Illegal regular expression '{}': '{}'.".format(args.key, e))
 
-        doc_merge = DocMerge.ByKey(lambda key: re.match(args.keys, key))
+        doc_sync = DocSync.ByKey(lambda key: re.match(args.key, key))
     else:
-        doc_merge = DocMerge.ByKey()
+        doc_sync = DocSync.ByKey()
 
     try:
-        _print_err("Merging '{}' -> {}'...".format(source, destination))
+        _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
 
         if args.dry_run and args.verbosity <= 2:
             _print_err("WARNING: Performing dry run, consider to increase output "
                        "verbosity with -v / --verbose.")
 
-        destination.merge(
+        destination.sync(
             other=source,
             strategy=strategy,
+            recursive=args.recursive,
+            follow_symlinks=not args.links,
+            preserve_permissions=args.perms,
+            preserve_times=args.times,
+            preserve_owner=args.owner,
+            preserve_group=args.group,
             exclude=args.exclude,
-            doc_merge=doc_merge,
+            doc_sync=doc_sync,
             selection=selection,
             check_schema=not args.force,
-            dry_run=args.dry_run)
-        if doc_merge.skipped_keys:
-            _print_err("Skipped key(s):", ', '.join(sorted(doc_merge.skipped_keys)))
-        _print_err("Done.")
-        return
-    except SchemaMergeConflict as error:
+            dry_run=args.dry_run,
+            parallel=args.parallel,
+            deep=args.deep)
+    except SchemaSyncConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
             "Use --force to ignore.")
-    except DocumentMergeConflict as error:
+        only_in_src = error.schema_src.difference(error.schema_dst)
+        if only_in_src:
+            keys_formatted = ('.'.join(k) for k in only_in_src)
+            _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
+        only_in_dst = error.schema_dst.difference(error.schema_src)
+        if only_in_dst:
+            keys_formatted = ('.'.join(k) for k in only_in_dst)
+            _print_err(
+                "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+    except DocumentSyncConflict as error:
         _print_err(
-            "Merge conflict occured: No strategy defined "
-            "to merge key(s): '{}'.".format(', '.join(error.keys)))
-        _print_err("Use the '-k/ --keys' argument to specify a key merge strategy, "
-                   "e.g., '.*' for all keys.")
-    except FileMergeConflict as error:
-        _print_err("Merge conflict occured: No strategy defined to merge file '{}'.".format(error))
-        _print_err("Use the '-s/ --strategy' argument to specify a file merge strategy.")
-        _print_err("Execute 'signac merge --help' for more information.")
-    _print_err("Merge aborted.")
+            "Synchronization conflict occured: No strategy defined "
+            "to synchronize key(s): '{}'.".format(', '.join(error.keys)))
+        _print_err("Use the '-k/--key' option to specify a regular expression pattern matching "
+                   "all keys that should be overwritten. Providing this option *without pattern* "
+                   "is equivalent to `--key='.\*'`, which means *overwrite all keys*.")
+    except FileSyncConflict as error:
+        _print_err("Synchronization conflict occured: No strategy defined to "
+                   "synchronize file '{}'.".format(error))
+        _print_err("Use the '-s/ --strategy' argument to specify a file synchronization strategy.")
+        _print_err("Execute 'signac sync --help' for more information.")
+    else:
+        if doc_sync.skipped_keys:
+            _print_err("Skipped key(s):", ', '.join(sorted(doc_sync.skipped_keys)))
+        _print_err("Done.")
+        return
+    raise RuntimeWarning("Synchronization aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -514,7 +580,7 @@ def main_config_set(args):
         sec = sec.setdefault(key, dict())
     try:
         sec[keys[-1]] = args.value
-        _print_err("Updated value for '{}'.".format(args.key))
+        _print_err("Updated value '{}'='{}'.".format(args.key, args.value))
     except TypeError:
         raise KeyError(args.key)
     _print_err("Writing configuration to '{}'.".format(
@@ -966,66 +1032,131 @@ def main():
         help="Detect schema only for jobs with the given job ids.")
     parser_schema.set_defaults(func=main_schema)
 
-    parser_merge = subparsers.add_parser(
-        'merge',
-        description="""Use this command to merge another project into this project.
-For example: `signac merge /path/to/other/project --strategy always --keys foo`
-means "Merge all jobs from the other project into this project; *always* overwrite files
-on conflict and merge all keys that match the 'foo' expression when there are conflicting
-keys in the project or job documents." See help(signac.sync) for more information.
+    parser_sync = subparsers.add_parser(
+        'sync',
+        description="""Use this command to synchronize this project with another project;
+similar to the synchronization of two directories with `rsync`.
+Data is always copied from the source to the destination.
+For example: `signac sync /path/to/other/project --strategy always --keys foo`
+means "Synchronize all jobs within this project with those in the other project; *always*
+overwrite files on conflict and overwrite all keys that match the 'foo' expression when
+there are conflicting keys in the project or job documents." See help(signac.sync) for
+more information.
         """
         )
-    parser_merge.add_argument(
+    parser_sync.add_argument(
         'source',
-        help="The root directory of the project that should be merged.")
-    parser_merge.add_argument(
+        help="The root directory of the project that this project should be synchronized with.")
+    parser_sync.add_argument(
         'destination',
         nargs='?',
-        help="Optional: The root directory of the project that should be "
-             "merged into, defaults to the local project.")
-    parser_merge.add_argument(
+        help="Optional: The root directory of the project that should be modified for "
+             "synchronization, defaults to the local project.")
+    add_verbosity_argument(parser_sync, default=2)
+
+    sync_group = parser_sync.add_argument_group('copy options')
+    sync_group.add_argument(
+        '-a', '--archive',
+        action='store_true',
+        help="archive mode; equivalent to: '-rltpog'")
+    sync_group.add_argument(
+        '-r', '--recursive',
+        action='store_true',
+        help="Do not skip sub-directories, but synchronize recursively.")
+    sync_group.add_argument(
+        '-l', '--links',
+        action='store_true',
+        help="Copy symbolic links as symbolic links pointing to the original source.")
+    sync_group.add_argument(
+        '-p', '--perms',
+        action='store_true',
+        help="Preserve permissions.")
+    sync_group.add_argument(
+        '-o', '--owner',
+        action='store_true',
+        help="Preserve owner.")
+    sync_group.add_argument(
+        '-g', '--group',
+        action='store_true',
+        help="Preserve group.")
+    sync_group.add_argument(
+        '-t', '--times',
+        action='store_true',
+        help="Preserve file modification times (requires -p).")
+    sync_group.add_argument(
         '-x', '--exclude',
         type=str,
         nargs='?',
         const='.*',
         help="Exclude all files matching the given pattern. Exclude all files "
              "if this option is provided without any argument.")
-    parser_merge.add_argument(
-        '-s', '--strategy',
-        choices=FileMerge.keys(),
-        help="Specify a merge strategy, for differing files.")
-    parser_merge.add_argument(
-        '-k', '--keys',
-        type=str,
-        help="Specify a regular expression for keys that should be merged "
-             "as part of the project and job documents. To merge all keys, "
-             "use '.*'.")
-    parser_merge.add_argument(
+    sync_group.add_argument(
+        '-I', '--ignore-times',
+        action='store_true',
+        dest='deep',
+        help="Never rely on file meta data such as the size or the modification time "
+             "when determining file differences.")
+    sync_group.add_argument(
         '-n', '--dry-run',
         action='store_true',
-        help="Do not actually execute merge actions. You may still need to "
-             "increase the output verbosity to see what would happen.")
-    parser_merge.add_argument(
+        help="Do not actually execute the synchronization. Increase the output verbosity "
+             "to see messages about what would potentially happen.")
+    sync_group.add_argument(
+        '-u', '--update',
+        action='store_true',
+        help="Skip files with newer modification time stamp."
+             "This is a short-cut for: --strategy=update.")
+
+    strategy_group = parser_sync.add_argument_group('sync strategy')
+    strategy_group.add_argument(
+        '-s', '--strategy',
+        type=str,
+        choices=FileSync.keys(),
+        help="Specify a synchronization strategy, for differing files.")
+    strategy_group.add_argument(
+        '-k', '--key',
+        type=str,
+        help="Specify a regular expression for keys that should be overwritten "
+             "as part of the project and job document synchronization.")
+    strategy_group.add_argument(
+        '--all-keys',
+        action='store_true',
+        help="Overwrite all conflicting keys. Equivalent to `--key='.*'`.")
+
+    parser_sync.add_argument(
+        '-w', '--allow-workspace',
+        action='store_true',
+        help="Allow the specification of a workspace (instead of a project) directory "
+             "as destination path.")
+    parser_sync.add_argument(
         '--force',
         action='store_true',
-        help="Ignore warnings, just merge.")
-    selection_group = parser_merge.add_argument_group('select')
+        help="Ignore all warnings, just synchronize.")
+    parser_sync.add_argument(
+        '--parallel',
+        type=int,
+        nargs='?',
+        const=True,
+        help="Use multiple threads for synchronization."
+             "You may optionally specify how many threads to "
+             "use, otherwise all available processing units will be utilized.")
+    selection_group = parser_sync.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
         type=str,
         nargs='+',
-        help="Only merge jobs that match the state point filter.")
+        help="Only synchronize jobs that match the state point filter.")
     selection_group.add_argument(
         '-d', '--doc-filter',
         type=str,
         nargs='+',
-        help="Only merge jobs that match the document filter.")
+        help="Only synchronize jobs that match the document filter.")
     selection_group.add_argument(
         '-j', '--job-id',
         type=str,
         nargs='+',
-        help="Only merge jobs with the given job ids.")
-    parser_merge.set_defaults(func=main_merge)
+        help="Only synchronize jobs with the given job ids.")
+    parser_sync.set_defaults(func=main_sync)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
@@ -1146,8 +1277,13 @@ keys in the project or job documents." See help(signac.sync) for more informatio
         if args.debug:
             raise
         sys.exit(1)
+    except RuntimeWarning as warning:
+        _print_err("Warning: {}".format(warning))
+        if args.debug:
+            raise
+        sys.exit(1)
     except Exception as error:
-        _print_err('Error: {}'.format(str(error)))
+        _print_err('Error: {}'.format(error))
         if args.debug:
             raise
         sys.exit(1)
