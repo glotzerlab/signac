@@ -843,6 +843,100 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(s.difference(s_, ignore_values=True)), 0)
         self.assertEqual(len(s3.difference(s3_, ignore_values=True)), 0)
 
+    def test_jobs_groupby(self):
+        def get_sp(i):
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
+        for i in range(12):
+            self.project.open_job(get_sp(i)).init()
+
+        for k, g in self.project.groupby('a'):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(job.sp['a'], k)
+        for k, g in self.project.groupby('b'):
+            self.assertEqual(len(list(g)), 6)
+            for job in list(g):
+                self.assertEqual(job.sp['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupby('d'):
+                pass
+        for k, g in self.project.groupby('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
+        for k, g in self.project.groupby(('b', 'c')):
+            self.assertEqual(len(list(g)), 2)
+            for job in list(g):
+                self.assertEqual(job.sp['b'], k[0])
+                self.assertEqual(job.sp['c'], k[1])
+        for k, g in self.project.groupby(lambda job: job.sp['a'] % 4):
+            self.assertEqual(len(list(g)), 3)
+            for job in list(g):
+                self.assertEqual(job.sp['a'] % 4, k)
+        for k, g in self.project.groupby(lambda job: str(job)):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        group_count = 0
+        for k, g in self.project.groupby():
+            self.assertEqual(len(list(g)), 1)
+            group_count = group_count + 1
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        self.assertEqual(group_count, len(list(self.project.find_jobs())))
+
+    def test_jobs_groupbydoc(self):
+        def get_doc(i):
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
+        for i in range(12):
+            job = self.project.open_job({'i': i})
+            job.init()
+            job.document = get_doc(i)
+
+        for k, g in self.project.groupbydoc('a'):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(job.document['a'], k)
+        for k, g in self.project.groupbydoc('b'):
+            self.assertEqual(len(list(g)), 6)
+            for job in list(g):
+                self.assertEqual(job.document['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupbydoc('d'):
+                pass
+        for k, g in self.project.groupbydoc('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
+        for k, g in self.project.groupbydoc(('b', 'c')):
+            self.assertEqual(len(list(g)), 2)
+            for job in list(g):
+                self.assertEqual(job.document['b'], k[0])
+                self.assertEqual(job.document['c'], k[1])
+        for k, g in self.project.groupbydoc(lambda doc: doc['a'] % 4):
+            self.assertEqual(len(list(g)), 3)
+            for job in list(g):
+                self.assertEqual(job.document['a'] % 4, k)
+        for k, g in self.project.groupbydoc(lambda doc: str(doc)):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(str(job.document), k)
+        group_count = 0
+        for k, g in self.project.groupbydoc():
+            self.assertEqual(len(list(g)), 1)
+            group_count = group_count + 1
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        self.assertEqual(group_count, len(list(self.project.find_jobs())))
+
 
 class ProjectInitTest(unittest.TestCase):
 
