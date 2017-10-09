@@ -452,9 +452,9 @@ def main_sync(args):
         _print_err(
             "Synchronization conflict occured: No strategy defined "
             "to synchronize key(s): '{}'.".format(', '.join(error.keys)))
-        _print_err("Use the '-k/--key' option to specify a regular expression pattern matching "
-                   "all keys that should be overwritten. Providing this option *without pattern* "
-                   "is equivalent to `--key='.\*'`, which means *overwrite all keys*.")
+        _print_err("Use the `-k/--key` option to specify a regular expression pattern matching "
+                   "all keys that should be overwritten or `--all-keys` to overwrite all "
+                   "conflicting keys.")
     except FileSyncConflict as error:
         _print_err("Synchronization conflict occured: No strategy defined to "
                    "synchronize file '{}'.".format(error))
@@ -1053,12 +1053,11 @@ def main():
         description="""Use this command to synchronize this project with another project;
 similar to the synchronization of two directories with `rsync`.
 Data is always copied from the source to the destination.
-For example: `signac sync /path/to/other/project --strategy always --keys foo`
-means "Synchronize all jobs within this project with those in the other project; *always*
-overwrite files on conflict and overwrite all keys that match the 'foo' expression when
-there are conflicting keys in the project or job documents." See help(signac.sync) for
-more information.
-        """
+For example: `signac sync /path/to/other/project -u --all-keys`
+means "Synchronize all jobs within this project with those in the other project; overwrite
+files if the source files is newer and overwrite all conflicting keys in the project and
+job documents."
+"""
         )
     parser_sync.add_argument(
         'source',
@@ -1153,7 +1152,7 @@ more information.
         '-w', '--allow-workspace',
         action='store_true',
         help="Allow the specification of a workspace (instead of a project) directory "
-             "as destination path.")
+             "as the destination path.")
     parser_sync.add_argument(
         '--force',
         action='store_true',
