@@ -462,8 +462,8 @@ class Project(object):
             ):
                 print(key, list(group))
 
-        If `key` is unrecognized, the default behavior is to group by job id,
-        putting one job into each group.
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
 
         :param key: The statepoint grouping parameter(s) passed
             as a string, iterable of strings, or a function
@@ -493,8 +493,8 @@ class Project(object):
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is unrecognized, the default behavior is to group by job id,
-        putting one job into each group.
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
 
         :param key: The statepoint grouping parameter(s) passed
             as a string, iterable of strings, or a function
@@ -1286,8 +1286,8 @@ class JobsCursor(object):
             ):
                 print(key, list(group))
 
-        If `key` is unrecognized, the default behavior is to group by job id,
-        putting one job into each group.
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
 
         :param key: The statepoint grouping parameter(s) passed
             as a string, iterable of strings, or a function
@@ -1329,8 +1329,8 @@ class JobsCursor(object):
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is unrecognized, the default behavior is to group by job id,
-        putting one job into each group.
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
 
         :param key: The statepoint grouping parameter(s) passed
             as a string, iterable of strings, or a function
