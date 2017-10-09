@@ -293,7 +293,8 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             strategy that will not overwrite any values on conflict, but instead raises a
             :class:`~.errors.DocumentSyncConflict` exception.
         :param recursive:
-            Recursively synchronize sub-directories encountered within the job workspace directories.
+            Recursively synchronize sub-directories encountered within
+            the job workspace directories.
         :type recursive:
             bool
         :param follow_symlinks:
