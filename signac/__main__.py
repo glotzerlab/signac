@@ -350,6 +350,22 @@ def main_sync(args):
             "The '-t/--times' option can only be used in combination with the "
             "'-p/--perms argument.")
 
+    if args.size_only or args.round_times:
+        # Apply monkey patch
+        import filecmp
+        import stat
+
+        if args.size_only:
+            def _sig(st):
+                return (stat.S_IFMT(st.st_mode),
+                        st.st_size)
+        else:
+            def _sig(st):
+                return (stat.S_IFMT(st.st_mode),
+                        st.st_size,
+                        int(st.st_mtime))
+        filecmp._sig = _sig
+
     if args.all_keys:
         if args.key is None:
             args.key = '.*'
@@ -1096,6 +1112,16 @@ more information.
         dest='deep',
         help="Never rely on file meta data such as the size or the modification time "
              "when determining file differences.")
+    sync_group.add_argument(
+        '--size-only',
+        action='store_true',
+        help="Ignore modification times during file comparison. Useful when synchronizing "
+             "between file systems with different timestamp resolution.")
+    sync_group.add_argument(
+        '--round-times',
+        action='store_true',
+        help="Round modification times during file comparison. Useful when synchronizing "
+             "between file systems with different timestamp resolution.")
     sync_group.add_argument(
         '-n', '--dry-run',
         action='store_true',
