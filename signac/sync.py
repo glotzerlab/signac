@@ -349,6 +349,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
         proxy = dry_run
     else:
         proxy = _FileModifyProxy(
+            root=src.workspace(),
             follow_symlinks=follow_symlinks,
             permissions=preserve_permissions,
             times=preserve_times,
@@ -456,6 +457,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
 
     # Setup data modification proxy
     proxy = _FileModifyProxy(
+        root=source.workspace(),
         follow_symlinks=follow_symlinks,
         permissions=preserve_permissions,
         times=preserve_times,

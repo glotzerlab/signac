@@ -127,8 +127,9 @@ class _FileModifyProxy(object):
         bool
     """
 
-    def __init__(self, follow_symlinks=True, permissions=False,
+    def __init__(self, root=None, follow_symlinks=True, permissions=False,
                  times=False, owner=False, group=False, dry_run=False):
+        self.root = root
         self.follow_symlinks = follow_symlinks
         self.permissions = permissions
         self.times = times
@@ -162,6 +163,8 @@ class _FileModifyProxy(object):
         self._remove(path)
 
     def copy(self, src, dst):
+        if self.dry_run:
+            print(os.path.relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
             link_target = os.readlink(src)
             logger.more("Creating link '{}' -> '{}'.".format(
