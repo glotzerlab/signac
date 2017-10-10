@@ -366,12 +366,6 @@ def main_sync(args):
                         int(st.st_mtime))
         filecmp._sig = _sig
 
-    if args.all_keys:
-        if args.key is None:
-            args.key = '.*'
-        else:
-            raise ValueError("Cannot provide both '--all-keys' and '-k/--key'.")
-
     #
     # Setup synchronization process
     #
@@ -401,13 +395,18 @@ def main_sync(args):
     else:
         strategy = None
 
-    if args.key:
+    if sum((args.all_keys, args.no_keys, args.key is not None)) > 1:
+        raise ValueError("You can only provide one key argument!")
+    elif args.all_keys:
+        doc_sync = DocSync.ByKey(lambda key: True)
+    elif args.no_keys:
+        doc_sync = DocSync.ByKey(lambda key: False)
+    elif args.key:
         try:
             re.compile(args.key)
         except re.error as e:
             raise RuntimeError(
                 "Illegal regular expression '{}': '{}'.".format(args.key, e))
-
         doc_sync = DocSync.ByKey(lambda key: re.match(args.key, key))
     else:
         doc_sync = DocSync.ByKey()
@@ -1147,6 +1146,10 @@ job documents."
         '--all-keys',
         action='store_true',
         help="Overwrite all conflicting keys. Equivalent to `--key='.*'`.")
+    strategy_group.add_argument(
+        '--no-keys',
+        action='store_true',
+        help="Never overwrite any conflicting keys.")
 
     parser_sync.add_argument(
         '-w', '--allow-workspace',
