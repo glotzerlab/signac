@@ -54,6 +54,24 @@ CONFIG_HOST_CHOICES = {
 }
 
 
+MSG_SYNC_SPECIFY_KEY = """
+Synchronization conflict occured, no strategy defined to synchronize keys:
+{keys}
+
+Use the `-k/--key` option to specify a regular expression pattern matching
+all keys that should be overwritten, `--all-keys` to overwrite all conflicting
+keys, or `--no-keys` to overwrite none of the conflicting keys."""
+
+
+MSG_SYNC_FILE_CONFLICT = """
+Synchronization conflict occured, no strategy defined to synchronize files:
+{files}
+
+Use the `-s/--strategy` option to specify a file synchronization strategy,
+or the `-u/--update` option to overwrite all files which have a more recent
+modification time stamp."""
+
+
 def _print_err(msg=None, *args):
     print(msg, *args, file=sys.stderr)
 
@@ -413,11 +431,6 @@ def main_sync(args):
 
     try:
         _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
-
-        if args.dry_run and args.verbosity <= 2:
-            _print_err("WARNING: Performing dry run, consider to increase output "
-                       "verbosity with -v / --verbose.")
-
         destination.sync(
             other=source,
             strategy=strategy,
@@ -448,17 +461,9 @@ def main_sync(args):
             _print_err(
                 "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
-        _print_err(
-            "Synchronization conflict occured: No strategy defined "
-            "to synchronize key(s): '{}'.".format(', '.join(error.keys)))
-        _print_err("Use the `-k/--key` option to specify a regular expression pattern matching "
-                   "all keys that should be overwritten or `--all-keys` to overwrite all "
-                   "conflicting keys.")
+        _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
-        _print_err("Synchronization conflict occured: No strategy defined to "
-                   "synchronize file '{}'.".format(error))
-        _print_err("Use the '-s/ --strategy' argument to specify a file synchronization strategy.")
-        _print_err("Execute 'signac sync --help' for more information.")
+        _print_err(MSG_SYNC_FILE_CONFLICT.format(files=error))
     else:
         if doc_sync.skipped_keys:
             _print_err("Skipped key(s):", ', '.join(sorted(doc_sync.skipped_keys)))
