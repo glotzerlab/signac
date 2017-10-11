@@ -357,10 +357,10 @@ def main_sync(args):
         args.owner = True
         args.group = True
 
-    if args.update and args.strategy is not None:
-        raise ValueError(
-            "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
-    else:
+    if args.update:
+        if args.strategy is not None:
+            raise ValueError(
+                "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
         args.strategy = 'update'
 
     if args.times and not args.perms:
