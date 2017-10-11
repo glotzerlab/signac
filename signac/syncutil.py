@@ -128,7 +128,8 @@ class _FileModifyProxy(object):
     """
 
     def __init__(self, root=None, follow_symlinks=True, permissions=False,
-                 times=False, owner=False, group=False, dry_run=False):
+                 times=False, owner=False, group=False, dry_run=False,
+                 collect_stats=False):
         self.root = root
         self.follow_symlinks = follow_symlinks
         self.permissions = permissions
@@ -136,6 +137,7 @@ class _FileModifyProxy(object):
         self.owner = owner
         self.group = group
         self.dry_run = dry_run
+        self.stats = dict(num_files=0, volume=0) if collect_stats else None
 
     # Internal proxy functions
 
@@ -186,14 +188,18 @@ class _FileModifyProxy(object):
             else:
                 logger.more(msg.format(''))
                 self._copy(src, dst)
-            if self.owner or self.group:
-                logger.more("Copy owner/group '{}' -> '{}'".format(
-                    os.path.relpath(src), os.path.relpath(dst)))
-                if not self.dry_run:
-                    stat = os.stat(src)
-                    os.chown(dst,
-                             uid=stat.st_uid if self.owner else -1,
-                             gid=stat.st_gid if self.group else -1)
+            if self.owner or self.group or self.stats is not None:
+                stat = os.stat(src)
+                if self.stats is not None:
+                    self.stats['num_files'] += 1
+                    self.stats['volume'] += stat.st_size
+                if self.owner or self.group:
+                    logger.more("Copy owner/group '{}' -> '{}'".format(
+                        os.path.relpath(src), os.path.relpath(dst)))
+                    if not self.dry_run:
+                        os.chown(dst,
+                                 uid=stat.st_uid if self.owner else -1,
+                                 gid=stat.st_gid if self.group else -1)
 
     def copytree(self, src, dst, **kwargs):
         logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))

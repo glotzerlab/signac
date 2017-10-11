@@ -72,8 +72,23 @@ or the `-u/--update` option to overwrite all files which have a more recent
 modification time stamp."""
 
 
+MSG_SYNC_STATS = """
+Number of files transferred: {stats.num_files}
+Total transfer volume:       {stats.volume}
+"""
+
+
 def _print_err(msg=None, *args):
     print(msg, *args, file=sys.stderr)
+
+
+def _fmt_bytes(nbytes, suffix='B'):
+    "Adapted from: https://stackoverflow.com/a/1094933"
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(nbytes) < 1024.0:
+            return "%3.1f %s%s" % (nbytes, unit, suffix)
+        nbytes /= 1024.0
+    return "%.1f %s%s" % (nbytes, 'Yi', suffix)
 
 
 def _passlib_available():
@@ -431,7 +446,7 @@ def main_sync(args):
 
     try:
         _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
-        destination.sync(
+        stats = destination.sync(
             other=source,
             strategy=strategy,
             recursive=args.recursive,
@@ -446,7 +461,16 @@ def main_sync(args):
             check_schema=not args.force,
             dry_run=args.dry_run,
             parallel=args.parallel,
-            deep=args.deep)
+            deep=args.deep,
+            collect_stats=args.stats)
+        if stats is not None:
+            if args.human_readable:
+                stats = stats._replace(volume=_fmt_bytes(stats.volume))
+            print("\n# Transfer statistics")
+            if args.json:
+                print(json.dumps(stats._asdict()))
+            else:
+                print(MSG_SYNC_STATS.format(stats=stats))
     except SchemaSyncConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
@@ -1173,6 +1197,19 @@ job documents."
         help="Use multiple threads for synchronization."
              "You may optionally specify how many threads to "
              "use, otherwise all available processing units will be utilized.")
+    parser_sync.add_argument(
+        '--stats',
+        action='store_true',
+        help="Provide file transfer statistics.")
+    parser_sync.add_argument(
+        '-H', '--human-readable',
+        action='store_true',
+        help="Provide statistics with human readable formatting.")
+    parser_sync.add_argument(
+        '--json',
+        action='store_true',
+        help="Print statistics in JSON formatting.")
+
     selection_group = parser_sync.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',

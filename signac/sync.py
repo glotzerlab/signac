@@ -76,6 +76,7 @@ a regular expression, so the synchronization above could also be achieved with:
 import os
 import re
 from collections import defaultdict as ddict
+from collections import namedtuple
 from multiprocessing.pool import ThreadPool
 
 from .errors import DestinationExistsError
@@ -378,12 +379,16 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
                 doc_sync(src.document, dst_proxy)
 
 
+FileTransferStats = namedtuple('_FileTransferStats', ['num_files', 'volume'])
+
+
 def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
                   selection=None, check_schema=True, recursive=False,
                   follow_symlinks=True,
                   preserve_permissions=False, preserve_times=False,
                   preserve_owner=False, preserve_group=False,
-                  deep=False, dry_run=False, parallel=False):
+                  deep=False, dry_run=False, parallel=False,
+                  collect_stats=False):
     """Synchronize the destination project with the source project.
 
     Try to clone all jobs from the source to the destination.
@@ -463,7 +468,8 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         times=preserve_times,
         owner=preserve_owner,
         group=preserve_group,
-        dry_run=dry_run)
+        dry_run=dry_run,
+        collect_stats=collect_stats)
 
     # Perform a schema check in an attempt to avoid bad sync operations.
     if check_schema:
@@ -546,3 +552,5 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
 
     num_cloned, num_synchronized = count[1], count[2]
     logger.info("Cloned {} and synchronized {} job(s).".format(num_cloned, num_synchronized))
+    if collect_stats:
+        return FileTransferStats(** proxy.stats)
