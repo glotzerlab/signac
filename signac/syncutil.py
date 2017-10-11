@@ -165,7 +165,7 @@ class _FileModifyProxy(object):
         self._remove(path)
 
     def copy(self, src, dst):
-        if self.dry_run:
+        if self.dry_run and self.root is not None:
             print(os.path.relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
             link_target = os.readlink(src)
