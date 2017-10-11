@@ -466,7 +466,7 @@ def main_sync(args):
         if stats is not None:
             if args.human_readable:
                 stats = stats._replace(volume=_fmt_bytes(stats.volume))
-            print("\n# Transfer statistics")
+            print("\n# Transfer statistics", '(dry run)' if args.dry_run else None)
             if args.json:
                 print(json.dumps(stats._asdict()))
             else:
