@@ -85,7 +85,6 @@ from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
 from .contrib.utility import query_yes_no
 from .common import six
-from .syncutil import copytree
 from .syncutil import dircmp
 from .syncutil import dircmp_deep
 from .syncutil import _FileModifyProxy
@@ -206,7 +205,8 @@ class DocSync(object):
                     logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
 
 
-def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=''):
+def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
+                         recursive=True, deep=False, subdir=''):
     "Synchronize two job workspaces file by file, following the provided strategy."
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
