@@ -222,7 +222,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
         if os.path.isfile(fn_src):
             copy(fn_src, fn_dst)
         elif recursive:
-            copytree(fn_src, fn_dst, copy_function=copy)
+            copytree(fn_src, fn_dst)
         else:
             logger.warning("Skip directory '{}'.".format(fn_src))
     for fn in diff.diff_files:

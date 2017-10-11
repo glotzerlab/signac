@@ -23,7 +23,7 @@ logger.more = log_more
 
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
     "Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example'."
-    os.mkdir(dst)
+    os.makedirs(dst)
     names = os.listdir(src)
     errors = []
     for name in names:
