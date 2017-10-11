@@ -363,7 +363,8 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
         logger.debug("Synchronizing job '{}'...".format(src))
 
     if os.path.isdir(src.workspace()):
-        dst.init()
+        if not dry_run:
+            dst.init()
         _sync_job_workspaces(
             src=src,
             dst=dst,
