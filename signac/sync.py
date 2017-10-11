@@ -206,7 +206,7 @@ class DocSync(object):
                     logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
 
 
-def _sync_job_workspaces(src, dst, strategy, exclude, copy, recursive=True, deep=False, subdir=''):
+def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=''):
     "Synchronize two job workspaces file by file, following the provided strategy."
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
@@ -241,7 +241,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, recursive=True, deep
     for _subdir in diff.subdirs:
         if recursive:
             _sync_job_workspaces(
-                src=src, dst=dst, strategy=strategy, exclude=exclude, copy=copy,
+                src=src, dst=dst, strategy=strategy, exclude=exclude, copy=copy, copytree=copytree,
                 recursive=recursive, deep=deep, subdir=os.path.join(subdir, _subdir))
         else:
             logger.warning("Skip directory '{}'.".format(os.path.join(subdir, _subdir)))
@@ -371,6 +371,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             strategy=strategy,
             exclude=exclude,
             copy=proxy.copy,
+            copytree=proxy.copytree,
             recursive=recursive,
             deep=deep)
 
