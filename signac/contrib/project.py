@@ -283,7 +283,16 @@ class Project(object):
                 if m.match(d):
                     yield d
         except OSError as error:
-            if error.errno != errno.ENOENT:
+            if error.errno == errno.ENOENT:
+                logger.debug("Creating workspace directory '{}'...".format(self._wd))
+                try:
+                    os.makedirs(self._wd)
+                except OSError:
+                    logger.error("Unable to create workspace directory '{}'.".format(self._wd))
+                    raise
+                else:
+                    logger.info("Created workspace directory '{}'.".format(self._wd))
+            else:
                 raise
 
     def num_jobs(self):
