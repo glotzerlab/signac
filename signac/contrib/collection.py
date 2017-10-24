@@ -746,6 +746,7 @@ class Collection(object):
             _id = filter[self._primary_key]
             if upsert or _id in self:
                 self[_id] = replacement
+                return _id
         else:
             for _id in self._find(filter):
                 self[_id] = replacement
