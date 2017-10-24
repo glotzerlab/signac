@@ -102,6 +102,20 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
+    def test_find_no_workspace(self):
+        self.assertFalse(os.path.exists(self.project.workspace()))
+        self.project.find_jobs()
+        self.assertTrue(os.path.exists(self.project.workspace()))
+
+    def test_workspace_illegal_path(self):
+        illegal_path = '/illegal/path'
+        assert not os.path.exists(illegal_path)
+        self.project.config['workspace_dir'] = illegal_path
+        assert self.project.workspace() == illegal_path
+        with self.assertRaises(OSError):
+            self.project.find_jobs()
+        self.assertFalse(os.path.exists(illegal_path))
+
     def test_find_statepoints(self):
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
