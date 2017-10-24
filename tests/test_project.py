@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
-import stat
 import uuid
 import warnings
 import logging
@@ -125,24 +124,23 @@ class ProjectTest(BaseProjectTest):
         self.assertTrue(os.path.exists(self.project.workspace()))
 
     def test_workspace_read_only_path(self):
-        # Make temporary directory read-only.
-        original_mode = os.stat(self._tmp_dir.name).st_mode
-        os.chmod(self._tmp_dir.name, stat.S_IRUSR)
+        # Create file where workspace would be, thus preventing the creation
+        # of the workspace directory.
+        with open(os.path.join(self.project.workspace()), 'w'):
+            pass
+
+        with self.assertRaises(OSError):     # Ensure that the file is in place.
+            os.mkdir(self.project.workspace())
+
         try:
-            with self.assertRaises(OSError):     # Ensure it is actually read-only
-                os.mkdir(self.project.workspace())
-
-            try:
-                logging.disable(logging.ERROR)
-                with self.assertRaises(OSError):
-                    self.project.find_jobs()
-            finally:
-                logging.disable(logging.NOTSET)
-
-            self.assertFalse(os.path.exists(self._tmp_wd))
-            self.assertFalse(os.path.exists(self.project.workspace()))
+            logging.disable(logging.ERROR)
+            with self.assertRaises(OSError):
+                self.project.find_jobs()
         finally:
-            os.chmod(self._tmp_dir.name, original_mode)
+            logging.disable(logging.NOTSET)
+
+        self.assertFalse(os.path.isdir(self._tmp_wd))
+        self.assertFalse(os.path.isdir(self.project.workspace()))
 
     def test_find_statepoints(self):
         with warnings.catch_warnings():
