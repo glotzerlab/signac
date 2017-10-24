@@ -124,7 +124,6 @@ class Project(object):
         self._sp_cache = dict()
         self._index_cache = dict()
         self.get_id()
-        self._wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
         if not os.path.isabs(self._wd):
             self._wd = os.path.join(self.root_directory(), self._wd)
         self._fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
@@ -150,9 +149,22 @@ class Project(object):
         "The project's configuration."
         return self._config
 
+    @property
+    def _rd(self):
+        "The project root directory."
+        return self._config['project_dir']
+
+    @property
+    def _wd(self):
+        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
+        if os.path.isabs(wd):
+            return wd
+        else:
+            return os.path.join(self._rd, wd)
+
     def root_directory(self):
         "Returns the project's root directory."
-        return self._config['project_dir']
+        return self._rd
 
     def workspace(self):
         """Returns the project's workspace directory.
