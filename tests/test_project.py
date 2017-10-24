@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
+import stat
 import uuid
 import warnings
 import logging
@@ -102,23 +103,46 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
-    def test_find_no_workspace(self):
+    def test_workspace_path_normalization(self):
+        def norm_path(p):
+            return os.path.abspath(os.path.expandvars(p))
+
+        self.assertEqual(self.project.workspace(), norm_path(self._tmp_wd))
+
+        abs_path = '/path/to/workspace'
+        self.project.config['workspace_dir'] = abs_path
+        self.assertEqual(self.project.workspace(), norm_path(abs_path))
+
+        rel_path = 'path/to/workspace'
+        self.project.config['workspace_dir'] = rel_path
+        self.assertEqual(
+            self.project.workspace(),
+            norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
+
+    def test_create_workspace_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
         self.project.find_jobs()
         self.assertTrue(os.path.exists(self.project.workspace()))
 
-    def test_workspace_illegal_path(self):
-        illegal_path = '/illegal/path'
-        assert not os.path.exists(illegal_path)
-        self.project.config['workspace_dir'] = illegal_path
-        assert self.project.workspace() == illegal_path
+    def test_workspace_read_only_path(self):
+        # Make temporary directory read-only.
+        original_mode = os.stat(self._tmp_dir.name).st_mode
+        os.chmod(self._tmp_dir.name, stat.S_IRUSR)
         try:
-            logging.disable(logging.ERROR)
-            with self.assertRaises(OSError):
-                self.project.find_jobs()
+            with self.assertRaises(OSError):     # Ensure it is actually read-only
+                os.mkdir(self.project.workspace())
+
+            try:
+                logging.disable(logging.ERROR)
+                with self.assertRaises(OSError):
+                    self.project.find_jobs()
+            finally:
+                logging.disable(logging.NOTSET)
+
+            self.assertFalse(os.path.exists(self._tmp_wd))
+            self.assertFalse(os.path.exists(self.project.workspace()))
         finally:
-            logging.disable(logging.NOTSET)
-        self.assertFalse(os.path.exists(illegal_path))
+            os.chmod(self._tmp_dir.name, original_mode)
 
     def test_find_statepoints(self):
         with warnings.catch_warnings():
