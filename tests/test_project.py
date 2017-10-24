@@ -475,7 +475,6 @@ class ProjectTest(BaseProjectTest):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(10)
-        c_vals = ["foo", "bar", "baz"]
         for a in a_vals:
             for b in b_vals:
                 if a % 3 == 0:
