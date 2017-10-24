@@ -112,8 +112,12 @@ class ProjectTest(BaseProjectTest):
         assert not os.path.exists(illegal_path)
         self.project.config['workspace_dir'] = illegal_path
         assert self.project.workspace() == illegal_path
-        with self.assertRaises(OSError):
-            self.project.find_jobs()
+        try:
+            logging.disable(logging.ERROR)
+            with self.assertRaises(OSError):
+                self.project.find_jobs()
+        finally:
+            logging.disable(logging.NOTSET)
         self.assertFalse(os.path.exists(illegal_path))
 
     def test_find_statepoints(self):
