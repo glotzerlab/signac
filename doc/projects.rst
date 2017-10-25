@@ -13,20 +13,30 @@ A **signac** project is a conceptual entity consisting of three components:
   2. **scripts and routines** that operate on that space, and
   3. the project's **documentation**.
 
-This corresponds largely to the definition of a computational project outlined by `Wilson et al.`_
-The signac framework helps to design and implement all three of these components by providing the necessary computational infrastructure and by being an implicit part of the project's documentation.
+This division corresponds largely to the definition of a computational project outlined by `Wilson et al.`_
+The primary function of **signac** is to provide a single interface between component **(2)**, the scripts encapsulating the project logic, and component **(1)**, the underlying data generated and manipulated by these operations.
+By maintaining a clearly defined data space that can be easily indexed, **signac** can provide a consistent, homogeneous data access mechanism.
+In the process, **signac**'s maintainance of the data space also effectively functions as an implicit part of component **(3)**, the project's documentation.
 
 .. _`Wilson et al.`: https://arxiv.org/abs/1609.00037
 
-Larger, more complex computational investigations usually demand a division into multiple subprojects, however there is no simple answer to how exactly to divide routines and data space among individual subprojects.
-A general rule of thumb is that if two projects share more than 50\% of their routines and the data they operate on, they are probably the same project.
-Keep in mind that **signac** makes it easy to :ref:`divide or merge <move-copy-remove>` projects even at a later stage.
+**I think we can remove these two lines**
+            Larger, more complex computational investigations usually demand a division into multiple subprojects; however there is no simple answer to how exactly to divide routines and data space among individual subprojects.
+            A general rule of thumb is that if two projects share more than 50\% of their routines and the data they operate on, they are probably the same project.
+
+.. _project-initialization:
 
 Project Initialization
 ======================
 
-To initialize a project, simply create a project directory and execute ``$signac init <projectname>`` on the command line.
-For example, to initialize a project named *MyProject* in a directory called ``my_project``, execute:
+In order to use **signac** to manage a project's data, the project must be **initialized** as a **signac** project.
+After a project has been initialized in **signac**, all shell and Python scripts executed within or below the project's root directory have access to **signac**'s central facility, the **signac** project interface.
+The project interface is a **signac** construct that provides simple and consistent access to the project's underlying *data space*. [#f1]_
+
+.. [#f1] You can access a project interface from other locations by explicitly specifying the root directory.
+
+To initialize a project, simply execute ``$signac init <projectname>`` on the command line inside the desired project directory (create a new project directory if needed).
+For example, to initialize a **signac** project named *MyProject* in a directory called ``my_project``, execute:
 
 .. code-block:: bash
 
@@ -45,24 +55,13 @@ The directory that contains this configuration file is the project's root direct
 
 .. _project-data-space:
 
-The Project Data Space
-======================
+The Data Space
+==============
 
-After a project has been initialized, all shell and Python scripts executed within or below the project's root directory have access to **signac**'s project interface. [#f1]_
-This allows you to access and manipulate the project's *data space* in a simple and consistent manner.
-
-.. [#f1] You can access a project interface from other locations by explicitly specifying the root directory.
-
-The **signac** data models is based on the assumption that the data space may be discretized into individual data points and that each data point is associated with data and metadata.
-All data may be stored in form of *files* or in form of *documents*, which are `associative arrays <https://en.wikipedia.org/wiki/Associative_array>`_ stored in JSON-format.
-In the context of **signac**, the combination of data and metadata is called a *Job* and each job is uniquely identified through its *state point*.
-
-.. image:: images/signac_data_space.png
-
-With **signac** all files associated with a specific state point are stored within the corresponding job's *workspace* directory.
-This allows us to search and access files by their metadata.
-
-You can access a signac :class:`~.contrib.Project` and its *data space* from within your project's root directory or any subdirectory from the command line:
+The project data space is stored in the *workspace directory* (which is also named *workspace* by default).
+Once a project has been initialized, any data inserted into the data space will be stored within this directory.
+This association is not permanent; a project can be reassociated with a new workspace at any time, and it may at times be beneficial to maintain multiple separate workspaces for a single project.
+You can access your signac :class:`~.contrib.Project` and the associated *data space* from within your project's root directory or any subdirectory from the command line:
 
 .. code-block:: shell
 
@@ -78,13 +77,33 @@ Or with the :py:func:`~signac.get_project` function:
     >>> print(project)
     MyProject
 
-Accessing Jobs
-==============
+.. image:: images/signac_data_space.png
 
-Opening Jobs
+.. _project-jobs:
+
+Jobs
+====
+
+The central assumption of the **signac** data model is that the *data space* is divisible into individual data points, consisting of data and metadata, which are uniquely addressable in some manner.
+In the context of **signac**, each data point is called a *job*, and its unique address is referred to as a *state point*.
+A job can consist of anything data, ranging from a single value to multiple terabytes of simulation data; **signac**'s only requirement is that this data can be encoded in a file.
+
+.. _project-job-statepoints:
+
+State Points
 ------------
 
-To access or modify a data point, obtain an instance of :py:class:`~.Project.Job` by passing the associated metadata as a mapping of key-value pairs (for example, as an instance of :py:class:`dict`) into the :py:meth:`~.Project.open_job` method:
+A *state point* is a simply mapping of key-value pairs containing metadata describing the job.
+The state point is then used to compute a hash value, called the *job id*, which serves as the unique id for the job.
+The **signac** framework keeps track of all data and metadata by associating each job with a *workspace directory*, which is just a subdirectory of the project workspace.
+This subdirectory is named by the *job id*, therefore guaranteeing a unique file system path for each *job* within the project's *workspace* directory.
+
+.. note::
+
+    Note that it is illegal for multiple jobs to have the same state point. In **signac**, the state point must be unique.
+
+Both the state point and the job id are equivalent addresses for jobs in the data space.
+To access or modify a data point, obtain an instance of :py:class:`~.Project.Job` by passing the associated metadata as a mapping of key-value pairs (for example, as an instance of :py:class:`dict`) into the :py:meth:`~.Project.open_job` method.
 
 .. code-block:: python
 
@@ -92,117 +111,54 @@ To access or modify a data point, obtain an instance of :py:class:`~.Project.Job
     >>> statepoint = {'a': 0}
     # Get the associated job:
     >>> job = project.open_job(statepoint)
+    >>> print(job.get_id())
+    9bfd29df07674bc4aa960cf661b5acd2
+    >>> job.init()
+    # The job already exists
+    >>> job in project
+    True
+    >>> job2 = project.open_job(id=job.get_id())
+    >>> job == job2
+    True
 
-To use a particular instance of ``job`` for data storge, add it to the project's data space by *initializing* it, which means to create the corresponding workspace directory:
+Note that the job above already existed in the project.
+In general, the ``job`` instance only gives you a handle to a python object; to create the underlying workspace directory, you must *initialize* it.
+You can initialize a job **explicitly**, by calling the :py:meth:`~.Project.Job.init` method, or **implictly**, by either accessing the job's :ref:`job document <project-job-document>` or by switching into the job's workspace directory.
 
 .. code-block:: python
 
-   >>> job.init()
+    >>> job = project.open_job({'a': 2})
+    # Job does not exist yet
+    >>> job in project
+    False
+    >>> job.init()
+    # Job now exists
+    >>> job in project
+    True
 
-Once, a job has been initialized it is part of the project's data space and can be retrieved by searching it or by opening it directly *via id*:
+Note that when first creating a job, its job id has not yet been computed, so calling ``project.open_job`` with an `id` argument will fail.
+
+However you opened the job, via state point or id, an instance of :py:class:`~.Project.Job` can always be used to retrieve the associated *state point*, the *job id*, and the *workspace* directory with the :py:meth:`~.Project.Job.statepoint` method, the :py:meth:`~.Project.Job.get_id` method, and the :py:meth:`~.Project.Job.workspace` method:
 
 .. code-block:: python
 
-    >>> job = project.open_job(id='9bfd29df07674bc4aa960cf661b5acd2')
-
-However you opened the job, via state point or id, an instance of :py:class:`~.Project.Job` can always be used to retrieve the associated *state point*, the *job id*, and the *workspace* directory with the :py:attr:`~.Project.Job.statepoint` attribute, the :py:meth:`~.Project.Job.get_id` method, and the :py:meth:`~.Project.Job.workspace` method:
-
-.. code-block:: python
-
-    >>> print(job.statepoint)
+    >>> print(job.statepoint())
     {'a': 0}
     >>> print(job.get_id())
     9bfd29df07674bc4aa960cf661b5acd2
     >>> print(job.workspace())
     '/home/johndoe/my_project/workspace/9bfd29df07674bc4aa960cf661b5acd2'
 
-The :py:attr:`~.Job.statepoint` attribute provides direct read-write access to the job's state point values, even when these are nested.
-For example, given that we have a state point of the form `{'a': 0, 'b': {'c': 1}}`, we can access those values like this:
+Evidently, the job's workspace directory is a subdirectory of the workspace whose name is simply some (seemingly arbitrary) string of characters, which is deterministically computed from the state point.
 
-.. code-block:: python
+For convenience, the *state point* may also be accessed via the :py:attr:`~.Project.Job.statepoint` or :py:attr:`~.Project.Job.sp` attributes, e.g., the value for ``a`` can be printed using either ``print(job.sp.a)`` or ``print(job.statepoint.a)``.
+This also works for **nested** *state points*: ``print(job.sp.b.c)``!
+An additional advantage of accessing the statepoint via the attributes is that these can be directly modified, triggering a recalculation of the job id and a renaming of the job's workspace directory.
 
-   >>> job = project.open_job({'a': 0, 'b': {'c': 1}})
-   >>> print(job.statepoint.a)
-   0
-   >>> print(job.statepoint.b.c)
-   1
-
-You can also directly modify these values, which will trigger a recalculation of the job id and a renaming of the job's workspace directory.
-
-.. tip::
-
-   The job statepoint attribute can also be accesed through its **alias** :py:attr:`.Job.sp`!
-
-.. _job-document:
-
-The Job Document
-----------------
-
-To associate arbitrary metadata with your job without changing the state point, use the job :py:attr:`~.Job.document`!
-To associate simple key-value pairs with your job, you can use the job :py:attr:`~.Project.Job.document`.
-The document is automatically stored in the job's workspace directory in `JSON`_ format.
-
-.. _`JSON`: https://en.wikipedia.org/wiki/JSON
-
-.. code-block:: python
-
-    >>> job = project.open_job(statepoint)
-    >>> job.document['hello'] = 'world'
-
-Just like the job *state point*, individual keys may be accessed as attributes, *e.g.*:
-
-.. code-block:: python
-
-    >>> print(job.document.hello)
-    world
-
-.. tip::
-
-     Use the :py:meth:`Job.document.get` method to return ``None`` or another specified default value for missing values. This works exactly like with python's `built-in dictionaries <https://docs.python.org/3/library/stdtypes.html#dict.get>`_.
-
-Use cases for the **job document** include, but are not limited to:
-
-  1) **storage** of *lightweight* data,
-  2) keeping track of **runtime information** or to
-  3) **label** jobs, e.g. to identify error states.
-
-.. tip::
-
-   The job document can also be accessed through its **alias** :py:attr:`.Job.doc`!
-
-Finding Jobs
-------------
-
-You can iterate over all initialized jobs using the :py:meth:`~.Project.find_jobs` method:
-
-.. code-block:: python
-
-    for job in project.find_jobs():
-        pass
-
-.. tip::
-
-    Since iterating over all jobs, that means ommitting the ``filter`` argument or setting it to ``None``, is a very common pattern, you can use the following short-hand notation:
-
-    .. code-block:: python
-
-        for job in project:
-            pass
-
-Or you can select a subspace by defining a *filter*.
-For example, to iterate over all jobs that have a *state point* parameter ``b=0``, execute:
-
-.. code-block:: python
-
-    for job in project.find_jobs({'b': 0}):
-        pass
-
-For more information on how to search for specific jobs in Python and on the command line, please see the :ref:`searching` chapter.
-
-.. _modify-statepoint:
+.. _project-job-statepoint-modify:
 
 Modifying the State Point
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It may be necessary to change the state point of one or more jobs after initialization--for example, to add previously not needed state point values.
 Modifying a state point entails modifying the job id which means that the state point file needs to be rewritten and the job's workspace directory is renamed, both of which are computationally cheap operations.
@@ -210,12 +166,12 @@ The user is nevertheless advised **to take great care when modifying a job's sta
 
 There are three main options for modifying a job's state point:
 
-    1. Directly via the job's :py:attr:`~.Project.Job.sp` attribute,
+    1. Directly via the job's :py:attr:`~.Project.Job.statepoint` and :py:attr:`~.Project.Job.sp` attributes,
     2. via the job's :py:meth:`~.Project.Job.update_statepoint` method, and
     3. via the job's :py:meth:`~.Project.Job.reset_statepoint` method.
 
 The :py:meth:`~.Project.Job.update_statepoint` method provides safe-guards against accidental overwriting of existing *state point* values, while :py:meth:`~.Project.Job.reset_statepoint` will simply reset the whole *state point* without further questions.
-The :py:attr:`~.Project.Job.sp` attribute provides the greatest flexibility, but similar to :py:meth:`~.Project.Job.reset_statepoint` no additional protection.
+The :py:attr:`~.Project.Job.statepoint` and :py:attr:`~.Project.Job.sp` attributes provide the greatest flexibility, but similar to :py:meth:`~.Project.Job.reset_statepoint` they provide no additional protection.
 
 .. important::
 
@@ -263,6 +219,124 @@ You can modify **nested** *state points* in-place, but you will need to use dict
 
     # Now you can modify in-place:
     >>> job.sp.b.c = 1
+
+.. _project-job-document:
+
+The Job Document
+----------------
+
+In addition to the state point, additional metadata can be associated with your job in the form of simple key-value pairs using the job :py:attr:`~.Job.document`!
+This *job document* is automatically stored in the job's workspace directory in `JSON`_ format.
+
+.. _`JSON`: https://en.wikipedia.org/wiki/JSON
+
+.. code-block:: python
+
+    >>> job = project.open_job(statepoint)
+    >>> job.document['hello'] = 'world'
+
+Just like the job *state point*, individual keys may be accessed either as attributes or through a functional interface, *e.g.*:
+
+.. code-block:: python
+
+    >>> print(job.document().get('hello'))
+    world
+    >>> print(job.document.hello)
+    world
+    >>> print(job.doc.hello)
+    world
+
+.. tip::
+
+     Use the :py:meth:`Job.document.get` method to return ``None`` or another specified default value for missing values. This works exactly like with python's `built-in dictionaries <https://docs.python.org/3/library/stdtypes.html#dict.get>`_.
+
+Use cases for the **job document** include, but are not limited to:
+
+  1) **storage** of *lightweight* data,
+  2) keeping track of **runtime information** or to
+  3) **label** jobs, e.g. to identify error states.
+
+.. _project-job-finding:
+
+Finding jobs
+------------
+
+In general, you can iterate over all initialized jobs using the following idiom:
+
+.. code-block:: python
+
+    for job in project:
+        pass
+
+This notation is shorthand for the following snippet of code using the :py:meth:`~.Project.find_jobs` method:
+
+.. code-block:: python
+
+    for job in project.find_jobs():
+        pass
+
+However, the `~.Project.find_jobs` interface is much more powerful in that it allows filtering for subsets of jobs.
+For example, to iterate over all jobs that have a *state point* parameter ``b=0``, execute:
+
+.. code-block:: python
+
+    for job in project.find_jobs({'b': 0}):
+        pass
+
+For more information on how to search for specific jobs in Python and on the command line, please see the :ref:`searching` chapter.
+
+.. _project-job-grouping:
+
+Grouping
+--------
+
+**To be written**
+
+.. _project-job-move-copy-remove:
+
+Moving, Copying and Removal
+---------------------------
+
+In some cases it may desirable to divide or merge a project data space.
+To **move** a job to a different project, use the :py:meth:`~.Project.Job.move` method:
+
+.. code-block:: python
+
+    other_project = get_project(root='/path/to/other_project')
+
+    for job in jobs_to_move:
+        job.move(other_project)
+
+**Copy** a job from a different project with the :py:meth:`~.Project.clone` method:
+
+.. code-block:: python
+
+    project = get_project()
+
+    for job in jobs_to_copy:
+        project.clone(job)
+
+Trying to move or copy a job to a project which has already an initialized job with the same *state point*, will trigger a :py:class:`~.errors.DestinationExistsError`.
+
+.. warning::
+
+    While **moving** is a cheap renaming operation, **copying** may be much more expensive since all of the job's data will be copied from one workspace into the other.
+
+To **permanently delete** a job and its contents use the :py:meth:`~.Project.Job.remove` method:
+
+.. code-block:: python
+
+    job = project.open_job(statepoint)
+    job.remove()
+    assert job not in project
+
+
+Schema Detection
+================
+
+**To be written**
+
+
 .. _data-space-operations:
 
 Data Space Operations
@@ -285,7 +359,7 @@ First, we define our product function:
 
 In this example we use the job as `context manager`_ to switch into the job's *workspace* directory.
 Then we access the two numbers ``a`` and ``b`` via the :py:attr:`~.Project.Job.sp` *state point* interface and write their product to a file called ``product.txt`` located within the job's *workspace*.
-Alternatively, we could also store the result in the :ref:`job document <job-document>`:
+Alternatively, we could also store the result in the :ref:`job document <project-job-document>`:
 
 .. code-block:: python
 
@@ -327,7 +401,7 @@ Here, we first retrieve the corresponding job to our input values and then retur
     In reality, we should account for missing values, for example, by catching :py:class:`FileNotFoundError` exceptions, by checking whether the job is actually part of our data space with ``job in project`` or using the :py:meth:`~.Project.Job.isfile` method (or any combination thereof).
 
 Parallelization
-===============
+---------------
 
 To execute a :ref:`data space operation <data-space-operations>` ``func()`` for the complete :ref:`project data space <project-data-space>` in serial we can either run a for-loop as shown before:
 
@@ -455,40 +529,12 @@ This works similar for ``$ signac view`` on the command line, for example, in co
 
 .. _move-copy-remove:
 
-Moving, Copying and Removal
-===========================
+Centralized Data
+================
 
-In some cases it may desirable to divide or merge a project data space.
-To **move** a job to a different project, use the :py:meth:`~.Project.Job.move` method:
+**To be written**
 
-.. code-block:: python
+Synchronization
+================
 
-    other_project = get_project(root='/path/to/other_project')
-
-    for job in jobs_to_move:
-        job.move(other_project)
-
-**Copy** a job from a different project with the :py:meth:`~.Project.clone` method:
-
-.. code-block:: python
-
-    project = get_project()
-
-    for job in jobs_to_copy:
-        project.clone(job)
-
-Trying to move or copy a job to a project which has already an initialized job with the same *state point*, will trigger a :py:class:`~.errors.DestinationExistsError`.
-
-.. warning::
-
-    While **moving** is a cheap renaming operation, **copying** may be much more expensive since all of the job's data will be copied from one workspace into the other.
-
-To **permanently delete** a job and its contents use the :py:meth:`~.Project.Job.remove` method:
-
-.. code-block:: python
-
-    job = project.open_job(statepoint)
-    job.remove()
-    assert job not in project
-
-
+**To be written**
