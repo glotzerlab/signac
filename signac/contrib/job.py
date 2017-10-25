@@ -15,6 +15,10 @@ from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
 from ..sync import sync_jobs
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
 
@@ -195,10 +199,9 @@ class Job(object):
                 raise
             return dict()
 
-    def _reset_document(self, new_doc=None):
-        if new_doc is None:
-            with self.document._suspend_sync():
-                new_doc = self.document()
+    def _reset_document(self, new_doc):
+        if not isinstance(new_doc, Mapping):
+            raise ValueError("The document must be a mapping.")
         dirname, filename = os.path.split(self._fn_doc)
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))

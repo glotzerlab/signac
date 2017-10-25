@@ -431,6 +431,125 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.document.get(key), d)
         self.assertEqual(job.document.get('bs', d), d)
 
+    def test_get_set_doc(self):
+        key = 'get_set'
+        d = testdata()
+        job = self.open_job(test_token)
+        self.assertFalse(bool(job.doc))
+        self.assertEqual(len(job.doc), 0)
+        self.assertNotIn(key, job.doc)
+        job.doc[key] = d
+        self.assertTrue(bool(job.doc))
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn(key, job.doc)
+        self.assertEqual(job.doc[key], d)
+        self.assertEqual(job.doc.get(key), d)
+        self.assertEqual(job.doc.get('bs', d), d)
+
+    def test_get_set_nested(self):
+        key0 = 'key0'
+        key1 = 'key1'
+        d0 = testdata()
+        d1 = testdata()
+        d2 = testdata()
+        assert d0 != d1 != d2
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        self.assertNotIn(key0, job.document)
+        job.document['key0'] = d0
+        self.assertEqual(len(job.document), 1)
+        self.assertIn('key0', job.document)
+        self.assertEqual(job.document['key0'], d0)
+        with self.assertRaises(AttributeError):
+            job.document.key0.key1
+        job.document.key0 = {'key1': d0}
+        self.assertEqual(len(job.document), 1)
+        self.assertIn('key0', job.document)
+        self.assertEqual(job.document(), {'key0': {'key1': d0}})
+        self.assertEqual(job.document['key0'], {'key1': d0})
+        self.assertEqual(job.document['key0']['key1'], d0)
+        self.assertEqual(job.document.key0, {'key1': d0})
+        self.assertEqual(job.document.key0.key1, d0)
+        job.document.key0.key1 = d1
+        self.assertEqual(job.document, {'key0': {'key1': d1}})
+        self.assertEqual(job.document['key0'], {'key1': d1})
+        self.assertEqual(job.document['key0']['key1'], d1)
+        self.assertEqual(job.document.key0, {'key1': d1})
+        self.assertEqual(job.document.key0.key1, d1)
+        job.document['key0']['key1'] = d2
+        self.assertEqual(job.document, {'key0': {'key1': d2}})
+        self.assertEqual(job.document['key0'], {'key1': d2})
+        self.assertEqual(job.document['key0']['key1'], d2)
+        self.assertEqual(job.document.key0, {'key1': d2})
+        self.assertEqual(job.document.key0.key1, d2)
+
+    def test_get_set_nested_doc(self):
+        key0 = 'key0'
+        key1 = 'key1'
+        d0 = testdata()
+        d1 = testdata()
+        d2 = testdata()
+        assert d0 != d1 != d2
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.doc), 0)
+        self.assertNotIn(key0, job.doc)
+        job.doc['key0'] = d0
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn('key0', job.doc)
+        self.assertEqual(job.doc['key0'], d0)
+        with self.assertRaises(AttributeError):
+            job.doc.key0.key1
+        job.doc.key0 = {'key1': d0}
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn('key0', job.doc)
+        self.assertEqual(job.doc(), {'key0': {'key1': d0}})
+        self.assertEqual(job.doc['key0'], {'key1': d0})
+        self.assertEqual(job.doc['key0']['key1'], d0)
+        self.assertEqual(job.doc.key0, {'key1': d0})
+        self.assertEqual(job.doc.key0.key1, d0)
+        job.doc.key0.key1 = d1
+        self.assertEqual(job.doc, {'key0': {'key1': d1}})
+        self.assertEqual(job.doc['key0'], {'key1': d1})
+        self.assertEqual(job.doc['key0']['key1'], d1)
+        self.assertEqual(job.doc.key0, {'key1': d1})
+        self.assertEqual(job.doc.key0.key1, d1)
+        job.doc['key0']['key1'] = d2
+        self.assertEqual(job.doc, {'key0': {'key1': d2}})
+        self.assertEqual(job.doc['key0'], {'key1': d2})
+        self.assertEqual(job.doc['key0']['key1'], d2)
+        self.assertEqual(job.doc.key0, {'key1': d2})
+        self.assertEqual(job.doc.key0.key1, d2)
+
+    def test_assign(self):
+        key = 'assign'
+        d0 = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        job.document[key] = d0
+        self.assertEqual(len(job.document), 1)
+        self.assertEqual(job.document(), {key: d0})
+        with self.assertRaises(ValueError):
+            job.document = d1
+        job.document = {key: d1}
+        self.assertEqual(len(job.document), 1)
+        self.assertEqual(job.document(), {key: d1})
+
+    def test_assign_doc(self):
+        key = 'assign'
+        d0 = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.doc), 0)
+        job.doc[key] = d0
+        self.assertEqual(len(job.doc), 1)
+        self.assertEqual(job.doc(), {key: d0})
+        with self.assertRaises(ValueError):
+            job.doc = d1
+        job.doc = {key: d1}
+        self.assertEqual(len(job.doc), 1)
+        self.assertEqual(job.doc(), {key: d1})
+
     def test_copy_document(self):
         key = 'get_set'
         d = testdata()
