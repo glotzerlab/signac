@@ -88,6 +88,12 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(self.project.document), 0)
         self.assertFalse(prj2.document)
         self.assertEqual(len(prj2.document), 0)
+        self.project.document.a = {'b': 43}
+        self.assertEqual(self.project.document, {'a': {'b': 43}})
+        self.project.document.a.b = 44
+        self.assertEqual(self.project.document, {'a': {'b': 44}})
+        self.project.document = {'a': {'b': 45}}
+        self.assertEqual(self.project.document, {'a': {'b': 45}})
 
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]

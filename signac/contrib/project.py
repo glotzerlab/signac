@@ -9,6 +9,7 @@ import logging
 import warnings
 import errno
 import collections
+import uuid
 from itertools import chain, groupby
 
 from .. import syncutil
@@ -25,8 +26,13 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
 from .schema import ProjectSchema
+from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 
 logger = logging.getLogger(__name__)
@@ -231,11 +237,28 @@ class Project(object):
         """
         return os.path.isfile(self.fn(filename))
 
+    def _reset_document(self, new_doc):
+        if not isinstance(new_doc, Mapping):
+            raise ValueError("The document must be a mapping.")
+        dirname, filename = os.path.split(self._fn_doc)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
+        with open(fn_tmp, 'wb') as tmpfile:
+            tmpfile.write(json.dumps(new_doc).encode())
+        if six.PY2:
+            os.rename(fn_tmp, self._fn_doc)
+        else:
+            os.replace(fn_tmp, self._fn_doc)
+
     @property
     def document(self):
         if self._document is None:
             self._document = JSONDict(filename=self._fn_doc, write_concern=True)
         return self._document
+
+    @document.setter
+    def document(self, new_doc):
+        self._reset_document(new_doc)
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
