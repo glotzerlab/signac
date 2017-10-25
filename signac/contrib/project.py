@@ -260,6 +260,14 @@ class Project(object):
     def document(self, new_doc):
         self._reset_document(new_doc)
 
+    @property
+    def doc(self):
+        return self.document
+
+    @doc.setter
+    def doc(self, new_doc):
+        self.document = new_doc
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 

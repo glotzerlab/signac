@@ -95,6 +95,27 @@ class ProjectTest(BaseProjectTest):
         self.project.document = {'a': {'b': 45}}
         self.assertEqual(self.project.document, {'a': {'b': 45}})
 
+    def test_doc(self):
+        self.assertFalse(self.project.doc)
+        self.assertEqual(len(self.project.doc), 0)
+        self.project.doc['a'] = 42
+        self.assertEqual(len(self.project.doc), 1)
+        self.assertTrue(self.project.doc)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        self.assertTrue(prj2.doc)
+        self.assertEqual(len(prj2.doc), 1)
+        self.project.doc.clear()
+        self.assertFalse(self.project.doc)
+        self.assertEqual(len(self.project.doc), 0)
+        self.assertFalse(prj2.doc)
+        self.assertEqual(len(prj2.doc), 0)
+        self.project.doc.a = {'b': 43}
+        self.assertEqual(self.project.doc, {'a': {'b': 43}})
+        self.project.doc.a.b = 44
+        self.assertEqual(self.project.doc, {'a': {'b': 44}})
+        self.project.doc = {'a': {'b': 45}}
+        self.assertEqual(self.project.doc, {'a': {'b': 45}})
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
