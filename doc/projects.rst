@@ -283,7 +283,7 @@ For example, to iterate over all jobs that have a *state point* parameter ``b=0`
     for job in project.find_jobs({'b': 0}):
         pass
 
-For more information on how to search for specific jobs in Python and on the command line, please see the :ref:`searching` chapter.
+For more information on how to search for specific jobs in Python and on the command line, please see the :ref:`query` chapter.
 
 .. _project-job-grouping:
 
