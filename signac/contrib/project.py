@@ -315,17 +315,18 @@ class Project(object):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
-                logger.debug("Creating workspace directory '{}'...".format(self._wd))
-                try:
-                    os.makedirs(self._wd)
-                except OSError:
-                    logger.error("Unable to create workspace directory '{}'.".format(self._wd))
-                    raise
+                if os.path.islink(self._wd):
+                    raise WorkspaceError(
+                        "The link '{}' pointing to the workspace is broken.".format(self._wd))
+                elif not os.path.isdir(os.path.dirname(self._wd)):
+                    logger.warning(
+                        "The path to the workspace directory "
+                        "('{}') does not exist.".format(os.path.dirname(self._wd)))
                 else:
-                    logger.info("Created workspace directory '{}'.".format(self._wd))
+                    logger.info("The workspace directory '{}' does not exist!".format(self._wd))
             else:
                 logger.error("Unable to access the workspace directory '{}'.".format(self._wd))
-                raise
+                raise WorkspaceError(error)
 
     def num_jobs(self):
         "Return the number of initialized jobs."

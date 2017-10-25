@@ -13,6 +13,7 @@ from signac.errors import DestinationExistsError
 from signac.contrib.project import _find_all_links
 from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
+from signac.contrib.errors import WorkspaceError
 
 from test_job import BaseJobTest
 
@@ -145,10 +146,19 @@ class ProjectTest(BaseProjectTest):
             self.project.workspace(),
             norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
 
-    def test_create_workspace_on_find(self):
+    @unittest.skipIf(six.PY2, "test requires python 3")
+    def test_no_workspace_warn_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
-        self.project.find_jobs()
-        self.assertTrue(os.path.exists(self.project.workspace()))
+        with self.assertLogs(level='INFO') as cm:
+            self.project.find_jobs()
+            self.assertEqual(len(cm.output), 1)
+
+    def test_workspace_broken_link_error_on_find(self):
+        wd = self.project.workspace()
+        os.symlink(wd + '~', self.project.fn('workspace-link'))
+        self.project.config['workspace_dir'] = 'workspace-link'
+        with self.assertRaises(WorkspaceError):
+            self.project.find_jobs()
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -159,12 +169,20 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(OSError):     # Ensure that the file is in place.
             os.mkdir(self.project.workspace())
 
-        try:
-            logging.disable(logging.ERROR)
-            with self.assertRaises(OSError):
-                self.project.find_jobs()
-        finally:
-            logging.disable(logging.NOTSET)
+        self.assertTrue(issubclass(WorkspaceError, OSError))
+
+        if six.PY2:
+            try:
+                logging.disable(logging.ERROR)
+                with self.assertRaises(WorkspaceError):
+                    self.project.find_jobs()
+            finally:
+                logging.disable(logging.NOTSET)
+        else:
+            with self.assertLogs(level='ERROR') as cm:
+                with self.assertRaises(WorkspaceError):
+                    self.project.find_jobs()
+                self.assertEqual(len(cm.output), 1)
 
         self.assertFalse(os.path.isdir(self._tmp_wd))
         self.assertFalse(os.path.isdir(self.project.workspace()))
