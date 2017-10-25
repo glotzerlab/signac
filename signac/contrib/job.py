@@ -245,7 +245,12 @@ class Job(object):
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
-        _mkdir_p(self.workspace())
+        try:
+            _mkdir_p(self.workspace())
+        except OSError as error:
+            logger.error("Error occured while trying to create "
+                         "workspace directory for job '{}'.".format(self))
+            raise
 
         try:
             # Ensure to create the binary to write before file creation

@@ -216,7 +216,7 @@ class _FileModifyProxy(object):
         try:
             self._copy2(path, path_backup)
             yield path_backup
-        except:
+        except:     # noqa roll-back
             logger.more("Error occured, restoring backup...")
             self._copy2(path_backup, path)
             raise
@@ -232,7 +232,7 @@ class _FileModifyProxy(object):
             backup = deepcopy(doc)  # use in-memory backup
             try:
                 yield proxy
-            except:     # roll-back
+            except:     # noqa roll-back
                 proxy.clear()
                 proxy.update(backup)
                 raise
