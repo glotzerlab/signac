@@ -103,7 +103,7 @@ To generate a signac project index, execute the :py:meth:`.Project.index` method
         print(doc)
 
 Each signac project index will have *at least one* entry for each initialized job.
-This special index document is associated with the job's :ref:`document <job-document>` and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document:
+This special index document is associated with the job's :ref:`document <project-job-document>` and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document:
 
 .. code-block:: python
 
