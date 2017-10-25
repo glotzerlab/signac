@@ -293,6 +293,7 @@ class Project(object):
                 else:
                     logger.info("Created workspace directory '{}'.".format(self._wd))
             else:
+                logger.error("Unable to access the workspace directory '{}'.".format(self._wd))
                 raise
 
     def num_jobs(self):
