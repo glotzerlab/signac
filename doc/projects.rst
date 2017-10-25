@@ -151,6 +151,13 @@ However you opened the job, via state point or id, an instance of :py:class:`~.P
 
 Evidently, the job's workspace directory is a subdirectory of the workspace whose name is simply some (seemingly arbitrary) string of characters, which is deterministically computed from the state point.
 
+To access or insert files directly into this workspace directory, the ``job.fn`` convenience function is provided as a way to generate the path to files in the workspace:
+
+.. code-block:: python
+
+    >>> print(job.fn('newfile.txt'))
+    '/home/johndoe/my_project/workspace/9bfd29df07674bc4aa960cf661b5acd2/newfile.txt'
+
 For convenience, the *state point* may also be accessed via the :py:attr:`~.Project.Job.statepoint` or :py:attr:`~.Project.Job.sp` attributes, e.g., the value for ``a`` can be printed using either ``print(job.sp.a)`` or ``print(job.statepoint.a)``.
 This also works for **nested** *state points*: ``print(job.sp.b.c)``!
 An additional advantage of accessing the statepoint via the attributes is that these can be directly modified, triggering a recalculation of the job id and a renaming of the job's workspace directory.
@@ -386,6 +393,32 @@ To **permanently delete** a job and its contents use the :py:meth:`~.Project.Job
     job.remove()
     assert job not in project
 
+.. _project-data:
+
+Centralized Project Data
+========================
+
+To support the centralization of project-level data, **signac** offers simple facilities for placing data at the project level instead of associating it with a specific job.
+For one, **signac** provides a *project document* analogous to the :ref:`job document <project-job-document>`.
+The project document is stored in JSON format in the project root directory and can be used to store similar types of data to the job document.
+
+.. code-block:: python
+
+    >>> project = signac.get_project()
+    >>> project.document['hello'] = 'world'
+    >>> print(project.document().get('hello'))
+    >>> print(project.document.hello)
+
+In addition, **signac** also provides the ``project.fn`` function, which is analogous to the ``job.fn`` function described above:
+
+.. code-block:: python
+
+    >>> print(project.root_directory())
+    '/home/johndoe/my_project/'
+    >>> print(project.fn('foo.bar'))
+    '/home/johndoe/my_project/foo.bar'
+
+.. _schema-detection:
 
 Schema Detection
 ================
