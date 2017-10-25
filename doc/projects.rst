@@ -295,7 +295,7 @@ Grouping operations can be performed on data spaces or the results of search que
 The :py:class:`~.JobsCursor` class represents search results, and its contents can be grouped using state point parameters, job document values, or arbitrary lambda functions.
 
 Basics
-======
+^^^^^^
 
 Grouping can be quickly performed using a statepoint or job document key.
 
@@ -314,7 +314,7 @@ Similarly, we can group by values in the job document as well. Here, we group al
         print(key, list(group))
 
 Multiple Groupings
-==================
+^^^^^^^^^^^^^^^^^^
 
 Grouping by multiple state point parameters or job document values is possible, by passing an iterable of fields that should be used for grouping. For example, we can group jobs by state point parameters *c* and *d*:
 
@@ -324,7 +324,7 @@ Grouping by multiple state point parameters or job document values is possible, 
         print(key, list(group))
 
 Chained Search and Grouping
-===========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Together with the *signac* searching features, grouping becomes more useful. We can find all jobs where ``job.sp['e']`` is 1 and then group them by state point parameter *f*:
 
@@ -334,7 +334,7 @@ Together with the *signac* searching features, grouping becomes more useful. We 
         print(key, list(group))
 
 Custom Grouping Expressions
-===========================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The use of ``lambda`` expressions allows for jobs to be grouped in nearly any way.
 The :py:meth:`~.JobsCursor.groupby` and :py:meth:`~.JobsCursor.groupbydoc` methods accept lambda expressions of one argument, the ``job`` or ``job.document``, respectively.
