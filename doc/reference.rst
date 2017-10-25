@@ -12,9 +12,6 @@ Contents:
 
    projects
    query
-   indexing_new
-   collections
    indexing
-   advanced_indexing
-   database
+   collections
    configuration
