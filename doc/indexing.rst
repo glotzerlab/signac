@@ -4,6 +4,127 @@
 Indexing
 ========
 
+Create a project index
+======================
+
+**Under construction**
+
+Create a file index
+===================
+
+**Under construction**
+
+Fetch data
+==========
+
+**Under construction**
+
+Deep Indexing
+==============
+
+**Under construction**
+
+Master Indexes
+==============
+
+**Under construction**
+
+.. _database_integration:
+
+Database Integration
+====================
+
+Database access
+---------------
+
+After :doc:`configuring <configuration>` one or more database hosts you can access a database with the :py:func:`signac.get_database` function.
+
+.. autofunction:: signac.get_database
+    :noindex:
+
+Queries and aggregation
+-----------------------
+
+To execute queries on a :py:class:`~pymongo.collection.Collection` instance use the :py:meth:`~pymongo.collection.Collection.find` or :py:meth:`~pymongo.collection.Collection.find_one` methods.
+
+Aggregation pipelines are executed with the :py:meth:`~pymongo.collection.Collection.aggregate` method.
+
+.. seealso:: https://api.mongodb.org/python/current/api/pymongo/collection.html
+
+Basic mapping
+-------------
+
+Processing data always consists of three steps:
+
+  1. Fetch the input.
+  2. Process the input to produce output.
+  3. Store the output.
+
+First, we define our processing function:
+
+.. code-block:: python
+
+   def process(doc):
+      doc['calc_value'] =  # ...
+      return doc
+
+In this case we effectively copy and extend the input document to produce the output document which has the benefit of preserving all meta data, but is not strictly necessary.
+
+We fetch our input documents from a collection that contains the index, in this case called `index`:
+
+.. code-block:: python
+
+   db = signac.db.get_database('MyProject')
+   docs = db.index.find({'a': {'$lt': 100}})
+
+We can use the :py:func:`map` function to generate the results:
+
+.. code-block:: python
+
+   results = map(process, docs)
+
+and store them in a result collection called `results`:
+
+.. code-block:: python
+
+   db.results.insert_many(results)
+
+By using a different map function, we can **trivially** parallelize this process, for example with a process pool:
+
+.. code-block:: python
+
+   import multiprocessing
+
+   with multiprocessing.Pool(8) as pool:
+     results = pool.imap(process, docs)
+
+or an MPI pool, which is bundled with signac:
+
+.. code-block:: python
+
+   with signac.contrib.MPIPool() as pool:
+      results = pool.map(process, docs, ntask=docs.count())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+========
+Indexing
+========
+
 Concept
 =======
 
@@ -103,7 +224,7 @@ To generate a signac project index, execute the :py:meth:`.Project.index` method
         print(doc)
 
 Each signac project index will have *at least one* entry for each initialized job.
-This special index document is associated with the job's :ref:`document <job-document>` and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document:
+This special index document is associated with the job's :ref:`document <project-job-document>` and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document:
 
 .. code-block:: python
 
@@ -257,3 +378,188 @@ For example, to index all files with a ``.txt`` filename suffix, we would put th
         yield signac.get_project(root).index(formats='.*\.txt')
 
 You can generate a basic access module for a **signac** project using the :py:meth:`~.Project.create_access_module` method.
+
+
+
+=================
+Advanced Indexing
+=================
+
+The Crawler Concept
+===================
+
+**signac** uses crawlers to *crawl* through a data source to generate an index.
+A crawler is defined to generate a sequence of index documents (mappings), the data source is arbitrary.
+Each index document requires at least one ``_id`` keyword.
+For example, this would be a valid crawler:
+
+.. code-block:: python
+
+    my_source = ['a', 'b', 'c']
+
+    class MyCrawler(object):
+
+        def crawl(self):
+            for i, x in enumerate(my_source):
+                yield dict(_id=i, x=x)
+
+This crawler would generate the following documents:
+
+.. code-block:: python
+
+    >>> for doc in MyCrawler().crawl():
+    ...     print(doc)
+    ...
+    {'x': 'a', '_id': 0}
+    {'x': 'b', '_id': 1}
+    {'x': 'c', '_id': 2}
+
+The :py:func:`.index`, :py:func:`.index_files`, or :py:meth:`.Project.index` functions, internally define a *Crawler* class that is then executed to generate the index.
+These crawlers are subclassed from either :py:class:`.RegexFileCrawler`, :py:class:`.SignacProjectCrawler`, or :py:class:`.MasterCrawler`.
+
+Customizing Crawlers
+====================
+
+Defining our own ``Crawler`` class provides us with full control over the index creation.
+For example, imagine we wanted to add an additional field to the index, that contains the length of each indexed file, we could define the following crawler class:
+
+.. code-block:: python
+
+    class MyCrawler(signac.RegexFileCrawler):
+
+        def process(self, doc, dirpath, fn):
+            with open(os.path.join(dirpath, fn)) as file:
+                doc['size'] = len(file.read())
+            return super(MyCrawler, self).process(doc, dirpath, fn)
+
+    MyCrawler.define('.*\.txt')
+
+In this example, we define a subclass of :py:class:`.RegexFileCrawler` called ``MyCrawler`` and redefine the :py:meth:`~.RegexFileCrawler.process` method to add a ``size`` field to each generated document.
+We could put this definition into a ``signac_access.py`` module and make it part of a master index like this:
+
+.. code-block:: python
+
+    import signac
+
+    class MyCrawler(signac.RegexFileCrawler):
+        # ...
+
+    def get_indexes(root):
+        yield MyCrawler(root).crawl()
+
+.. _data_mirroring:
+
+Mirroring of Data
+=================
+
+Using the :py:func:`signac.fetch` function it is possible retrieve files that are associated with index documents.
+Those files will preferably be opened directly via a local system path.
+However in some cases it may be desirable to mirror files at a different location, e.g., in a database or a different path to increase the accessibility of files.
+
+Use the mirrors argument in the :py:func:`signac.export` function to automatically mirror all files associated with exported index documents.
+**signac** provides handlers for a local file system and the MongoDB `GridFS`_ database file system.
+
+.. code-block:: python
+
+    from signac import fs, export, get_database
+
+    db = get_database('mirror')
+
+    localfs = fs.LocalFS('/path/to/mirror')
+    gridfs = fs.GridFS(db)
+
+    export(crawler.crawl(), db.index, mirrors=[localfs, gridfs])
+
+.. _`GridFS`: https://docs.mongodb.org/manual/core/gridfs/
+
+
+To access the data, provide the mirrors argument to the :py:func:`signac.fetch` function:
+
+.. code-block:: python
+
+    for doc in index:
+        with signac.fetch(doc, mirrors=[localfs, gridfs]) as file:
+            do_something_with_file(file)
+
+.. note::
+
+    File systems are used to fetch data in the order provided, starting
+    with the native data path.
+
+
+Using Tags to Control Access
+============================
+
+It may be desirable to only index select projects for a specific *master index*, e.g., to distinguish between public and private indexes.
+For this purpose, it is possible to specify **tags** that are **required** by a *crawler* or *index*.
+This means that an index **requiring** tags will be ignored during a master index compilation, unless at least one of the tags is also **provided**.
+
+For example, you can define **required** tags for indexes returned from the ``get_indexes()`` function, by attaching them to the function like this:
+
+.. code-block:: python
+
+    def get_indexes(root):
+        yield signac.get_project(root).index()
+
+    get_indexes.tags = {'public', 'foo'}
+
+Similarly, you can require tags for specific crawlers:
+
+.. code-block:: python
+
+    class MyCrawler(SignacProjectCrawler):
+        tags = {'public', 'foo'}
+
+Unless you **provide** *at least one* of these tags (``public`` or ``foo``), the examples above would be ignored during the master index compilation.
+This means only the second one of the following two lines would **not ignore** the examples above:
+
+.. code-block:: python
+
+    index = signac.index()                  # examples above are ignored
+    index = signac.index(tags={'public'})   # includes examples above
+
+Similarly on the command line:
+
+.. code-block:: bash
+
+    $ signac index                # examples above are ignored
+    $ signac index --tags public  # includes examples above
+
+In summary, there must be an overlap between the **requested** and the **provided** tags.
+
+How to publish an index
+=======================
+
+Here we demonstrate how to compile a master index with data mirroring, which is designed to be publicly accessible.
+The index will be stored in a document collection called ``index`` as part of a database called ``public_db``.
+All data files will be mirrored within the same database.
+That means everybody with access to the ``public_db`` database will have access to the index as well as to the associated files.
+
+.. code-block:: python
+
+    import signac
+
+    db = signac.get_database('public_db')
+
+    # We define two mirrors
+    file_mirrors = [
+      # The GridFS database file system is stored in the
+      # same database, that we use to publish the index.
+      # This means that anyone with access to the index,
+      # will be able to access the associated files as well.
+      signac.fs.GridFS(db),
+
+      # The second mirror is on the local file system.
+      # It can be downloaded and made available locally,
+      # for example to reduce the amount of required
+      # network traffic.
+      signac.fs.LocalFS('/path/to/mirror')
+      ]
+
+    # Only crawlers which have been explicitly cleared for
+    # publication with the `public` tag will be compiled and exported.
+    index = signac.index('/path/to/projects', tags={'public'})
+
+    # The export() function pushes the index documents to the database
+    # collection and copies all associated files to the file mirrors.
+    signac.export(index, db.index, file_mirrors, update=True)

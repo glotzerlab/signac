@@ -1,14 +1,14 @@
-.. _searching:
+.. _query:
 
 =========
-Searching
+Query API
 =========
 
-One of the key features of *signac* is the possibility to immediately search managed data spaces and for example select specific jobs or state points from a managed data space.
-All **find()** functions within the framework accept filter arguments that will return a selection of jobs or documents.
-
-Internally, all search operations are processed by an instance of :py:class:`~.Collection`, that means they all follow the same syntax.
-That means you can use the same type of filter arguments in :py:meth:`~.Project.find_jobs`, :py:meth:`~.Project.find_statepoints`, and so on.
+As briefly described in :ref:`project-job-finding`, ``project.find_jobs()`` provides a much more powerful search functionality beyond simply providing a window into all the jobs in a project.
+More generally, all **find()** functions within the framework accept filter arguments that will return a selection of jobs or documents.
+One of the key features of *signac* is the possibility to immediately search managed data spaces to select desired subsets as needed.
+Internally, all search operations are processed by an instance of :py:class:`~.Collection` (see :ref:`collections`).
+Therefore, they all follow the same syntax, so you can use the same type of filter arguments in :py:meth:`~.Project.find_jobs`, :py:meth:`~.Project.find_statepoints`, and so on.
 
 .. note::
 
