@@ -102,6 +102,46 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
+    def test_workspace_path_normalization(self):
+        def norm_path(p):
+            return os.path.abspath(os.path.expandvars(p))
+
+        self.assertEqual(self.project.workspace(), norm_path(self._tmp_wd))
+
+        abs_path = '/path/to/workspace'
+        self.project.config['workspace_dir'] = abs_path
+        self.assertEqual(self.project.workspace(), norm_path(abs_path))
+
+        rel_path = 'path/to/workspace'
+        self.project.config['workspace_dir'] = rel_path
+        self.assertEqual(
+            self.project.workspace(),
+            norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
+
+    def test_create_workspace_on_find(self):
+        self.assertFalse(os.path.exists(self.project.workspace()))
+        self.project.find_jobs()
+        self.assertTrue(os.path.exists(self.project.workspace()))
+
+    def test_workspace_read_only_path(self):
+        # Create file where workspace would be, thus preventing the creation
+        # of the workspace directory.
+        with open(os.path.join(self.project.workspace()), 'w'):
+            pass
+
+        with self.assertRaises(OSError):     # Ensure that the file is in place.
+            os.mkdir(self.project.workspace())
+
+        try:
+            logging.disable(logging.ERROR)
+            with self.assertRaises(OSError):
+                self.project.find_jobs()
+        finally:
+            logging.disable(logging.NOTSET)
+
+        self.assertFalse(os.path.isdir(self._tmp_wd))
+        self.assertFalse(os.path.isdir(self.project.workspace()))
+
     def test_find_statepoints(self):
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
@@ -457,7 +497,6 @@ class ProjectTest(BaseProjectTest):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(10)
-        c_vals = ["foo", "bar", "baz"]
         for a in a_vals:
             for b in b_vals:
                 if a % 3 == 0:

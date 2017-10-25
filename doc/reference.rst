@@ -14,6 +14,7 @@ Contents:
    query
    indexing_new
    collections
+   grouping
    indexing
    advanced_indexing
    database
