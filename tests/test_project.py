@@ -146,7 +146,7 @@ class ProjectTest(BaseProjectTest):
             self.project.workspace(),
             norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
 
-    @unittest.skipIf(six.PY2, "test requires python 3")
+    @unittest.skipIf(not six.PY34, "Test requires Python version >= 3.4.")
     def test_no_workspace_warn_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
         with self.assertLogs(level='INFO') as cm:
@@ -171,18 +171,18 @@ class ProjectTest(BaseProjectTest):
 
         self.assertTrue(issubclass(WorkspaceError, OSError))
 
-        if six.PY2:
+        if six.PY34:
+            with self.assertLogs(level='ERROR') as cm:
+                with self.assertRaises(WorkspaceError):
+                    self.project.find_jobs()
+                self.assertEqual(len(cm.output), 1)
+        else:
             try:
                 logging.disable(logging.ERROR)
                 with self.assertRaises(WorkspaceError):
                     self.project.find_jobs()
             finally:
                 logging.disable(logging.NOTSET)
-        else:
-            with self.assertLogs(level='ERROR') as cm:
-                with self.assertRaises(WorkspaceError):
-                    self.project.find_jobs()
-                self.assertEqual(len(cm.output), 1)
 
         self.assertFalse(os.path.isdir(self._tmp_wd))
         self.assertFalse(os.path.isdir(self.project.workspace()))
