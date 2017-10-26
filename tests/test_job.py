@@ -431,6 +431,29 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.document.get(key), d)
         self.assertEqual(job.document.get('bs', d), d)
 
+    def test_del(self):
+        key = 'del0'
+        key1 = 'del1'
+        d = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        self.assertNotIn(key, job.document)
+        job.document[key] = d
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key, job.document)
+        job.document[key1] = d1
+        self.assertEqual(len(job.document), 2)
+        self.assertIn(key, job.document)
+        self.assertIn(key1, job.document)
+        self.assertEqual(job.document[key], d)
+        self.assertEqual(job.document[key1], d1)
+        del job.document[key]
+        print(job.document)
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key1, job.document)
+        self.assertNotIn(key, job.document)
+
     def test_get_set_doc(self):
         key = 'get_set'
         d = testdata()
