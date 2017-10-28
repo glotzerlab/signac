@@ -184,6 +184,10 @@ class Job(object):
 
     @property
     def sp(self):
+        """Access the job's state point as attribute dictionary.
+
+        Alias for :attr:`.statepoint`.
+        """
         return self.statepoint
 
     @sp.setter

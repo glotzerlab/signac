@@ -22,9 +22,8 @@ A file index has *one entry per file* and each document has the following fields
 .. [#f2] Identical with the ``md5`` value in the current implementation.
 
 The **signac** project interface is specifically designed to assist with processes related to data curation.
-However, especially when working with a data set comprised of multiple projects or sources, not managed with **signac**, it might be easier to work with a data index directly.
+However, especially when working with a data set comprised of multiple projects or sources that are not managed with **signac**, it might be easier to work with a data index directly.
 
-For example, instead of accessing files associated with the state point ``{'a': 42}`` with a combination of ``Project.find_jobs()`` and ``Job.fn()``.
 For example, this is how we would access files related to a specific data sub set using the project interface:
 
 .. code-block:: python
@@ -45,16 +44,16 @@ And this is how we would do the same, but operating directly with an index:
         with signac.fetch(doc) as file:
             print(file.read())
 
-Here, we first generated the index with the ``Project.index()`` function and stored the result in a ``signac.Collection`` container.
-Then we search the index collection for a specific state point and use ``signac.fetch()`` to open the associated file.
-The ``signac.fetch()`` functions works very similar to Python's built-in ``open()`` function to open files, but in addition will be able to fetch a file from multiple different sources if necessary.
+Here, we first generated the index with the :py:meth:`.Project.index` function and stored the result in a :py:class:`.Collection` container.
+Then we search the index collection for a specific state point and use :py:func:`.fetch` to open the associated file.
+The :py:func:`.fetch` functions works very similar to Python's built-in :py:func:`open` function to open files, but in addition will be able to fetch a file from multiple different sources if necessary.
 
 The nect few sections are a more detailed outline of how such a workflow can be realized.
 
 Indexing a signac Project
 =========================
 
-As shown in the previous section, a **signac** project index, can be generated directly with the `Project.index()` function in Python, alternatively we can generate the index on the command line with `$ signac project --index`.
+As shown in the previous section, a **signac** project index, can be generated directly with the :py:meth:`.Project.index` function in Python, alternatively we can generate the index on the command line with ``$ signac project --index``.
 
 A signac project index is like a regular file index, but contains the following additional fields:
 
@@ -142,7 +141,7 @@ Overall, this enables us to operate on indexed project data in a way which is mo
 Deep Indexing
 =============
 
-We may want to add additional metadata to the index, which is neither based on the state point, the job document or the filename, but instead is directly extracted from the data.
+We may want to add additional metadata to the index, which is neither based on the state point, nor the job document or the filename, but instead is directly extracted from the data.
 Such a pattern is typically referred to as *deep indexing* and can be easily implemented with **signac**.
 
 As an example, assuming that we wanted add the number of lines within a file as an additional metadata field to our data index.
@@ -167,7 +166,7 @@ The ``index`` variable now contains an index, where each index entry has an addi
 Searching an Index
 ==================
 
-An index generated with the :py:meth:`Project.index()` method or any other index function is just an iterable over the index documents.
+An index generated with the :py:meth:`.Project.index` method or any other index function is just an iterable over the index documents.
 To be able to **search** the index, we need to either implement routines to select specific documents or use containers that implement such routines, such as the :py:class:`.Collection` class that **signac** uses internally for all search operations.
 
 For example, if we are looking for all files that correspond to a state point variable ``a=42``, we could implement the following for-loop:

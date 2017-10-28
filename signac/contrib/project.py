@@ -252,6 +252,11 @@ class Project(object):
 
     @property
     def document(self):
+        """The document associated with this project.
+
+        :return: The project document handle.
+        :rtype: :class:`~.JSONDict`
+        """
         if self._document is None:
             self._document = JSONDict(filename=self._fn_doc, write_concern=True)
         return self._document
@@ -262,6 +267,13 @@ class Project(object):
 
     @property
     def doc(self):
+        """The document associated with this project.
+
+        Alias for :attr:`~.document`.
+
+        :return: The project document handle.
+        :rtype: :class:`~.JSONDict`
+        """
         return self.document
 
     @doc.setter

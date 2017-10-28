@@ -4,7 +4,7 @@
 Query API
 =========
 
-As briefly described in :ref:`project-job-finding`, ``project.find_jobs()`` provides a much more powerful search functionality beyond simply providing a window into all the jobs in a project.
+As briefly described in :ref:`project-job-finding`, the :py:meth:`~.Project.find_jobs()` method provides a much more powerful search functionality beyond simple selection of jobs with specific state point values.
 More generally, all **find()** functions within the framework accept filter arguments that will return a selection of jobs or documents.
 One of the key features of *signac* is the possibility to immediately search managed data spaces to select desired subsets as needed.
 Internally, all search operations are processed by an instance of :py:class:`~.Collection` (see :ref:`collections`).

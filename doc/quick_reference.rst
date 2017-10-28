@@ -120,9 +120,11 @@ Command line:
 
     # Find a subset filtered by state point
     $ signac find '{"a": 0}'
+    $ signac find a 0  # short form
 
     # Find a subset filtered by job document entries
     $ signac find --doc-filter '{"a": 0}'
+    $ signac find --doc-filter a  0  # short form
 
 .. note::
 
