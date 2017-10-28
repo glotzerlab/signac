@@ -1,3 +1,27 @@
+0.9.0:
+
+	- Introduction of `$ signac sync`, `Project.sync()`, and `Job.sync()` for
+	the simplified and fine-grained synchronization of multiple project data
+	spaces.
+	- Introduction of `$ signac schema` and `Project.detect_schema()` for the
+	automatic detection of the implicit and semi-structured state point schema
+	of a project data space.
+	- Simplified aggregation of jobs over projects and `Project.find_jobs()`
+	results with the `Project.groupby()` function.
+	- Support for project-centralized data with the `Project.document` attribute
+	and the `Project.fn()` method for the wrapping of filenames within the
+	project root directory.
+	- Both `Job.statepoint` and `Job.document` now use the same underlying data
+	structure and provide the exact same API (copy with () and access of keys
+	as attributes).
+	- Added the `Job.clear()` and the `Job.reset()` methods to clear or reset a
+	job's workspace data.
+	- The `Collection` class uses an internal counter instead of UUIDs for the
+	generation of primary keys (resulting in improved performance).
+	- Major performance improvements (faster Collection, improved caching)
+	- Overhaul of the reference documentation.
+	- Overall API consolidation.
+
 0.8.7:
 
 	- Fix an issue where the creation of linked views was non-deterministic in
