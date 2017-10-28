@@ -257,6 +257,10 @@ class Collection(object):
     """
 
     def __init__(self, docs=None, primary_key='_id'):
+        if isinstance(docs, six.string_types):
+            raise ValueError(
+                "First argument cannot be of str type. "
+                "Did you mean to use {}.open()?".format(type(self).__name__))
         self.index_rebuild_threshold = 0.1
         self._primary_key = primary_key
         self._file = io.StringIO()
