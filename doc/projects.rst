@@ -395,6 +395,7 @@ Trying to move or copy a job to a project which has already an initialized job w
     While **moving** is a cheap renaming operation, **copying** may be much more expensive since all of the job's data will be copied from one workspace into the other.
 
 To **clear** all data associated with a specific job, call the :py:meth:`~.Project.Job.clear` method.
+To **clear and optionally initialize** a job, use the :py:meth:`~.Project.Job.reset` method.
 To **permanently delete** a job and its contents use the :py:meth:`~.Project.Job.remove` method:
 
 .. code-block:: python
