@@ -5,18 +5,34 @@ import os
 import errno
 import logging
 import shutil
-import copy
+import uuid
 
 from ..common import six
 from ..core.json import json
-from ..core.jsondict import JSonDict
-from ..core.attr_dict import AttrDict
-from ..core.attr_dict import convert_to_dict
+from ..core.attrdict import SyncedAttrDict
+from ..core.jsondict import JSONDict
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError
+from ..sync import sync_jobs
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
+
+
+class _sp_save_hook(object):
+
+    def __init__(self, job):
+        self.job = job
+
+    def load(self):
+        pass
+
+    def save(self):
+        self.job._reset_sp()
 
 
 class Job(object):
@@ -36,12 +52,13 @@ class Job(object):
 
     def __init__(self, project, statepoint):
         self._project = project
-        self._statepoint = json.loads(json.dumps(statepoint))
-        self._id = calc_id(self._statepoint)
-        self._document = None
-        self._wd = os.path.join(project.workspace(), str(self))
-        self._cwd = list()
         self._sp = None
+        self._statepoint = json.loads(json.dumps(statepoint))
+        self._id = calc_id(self.statepoint())
+        self._wd = os.path.join(project.workspace(), self._id)
+        self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
+        self._document = None
+        self._cwd = list()
 
     def get_id(self):
         """The unique identifier for the job's statepoint.
@@ -76,13 +93,6 @@ class Job(object):
     def ws(self):
         "The job's workspace directory."
         return self.workspace()
-
-    def statepoint(self):
-        """The statepoint associated with this job.
-
-        :return: The statepoint mapping.
-        :rtype: dict"""
-        return copy.deepcopy(self._statepoint)
 
     def reset_statepoint(self, new_statepoint):
         """Reset the state point of this job.
@@ -123,11 +133,13 @@ class Job(object):
             else:
                 raise
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
-        dst._sp = self._sp
+        dst._statepoint = self._statepoint
         self.__dict__.update(dst.__dict__)
 
-    def _reset_sp(self, new_sp):
-        self.reset_statepoint(convert_to_dict(new_sp))
+    def _reset_sp(self, new_sp=None):
+        if new_sp is None:
+            new_sp = self.statepoint()
+        self.reset_statepoint(new_sp)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the statepoint of this job.
@@ -160,35 +172,92 @@ class Job(object):
         self.reset_statepoint(statepoint)
 
     @property
-    def sp(self):
+    def statepoint(self):
         "Access the job's state point as attribute dictionary."
         if self._sp is None:
-            self._sp = AttrDict(self.statepoint(), self._reset_sp)
+            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         return self._sp
+
+    @statepoint.setter
+    def statepoint(self, new_sp):
+        self._reset_sp(new_sp)
+
+    @property
+    def sp(self):
+        """Access the job's state point as attribute dictionary.
+
+        Alias for :attr:`.statepoint`.
+        """
+        return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        self._reset_sp(new_sp)
+        self.statepoint = new_sp
+
+    def _read_document(self):
+        try:
+            with open(self._fn_doc, 'rb') as file:
+                return json.loads(file.read().decode())
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise
+            return dict()
+
+    def _reset_document(self, new_doc):
+        if not isinstance(new_doc, Mapping):
+            raise ValueError("The document must be a mapping.")
+        dirname, filename = os.path.split(self._fn_doc)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
+        with open(fn_tmp, 'wb') as tmpfile:
+            tmpfile.write(json.dumps(new_doc).encode())
+        if six.PY2:
+            os.rename(fn_tmp, self._fn_doc)
+        else:
+            os.replace(fn_tmp, self._fn_doc)
 
     @property
     def document(self):
         """The document associated with this job.
 
         :return: The job document handle.
-        :rtype: :class:`~.JSonDict`"""
+        :rtype: :class:`~.JSONDict`"""
         if self._document is None:
-            self._create_directory()
-            fn = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = JSonDict(
-                fn, synchronized=True, write_concern=True)
+            self.init()
+            self._document = JSONDict(filename=self._fn_doc)
         return self._document
 
-    def _create_directory(self, overwrite=False):
-        "Create the workspace directory and write the manifest file."
+    @document.setter
+    def document(self, new_doc):
+        self._reset_document(new_doc)
+
+    @property
+    def doc(self):
+        return self.document
+
+    @doc.setter
+    def doc(self, new_doc):
+        self.document = new_doc
+
+    def init(self, force=False):
+        """Initialize the job's workspace directory.
+
+        This function will do nothing if the directory and
+        the job manifest already exist.
+
+        :param force: Overwrite any existing state points manifest
+            files, e.g., to repair them when they got corrupted.
+        :type force: bool
+        """
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
-        _mkdir_p(self.workspace())
+        try:
+            _mkdir_p(self.workspace())
+        except OSError as error:
+            logger.error("Error occured while trying to create "
+                         "workspace directory for job '{}'.".format(self))
+            raise
 
         try:
             # Ensure to create the binary to write before file creation
@@ -198,7 +267,7 @@ class Job(object):
                 # Open the file for writing only if it does not exist yet.
                 if six.PY2:
                     # Adapted from: http://stackoverflow.com/questions/10978869/
-                    if overwrite:
+                    if force:
                         flags = os.O_CREAT | os.O_WRONLY
                     else:
                         flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
@@ -211,7 +280,7 @@ class Job(object):
                         with os.fdopen(fd, 'w') as file:
                             file.write(blob)
                 else:
-                    with open(fn_manifest, 'w' if overwrite else 'x') as file:
+                    with open(fn_manifest, 'w' if force else 'x') as file:
                         file.write(blob)
             except IOError as error:
                 if not error.errno == errno.EEXIST:
@@ -234,18 +303,39 @@ class Job(object):
                 with open(fn_manifest) as file:
                     assert calc_id(json.loads(file.read())) == self._id
             except IOError as error:
-                if not error.errno == errno.ENOENT:
+                if error.errno != errno.ENOENT:
                     raise error
         except Exception as error:
             msg = "Manifest file of job '{}' is corrupted: {}."
             raise RuntimeError(msg.format(self, error))
 
-    def init(self):
-        """Initialize the job's workspace directory.
+    def clear(self):
+        """Remove all job data, but not the job itself.
 
-        This function will do nothing if the directory and
-        the job manifest already exist."""
-        self._create_directory()
+        This function will do nothing if the job was not previously
+        initialized.
+        """
+        try:
+            for fn in os.listdir(self._wd):
+                if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
+                    continue
+                path = os.path.join(self._wd, fn)
+                if os.path.isfile(path):
+                    os.remove(path)
+                elif os.path.isdir(path):
+                    shutil.rmtree(path)
+            self.document.clear()
+        except (OSError, IOError) as error:
+            if error.errno != errno.ENOENT:
+                raise error
+
+    def reset(self):
+        """Remove all job data, but not the job itself.
+
+        This function will initialize the job if it was not previously
+        initialized."""
+        self.clear()
+        self.init()
 
     def remove(self):
         """Remove the job's workspace including the job document.
@@ -259,7 +349,11 @@ class Job(object):
                 raise
         else:
             if self._document is not None:
-                self._document.data.clear()
+                try:
+                    self._document.clear()
+                except IOError as error:
+                    if not error.errno == errno.ENOENT:
+                        raise error
                 self._document = None
 
     def move(self, project):
@@ -279,6 +373,55 @@ class Job(object):
         except OSError:
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
+
+    def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
+        """Perform a one-way synchronization of this job with the other job.
+
+        By default, this method will synchronize all files and document data with
+        the other job to this job until a synchronization conflict occurs. There
+        are two different kinds of synchronization conflicts:
+
+            1. The two jobs have files with the same, but different content.
+            2. The two jobs have documents that share keys, but those keys are
+               associated with different values.
+
+        A file conflict can be resolved by providing a 'FileSync' *strategy* or by
+        *excluding* files from the synchronization. An unresolvable conflict is indicated with
+        the raise of a :py:class:`~.errors.FileSyncConflict` exception.
+
+        A document synchronization conflict can be resolved by providing a doc_sync function
+        that takes the source and the destination document as first and second argument.
+
+        :param other:
+            The other job to synchronize from.
+        :type other:
+            `.Job`
+        :param strategy:
+            A synchronization strategy for file conflicts. If no strategy is provided, a
+            :class:`~.errors.SyncConflict` exception will be raised upon conflict.
+        :param exclude:
+            An filename exclude pattern. All files matching this pattern will be
+            excluded from synchronization.
+        :type exclude:
+            str
+        :param doc_sync:
+            A synchronization strategy for document keys. If this argument is None, by default
+            no keys will be synchronized upon conflict.
+        :param dry_run:
+            If True, do not actually perform the synchronization.
+        :param kwargs:
+            Extra keyword arguments will be forward to the :py:func:`~.sync.sync_jobs`
+            function which actually excutes the synchronization operation.
+        :raises FileSyncConflict:
+            In case that a file synchronization results in a conflict.
+        """
+        sync_jobs(
+            src=other,
+            dst=self,
+            strategy=strategy,
+            exclude=exclude,
+            doc_sync=doc_sync,
+            **kwargs)
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
@@ -311,7 +454,7 @@ class Job(object):
         leaving it will switch back to the previous working directory.
         """
         self._cwd.append(os.getcwd())
-        self._create_directory()
+        self.init()
         logger.info("Enter workspace '{}'.".format(self.workspace()))
         os.chdir(self.workspace())
 

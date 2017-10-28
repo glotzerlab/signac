@@ -10,9 +10,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   configuration
    projects
-   searching
+   query
    indexing
-   advanced_indexing
-   database
+   collections
+   configuration

@@ -101,17 +101,6 @@ def _search_local(root):
             yield fn_
 
 
-def _search(root, local=False):
-    if local:
-        for fn in _search_local(root):
-            yield fn
-    else:
-        for fn in search_standard_dirs():
-            yield fn
-        for fn in search_tree(root=root):
-            yield fn
-
-
 def load_config(root=None, local=False):
     if root is None:
         root = os.getcwd()

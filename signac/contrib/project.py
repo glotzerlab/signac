@@ -6,27 +6,37 @@ import os
 import stat
 import re
 import logging
+import warnings
 import errno
 import collections
-import shutil
-from itertools import chain
+import uuid
+from itertools import chain, groupby
 
+from .. import syncutil
 from ..core.json import json
+from ..core.jsondict import JSONDict
 from .collection import Collection
+from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
+from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
-from .indexing import _index_signac_project_workspace
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p
+from .schema import ProjectSchema
+from .errors import WorkspaceError
 from .errors import DestinationExistsError
+from .errors import JobsCorruptedError
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
+
 
 logger = logging.getLogger(__name__)
 
-#: The default filename to read from and write statepoints to.
-FN_STATEPOINTS = 'signac_statepoints.json'
 
 ACCESS_MODULE_MINIMAL = """import signac
 
@@ -35,7 +45,7 @@ def get_indexes(root):
 """
 
 ACCESS_MODULE_MASTER = """#!/usr/bin/env python
-# -*- condig: utf-8 -*-
+# -*- coding: utf-8 -*-
 import signac
 
 def get_indexes(root):
@@ -107,11 +117,23 @@ class Project(object):
     :func:`signac.get_project` instead."""
     Job = Job
 
+    FN_DOCUMENT = 'signac_project_document.json'
+    "The project's document filename."
+
+    FN_STATEPOINTS = 'signac_statepoints.json'
+    "The default filename to read from and write statepoints to."
+
     def __init__(self, config=None):
         if config is None:
             config = load_config()
         self._config = config
+        self._sp_cache = dict()
+        self._index_cache = dict()
         self.get_id()
+        if not os.path.isabs(self._wd):
+            self._wd = os.path.join(self.root_directory(), self._wd)
+        self._fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+        self._document = None
 
     def __str__(self):
         "Returns the project's id."
@@ -133,9 +155,22 @@ class Project(object):
         "The project's configuration."
         return self._config
 
+    @property
+    def _rd(self):
+        "The project root directory."
+        return self._config['project_dir']
+
+    @property
+    def _wd(self):
+        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
+        if os.path.isabs(wd):
+            return wd
+        else:
+            return os.path.join(self._rd, wd)
+
     def root_directory(self):
         "Returns the project's root directory."
-        return self._config['project_dir']
+        return self._rd
 
     def workspace(self):
         """Returns the project's workspace directory.
@@ -150,11 +185,7 @@ class Project(object):
         .. note::
             The configuration will respect environment variables,
             such as $HOME."""
-        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
-        if os.path.isabs(wd):
-            return wd
-        else:
-            return os.path.join(self.root_directory(), wd)
+        return self._wd
 
     def get_id(self):
         """Get the project identifier.
@@ -186,6 +217,69 @@ class Project(object):
                 break
         return i
 
+    def fn(self, filename):
+        """Prepend a filename with the project's root directory path.
+
+        :param filename: The filename of the file.
+        :type filename: str
+        :return: The joined path of project root directory and filename.
+        """
+        return os.path.join(self.root_directory(), filename)
+
+    def isfile(self, filename):
+        """True if a file with filename exists in the project's root directory.
+
+        :param filename: The filename of the file.
+        :type filename: str
+        :return: True if a file with filename exists in the project's root
+            directory.
+        :rtype: bool
+        """
+        return os.path.isfile(self.fn(filename))
+
+    def _reset_document(self, new_doc):
+        if not isinstance(new_doc, Mapping):
+            raise ValueError("The document must be a mapping.")
+        dirname, filename = os.path.split(self._fn_doc)
+        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+            uid=uuid.uuid4(), fn=filename))
+        with open(fn_tmp, 'wb') as tmpfile:
+            tmpfile.write(json.dumps(new_doc).encode())
+        if six.PY2:
+            os.rename(fn_tmp, self._fn_doc)
+        else:
+            os.replace(fn_tmp, self._fn_doc)
+
+    @property
+    def document(self):
+        """The document associated with this project.
+
+        :return: The project document handle.
+        :rtype: :class:`~.JSONDict`
+        """
+        if self._document is None:
+            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+        return self._document
+
+    @document.setter
+    def document(self, new_doc):
+        self._reset_document(new_doc)
+
+    @property
+    def doc(self):
+        """The document associated with this project.
+
+        Alias for :attr:`~.document`.
+
+        :return: The project document handle.
+        :rtype: :class:`~.JSONDict`
+        """
+        return self.document
+
+    @doc.setter
+    def doc(self, new_doc):
+        self.document = new_doc
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
@@ -211,7 +305,7 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
-            return self.Job(project=self, statepoint=statepoint)
+            job = self.Job(project=self, statepoint=statepoint)
         else:
             if len(id) < 32:
                 job_ids = self.find_job_ids()
@@ -220,18 +314,31 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            return self.Job(project=self, statepoint=self.get_statepoint(id))
+            job = self.Job(project=self, statepoint=self.get_statepoint(id))
+        if job.get_id() not in self._sp_cache:
+            self._register(job)
+        return job
 
     def _job_dirs(self):
-        wd = self.workspace()
         m = re.compile('[a-f0-9]{32}')
         try:
-            for d in os.listdir(wd):
+            for d in os.listdir(self._wd):
                 if m.match(d):
                     yield d
         except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
+            if error.errno == errno.ENOENT:
+                if os.path.islink(self._wd):
+                    raise WorkspaceError(
+                        "The link '{}' pointing to the workspace is broken.".format(self._wd))
+                elif not os.path.isdir(os.path.dirname(self._wd)):
+                    logger.warning(
+                        "The path to the workspace directory "
+                        "('{}') does not exist.".format(os.path.dirname(self._wd)))
+                else:
+                    logger.info("The workspace directory '{}' does not exist!".format(self._wd))
+            else:
+                logger.error("Unable to access the workspace directory '{}'.".format(self._wd))
+                raise WorkspaceError(error)
 
     def num_jobs(self):
         "Return the number of initialized jobs."
@@ -300,7 +407,6 @@ class Project(object):
         :yields: Pairs of state point keys and mappings of values to a set of all
             corresponding job ids.
         """
-        from .collection import _traverse_filter
         if index is None:
             index = self.index(include_job_document=False)
         collection = Collection(index)
@@ -315,6 +421,31 @@ class Project(object):
                     and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
                 continue
             yield tuple(k.split('.')[1:]), tmp[k]
+
+    def detect_schema(self, exclude_const=False, subset=None, index=None):
+        """Detect the project's state point schema.
+
+        :param exclude_const:
+            Exclude all state point keys that are shared by all jobs within this project.
+        :type exclude_const:
+            bool
+        :param subset:
+            A sequence of jobs or job ids specifying a subset over which the state point
+            schema should be detected.
+        :param index:
+            A document index.
+        :returns:
+            The detected project schema.
+        :rtype:
+            `signac.contrib.schema.ProjectSchema`
+        """
+        if index is None:
+            index = self.index(include_job_document=False)
+        if subset is not None:
+            subset = {str(s) for s in subset}
+            index = [doc for doc in index if doc['_id'] in subset]
+        statepoint_index = self.build_job_statepoint_index(exclude_const=exclude_const, index=index)
+        return ProjectSchema.detect(statepoint_index)
 
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
@@ -341,7 +472,10 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            index = self.index(include_job_document=doc_filter is not None)
+            if doc_filter is None:
+                index = self._sp_index()
+            else:
+                index = self.index(include_job_document=True)
         search_index = self.build_job_search_index(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
@@ -366,10 +500,82 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        return _JobsIterator(self, self.find_job_ids(filter, doc_filter, index))
+        return JobsCursor(self, self.find_job_ids(filter, doc_filter, index))
 
     def __iter__(self):
         return self.find_jobs()
+
+    def groupby(self, key=None, default=None):
+        """Groups jobs according to one or more statepoint parameters.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by statepoint parameter 'a'.
+            for key, group in project.groupby('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.sp['b'] and job.sp['c'].
+            for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
+                print(key, list(group))
+
+            # Group by job.sp['d'] and job.document['count'] using a lambda.
+            for key, group in project.groupby(
+                lambda job: (job.sp['d'], job.document['count'])
+            ):
+                print(key, list(group))
+
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
+
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, the job.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
+        """
+        return self.__iter__().groupby(key, default=default)
+
+    def groupbydoc(self, key=None, default=None):
+        """Groups jobs according to one or more document values.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by document value 'a'.
+            for key, group in project.groupbydoc('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.document['b'] and job.document['c'].
+            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
+                print(key, list(group))
+
+            # Group by whether 'd' is a field in the job.document using a lambda.
+            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
+                print(key, list(group))
+
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
+
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, `job.document`.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
+        """
+        return self.__iter__().groupbydoc(key, default=default)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -381,6 +587,10 @@ class Project(object):
             a corrupted workspace.
         :type skip_errors: bool
         :yields: statepoints as dict"""
+        warnings.warn(
+            "The Project.find_statepoints() method is deprecated.",
+            DeprecationWarning)
+
         if index is None:
             index = self.index(include_job_document=False)
         if skip_errors:
@@ -389,19 +599,19 @@ class Project(object):
         if skip_errors:
             jobs = _skip_errors(jobs, logger.critical)
         for job in jobs:
-            yield job.statepoint()
+            yield dict(job._statepoint)
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
 
         :param fn: The filename of the file containing the statepoints,
-            defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
+            defaults to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
         :type fn: str
 
         See also :meth:`dump_statepoints` and :meth:`write_statepoints`.
         """
         if fn is None:
-            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+            fn = self.fn(self.FN_STATEPOINTS)
         # See comment in write statepoints.
         with open(fn, 'r') as file:
             return json.loads(file.read())
@@ -441,7 +651,7 @@ class Project(object):
         See also :meth:`dump_statepoints`.
         """
         if fn is None:
-            fn = os.path.join(self.root_directory(), FN_STATEPOINTS)
+            fn = self.fn(self.FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
         # except FileNotFoundError:
@@ -455,48 +665,64 @@ class Project(object):
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
+    def _register(self, job):
+        "Register the job within the local index."
+        self._sp_cache[job._id] = dict(job._statepoint)
+
     def _get_statepoint_from_workspace(self, jobid):
-        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
+        "Attempt to read the statepoint from the workspace."
+        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'r') as manifest:
-                return json.loads(manifest.read())
+            with open(fn_manifest, 'rb') as manifest:
+                return json.loads(manifest.read().decode())
         except (IOError, ValueError) as error:
-            if os.path.isfile(fn_manifest):
-                msg = "Error while trying to access manifest file: "\
-                      "'{}'. Error: '{}'.".format(fn_manifest, error)
-                logger.critical(msg)
+            if os.path.isdir(os.path.join(self._wd, jobid)):
+                logger.error(
+                    "Error while trying to access state "
+                    "point manifest file of job '{}': '{}'.".format(jobid, error))
+                raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
-        The statepoint is retrieved from the workspace or
-        from the statepoints file if the former attempt fails.
+        The state point is retrieved from the internal cache, from
+        the workspace or from a state points file.
 
-        :param jobid: A job id to get the statepoint for.
-        :type jobid: str
-        :param fn: The filename of the file containing the statepoints,
-            defaults to :const:`~signac.contrib.project.FN_STATEPOINTS`.
-        :type fn: str
-        :return: The statepoint.
-        :rtype: dict
-        :raises KeyError: If the statepoint associated with \
-            jobid could not be found.
-
-        See also :meth:`dump_statepoints`.
+        :param jobid:
+            A job id to get the statepoint for.
+        :type jobid:
+            str
+        :param fn:
+            The filename of the file containing the statepoints, defaults
+            to :const:`~signac.contrib.project.FN_STATEPOINTS`.
+        :type fn:
+            str
+        :return:
+            The state point corresponding to jobid.
+        :rtype:
+            dict
+        :raises KeyError:
+            If the state point associated with jobid could not be found.
+        :raises JobsCorruptedError:
+            If the state point manifest file corresponding to jobid is
+            inaccessible or corrupted.
         """
         try:
-            statepoint = self._get_statepoint_from_workspace(jobid)
-        except KeyError:
+            if jobid in self._sp_cache:
+                return self._sp_cache[jobid]
+            else:
+                sp = self._get_statepoint_from_workspace(jobid)
+        except KeyError as error:
             try:
-                statepoint = self.read_statepoints(fn=fn)[jobid]
-            except IOError as error:
-                if not error.errno == errno.ENOENT:
-                    raise
-                raise KeyError(jobid)
-        assert statepoint is not None
-        assert str(self.open_job(statepoint)) == jobid
-        return statepoint
+                sp = self.read_statepoints(fn=fn)[jobid]
+            except IOError as io_error:
+                if io_error.errno != errno.ENOENT:
+                    raise io_error
+                else:
+                    raise error
+        self._sp_cache[jobid] = sp
+        return sp
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None):
         """Create or update a persistent linked view of the selected data space.
@@ -581,6 +807,10 @@ class Project(object):
         :yields: Instances of dict.
         :raises KeyError: If the job document already contains the fields
             '_id' or 'statepoint'."""
+        warnings.warn(
+            "The Project.find_job_documents() method is deprecated.",
+            DeprecationWarning)
+
         for job in self.find_jobs(filter=filter):
             doc = dict(job.document)
             if '_id' in doc:
@@ -590,7 +820,7 @@ class Project(object):
                 raise KeyError(
                     "The job document already contains a field 'statepoint'!")
             doc['_id'] = str(job)
-            doc['statepoint'] = job.statepoint()
+            doc['statepoint'] = dict(job._statepoint)
             yield doc
 
     def reset_statepoint(self, job, new_statepoint):
@@ -639,7 +869,7 @@ class Project(object):
         """
         job.update_statepoint(update=update, overwrite=overwrite)
 
-    def clone(self, job):
+    def clone(self, job, copytree=syncutil.copytree):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -647,50 +877,142 @@ class Project(object):
         :param job: The job to copy into this project.
         :type job: :py:class:`~.Job`
         :returns: The job instance corresponding to the copied job.
-        :rtype: :py:class:`~.Job`
+        :rtype: :class:`~.Job`
         :raises DestinationExistsError:
             In case that a job with the same id is already
             initialized within this project.
         """
-        dst = self.open_job(job.statepoint())
+        dst = self.open_job(job._statepoint)
         try:
-            shutil.copytree(job.workspace(), dst.workspace())
+            copytree(job.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.EEXIST:
                 raise DestinationExistsError(dst)
+            elif error.errno == errno.ENOENT:
+                raise ValueError("Source job not initalized.")
             else:
                 raise
         return dst
 
-    def repair(self):
-        "Attempt to repair the workspace after it got corrupted."
-        for job_dir in self._job_dirs():
-            jobid = os.path.split(job_dir)[-1]
-            fn_manifest = os.path.join(job_dir, self.Job.FN_MANIFEST)
+    def sync(self, other, strategy=None, exclude=None, doc_sync=None, selection=None, **kwargs):
+        """Synchronize this project with the other project.
+
+        Try to clone all jobs from the other project to this project.
+        If a job is already part of this project, try to synchronize the job
+        using the optionally specified strategies.
+
+        :param other:
+            The other project to synchronize this project with.
+        :type other:
+            :py:class:`~.Project`
+        :param strategy:
+            A file synchronization strategy.
+        :param exclude:
+            Files with names matching the given pattern will be excluded
+            from the synchronization.
+        :param doc_sync:
+            The function applied for synchronizing documents.
+        :param selection:
+            Only sync the given jobs.
+        :param kwargs:
+            This method accepts the same keyword arguments as the :func:`~.sync.sync_projects`
+            function.
+        :raises DocumentSyncConflict:
+            If there are conflicting keys within the project or job documents that cannot
+            be resolved with the given strategy or if there is no strategy provided.
+        :raises FileSyncConflict:
+            If there are differing files that cannot be resolved with the given strategy
+            or if no strategy is provided.
+        :raises SyncSchemaConflict:
+            In case that the check_schema argument is True and the detected state point
+            schema of this and the other project differ.
+        """
+        return sync_projects(
+            source=other,
+            destination=self,
+            strategy=strategy,
+            exclude=exclude,
+            doc_sync=doc_sync,
+            selection=selection,
+            **kwargs)
+
+    def repair(self, fn_statepoints=None, index=None):
+        """Attempt to repair the workspace after it got corrupted.
+
+        This method will attempt to repair lost or corrupted job state point
+        manifest files using a state points file or a document index or both.
+
+        :param fn_statepoints:
+            The filename of the file containing the statepoints, defaults
+            to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
+        :type fn_statepoints:
+            str
+        :param index:
+            A document index
+        :raises JobsCorruptedError:
+            When one or more corrupted job could not be repaired.
+        """
+        corrupted = []
+        for job_id in self.find_job_ids():
             try:
-                with open(fn_manifest) as manifest:
-                    statepoint = json.loads(manifest.read())
-            except Exception as error:
-                logger.warning(
-                    "Encountered error while reading from '{}'. "
-                    "Error: {}".format(fn_manifest, error))
+                self.open_job(id=job_id)
+            except KeyError as error:
+                logger.critical(
+                    "Unable to recover state point for job with "
+                    "id '{}'.".format(job_id))
+                corrupted.append(job_id)
+            except JobsCorruptedError as error:
+                logger.warning("Attempt to recover state point from file: {}.".format(job_id))
+                try:    # Try to recover from state points file.
+                    sp = self.read_statepoints(fn_statepoints)[job_id]
+                except IOError as io_error:
+                    if io_error.errno != errno.ENOENT:
+                        raise
+                if index is not None:
+                    try:    # Try to recover from index.
+                        sp = index[job_id]
+                    except KeyError:
+                        pass
                 try:
-                    logger.info("Attempt to recover statepoint from file.")
-                    statepoint = self.get_statepoint(jobid)
-                    self.open_job(statepoint)._create_directory(overwrite=True)
-                except KeyError as error:
-                    raise RuntimeWarning(
-                        "Use write_statepoints() before attempting to repair!")
-                except IOError as error:
-                    if FN_STATEPOINTS in str(error):
-                        raise RuntimeWarning(
-                            "Use write_statepoints() before attempting to repair!")
-                    raise
-                except Exception:
-                    logger.error("Attemp to repair job space failed.")
-                    raise
-                else:
-                    logger.info("Successfully recovered state point.")
+                    self.open_job(sp).init(force=True)
+                except Exception as error_during_recovery:
+                    logger.critical(
+                        "Failed to recover job with id '{}', error: '{}'.".format(
+                            job_id, error_during_recovery))
+                    corrupted.append(job_id)
+            except Exception as error:
+                logger.critical("Unknown error during recovery: '{}'".format(error))
+                raise
+        if corrupted:
+            raise JobsCorruptedError(corrupted)
+
+    def _sp_index(self):
+        job_ids = set(self._job_dirs())
+        to_add = job_ids.difference(self._index_cache)
+        to_remove = set(self._index_cache).difference(job_ids)
+        for _id in to_remove:
+            del self._index_cache[_id]
+        for _id in to_add:
+            self._index_cache[_id] = dict(statepoint=self.get_statepoint(_id), _id=_id)
+        return self._index_cache.values()
+
+    def _build_index(self, include_job_document=False):
+        "Return a basic state point index."
+        wd = self.workspace() if self.Job == Job else None
+        for _id in self.find_job_ids():
+            sp = self.get_statepoint(_id)
+            doc = dict(_id=_id, statepoint=sp)
+            if include_job_document:
+                if wd is None:
+                    doc.update(self.open_job(id=_id).document)
+                else:   # use optimized path
+                    try:
+                        with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
+                            doc.update(json.loads(file.read().decode()))
+                    except IOError as error:
+                        if error.errno != errno.ENOENT:
+                            raise
+            yield doc
 
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
@@ -719,10 +1041,15 @@ class Project(object):
         :type include_job_document: bool
         :yields: index documents"""
         if formats is None:
-            docs = _index_signac_project_workspace(
-                root=self.workspace(),
-                include_job_document=include_job_document,
-                fn_statepoint=self.Job.FN_MANIFEST)
+            root = self.workspace()
+
+            def _full_doc(doc):
+                doc['signac_id'] = doc['_id']
+                doc['root'] = root
+                return doc
+
+            docs = self._build_index(include_job_document=include_job_document)
+            docs = map(_full_doc, docs)
         else:
             if six.PY2:
                 if isinstance(formats, basestring):  # noqa
@@ -979,22 +1306,6 @@ def _make_link(src, dst):
         raise
 
 
-def _make_urls(statepoints, key_set):
-    "Create unique URLs for all jobs matching filter."
-    for statepoint in statepoints:
-        url = []
-        for keys in key_set:
-            url.append('.'.join(keys))
-            v = statepoint
-            for key in keys:
-                v = v.get(key)
-                if v is None:
-                    break
-            url.append(str(v))
-        if len(url):
-            yield statepoint, os.path.join(*url)
-
-
 def _skip_errors(iterable, log=print):
     while True:
         try:
@@ -1005,7 +1316,10 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
-class _JobsIterator(object):
+class JobsCursor(object):
+    """An iterator over a search query result, enabling simple iteration and
+    grouping operations.
+    """
 
     def __init__(self, project, ids):
         self._project = project
@@ -1022,6 +1336,124 @@ class _JobsIterator(object):
         return self._project.open_job(id=next(self._ids_iterator))
 
     next = __next__  # python 2.7 compatibility
+
+    def groupby(self, key=None, default=None):
+        """Groups jobs according to one or more statepoint parameters.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by statepoint parameter 'a'.
+            for key, group in project.groupby('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.sp['b'] and job.sp['c'].
+            for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
+                print(key, list(group))
+
+            # Group by job.sp['d'] and job.document['count'] using a lambda.
+            for key, group in project.groupby(
+                lambda job: (job.sp['d'], job.document['count'])
+            ):
+                print(key, list(group))
+
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
+
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, the job.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
+        """
+        if isinstance(key, six.string_types):
+            if default is None:
+                def keyfunction(job):
+                        return job.sp[key]
+            else:
+                def keyfunction(job):
+                    return job.sp.get(key, default)
+
+        elif isinstance(key, collections.Iterable):
+            if default is None:
+                def keyfunction(job):
+                    return tuple(job.sp[k] for k in key)
+            else:
+                def keyfunction(job):
+                    return tuple(job.sp.get(k, default) for k in key)
+
+        elif key is None:
+            # Must return a type that can be ordered with <, >
+            def keyfunction(job):
+                return str(job)
+
+        else:
+            keyfunction = key
+
+        return groupby(sorted(self, key=keyfunction), key=keyfunction)
+
+    def groupbydoc(self, key=None, default=None):
+        """Groups jobs according to one or more document values.
+        This method can be called on any :class:`~.JobsCursor` such as
+        the one returned by :meth:`find_jobs` or by iterating over a
+        project. Examples:
+
+        .. code-block:: python
+
+            # Group jobs by document value 'a'.
+            for key, group in project.groupbydoc('a'):
+                print(key, list(group))
+
+            # Find jobs where job.sp['a'] is 1 and group them
+            # by job.document['b'] and job.document['c'].
+            for key, group in project.find_jobs({'a': 1}).groupbydoc(('b', 'c')):
+                print(key, list(group))
+
+            # Group by whether 'd' is a field in the job.document using a lambda.
+            for key, group in project.groupbydoc(lambda doc: 'd' in doc):
+                print(key, list(group))
+
+        If `key` is None, jobs are grouped by identity (by id), placing one job
+        into each group.
+
+        :param key:
+            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            or a function that will be passed one argument, `job.document`.
+        :type key:
+            str, iterable, or function
+        :param default:
+            A default value to be used when a given state point key is not present (must
+            be sortable).
+        """
+        if isinstance(key, six.string_types):
+            if default is None:
+                def keyfunction(job):
+                    return job.document[key]
+            else:
+                def keyfunction(job):
+                    return job.document.get(key, default)
+        elif isinstance(key, collections.Iterable):
+            if default is None:
+                def keyfunction(job):
+                    return tuple(job.document[k] for k in key)
+            else:
+                def keyfunction(job):
+                    return tuple(job.document.get(k, default) for k in key)
+        elif key is None:
+            # Must return a type that can be ordered with <, >
+            def keyfunction(job):
+                return str(job)
+        else:
+            # Pass the job document to lambda functions
+            def keyfunction(job):
+                return key(job.document)
+        return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

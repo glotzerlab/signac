@@ -9,9 +9,11 @@ import logging
 
 import signac
 from signac.common import six
-from signac.contrib.formats import TextFile
 from signac.errors import DestinationExistsError
 from signac.contrib.project import _find_all_links
+from signac.contrib.schema import ProjectSchema
+from signac.contrib.errors import JobsCorruptedError
+from signac.contrib.errors import WorkspaceError
 
 from test_job import BaseJobTest
 
@@ -62,6 +64,59 @@ class ProjectTest(BaseProjectTest):
         self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
+    def test_fn(self):
+        self.assertEqual(
+            self.project.fn('test/abc'),
+            os.path.join(self.project.root_directory(), 'test/abc'))
+
+    def test_isfile(self):
+        self.assertFalse(self.project.isfile('test'))
+        with open(self.project.fn('test'), 'w'):
+            pass
+        self.assertTrue(self.project.isfile('test'))
+
+    def test_document(self):
+        self.assertFalse(self.project.document)
+        self.assertEqual(len(self.project.document), 0)
+        self.project.document['a'] = 42
+        self.assertEqual(len(self.project.document), 1)
+        self.assertTrue(self.project.document)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        self.assertTrue(prj2.document)
+        self.assertEqual(len(prj2.document), 1)
+        self.project.document.clear()
+        self.assertFalse(self.project.document)
+        self.assertEqual(len(self.project.document), 0)
+        self.assertFalse(prj2.document)
+        self.assertEqual(len(prj2.document), 0)
+        self.project.document.a = {'b': 43}
+        self.assertEqual(self.project.document, {'a': {'b': 43}})
+        self.project.document.a.b = 44
+        self.assertEqual(self.project.document, {'a': {'b': 44}})
+        self.project.document = {'a': {'b': 45}}
+        self.assertEqual(self.project.document, {'a': {'b': 45}})
+
+    def test_doc(self):
+        self.assertFalse(self.project.doc)
+        self.assertEqual(len(self.project.doc), 0)
+        self.project.doc['a'] = 42
+        self.assertEqual(len(self.project.doc), 1)
+        self.assertTrue(self.project.doc)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        self.assertTrue(prj2.doc)
+        self.assertEqual(len(prj2.doc), 1)
+        self.project.doc.clear()
+        self.assertFalse(self.project.doc)
+        self.assertEqual(len(self.project.doc), 0)
+        self.assertFalse(prj2.doc)
+        self.assertEqual(len(prj2.doc), 0)
+        self.project.doc.a = {'b': 43}
+        self.assertEqual(self.project.doc, {'a': {'b': 43}})
+        self.project.doc.a.b = 44
+        self.assertEqual(self.project.doc, {'a': {'b': 44}})
+        self.project.doc = {'a': {'b': 45}}
+        self.assertEqual(self.project.doc, {'a': {'b': 45}})
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
@@ -75,29 +130,90 @@ class ProjectTest(BaseProjectTest):
         for id_ in self.project.read_statepoints().keys():
             self.project.get_statepoint(id_)
 
+    def test_workspace_path_normalization(self):
+        def norm_path(p):
+            return os.path.abspath(os.path.expandvars(p))
+
+        self.assertEqual(self.project.workspace(), norm_path(self._tmp_wd))
+
+        abs_path = '/path/to/workspace'
+        self.project.config['workspace_dir'] = abs_path
+        self.assertEqual(self.project.workspace(), norm_path(abs_path))
+
+        rel_path = 'path/to/workspace'
+        self.project.config['workspace_dir'] = rel_path
+        self.assertEqual(
+            self.project.workspace(),
+            norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
+
+    @unittest.skipIf(not six.PY34, "Test requires Python version >= 3.4.")
+    def test_no_workspace_warn_on_find(self):
+        self.assertFalse(os.path.exists(self.project.workspace()))
+        with self.assertLogs(level='INFO') as cm:
+            self.project.find_jobs()
+            self.assertEqual(len(cm.output), 1)
+
+    def test_workspace_broken_link_error_on_find(self):
+        wd = self.project.workspace()
+        os.symlink(wd + '~', self.project.fn('workspace-link'))
+        self.project.config['workspace_dir'] = 'workspace-link'
+        with self.assertRaises(WorkspaceError):
+            self.project.find_jobs()
+
+    def test_workspace_read_only_path(self):
+        # Create file where workspace would be, thus preventing the creation
+        # of the workspace directory.
+        with open(os.path.join(self.project.workspace()), 'w'):
+            pass
+
+        with self.assertRaises(OSError):     # Ensure that the file is in place.
+            os.mkdir(self.project.workspace())
+
+        self.assertTrue(issubclass(WorkspaceError, OSError))
+
+        if six.PY34:
+            with self.assertLogs(level='ERROR') as cm:
+                with self.assertRaises(WorkspaceError):
+                    self.project.find_jobs()
+                self.assertEqual(len(cm.output), 1)
+        else:
+            try:
+                logging.disable(logging.ERROR)
+                with self.assertRaises(WorkspaceError):
+                    self.project.find_jobs()
+            finally:
+                logging.disable(logging.NOTSET)
+
+        self.assertFalse(os.path.isdir(self._tmp_wd))
+        self.assertFalse(os.path.isdir(self.project.workspace()))
+
     def test_find_statepoints(self):
-        statepoints = [{'a': i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        self.assertEqual(
-            len(statepoints),
-            len(list(self.project.find_statepoints())))
-        self.assertEqual(
-            1, len(list(self.project.find_statepoints({'a': 0}))))
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': i} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).init()
+            self.assertEqual(
+                len(statepoints),
+                len(list(self.project.find_statepoints())))
+            self.assertEqual(
+                1, len(list(self.project.find_statepoints({'a': 0}))))
 
     def test_find_statepoint_sequences(self):
-        statepoints = [{'a': (i, i+1)} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        self.assertEqual(
-            len(statepoints),
-            len(list(self.project.find_statepoints())))
-        self.assertEqual(
-            1,
-            len(list(self.project.find_statepoints({'a': [0, 1]}))))
-        self.assertEqual(
-            1,
-            len(list(self.project.find_statepoints({'a': (0, 1)}))))
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': (i, i + 1)} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).init()
+            self.assertEqual(
+                len(statepoints),
+                len(list(self.project.find_statepoints())))
+            self.assertEqual(
+                1,
+                len(list(self.project.find_statepoints({'a': [0, 1]}))))
+            self.assertEqual(
+                1,
+                len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
     def test_find_job_ids(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -151,7 +267,8 @@ class ProjectTest(BaseProjectTest):
         q = {'$or': [{'$and': [{'a': 0}, {'a': 1}]}]}
         self.assertEqual(len(self.project.find_jobs(q)), 0)
         self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'b': {'c': 0}}]})), 1)
-        self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'b': {'c': 0}}]})), len(self.project))
+        self.assertEqual(len(self.project.find_jobs(
+            {'$or': [{}, {'b': {'c': 0}}]})), len(self.project))
         q = {'$and': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
         self.assertEqual(len(self.project.find_jobs(q)), 0)
         q = {'$or': [{'b': {'c': 0}}, {'b': {'c': 1}}]}
@@ -171,27 +288,27 @@ class ProjectTest(BaseProjectTest):
             self.project.open_job(sp).init()
         self.assertEqual(len(statepoints), self.project.num_jobs())
         self.assertEqual(len(statepoints), len(self.project))
-        docs = self.project.find_jobs()
         self.assertEqual(len(statepoints), len(self.project.find_jobs()))
 
     def test_len_find_jobs(self):
-        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        statepoints = [{'a': i, 'b': i < 3} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
         self.assertEqual(len(self.project), len(self.project.find_jobs()))
         self.assertEqual(3, len(self.project.find_jobs({'b': True})))
 
     def test_iteration(self):
-        statepoints = [{'a': i, 'b': i<3} for i in range(5)]
+        statepoints = [{'a': i, 'b': i < 3} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
         for i, job in enumerate(self.project):
             pass
-        self.assertEqual(i, len(self.project)-1)
+        self.assertEqual(i, len(self.project) - 1)
 
     def test_open_job_by_id(self):
         statepoints = [{'a': i} for i in range(5)]
         jobs = [self.project.open_job(sp) for sp in statepoints]
+        self.project._sp_cache.clear()
         try:
             logging.disable(logging.WARNING)
             for job in jobs:
@@ -212,14 +329,14 @@ class ProjectTest(BaseProjectTest):
 
     def test_open_job_by_abbreviated_id(self):
         statepoints = [{'a': i} for i in range(5)]
-        jobs = [self.project.open_job(sp).init() for sp in statepoints]
+        [self.project.open_job(sp).init() for sp in statepoints]
         aid_len = self.project.min_len_unique_id()
         for job in self.project.find_jobs():
             aid = job.get_id()[:aid_len]
             self.assertEqual(self.project.open_job(id=aid), job)
         with self.assertRaises(LookupError):
             for job in self.project.find_jobs():
-                self.project.open_job(id=job.get_id()[:aid_len-1])
+                self.project.open_job(id=job.get_id()[:aid_len - 1])
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
 
@@ -425,7 +542,6 @@ class ProjectTest(BaseProjectTest):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(10)
-        c_vals = ["foo", "bar", "baz"]
         for a in a_vals:
             for b in b_vals:
                 if a % 3 == 0:
@@ -451,40 +567,79 @@ class ProjectTest(BaseProjectTest):
                 self.assertEqual(sorted(subdirs), expected_b_dirs)
 
     def test_find_job_documents(self):
-        statepoints = [{'a': i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document['test'] = True
-        self.assertEqual(
-            len(list(self.project.find_job_documents({'a': 0}))), 1)
-        job_docs = list(self.project.find_job_documents())
-        self.assertEqual(len(statepoints), len(job_docs))
-        for job_doc in job_docs:
-            sp = job_doc['statepoint']
-            self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': i} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).document['test'] = True
+            self.assertEqual(
+                len(list(self.project.find_job_documents({'a': 0}))), 1)
+            job_docs = list(self.project.find_job_documents())
+            self.assertEqual(len(statepoints), len(job_docs))
+            for job_doc in job_docs:
+                sp = job_doc['statepoint']
+                self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
 
     def test_find_job_documents_illegal_key(self):
-        statepoints = [{'a': i} for i in range(5)]
-        for sp in statepoints:
-            self.project.open_job(sp).document['test'] = True
-        list(self.project.find_job_documents())
-        self.assertEqual(len(statepoints), len(
-            list(self.project.find_job_documents())))
-        list(self.project.find_job_documents({'a': 1}))
-        self.project.open_job({'a': 0}).document['_id'] = True
-        with self.assertRaises(KeyError):
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            statepoints = [{'a': i} for i in range(5)]
+            for sp in statepoints:
+                self.project.open_job(sp).document['test'] = True
             list(self.project.find_job_documents())
-        del self.project.open_job({'a': 0}).document['_id']
-        list(self.project.find_job_documents())
-        self.project.open_job({'a': 1}).document['statepoint'] = True
-        with self.assertRaises(KeyError):
+            self.assertEqual(len(statepoints), len(
+                list(self.project.find_job_documents())))
+            list(self.project.find_job_documents({'a': 1}))
+            self.project.open_job({'a': 0}).document['_id'] = True
+            with self.assertRaises(KeyError):
+                list(self.project.find_job_documents())
+            del self.project.open_job({'a': 0}).document['_id']
             list(self.project.find_job_documents())
-        del self.project.open_job({'a': 1}).document['statepoint']
-        list(self.project.find_job_documents())
+            self.project.open_job({'a': 1}).document['statepoint'] = True
+            with self.assertRaises(KeyError):
+                list(self.project.find_job_documents())
+            del self.project.open_job({'a': 1}).document['statepoint']
+            list(self.project.find_job_documents())
+
+    def test_missing_statepoint_file(self):
+        job = self.project.open_job(dict(a=0))
+        job.init()
+
+        os.remove(job.fn(job.FN_MANIFEST))
+
+        self.project._sp_cache.clear()
+        try:
+            logging.disable(logging.CRITICAL)
+            with self.assertRaises(JobsCorruptedError):
+                self.project.open_job(id=job.get_id())
+        finally:
+            logging.disable(logging.NOTSET)
+
+    def test_corrupted_statepoint_file(self):
+        job = self.project.open_job(dict(a=0))
+        job.init()
+
+        # overwrite state point manifest file
+        with open(job.fn(job.FN_MANIFEST), 'w'):
+            pass
+
+        self.project._sp_cache.clear()
+        try:
+            logging.disable(logging.CRITICAL)
+            with self.assertRaises(JobsCorruptedError):
+                self.project.open_job(id=job.get_id())
+        finally:
+            logging.disable(logging.NOTSET)
 
     def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
-            self.project.open_job(sp).document['test'] = True
+            self.project.open_job(sp).init()
+
+        for i, job in enumerate(self.project):
+            pass
+        self.assertEqual(i, 4)
+
         # no manifest file
         with self.project.open_job(statepoints[0]) as job:
             os.remove(job.FN_MANIFEST)
@@ -492,21 +647,31 @@ class ProjectTest(BaseProjectTest):
         with self.project.open_job(statepoints[1]) as job:
             with open(job.FN_MANIFEST, 'w'):
                 pass
+
+        # Need to clear internal cache to encounter error.
+        self.project._sp_cache.clear()
+
+        # Ensure that state point hash table does not exist.
+        self.assertFalse(os.path.isfile(self.project.fn(self.project.FN_STATEPOINTS)))
+
         # disable logging temporarily
         try:
             logging.disable(logging.CRITICAL)
-            with self.assertRaises(Exception):
-                for i, statepoint in enumerate(self.project.find_statepoints()):
+
+            # Iterating through the jobs should now result in an error.
+            with self.assertRaises(JobsCorruptedError):
+                for job in self.project:
                     pass
-            # The skip_errors function helps to identify corrupt directories.
-            for i, statepoint in enumerate(self.project.find_statepoints(
-                    skip_errors=True)):
-                pass
-            with self.assertRaises(RuntimeWarning):
+
+            with self.assertRaises(JobsCorruptedError):
                 self.project.repair()
+
             self.project.write_statepoints(statepoints)
             self.project.repair()
-            for i, statepoint in enumerate(self.project.find_statepoints()):
+
+            os.remove(self.project.fn(self.project.FN_STATEPOINTS))
+            self.project._sp_cache.clear()
+            for job in self.project:
                 pass
         finally:
             logging.disable(logging.NOTSET)
@@ -528,7 +693,7 @@ class ProjectTest(BaseProjectTest):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index({'.*/test.txt': TextFile}))
+        docs = list(self.project.index({'.*/test.txt': 'TextFile'}))
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
@@ -546,11 +711,14 @@ class ProjectTest(BaseProjectTest):
         index2 = dict()
         for doc in crawler.crawl():
             index2[doc['_id']] = doc
+        for _id, _id2 in zip(index, index2):
+            self.assertEqual(_id, _id2)
+            self.assertEqual(index[_id], index2[_id])
         self.assertEqual(index, index2)
         for job in self.project.find_jobs():
             with open(job.fn('test.txt'), 'w') as file:
                 file.write('test\n')
-        formats = {r'.*/test\.txt': signac.contrib.formats.TextFile}
+        formats = {r'.*/test\.txt': 'TextFile'}
         index = dict()
         for doc in self.project.index(formats):
             index[doc['_id']] = doc
@@ -662,6 +830,196 @@ class ProjectTest(BaseProjectTest):
         except DestinationExistsError as error:
             self.assertNotEqual(error.destination, job_a)
             self.assertEqual(error.destination, job_b)
+
+    def test_schema_init(self):
+        s = ProjectSchema()
+        self.assertEqual(len(s), 0)
+        self.assertFalse(s)
+
+    def test_schema(self):
+        for i in range(10):
+            self.project.open_job({
+                'const': 0,
+                'const2': {'const3': 0},
+                'a': i,
+                'b': {'b2': i},
+                'c': [i, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]},
+                'f': {'f2': [[i, 0, 0]]},
+            }).init()
+
+        s = self.project.detect_schema()
+        self.assertEqual(len(s), 8)
+        for k in 'const', 'const2.const3', 'a', 'b.b2', 'c', 'd', 'e.e2', 'f.f2':
+            self.assertIn(k, s)
+            self.assertIn(k.split('.'), s)
+            # The following calls should not error out.
+            s[k]
+            s[k.split('.')]
+        repr(s)
+        self.assertEqual(s.format(), str(s))
+        s = self.project.detect_schema(exclude_const=True)
+        self.assertEqual(len(s), 6)
+        self.assertNotIn('const', s)
+        self.assertNotIn(('const2', 'const3'), s)
+        self.assertNotIn('const2.const3', s)
+
+    def test_schema_subset(self):
+        for i in range(5):
+            self.project.open_job(dict(a=i)).init()
+        s_sub = self.project.detect_schema()
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+
+        self.assertNotEqual(s_sub, self.project.detect_schema())
+        s = self.project.detect_schema(subset=self.project.find_jobs({'a.$lt': 5}))
+        self.assertEqual(s, s_sub)
+        s = self.project.detect_schema(subset=self.project.find_job_ids({'a.$lt': 5}))
+        self.assertEqual(s, s_sub)
+
+    def test_schema_eval(self):
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        s = self.project.detect_schema()
+        self.assertEqual(s, s(self.project))
+        self.assertEqual(s, s([job.sp for job in self.project]))
+
+    def test_schema_difference(self):
+        def get_sp(i):
+            return {
+                'const': 0,
+                'const2': {'const3': 0},
+                'a': i,
+                'b': {'b2': i},
+                'c': [i, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]},
+                'f': {'f2': [[i, 0, 0]]},
+            }
+
+        for i in range(10):
+            self.project.open_job(get_sp(i)).init()
+
+        s = self.project.detect_schema()
+        s2 = self.project.detect_schema()
+        s3 = self.project.detect_schema(exclude_const=True)
+        s4 = self.project.detect_schema(exclude_const=True)
+
+        self.assertEqual(len(s), 8)
+        self.assertEqual(len(s2), 8)
+        self.assertEqual(len(s3), 6)
+        self.assertEqual(len(s4), 6)
+
+        self.assertEqual(s, s2)
+        self.assertNotEqual(s, s3)
+        self.assertNotEqual(s, s4)
+        self.assertEqual(s3, s4)
+
+        self.assertEqual(len(s.difference(s3)), len(s) - len(s3))
+        self.project.open_job(get_sp(11)).init()
+        s_ = self.project.detect_schema()
+        s3_ = self.project.detect_schema(exclude_const=True)
+
+        self.assertNotEqual(s, s_)
+        self.assertNotEqual(s3, s3_)
+        self.assertEqual(s.difference(s_), s3.difference(s3_))
+        self.assertEqual(len(s.difference(s_, ignore_values=True)), 0)
+        self.assertEqual(len(s3.difference(s3_, ignore_values=True)), 0)
+
+    def test_jobs_groupby(self):
+        def get_sp(i):
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
+        for i in range(12):
+            self.project.open_job(get_sp(i)).init()
+
+        for k, g in self.project.groupby('a'):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(job.sp['a'], k)
+        for k, g in self.project.groupby('b'):
+            self.assertEqual(len(list(g)), 6)
+            for job in list(g):
+                self.assertEqual(job.sp['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupby('d'):
+                pass
+        for k, g in self.project.groupby('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
+        for k, g in self.project.groupby(('b', 'c')):
+            self.assertEqual(len(list(g)), 2)
+            for job in list(g):
+                self.assertEqual(job.sp['b'], k[0])
+                self.assertEqual(job.sp['c'], k[1])
+        for k, g in self.project.groupby(lambda job: job.sp['a'] % 4):
+            self.assertEqual(len(list(g)), 3)
+            for job in list(g):
+                self.assertEqual(job.sp['a'] % 4, k)
+        for k, g in self.project.groupby(lambda job: str(job)):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        group_count = 0
+        for k, g in self.project.groupby():
+            self.assertEqual(len(list(g)), 1)
+            group_count = group_count + 1
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        self.assertEqual(group_count, len(list(self.project.find_jobs())))
+
+    def test_jobs_groupbydoc(self):
+        def get_doc(i):
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
+        for i in range(12):
+            job = self.project.open_job({'i': i})
+            job.init()
+            job.document = get_doc(i)
+
+        for k, g in self.project.groupbydoc('a'):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(job.document['a'], k)
+        for k, g in self.project.groupbydoc('b'):
+            self.assertEqual(len(list(g)), 6)
+            for job in list(g):
+                self.assertEqual(job.document['b'], k)
+        with self.assertRaises(KeyError):
+            for k, g in self.project.groupbydoc('d'):
+                pass
+        for k, g in self.project.groupbydoc('d', default=-1):
+            self.assertEqual(k, -1)
+            self.assertEqual(len(list(g)), len(self.project))
+        for k, g in self.project.groupbydoc(('b', 'c')):
+            self.assertEqual(len(list(g)), 2)
+            for job in list(g):
+                self.assertEqual(job.document['b'], k[0])
+                self.assertEqual(job.document['c'], k[1])
+        for k, g in self.project.groupbydoc(lambda doc: doc['a'] % 4):
+            self.assertEqual(len(list(g)), 3)
+            for job in list(g):
+                self.assertEqual(job.document['a'] % 4, k)
+        for k, g in self.project.groupbydoc(lambda doc: str(doc)):
+            self.assertEqual(len(list(g)), 1)
+            for job in list(g):
+                self.assertEqual(str(job.document), k)
+        group_count = 0
+        for k, g in self.project.groupbydoc():
+            self.assertEqual(len(list(g)), 1)
+            group_count = group_count + 1
+            for job in list(g):
+                self.assertEqual(str(job), k)
+        self.assertEqual(group_count, len(list(self.project.find_jobs())))
 
 
 class ProjectInitTest(unittest.TestCase):

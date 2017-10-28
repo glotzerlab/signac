@@ -21,7 +21,6 @@ import argparse
 import operator
 from collections import defaultdict
 from itertools import islice
-from uuid import uuid4
 
 from ..core.json import json
 from ..common import six
@@ -48,8 +47,7 @@ _TYPES = {
 }
 
 
-def _index(docs, key):
-    return {doc[key]: doc for doc in docs}
+MAX_DEFAULT_ID = int('F' * 32, 16)
 
 
 def _flatten(container):
@@ -112,28 +110,25 @@ def _build_index(docs, key, primary_key):
     nodes = key.split('.')
     index = defaultdict(set)
 
-    def _get_value(doc_, nodes):
-        if nodes:
-            if isinstance(doc_, dict):
-                return _get_value(doc_[nodes[0]], nodes[1:])
-            else:
-                raise KeyError()
-        else:
-            return doc_
-
     for doc in docs:
         try:
-            v = _get_value(doc, nodes)
-            if isinstance(v, dict):
+            v = doc[nodes[0]]
+            for n in nodes[1:]:
+                v = v[n]
+            if type(v) == dict:
                 v = _DictPlaceholder
-        except KeyError:
+        except (KeyError, TypeError):
             pass
         except Exception as error:
             raise RuntimeError(
-                "An exepected error occured while processing "
+                "An unexpected error occured while processing "
                 "doc '{}': {}.".format(doc, error))
         else:
-            index[_encode_tree(v)].add(doc[primary_key])
+            # inlined for performance
+            if type(v) == list:   # performance
+                index[_to_tuples(v)].add(doc[primary_key])
+            else:
+                index[v].add(doc[primary_key])
 
         if len(nodes) > 1:
             try:
@@ -144,7 +139,11 @@ def _build_index(docs, key, primary_key):
                 warnings.warn(
                     "Using keys with dots ('.') is pending deprecation in the future!",
                     PendingDeprecationWarning)
-                index[_encode_tree(v)].add(doc[primary_key])
+                # inlined for performance
+                if type(v) == list:     # performance
+                    index[_to_tuples(v)].add(doc[primary_key])
+                else:
+                    index[v].add(doc[primary_key])
     return index
 
 
@@ -258,6 +257,11 @@ class Collection(object):
     """
 
     def __init__(self, docs=None, primary_key='_id'):
+        if isinstance(docs, six.string_types):
+            raise ValueError(
+                "First argument cannot be of str type. "
+                "Did you mean to use {}.open()?".format(type(self).__name__))
+        self.index_rebuild_threshold = 0.1
         self._primary_key = primary_key
         self._file = io.StringIO()
         self._requires_flush = False
@@ -266,23 +270,33 @@ class Collection(object):
         self._docs = dict()
         if docs is not None:
             for doc in docs:
-                self[doc[self.primary_key]] = doc
+                self[doc[self._primary_key]] = doc
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
+        self._next_default_id_ = None
 
     def _assert_open(self):
         if self._docs is None:
             raise RuntimeError("Trying to access closed {}.".format(
                 type(self).__name__))
 
+    def _next_default_id(self):
+        if self._next_default_id_ is None:
+            self._next_default_id_ = len(self)
+        for i in range(len(self)+1):
+            assert self._next_default_id_ < MAX_DEFAULT_ID
+            _id = str(hex(self._next_default_id_))[2:].rjust(32, '0')
+            self._next_default_id_ += 1
+            if _id not in self:
+                return _id
+        raise RuntimeError("Unable to determine default id.")
+
     def _remove_from_indexes(self, _id):
         for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
-                try:
+                if _id in group:    # faster than exception handling (performance)
                     group.remove(_id)
-                except KeyError:
-                    pass
                 if not len(group):
                     remove_keys.add(key)
             for key in remove_keys:
@@ -294,14 +308,14 @@ class Collection(object):
                 self._remove_from_indexes(_id)
             docs = [self[_id] for _id in self._dirty]
             for key, index in self._indexes.items():
-                tmp = _build_index(docs, key, self.primary_key)
+                tmp = _build_index(docs, key, self._primary_key)
                 for v, group in tmp.items():
                     index[v].update(group)
             self._dirty.clear()
 
     def _build_index(self, key):
         logger.debug("Building index for key '{}'...".format(key))
-        self._indexes[key] = _build_index(self._docs.values(), key, self.primary_key)
+        self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
         logger.debug("Built index for key '{}'.".format(key))
 
     def index(self, key, build=False):
@@ -332,22 +346,32 @@ class Collection(object):
         :raises KeyError: In case that build is False and the index has not
             been built yet.
         """
-        if key == self.primary_key:
+        if key == self._primary_key:
             raise KeyError("Can't access index for primary key via index() method.")
-        elif key not in self._indexes:
+        elif key in self._indexes:
+            if len(self._dirty) > self.index_rebuild_threshold * len(self):
+                logger.debug("Indexes outdated, rebuilding...")
+                self._indexes.clear()
+                self._build_index(key)
+                self._dirty.clear()
+            else:
+                self._update_indexes()
+        else:
             if build:
                 self._build_index(key)
             else:
                 raise KeyError("No index for key '{}'.".format(key))
-        self._update_indexes()
         return self._indexes[key]
 
     def __str__(self):
         return "<{} file={}>".format(type(self).__name__, self._file)
 
     def __iter__(self):
-        self._assert_open()
-        return iter(self._docs.values())
+        try:
+            return iter(self._docs.values())
+        except AttributeError:
+            raise RuntimeError("Trying to access closed {}.".format(
+                type(self).__name__))
 
     @property
     def ids(self):
@@ -368,8 +392,14 @@ class Collection(object):
         return _id in self._docs
 
     def __getitem__(self, _id):
-        self._assert_open()
-        return self._docs[_id].copy()
+        # The _assert_open() check is only performed after an
+        # exception has been caught, which is slightly faster
+        # than running the check every time.
+        try:
+            return self._docs[_id].copy()
+        except TypeError:
+            self._assert_open()
+            raise
 
     def __setitem__(self, _id, doc):
         self._assert_open()
@@ -379,8 +409,8 @@ class Collection(object):
         else:
             if not isinstance(_id, str):
                 raise TypeError("The primary key must be of type str!")
-        doc.setdefault(self.primary_key, _id)
-        if _id != doc[self.primary_key]:
+        doc.setdefault(self._primary_key, _id)
+        if _id != doc[self._primary_key]:
             raise ValueError("Primary key mismatch!")
         self._docs[_id] = json.loads(json.dumps(doc))
         self._dirty.add(_id)
@@ -406,7 +436,12 @@ class Collection(object):
         :returns: The _id of the inserted documented.
         """
         self._assert_open()
-        _id = doc.setdefault(self.primary_key, str(uuid4()))
+        if self._primary_key in doc:
+            _id = doc[self._primary_key]
+        else:
+            _id = doc[self._primary_key] = self._next_default_id()
+        if _id in self:
+            raise KeyError('Primary key collision!')
         self[_id] = doc
         return _id
 
@@ -437,8 +472,13 @@ class Collection(object):
             into the collection.
         """
         for doc in docs:
-            doc.setdefault(self.primary_key, str(uuid4()))
-            self[doc[self.primary_key]] = doc
+            if self._primary_key in doc:
+                _id = doc[self._primary_key]
+            else:
+                _id = doc[self._primary_key] = self._next_default_id()
+            if _id in self:
+                raise KeyError('Primary key collision!')
+            self[_id] = doc
 
     def _check_filter(self, filter):
         "Check if filter is a valid filter argument."
@@ -487,7 +527,7 @@ class Collection(object):
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
-        _id = expr.pop(self.primary_key, None)
+        _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
             result = _reduce_result(result, {_id})
 
@@ -706,10 +746,11 @@ class Collection(object):
         :returns: The _id of the replaced (or upserted) documented.
         """
         self._assert_open()
-        if len(filter) == 1 and self.primary_key in filter:
-            _id = filter[self.primary_key]
+        if len(filter) == 1 and self._primary_key in filter:
+            _id = filter[self._primary_key]
             if upsert or _id in self:
                 self[_id] = replacement
+                return _id
         else:
             for _id in self._find(filter):
                 self[_id] = replacement
@@ -894,7 +935,7 @@ class Collection(object):
         f = parse_filter_arg(args.filter)
         for doc in self.find(f, limit=args.limit):
             if args._id:
-                print(doc[self.primary_key])
+                print(doc[self._primary_key])
             else:
                 if args.indent:
                     print(json.dumps(doc, indent=2))

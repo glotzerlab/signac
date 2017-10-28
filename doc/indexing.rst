@@ -7,62 +7,87 @@ Indexing
 Concept
 =======
 
-To create a homogeneous data access layer, **signac** encourages the creation of a data index.
-The data index contains all information about the project's data structure and can be stored in a database or data frame which then allows the execution of query and aggregation operations on the data.
+Data spaces managed with **signac** on the file system are immediately searchable, because **signac** creates an index of all relevant files *on the fly* whenever a search operation is executed.
+This data index contains all information about the project's files, their location and associated metadata such as the *signac id* and the *state point*.
 
-While **signac**'s project interface is specifically useful during the data curation and generation phase, working with indexes may be useful in later stages of an investigation.
-Especially when data is curated from multiple different projects and sources or if data spaces do not use the signac project schema.
+A file index has *one entry per file* and each document has the following fields:
 
-For example, we may want to calculate the average of some values that we read from files associated with a specific data sub space:
-
-.. code-block:: python
-
-    def extract_value(doc):
-        with signac.fetch(doc) as file:
-            return float(file.read())
-
-    docs = index.find({'statepoint.a': 42})
-    average = sum(map(extract_value, docs)) / len(docs)
-
-The next few sections will outline in detail how such a workflow can be realized.
-
-Generating a File Index
-=======================
-
-An index is a collection of index documents, where each index document is an arbitrary collection of metadata describing the data space.
-In the specific case of a file index, each index document is associated with one file on disk and contains the following fields:
-
-  * ``_id``: a unique value which serves as a primary key
-  * ``root``: The root path of the file
-  * ``filename``: The filename of the file
-  * ``md5``: A MD5-hash value of the file content
-  * ``file_id``: A number identifying the file content [#f2]_
-  * ``format``: A format definition (optional)
+    * ``id``: a unique value which serves as a primary key
+    * ``root``: The root path of the file
+    * ``filename``: The filename of the file
+    * ``md5``: A MD5-hash value of the file content
+    * ``file_id``: A number identifying the file content [#f2]_
+    * ``format``: A format definition (optional)
 
 .. [#f2] Identical with the ``md5`` value in the current implementation.
 
-To create a file index, execute the :py:func:`~.index_files` function:
+The **signac** project interface is specifically designed to assist with processes related to data curation.
+However, especially when working with a data set comprised of multiple projects or sources that are not managed with **signac**, it might be easier to work with a data index directly.
+
+For example, this is how we would access files related to a specific data sub set using the project interface:
 
 .. code-block:: python
 
-    for doc in signac.index_files():
-        print(doc)
+    for job in project.find_jobs({"a": 42}):
+        with open(job.fn('hello.txt')) as file:
+            print(file.read())
 
-With no arguments, the :py:func:`.index_files` function will index **all** files in the current working directory.
-We can limit the indexing to specific files by specifying the root path and by providing a `regular expression pattern <https://en.wikipedia.org/wiki/Regular_expression>`_ that all filenames must match.
-For example, to index all files in the ``/data`` directory that end in ``.txt``, execute:
+And this is how we would do the same, but operating directly with an index:
 
 .. code-block:: python
 
-    for doc in signac.index_files('/data', '.*\.txt'):
-        print(doc)
+    index = signac.Collection(project.index(".*\.txt"))
+
+    for doc in index.find({
+            "statepoint.a": 42,
+            "filename": {"$regex": "hello.txt"}}):
+        with signac.fetch(doc) as file:
+            print(file.read())
+
+Here, we first generated the index with the :py:meth:`.Project.index` function and stored the result in a :py:class:`.Collection` container.
+Then we search the index collection for a specific state point and use :py:func:`.fetch` to open the associated file.
+The :py:func:`.fetch` functions works very similar to Python's built-in :py:func:`open` function to open files, but in addition will be able to fetch a file from multiple different sources if necessary.
+
+The nect few sections are a more detailed outline of how such a workflow can be realized.
+
+Indexing a signac Project
+=========================
+
+As shown in the previous section, a **signac** project index, can be generated directly with the :py:meth:`.Project.index` function in Python, alternatively we can generate the index on the command line with ``$ signac project --index``.
+
+A signac project index is like a regular file index, but contains the following additional fields:
+
+  * ``signac_id``: The state point id the document is associated with.
+  * ``statepoint``: The state point mapping associated with the file.
+
+Each signac project index will have *at least one* entry for each initialized job.
+This special index document is associated with the job's :ref:`document <project-job-document>` file and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document.
+This means the following code snippet would be valid:
+
+.. code-block:: python
+
+    for job in project:
+        job.document['foo'] = 'bar'
+
+    for doc in project.index():
+        assert doc['foo'] == 'bar'
+
+By default, no additional files are indexed, but the user is expected to *explicitly* specify which files should be part of the index.
+This is described in the next section.
+
+Indexing files
+==============
+
+We use a regular expression to specify which files should be added to a file index.
+By default, no files are indexed.
+For instance, in the initial example, we used the expression ``".*\.txt"`` to specify that all files with a filename ending with ".txt" should be part of the index.
 
 We can extract metadata directly from the filename by using regular expressions with *named groups*.
 For example, if we have a filename pattern: ``a_0.txt``, ``a_1.txt`` and so on, where the number following ``a_`` is to be extracted as the ``a`` field, we can use the following expression:
 
 .. code-block:: python
 
-    for doc in signac.index_files('/data', '.*a_(?P<a>\d+)'):
+    for doc in project.index('.*a_(?P<a>\d+)'):
         print(doc['a'])
 
 To further simplify the selection of different files from the index, we may provide multiple patterns with an optional *format definition*.
@@ -76,7 +101,7 @@ This is how we could generate the index:
         '.*a_(?P<a>\d+)\.txt': 'TextFile',
         '.*(?P<class>init|final)\.pdf': 'PDFFile'}
 
-    for doc in signac.index_files(formats=formats):
+    for doc in project.index(formats):
         print(doc)
 
 .. tip::
@@ -86,37 +111,127 @@ This is how we could generate the index:
 
 .. _`regex101`: https://regex101.com
 
-Indexing a signac Project
-=========================
-
-A signac project index is like a regular file index, but contains the following additional fields:
-
-  * ``signac_id``: The state point id the document is associated with.
-  * ``statepoint``: The state point mapping associated with the file.
-
-This means that we do not have to define regular expressions to extract the state point schema, but take advantage of the signac project schema for state points.
-To generate a signac project index, execute the :py:meth:`.Project.index` method:
+If we want to file an arbitrary directory structure that is not managed by **signac**, we can use the :py:func:`.index_files` function, that expects the root path as the first argument, and indexes **all files** by default.
 
 .. code-block:: python
 
-    for doc in project.index():
-        print(doc)
+    for doc in signac.index_files('/data'):
+        pass
 
-Each signac project index will have *at least one* entry for each initialized job.
-This special index document is associated with the job's :ref:`document <job-document>` and contains not only the ``signac_id`` and the ``statepoint``, but also the data stored in the job document:
+Fetching Data
+=============
+
+Index documents can be used to directly fetch associated data.
+The :py:func:`signac.fetch` function is essentially equivalent to python's built-in :py:func:`open` function, but instead of a file path it uses an index document [#f1]_ to locate and open the file.
 
 .. code-block:: python
 
-    for job in project:
-        job.document['foo'] = 'bar'
+    # Search for specific documents:
+    for doc in index.find({'statepoint.a': 42, 'format': 'TextFile'}):
+        with signac.fetch(doc) as file:
+            do_something_with_file(file)
 
-    for doc in project.index():
-        assert doc['foo'] == 'bar'
+The :py:func:`~signac.fetch` function will attempt to retrieve data from more than one source if data was :ref:`mirrored <data_mirroring>`.
+Overall, this enables us to operate on indexed project data in a way which is more agnostic to its actual source.
 
-Just like for regular file indexes generated with :py:func:`.index_files`, we can still define regular expressions to limit the indexing to specific files and to extract additional metadata.
+.. [#f1] or a file id
+
+.. _deep-indexing:
+
+Deep Indexing
+=============
+
+We may want to add additional metadata to the index, which is neither based on the state point, nor the job document or the filename, but instead is directly extracted from the data.
+Such a pattern is typically referred to as *deep indexing* and can be easily implemented with **signac**.
+
+As an example, assuming that we wanted add the number of lines within a file as an additional metadata field to our data index.
+For this we use Python's built-in :py:func:`map` function, which allows us to apply a function to all index entries:
+
+.. code-block:: python
+
+    def add_num_lines(doc):
+        if 'filename' in doc:
+            with signac.fetch(doc) as file:
+                doc['num_lines'] = len(list(file))
+        return doc
+
+    index = map(add_num_lines, project.index())
+
+The ``index`` variable now contains an index, where each index entry has an additional ``num_lines`` field.
+
+.. tip::
+
+    We are free to apply multiple *deep indexing*  functions in succession, the functions are only executed when the ``index`` iterable is actually evaluated.
+
+Searching an Index
+==================
+
+An index generated with the :py:meth:`.Project.index` method or any other index function is just an iterable over the index documents.
+To be able to **search** the index, we need to either implement routines to select specific documents or use containers that implement such routines, such as the :py:class:`.Collection` class that **signac** uses internally for all search operations.
+
+For example, if we are looking for all files that correspond to a state point variable ``a=42``, we could implement the following for-loop:
+
+.. code-block:: python
+
+    index = project.index()
+
+    docs = []
+    for doc in index:
+        if doc['statepoint']['a'] == 42:
+          docs.append(doc)
+
+This is the same logic implemented more concisely as a list comprehension:
+
+.. code-block:: python
+
+    docs = [doc for doc in index if doc['statepoint']['a'] == 42]
+
+Using loops is a very viable approach as long as the index is not too large and the search queries are relatively simple.
+Alternatively, we can manage the index using a :py:class:`.Collection` container, which then allows us to search the index with the query expressions that we are used to elsewhere using **signac**.
+For example, to execute the same search operation from above, we could use the :py:meth:`~.Collection.find` method:
+
+.. code-block:: python
+
+    index = Collection(signac.index())
+
+    docs = index.find({'statepoint.a': 42})
+
+.. sidebar:: Tip
+
+    You can search a collection on the command line by calling it's :py:meth:`~.Collection.main` method.
+
+Unless they are very small, searching collections is usually **much more efficient** compared to the *pure-python* approach especially when searching multiple times within the same session.
+Furthermore, a collection may be saved to and loaded from a file.
+This allows us to generate a index once and then load it from disk, which is much faster then regenerating it each time we use it:
+
+.. code-block:: python
+
+    with Collection.open('index.txt') as index:
+        if update_index:
+            index.update(signac.index())
+        docs = index.find({'statepoint.a': 42})
+
+Since **signac**'s decentralized approach is not designed to automatically keep track of changes, it is up to the user to determine when a particular index needs to be updated.
+To automatically identify and remove stale documents [#f3]_, use the :py:func:`signac.export` function:
+
+
+.. code-block:: python
+
+    with Collection.open('index.txt') as index:
+        signac.export(signac.index(), index, update=True)
+
+.. [#f3] A *stale* document is associated with a file or state point that has been removed.
+
+.. tip::
+
+    The :py:class:`.Collection` class has the same interface as a :py:class:`pymongo.collection.Collection` class.
+    That means you can use these two types of collections interchangeably.
+
+Master Indexes
+==============
 
 Generating a Master Index
-=========================
+-------------------------
 
 A master index is a compilation of multiple indexes, which simplifies the operation on a larger data space.
 To make a signac project part of a master index, we simply create a file called ``signac_access.py`` in its root directory.
@@ -149,90 +264,10 @@ For more information on how to have more control over the index creation, see th
 
       $ signac index > index.txt
 
-Managing Index Collections
-==========================
-
-Once we have generated an index, we can use it to search our data space.
-For example, if we are looking for all files that correspond to a state point variable ``a=42``, we could implement the following for-loop:
-
-.. code-block:: python
-
-    index = project.index()
-
-    docs = []
-    for doc in index:
-        if doc['statepoint']['a'] == 42:
-          docs.append(doc)
-
-This is the same logic implemented more concisely as a list comprehension:
-
-.. code-block:: python
-
-    docs = [doc for doc in index if doc['statepoint']['a'] == 42]
-
-This is a very viable approach as long as the index is not too large and the search queries are relatively simple.
-An alternative way to manage an index is to use a :py:class:`.Collection`.
-For example, to execute the same search operation from above, we could use the :py:meth:`~.Collection.find` method:
-
-.. code-block:: python
-
-    index = Collection(signac.index())
-
-    docs = index.find({'statepoint.a': 42})
-
-.. sidebar:: Tip
-
-    You can search a collection on the command line by calling it's :py:meth:`~.Collection.main` method.
-
-Searching a collection is usually **much more efficient** compared to the *pure-python* approach especially when searching multiple times within the same session.
-Furthermore, a collection may be saved to and loaded from a file.
-This allows us to generate a index once and then load it from disk, which is much faster then regenerating it each time we use it:
-
-.. code-block:: python
-
-    with Collection.open('index.txt') as index:
-        if update_index:
-            index.update(signac.index())
-        docs = index.find({'statepoint.a': 42})
-
-Since **signac**'s decentralized approach is not designed to automatically keep track of changes, it is up to the user to determine when a particular index needs to be updated.
-To automatically identify and remove stale documents [#f3]_, use the :py:func:`signac.export` function:
-
-
-.. code-block:: python
-
-    with Collection.open('index.txt') as index:
-        signac.export(signac.index(), index, update=True)
-
-.. [#f3] A *stale* document is associated with a file or state point that has been removed.
-
-.. tip::
-
-    The :py:class:`.Collection` class has the same interface as a :py:class:`pymongo.collection.Collection` class.
-    That means you can use these two types of collections interchangeably.
-
-Fetching Data
-=============
-
-Index documents can be used to directly fetch associated data.
-The :py:func:`signac.fetch` function is essentially equivalent to python's built-in :py:func:`open` function, but instead of a file path it uses an index document [#f1]_ to locate and open the file.
-
-.. code-block:: python
-
-    # Search for specific documents:
-    for doc in index.find({'statepoint.a': 42, 'format': 'TextFile'}):
-        with signac.fetch(doc) as file:
-            do_something_with_file(file)
-
-The :py:func:`~signac.fetch` function will attempt to retrieve data from more than one source if data was :ref:`mirrored <data_mirroring>`.
-Overall, this enables us to operate on indexed project data in a way which is more agnostic to its actual source.
-
-.. [#f1] or a file id
-
 .. _access-module:
 
 The *signac_access.py* Module
-=============================
+-----------------------------
 
 We can use the ``signac_access.py`` module to control the index generation across projects.
 An **empty** module is equivalent to a module which contains the following directives:
@@ -247,7 +282,7 @@ An **empty** module is equivalent to a module which contains the following direc
 This means that any index yielded from a ``get_indexes()`` function defined within the access module will be compiled into the master index.
 
 By putting this code explicitly into the module, we have full control over the index generation.
-For example, to index all files with a ``.txt`` filename suffix, we would put the following code into the module:
+For example, to specify that all files with filenames ending with ``.txt`` should be added to the index, we would put the following code into the module:
 
 .. code-block:: python
 
@@ -257,3 +292,138 @@ For example, to index all files with a ``.txt`` filename suffix, we would put th
         yield signac.get_project(root).index(formats='.*\.txt')
 
 You can generate a basic access module for a **signac** project using the :py:meth:`~.Project.create_access_module` method.
+
+.. tip::
+
+    The ``signac_access.py`` module is perfectly suited to implement `deep indexing <deep-indexing>`_ patterns.
+
+.. _database_integration:
+
+Database Integration
+====================
+
+
+Database access
+---------------
+
+After :doc:`configuring <configuration>` one or more database hosts you can access a database with the :py:func:`signac.get_database` function.
+
+.. autofunction:: signac.get_database
+    :noindex:
+
+.. _data_mirroring:
+
+Mirroring of Data
+-----------------
+
+Using the :py:func:`signac.fetch` function it is possible retrieve files that are associated with index documents.
+Those files will preferably be opened directly via a local system path.
+However in some cases it may be desirable to mirror files at a different location, e.g., in a database or a different path to increase the accessibility of files.
+
+Use the mirrors argument in the :py:func:`signac.export` function to automatically mirror all files associated with exported index documents.
+**signac** provides handlers for a local file system and the MongoDB `GridFS`_ database file system.
+
+.. code-block:: python
+
+    from signac import fs, export, get_database
+
+    db = get_database('mirror')
+
+    localfs = fs.LocalFS('/path/to/mirror')
+    gridfs = fs.GridFS(db)
+
+    export(crawler.crawl(), db.index, mirrors=[localfs, gridfs])
+
+.. _`GridFS`: https://docs.mongodb.org/manual/core/gridfs/
+
+
+To access the data, provide the mirrors argument to the :py:func:`signac.fetch` function:
+
+.. code-block:: python
+
+    for doc in index:
+        with signac.fetch(doc, mirrors=[localfs, gridfs]) as file:
+            do_something_with_file(file)
+
+.. note::
+
+    File systems are used to fetch data in the order provided, starting
+    with the native data path.
+
+
+Using Tags to Control Access
+----------------------------
+
+It may be desirable to only index select projects for a specific *master index*, e.g., to distinguish between public and private indexes.
+For this purpose, it is possible to specify **tags** that are **required** by a *crawler* or *index*.
+This means that an index **requiring** tags will be ignored during a master index compilation, unless at least one of the tags is also **provided**.
+
+For example, you can define **required** tags for indexes returned from the ``get_indexes()`` function, by attaching them to the function like this:
+
+.. code-block:: python
+
+    def get_indexes(root):
+        yield signac.get_project(root).index()
+
+    get_indexes.tags = {'public', 'foo'}
+
+Similarly, you can require tags for specific crawlers:
+
+.. code-block:: python
+
+    class MyCrawler(SignacProjectCrawler):
+        tags = {'public', 'foo'}
+
+Unless you **provide** *at least one* of these tags (``public`` or ``foo``), the examples above would be ignored during the master index compilation.
+This means only the second one of the following two lines would **not ignore** the examples above:
+
+.. code-block:: python
+
+    index = signac.index()                  # examples above are ignored
+    index = signac.index(tags={'public'})   # includes examples above
+
+Similarly on the command line:
+
+.. code-block:: bash
+
+    $ signac index                # examples above are ignored
+    $ signac index --tags public  # includes examples above
+
+In summary, there must be an overlap between the **requested** and the **provided** tags.
+
+How to publish an index
+-----------------------
+
+Here we demonstrate how to compile a master index with data mirroring, which is designed to be publicly accessible.
+The index will be stored in a document collection called ``index`` as part of a database called ``public_db``.
+All data files will be mirrored within the same database.
+That means everybody with access to the ``public_db`` database will have access to the index as well as to the associated files.
+
+.. code-block:: python
+
+    import signac
+
+    db = signac.get_database('public_db')
+
+    # We define two mirrors
+    file_mirrors = [
+      # The GridFS database file system is stored in the
+      # same database, that we use to publish the index.
+      # This means that anyone with access to the index,
+      # will be able to access the associated files as well.
+      signac.fs.GridFS(db),
+
+      # The second mirror is on the local file system.
+      # It can be downloaded and made available locally,
+      # for example to reduce the amount of required
+      # network traffic.
+      signac.fs.LocalFS('/path/to/mirror')
+      ]
+
+    # Only crawlers which have been explicitly cleared for
+    # publication with the `public` tag will be compiled and exported.
+    index = signac.index('/path/to/projects', tags={'public'})
+
+    # The export() function pushes the index documents to the database
+    # collection and copies all associated files to the file mirrors.
+    signac.export(index, db.index, file_mirrors, update=True)

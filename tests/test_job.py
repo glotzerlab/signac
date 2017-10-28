@@ -9,6 +9,7 @@ import warnings
 import uuid
 import copy
 import random
+import json
 
 import signac.contrib
 import signac.common.config
@@ -45,13 +46,10 @@ def builtins_dict():
     for b in BUILTINS:
         d.update(b[0])
     return d
+
+
 BUILTINS_HASH = '7a80b58db53bbc544fc27fcaaba2ce44'
 
-
-def nested_dict():
-    d = dict(builtins_dict())
-    d['g'] = builtins_dict()
-    return d
 NESTED_HASH = 'bd6f5828f4410b665bffcec46abeb8f3'
 
 
@@ -80,7 +78,7 @@ class BaseJobTest(unittest.TestCase):
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
         self.project = signac.Project.init_project(
-            name = 'testing_test_project',
+            name='testing_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
         self.project.config['default_host'] = 'testing'
@@ -91,6 +89,12 @@ class BaseJobTest(unittest.TestCase):
     def open_job(self, *args, **kwargs):
         project = self.project
         return project.open_job(*args, **kwargs)
+
+    @classmethod
+    def nested_dict(self):
+        d = dict(builtins_dict())
+        d['g'] = builtins_dict()
+        return d
 
 
 class JobIDTest(BaseJobTest):
@@ -109,7 +113,7 @@ class JobIDTest(BaseJobTest):
     def test_nested(self):
         for i in range(10):
             self.assertEqual(
-                str(self.project.open_job(nested_dict())), NESTED_HASH)
+                str(self.project.open_job(self.nested_dict())), NESTED_HASH)
 
     def test_sequences_identity(self):
         job1 = self.project.open_job({'a': [1.0, '1.0', 1, True]})
@@ -133,7 +137,7 @@ class JobTest(BaseJobTest):
     def test_isfile(self):
         job = self.project.open_job({'a': 0})
         fn = 'test.txt'
-        fn_  = os.path.join(job.workspace(), fn)
+        fn_ = os.path.join(job.workspace(), fn)
         self.assertFalse(job.isfile(fn))
         job.init()
         self.assertFalse(job.isfile(fn))
@@ -141,17 +145,19 @@ class JobTest(BaseJobTest):
             file.write('hello')
         self.assertTrue(job.isfile(fn))
 
+
 class JobSPInterfaceTest(BaseJobTest):
 
     def test_interface_read_only(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
+        self.assertEqual(job.statepoint(), json.loads(json.dumps(sp)))
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp, x) , sp[x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp, x), sp[x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertEqual(job.sp.get(x), sp[x])
             self.assertEqual(job.sp.get(x), sp[x])
@@ -164,22 +170,22 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertEqual(job.sp.g.get('not_in_sp', 23), 23)
 
     def test_interface_contains(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertIn(x, job.sp)
             self.assertIn(x, job.sp.g)
 
     def test_interface_read_write(self):
-        sp = nested_dict()
+        sp = self.nested_dict()
         job = self.open_job(sp)
         job.init()
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp, x) , sp[x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp, x), sp[x])
+            self.assertEqual(job.sp[x], sp[x])
         for x in ('a', 'b', 'c', 'd', 'e'):
-            self.assertEqual(getattr(job.sp.g, x) , sp['g'][x])
-            self.assertEqual(job.sp[x] , sp[x])
+            self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
+            self.assertEqual(job.sp[x], sp[x])
         l = [1, 1.0, '1.0', True, None]
         b = list(l) + [l] + [tuple(l)]
         for v in b:
@@ -192,7 +198,7 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_nested_kws(self):
         job = self.open_job({'a.b.c': 0})
         self.assertEqual(job.sp['a.b.c'], 0)
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.a.b.c
         job.sp['a.b.c'] = 1
         self.assertEqual(job.sp['a.b.c'], 1)
@@ -227,7 +233,7 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_add(self):
         job = self.open_job(dict(a=0))
         job.init()
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.b
         job.sp.b = 1
         self.assertIn('b', job.sp)
@@ -240,7 +246,7 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertEqual(job.sp.b, 0)
         del job.sp['b']
         self.assertNotIn('b', job.sp)
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             job.sp.b
 
     def test_interface_destination_conflict(self):
@@ -318,10 +324,7 @@ class JobOpenAndClosingTest(BaseJobTest):
             warnings.simplefilter('ignore')
             with self.open_job(test_token) as job:
                 pass
-            try:
-                job.remove()
-            except AttributeError:  # not possible for offline jobs
-                pass
+            job.remove()
 
     def test_open_job_close_manual(self):
         with warnings.catch_warnings():
@@ -329,10 +332,7 @@ class JobOpenAndClosingTest(BaseJobTest):
             job = self.open_job(test_token)
             job.open()
             job.close()
-            try:
-                job.remove()
-            except AttributeError:  # not possible for offline jobs
-                pass
+            job.remove()
 
     def test_open_job_close_with_error(self):
         with warnings.catch_warnings():
@@ -344,10 +344,7 @@ class JobOpenAndClosingTest(BaseJobTest):
             with self.assertRaises(TestError):
                 with job:
                     raise TestError()
-            try:
-                job.remove()
-            except AttributeError:  # not possible for offline jobs
-                pass
+            job.remove()
 
     def test_reopen_job(self):
         with warnings.catch_warnings():
@@ -358,10 +355,7 @@ class JobOpenAndClosingTest(BaseJobTest):
 
             with self.open_job(test_token) as job:
                 self.assertEqual(job.get_id(), job_id)
-            try:
-                job.remove()
-            except AttributeError:
-                pass
+            job.remove()
 
     def test_close_nonopen_job(self):
         job = self.open_job(test_token)
@@ -437,6 +431,143 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.document.get(key), d)
         self.assertEqual(job.document.get('bs', d), d)
 
+    def test_del(self):
+        key = 'del0'
+        key1 = 'del1'
+        d = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        self.assertNotIn(key, job.document)
+        job.document[key] = d
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key, job.document)
+        job.document[key1] = d1
+        self.assertEqual(len(job.document), 2)
+        self.assertIn(key, job.document)
+        self.assertIn(key1, job.document)
+        self.assertEqual(job.document[key], d)
+        self.assertEqual(job.document[key1], d1)
+        del job.document[key]
+        self.assertEqual(len(job.document), 1)
+        self.assertIn(key1, job.document)
+        self.assertNotIn(key, job.document)
+
+    def test_get_set_doc(self):
+        key = 'get_set'
+        d = testdata()
+        job = self.open_job(test_token)
+        self.assertFalse(bool(job.doc))
+        self.assertEqual(len(job.doc), 0)
+        self.assertNotIn(key, job.doc)
+        job.doc[key] = d
+        self.assertTrue(bool(job.doc))
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn(key, job.doc)
+        self.assertEqual(job.doc[key], d)
+        self.assertEqual(job.doc.get(key), d)
+        self.assertEqual(job.doc.get('bs', d), d)
+
+    def test_get_set_nested(self):
+        d0 = testdata()
+        d1 = testdata()
+        d2 = testdata()
+        assert d0 != d1 != d2
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        self.assertNotIn('key0', job.document)
+        job.document['key0'] = d0
+        self.assertEqual(len(job.document), 1)
+        self.assertIn('key0', job.document)
+        self.assertEqual(job.document['key0'], d0)
+        with self.assertRaises(AttributeError):
+            job.document.key0.key1
+        job.document.key0 = {'key1': d0}
+        self.assertEqual(len(job.document), 1)
+        self.assertIn('key0', job.document)
+        self.assertEqual(job.document(), {'key0': {'key1': d0}})
+        self.assertEqual(job.document['key0'], {'key1': d0})
+        self.assertEqual(job.document['key0']['key1'], d0)
+        self.assertEqual(job.document.key0, {'key1': d0})
+        self.assertEqual(job.document.key0.key1, d0)
+        job.document.key0.key1 = d1
+        self.assertEqual(job.document, {'key0': {'key1': d1}})
+        self.assertEqual(job.document['key0'], {'key1': d1})
+        self.assertEqual(job.document['key0']['key1'], d1)
+        self.assertEqual(job.document.key0, {'key1': d1})
+        self.assertEqual(job.document.key0.key1, d1)
+        job.document['key0']['key1'] = d2
+        self.assertEqual(job.document, {'key0': {'key1': d2}})
+        self.assertEqual(job.document['key0'], {'key1': d2})
+        self.assertEqual(job.document['key0']['key1'], d2)
+        self.assertEqual(job.document.key0, {'key1': d2})
+        self.assertEqual(job.document.key0.key1, d2)
+
+    def test_get_set_nested_doc(self):
+        d0 = testdata()
+        d1 = testdata()
+        d2 = testdata()
+        assert d0 != d1 != d2
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.doc), 0)
+        self.assertNotIn('key0', job.doc)
+        job.doc['key0'] = d0
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn('key0', job.doc)
+        self.assertEqual(job.doc['key0'], d0)
+        with self.assertRaises(AttributeError):
+            job.doc.key0.key1
+        job.doc.key0 = {'key1': d0}
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn('key0', job.doc)
+        self.assertEqual(job.doc(), {'key0': {'key1': d0}})
+        self.assertEqual(job.doc['key0'], {'key1': d0})
+        self.assertEqual(job.doc['key0']['key1'], d0)
+        self.assertEqual(job.doc.key0, {'key1': d0})
+        self.assertEqual(job.doc.key0.key1, d0)
+        job.doc.key0.key1 = d1
+        self.assertEqual(job.doc, {'key0': {'key1': d1}})
+        self.assertEqual(job.doc['key0'], {'key1': d1})
+        self.assertEqual(job.doc['key0']['key1'], d1)
+        self.assertEqual(job.doc.key0, {'key1': d1})
+        self.assertEqual(job.doc.key0.key1, d1)
+        job.doc['key0']['key1'] = d2
+        self.assertEqual(job.doc, {'key0': {'key1': d2}})
+        self.assertEqual(job.doc['key0'], {'key1': d2})
+        self.assertEqual(job.doc['key0']['key1'], d2)
+        self.assertEqual(job.doc.key0, {'key1': d2})
+        self.assertEqual(job.doc.key0.key1, d2)
+
+    def test_assign(self):
+        key = 'assign'
+        d0 = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.document), 0)
+        job.document[key] = d0
+        self.assertEqual(len(job.document), 1)
+        self.assertEqual(job.document(), {key: d0})
+        with self.assertRaises(ValueError):
+            job.document = d1
+        job.document = {key: d1}
+        self.assertEqual(len(job.document), 1)
+        self.assertEqual(job.document(), {key: d1})
+
+    def test_assign_doc(self):
+        key = 'assign'
+        d0 = testdata()
+        d1 = testdata()
+        job = self.open_job(test_token)
+        self.assertEqual(len(job.doc), 0)
+        job.doc[key] = d0
+        self.assertEqual(len(job.doc), 1)
+        self.assertEqual(job.doc(), {key: d0})
+        with self.assertRaises(ValueError):
+            job.doc = d1
+        job.doc = {key: d1}
+        self.assertEqual(len(job.doc), 1)
+        self.assertEqual(job.doc(), {key: d1})
+
     def test_copy_document(self):
         key = 'get_set'
         d = testdata()
@@ -463,7 +594,7 @@ class JobDocumentTest(BaseJobTest):
         job.document.update({key: d})
         self.assertIn(key, job.document)
 
-    def test_clear(self):
+    def test_clear_document(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -485,6 +616,17 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job2.document)
         self.assertEqual(len(job2.document), 1)
 
+    def test_concurrency(self):
+        key = 'concurrent'
+        d = testdata()
+        job = self.open_job(test_token)
+        job2 = self.open_job(test_token)
+        self.assertNotIn(key, job.document)
+        self.assertNotIn(key, job2.document)
+        job.document[key] = d
+        self.assertIn(key, job.document)
+        self.assertIn(key, job2.document)
+
     def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
@@ -500,6 +642,99 @@ class JobDocumentTest(BaseJobTest):
         job.remove()
         self.assertNotIn(key, job.document)
         self.assertFalse(os.path.isfile(fn_test))
+
+    def test_clear_job(self):
+        key = 'clear'
+        job = self.open_job(test_token)
+        self.assertNotIn(job, self.project)
+        job.clear()
+        self.assertNotIn(job, self.project)
+        job.clear()
+        self.assertNotIn(job, self.project)
+        job.init()
+        self.assertIn(job, self.project)
+        job.clear()
+        self.assertIn(job, self.project)
+        job.clear()
+        job.clear()
+        self.assertIn(job, self.project)
+        d = testdata()
+        job.document[key] = d
+        self.assertIn(job, self.project)
+        self.assertIn(key, job.document)
+        self.assertEqual(len(job.document), 1)
+        job.clear()
+        self.assertEqual(len(job.document), 0)
+        with open(job.fn('test'), 'w') as file:
+            file.write('test')
+        self.assertTrue(job.isfile('test'))
+        self.assertIn(job, self.project)
+        job.clear()
+        self.assertFalse(job.isfile('test'))
+        self.assertEqual(len(job.document), 0)
+
+    def test_reset(self):
+        key = 'reset'
+        job = self.open_job(test_token)
+        self.assertNotIn(job, self.project)
+        job.reset()
+        self.assertIn(job, self.project)
+        self.assertEqual(len(job.document), 0)
+        job.document[key] = testdata()
+        self.assertEqual(len(job.document), 1)
+        job.reset()
+        self.assertIn(job, self.project)
+        self.assertEqual(len(job.document), 0)
+
+    def test_doc(self):
+        key = 'test_doc'
+        job = self.open_job(test_token)
+
+        def check_content(key, d):
+            self.assertEqual(job.doc[key], d)
+            self.assertEqual(getattr(job.doc, key), d)
+            self.assertEqual(job.doc()[key], d)
+            self.assertEqual(job.document[key], d)
+            self.assertEqual(getattr(job.document, key), d)
+            self.assertEqual(job.document()[key], d)
+
+        d = testdata()
+        job.doc[key] = d
+        check_content(key, d)
+        d2 = testdata()
+        job.doc[key] = d2
+        check_content(key, d2)
+        d3 = testdata()
+        job.document[key] = d3
+        check_content(key, d3)
+        d4 = testdata()
+        setattr(job.doc, key, d4)
+        check_content(key, d4)
+
+    def test_sp_formatting(self):
+        job = self.open_job({'a': 0})
+        self.assertEqual('{job.statepoint.a}'.format(job=job), str(job.sp.a))
+        self.assertEqual('{job.sp.a}'.format(job=job), str(job.sp.a))
+        self.assertEqual('{job.statepoint[a]}'.format(job=job), str(job.sp.a))
+        self.assertEqual('{job.sp[a]}'.format(job=job), str(job.sp.a))
+        job.sp.a = dict(b=0)
+        self.assertEqual('{job.statepoint.a.b}'.format(job=job), str(job.sp.a.b))
+        self.assertEqual('{job.sp.a.b}'.format(job=job), str(job.sp.a.b))
+        self.assertEqual('{job.statepoint[a][b]}'.format(job=job), str(job.sp.a.b))
+        self.assertEqual('{job.sp[a][b]}'.format(job=job), str(job.sp.a.b))
+
+    def test_doc_formatting(self):
+        job = self.open_job(test_token)
+        job.doc.a = 0
+        self.assertEqual('{job.doc.a}'.format(job=job), str(job.doc.a))
+        self.assertEqual('{job.doc[a]}'.format(job=job), str(job.doc.a))
+        self.assertEqual('{job.document.a}'.format(job=job), str(job.doc.a))
+        self.assertEqual('{job.document[a]}'.format(job=job), str(job.doc.a))
+        job.doc.a = dict(b=0)
+        self.assertEqual('{job.doc.a.b}'.format(job=job), str(job.doc.a.b))
+        self.assertEqual('{job.doc.a.b}'.format(job=job), str(job.doc.a.b))
+        self.assertEqual('{job.document.a.b}'.format(job=job), str(job.doc.a.b))
+        self.assertEqual('{job.document[a][b]}'.format(job=job), str(job.doc.a.b))
 
     def test_reset_statepoint_job(self):
         key = 'move_job'

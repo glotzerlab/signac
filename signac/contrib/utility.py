@@ -50,14 +50,6 @@ def prompt_password(prompt='Password: '):
     return getpass.getpass(prompt)
 
 
-def prompt_new_password(prompt='Password: '):
-    pwd = getpass.getpass(prompt)
-    pwd2 = getpass.getpass("Confirm password: ")
-    if pwd != pwd2:
-        raise ValueError("Passwords do not match.")
-    return pwd
-
-
 def add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 

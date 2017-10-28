@@ -9,18 +9,24 @@ import json
 import logging
 import getpass
 import difflib
+import re
 import errno
 from pprint import pprint, pformat
 
-from . import get_project, init_project, index
+from . import Project, get_project, init_project, index
 from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
-from .common import six
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .contrib.utility import query_yes_no, prompt_password
+from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .errors import DestinationExistsError
+from .sync import FileSync
+from .sync import DocSync
+from .errors import FileSyncConflict
+from .errors import DocumentSyncConflict
+from .errors import SchemaSyncConflict
+
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
 except ImportError:
@@ -48,8 +54,41 @@ CONFIG_HOST_CHOICES = {
 }
 
 
-def _print_err(msg=None):
-    print(msg, file=sys.stderr)
+MSG_SYNC_SPECIFY_KEY = """
+Synchronization conflict occured, no strategy defined to synchronize keys:
+{keys}
+
+Use the `-k/--key` option to specify a regular expression pattern matching
+all keys that should be overwritten, `--all-keys` to overwrite all conflicting
+keys, or `--no-keys` to overwrite none of the conflicting keys."""
+
+
+MSG_SYNC_FILE_CONFLICT = """
+Synchronization conflict occured, no strategy defined to synchronize files:
+{files}
+
+Use the `-s/--strategy` option to specify a file synchronization strategy,
+or the `-u/--update` option to overwrite all files which have a more recent
+modification time stamp."""
+
+
+MSG_SYNC_STATS = """
+Number of files transferred: {stats.num_files}
+Total transfer volume:       {stats.volume}
+"""
+
+
+def _print_err(msg=None, *args):
+    print(msg, *args, file=sys.stderr)
+
+
+def _fmt_bytes(nbytes, suffix='B'):
+    "Adapted from: https://stackoverflow.com/a/1094933"
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(nbytes) < 1024.0:
+            return "%3.1f %s%s" % (nbytes, unit, suffix)
+        nbytes /= 1024.0
+    return "%.1f %s%s" % (nbytes, 'Yi', suffix)
 
 
 def _passlib_available():
@@ -128,6 +167,11 @@ def _open_job_by_id(project, job_id):
                           "unique ids.".format(job_id, n))
 
 
+def find_with_filter_or_none(args):
+    if args.job_id or args.filter or args.doc_filter:
+        return find_with_filter(args)
+
+
 def find_with_filter(args):
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
@@ -136,7 +180,10 @@ def find_with_filter(args):
             return args.job_id
 
     project = get_project()
-    index = _read_index(project, args.index)
+    if hasattr(args, 'index'):
+        index = _read_index(project, args.index)
+    else:
+        index = None
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
@@ -197,9 +244,26 @@ def main_document(args):
     for job_id in find_with_filter(args):
         job = _open_job_by_id(project, job_id)
         if args.pretty:
-            pprint(dict(job.document), depth=args.pretty)
+            pprint(job.document(), depth=args.pretty)
         else:
-            print(json.dumps(dict(job.document), indent=args.indent, sort_keys=args.sort))
+            print(json.dumps(job.document(), indent=args.indent, sort_keys=args.sort))
+
+
+def main_remove(args):
+    project = get_project()
+    for job_id in args.job_id:
+        job = _open_job_by_id(project, job_id)
+        if args.interactive and not query_yes_no(
+            "Are you sure you want to {action} job with id '{job._id}'?".format(
+                action='clear' if args.clear else 'remove',
+                job=job), default='no'):
+                continue
+        if args.clear:
+            job.clear()
+        else:
+            job.remove()
+        if args.verbose:
+            print(job_id)
 
 
 def main_move(args):
@@ -210,7 +274,8 @@ def main_move(args):
             job = _open_job_by_id(project, job_id)
             job.move(dst_project)
         except DestinationExistsError as error:
-            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+            _print_err(
+                "Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
             _print_err("Moved '{}' to '{}'.".format(job, dst_project))
 
@@ -259,7 +324,7 @@ def main_find(args):
                 jid = job.get_id()
                 print(jid)
                 print(format_lines('sp ', jid, job.statepoint()))
-                print(format_lines('doc', jid, dict(job.document)))
+                print(format_lines('doc', jid, job.document()))
             else:
                 print(job_id)
     except IOError as error:
@@ -283,6 +348,152 @@ def main_init(args):
         root=os.getcwd(),
         workspace=args.workspace)
     _print_err("Initialized project '{}'.".format(project))
+
+
+def main_schema(args):
+    project = get_project()
+    print(project.detect_schema(
+        exclude_const=args.exclude_const,
+        subset=find_with_filter_or_none(args)).format(
+            depth=args.depth,
+            precision=args.precision,
+            max_num_range=args.max_num_range))
+
+
+def main_sync(args):
+    #
+    # Valid provided argument combinations
+    #
+    if args.archive:
+        args.recursive = True
+        args.links = True
+        args.times = True
+        args.perms = True
+        args.owner = True
+        args.group = True
+
+    if args.update:
+        if args.strategy is not None:
+            raise ValueError(
+                "Can't provide both the '-u/--update' and a '-s/--strategy argument!")
+        args.strategy = 'update'
+
+    if args.times and not args.perms:
+        raise NotImplementedError(
+            "The '-t/--times' option can only be used in combination with the "
+            "'-p/--perms argument.")
+
+    if args.size_only or args.round_times:
+        # Apply monkey patch
+        import filecmp
+        import stat
+
+        if args.size_only:
+            def _sig(st):
+                return (stat.S_IFMT(st.st_mode),
+                        st.st_size)
+        else:
+            def _sig(st):
+                return (stat.S_IFMT(st.st_mode),
+                        st.st_size,
+                        int(st.st_mtime))
+        filecmp._sig = _sig
+
+    #
+    # Setup synchronization process
+    #
+
+    source = get_project(root=args.source)
+    try:
+        destination = get_project(root=args.destination)
+    except LookupError:
+        if args.allow_workspace:
+            destination = Project(config={
+                'project': os.path.relpath(args.destination),
+                'project_dir': args.destination,
+                'workspace_dir': '.'})
+        else:
+            _print_err(
+                "WARNING: The destination appears to not be a project path. "
+                "Use the '-w/--allow-workspace' option if you want to "
+                "synchronize to a workspace directory directly.")
+            raise
+    selection = find_with_filter_or_none(args)
+
+    if args.strategy:
+        if args.strategy[0].isupper():
+            strategy = getattr(FileSync, args.strategy)()
+        else:
+            strategy = getattr(FileSync, args.strategy)
+    else:
+        strategy = None
+
+    if sum((args.all_keys, args.no_keys, args.key is not None)) > 1:
+        raise ValueError("You can only provide one key argument!")
+    elif args.all_keys:
+        doc_sync = DocSync.ByKey(lambda key: True)
+    elif args.no_keys:
+        doc_sync = DocSync.ByKey(lambda key: False)
+    elif args.key:
+        try:
+            re.compile(args.key)
+        except re.error as e:
+            raise RuntimeError(
+                "Illegal regular expression '{}': '{}'.".format(args.key, e))
+        doc_sync = DocSync.ByKey(lambda key: re.match(args.key, key))
+    else:
+        doc_sync = DocSync.ByKey()
+
+    try:
+        _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
+        stats = destination.sync(
+            other=source,
+            strategy=strategy,
+            recursive=args.recursive,
+            follow_symlinks=not args.links,
+            preserve_permissions=args.perms,
+            preserve_times=args.times,
+            preserve_owner=args.owner,
+            preserve_group=args.group,
+            exclude=args.exclude,
+            doc_sync=doc_sync,
+            selection=selection,
+            check_schema=not args.force,
+            dry_run=args.dry_run,
+            parallel=args.parallel,
+            deep=args.deep,
+            collect_stats=args.stats)
+        if stats is not None:
+            if args.human_readable:
+                stats = stats._replace(volume=_fmt_bytes(stats.volume))
+            print("\n# Transfer statistics", '(dry run)' if args.dry_run else None)
+            if args.json:
+                print(json.dumps(stats._asdict()))
+            else:
+                print(MSG_SYNC_STATS.format(stats=stats))
+    except SchemaSyncConflict as error:
+        _print_err(
+            "WARNING: The detected schemas of the two projects differ! "
+            "Use --force to ignore.")
+        only_in_src = error.schema_src.difference(error.schema_dst)
+        if only_in_src:
+            keys_formatted = ('.'.join(k) for k in only_in_src)
+            _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
+        only_in_dst = error.schema_dst.difference(error.schema_src)
+        if only_in_dst:
+            keys_formatted = ('.'.join(k) for k in only_in_dst)
+            _print_err(
+                "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+    except DocumentSyncConflict as error:
+        _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
+    except FileSyncConflict as error:
+        _print_err(MSG_SYNC_FILE_CONFLICT.format(files=error))
+    else:
+        if doc_sync.skipped_keys:
+            _print_err("Skipped key(s):", ', '.join(sorted(doc_sync.skipped_keys)))
+        _print_err("Done.")
+        return
+    raise RuntimeWarning("Synchronization aborted.")
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -413,7 +624,7 @@ def main_config_set(args):
         sec = sec.setdefault(key, dict())
     try:
         sec[keys[-1]] = args.value
-        _print_err("Updated value for '{}'.".format(args.key))
+        _print_err("Updated value '{}'='{}'.".format(args.key, args.value))
     except TypeError:
         raise KeyError(args.key)
     _print_err("Writing configuration to '{}'.".format(
@@ -580,6 +791,7 @@ def main():
         '--version',
         action='store_true',
         help="Display the version number and exit.")
+    add_verbosity_argument(parser, default=2)
     parser.add_argument(
         '-y', '--yes',
         action='store_true',
@@ -705,6 +917,27 @@ def main():
         help="The filename of an index file.")
     parser_document.set_defaults(func=main_document)
 
+    parser_remove = subparsers.add_parser('rm')
+    parser_remove.add_argument(
+        'job_id',
+        type=str,
+        nargs='+',
+        help="One or more job ids of jobs to remove.")
+    parser_remove.add_argument(
+        '-c', '--clear',
+        action='store_true',
+        help="Do not completely remove, but only clear the job.")
+    parser_remove.add_argument(
+        '-i', '--interactive',
+        action='store_true',
+        help="Request confirmation before attempting to remove/clear "
+             "each job.")
+    parser_remove.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help="Be verbose when removing/clearing files.")
+    parser_remove.set_defaults(func=main_remove)
+
     parser_move = subparsers.add_parser('move')
     parser_move.add_argument(
         'project',
@@ -803,6 +1036,197 @@ def main():
         type=str,
         help="The filename of an index file.")
     parser_view.set_defaults(func=main_view)
+
+    parser_schema = subparsers.add_parser('schema')
+    parser_schema.add_argument(
+        '-x', '--exclude-const',
+        action='store_true',
+        help="Exclude state point parameters, which are constant over the "
+             "complete project data space.")
+    parser_schema.add_argument(
+        '-t', '--depth',
+        type=int,
+        default=0,
+        help="A non-zero value will format the schema in a nested representation "
+             "up to the specified depth. The default is a flat view (depth=0).")
+    parser_schema.add_argument(
+        '-p', '--precision',
+        type=int,
+        help="Round all numerical values up to the given precision.")
+    parser_schema.add_argument(
+        '-r', '--max-num-range',
+        type=int,
+        default=5,
+        help="The maximum number of entries shown for a value range, defaults to 5.")
+    selection_group = parser_schema.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Detect schema only for jobs with the given job ids.")
+    parser_schema.set_defaults(func=main_schema)
+
+    parser_sync = subparsers.add_parser(
+        'sync',
+        description="""Use this command to synchronize this project with another project;
+similar to the synchronization of two directories with `rsync`.
+Data is always copied from the source to the destination.
+For example: `signac sync /path/to/other/project -u --all-keys`
+means "Synchronize all jobs within this project with those in the other project; overwrite
+files if the source files is newer and overwrite all conflicting keys in the project and
+job documents."
+"""
+        )
+    parser_sync.add_argument(
+        'source',
+        help="The root directory of the project that this project should be synchronized with.")
+    parser_sync.add_argument(
+        'destination',
+        nargs='?',
+        help="Optional: The root directory of the project that should be modified for "
+             "synchronization, defaults to the local project.")
+    add_verbosity_argument(parser_sync, default=2)
+
+    sync_group = parser_sync.add_argument_group('copy options')
+    sync_group.add_argument(
+        '-a', '--archive',
+        action='store_true',
+        help="archive mode; equivalent to: '-rltpog'")
+    sync_group.add_argument(
+        '-r', '--recursive',
+        action='store_true',
+        help="Do not skip sub-directories, but synchronize recursively.")
+    sync_group.add_argument(
+        '-l', '--links',
+        action='store_true',
+        help="Copy symbolic links as symbolic links pointing to the original source.")
+    sync_group.add_argument(
+        '-p', '--perms',
+        action='store_true',
+        help="Preserve permissions.")
+    sync_group.add_argument(
+        '-o', '--owner',
+        action='store_true',
+        help="Preserve owner.")
+    sync_group.add_argument(
+        '-g', '--group',
+        action='store_true',
+        help="Preserve group.")
+    sync_group.add_argument(
+        '-t', '--times',
+        action='store_true',
+        help="Preserve file modification times (requires -p).")
+    sync_group.add_argument(
+        '-x', '--exclude',
+        type=str,
+        nargs='?',
+        const='.*',
+        help="Exclude all files matching the given pattern. Exclude all files "
+             "if this option is provided without any argument.")
+    sync_group.add_argument(
+        '-I', '--ignore-times',
+        action='store_true',
+        dest='deep',
+        help="Never rely on file meta data such as the size or the modification time "
+             "when determining file differences.")
+    sync_group.add_argument(
+        '--size-only',
+        action='store_true',
+        help="Ignore modification times during file comparison. Useful when synchronizing "
+             "between file systems with different timestamp resolution.")
+    sync_group.add_argument(
+        '--round-times',
+        action='store_true',
+        help="Round modification times during file comparison. Useful when synchronizing "
+             "between file systems with different timestamp resolution.")
+    sync_group.add_argument(
+        '-n', '--dry-run',
+        action='store_true',
+        help="Do not actually execute the synchronization. Increase the output verbosity "
+             "to see messages about what would potentially happen.")
+    sync_group.add_argument(
+        '-u', '--update',
+        action='store_true',
+        help="Skip files with newer modification time stamp."
+             "This is a short-cut for: --strategy=update.")
+
+    strategy_group = parser_sync.add_argument_group('sync strategy')
+    strategy_group.add_argument(
+        '-s', '--strategy',
+        type=str,
+        choices=FileSync.keys(),
+        help="Specify a synchronization strategy, for differing files.")
+    strategy_group.add_argument(
+        '-k', '--key',
+        type=str,
+        help="Specify a regular expression for keys that should be overwritten "
+             "as part of the project and job document synchronization.")
+    strategy_group.add_argument(
+        '--all-keys',
+        action='store_true',
+        help="Overwrite all conflicting keys. Equivalent to `--key='.*'`.")
+    strategy_group.add_argument(
+        '--no-keys',
+        action='store_true',
+        help="Never overwrite any conflicting keys.")
+
+    parser_sync.add_argument(
+        '-w', '--allow-workspace',
+        action='store_true',
+        help="Allow the specification of a workspace (instead of a project) directory "
+             "as the destination path.")
+    parser_sync.add_argument(
+        '--force',
+        action='store_true',
+        help="Ignore all warnings, just synchronize.")
+    parser_sync.add_argument(
+        '--parallel',
+        type=int,
+        nargs='?',
+        const=True,
+        help="Use multiple threads for synchronization."
+             "You may optionally specify how many threads to "
+             "use, otherwise all available processing units will be utilized.")
+    parser_sync.add_argument(
+        '--stats',
+        action='store_true',
+        help="Provide file transfer statistics.")
+    parser_sync.add_argument(
+        '-H', '--human-readable',
+        action='store_true',
+        help="Provide statistics with human readable formatting.")
+    parser_sync.add_argument(
+        '--json',
+        action='store_true',
+        help="Print statistics in JSON formatting.")
+
+    selection_group = parser_sync.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Only synchronize jobs that match the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Only synchronize jobs that match the document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Only synchronize jobs with the given job ids.")
+    parser_sync.set_defaults(func=main_sync)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
@@ -905,8 +1329,13 @@ def main():
     args = parser.parse_args()
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-    elif six.PY2:
-        logging.basicConfig(level=logging.WARNING)
+    else:
+        log_level = logging.DEBUG if args.debug else [
+            logging.CRITICAL, logging.ERROR,
+            logging.WARNING, logging.INFO,
+            logging.MORE, logging.DEBUG][min(args.verbosity, 5)]
+        logging.basicConfig(level=log_level)
+
     if not hasattr(args, 'func'):
         parser.print_usage()
         sys.exit(2)
@@ -918,8 +1347,13 @@ def main():
         if args.debug:
             raise
         sys.exit(1)
+    except RuntimeWarning as warning:
+        _print_err("Warning: {}".format(warning))
+        if args.debug:
+            raise
+        sys.exit(1)
     except Exception as error:
-        _print_err('Error: {}'.format(str(error)))
+        _print_err('Error: {}'.format(error))
         if args.debug:
             raise
         sys.exit(1)

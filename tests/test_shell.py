@@ -39,7 +39,7 @@ class ExitCodeError(RuntimeError):
 class BasicShellTest(unittest.TestCase):
 
     def setUp(self):
-        pythonpath=os.environ.get('PYTHONPATH')
+        pythonpath = os.environ.get('PYTHONPATH')
         if pythonpath is None:
             pythonpath = [os.getcwd()]
         else:
@@ -126,6 +126,9 @@ class BasicShellTest(unittest.TestCase):
         self.call('python -m signac project --access'.split())
         project = signac.Project()
         project.open_job({'a': 0}).init()
+        self.assertEqual(len(project), 1)
+        self.assertEqual(len(list(project.index())), 1)
+        self.assertEqual(len(list(signac.index())), 1)
         doc = json.loads(self.call('python -m signac index'.split()))
         self.assertIn('statepoint', doc)
         self.assertEqual(doc['statepoint'], {'a': 0})
@@ -170,9 +173,26 @@ class BasicShellTest(unittest.TestCase):
 
         for i in range(3):
             self.assertEqual(
-                self.call('python -m signac find --doc-filter'.split() + ['{"a": ' + str(i) + '}']).strip(),
+                self.call('python -m signac find --doc-filter'.split() +
+                          ['{"a": ' + str(i) + '}']).strip(),
                 list(project.find_job_ids(doc_filter={'a': i}))[0])
 
+    def test_remove(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        sps = [{'a': i} for i in range(3)]
+        for sp in sps:
+            project.open_job(sp).init()
+        job_to_remove = project.open_job({'a': 1})
+        job_to_remove.doc.a = 0
+        self.assertIn(job_to_remove, project)
+        self.assertEqual(job_to_remove.doc.a, 0)
+        self.assertEqual(len(job_to_remove.doc), 1)
+        self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
+        self.assertIn(job_to_remove, project)
+        self.assertEqual(len(job_to_remove.doc), 0)
+        self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
+        self.assertNotIn(job_to_remove, project)
 
 
 if __name__ == '__main__':

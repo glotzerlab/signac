@@ -29,10 +29,6 @@ KEY_PROJECT = 'project'
 KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
-KEY_LINK = 'signac_link'
-KEY_CRAWLER_PATH = 'access_crawler_root'
-KEY_CRAWLER_MODULE = 'access_module'
-KEY_CRAWLER_ID = 'access_crawler_id'
 
 
 def md5(file):
@@ -476,7 +472,6 @@ class MasterCrawler(BaseCrawler):
     "The filename of modules containing crawler definitions."
 
     def __init__(self, root, raise_on_error=False):
-        self._crawlers = dict()
         self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
@@ -607,11 +602,8 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
 
 
 def fetch_one(doc, *args, **kwargs):
-    "Legacy function, use :py:func:`~.fetch` instead."
-    warnings.warn(
-        "This function is deprecated, please use fetch() instead.",
-        DeprecationWarning)
-    return fetch(doc_or_id=doc, *args, **kwargs)
+    raise DeprecationWarning(
+        "The fetch_one() function has been removed. Use fetch() instead.")
 
 
 def fetched(docs):
