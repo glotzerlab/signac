@@ -449,7 +449,6 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.document[key], d)
         self.assertEqual(job.document[key1], d1)
         del job.document[key]
-        print(job.document)
         self.assertEqual(len(job.document), 1)
         self.assertIn(key1, job.document)
         self.assertNotIn(key, job.document)
