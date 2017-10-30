@@ -97,7 +97,8 @@ This subdirectory is named by the *job id*, therefore guaranteeing a unique file
 
 .. note::
 
-    Because **signac** assumes that the state point is a unique identifier, multiple jobs cannot share the same state point. A typical remedy for scenarios where, *e.g.*, multiple replicas are required, is to append the replica number to the state point to generate a unique state point.
+    Because **signac** assumes that the state point is a unique identifier, multiple jobs cannot share the same state point.
+    A typical remedy for scenarios where, *e.g.*, multiple replicas are required, is to append the replica number to the state point to generate a unique state point.
 
 Both the state point and the job id are equivalent addresses for jobs in the data space.
 To access or modify a data point, obtain an instance of :py:class:`~.Project.Job` by passing the associated metadata as a mapping of key-value pairs (for example, as an instance of :py:class:`dict`) into the :py:meth:`~.Project.open_job` method.
@@ -529,7 +530,8 @@ Here, first we retrieve the job corresponding to our input values and then we re
 
 .. note::
 
-    In reality, we should account for missing values. This check could be accomplished by, for example, catching :py:class:`FileNotFoundError` exceptions, checking whether the job is part of our data space with ``job in project``, or by using the :py:meth:`~.Project.Job.isfile` method (or any combination thereof).
+    In reality, we should account for missing values.
+    This check could be accomplished by, for example, catching :py:class:`FileNotFoundError` exceptions, checking whether the job is part of our data space with ``job in project``, or by using the :py:meth:`~.Project.Job.isfile` method (or any combination thereof).
 
 Parallelization
 ---------------
