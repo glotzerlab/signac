@@ -55,7 +55,7 @@ workspace_dir
 Host configuration
 ==================
 
-The current version of **signac** supports MongoDB databases as back end.
+The current version of **signac** supports MongoDB databases as a backend.
 To use **signac** in combination with a MongoDB database, make sure to install ``pymongo``.
 
 Configuring a new host
@@ -93,7 +93,7 @@ The ``hostname`` argument defaults to the first configured host and can always b
 
 .. note::
 
-    To prevent that unauthorized users can obtain your login credentials, **signac** will update the configuration file permissions, such that it is only readable by yourself.
+    To prevent unauthorized users from obtaining your login credentials, **signac** will update the configuration file permissions such that it is only readable by yourself.
 
 
 Changing the password
@@ -105,11 +105,9 @@ To change the password for a configured host, execute
 
     $ signac host example --update-pw -p
 
-Omiting the ``-p/--password`` argument means that a password will not be stored, requiring to enter it for each session.
-
 .. warning::
 
-    By default, any password set in this way, will be **encrypted**. This means that the actual password is different from the one that you entered.
+    By default, any password set in this way will be **encrypted**. This means that the actual password is different from the one that you entered.
     However, while it is practically impossible to guess what you entered, a stored password hash will give any intruder access to the database.
     This means you need to **treat the hash like a password!**
 

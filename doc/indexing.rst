@@ -7,7 +7,7 @@ Indexing
 Concept
 =======
 
-Data spaces managed with **signac** on the file system are immediately searchable, because **signac** creates an index of all relevant files *on the fly* whenever a search operation is executed.
+Data spaces managed with **signac** on the file system are immediately searchable because **signac** creates an index of all relevant files *on the fly* whenever a search operation is executed.
 This data index contains all information about the project's files, their location and associated metadata such as the *signac id* and the *state point*.
 
 A file index has *one entry per file* and each document has the following fields:
@@ -19,12 +19,12 @@ A file index has *one entry per file* and each document has the following fields
     * ``file_id``: A number identifying the file content [#f2]_
     * ``format``: A format definition (optional)
 
-.. [#f2] Identical with the ``md5`` value in the current implementation.
+.. [#f2] Identical to the ``md5`` value in the current implementation.
 
 The **signac** project interface is specifically designed to assist with processes related to data curation.
 However, especially when working with a data set comprised of multiple projects or sources that are not managed with **signac**, it might be easier to work with a data index directly.
 
-For example, this is how we would access files related to a specific data sub set using the project interface:
+For example, this is how we would access files related to a specific data subset using the project interface:
 
 .. code-block:: python
 
@@ -44,16 +44,17 @@ And this is how we would do the same, but operating directly with an index:
         with signac.fetch(doc) as file:
             print(file.read())
 
-Here, we first generated the index with the :py:meth:`.Project.index` function and stored the result in a :py:class:`.Collection` container.
-Then we search the index collection for a specific state point and use :py:func:`.fetch` to open the associated file.
+Here, we first generate the index with the :py:meth:`.Project.index` function and stored the result in a :py:class:`.Collection` container.
+Then, we search the index collection for a specific state point and use :py:func:`.fetch` to open the associated file.
 The :py:func:`.fetch` functions works very similar to Python's built-in :py:func:`open` function to open files, but in addition will be able to fetch a file from multiple different sources if necessary.
 
-The nect few sections are a more detailed outline of how such a workflow can be realized.
+The next few sections are a more detailed outline of how such a workflow can be realized.
 
 Indexing a signac Project
 =========================
 
-As shown in the previous section, a **signac** project index, can be generated directly with the :py:meth:`.Project.index` function in Python, alternatively we can generate the index on the command line with ``$ signac project --index``.
+As shown in the previous section, a **signac** project index can be generated directly with the :py:meth:`.Project.index` function in Python.
+Alternatively, we can generate the index on the command line with ``$ signac project --index``.
 
 A signac project index is like a regular file index, but contains the following additional fields:
 
@@ -72,15 +73,13 @@ This means the following code snippet would be valid:
     for doc in project.index():
         assert doc['foo'] == 'bar'
 
-By default, no additional files are indexed, but the user is expected to *explicitly* specify which files should be part of the index.
-This is described in the next section.
+By default, no additional files are indexed; the user is expected to *explicitly* specify which files should be part of the index as described in the next section.
 
 Indexing files
 ==============
 
-We use a regular expression to specify which files should be added to a file index.
-By default, no files are indexed.
-For instance, in the initial example, we used the expression ``".*\.txt"`` to specify that all files with a filename ending with ".txt" should be part of the index.
+Indexing specific files as part of a project index requires using regular expressions.
+For instance, in the initial example we used the expression ``".*\.txt"`` to specify that all files with a filename ending with ".txt" should be part of the index.
 
 We can extract metadata directly from the filename by using regular expressions with *named groups*.
 For example, if we have a filename pattern: ``a_0.txt``, ``a_1.txt`` and so on, where the number following ``a_`` is to be extracted as the ``a`` field, we can use the following expression:
@@ -91,9 +90,7 @@ For example, if we have a filename pattern: ``a_0.txt``, ``a_1.txt`` and so on, 
         print(doc['a'])
 
 To further simplify the selection of different files from the index, we may provide multiple patterns with an optional *format definition*.
-Let's imagine we would like to classify the text files with the ``a`` field from the previous example and in addition index PDF-files that adhere to the following pattern: ``init.pdf`` or ``final.pdf``.
-
-This is how we could generate the index:
+Let's imagine we would like to classify the text files with the ``a`` field from the previous example *as well as* PDF-files that adhere to the following pattern: ``init.pdf`` or ``final.pdf``. This is how we could generate this index:
 
 .. code-block:: python
 
@@ -141,11 +138,11 @@ Overall, this enables us to operate on indexed project data in a way which is mo
 Deep Indexing
 =============
 
-We may want to add additional metadata to the index, which is neither based on the state point, nor the job document or the filename, but instead is directly extracted from the data.
+We may want to add additional metadata to the index that is neither based on neither the state point, the job document, or the filename, but instead is directly extracted from the data.
 Such a pattern is typically referred to as *deep indexing* and can be easily implemented with **signac**.
 
-As an example, assuming that we wanted add the number of lines within a file as an additional metadata field to our data index.
-For this we use Python's built-in :py:func:`map` function, which allows us to apply a function to all index entries:
+As an example, imagine that we wanted add the number of lines within a file as an additional metadata field in our data index.
+For this, we use Python's built-in :py:func:`map` function, which allows us to apply a function to all index entries:
 
 .. code-block:: python
 
@@ -161,7 +158,7 @@ The ``index`` variable now contains an index, where each index entry has an addi
 
 .. tip::
 
-    We are free to apply multiple *deep indexing*  functions in succession, the functions are only executed when the ``index`` iterable is actually evaluated.
+    We are free to apply multiple *deep indexing*  functions in succession; the functions are only executed when the ``index`` iterable is actually evaluated.
 
 Searching an Index
 ==================
@@ -200,9 +197,8 @@ For example, to execute the same search operation from above, we could use the :
 
     You can search a collection on the command line by calling it's :py:meth:`~.Collection.main` method.
 
-Unless they are very small, searching collections is usually **much more efficient** compared to the *pure-python* approach especially when searching multiple times within the same session.
-Furthermore, a collection may be saved to and loaded from a file.
-This allows us to generate a index once and then load it from disk, which is much faster then regenerating it each time we use it:
+Unless they are very small, searching collections is usually **much more efficient** than the *pure python* approach, especially when searching multiple times within the same session.
+Furthermore, since a collection may be saved to and loaded from a file, we only have to generate an index once, saving us the effort of regenerating it each time we use it:
 
 .. code-block:: python
 
@@ -233,12 +229,12 @@ Master Indexes
 Generating a Master Index
 -------------------------
 
-A master index is a compilation of multiple indexes, which simplifies the operation on a larger data space.
+A master index is a compilation of multiple indexes that simplifies operating on a larger data space.
 To make a signac project part of a master index, we simply create a file called ``signac_access.py`` in its root directory.
 The existance of this file tells **signac** that the projects in those directories should be indexed as part of a master index.
 
-Imagining that we have two projects in two different directories ``~/project_a`` and ``~/project_b`` within our home directory.
-We then create the ``signac_access.py`` file in each respective project directory like this:
+Imagine that we have two projects in two different directories ``~/project_a`` and ``~/project_b`` within our home directory.
+We create the ``signac_access.py`` file in each respective project directory like this:
 
 .. code-block:: bash
 
@@ -254,11 +250,11 @@ Executing the :py:func:`~.index` function for the home directory
 
 will now yield a joint index for both projects in ``~/project_a`` and ``~/project_b``.
 
-For more information on how to have more control over the index creation, see the :ref:`access-module` section.
+For more information on how to have more control over the index creation, see the :ref:`signac access module <access-module>` section.
 
 .. tip::
 
-  You can generate a signac master index directly on the command line with ``$ signac index``, which can thus be directly piped into a file:
+  By typing ``$ signac index`` you can directly generate a signac master index on the command line and then pipe it into a file:
 
   .. code-block:: bash
 
@@ -318,7 +314,7 @@ Mirroring of Data
 
 Using the :py:func:`signac.fetch` function it is possible retrieve files that are associated with index documents.
 Those files will preferably be opened directly via a local system path.
-However in some cases it may be desirable to mirror files at a different location, e.g., in a database or a different path to increase the accessibility of files.
+However, in some cases it may be desirable to mirror files at a different location, e.g., in a database or a different path, to increase the accessibility of files.
 
 Use the mirrors argument in the :py:func:`signac.export` function to automatically mirror all files associated with exported index documents.
 **signac** provides handlers for a local file system and the MongoDB `GridFS`_ database file system.
