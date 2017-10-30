@@ -4,7 +4,7 @@
 Query API
 =========
 
-As briefly described in :ref:`project-job-finding`, the :py:meth:`~.Project.find_jobs()` method provides a much more powerful search functionality beyond simple selection of jobs with specific state point values.
+As briefly described in :ref:`project-job-finding`, the :py:meth:`~.Project.find_jobs()` method provides much more powerful search functionality beyond simple selection of jobs with specific state point values.
 More generally, all **find()** functions within the framework accept filter arguments that will return a selection of jobs or documents.
 One of the key features of *signac* is the possibility to immediately search managed data spaces to select desired subsets as needed.
 Internally, all search operations are processed by an instance of :py:class:`~.Collection` (see :ref:`collections`).
@@ -21,23 +21,18 @@ Filter arguments are a mapping of expressions, where a single expression consist
 All selected documents must match these expressions.
 
 The simplest expression is an *exact match*.
-For example, in order to select all documents that have a key *a* that matches the value 42, you would use the following expression: ``{'a': 42}``.
-
-If *a* was a state point variable as part of a project's parameter space, we could select all jobs with state point *a=42* like this:
+For example, in order to select all jobs whose state point key *a* has the value 42, you would use the following expression: ``{'a': 42}`` as follows:
 
 .. code-block:: python
 
-    for job in project.find_jobs({'a': 42}):
-        pass
-
+    project.find_jobs({'a': 42})
 
 Select All
 ----------
 
 If you want to select the complete data set, don't provide any filter argument at all.
 The default argument of ``None`` or an empty expression ``{}`` will select all jobs or documents.
-
-To iterate over all jobs in a project or all documents in a collection, we don't even need to use a *find* method, but can just iterate directly:
+As was previously demonstrated, iterating over all jobs in a project or all documents in a collection can be accomplished directly without using any *find* method at all:
 
 .. code-block:: python
 
@@ -69,7 +64,7 @@ We can select the 2nd document with ``{'p': 2}``, but also ``{'N': 1000, 'p': 2}
 Nested Keys
 -----------
 
-To match **nested** keys, avoid nesting the filter arguments, but instead use the *.*-operator.
+To match **nested** keys, avoid nesting the filter arguments, but instead use the `.`-operator.
 For example, if the documents shown in the example above were all nested like this:
 
 .. code-block:: python
@@ -85,20 +80,20 @@ This is not only easier to read, but also increases compatibility with MongoDB d
 Operator Expressions
 ====================
 
-Matching an *exact* value is the simplest possible expression, however we can use **operator-expressions** for more complicated search queries.
+In addition to simple exact value matching, **signac** also provides **operator-expressions** to execute more complicated search queries.
 
 .. _arithmetic-operators:
 
 Arithmetic Expressions
 ----------------------
 
-If instead of a specific value, we wanted to match all documents, where *p is greater than 2*, we would use the following filter argument:
+If we wanted to match all documents where *p is greater than 2*, we would use the following filter argument:
 
 .. code-block:: python
 
     {'p': {'$gt': 2}}
 
-Here we replaced the value for p with the expression ``{'$gt': 2}`` that means *all values that are greater than 2*.
+Note that we have replaced the value for p with the expression ``{'$gt': 2}`` to select *all all jobs withe p values greater than 2*.
 Here is a complete list of all available **arithmetic operators**:
 
   * ``$eq``: equal to
@@ -114,9 +109,9 @@ Logical Operators
 -----------------
 
 There are two supported logical operators: ``$and`` and ``$or``.
-A logical expression consists of the logical-operator as key and a list of expressions as value.
-These expressions must all be true in the first case or at least one of them must be true in the latter case, for a document to match.
-For example, to match all documents, where *p is greater than 2* **or** *kT=1.0*, we could use (split to multiple lines for clarity):
+To querying with a logical expression, we construct a mapping with the logical-operator as the key and a list of expressions as the value.
+As usual, the ``$and`` operator matches documents where all the expressions are true, while the ``$or`` expression matches if any documents satisfy the provided expression.
+For example, we can match all documents where *p is greater than 2* **or** *kT=1.0* we could use the following (split onto multiple lines for clarity):
 
 .. code-block:: python
 
@@ -134,9 +129,8 @@ Logical expressions may be nested, but cannot be the *value* of a key-value expr
 Exists Operator
 ---------------
 
-If you want to check for the existance of a specific key, but do not care about its actual value, use the ``$exists``-operator.
-The expression ``{'p': {'$exists': True}}``, would return all documents that *have a key p* regardless of its value.
-
+If you want to check for the existence of a specific key but do not care about its actual value, use the ``$exists``-operator.
+For example, the expression ``{'p': {'$exists': True}}`` will return all documents that *have a key p* regardless of its value.
 Likewise, using ``False`` as argument would return all documents that have no key with the given name.
 
 .. _array-operator:
@@ -159,7 +153,7 @@ Regular Expression Operator
 ---------------------------
 
 This operator may be used to search for documents where the value of type ``str`` matches a given *regular expression*.
-For example, to match all documents where the value for *protocol* contains the string *assembly*, we could use:
+For example, to match all documents where the value for *protocol* contains the string "assembly", we could use:
 
 .. code-block:: python
 
@@ -199,13 +193,15 @@ For example, instead of using the regex-operator, as shown above, we could write
 Simplified Syntax on the Command Line
 =====================================
 
-It is possible to use search expressions directy on the command line, for example in combination with the ``$ signac find`` command.
-In this case filter arguments are expected to be provided as valid JSON-expressions.
-However for simple filters, you can also use a *simplified syntax*!
-For example, instead of ``{'p': 2}``, you can write ``p 2``.
+It is possible to use search expressions directly on the command line, for example in combination with the ``$ signac find`` command.
+In this case filter arguments are expected to be provided as valid JSON expressions.
+However, for simple filters you can also use a *simplified syntax*.
+For example, instead of ``{'p': 2}``, you can simply type ``p 2``.
 
-A simplified expression consists of key-value pairs in alternation, that means the first argument will be interpreted as the first key, the second argument as the first value, the third argument as the second key and so on.
+A simplified expression consists of key-value pairs in alternation.
+The first argument will then be interpreted as the first key, the second argument as the first value, the third argument as the second key, and so on.
 If you provide an odd number of arguments, the last value will default to ``{'$exists': True}``.
+Querying via operator is supported using the `.`-operator.
 Finally, you can use ``/<regex>/`` intead of ``{'$regex': '<regex>'}`` for regular expressions.
 
 The following list shows simplified expressions on the left and their equivalent standard expression on the right.

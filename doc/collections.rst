@@ -23,13 +23,13 @@ To create an empty collection, simply call the default constructor:
     collection = Collection()
 
 You can then add documents with the :py:meth:`.Collection.insert_one` method.
-Alternatively you can pass an iterable of documents as the first argument, such as the return value of the :py:meth`.Project.index` method:
+Alternatively you can pass an iterable of documents as the first argument, such as the return value of the :py:meth:`.Project.index` method:
 
 .. code-block:: python
 
     index_collection = Collection(project.index())
 
-By default the collection is stored purely in memory.
+By default, the collection is stored purely in memory.
 But you can use the :py:class:`.Collection` container also to manage collections **directly on disk**.
 For this, simply *open* a file like this:
 
@@ -47,7 +47,7 @@ Searching collections
 
 
 To search a collection, use the :py:meth:`.Collection.find` method.
-As an example, to search all documents, where the value ``a`` is equal to 42, execute:
+As an example, to search all documents where the value ``a`` is equal to 42, execute:
 
 .. code-block:: python
 
@@ -68,6 +68,6 @@ To manage and search a collection file directly from the command line, create a 
     with Collection.open("my_collection.txt") as c:
         c.main()
 
-Storing the code above in a file called ``find.py`` and then executing it, will allow you to search for all or specific documents within the collection, directly from the command line ``$ python find.py``.
+Storing the code above in a file called ``find.py`` and then executing it will allow you to search for all or specific documents within the collection, directly from the command line ``$ python find.py``.
 
 For more information on how to use the command line interface, execute: ``$ python find.py --help``.
