@@ -108,6 +108,7 @@ class _SyncedDict(MutableMapping):
                 self._parent.save()
 
     def __setitem__(self, key, value):
+        self.load()
         with self._suspend_sync():
             self._data[key] = self._dfs_convert(value)
         self.save()
