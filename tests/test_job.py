@@ -468,6 +468,32 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(job.doc.get(key), d)
         self.assertEqual(job.doc.get('bs', d), d)
 
+    def test_set_set_doc(self):
+        key0, key1 = 'set_set0', 'set_set1'
+        d0, d1 = testdata(), testdata()
+        job = self.open_job(test_token)
+        self.assertFalse(bool(job.doc))
+        self.assertEqual(len(job.doc), 0)
+        self.assertNotIn(key0, job.doc)
+        job.doc[key0] = d0
+        self.assertTrue(bool(job.doc))
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn(key0, job.doc)
+        self.assertEqual(job.doc[key0], d0)
+        job = self.open_job(test_token)
+        self.assertTrue(bool(job.doc))
+        self.assertEqual(len(job.doc), 1)
+        self.assertIn(key0, job.doc)
+        self.assertEqual(job.doc[key0], d0)
+        job = self.open_job(test_token)
+        job.document[key1] = d1
+        self.assertTrue(bool(job.doc))
+        self.assertEqual(len(job.doc), 2)
+        self.assertIn(key0, job.doc)
+        self.assertIn(key1, job.doc)
+        self.assertEqual(job.doc[key0], d0)
+        self.assertEqual(job.doc[key1], d1)
+
     def test_get_set_nested(self):
         d0 = testdata()
         d1 = testdata()
