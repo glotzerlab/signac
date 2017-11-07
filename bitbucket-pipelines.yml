@@ -61,7 +61,7 @@ pipelines:
             - tox
             - python3.6 -m coverage report -i --include="signac*"
   tags:
-   release-*:
+   v*:
      - step:
           image: themattrix/tox
           script:
