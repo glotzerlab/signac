@@ -155,7 +155,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         sad = self.get_sad()
         self.assert_no_read_write()
         sad['a'] = {'b': 0}
-        self.assert_only_write()
+        self.assert_read_write()
         sad2 = copy(sad)
         sad3 = deepcopy(sad)
         self.assertEqual(sad, sad2)
@@ -163,7 +163,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertEqual(sad, sad3)
         self.assert_only_read(1)
         sad.a.b = 1
-        self.assert_read_write(1, 1)
+        self.assert_read_write(2, 1)
         self.assertEqual(sad.a.b, 1)
         self.assert_only_read(2)
         self.assertEqual(sad2.a.b, 1)
@@ -242,7 +242,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertFalse(key in sad)
         self.assert_only_read()
         sad[key] = d
-        self.assert_only_write()
+        self.assert_read_write()
 
     def test_iter_sync(self):
         sad = self.get_sad()
@@ -269,7 +269,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         key = 'delete'
         d = self.get_testdata()
         sad[key] = d
-        self.assert_only_write()
+        self.assert_read_write()
         self.assertEqual(len(sad), 1)
         self.assert_only_read()
         self.assertEqual(sad[key], d)
@@ -298,7 +298,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         key = 'clear'
         d = self.get_testdata()
         sad[key] = d
-        self.assert_only_write()
+        self.assert_read_write()
         sad.clear()
         self.assert_only_write()
         self.assertEqual(len(sad), 0)
@@ -309,7 +309,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         key = 'copy'
         d = self.get_testdata()
         sad[key] = d
-        self.assert_only_write()
+        self.assert_read_write()
         copy = dict(sad)
         self.assert_only_read(2)
         self.assertEqual(copy, sad)
@@ -331,7 +331,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assert_only_read()
         a = 0
         sad.a = a
-        self.assert_only_write()
+        self.assert_read_write()
         self.assertEqual(len(sad), 1)
         self.assert_only_read()
         self.assertIn('a', sad)
@@ -344,7 +344,7 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assert_only_read()
         a = 1
         sad.a = a
-        self.assert_only_write()
+        self.assert_read_write()
         self.assertEqual(len(sad), 1)
         self.assert_only_read()
         self.assertIn('a', sad)
@@ -383,16 +383,16 @@ class SyncedAttrDictTest(unittest.TestCase):
             self.assert_only_read(2)
 
         sad.a = {'b': 0}
-        self.assert_only_write()
+        self.assert_read_write()
         check_nested({'b': 0}, 0)
         sad.a.b = 1
-        self.assert_read_write()
+        self.assert_read_write(2, 1)
         check_nested({'b': 1}, 1)
         sad['a'] = {'b': 2}
-        self.assert_only_write()
+        self.assert_read_write()
         check_nested({'b': 2}, 2)
         sad['a']['b'] = 3
-        self.assert_read_write()
+        self.assert_read_write(2, 1)
         check_nested({'b': 3}, 3)
 
     def test_attr_reference_modification(self):
