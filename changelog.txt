@@ -1,3 +1,9 @@
+0.9.1:
+
+	- Fix critical issue in the SyncedAttrDict implementation that would
+	previously overwrite the underlying file if the first operation was a
+	__setitem__() operation.
+
 0.9.0:
 
 	- Introduction of `$ signac sync`, `Project.sync()`, and `Job.sync()` for
