@@ -173,6 +173,22 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
 
+    def test_write_invalid_type(self):
+        class Foo(object):
+            pass
+
+        jsd = self.get_json_dict()
+        key = 'write_invalid_type'
+        d = self.get_testdata()
+        jsd[key] = d
+        self.assertEqual(len(jsd), 1)
+        self.assertEqual(jsd[key], d)
+        d2 = Foo()
+        with self.assertRaises(TypeError):
+            jsd[key + '2'] = d2
+        self.assertEqual(len(jsd), 1)
+        self.assertEqual(jsd[key], d)
+
 
 class JSONDictWriteConcernTest(JSONDictTest):
 
