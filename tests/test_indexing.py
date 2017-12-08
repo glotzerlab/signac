@@ -344,7 +344,7 @@ class IndexingBaseTest(unittest.TestCase):
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         signac.export(crawler.crawl(), index)
-        self.assertTrue(index.replace_one.called)
+        self.assertTrue(index.replace_one.called or index.bulk_write.called)
         for doc in crawler.crawl():
             self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
 
@@ -353,17 +353,18 @@ class IndexingBaseTest(unittest.TestCase):
         index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
         collection = self.get_index_collection()
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.replace_one.called)
+        self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
         for doc in index:
             self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
         collection.reset_mock()
         self.assertEqual(len(index), collection.find().count())
         self.assertTrue(collection.find.called)
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.replace_one.called)
+        self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
         for doc in index:
             self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
         self.assertEqual(len(index), collection.find().count())
+        collection.reset_mock()
         for fn in ('a_0.txt', 'a_1.txt'):
             os.remove(os.path.join(self._tmp_dir.name, fn))
             N = len(index)
@@ -372,7 +373,7 @@ class IndexingBaseTest(unittest.TestCase):
             collection.reset_mock()
             if index:
                 signac.export(index, collection, update=True)
-                self.assertTrue(collection.replace_one.called)
+                self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
                 self.assertEqual(len(index), collection.find().count())
             else:
                 with self.assertRaises(errors.ExportError):
