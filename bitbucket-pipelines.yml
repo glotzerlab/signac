@@ -7,6 +7,7 @@ image: python:3.6
 pipelines:
   default:
     - step:
+        name: 'build and test'
         script:
           - python --version
           - pip --version
@@ -17,6 +18,7 @@ pipelines:
   branches:
     master:
       - step:
+          name: 'build and test'
           image: themattrix/tox
           script:
             - python3.6 --version
@@ -32,6 +34,7 @@ pipelines:
             - python3.6 -m coverage report -i --include="signac*"
     develop:
       - step:
+          name: 'build and test'
           image: themattrix/tox
           script:
             - python3.6 --version
@@ -47,6 +50,7 @@ pipelines:
             - python3.6 -m coverage report -i --include="signac*"
     release-*:
       - step:
+          name: 'build and test'
           image: themattrix/tox
           script:
             - python3.6 --version
@@ -60,9 +64,11 @@ pipelines:
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
+            - python -c "import json; json.load(open('.zenodo.json'))"
   tags:
    v*:
      - step:
+          name: 'build and test'
           image: themattrix/tox
           script:
             - pip3.6 install -U twine
@@ -78,4 +84,14 @@ pipelines:
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
+     - step:
+          name: 'deploy'
+          image: python:3.6
+          script:
+            - python --version
+            - pip --version
+            - pip install -U twine wheel
+            - python -m twine --version
+            - python -m wheel version
+            - python -c "import json; json.load(open('.zenodo.json'))"
             - bash .deploy.bash
