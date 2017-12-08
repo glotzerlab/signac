@@ -2,7 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import unittest
-import mock
 import os
 import io
 import re
@@ -28,8 +27,10 @@ else:
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)
     from tempdir import TemporaryDirectory
+    from mock import Mock
 else:
     from tempfile import TemporaryDirectory
+    from unittest.mock import Mock
 
 
 SIGNAC_ACCESS_MODULE_LEGACY = """import os
@@ -149,7 +150,7 @@ class IndexingBaseTest(unittest.TestCase):
 
     def get_index_collection(self):
         c = Collection()
-        return mock.Mock(spec=c, wraps=c)
+        return Mock(spec=c, wraps=c)
 
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
@@ -431,7 +432,7 @@ class IndexingPyMongoTest(IndexingBaseTest):
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         db.test_index.drop()
-        return mock.Mock(spec=db.test_index, wraps=db.test_index)
+        return Mock(spec=db.test_index, wraps=db.test_index)
 
 
 class IndexingBaseGetCrawlersTest(IndexingBaseTest):
