@@ -33,19 +33,23 @@ class JSONDict(SyncedAttrDict):
 
     def _save(self):
         assert self._filename is not None
+
+        # Serialize data:
+        blob = json.dumps(self._as_dict()).encode()
+
         if self._write_concern:
             dirname, filename = os.path.split(self._filename)
             fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
                 uid=uuid.uuid4(), fn=filename))
             with open(fn_tmp, 'wb') as tmpfile:
-                tmpfile.write(json.dumps(self._as_dict()).encode())
+                tmpfile.write(blob)
             if six.PY2:
                 os.rename(fn_tmp, self._filename)
             else:
                 os.replace(fn_tmp, self._filename)
         else:
             with open(self._filename, 'wb') as file:
-                file.write(json.dumps(self._as_dict()).encode())
+                file.write(blob)
 
     def __repr__(self):
         return repr(self())
