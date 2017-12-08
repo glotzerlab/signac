@@ -30,6 +30,8 @@ pipelines:
             - tox --version
             - python3.6 setup.py build
             - python3.6 -m unittest discover tests/ -v
+            - pip2 install -U mock
+            - python2 -c "import mock; print(mock.__version__)"
             - tox
             - python3.6 -m coverage report -i --include="signac*"
     develop:
@@ -46,6 +48,8 @@ pipelines:
             - tox --version
             - python3.6 setup.py build
             - python3.6 -m unittest discover tests/ -v
+            - pip2 install -U mock
+            - python2 -c "import mock; print(mock.__version__)"
             - tox
             - python3.6 -m coverage report -i --include="signac*"
     release-*:
@@ -62,6 +66,8 @@ pipelines:
             - tox --version
             - python3.6 setup.py build
             - python3.6 -m unittest discover tests/ -v
+            - pip2 install -U mock
+            - python2 -c "import mock; print(mock.__version__)"
             - tox
             - python3.6 -m coverage report -i --include="signac*"
             - python -c "import json; json.load(open('.zenodo.json'))"
@@ -82,6 +88,8 @@ pipelines:
             - python3.6 -m twine --version
             - python3.6 setup.py build
             - python3.6 -m unittest discover tests/ -v
+            - pip2 install -U mock
+            - python2 -c "import mock; print(mock.__version__)"
             - tox
             - python3.6 -m coverage report -i --include="signac*"
      - step:
