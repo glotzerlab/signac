@@ -727,7 +727,8 @@ def export(docs, index, mirrors=None, update=False,
     else:
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
-            return export_pymongo(docs, index, mirrors, num_tries, timeout, **kwargs)
+            return export_pymongo(docs=docs, index=index, mirrors=mirrors,
+                                  update=update, num_tries=num_tries, timeout=timeout, **kwargs)
     ids = defaultdict(list)
     for doc in docs:
         _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
@@ -769,7 +770,7 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
         raise errors.ExportError()
 
 
-def export_pymongo(docs, index, mirrors=None, num_tries=3, timeout=60, chunksize=100):
+def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100):
     """Optimized :py:func:`~.export` function for pymongo index collections.
 
     The behavior of this function is rougly equivalent to:
