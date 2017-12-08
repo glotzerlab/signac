@@ -800,8 +800,13 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
     logger.info("Exporting to pymongo database collection index '{}'.".format(index))
     chunk = []
     operations = []
+    ids = defaultdict(list)
     for doc in docs:
         f = {'_id': doc['_id']}
+        if update:
+            root = doc.get('root')
+            if root is not None:
+                ids[root].append(doc['_id'])
         chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(chunk) >= chunksize:
@@ -812,6 +817,19 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
     if len(operations):
         logger.debug("Pushing final chunk.")
         _export_pymongo(chunk, operations, index, mirrors, num_tries, timeout)
+    if update:
+        if ids:
+            stale = set()
+            for root in ids:
+                docs_ = index.find({'root': root})
+                all_ = {doc['_id'] for doc in docs_}
+                stale.update(all_.difference(ids[root]))
+            logger.info("Removing {} stale documents.".format(len(stale)))
+            for _id in set(stale):
+                index.delete_one(dict(_id=_id))
+        else:
+            raise errors.ExportError(
+                "The exported docs sequence is empty! Unable to update!")
 
 
 def index_files(root='.', formats=None, depth=0):
