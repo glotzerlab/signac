@@ -224,7 +224,7 @@ class Job(object):
         :rtype: :class:`~.JSONDict`"""
         if self._document is None:
             self.init()
-            self._document = JSONDict(filename=self._fn_doc)
+            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
         return self._document
 
     @document.setter
