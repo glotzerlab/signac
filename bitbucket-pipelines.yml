@@ -13,8 +13,13 @@ pipelines:
           - pip --version
           - pip install -U flake8
           - python -m flake8 --show-source signac/
+          - pip install -U pymongo
+          - python -c "import pymongo; print(pymongo.__version__)"
           - python setup.py build
+          - python -m signac config -l host testing
           - python -m unittest discover tests/ -v
+        services:
+          - mongo
   branches:
     master:
       - step:
@@ -29,6 +34,7 @@ pipelines:
             - python3.6 -m flake8 --show-source signac/
             - tox --version
             - python3.6 setup.py build
+            - python3.6 -m signac config -l host testing
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
@@ -45,6 +51,7 @@ pipelines:
             - python3.6 -m flake8 --show-source signac/
             - tox --version
             - python3.6 setup.py build
+            - python3.6 -m signac config -l host testing
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
@@ -61,6 +68,7 @@ pipelines:
             - python3.6 -m flake8 --show-source signac/
             - tox --version
             - python3.6 setup.py build
+            - python3.6 -m signac config -l host testing
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
@@ -81,6 +89,7 @@ pipelines:
             - tox --version
             - python3.6 -m twine --version
             - python3.6 setup.py build
+            - python3.6 -m signac config -l host testing
             - python3.6 -m unittest discover tests/ -v
             - tox
             - python3.6 -m coverage report -i --include="signac*"
@@ -95,3 +104,8 @@ pipelines:
             - python -m wheel version
             - python -c "import json; json.load(open('.zenodo.json'))"
             - bash .deploy.bash
+
+definitions:
+  services:
+    mongo:
+      image: mongo
