@@ -104,7 +104,7 @@ class DBClientConnector(object):
             self._connect_pymongo3(host)
 
     def authenticate(self):
-        auth_mechanism = self._config_get('auth_mechanism')
+        auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
         if auth_mechanism == AUTH_SCRAM_SHA_1:
             db_auth = self.client[self._config.get('db_auth', 'admin')]
@@ -122,9 +122,13 @@ class DBClientConnector(object):
             db_external = self.client['$external']
             db_external.authenticate(
                 certificate_subject, mechanism='MONGODB-X509')
+        elif auth_mechanism == AUTH_NONE:
+            pass
+        else:
+            raise_unsupported_auth_mechanism(auth_mechanism)
 
     def logout(self):
-        auth_mechanism = self._config_get_required('auth_mechanism')
+        auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism == AUTH_SCRAM_SHA_1:
             db_auth = self.client['admin']
             db_auth.logout()
