@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import unittest
+import mock
 import os
 import io
 import re
@@ -73,26 +74,6 @@ class TestFormat(object):
 
     def close(self):
         assert 0
-
-
-class TestCollection(object):
-
-    def __init__(self, collection):
-        self.called = False
-        self.collection = collection
-
-    def __getattr__(self, attr):
-        try:
-            return super(TestCollection, self).__getattr__(attr)
-        except AttributeError:
-            a = getattr(self.collection, attr)
-            if callable(a):
-                def method(*args, **kwargs):
-                    self.called = True
-                    return a(*args, **kwargs)
-                return method
-            else:
-                return a
 
 
 class TestFS(object):
@@ -167,7 +148,8 @@ class IndexingBaseTest(unittest.TestCase):
             module.write(self.access_module)
 
     def get_index_collection(self):
-        return TestCollection(Collection())
+        c = Collection()
+        return mock.Mock(spec=c, wraps=c)
 
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
@@ -352,7 +334,7 @@ class IndexingBaseTest(unittest.TestCase):
         index = self.get_index_collection()
         for doc in crawler.crawl():
             signac.export_one(doc, index)
-        self.assertTrue(index.called)
+        self.assertTrue(index.replace_one.called)
         for doc in crawler.crawl():
             self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
 
@@ -362,7 +344,7 @@ class IndexingBaseTest(unittest.TestCase):
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         signac.export(crawler.crawl(), index)
-        self.assertTrue(index.called)
+        self.assertTrue(index.replace_one.called)
         for doc in crawler.crawl():
             self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
 
@@ -371,13 +353,14 @@ class IndexingBaseTest(unittest.TestCase):
         index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
         collection = self.get_index_collection()
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.called)
+        self.assertTrue(collection.replace_one.called)
         for doc in index:
             self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
-        collection.called = False
+        collection.reset_mock()
         self.assertEqual(len(index), collection.find().count())
+        self.assertTrue(collection.find.called)
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.called)
+        self.assertTrue(collection.replace_one.called)
         for doc in index:
             self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
         self.assertEqual(len(index), collection.find().count())
@@ -386,10 +369,10 @@ class IndexingBaseTest(unittest.TestCase):
             N = len(index)
             index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
             self.assertEqual(len(index), N - 1)
-            collection.called = False
+            collection.reset_mock()
             if index:
                 signac.export(index, collection, update=True)
-                self.assertTrue(collection.called)
+                self.assertTrue(collection.replace_one.called)
                 self.assertEqual(len(index), collection.find().count())
             else:
                 with self.assertRaises(errors.ExportError):
@@ -411,7 +394,7 @@ class IndexingBaseTest(unittest.TestCase):
             self.assertIn('file_id', doc)
             signac.export_one(doc, index)
             signac.export_to_mirror(doc, mirror)
-        self.assertTrue(index.called)
+        self.assertTrue(index.replace_one.called)
         for doc in crawler.crawl():
             self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
             with mirror.get(doc['file_id']):
@@ -447,7 +430,7 @@ class IndexingPyMongoTest(IndexingBaseTest):
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         db.test_index.drop()
-        return TestCollection(db.test_index)
+        return mock.Mock(spec=db.test_index, wraps=db.test_index)
 
 
 class IndexingBaseGetCrawlersTest(IndexingBaseTest):
