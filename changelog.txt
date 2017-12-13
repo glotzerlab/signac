@@ -8,6 +8,8 @@
 	when the index to export to would be a MongoDB collection.
 	- Allow to omit the specification of an authentication mechanism in the
 	MongoDB host configuration.
+	- Miscellaneous optimizations to the Project class implementation, including
+	a provisional persistent caching feature.
 
 0.9.1:
 
