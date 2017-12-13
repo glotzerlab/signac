@@ -10,7 +10,10 @@ import warnings
 import errno
 import collections
 import uuid
+import time
+import gzip
 from itertools import chain, groupby
+from multiprocessing.pool import ThreadPool
 
 from .. import syncutil
 from ..core.json import json
@@ -34,9 +37,9 @@ if six.PY2:
 else:
     from collections.abc import Mapping
 
-
 logger = logging.getLogger(__name__)
 
+JOB_ID_REGEX = re.compile('[a-f0-9]{32}')
 
 ACCESS_MODULE_MINIMAL = """import signac
 
@@ -67,8 +70,8 @@ class JobSearchIndex(object):
     :param index: A document index.
     """
 
-    def __init__(self, index):
-        self._collection = Collection(index)
+    def __init__(self, index, _trust=False):
+        self._collection = Collection(index, _trust=_trust)
 
     def __len__(self):
         return len(self._collection)
@@ -123,17 +126,28 @@ class Project(object):
     FN_STATEPOINTS = 'signac_statepoints.json'
     "The default filename to read from and write statepoints to."
 
+    FN_CACHE = '.signac_sp_cache.json.gz'
+    "The default filename for the state point cache file."
+
     def __init__(self, config=None):
         if config is None:
             config = load_config()
         self._config = config
-        self._sp_cache = dict()
-        self._index_cache = dict()
+
+        # Ensure that the project id is configured.
         self.get_id()
-        if not os.path.isabs(self._wd):
-            self._wd = os.path.join(self.root_directory(), self._wd)
-        self._fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
+
+        # Prepare project document
+        self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
+
+        # Internal caches
+        self._index_cache = dict()
+        self._sp_cache = dict()
+        self._sp_cache_misses = 0
+        self._sp_cache_warned = False
+        self._sp_cache_miss_warning_threshold = self._config.get(
+            'statepoint_cache_miss_warning_threshold', 500)
 
     def __str__(self):
         "Returns the project's id."
@@ -314,16 +328,15 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            job = self.Job(project=self, statepoint=self.get_statepoint(id))
+            job = self.Job(project=self, statepoint=self.get_statepoint(id), _trust=True)
         if job.get_id() not in self._sp_cache:
             self._register(job)
         return job
 
     def _job_dirs(self):
-        m = re.compile('[a-f0-9]{32}')
         try:
             for d in os.listdir(self._wd):
-                if m.match(d):
+                if JOB_ID_REGEX.match(d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
@@ -356,7 +369,7 @@ class Project(object):
         """
         return job.get_id() in self.find_job_ids()
 
-    def build_job_search_index(self, index):
+    def build_job_search_index(self, index, _trust=False):
         """Build a job search index.
 
         :param index: A document index.
@@ -364,7 +377,7 @@ class Project(object):
         :returns: A job search index based on the provided index.
         :rtype: :class:`~.JobSearchIndex`
         """
-        return JobSearchIndex(index=index)
+        return JobSearchIndex(index=index, _trust=_trust)
 
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
@@ -409,7 +422,7 @@ class Project(object):
         """
         if index is None:
             index = self.index(include_job_document=False)
-        collection = Collection(index)
+        collection = Collection(index, _trust=True)
         for doc in collection.find():
             for key, _ in _traverse_filter(doc):
                 if key == '_id' or key.split('.')[0] != 'statepoint':
@@ -476,7 +489,7 @@ class Project(object):
                 index = self._sp_index()
             else:
                 index = self.index(include_job_document=True)
-        search_index = self.build_job_search_index(index)
+        search_index = self.build_job_search_index(index, _trust=True)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
@@ -654,14 +667,18 @@ class Project(object):
             fn = self.fn(self.FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
-        # except FileNotFoundError:
         except IOError as error:
             if not error.errno == errno.ENOENT:
                 raise
             tmp = dict()
         if statepoints is None:
-            statepoints = self.find_statepoints()
-        tmp.update(self.dump_statepoints(statepoints))
+            job_ids = self._job_dirs()
+            _cache = {_id: self.get_statepoint(_id) for _id in job_ids}
+        else:
+            _cache = {calc_id(sp): sp for sp in statepoints}
+
+        tmp.update(_cache)
+        logger.debug("Writing state points file with {} entries.".format(len(tmp)))
         with open(fn, 'w') as file:
             file.write(json.dumps(tmp, indent=indent))
 
@@ -708,10 +725,19 @@ class Project(object):
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
         """
+        if not self._sp_cache:
+            self._read_cache()
         try:
             if jobid in self._sp_cache:
                 return self._sp_cache[jobid]
             else:
+                self._sp_cache_misses += 1
+                if not self._sp_cache_warned and\
+                        self._sp_cache_misses > self._sp_cache_miss_warning_threshold:
+                    logger.debug(
+                        "High number of state point cache misses. Consider "
+                        "to update cache with the Project.update_cache() method.")
+                    self._sp_cache_warned = True
                 sp = self._get_statepoint_from_workspace(jobid)
         except KeyError as error:
             try:
@@ -882,7 +908,7 @@ class Project(object):
             In case that a job with the same id is already
             initialized within this project.
         """
-        dst = self.open_job(job._statepoint)
+        dst = self.open_job(job.statepoint())
         try:
             copytree(job.workspace(), dst.workspace())
         except OSError as error:
@@ -1013,6 +1039,69 @@ class Project(object):
                         if error.errno != errno.ENOENT:
                             raise
             yield doc
+
+    def _update_in_memory_cache(self):
+        "Update the in-memory state point cache to reflect the workspace."
+        logger.debug("Updating in-memory cache...")
+        start = time.time()
+        job_ids = set(self._job_dirs())
+        cached_ids = set(self._sp_cache)
+        to_add = job_ids.difference(cached_ids)
+        to_remove = cached_ids.difference(job_ids)
+        if to_add or to_remove:
+            for _id in to_remove:
+                del self._sp_cache[_id]
+
+            def _add(_id):
+                self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
+
+            if six.PY2:
+                pool = ThreadPool()
+                pool.map(_add, to_add)
+            else:
+                with ThreadPool() as pool:
+                        pool.map(_add, to_add)
+
+            delta = time.time() - start
+            logger.debug("Updated in-memory cache in {:.3f} seconds.".format(delta))
+            return to_add, to_remove
+        else:
+            logger.debug("In-memory cache is up to date.")
+
+    def update_cache(self):
+        "Update the persistent state point cache (experimental)."
+        warnings.warn(
+            "The Project.update_cache() method is experimental and "
+            "might be removed in future releases.", FutureWarning)
+        logger.info('Update cache...')
+        start = time.time()
+        cache = self._read_cache()
+        self._update_in_memory_cache()
+        if cache is None or set(cache) != set(self._sp_cache):
+            with gzip.open(self.fn(self.FN_CACHE), 'wb') as cachefile:
+                cachefile.write(json.dumps(self._sp_cache).encode())
+            delta = time.time() - start
+            logger.info("Updated cache in {:.3f} sconds.".format(delta))
+            return len(self._sp_cache)
+        else:
+            logger.info("Cache is up to date.")
+
+    def _read_cache(self):
+        "Read the persistent state point cache (if available)."
+        logger.debug("Reading cache...")
+        start = time.time()
+        try:
+            with gzip.open(self.fn(self.FN_CACHE), 'rb') as cachefile:
+                cache = json.loads(cachefile.read().decode())
+            self._sp_cache.update(cache)
+        except IOError as error:
+            if not error.errno == errno.ENOENT:
+                raise
+            logger.debug("No cache file found.")
+        else:
+            delta = time.time() - start
+            logger.debug("Read cache in {:.3f} seconds.".format(delta))
+            return cache
 
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):

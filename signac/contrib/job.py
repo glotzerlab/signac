@@ -50,11 +50,14 @@ class Job(object):
     FN_DOCUMENT = 'signac_job_document.json'
     "The job's document filename."
 
-    def __init__(self, project, statepoint):
+    def __init__(self, project, statepoint, _trust=False):
         self._project = project
-        self._sp = None
-        self._statepoint = json.loads(json.dumps(statepoint))
-        self._id = calc_id(self.statepoint())
+        if _trust:
+            self._statepoint = dict(statepoint)
+        else:
+            self._statepoint = json.loads(json.dumps(statepoint))
+        self._id = calc_id(self._statepoint)
+        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = os.path.join(project.workspace(), self._id)
         self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
@@ -113,7 +116,7 @@ class Job(object):
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
             os.rename(fn_manifest, fn_manifest_backup)
@@ -249,11 +252,11 @@ class Job(object):
             files, e.g., to repair them when they got corrupted.
         :type force: bool
         """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
         try:
-            _mkdir_p(self.workspace())
+            _mkdir_p(self._wd)
         except OSError as error:
             logger.error("Error occured while trying to create "
                          "workspace directory for job '{}'.".format(self))
@@ -261,7 +264,7 @@ class Job(object):
 
         try:
             # Ensure to create the binary to write before file creation
-            blob = json.dumps(self.statepoint(), indent=2)
+            blob = json.dumps(self._statepoint, indent=2)
 
             try:
                 # Open the file for writing only if it does not exist yet.
@@ -297,11 +300,11 @@ class Job(object):
 
     def _check_manifest(self):
         "Check whether the manifest file, if it exists, is correct."
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             try:
-                with open(fn_manifest) as file:
-                    assert calc_id(json.loads(file.read())) == self._id
+                with open(fn_manifest, 'rb') as file:
+                    assert calc_id(json.loads(file.read().decode())) == self._id
             except IOError as error:
                 if error.errno != errno.ENOENT:
                     raise error
@@ -429,7 +432,7 @@ class Job(object):
         :param filename: The filename of the file.
         :type filename: str
         :return: The full workspace path of the file."""
-        return os.path.join(self.workspace(), filename)
+        return os.path.join(self._wd, filename)
 
     def isfile(self, filename):
         """Return True if file exists in the job's workspace.
@@ -455,8 +458,8 @@ class Job(object):
         """
         self._cwd.append(os.getcwd())
         self.init()
-        logger.info("Enter workspace '{}'.".format(self.workspace()))
-        os.chdir(self.workspace())
+        logger.info("Enter workspace '{}'.".format(self._wd))
+        os.chdir(self._wd)
 
     def close(self):
         "Close the job and switch to the previous working directory."

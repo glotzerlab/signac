@@ -256,7 +256,7 @@ class Collection(object):
         key is `_id`.
     """
 
-    def __init__(self, docs=None, primary_key='_id'):
+    def __init__(self, docs=None, primary_key='_id', _trust=False):
         if isinstance(docs, six.string_types):
             raise ValueError(
                 "First argument cannot be of str type. "
@@ -270,7 +270,7 @@ class Collection(object):
         self._docs = dict()
         if docs is not None:
             for doc in docs:
-                self[doc[self._primary_key]] = doc
+                self.__setitem__(doc[self._primary_key], doc, _trust=_trust)
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
         self._next_default_id_ = None
@@ -401,7 +401,7 @@ class Collection(object):
             self._assert_open()
             raise
 
-    def __setitem__(self, _id, doc):
+    def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
         if six.PY2:
             if not isinstance(_id, basestring):  # noqa
@@ -412,7 +412,10 @@ class Collection(object):
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
             raise ValueError("Primary key mismatch!")
-        self._docs[_id] = json.loads(json.dumps(doc))
+        if _trust:
+            self._docs[_id] = doc
+        else:
+            self._docs[_id] = json.loads(json.dumps(doc))
         self._dirty.add(_id)
         self._requires_flush = True
 

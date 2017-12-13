@@ -496,6 +496,16 @@ def main_sync(args):
     raise RuntimeWarning("Synchronization aborted.")
 
 
+def main_update_cache(args):
+    project = get_project()
+    _print_err("Updating cache...")
+    n = project.update_cache()
+    if n is None:
+        _print_err("Cache is up to date.")
+    else:
+        _print_err("Updated cache (size={}).".format(n))
+
+
 def verify_config(cfg, preserve_errors=True):
     verification = cfg.verify(
         preserve_errors=preserve_errors, skip_missing=True)
@@ -1227,6 +1237,12 @@ job documents."
         nargs='+',
         help="Only synchronize jobs with the given job ids.")
     parser_sync.set_defaults(func=main_sync)
+
+    parser_update_cache = subparsers.add_parser(
+        'update-cache',
+        description="""Use this command to update the project's persistent state point cache.
+This feature is still experimental and may be removed in future versions.""")
+    parser_update_cache.set_defaults(func=main_update_cache)
 
     parser_config = subparsers.add_parser('config')
     parser_config.add_argument(
