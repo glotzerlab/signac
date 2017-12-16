@@ -608,10 +608,11 @@ class ProjectTest(BaseProjectTest):
         os.remove(job.fn(job.FN_MANIFEST))
 
         self.project._sp_cache.clear()
+        self.project._remove_persistent_cache_file()
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(JobsCorruptedError):
-                self.project.open_job(id=job.get_id())
+                self.project.open_job(id=job.get_id()).init()
         finally:
             logging.disable(logging.NOTSET)
 
@@ -624,6 +625,7 @@ class ProjectTest(BaseProjectTest):
             pass
 
         self.project._sp_cache.clear()
+        self.project._remove_persistent_cache_file()
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(JobsCorruptedError):
@@ -648,8 +650,9 @@ class ProjectTest(BaseProjectTest):
             with open(job.FN_MANIFEST, 'w'):
                 pass
 
-        # Need to clear internal cache to encounter error.
+        # Need to clear internal and persistent cache to encounter error.
         self.project._sp_cache.clear()
+        self.project._remove_persistent_cache_file()
 
         # Ensure that state point hash table does not exist.
         self.assertFalse(os.path.isfile(self.project.fn(self.project.FN_STATEPOINTS)))
@@ -1022,13 +1025,25 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(group_count, len(list(self.project.find_jobs())))
 
 
-class CachedProjectTest(ProjectTest):
+class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
-    def setUp(self):
-        super(CachedProjectTest, self).setUp()
+    def init(self, *args, **kwargs):
+        super(UpdateCacheAfterInitJob, self).init(*args, **kwargs)
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
-            self.project.update_cache()
+            self._project.update_cache()
+
+class UpdateCacheAfterInitJobProject(signac.Project):
+    "This is a test class that regularly calls the update_cache() method."
+    Job = UpdateCacheAfterInitJob
+
+
+class CachedProjectTest(ProjectTest):
+
+    project_class = UpdateCacheAfterInitJobProject
+
+    def test_repr(self):
+        repr(self)
 
 
 class ProjectInitTest(unittest.TestCase):

@@ -6,6 +6,7 @@ import unittest
 import os
 import io
 import warnings
+import logging
 import uuid
 import copy
 import random
@@ -15,6 +16,7 @@ import signac.contrib
 import signac.common.config
 from signac.common import six
 from signac.errors import DestinationExistsError
+from signac.errors import JobsCorruptedError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -58,17 +60,13 @@ def config_from_cfg(cfg):
     return signac.common.config.get_config(cfile)
 
 
-def open_job(cfg, *args, **kwargs):
-    config = config_from_cfg(cfg)
-    project = signac.contrib.project.Project(config=config)
-    return project.open_job(*args, **kwargs)
-
-
 def testdata():
     return str(uuid.uuid4())
 
 
 class BaseJobTest(unittest.TestCase):
+
+    project_class = signac.Project
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
@@ -77,7 +75,7 @@ class BaseJobTest(unittest.TestCase):
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
-        self.project = signac.Project.init_project(
+        self.project = self.project_class.init_project(
             name='testing_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
@@ -410,8 +408,14 @@ class JobOpenAndClosingTest(BaseJobTest):
         with open(fn_manifest, 'w') as file:
             file.write("corrupted")
         job2 = self.open_job(test_token)
-        with self.assertRaises(RuntimeError):
-            job2.init()
+        try:
+            logging.disable(logging.ERROR)
+            with self.assertRaises(JobsCorruptedError):
+                job2.init()
+        finally:
+            logging.disable(logging.NOTSET)
+        job2.init(force=True)
+        job2.init()
 
 
 class JobDocumentTest(BaseJobTest):

@@ -962,7 +962,28 @@ class Project(object):
             selection=selection,
             **kwargs)
 
-    def repair(self, fn_statepoints=None, index=None):
+    def check(self, job_ids=None):
+        """Check the project's workspace for corruption.
+
+        :param job_ids:
+            The ids of jobs to check, defaults to all jobs.
+        :raises JobsCorruptedError:
+            When one or more jobs are identified as corrupted.
+        """
+        corrupted = []
+        logger.info("Checking workspace for corruption...")
+        for job_id in self.find_job_ids():
+            try:
+                self.open_job(id=job_id).init()
+            except JobsCorruptedError as error:
+                corrupted.extend(error.job_ids)
+        if corrupted:
+            logger.error(
+                "At least one job appears to be corrupted. Call Project.repair() "
+                "to try to fix errors.".format(len(corrupted)))
+            raise JobsCorruptedError(corrupted)
+
+    def repair(self, fn_statepoints=None, index=None, job_ids=None):
         """Attempt to repair the workspace after it got corrupted.
 
         This method will attempt to repair lost or corrupted job state point
@@ -975,40 +996,48 @@ class Project(object):
             str
         :param index:
             A document index
+        :param job_ids:
+            An iterable of job ids that should get repaired. Defaults to all jobs.
         :raises JobsCorruptedError:
             When one or more corrupted job could not be repaired.
         """
-        corrupted = []
-        for job_id in self.find_job_ids():
-            try:
-                self.open_job(id=job_id)
-            except KeyError as error:
-                logger.critical(
-                    "Unable to recover state point for job with "
-                    "id '{}'.".format(job_id))
-                corrupted.append(job_id)
-            except JobsCorruptedError as error:
-                logger.warning("Attempt to recover state point from file: {}.".format(job_id))
-                try:    # Try to recover from state points file.
-                    sp = self.read_statepoints(fn_statepoints)[job_id]
-                except IOError as io_error:
-                    if io_error.errno != errno.ENOENT:
-                        raise
-                if index is not None:
-                    try:    # Try to recover from index.
-                        sp = index[job_id]
-                    except KeyError:
-                        pass
-                try:
-                    self.open_job(sp).init(force=True)
-                except Exception as error_during_recovery:
-                    logger.critical(
-                        "Failed to recover job with id '{}', error: '{}'.".format(
-                            job_id, error_during_recovery))
-                    corrupted.append(job_id)
-            except Exception as error:
-                logger.critical("Unknown error during recovery: '{}'".format(error))
+        if job_ids is None:
+            job_ids = self.find_job_ids()
+
+        # Load internal cache from all available external sources.
+        self._read_cache()
+        try:
+            self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
+        except IOError as error:
+            if error.errno != errno.ENOENT or fn_statepoints is not None:
                 raise
+        if index is not None:
+            for doc in index:
+                self._sp_cache[doc['signac_id']] = doc['statepoint']
+
+        corrupted = []
+        for job_id in job_ids:
+            try:
+                # First, check if we can look up the state point.
+                job = self.open_job(id=job_id)
+            except KeyError:
+                logger.critical("Unable to lookup state point for job with id '{}'.".format(job_id))
+                corrupted.append(job_id)
+            else:
+                try:
+                    # Try to reinit the job (triggers state point manifest file check).
+                    job.init()
+                except Exception as error:
+                    logger.error(
+                        "Error during initalization of job with "
+                        "id '{}': '{}'.".format(job_id, error))
+                    try:    # Attempt to fix the job manifest file.
+                        job.init(force=True)
+                    except Exception as error2:
+                        logger.critical(
+                            "Unable to force init job with id "
+                            "'{}': '{}'.".format(job_id, error2))
+                        corrupted.append(job_id)
         if corrupted:
             raise JobsCorruptedError(corrupted)
 
