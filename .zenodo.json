@@ -1,34 +1,38 @@
 {
-    "description": "<p>The signac framework aids in the management of large and heterogeneous data spaces. It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata. This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.</p>", 
-    "license": "BSD-3-Clause", 
-    "upload_type": "software", 
+    "description": "<p>The signac framework aids in the management of large and heterogeneous data spaces. It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata. This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.</p>",
+    "license": "BSD-3-Clause",
+    "upload_type": "software",
     "creators": [
         {
-            "affiliation": "University of Michigan", 
+            "affiliation": "University of Michigan",
             "name": "Carl S. Adorf"
-        }, 
+        },
         {
-            "affiliation": "University of Michigan", 
+            "affiliation": "University of Michigan",
             "name": "Paul M. Dodd"
-        }, 
+        },
         {
-            "affiliation": "University of Michigan", 
+            "affiliation": "University of Michigan",
             "name": "Vyas Ramasubramani"
-        }, 
+        },
         {
-            "affiliation": "University of Michigan", 
+            "affiliation": "University of Michigan",
             "name": "Benjamin Swerdlow"
         },
         {
-            "affiliation": "University of Michigan", 
+            "affiliation": "University of Michigan",
+            "name": "Jens Glaser"
+        },
+        {
+            "affiliation": "University of Michigan",
             "name": "Bradley Dice"
         }
-    ], 
-    "access_right": "open", 
+    ],
+    "access_right": "open",
     "related_identifiers": [
         {
-            "scheme": "url", 
-            "identifier": "arXiv://1611.03543 [cs.DB]", 
+            "scheme": "url",
+            "identifier": "arXiv://1611.03543 [cs.DB]",
             "relation": "isSupplementedBy"
         }
     ]
