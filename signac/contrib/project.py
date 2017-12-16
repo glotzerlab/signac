@@ -1076,6 +1076,14 @@ class Project(object):
         else:
             logger.debug("In-memory cache is up to date.")
 
+    def _remove_persistent_cache_file(self):
+        "Remove the persistent cache file (if it exists)."
+        try:
+            os.remove(self.fn(self.FN_CACHE))
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+
     def update_cache(self):
         """Update the persistent state point cache (experimental).
 
