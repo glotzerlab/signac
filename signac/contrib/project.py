@@ -1106,10 +1106,10 @@ class Project(object):
             try:
                 with gzip.open(fn_cache_tmp, 'wb') as cachefile:
                     cachefile.write(json.dumps(self._sp_cache).encode())
-            except IOError:  # clean-up
+            except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
-                except IOError:
+                except OSError:
                     pass
                 raise
             else:
