@@ -10,8 +10,8 @@ import warnings
 import errno
 import collections
 import uuid
-import time
 import gzip
+import time
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
 
@@ -27,7 +27,7 @@ from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .utility import _mkdir_p
+from .utility import _mkdir_p, split_and_print_progress
 from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
@@ -1055,12 +1055,20 @@ class Project(object):
             def _add(_id):
                 self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
 
+            to_add_chunks = split_and_print_progress(
+                iterable=list(to_add),
+                num_chunks=max(1, min(100, int(len(to_add) / 1000))),
+                write=logger.info,
+                desc="Read metadata: ")
+
             if six.PY2:
                 pool = ThreadPool()
-                pool.map(_add, to_add)
+                for chunk in to_add_chunks:
+                    pool.map(_add, chunk)
             else:
                 with ThreadPool() as pool:
-                        pool.map(_add, to_add)
+                    for chunk in to_add_chunks:
+                        pool.map(_add, chunk)
 
             delta = time.time() - start
             logger.debug("Updated in-memory cache in {:.3f} seconds.".format(delta))
@@ -1090,10 +1098,10 @@ class Project(object):
             try:
                 with gzip.open(fn_cache_tmp, 'wb') as cachefile:
                     cachefile.write(json.dumps(self._sp_cache).encode())
-            except:   # cleanup
+            except IOError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
-                except:
+                except IOError:
                     pass
                 raise
             else:

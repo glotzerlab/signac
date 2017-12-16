@@ -7,6 +7,8 @@ import os
 import getpass
 import argparse
 import errno
+from time import time
+from datetime import timedelta
 
 from ..common import six
 
@@ -172,3 +174,27 @@ def is_string(s):
         return isinstance(s, basestring)  # noqa
     else:
         return isinstance(s, str)
+
+
+def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):
+    if write is None:
+        write = print
+    N = len(iterable)
+    len_chunk = int(N / num_chunks)
+    intervals = []
+    show_est = False
+    for i in range(num_chunks-1):
+        if i:
+            msg = "{}{:3.0f}%".format(desc, 100 * i / num_chunks)
+            if intervals:
+                mean_interval = sum(intervals) / len(intervals)
+                est_remaining = int(mean_interval * (num_chunks - i))
+                if est_remaining > 10 or show_est:
+                    show_est = True
+                    msg += " (Est. time remaining: {}h)".format(timedelta(seconds=est_remaining))
+            write(msg)
+        start = time()
+        yield iterable[i * len_chunk:(i+1) * len_chunk]
+        intervals.append(time() - start)
+    yield iterable[(i+1) * len_chunk:]
+    write("{}100%".format(desc, 100 * i/N))
