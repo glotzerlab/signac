@@ -13,7 +13,7 @@ from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
 from .hashing import calc_id
 from .utility import _mkdir_p
-from .errors import DestinationExistsError
+from .errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
 if six.PY2:
     from collections import Mapping
@@ -309,8 +309,9 @@ class Job(object):
                 if error.errno != errno.ENOENT:
                     raise error
         except Exception as error:
-            msg = "Manifest file of job '{}' is corrupted: {}."
-            raise RuntimeError(msg.format(self, error))
+            logger.error(
+                "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
+            raise JobsCorruptedError([self._id])
 
     def clear(self):
         """Remove all job data, but not the job itself.
