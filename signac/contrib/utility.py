@@ -194,7 +194,7 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
                     est_remaining = int(mean_interval * (num_chunks - i))
                     if est_remaining > 10 or show_est:
                         show_est = True
-                        msg += " (Est. time remaining: {}h)".format(timedelta(seconds=est_remaining))
+                        msg += " (ETR: {}h)".format(timedelta(seconds=est_remaining))
                 write(msg)
             start = time()
             yield iterable[i * len_chunk:(i+1) * len_chunk]
