@@ -1109,7 +1109,7 @@ class Project(object):
         "Remove the persistent cache file (if it exists)."
         try:
             os.remove(self.fn(self.FN_CACHE))
-        except IOError as error:
+        except (OSError, IOError) as error:
             if error.errno != errno.ENOENT:
                 raise error
 
@@ -1138,7 +1138,7 @@ class Project(object):
             except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
-                except OSError:
+                except (OSError, IOError):
                     pass
                 raise
             else:
