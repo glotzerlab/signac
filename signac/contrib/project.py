@@ -1069,7 +1069,14 @@ class Project(object):
             logger.debug("In-memory cache is up to date.")
 
     def update_cache(self):
-        "Update the persistent state point cache (experimental)."
+        """Update the persistent state point cache (experimental).
+
+        This function updates a persistent state point cache, which
+        is stored in the project root directory. Most data space operations,
+        including iteration and filtering or selection are expected
+        to be significantly faster after calling this function, especially
+        for large data spaces.
+        """
         warnings.warn(
             "The Project.update_cache() method is experimental and "
             "might be removed in future releases.", FutureWarning)
@@ -1078,8 +1085,22 @@ class Project(object):
         cache = self._read_cache()
         self._update_in_memory_cache()
         if cache is None or set(cache) != set(self._sp_cache):
-            with gzip.open(self.fn(self.FN_CACHE), 'wb') as cachefile:
-                cachefile.write(json.dumps(self._sp_cache).encode())
+            fn_cache = self.fn(self.FN_CACHE)
+            fn_cache_tmp = fn_cache + '~'
+            try:
+                with gzip.open(fn_cache_tmp, 'wb') as cachefile:
+                    cachefile.write(json.dumps(self._sp_cache).encode())
+            except:   # cleanup
+                try:
+                    os.remove(fn_cache_tmp)
+                except:
+                    pass
+                raise
+            else:
+                if six.PY2:
+                    os.rename(fn_cache_tmp, fn_cache)
+                else:
+                    os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
             logger.info("Updated cache in {:.3f} sconds.".format(delta))
             return len(self._sp_cache)
