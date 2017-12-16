@@ -8,8 +8,12 @@
 	when the index to export to would be a MongoDB collection.
 	- Allow to omit the specification of an authentication mechanism in the
 	MongoDB host configuration.
-	- Miscellaneous optimizations to the Project class implementation, including
-	a provisional persistent caching feature.
+	- Add provisional feature (persistent state point caching); calling the
+	Project.update_cache() method will generat and store a persistent state
+	point cache in the project root directory, which will increase many project
+	operations.
+	- Add Project.check() method which checks for workspace corruption, but does
+	not make any attempt to repair it.
 
 0.9.1:
 
