@@ -1022,6 +1022,15 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(group_count, len(list(self.project.find_jobs())))
 
 
+class CachedProjectTest(ProjectTest):
+
+    def setUp(self):
+        super(CachedProjectTest, self).setUp()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
+            self.project.update_cache()
+
+
 class ProjectInitTest(unittest.TestCase):
 
     def setUp(self):
