@@ -11,7 +11,7 @@ from .common.errors import FileNotFoundError
 from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
-
+from .contrib.errors import JobsCorruptedError
 
 class SyncConflict(Error, RuntimeError):
     "Raised when a synchronization operation fails."
@@ -47,6 +47,7 @@ __all__ = [
     'FileNotFoundError',
     'FetchError',
     'DestinationExistsError',
+    'JobsCorruptedError',
     'SyncConflict',
     'FileSyncConflict',
     'DocumentSyncConflict',
