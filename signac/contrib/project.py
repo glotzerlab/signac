@@ -1171,7 +1171,7 @@ class Project(object):
                 else:
                     os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
-            logger.info("Updated cache in {:.3f} sconds.".format(delta))
+            logger.info("Updated cache in {:.3f} seconds.".format(delta))
             return len(self._sp_cache)
         else:
             logger.info("Cache is up to date.")
