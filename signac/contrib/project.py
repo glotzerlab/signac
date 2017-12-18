@@ -974,7 +974,11 @@ class Project(object):
         logger.info("Checking workspace for corruption...")
         for job_id in self.find_job_ids():
             try:
-                self.open_job(id=job_id).init()
+                sp = self.get_statepoint(job_id)
+                if calc_id(sp) != job_id:
+                    corrupted.append(job_id)
+                else:
+                    self.open_job(sp).init()
             except JobsCorruptedError as error:
                 corrupted.extend(error.job_ids)
         if corrupted:
@@ -1019,7 +1023,27 @@ class Project(object):
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                job = self.open_job(id=job_id)
+                sp = self.get_statepoint(job_id)
+                # Check if state point and id correspond.
+                correct_id = calc_id(sp)
+                if correct_id != job_id:
+                    logger.warning(
+                        "The job id of job '{}' is incorrect; "
+                        "it should be '{}'.".format(job_id, correct_id))
+                    invalid_wd = os.path.join(self.workspace(), job_id)
+                    correct_wd = os.path.join(self.workspace(), correct_id)
+                    try:
+                        os.rename(invalid_wd, correct_wd)
+                    except OSError as error:
+                        logger.critical(
+                            "Unable to fix location of job with "
+                            " id '{}': '{}'.".format(job_id, error))
+                        corrupted.append(job_id)
+                        continue
+                    else:
+                        logger.info("Moved job to correct workspace.")
+
+                job = self.open_job(sp)
             except KeyError:
                 logger.critical("Unable to lookup state point for job with id '{}'.".format(job_id))
                 corrupted.append(job_id)

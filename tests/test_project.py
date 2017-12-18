@@ -633,6 +633,46 @@ class ProjectTest(BaseProjectTest):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_rename_workspace(self):
+        job = self.project.open_job(dict(a=0))
+        job.init()
+        # First, we move the job to the wrong directory.
+        wd = job.workspace()
+        wd_invalid = os.path.join(self.project.workspace(), '0' * 32)
+        os.rename(wd, wd_invalid)  # Move to incorrect id.
+        self.assertFalse(os.path.exists(job.workspace()))
+
+        try:
+            logging.disable(logging.CRITICAL)
+
+            # This should raise an error when calling check().
+            with self.assertRaises(JobsCorruptedError):
+                self.project.check()
+
+            # The repair attempt should be successful.
+            self.project.repair()
+            self.project.check()
+
+            # We corrupt it again, but this time ...
+            os.rename(wd, wd_invalid)
+            with self.assertRaises(JobsCorruptedError):
+                self.project.check()
+            #  ... we reinitalize the initial job, ...
+            job.init()
+            with self.assertRaises(JobsCorruptedError):
+                # ... which means the repair attempt must fail.
+                self.project.repair()
+            with self.assertRaises(JobsCorruptedError):
+                self.project.check()
+            # Some manual clean-up should get things back on track.
+            job.remove()
+            with self.assertRaises(JobsCorruptedError):
+                self.project.check()
+            self.project.repair()
+            self.project.check()
+        finally:
+            logging.disable(logging.NOTSET)
+
     def test_repair_corrupted_workspace(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
