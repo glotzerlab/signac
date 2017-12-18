@@ -9,11 +9,13 @@
 	- Allow to omit the specification of an authentication mechanism in the
 	MongoDB host configuration.
 	- Add provisional feature (persistent state point caching); calling the
-	Project.update_cache() method will generat and store a persistent state
-	point cache in the project root directory, which will increase many project
-	operations.
+	Project.update_cache() method will generate and store a persistent state
+	point cache in the project root directory, which will increase the speed
+	of many project iteration, search, and selection operations.
 	- Add Project.check() method which checks for workspace corruption, but does
 	not make any attempt to repair it.
+	- The Project.repair() method will attempt to repair jobs, that have been
+	corrupted by manually renaming the job's workspace directory.
 
 0.9.1:
 
