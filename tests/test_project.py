@@ -1033,6 +1033,7 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
             warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
             self._project.update_cache()
 
+
 class UpdateCacheAfterInitJobProject(signac.Project):
     "This is a test class that regularly calls the update_cache() method."
     Job = UpdateCacheAfterInitJob
