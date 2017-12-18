@@ -34,7 +34,7 @@ from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
 from .db import get_database
 
-__version__ = '0.9.1'
+__version__ = '0.9.2'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'cite',
