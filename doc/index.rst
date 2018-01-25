@@ -15,9 +15,6 @@ Welcome to signac's documentation!
 .. image:: https://img.shields.io/pypi/v/signac.svg
    :target: https://img.shields.io/pypi/v/signac.svg
 
-.. image:: http://mybinder.org/badge.svg
-   :target: http://www.mybinder.org:/repo/csadorf/signac-examples
-
 .. image:: images/minimal.svg
     :align: right
 

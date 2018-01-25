@@ -18,11 +18,8 @@ The second chapter deals with more advanced topics that may not be of interest t
 .. tip::
 
     This tutorial and other examples are available as `interactive jupyter notebooks <signac-examples_>`_!
-    The notebooks are also hosted `online <online tutorial_>`_ as a free service by courtesy of `<mybinder_>`_, however online notebooks are not always available.
 
 .. _`signac-examples`: https://bitbucket.org/glotzer/signac-examples
-.. _`online tutorial`: http://www.mybinder.org/repo/csadorf/signac-examples
-.. _`mybinder`: http://http://www.mybinder.org
 
 Contents:
 
