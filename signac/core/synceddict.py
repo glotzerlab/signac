@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class _SyncedDict(MutableMapping):
 
     def __init__(self, initialdata=None, parent=None):
+        self._buffer_mode = 0
         self._suspend_sync_ = 1
         self._parent = parent
         super(_SyncedDict, self).__init__()
@@ -87,68 +88,95 @@ class _SyncedDict(MutableMapping):
         for key in remove:
             del old[key]
 
+    def _synced_load(self):
+        if self._suspend_sync_ <= 0 and self._buffer_mode < 2:
+            if self._buffer_mode == 1:
+                self._buffer_mode = 2
+            self.load()
+
     def load(self):
+        if self._parent is None:
+            data = self._load()
+            if data is not None:
+                with self._suspend_sync():
+                    self._dfs_update(self._data, data)
+                for value in self._data:
+                    if isinstance(value, Mapping):
+                        assert type(value) == type(self)
+        else:
+            self._parent.load()
+
+    def _synced_save(self):
         if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                data = self._load()
-                if data is not None:
-                    with self._suspend_sync():
-                        self._dfs_update(self._data, data)
-                    for value in self._data:
-                        if isinstance(value, Mapping):
-                            assert type(value) == type(self)
-            else:
-                self._parent.load()
+            if self._buffer_mode == 2:
+                self._buffer_mode = 3
+            self.save()
 
     def save(self):
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                self._save()
-            else:
-                self._parent.save()
+        if self._parent is None:
+            self._save()
+        else:
+            self._parent.save()
+
+    def enable_buffering(self):
+        assert self._parent is None
+        self._buffer_mode = max(self._buffer_mode, 1)
+
+    def disable_buffering(self):
+        assert self._parent is None
+        save_required = self._buffer_mode == 3
+        self._buffer_mode = 0
+        if save_required:
+            self.save()
+
+    @contextmanager
+    def buffered(self):
+        self.enable_buffering()
+        yield
+        self.disable_buffering()
 
     def __setitem__(self, key, value):
-        self.load()
+        self._synced_load()
         with self._suspend_sync():
             self._data[key] = self._dfs_convert(value)
-        self.save()
+        self._synced_save()
         return value
 
     def __getitem__(self, key):
-        self.load()
+        self._synced_load()
         return self._data[key]
 
     def get(self, key, default=None):
-        self.load()
+        self._synced_load()
         return self._data.get(key, default)
 
     def pop(self, key, default=None):
-        self.load()
+        self._synced_load()
         ret = self._data.pop(key, default)
-        self.save()
+        self._synced_save()
         return ret
 
     def popitem(self):
-        self.load()
+        self._synced_load()
         key, value = self._data.popitem()
-        self.save()
+        self._synced_save()
         return key, value._as_dict()
 
     def setdefault(self, key, default=None):
-        self.load()
+        self._synced_load()
         ret = self._data.setdefault(key, self._dfs_convert(default))
-        self.save()
+        self._synced_save()
         return ret
 
     def __delitem__(self, key):
-        self.load()
+        self._synced_load()
         del self._data[key]
-        self.save()
+        self._synced_save()
 
     def clear(self):
         with self._suspend_sync():
             self._data.clear()
-        self.save()
+        self._synced_save()
 
     def _update(self, mapping):
         with self._suspend_sync():
@@ -156,33 +184,33 @@ class _SyncedDict(MutableMapping):
                 self[key] = mapping[key]
 
     def update(self, mapping):
-        self.load()
+        self._synced_load()
         self._update(mapping)
-        self.save()
+        self._synced_save()
 
     def __len__(self):
-        self.load()
+        self._synced_load()
         return len(self._data)
 
     def __contains__(self, key):
-        self.load()
+        self._synced_load()
         return key in self._data
 
     def __iter__(self):
-        self.load()
+        self._synced_load()
         with self._suspend_sync():
             return iter(self._data)
 
     def keys(self):
-        self.load()
+        self._synced_load()
         return self._data.keys()
 
     def values(self):
-        self.load()
+        self._synced_load()
         return self._convert_to_dict(self._data).values()
 
     def items(self):
-        self.load()
+        self._synced_load()
         return self._convert_to_dict(self._data).items()
 
     def __str__(self):
@@ -193,7 +221,7 @@ class _SyncedDict(MutableMapping):
             return self._convert_to_dict(self._data.copy())
 
     def __call__(self):
-        self.load()
+        self._synced_load()
         return self._as_dict()
 
     def __eq__(self, other):

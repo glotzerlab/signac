@@ -32,7 +32,7 @@ class SyncedAttrDict(_SyncedDict):
         except AttributeError:
             super(SyncedAttrDict, self).__setattr__(key, value)
         else:
-            if key.startswith('__') or key in ('_data', '_suspend_sync_', '_load', '_save'):
+            if key.startswith('__') or key in ('_data', '_suspend_sync_', '_load', '_save', '_buffer_mode'):
                 super(SyncedAttrDict, self).__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
