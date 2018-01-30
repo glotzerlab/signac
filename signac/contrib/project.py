@@ -14,6 +14,7 @@ import gzip
 import time
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
+from contextlib import contextmanager
 
 from .. import syncutil
 from ..core.json import json
@@ -148,6 +149,10 @@ class Project(object):
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
             'statepoint_cache_miss_warning_threshold', 500)
+
+        # Document read/write buffering
+        self._buffer_mode = False
+        self._buffered_jobs = list()
 
     def __str__(self):
         "Returns the project's id."
@@ -331,6 +336,9 @@ class Project(object):
             job = self.Job(project=self, statepoint=self.get_statepoint(id), _trust=True)
         if job.get_id() not in self._sp_cache:
             self._register(job)
+        if self._buffer_mode:
+            job.document.enable_buffering()
+            self._buffered_jobs.append(job)
         return job
 
     def _job_dirs(self):
@@ -1278,6 +1286,15 @@ class Project(object):
             os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))
         return filename
+
+    @contextmanager
+    def buffered(self):
+        "Buffer all document read/write operations."
+        self._buffer_mode = True
+        yield
+        self._buffer_mode = False
+        while self._buffered_jobs:
+            self._buffered_jobs.pop().document.disable_buffering()
 
     @classmethod
     def init_project(cls, name, root=None, workspace=None, make_dir=True):

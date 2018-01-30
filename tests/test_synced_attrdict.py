@@ -42,6 +42,9 @@ class _SyncPoint(object):
     def save(self):
         self._saved += 1
 
+    def _set_dirty(self):
+        pass
+
 
 class SyncedAttrDictTest(unittest.TestCase):
 
