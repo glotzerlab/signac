@@ -10,6 +10,9 @@ class WorkspaceError(Error, OSError):
         self.error = error
         "The underlying error causing this issue."
 
+    def __str__(self):
+        return self.error
+
 
 class DestinationExistsError(Error, RuntimeError):
     "The destination for a move or copy operation already exists."
