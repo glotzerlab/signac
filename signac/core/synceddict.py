@@ -94,24 +94,24 @@ class _SyncedDict(MutableMapping):
             del old[key]
 
     def _synced_load(self):
-        if self._suspend_sync_ <= 0:
-            if self._last_load < 0 or self._buffer_load_timeout >= 0:
-                if self._buffer_load_timeout == 0 or \
-                        (time() - self._last_load) > self._buffer_load_timeout:
-                    self.load()
+        if self._last_load < 0 or self._buffer_load_timeout >= 0:
+            if self._buffer_load_timeout == 0 or \
+                    (time() - self._last_load) > self._buffer_load_timeout:
+                self.load()
 
     def load(self):
-        if self._parent is None:
-            self._last_load = time()
-            data = self._load()
-            if data is not None:
-                with self._suspend_sync():
-                    self._dfs_update(self._data, data)
-                for value in self._data:
-                    if isinstance(value, Mapping):
-                        assert type(value) == type(self)
-        else:
-            self._parent.load()
+        if self._suspend_sync_ <= 0:
+            if self._parent is None:
+                self._last_load = time()
+                data = self._load()
+                if data is not None:
+                    with self._suspend_sync():
+                        self._dfs_update(self._data, data)
+                    for value in self._data:
+                        if isinstance(value, Mapping):
+                            assert type(value) == type(self)
+            else:
+                self._parent.load()
 
     def _set_dirty(self):
         if self._parent is None:
@@ -121,17 +121,18 @@ class _SyncedDict(MutableMapping):
 
     def _synced_save(self):
         self._set_dirty()
-        if self._suspend_sync_ <= 0 and self._buffer_save_timeout >= 0:
+        if self._buffer_save_timeout >= 0:
             if self._last_save < 0 or (time() - self._last_save) >= self._buffer_save_timeout:
                 self.save()
 
     def save(self):
-        if self._parent is None:
-            self._save()
-            self._last_save = time()
-            self._dirty = False
-        else:
-            self._parent.save()
+        if self._suspend_sync_ <= 0:
+            if self._parent is None:
+                self._save()
+                self._last_save = time()
+                self._dirty = False
+            else:
+                self._parent.save()
 
     def enable_buffering(self):
         assert self._parent is None
