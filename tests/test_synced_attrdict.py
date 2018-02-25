@@ -48,11 +48,13 @@ class _SyncPoint(object):
 
 class SyncedAttrDictTest(unittest.TestCase):
 
+    def setUp(self):
+        self.sync_point = _SyncPoint()
+
     def get_testdata(self):
         return str(uuid.uuid4())
 
     def get_sad(self, initialdata=None):
-        self.sync_point = _SyncPoint()
         return SAD(initialdata, parent=self.sync_point)
 
     def assert_no_read_write(self):
