@@ -5,6 +5,7 @@
 import os
 import errno
 import uuid
+from contextlib import contextmanager
 
 from .json import json
 from .attrdict import SyncedAttrDict
@@ -53,3 +54,18 @@ class JSONDict(SyncedAttrDict):
 
     def __repr__(self):
         return repr(self())
+
+    @contextmanager
+    def buffered(self):
+        buffered_dict = BufferedDict(parent=self)
+        yield buffered_dict
+        buffered_dict.flush()
+
+
+class BufferedDict(JSONDict):
+
+    def save(self):
+        pass
+
+    def flush(self):
+        self._parent.update(self)

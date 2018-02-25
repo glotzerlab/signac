@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 "Synchronized dictionary."
 import logging
-from time import time
 from contextlib import contextmanager
 
 from ..common import six
@@ -24,11 +23,6 @@ class _SyncedDict(MutableMapping):
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
-        self._last_load = -1
-        self._last_save = -1
-        self._buffer_load_timeout = 0
-        self._buffer_save_timeout = 0
-        self._dirty = False
         super(_SyncedDict, self).__init__()
         if initialdata is None:
             self._data = dict()
@@ -94,15 +88,11 @@ class _SyncedDict(MutableMapping):
             del old[key]
 
     def _synced_load(self):
-        if self._last_load < 0 or self._buffer_load_timeout >= 0:
-            if self._buffer_load_timeout == 0 or \
-                    (time() - self._last_load) > self._buffer_load_timeout:
-                self.load()
+        self.load()
 
     def load(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                self._last_load = time()
                 data = self._load()
                 if data is not None:
                     with self._suspend_sync():
@@ -113,42 +103,15 @@ class _SyncedDict(MutableMapping):
             else:
                 self._parent.load()
 
-    def _set_dirty(self):
-        if self._parent is None:
-            self._dirty = True
-        else:
-            self._parent._set_dirty()
-
     def _synced_save(self):
-        self._set_dirty()
-        if self._buffer_save_timeout >= 0:
-            if self._last_save < 0 or (time() - self._last_save) >= self._buffer_save_timeout:
-                self.save()
+        self.save()
 
     def save(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._save()
-                self._last_save = time()
-                self._dirty = False
             else:
                 self._parent.save()
-
-    def enable_buffering(self):
-        assert self._parent is None
-        self._buffer_load_timeout = self._buffer_save_timeout = -1
-
-    def disable_buffering(self):
-        assert self._parent is None
-        self._buffer_load_timeout = self._buffer_save_timeout = 0
-        if self._dirty:
-            self.save()
-
-    @contextmanager
-    def buffered(self):
-        self.enable_buffering()
-        yield
-        self.disable_buffering()
 
     def __setitem__(self, key, value):
         self._synced_load()

@@ -34,9 +34,6 @@ class _sp_save_hook(object):
     def save(self):
         self.job._reset_sp()
 
-    def _set_dirty(self):
-        pass
-
 
 class Job(object):
     """The job instance is a handle to the data of a unique statepoint.

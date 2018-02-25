@@ -198,30 +198,21 @@ class JSONDictTest(BaseJSONDictTest):
         d2 = self.get_testdata()
         self.assertEqual(len(jsd), 0)
         self.assertEqual(len(jsd2), 0)
-        with jsd.buffered():
-            jsd[key] = d
-            self.assertEqual(jsd[key], d)
-            self.assertEqual(len(jsd), 1)
+        with jsd.buffered() as b:
+            b[key] = d
+            self.assertEqual(b[key], d)
+            self.assertEqual(len(b), 1)
             self.assertEqual(len(jsd2), 0)
         self.assertEqual(len(jsd), 1)
         self.assertEqual(len(jsd2), 1)
-        with jsd2.buffered():
-            jsd2[key] = d2
+        with jsd2.buffered() as b2:
+            b2[key] = d2
             self.assertEqual(len(jsd), 1)
-            self.assertEqual(len(jsd2), 1)
+            self.assertEqual(len(b2), 1)
             self.assertEqual(jsd[key], d)
-            self.assertEqual(jsd2[key], d2)
+            self.assertEqual(b2[key], d2)
         self.assertEqual(jsd[key], d2)
         self.assertEqual(jsd2[key], d2)
-        with jsd.buffered():
-            with jsd.buffered():
-                jsd[key] = d
-                self.assertEqual(jsd[key], d)
-                self.assertEqual(jsd2[key], d2)
-            self.assertEqual(jsd[key], d)
-            self.assertEqual(jsd2[key], d2)
-        self.assertEqual(jsd[key], d)
-        self.assertEqual(jsd2[key], d)
 
 
 class JSONDictWriteConcernTest(JSONDictTest):
