@@ -33,6 +33,7 @@ from .contrib import RegexFileCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
 from .db import get_database
+from .core.jsondict import buffer_reads_writes as buffered
 
 __version__ = '0.9.2'
 
@@ -47,4 +48,5 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'RegexFileCrawler',
            'MasterCrawler',
            'SignacProjectCrawler',
+           'buffered',
            ]

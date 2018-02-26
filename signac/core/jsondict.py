@@ -6,10 +6,48 @@ import os
 import errno
 import uuid
 from contextlib import contextmanager
+from weakref import WeakValueDictionary
 
 from .json import json
 from .attrdict import SyncedAttrDict
 from ..common import six
+
+
+_BUFFER_READS_WRITES = 0
+_SUSPENDED_READS = WeakValueDictionary()
+_DEFERRED_WRITES = WeakValueDictionary()
+
+
+def clear_suspended_reads():
+    "Clear the set of dictionaries, that are suspended for read operations."
+    _SUSPENDED_READS.clear()
+
+
+def flush_all():
+    "Execute all deferred JSONDict write operations."
+    while _DEFERRED_WRITES:
+        _id, deferred = _DEFERRED_WRITES.popitem()
+        deferred.save()
+
+
+@contextmanager
+def buffer_reads_writes():
+    """Enter a global buffer mode for all JSONDict instances.
+
+    All future read operations will be suspended after the first
+    read operation while in buffer mode.
+
+    All write operations are deferred until after leaving the buffer mode.
+    """
+    global _BUFFER_READS_WRITES
+    assert _BUFFER_READS_WRITES >= 0
+
+    _BUFFER_READS_WRITES += 1
+    yield
+    _BUFFER_READS_WRITES -= 1
+    if _BUFFER_READS_WRITES == 0:
+        clear_suspended_reads()
+        flush_all()
 
 
 class JSONDict(SyncedAttrDict):
@@ -23,8 +61,19 @@ class JSONDict(SyncedAttrDict):
         self._write_concern = write_concern
         super(JSONDict, self).__init__(parent=parent)
 
+    def __hash__(self):
+        pass
+
     def _load(self):
         assert self._filename is not None
+
+        # Check deferrence
+        if _BUFFER_READS_WRITES > 0:
+            if id(self) in _SUSPENDED_READS:
+                return
+            else:
+                _SUSPENDED_READS[id(self)] = self
+
         try:
             with open(self._filename, 'rb') as file:
                 return json.loads(file.read().decode())
@@ -34,6 +83,11 @@ class JSONDict(SyncedAttrDict):
 
     def _save(self):
         assert self._filename is not None
+
+        # Check deferrence
+        if _BUFFER_READS_WRITES > 0:
+            _DEFERRED_WRITES[id(self)] = self
+            return
 
         # Serialize data:
         blob = json.dumps(self._as_dict()).encode()
