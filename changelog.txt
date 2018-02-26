@@ -1,3 +1,8 @@
+next:
+
+	- Fix issue where a job instance would not be properly updated after more
+	than one state point reset.
+
 0.9.2:
 
 	- Enable the write_concern flag for the job.document JSONDict.
