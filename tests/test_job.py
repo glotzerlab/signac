@@ -272,6 +272,36 @@ class JobSPInterfaceTest(BaseJobTest):
         with self.assertRaises(DestinationExistsError):
             job_a.sp = dict(b=0)
 
+    def test_interface_multiple_changes(self):
+        for i in range(1, 4):
+            job = self.project.open_job(dict(a=i))
+            job.init()
+        for job in self.project:
+            self.assertTrue(job.sp.a > 0)
+
+        for job in self.project:
+            obj_id = id(job)
+            id0 = job.get_id()
+            sp0 = job.statepoint()
+            self.assertEqual(id(job), obj_id)
+            self.assertTrue(job.sp.a > 0)
+            self.assertEqual(job.get_id(), id0)
+            self.assertEqual(job.sp, sp0)
+
+            job.sp.a = - job.sp.a
+            self.assertEqual(id(job), obj_id)
+            self.assertTrue(job.sp.a < 0)
+            self.assertNotEqual(job.get_id(), id0)
+            self.assertNotEqual(job.sp, sp0)
+
+            job.sp.a = - job.sp.a
+            self.assertEqual(id(job), obj_id)
+            self.assertTrue(job.sp.a > 0)
+            self.assertEqual(job.get_id(), id0)
+            self.assertEqual(job.sp, sp0)
+            job2 = self.project.open_job(id=id0)
+            self.assertEqual(job.sp, job2.sp)
+            self.assertEqual(job.get_id(), job2.get_id())
 
 class ConfigTest(BaseJobTest):
 
@@ -840,6 +870,7 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(dst2_job.statepoint(), dst2)
         self.assertIn(key, dst2_job.document)
         self.assertEqual(len(dst2_job.document), 1)
+
 
 
 if __name__ == '__main__':

@@ -135,9 +135,18 @@ class Job(object):
                 pass  # job is not initialized
             else:
                 raise
-        logger.info("Moved '{}' -> '{}'.".format(self, dst))
-        dst._statepoint = self._statepoint
-        self.__dict__.update(dst.__dict__)
+        else:
+            # Update this instance
+            self._statepoint = dst._statepoint
+            self._id = dst._id
+            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
+            self._wd = dst._wd
+            self._fn_doc = dst._fn_doc
+            self._document = None
+            self._cwd = list()
+            assert self._id == dst._id
+            assert self.get_id() == dst.get_id()
+            logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
         if new_sp is None:
