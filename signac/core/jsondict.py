@@ -57,12 +57,15 @@ class JSONDict(SyncedAttrDict):
 
     @contextmanager
     def buffered(self):
-        buffered_dict = BufferedDict(parent=self)
+        buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
         buffered_dict.flush()
 
 
-class BufferedDict(JSONDict):
+class BufferedSyncedAttrDict(SyncedAttrDict):
+
+    def load(self):
+        pass
 
     def save(self):
         pass
