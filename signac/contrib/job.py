@@ -144,8 +144,6 @@ class Job(object):
             self._fn_doc = dst._fn_doc
             self._document = None
             self._cwd = list()
-            assert self._id == dst._id
-            assert self.get_id() == dst.get_id()
             logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):

@@ -872,6 +872,5 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(len(dst2_job.document), 1)
 
 
-
 if __name__ == '__main__':
     unittest.main()
