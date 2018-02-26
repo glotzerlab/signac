@@ -43,11 +43,13 @@ def buffer_reads_writes():
     assert _BUFFER_READS_WRITES >= 0
 
     _BUFFER_READS_WRITES += 1
-    yield
-    _BUFFER_READS_WRITES -= 1
-    if _BUFFER_READS_WRITES == 0:
-        clear_suspended_reads()
-        flush_all()
+    try:
+        yield
+    finally:
+        _BUFFER_READS_WRITES -= 1
+        if _BUFFER_READS_WRITES == 0:
+            clear_suspended_reads()
+            flush_all()
 
 
 class JSONDict(SyncedAttrDict):
