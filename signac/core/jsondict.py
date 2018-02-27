@@ -107,11 +107,14 @@ class JSONDict(SyncedAttrDict):
                 if error.errno == errno.ENOENT:
                     return dict()
 
-    def _save(self):
+    def _save(self, data=None):
         assert self._filename is not None
 
+        if data is None:
+            data = self._as_dict()
+
         # Serialize data:
-        blob = json.dumps(self._as_dict()).encode()
+        blob = json.dumps(data).encode()
 
         if _BUFFER_MODE > 0 and (_BUFFER_SIZE < 0 or sys.getsizeof(blob) <= _BUFFER_SIZE):
             # Saving in buffer:
@@ -153,4 +156,4 @@ class BufferedSyncedAttrDict(SyncedAttrDict):
         pass
 
     def flush(self):
-        self._parent.update(self)
+        self._parent._save(self())

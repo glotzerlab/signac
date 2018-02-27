@@ -213,6 +213,10 @@ class JSONDictTest(BaseJSONDictTest):
             self.assertEqual(b2[key], d2)
         self.assertEqual(jsd[key], d2)
         self.assertEqual(jsd2[key], d2)
+        with jsd.buffered() as b:
+            del b[key]
+            self.assertNotIn(key, b)
+        self.assertNotIn(key, jsd)
 
 
 class JSONDictWriteConcernTest(JSONDictTest):
