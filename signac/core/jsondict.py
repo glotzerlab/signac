@@ -33,7 +33,7 @@ def flush_all():
 
 
 def get_buffer_size():
-    "Returns the current read/write buffer size."
+    "Returns the current actual size of the read/write buffer."
     return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
 
 
@@ -50,8 +50,18 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE):
     operations are performed from the buffer whenever possible.
 
     All write operations are deferred until the flush_all() function
-    is called, in case of a buffer overflow, or after leaving the buffer
-    mode.
+    is called, the buffer overflows, or upon exiting the buffer mode.
+
+    This context may be entered multiple times, however the buffer size
+    can only be set *once*. Any subsequent specifications of the buffer
+    size are ignored.
+
+    :param buffer_size:
+        Specify the maximum size of the read/write buffer. Defaults
+        to DEFAULT_BUFFER_SIZE. A negative number indicates to not
+        restrict the buffer size.
+    :type buffer_size:
+        int
     """
     global _BUFFER_MODE
     global _BUFFER_SIZE
@@ -103,9 +113,9 @@ class JSONDict(SyncedAttrDict):
         # Serialize data:
         blob = json.dumps(self._as_dict()).encode()
 
-        if _BUFFER_MODE > 0 and sys.getsizeof(blob) <= _BUFFER_SIZE:
+        if _BUFFER_MODE > 0 and (_BUFFER_SIZE < 0 or sys.getsizeof(blob) <= _BUFFER_SIZE):
             # Saving in buffer:
-            if sys.getsizeof(blob) + get_buffer_size() > _BUFFER_SIZE:
+            if _BUFFER_SIZE > 0 and sys.getsizeof(blob) + get_buffer_size() > _BUFFER_SIZE:
                 logger.debug("Buffer overflow, flushing...")
                 flush_all()
             _JSONDICT_BUFFER[self._filename] = blob
