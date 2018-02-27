@@ -77,7 +77,7 @@ class JSONDict(SyncedAttrDict):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
-        self._filename = os.path.realpath(filename)
+        self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         super(JSONDict, self).__init__(parent=parent)
 
