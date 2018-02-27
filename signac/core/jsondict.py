@@ -46,10 +46,12 @@ def in_buffer_mode():
 def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE):
     """Enter a global buffer mode for all JSONDict instances.
 
-    All future read operations will be suspended after the first
-    read operation while in buffer mode.
+    All future write operations are written to the buffer, read
+    operations are performed from the buffer whenever possible.
 
-    All write operations are deferred until after leaving the buffer mode.
+    All write operations are deferred until the flush_all() function
+    is called, in case of a buffer overflow, or after leaving the buffer
+    mode.
     """
     global _BUFFER_MODE
     global _BUFFER_SIZE
@@ -81,9 +83,6 @@ class JSONDict(SyncedAttrDict):
         self._write_concern = write_concern
         super(JSONDict, self).__init__(parent=parent)
 
-    def __hash__(self):
-        pass
-
     def _load(self):
         assert self._filename is not None
 
@@ -107,7 +106,7 @@ class JSONDict(SyncedAttrDict):
         if _BUFFER_MODE > 0 and sys.getsizeof(blob) <= _BUFFER_SIZE:
             # Saving in buffer:
             if sys.getsizeof(blob) + get_buffer_size() > _BUFFER_SIZE:
-                logger.debug("Buffer size exceeds limit, flushing...")
+                logger.debug("Buffer overflow, flushing...")
                 flush_all()
             _JSONDICT_BUFFER[self._filename] = blob
         else:   # Saving to disk:
