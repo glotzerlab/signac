@@ -6,28 +6,26 @@ import os
 import errno
 import uuid
 from contextlib import contextmanager
-from weakref import WeakValueDictionary
 
 from .json import json
 from .attrdict import SyncedAttrDict
 from ..common import six
 
 
-_BUFFER_READS_WRITES = 0
-_SUSPENDED_READS = WeakValueDictionary()
-_DEFERRED_WRITES = WeakValueDictionary()
-
-
-def clear_suspended_reads():
-    "Clear the set of dictionaries, that are suspended for read operations."
-    _SUSPENDED_READS.clear()
+_BUFFER_MODE = 0
+_JSONDICT_BUFFER = dict()
 
 
 def flush_all():
     "Execute all deferred JSONDict write operations."
-    while _DEFERRED_WRITES:
-        _id, deferred = _DEFERRED_WRITES.popitem()
-        deferred.save()
+    while _JSONDICT_BUFFER:
+        filename, blob = _JSONDICT_BUFFER.popitem()
+        with open(filename, 'wb') as file:
+            file.write(blob)
+
+
+def in_buffer_mode():
+    return _BUFFER_MODE > 0
 
 
 @contextmanager
@@ -39,16 +37,15 @@ def buffer_reads_writes():
 
     All write operations are deferred until after leaving the buffer mode.
     """
-    global _BUFFER_READS_WRITES
-    assert _BUFFER_READS_WRITES >= 0
+    global _BUFFER_MODE
+    assert _BUFFER_MODE >= 0
 
-    _BUFFER_READS_WRITES += 1
+    _BUFFER_MODE += 1
     try:
         yield
     finally:
-        _BUFFER_READS_WRITES -= 1
-        if _BUFFER_READS_WRITES == 0:
-            clear_suspended_reads()
+        _BUFFER_MODE -= 1
+        if _BUFFER_MODE == 0:
             flush_all()
 
 
@@ -59,7 +56,7 @@ class JSONDict(SyncedAttrDict):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
-        self._filename = filename
+        self._filename = os.path.realpath(filename)
         self._write_concern = write_concern
         super(JSONDict, self).__init__(parent=parent)
 
@@ -69,44 +66,39 @@ class JSONDict(SyncedAttrDict):
     def _load(self):
         assert self._filename is not None
 
-        # Check deferrence
-        if _BUFFER_READS_WRITES > 0:
-            if id(self) in _SUSPENDED_READS:
-                return
-            else:
-                _SUSPENDED_READS[id(self)] = self
-
-        try:
-            with open(self._filename, 'rb') as file:
-                return json.loads(file.read().decode())
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                return dict()
+        if _BUFFER_MODE > 0:            # buffered mode
+            if self._filename in _JSONDICT_BUFFER:
+                return json.loads(_JSONDICT_BUFFER[self._filename].decode())
+        else:                           # non-buffered mode
+            try:
+                with open(self._filename, 'rb') as file:
+                    return json.loads(file.read().decode())
+            except IOError as error:
+                if error.errno == errno.ENOENT:
+                    return dict()
 
     def _save(self):
         assert self._filename is not None
 
-        # Check deferrence
-        if _BUFFER_READS_WRITES > 0:
-            _DEFERRED_WRITES[id(self)] = self
-            return
-
         # Serialize data:
         blob = json.dumps(self._as_dict()).encode()
 
-        if self._write_concern:
-            dirname, filename = os.path.split(self._filename)
-            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                uid=uuid.uuid4(), fn=filename))
-            with open(fn_tmp, 'wb') as tmpfile:
-                tmpfile.write(blob)
-            if six.PY2:
-                os.rename(fn_tmp, self._filename)
+        if _BUFFER_MODE > 0:            # buffered mode
+            _JSONDICT_BUFFER[self._filename] = blob
+        else:                           # non-buffered mode
+            if self._write_concern:
+                dirname, filename = os.path.split(self._filename)
+                fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+                    uid=uuid.uuid4(), fn=filename))
+                with open(fn_tmp, 'wb') as tmpfile:
+                    tmpfile.write(blob)
+                if six.PY2:
+                    os.rename(fn_tmp, self._filename)
+                else:
+                    os.replace(fn_tmp, self._filename)
             else:
-                os.replace(fn_tmp, self._filename)
-        else:
-            with open(self._filename, 'wb') as file:
-                file.write(blob)
+                with open(self._filename, 'wb') as file:
+                    file.write(blob)
 
     def __repr__(self):
         return repr(self())
