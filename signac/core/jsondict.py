@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_BUFFER_SIZE = 32 * 2**20    # 32 MB
 
-_BUFFER_MODE = 0
+_BUFFERED_MODE = 0
 _BUFFER_SIZE = None
 _JSONDICT_BUFFER = dict()
 
@@ -37,9 +37,9 @@ def get_buffer_size():
     return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
 
 
-def in_buffer_mode():
+def in_buffered_mode():
     "Return true if in buffered read/write mode."
-    return _BUFFER_MODE > 0
+    return _BUFFERED_MODE > 0
 
 
 @contextmanager
@@ -63,21 +63,21 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE):
     :type buffer_size:
         int
     """
-    global _BUFFER_MODE
+    global _BUFFERED_MODE
     global _BUFFER_SIZE
-    assert _BUFFER_MODE >= 0
+    assert _BUFFERED_MODE >= 0
 
     if _BUFFER_SIZE is not None and _BUFFER_SIZE != buffer_size:
         logger.warn("Buffer size already set, ignoring new value.")
     else:
         _BUFFER_SIZE = buffer_size
 
-    _BUFFER_MODE += 1
+    _BUFFERED_MODE += 1
     try:
         yield
     finally:
-        _BUFFER_MODE -= 1
-        if _BUFFER_MODE == 0:
+        _BUFFERED_MODE -= 1
+        if _BUFFERED_MODE == 0:
             _BUFFER_SIZE = None
             flush_all()
 
@@ -96,7 +96,7 @@ class JSONDict(SyncedAttrDict):
     def _load(self):
         assert self._filename is not None
 
-        if _BUFFER_MODE > 0 and self._filename in _JSONDICT_BUFFER:
+        if _BUFFERED_MODE > 0 and self._filename in _JSONDICT_BUFFER:
             # Load from buffer:
             return json.loads(_JSONDICT_BUFFER[self._filename].decode())
         else:   # Load from disk:
@@ -116,7 +116,7 @@ class JSONDict(SyncedAttrDict):
         # Serialize data:
         blob = json.dumps(data).encode()
 
-        if _BUFFER_MODE > 0 and (_BUFFER_SIZE < 0 or sys.getsizeof(blob) <= _BUFFER_SIZE):
+        if _BUFFERED_MODE > 0 and (_BUFFER_SIZE < 0 or sys.getsizeof(blob) <= _BUFFER_SIZE):
             # Saving in buffer:
             if _BUFFER_SIZE > 0 and sys.getsizeof(blob) + get_buffer_size() > _BUFFER_SIZE:
                 logger.debug("Buffer overflow, flushing...")

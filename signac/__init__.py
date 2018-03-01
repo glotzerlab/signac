@@ -34,8 +34,8 @@ from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
-from .core.jsondict import in_buffer_mode
-from .core.jsondict import flush_all
+from .core.jsondict import in_buffered_mode as is_buffered
+from .core.jsondict import flush_all as flush
 from .core.jsondict import get_buffer_size
 
 __version__ = '0.9.2'
@@ -51,5 +51,5 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'RegexFileCrawler',
            'MasterCrawler',
            'SignacProjectCrawler',
-           'buffered', 'in_buffer_mode', 'flush_all', 'get_buffer_size',
+           'buffered', 'is_buffered', 'flush', 'get_buffer_size',
            ]

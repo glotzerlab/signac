@@ -1064,7 +1064,7 @@ class ProjectTest(BaseProjectTest):
                 self.assertEqual(str(job), k)
         self.assertEqual(group_count, len(list(self.project.find_jobs())))
 
-    def test_buffer_mode(self):
+    def test_buffered_mode(self):
 
         def routine():
             for i in range(1, 4):
