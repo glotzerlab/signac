@@ -79,7 +79,8 @@ def flush_all():
     files_write_issue = []
     while _JSONDICT_BUFFER:
         filename, blob = _JSONDICT_BUFFER.popitem()
-        meta = _JSONDICT_META.pop(filename)
+        if not _BUFFERED_MODE_FORCE_WRITE:
+            meta = _JSONDICT_META.pop(filename)
         if _hash(blob) != _JSONDICT_HASHES.pop(filename):
             try:
                 if not _BUFFERED_MODE_FORCE_WRITE:
@@ -146,8 +147,13 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     global _BUFFER_SIZE
     assert _BUFFERED_MODE >= 0
 
+    # Basic type check (to prevent common user error)
+    if not isinstance(buffer_size, six.integer_types) or \
+            buffer_size is True or buffer_size is False:    # explicit check against boolean
+        raise TypeError("The buffer size must be an integer!")
+
     # Can't enter force write mode, if already in non-force write mode:
-    if _BUFFERED_MODE_FORCE_WRITE is not None and not _BUFFERED_MODE_FORCE_WRITE and force_write:
+    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
         raise BufferException("force_write mode already set!")
 
     # Check whether we can adjust the buffer size and warn otherwise:
@@ -163,12 +169,14 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     finally:
         _BUFFERED_MODE -= 1
         if _BUFFERED_MODE == 0:
-            flush_all()
-            _BUFFER_SIZE = None
-            _BUFFERED_MODE_FORCE_WRITE = None
-            assert not _JSONDICT_BUFFER
-            assert not _JSONDICT_HASHES
-            assert not _JSONDICT_META
+            try:
+                flush_all()
+            finally:
+                assert not _JSONDICT_BUFFER
+                assert not _JSONDICT_HASHES
+                assert not _JSONDICT_META
+                _BUFFER_SIZE = None
+                _BUFFERED_MODE_FORCE_WRITE = None
 
 
 class JSONDict(SyncedAttrDict):
