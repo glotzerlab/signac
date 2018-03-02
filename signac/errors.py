@@ -4,6 +4,9 @@
 
 from .core.errors import Error
 
+from .core.jsondict import BufferException
+from .core.jsondict import BufferedFileError
+
 from .common.errors import ConfigError
 from .common.errors import AuthenticationError
 from .common.errors import ExportError
@@ -42,6 +45,8 @@ class SchemaSyncConflict(SyncConflict):
 
 __all__ = [
     'Error',
+    'BufferException',
+    'BufferedFileError',
     'ConfigError',
     'AuthenticationError',
     'ExportError',
