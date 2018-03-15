@@ -165,7 +165,9 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
 
     # Can't enter force write mode, if already in non-force write mode:
     if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
-        raise BufferException("force_write mode already set!")
+        raise BufferException(
+            "Unable to enter buffered mode with force write enabled, because "
+            "we are already in buffered mode with force write disabled.")
 
     # Check whether we can adjust the buffer size and warn otherwise:
     if _BUFFER_SIZE is not None and _BUFFER_SIZE != buffer_size:
