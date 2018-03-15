@@ -8,6 +8,7 @@ import errno
 import uuid
 import hashlib
 import logging
+from tempfile import mkstemp
 from contextlib import contextmanager
 
 from .errors import Error
@@ -99,8 +100,8 @@ def flush_all():
                         issues[filename] = 'File appears to have been externally modified.'
                         continue
                 try:
-                    fn_tmp = filename + '$$'
-                    with open(fn_tmp, 'wb') as file:
+                    fd_tmp, fn_tmp = mkstemp(dir=os.path.dirname(filename), suffix='.json')
+                    with os.fdopen(fd_tmp, 'wb') as file:
                         file.write(blob)
                 except OSError as error:
                     os.remove(fn_tmp)
