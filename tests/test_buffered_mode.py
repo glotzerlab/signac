@@ -234,7 +234,7 @@ class BufferedModeTest(BaseProjectTest):
             self.assertEqual(job2.doc.a, not x)
 
             self.assertEqual(job.doc.a, not x)
-            with self.assertRaises(BufferedFileError):
+            with self.assertRaises(BufferedFileError) as cm:
                 with signac.buffered():
                     self.assertEqual(job.doc.a, not x)
                     job.doc.a = x
@@ -242,6 +242,7 @@ class BufferedModeTest(BaseProjectTest):
                     sleep(1.0)
                     with open(job.doc._filename, 'wb') as file:
                         file.write(json.dumps({'a': not x}).encode())
+            self.assertIn(job.doc._filename, cm.exception.files)
 
             break    # only test for one job
 

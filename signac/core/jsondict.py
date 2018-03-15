@@ -34,8 +34,19 @@ class BufferException(Error):
 
 
 class BufferedFileError(BufferException):
-    "A file was externally modified while in buffered mode."
-    pass
+    """Raised when an error occured while flushing one or more buffered files.
+
+    .. attribute:: files
+
+        A dictionary of files that caused issues during the flush operation,
+        mapped to a possible reason for the issue or None in case that it
+        cannot be determined.
+    """
+    def __init__(self, files):
+        self.files = files
+
+    def __str__(self):
+        return "{}({})".format(type(self).__name__, self.files)
 
 
 def _hash(blob):
@@ -76,7 +87,7 @@ def _store_in_buffer(filename, blob, store_hash=False):
 def flush_all():
     "Execute all deferred JSONDict write operations."
     logger.debug("Flushing buffer...")
-    files_write_issue = []
+    issues = dict()
     while _JSONDICT_BUFFER:
         filename, blob = _JSONDICT_BUFFER.popitem()
         if not _BUFFERED_MODE_FORCE_WRITE:
@@ -85,7 +96,7 @@ def flush_all():
             try:
                 if not _BUFFERED_MODE_FORCE_WRITE:
                     if _get_filemetadata(filename) != meta:
-                        files_write_issue.append((filename, 'File was externally modified.'))
+                        issues[filename] = 'File appears to have been externally modified.'
                         continue
                 try:
                     fn_tmp = filename + '$$'
@@ -101,9 +112,9 @@ def flush_all():
                         os.replace(fn_tmp, filename)
             except OSError as error:
                 logger.error(str(error))
-                files_write_issue.append((filename, error))
-    if files_write_issue:
-        raise BufferedFileError(files_write_issue)
+                issues[filename] = error
+    if issues:
+        raise BufferedFileError(issues)
 
 
 def get_buffer_size():
