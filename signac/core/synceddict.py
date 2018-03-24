@@ -87,6 +87,9 @@ class _SyncedDict(MutableMapping):
         for key in remove:
             del old[key]
 
+    def _synced_load(self):
+        self.load()
+
     def load(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
@@ -100,6 +103,9 @@ class _SyncedDict(MutableMapping):
             else:
                 self._parent.load()
 
+    def _synced_save(self):
+        self.save()
+
     def save(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
@@ -108,47 +114,47 @@ class _SyncedDict(MutableMapping):
                 self._parent.save()
 
     def __setitem__(self, key, value):
-        self.load()
+        self._synced_load()
         with self._suspend_sync():
             self._data[key] = self._dfs_convert(value)
-        self.save()
+        self._synced_save()
         return value
 
     def __getitem__(self, key):
-        self.load()
+        self._synced_load()
         return self._data[key]
 
     def get(self, key, default=None):
-        self.load()
+        self._synced_load()
         return self._data.get(key, default)
 
     def pop(self, key, default=None):
-        self.load()
+        self._synced_load()
         ret = self._data.pop(key, default)
-        self.save()
+        self._synced_save()
         return ret
 
     def popitem(self):
-        self.load()
+        self._synced_load()
         key, value = self._data.popitem()
-        self.save()
+        self._synced_save()
         return key, value._as_dict()
 
     def setdefault(self, key, default=None):
-        self.load()
+        self._synced_load()
         ret = self._data.setdefault(key, self._dfs_convert(default))
-        self.save()
+        self._synced_save()
         return ret
 
     def __delitem__(self, key):
-        self.load()
+        self._synced_load()
         del self._data[key]
-        self.save()
+        self._synced_save()
 
     def clear(self):
         with self._suspend_sync():
             self._data.clear()
-        self.save()
+        self._synced_save()
 
     def _update(self, mapping):
         with self._suspend_sync():
@@ -156,33 +162,33 @@ class _SyncedDict(MutableMapping):
                 self[key] = mapping[key]
 
     def update(self, mapping):
-        self.load()
+        self._synced_load()
         self._update(mapping)
-        self.save()
+        self._synced_save()
 
     def __len__(self):
-        self.load()
+        self._synced_load()
         return len(self._data)
 
     def __contains__(self, key):
-        self.load()
+        self._synced_load()
         return key in self._data
 
     def __iter__(self):
-        self.load()
+        self._synced_load()
         with self._suspend_sync():
             return iter(self._data)
 
     def keys(self):
-        self.load()
+        self._synced_load()
         return self._data.keys()
 
     def values(self):
-        self.load()
+        self._synced_load()
         return self._convert_to_dict(self._data).values()
 
     def items(self):
-        self.load()
+        self._synced_load()
         return self._convert_to_dict(self._data).items()
 
     def __str__(self):
@@ -193,7 +199,7 @@ class _SyncedDict(MutableMapping):
             return self._convert_to_dict(self._data.copy())
 
     def __call__(self):
-        self.load()
+        self._synced_load()
         return self._as_dict()
 
     def __eq__(self, other):
