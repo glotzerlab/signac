@@ -9,6 +9,9 @@ import json
 import logging
 import getpass
 import difflib
+import code
+import readline
+from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
@@ -76,6 +79,17 @@ MSG_SYNC_STATS = """
 Number of files transferred: {stats.num_files}
 Total transfer volume:       {stats.volume}
 """
+
+
+SHELL_BANNER = """Python {python_version}
+signac {signac_version}
+
+Project:\t{project_id}
+Workspace:\t{workspace_path}
+Size:\t\t{size}
+
+Interact with the project interface using the "project" or "pr" variable.
+Type "help(project)" for more information."""
 
 
 def _print_err(msg=None, *args):
@@ -789,6 +803,27 @@ def main_config_host(args):
         print(_hide_password(line))
 
 
+def main_shell(args):
+
+    try:
+        project = get_project()
+    except LookupError:
+        print("signac", __version__)
+        print("No project within this directory.")
+    else:
+        local_ns = dict(project=project, pr=project)
+        readline.set_completer(Completer(local_ns).complete)
+        readline.parse_and_bind('tab: complete')
+        code.interact(
+            local=local_ns,
+            banner=SHELL_BANNER.format(
+                python_version=sys.version,
+                signac_version=__version__,
+                project_id=project.get_id(),
+                workspace_path=project.workspace(),
+                size=len(project)))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="signac aids in the management, access and analysis of "
@@ -1085,6 +1120,9 @@ def main():
         nargs='+',
         help="Detect schema only for jobs with the given job ids.")
     parser_schema.set_defaults(func=main_schema)
+
+    parser_shell = subparsers.add_parser('shell')
+    parser_shell.set_defaults(func=main_shell)
 
     parser_sync = subparsers.add_parser(
         'sync',
