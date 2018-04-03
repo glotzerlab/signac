@@ -85,6 +85,7 @@ SHELL_BANNER = """Python {python_version}
 signac {signac_version}
 
 Project:\t{project_id}
+Root:\t\t{root_path}
 Workspace:\t{workspace_path}
 Size:\t\t{size}
 
@@ -820,6 +821,7 @@ def main_shell(args):
                 python_version=sys.version,
                 signac_version=__version__,
                 project_id=project.get_id(),
+                root_path=project.root_directory(),
                 workspace_path=project.workspace(),
                 size=len(project)))
 
