@@ -7,7 +7,7 @@
 
 ## About
 
-The signac framework aids in the management of large and heterogeneous data spaces.
+The [signac framework](http://www.signac.io) aids in the management of large and heterogeneous data spaces.
 
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
