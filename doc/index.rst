@@ -15,6 +15,12 @@ Welcome to signac's documentation!
 .. image:: https://img.shields.io/pypi/v/signac.svg
    :target: https://img.shields.io/pypi/v/signac.svg
 
+.. image:: https://readthedocs.org/projects/signac/badge/?version=latest
+   :target: https://signac.readthedocs.io
+
+.. image:: https://img.shields.io/github/license/csadorf/signac.svg
+   :target: https://bitbucket.org/glotzer/signac/src/master/LICENSE.txt
+
 .. image:: images/minimal.svg
     :align: right
 
