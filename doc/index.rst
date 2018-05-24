@@ -26,6 +26,14 @@ Welcome to signac's documentation!
 
 .. automodule:: signac
 
+.. important::
+
+    This is documentation for the **signac** *package*, which is part of the signac_ framework.
+    See the signac-docs_ for a comprehensive introduction to the **signac** *framework*.
+
+.. _signac: https://glotzerlab.engin.umich.edu/signac/
+.. _signac-docs: https://signac-docs.readthedocs.io/en/latest
+
 Contents
 --------
 
