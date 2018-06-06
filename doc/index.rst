@@ -46,6 +46,7 @@ Contents
    tutorial
    reference
    quick_reference
+   changes
    acknowledge
    signac
 

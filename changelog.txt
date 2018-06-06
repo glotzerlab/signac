@@ -1,529 +1,451 @@
-0.9.2:
-
-	- Enable the write_concern flag for the job.document JSONDict.
-	- Fix critical issue in the JSONDict implementation that would previously
-	overwrite the underlying file when attempting to store values that are not
-	JSON serializable.
-	- Fix issue where the export() function would ignore the update argument
-	when the index to export to would be a MongoDB collection.
-	- Allow to omit the specification of an authentication mechanism in the
-	MongoDB host configuration.
-	- Add provisional feature (persistent state point caching); calling the
-	Project.update_cache() method will generate and store a persistent state
-	point cache in the project root directory, which will increase the speed
-	of many project iteration, search, and selection operations.
-	- Add Project.check() method which checks for workspace corruption, but does
-	not make any attempt to repair it.
-	- The Project.repair() method will attempt to repair jobs, that have been
-	corrupted by manually renaming the job's workspace directory.
-
-0.9.1:
-
-	- Fix critical issue in the SyncedAttrDict implementation that would
-	previously overwrite the underlying file if the first operation was a
-	__setitem__() operation.
-
-0.9.0:
-
-	- Introduction of `$ signac sync`, `Project.sync()`, and `Job.sync()` for
-	the simplified and fine-grained synchronization of multiple project data
-	spaces.
-	- Introduction of `$ signac schema` and `Project.detect_schema()` for the
-	automatic detection of the implicit and semi-structured state point schema
-	of a project data space.
-	- Simplified aggregation of jobs over projects and `Project.find_jobs()`
-	results with the `Project.groupby()` function.
-	- Support for project-centralized data with the `Project.document` attribute
-	and the `Project.fn()` method for the wrapping of filenames within the
-	project root directory.
-	- Both `Job.statepoint` and `Job.document` now use the same underlying data
-	structure and provide the exact same API (copy with () and access of keys
-	as attributes).
-	- Added the `Job.clear()` and the `Job.reset()` methods to clear or reset a
-	job's workspace data.
-	- The `Collection` class uses an internal counter instead of UUIDs for the
-	generation of primary keys (resulting in improved performance).
-	- Major performance improvements (faster Collection, improved caching)
-	- Overhaul of the reference documentation.
-	- Overall API consolidation.
-
-0.8.7:
-
-	- Fix an issue where the creation of linked views was non-deterministic in
-	some cases.
-	- Fix an issue where the creation of linked views would fail when the
-	project contains job with state points that have lists as values.
-
-0.8.6:
-
-	- Fix Collection append truncation issue (see issue #66).
-
-0.8.5:
-
-	- Fix compatibility issue that broke the `signac find --view` and all `--pretty`
-		commands on Python 2.7.
-	- Fix issue where view directories would be incomplete in combination with
-		heterogeneous state point schemas.
-	- The signac ids in the `signac find --show` view are no longer enclosed by
-		quotation marks.
-
-0.8.4:
-
-	- All search queries on project and collection objects support various
-		operaters including: $and, $or, $gt, $gte, $lt, $lte, $eq, $ne, $exists,
-		$regex, $where, $in, $nin, and $type.
-	- The $ signac find command supports a simple filter syntax, where key value
-		pairs can be provided as individual arguments.
-	- The $ signac find command is extended by a --show option, to display the
-		state point and the document contents directly. The contents are truncated
-		to an adjustable depth to reduce output noise.
-	- The $ signac view command has an additional filter option to select a
-		a sub data space directly without needing to pipe job ids.
-	- The new $ signac document command can be used to display a job's document
-		directly.
-	- Minor performance improvements.
-
-0.8.3:
-
-	- Fix command line logic issue with `signac config host`.
-	- Raise `ExportError` when updating with an empty index.
-	- Fix bug, where `Collection.replace_one()` would ignore the upsert argument
-		under specific conditions.
-
-0.8.2:
-
-	- Fixes a `TypeError` which occured under specific conditions when calling
-		`Collection.find()` with nested filter arguments.
-
-0.8.1:
-
-	- Fixes wide-spread typo.
-
-0.8.0:
-
-	- Major updates and new features:
-
-		- Overall major simplification of the generation of indeces and the
-			management and searching of index collections without external database.
-		- Introduction of the `Collection` class for the management of document
-			collections, such as indeces in memory and on disk.
-		- Generation of file indeces directly via the `signac.index_files()` function.
-		- Generation of master indeces directly via the `signac.index()`
-			function and the `$ signac index` command.
-		- The API of `signac_access.py` files has been simplified, including the
-			possibility to use a blank file for a minimal configuration.
-		- Use the `$ signac project --access` command to create a minimal access
-			module in addition to `Project.create_access_module()`.
-		- The update of existing index collections has been simplified by using
-			the `export()` function with the `update=True` argument, which means
-			that stale documents (the associated file or state point no longer
-			exists) are automatically identified and removed.
-
-	- API changes (breaking):
-
-		- The `$ signac index` command generates a master index instead of a
-			project index. To generate a project index from the command line use
-			`$ signac project --index` instead.
-		- The `SignacProjectCrawler` class expects the project's root directory as
-			first argument, not the workspace directory.
-		- The `get_crawlers()` function defined within a `signac_access.py` access
-			module is expected to yield crawler instances directly, not a mapping of
-			crawler ids and instances.
-		- The simplification of the `signac_access.py` module API is reflected in
-			a reduction of arguments to the `Project.create_access_module() method.
-		- The `DocumentSearchEngine` class has been deprecated, its functionality
-			is now provided by the `Collection` class.
-
-	- API changes (non-breaking):
-
-		- The `RegexFileCrawler`, `SignacProjectCrawler` and `MasterCrawler`
-			classes were moved into the root namespace.
-		- Added the `Job.ws` attribute, as short-cut for `Job.workspace()`.
-		- The `Job.sp` interface has a `get()` function which can be used to
-			specify a default value in case that the requested key is not part of
-			the state point.
-		- If a `MasterCrawler` object is instantiated with the `raise_on_error`
-			argument set to True, any errors encountered during crawling are raised
-			instead of ignored and skipped; this simplifies the debugging of
-			errorneous access modules.
-
-	- Bug fixes:
-
-		- An issue related to exporting documents to MongoDB collections via
-			pymongo in combination with Python 2.7 has been fixed.
-
-	- Miscellaneous:
-
-		- Improved error message for invalid configuration files.
-		- Better error messages for invalid `$ signac find` queries.
-		- Check a host configuration on the command line via `$ signac host --test`.
-		- A MongoDB database host configuration defaults to "none" when no
-			authentication method is explicitly specified.
-		- Using the `--debug` option in combination with `$ signac index` will
-			show the traceback of errors encountered during indexing instead of
-			ignoring them.
-		- Instances of `Job` are hashable, making it possible to use them as dict
-			keys for instance.
-		- The representation of `Job` instances via `repr()` can actually serves as
-			copy constructor command.
-
-	- Implementation:
-
-		- The project interface implementation performs all non-trivial search
-			operations on an internally management index collection, which improves
-			performance and simplifies the code base.
-
-0.7.1:
-
-	- All job move-related methods raise DestinationExistsError in case of
-	  destination conflicts.
-	- Fixed bug in `signac statepoint`.
-	- Optimized `signac find` command.
-	- When the `python-rapidjson` package is installed, it will be used for JSON
-	  encoding/decoding.
-	- Surpress 'broken pipe error' message when using `signac find` for example
-	  in combination with `head`.
-
-0.7.0:
-
-	- New features:
-
-		- Simplified iteration over project data spaces.
-		- An existing linked view can be updated by executing the view command
-		  again.
-		- Add attribute interface for the access and modification of
-		  job state points: `Job.sp`.
-		- Enable opening jobs via abbreviated job ids.
-		- Add function for moving and copying of jobs between projects.
-		- All project related iterators support the len-operator.
-
-	- API changes:
-
-	  - Enable iteration over all jobs with: `for job in project:`.
-		- Make `len(project)` an alias for `project.num_jobs()`.
-		- Add in-operator to determine whether a job is initialized within a
-		  project.
-		- Add `Job.sp` attribute to access and modify a job's state point.
-		- The `Project.open_job()` method accepts abbreviated job ids.
-		- Add `Project.min_len_unique_id()` method to determine the minimum
-		  length of job ids to be unique within the project's data space.
-		- Add `Job.move()` method to move jobs between projects.
-		- Add `Project.clone()` method to copy jobs between projects.
-		- Add `signac move` and `signac clone` CLI commands.
-		- Add `Job.reset_statepoint()` method to reset a job's state point.
-		- Add `Job.update_statepoint()` method to update a job's state point.
-		- The `Project.create_linked_view()` `force` argument is removed.
-		- The `Project.find_variable_parameters()` method has been removed
-		- Add a `Job.FN_DOCUMENT` constant which defines the filename of the job
-		  document file
-		- Remove the `Project.create_view()` method; has been deprecated and
-		  replaced by `Project.create_linked_view()` since version 0.4.
-		- The `signac find` command accepts a `--doc-filter` (`-d`) argument to
-		  filter by job document contents.
-
-	- Bug fixes:
-
-		- Fix error when using an instance of `Job` after calling `Job.remove()`.
-		- A project created in one the standard config directories (such as the
-		  home directory) does not take prevalence over project configurations in or
-		  above the current working directory.
-
-	- Miscellaneous:
-
-		- Add support for python version 3.6.
-		- Add support for pypy and pypy3.
-		- The GUI component has been removed.
-		- Linked views use relative paths.
-		- The `Guide` documentation chapter has been renamed to `Reference`
-		  and generally overhauled.
-		- The `Quick Reference` documentation chapter has been extended.
-
-0.6.2:
-
-	- Add instructions on how to acknowledge signac in publications to
-	  documentation.
-	- Add cite module for the auto-generation of formatted references and
-	  BibTeX entries.
-	- Remove SSL authentication support.
-
-0.6.1:
-
-	- Bug Fixes:
-
-		- Make package more robust against PySide import errors.
-		- Fix Project.__repr__ method.
-		- Fix critical bug in fs.GridFS class, which rendered it unusuable.
-		- Fix issue in indexing.fetch() resulting in local paths being ignored.
-		- Fix error signac.__all__ namespace directive.
-
-	- API changes:
-
-		- The Project.create_view() method triggers a DeprecationWarning instead
-		  of a PendingDeprecationWarning.
-		- The Project.find_variable_parameters() method triggers a
-		  DeprecationWarning instead of a PendingDeprecationWarning.
-
-0.6.0:
-
-	- Major updates:
-
-		- The MasterCrawler logic has been simplified; their primary function is
-			the compilaton of index documents from slave crawlers, all export logic,
-			including data mirroring is now provided by the signac.export() function.
-		- Each index document is now uniquely coupled with only one file or
-			data object, which is why signac.fetch() replaces signac.fetch_one()
-			and the latter one has been deprecated and is currently an alias of
-			the former one.
-	  - The fetch() function always returns a file-like object, regardless of
-		  format definition.
-	  - The format argument in the crawler define() function is now optional and
-		  has now very well defined behavior for str types. It is encouraged to
-			define a format with a str constant rather than a file-like object type.
-		- The TextFile file-like object class definition in the formats module
-		  has been replaced with a str constant.
-		- The export() function automatically delegates to specialized
-			implementations such as export_pymongo() and is more robust against
-			errors, such as broken connections.
-		- The export_pymongo() function makes multiple automatic restart attempts
-		  when encountering errors.
-		- All modules related to the stale 'conversion framework' feature have
-		  been removed resulting in a removal of the optional networkx dependency.
-		- Documentation: The tutorial is now based on signac-examples jupyter notebooks.
-
-  - API changes:
-
-		- The contrib.crawler module has been renamed to contrib.indexing to
-		  better reflect the semantic context.
-		- The signac.export() function now implements the logic for data linking
-			and mirroring.
-		- Provision of the export_one() function for the export of a single
-			index document; simplifies the implementation of custom export functions.
-		- Provision of the export_to_mirror() funtion for mirroring files.
-		- Introduction of the signac.fs namespace to simplify the configuration
-			of mirror filesystems.
-		- Add 'errors' module to root namespace. Many exceptions raised inherit
-			from the base exception types defined within that module, making it
-			easier to catch signac related errors.
-	  - Multiple modules related to the 'conversion framework' feature have been
-		  removed, including: contrib.formats_network, contrib.conversion, and
-			contrib.adapters.
-		- Provide default argument for '--indent' option for 'signac statepoint'
-			command.
-
-	- Bug Fixes:
-
-		- Opening Job instances with the open() function multiple times,
-			equivalently entering the job context recursively, does not cause an
-			error anymore, but instead the behavior is well-defined (see below).
-
-  - Minor updates:
-
-		- Opening an instance of Job with the open() function multiple times and
-			entering a job context recursively is now well-defined behavior:
-			Opening a job now adds the current working directory onto a stack,
-			closing it switches into the directory on top of the stack.
-		- The return type of open_job can be configured to make it easier
-		  to specialize projects with custom job types.
-		- Log, but do not reraise exceptions during MasterCrawler execution,
-		  making the compilation of master indexes more robust against errors.
-	  - The object representation of Job and Project instances is simplified.
-		- The warning verbosity has been reduced when importing modules with
-		  optional dependencies.
-
-0.5.0:
-
-	- General updates:
-
-		- The performance of project indexing and crawling has been improved.
-
-	- API changes:
-
-		- New function: `signac.init_project()` simplifies project initialization
-		within python
-		- Added optional `root` argument to `signac.get_project()` to simplify
-		getting a project handle outside of the current working directory
-		- Added optional argument to `signac.get_project()`, to allow for projec
-		- Added two class factory methods to `Project`: `get_project()` and
-		`init_project()`
-
-0.4.0
-
-	- General updates:
-
-		- The SignacProjectCrawler indexes all jobs, not only those with non-empty job documents.
-		- Complete refactorization of the find_jobs() implementation based on internal DocumentSearchEngine.
-		- The performance of find operations can be greatly improved by using pregenerated job indexes.
-
-	- API changes:
-
-		- New top-level commands: signac find, index, statepoint, and view
-		- New method: Project.create_linked_view()
-		- New method: Project.build_job_statepoint_index()
-		- New method: Project.build_job_search_index()
-		- find_jobs() allows to filter by job document.
-		- fetch_one() returns None if no associated object can be fetched.
-		- Remove previously deprecated keyword argument 'crawl' in index export functions.
-		- Remove previously deprecated function common.config.write_config().
-
-	- Documentation:
-
-		- The tutorial is restructured into multiple parts.
-		- Instructions for installation are separated from the guide.
-		- The guide is updated to reflect recent changes.
-
-0.3.0
-
-	- Change license from MIT to BSD 3-clause license.
-	- Add contributing agreement and guidelines.
-
-0.2.9
-
-	- API changes:
-
-		- Addition of the `signac config` command line API.
-
-	- New Features:
-
-		- Password updates are encrypted with `bcrypt` when `passlib` is
-		  installed.
-	  - The user is prompted to enter missing credentials (username/password)
-		  in case that they are not stored in the configuration.
-		- The `signac confg` tool provides the ``--update-pw`` argument,
-	    which allows users to update their own password.
-
-	- Documentation:
-
-		- Improved documentation on how to configure signac.
-
-  - Bug fixes:
-
-	  - Nested job statepoints can no longer get corrupted. This bug
-		  occured when trying to operate on nested statepoint mappings.
-
-	- Misc:
-
-		- Added MIT license, in addition, all source code files contain a
-			short licensing header.
-		- The OSI classifiers are updated, including an upgrade of the
-		  development status to '4 - beta'.
-		- Deprecated pymongo versions 2.x are no longer supported.
-
-0.2.8
-
-	- API changes:
-
-		- The `crawl()` function yields only the index documents
-			and not a tuple of (_id, doc).
-    - `export()` and `export_pymongo()` expect the index documents
-		  as first argument, not a crawler instance. The old API
-			is still supported, but will trigger a DeprecationWarning.
-		- `Project` is now in the root namespace.
-		- Add `index()` method to `Project`.
-		- Add `create_access_module()` method to `Project`.
-		- Add `find_variable_parameters()` method to `Project`.
-		- Add `fn()` method to `Job`, which preprends the job's workspace path
-		  to a filename.
-
- 	- Improvements:
-
-		- The documentation contains a comprehensive tutorial.
-
-0.2.7
-
-	- API changes:
-
-		- Add `job.isfile()` method
-
-	- Improvements:
-
-		- Optimize `project.find_statepoints()` and `project.repair()` functions.
-
-0.2.6
-
-	- API changes:
-
-		- Add `job.reset_statepoint()` and `job.update_statepoint()`
-		- Add `job.remove()` function
-
-	- Improvements:
-
-		- Sanitize filter argument in `project.find_*()` methods
-		- The `job.statepoint()` function accurately represents saved
-		statepoints, e.g. tuples are represented as lists, as there is no
-		difference between tuples and lists in json
-		- signac-gui does not block on database operations
-		- signac-gui allows reload of databases and collections of connected hosts
-
-	- Bug fixes:
-
-		- `RegexFileCrawler` `define()` class function only acts upon the actual
-		specialization and not globally on all RegexFileCrawler classes
-		- signac-gui does not crash when replica sets are configured
-
-0.2.5
-
-  - API changes:
-
-		- Added `signac.get_project()`, `signac.get_database()`, `signac.fetch()` and `signac.fetch_one()` to top-level namespace.
-		- Added basic shell commands, see `$ signac --help`.
-
-  - New features:
-
-		- Allow opening of jobs by id: `project.open_job(id='abc123...')`.
-		- Mirror data while crawling.
-		- Use extra sources for `fetch()` and `fetch_one()`.
-		- Add file system handler: LocalFS, handler for local file system.
-		- Add file system handler: GridFS, handler for MongoDB GridFS file system.
-		- Crawler tags, to control which crawlers are used for a specific index.
-		- Allow explicit job workspace creation through `job.init()`
-		- Forwarding of pymongo host configuration via signac configuration.
-
-  - Documentation:
-
-		- Major reorganization of the documentation, split into: Overview, Guide, Quick Reference and API.
-		- Add notes for system administrators about advanced indexing.
-
-  - Misc
-
-		- Warn about outdated pymongo versions.
-		- Set zip_safe flag to true in setup.py.
-		- Remove dependency on six module, by adding it to the common subpackage.
+=========
+Changelog
+=========
+
+The **signac** package follows `semantic versioning <https://semver.org/>`_.
+
+Version 0.9
+===========
+
+[0.9.2] -- 2017-12-18
+---------------------
+
+  - Enable the write_concern flag for the job.document JSONDict.
+  - Fix critical issue in the JSONDict implementation that would previously overwrite the underlying file when attempting to store values that are not JSON serializable.
+  - Fix issue where the export() function would ignore the update argument when the index to export to would be a MongoDB collection.
+  - Allow to omit the specification of an authentication mechanism in the MongoDB host configuration.
+  - Add provisional feature (persistent state point caching); calling the Project.update_cache() method will generate and store a persistent state point cache in the project root directory, which will increase the speed of many project iteration, search, and selection operations.
+  - Add Project.check() method which checks for workspace corruption, but does not make any attempt to repair it.
+  - The Project.repair() method will attempt to repair jobs, that have been corrupted by manually renaming the job's workspace directory.
+
+[0.9.1] -- 2017-11-07
+---------------------
+
+  - Fix critical issue in the SyncedAttrDict implementation that would previously overwrite the underlying file if the first operation was a __setitem__() operation.
+
+[0.9.0] -- 2017-10-28
+---------------------
+
+  - Introduction of `$ signac sync`, `Project.sync()`, and `Job.sync()` for the simplified and fine-grained synchronization of multiple project data spaces.
+  - Introduction of `$ signac schema` and `Project.detect_schema()` for the automatic detection of the implicit and semi-structured state point schema of a project data space.
+  - Simplified aggregation of jobs over projects and `Project.find_jobs()` results with the `Project.groupby()` function.
+  - Support for project-centralized data with the `Project.document` attribute and the `Project.fn()` method for the wrapping of filenames within the project root directory.
+  - Both `Job.statepoint` and `Job.document` now use the same underlying data structure and provide the exact same API (copy with () and access of keys as attributes).
+  - Added the `Job.clear()` and the `Job.reset()` methods to clear or reset a job's workspace data.
+  - The `Collection` class uses an internal counter instead of UUIDs for the generation of primary keys (resulting in improved performance).
+  - Major performance improvements (faster Collection, improved caching)
+  - Overhaul of the reference documentation.
+  - Overall API consolidation.
+
+Version 0.8
+===========
+
+[0.8.7] -- 2017-10-05
+---------------------
+
+ - Fix an issue where the creation of linked views was non-deterministic in some cases.
+ - Fix an issue where the creation of linked views would fail when the project contains job with state points that have lists as values.
+
+[0.8.6] -- 2017-08-25
+---------------------
+
+ - Fix Collection append truncation issue (see issue #66).
+
+[0.8.5] -- 2017-06-07
+---------------------
+
+ - Fix compatibility issue that broke the `signac find --view` and all `--pretty` commands on Python 2.7.
+ - Fix issue where view directories would be incomplete in combination with heterogeneous state point schemas.
+ - The signac ids in the `signac find --show` view are no longer enclosed by quotation marks.
+
+[0.8.4] -- 2017-05-19
+---------------------
+
+ - All search queries on project and collection objects support various operators including: $and, $or, $gt, $gte, $lt, $lte, $eq, $ne, $exists, $regex, $where, $in, $nin, and $type.
+ - The $ signac find command supports a simple filter syntax, where key value pairs can be provided as individual arguments.
+ - The $ signac find command is extended by a --show option, to display the state point and the document contents directly. The contents are truncated to an adjustable depth to reduce output noise.
+ - The $ signac view command has an additional filter option to select a sub data space directly without needing to pipe job ids.
+ - The new $ signac document command can be used to display a job's document directly.
+ - Minor performance improvements.
+
+[0.8.3] -- 2017-05-10
+---------------------
+
+ - Fix command line logic issue with `signac config host`.
+ - Raise `ExportError` when updating with an empty index.
+ - Fix bug, where `Collection.replace_one()` would ignore the upsert argument under specific conditions.
+
+[0.8.2] -- 2017-04-19
+---------------------
+
+ - Fixes a `TypeError` which occurred under specific conditions when calling `Collection.find()` with nested filter arguments.
+
+[0.8.1] -- 2017-04-17
+---------------------
+
+ - Fixes wide-spread typo.
+
+[0.8.0] -- 2017-04-16
+---------------------
+
+ -  Major updates and new features:
+
+	 - Overall major simplification of the generation of indexes and the management and searching of index collections without external database.
+	 - Introduction of the `Collection` class for the management of document collections, such as indexes in memory and on disk.
+	 - Generation of file indexes directly via the `signac.index_files()` function.
+	 - Generation of master indexes directly via the `signac.index()` function and the `$ signac index` command.
+	 - The API of `signac_access.py` files has been simplified, including the possibility to use a blank file for a minimal configuration.
+	 - Use the `$ signac project --access` command to create a minimal access module in addition to `Project.create_access_module()`.
+	 - The update of existing index collections has been simplified by using the `export()` function with the `update=True` argument, which means that stale documents (the associated file or state point no longer exists) are automatically identified and removed.
+
+ -  API changes (breaking):
+
+	 - The `$ signac index` command generates a master index instead of a project index. To generate a project index from the command line use `$ signac project --index` instead.
+	 - The `SignacProjectCrawler` class expects the project's root directory as first argument, not the workspace directory.
+	 - The `get_crawlers()` function defined within a `signac_access.py` access module is expected to yield crawler instances directly, not a mapping of crawler ids and instances.
+	 - The simplification of the `signac_access.py` module API is reflected in a reduction of arguments to the `Project.create_access_module()` method.
+	 - The `DocumentSearchEngine` class has been deprecated, its functionality is now provided by the `Collection` class.
+
+ -  API changes (non-breaking):
+
+	 - The `RegexFileCrawler`, `SignacProjectCrawler` and `MasterCrawler` classes were moved into the root namespace.
+	 - Added the `Job.ws` attribute, as short-cut for `Job.workspace()`.
+	 - The `Job.sp` interface has a `get()` function which can be used to specify a default value in case that the requested key is not part of the state point.
+	 - If a `MasterCrawler` object is instantiated with the `raise_on_error` argument set to True, any errors encountered during crawling are raised instead of ignored and skipped; this simplifies the debugging of erroneous access modules.
+
+ -  Bug fixes:
+
+	- An issue related to exporting documents to MongoDB collections via pymongo in combination with Python 2.7 has been fixed.
+
+-  Miscellaneous:
+
+	 - Improved error message for invalid configuration files.
+	 - Better error messages for invalid `$ signac find` queries.
+	 - Check a host configuration on the command line via `$ signac host --test`.
+	 - A MongoDB database host configuration defaults to "none" when no authentication method is explicitly specified.
+	 - Using the `--debug` option in combination with `$ signac index` will show the traceback of errors encountered during indexing instead of ignoring them.
+	 - Instances of `Job` are hashable, making it possible to use them as dict keys for instance.
+	 - The representation of `Job` instances via `repr()` can actually serves as copy constructor command.
+
+-  Implementation:
+
+	 - The project interface implementation performs all non-trivial search operations on an internally management index collection, which improves performance and simplifies the code base.
+
+Version 0.7
+===========
+
+[0.7.1] -- 2017-01-09
+---------------------
+
+ - All job move-related methods raise DestinationExistsError in case of destination conflicts.
+ - Fixed bug in `signac statepoint`.
+ - Optimized `signac find` command.
+ - When the `python-rapidjson` package is installed, it will be used for JSON encoding/decoding.
+ - Suppress 'broken pipe error' message when using `signac find` for example in combination with `head`.
+
+[0.7.0] -- 2017-01-04
+---------------------
+
+ - New features:
+
+	 - Simplified iteration over project data spaces.
+	 - An existing linked view can be updated by executing the view command again.
+	 - Add attribute interface for the access and modification of job state points: `Job.sp`.
+	 - Enable opening jobs via abbreviated job ids.
+	 - Add function for moving and copying of jobs between projects.
+	 - All project related iterators support the len-operator.
+
+ - API changes:
+
+   - Enable iteration over all jobs with: `for job in project:`.
+	 - Make `len(project)` an alias for `project.num_jobs()`.
+	 - Add in-operator to determine whether a job is initialized within a project.
+	 - Add `Job.sp` attribute to access and modify a job's state point.
+	 - The `Project.open_job()` method accepts abbreviated job ids.
+	 - Add `Project.min_len_unique_id()` method to determine the minimum
+	   length of job ids to be unique within the project's data space.
+	 - Add `Job.move()` method to move jobs between projects.
+	 - Add `Project.clone()` method to copy jobs between projects.
+	 - Add `signac move` and `signac clone` CLI commands.
+	 - Add `Job.reset_statepoint()` method to reset a job's state point.
+	 - Add `Job.update_statepoint()` method to update a job's state point.
+	 - The `Project.create_linked_view()` `force` argument is removed.
+	 - The `Project.find_variable_parameters()` method has been removed
+	 - Add a `Job.FN_DOCUMENT` constant which defines the filename of the job
+	   document file
+	 - Remove the `Project.create_view()` method; has been deprecated and
+	   replaced by `Project.create_linked_view()` since version 0.4.
+	 - The `signac find` command accepts a `--doc-filter` (`-d`) argument to
+	   filter by job document contents.
+
+ - Bug fixes:
+
+	 - Fix error when using an instance of `Job` after calling `Job.remove()`.
+	 - A project created in one the standard config directories (such as the home directory) does not take prevalence over project configurations in or above the current working directory.
+
+ - Miscellaneous:
+
+	 - Add support for python version 3.6.
+	 - Add support for pypy and pypy3.
+	 - The GUI component has been removed.
+	 - Linked views use relative paths.
+	 - The `Guide` documentation chapter has been renamed to `Reference` and generally overhauled.
+	 - The `Quick Reference` documentation chapter has been extended.
+
+Version 0.6
+===========
+
+[0.6.2] -- 2017-12-15
+---------------------
+
+ - Add instructions on how to acknowledge signac in publications to documentation.
+ - Add cite module for the auto-generation of formatted references and BibTeX entries.
+ - Remove SSL authentication support.
+
+[0.6.1] -- 2017-11-26
+---------------------
+
+ - Bug Fixes:
+
+ 	- Make package more robust against PySide import errors.
+ 	- Fix Project.__repr__ method.
+ 	- Fix critical bug in fs.GridFS class, which rendered it unusuable.
+ 	- Fix issue in indexing.fetch() resulting in local paths being ignored.
+ 	- Fix error signac.__all__ namespace directive.
+
+ - API changes:
+
+ 	- The Project.create_view() method triggers a DeprecationWarning instead of a PendingDeprecationWarning.
+ 	- The Project.find_variable_parameters() method triggers a DeprecationWarning instead of a PendingDeprecationWarning.
+
+[0.6.0] -- 2016-11-18
+---------------------
+
+ - Major updates:
+
+	- The MasterCrawler logic has been simplified; their primary function is the compilation of index documents from slave crawlers, all export logic, including data mirroring is now provided by the signac.export() function.
+	- Each index document is now uniquely coupled with only one file or data object, which is why signac.fetch() replaces signac.fetch_one() and the latter one has been deprecated and is currently an alias of the former one.
+	- The fetch() function always returns a file-like object, regardless of format definition.
+	- The format argument in the crawler define() function is now optional and has now very well defined behavior for str types. It is encouraged to define a format with a str constant rather than a file-like object type.
+	- The TextFile file-like object class definition in the formats module has been replaced with a str constant.
+	- The export() function automatically delegates to specialized implementations such as export_pymongo() and is more robust against errors, such as broken connections.
+	- The export_pymongo() function makes multiple automatic restart attempts when encountering errors.
+	- All modules related to the stale 'conversion framework' feature have been removed resulting in a removal of the optional networkx dependency.
+	- Documentation: The tutorial is now based on signac-examples jupyter notebooks.
+
+ - API changes:
+
+	- The contrib.crawler module has been renamed to contrib.indexing to better reflect the semantic context.
+	- The signac.export() function now implements the logic for data linking and mirroring.
+	- Provision of the export_one() function for the export of a single index document; simplifies the implementation of custom export functions.
+	- Provision of the export_to_mirror() funtion for mirroring files.
+	- Introduction of the signac.fs namespace to simplify the configuration of mirror filesystems.
+	- Add 'errors' module to root namespace. Many exceptions raised inherit from the base exception types defined within that module, making it easier to catch signac related errors.
+	- Multiple modules related to the 'conversion framework' feature have been removed, including: contrib.formats_network, contrib.conversion, and contrib.adapters.
+	- Provide default argument for '--indent' option for 'signac statepoint' command.
 
   - Bug Fixes:
 
-		- Fixed hard import of pymongo bug (issue #24).
-		- Crawler issues with malformed documents.
+ 	- Opening Job instances with the open() function multiple times, equivalently entering the job context recursively, does not cause an error anymore, but instead the behavior is well-defined (see below).
 
-0.2.4
+  - Minor updates:
 
-	- Implement repair() function for projects with corrupted workspaces.
-	- Increase robustness of job manifest file creation.
-	- Allow environment variables in workspace path definition.
-	- Check and fix config permission errors.
-	- Fix project crawler deep directory issue (hotfix).
+ 	- Opening an instance of Job with the open() function multiple times and entering a job context recursively is now well-defined behavior: Opening a job now adds the current working directory onto a stack, closing it switches into the directory on top of the stack.
+ 	- The return type of open_job can be configured to make it easier to specialize projects with custom job types.
+ 	- Log, but do not reraise exceptions during MasterCrawler execution, making the compilation of master indexes more robust against errors.
+	- The object representation of Job and Project instances is simplified.
+	- The warning verbosity has been reduced when importing modules with optional dependencies.
 
-0.2.3
+Version 0.5
+===========
 
-	- Allow the definition of regex patterns for crawlers without regex
-		compilation, but directly as pattern.
-	- Account for NaN and Inf values while crwaling.
-	- Fix a few bugs related to project views.
+[0.5.0] -- 2016-08-31
+---------------------
 
-0.2.2
+ - General updates:
+ 	- The performance of project indexing and crawling has been improved.
 
-	 - Fix SignacProjectCrawler 'super()' bug.
+ - API changes:
 
-0.2.1
+	 - New function: `signac.init_project()` simplifies project initialization within python
+	 - Added optional `root` argument to `signac.get_project()` to simplify getting a project handle outside of the current working directory
+	 - Added optional argument to `signac.get_project()`, to allow for projects
+	 - Added two class factory methods to `Project`: `get_project()` and `init_project()`
 
-	 - python 2.7 support
-	 - gui (early alpha) included
-	 - relative and default workspace paths
-	 - create project views
-	 - find_*() functions to search the workspace
-	 - write and read state point hash tables
+Version 0.4
+===========
 
-0.2.0
+[0.4.0] -- 2016-08-05
+---------------------
 
-   - Initial release of 0.2.x series.
-	 - Major consolidation of the package.
-	 - Remove all hard dependencies, but six.
+ - General updates:
+
+	- The SignacProjectCrawler indexes all jobs, not only those with non-empty job documents.
+ 	- Complete refactorization of the find_jobs() implementation based on internal DocumentSearchEngine.
+ 	- The performance of find operations can be greatly improved by using pre-generated job indexes.
+
+ - API changes:
+
+ 	- New top-level commands: signac find, index, statepoint, and view
+ 	- New method: Project.create_linked_view()
+ 	- New method: Project.build_job_statepoint_index()
+ 	- New method: Project.build_job_search_index()
+ 	- find_jobs() allows to filter by job document.
+ 	- fetch_one() returns None if no associated object can be fetched.
+ 	- Remove previously deprecated keyword argument 'crawl' in index export functions.
+ 	- Remove previously deprecated function common.config.write_config().
+
+ - Documentation:
+
+ 	- The tutorial is restructured into multiple parts.
+ 	- Instructions for installation are separated from the guide.
+ 	- The guide is updated to reflect recent changes.
+
+Version 0.3
+===========
+
+[0.3.0] -- 2016-06-23
+---------------------
+
+ - Change license from MIT to BSD 3-clause license.
+ - Add contributing agreement and guidelines.
+
+Version 0.2
+===========
+
+[0.2.9] -- 2016-06-06
+---------------------
+
+ - API changes:
+
+ 	- Addition of the `signac config` command line API.
+
+ - New Features:
+
+	- Password updates are encrypted with `bcrypt` when `passlib` is installed.
+	- The user is prompted to enter missing credentials (username/password) in case that they are not stored in the configuration.
+	- The `signac confg` tool provides the ``--update-pw`` argument, which allows users to update their own password.
+
+ - Documentation:
+
+ 	- Improved documentation on how to configure signac.
+
+  - Bug fixes:
+
+   - Nested job statepoints can no longer get corrupted. This bug occurred when trying to operate on nested statepoint mappings.
+
+ - Misc:
+
+ 	- Added MIT license, in addition, all source code files contain a short licensing header.
+	- The OSI classifiers are updated, including an upgrade of the development status to '4 - beta'.
+	- Deprecated pymongo versions 2.x are no longer supported.
+
+[0.2.8] -- 2016-04-18
+---------------------
+
+ - API changes:
+ 	- The `crawl()` function yields only the index documents and not a tuple of (_id, doc). - `export()` and `export_pymongo()` expect the index documents as first argument, not a crawler instance. The old API is still supported, but will trigger a DeprecationWarning. - `Project` is now in the root namespace. - Add `index()` method to `Project`. - Add `create_access_module()` method to `Project`. - Add `find_variable_parameters()` method to `Project`. - Add `fn()` method to `Job`, which preprends the job's workspace path to a filename.
+ 	- Improvements:
+ 	- The documentation contains a comprehensive tutorial
+
+[0.2.7] -- 2016-02-29
+---------------------
+
+ - API changes:
+
+	- Add `job.isfile()` method
+
+ - Improvements:
+
+	- Optimize `project.find_statepoints()` and `project.repair()` functions.
+
+[0.2.6] -- 2016-02-20
+---------------------
+
+ - API changes:
+
+ 	- Add `job.reset_statepoint()` and `job.update_statepoint()`
+ 	- Add `job.remove()` function
+
+ - Improvements:
+
+ 	- Sanitize filter argument in `project.find_*()` methods
+ 	- The `job.statepoint()` function accurately represents saved statepoints, e.g. tuples are represented as lists, as there is no difference between tuples and lists in json
+ 	- signac-gui does not block on database operations
+ 	- signac-gui allows reload of databases and collections of connected hosts
+
+ - Bug fixes:
+
+ 	- `RegexFileCrawler` `define()` class function only acts upon the actual specialization and not globally on all RegexFileCrawler classes
+ 	- signac-gui does not crash when replica sets are configured
+
+[0.2.5] -- 2016-02-10
+---------------------
+
+  - API changes:
+
+	- Added `signac.get_project()`, `signac.get_database()`, `signac.fetch()` and `signac.fetch_one()` to top-level namespace.
+	- Added basic shell commands, see `$ signac --help`.
+
+  - New features:
+
+	- Allow opening of jobs by id: `project.open_job(id='abc123...')`.
+	- Mirror data while crawling.
+	- Use extra sources for `fetch()` and `fetch_one()`.
+	- Add file system handler: LocalFS, handler for local file system.
+	- Add file system handler: GridFS, handler for MongoDB GridFS file system.
+	- Crawler tags, to control which crawlers are used for a specific index.
+	- Allow explicit job workspace creation through `job.init()`
+	- Forwarding of pymongo host configuration via signac configuration.
+
+  - Documentation:
+
+	- Major reorganization of the documentation, split into: Overview, Guide, Quick Reference and API.
+	- Add notes for system administrators about advanced indexing.
+
+  - Misc
+
+	- Warn about outdated pymongo versions.
+	- Set zip_safe flag to true in setup.py.
+	- Remove dependency on six module, by adding it to the common subpackage.
+
+  - Bug Fixes:
+
+	- Fixed hard import of pymongo bug (issue #24).
+	- Crawler issues with malformed documents.
+
+[0.2.4] -- 2016-01-11
+---------------------
+
+ - Implement repair() function for projects with corrupted workspaces.
+ - Increase robustness of job manifest file creation.
+ - Allow environment variables in workspace path definition.
+ - Check and fix config permission errors.
+ - Fix project crawler deep directory issue (hotfix).
+
+[0.2.3] -- 2015-12-09
+---------------------
+
+ - Fix a few bugs related to project views.
+
+[0.2.2] -- 2015-11-30
+---------------------
+
+ - Fix SignacProjectCrawler 'super()' bug.
+
+[0.2.1] -- 2015-11-29
+---------------------
+
+ - python 2.7 support
+ - gui (early alpha) included
+ - relative and default workspace paths
+ - create project views
+ - find_*() functions to search the workspace
+ - write and read state point hash tables
+
+[0.2.0] -- 2015-11-05
+---------------------
+
+ - Initial release of 0.2.x series.
+ - Major consolidation of the package.
+ - Remove all hard dependencies, but six.
