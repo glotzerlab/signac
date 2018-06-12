@@ -107,11 +107,10 @@ Here is a complete list of all available **arithmetic operators**:
 
 Near Operator
 -------------
-The ``$near`` operator is used to find jobs with state point parameters that are near a
-value, where floating point precision make it difficult to type the exact value.
-The behavior of ``$near`` matches that of python's `math.isclose <https://docs.python.org/3.5/library/math.html/>`_ function. 
-The "reference" value and tolerances are passed in as a list in the order ``[reference,
-[relative_tolerance, [absolute_tolerance]]]``, where the inner ``[]``\s denote optional values. Note that default values are ``relative_tolerance
+The ``$near`` operator is used to find jobs with state point parameters that are near a value, where floating point precision make it difficult to type the exact value.
+The behavior of ``$near`` matches that of python's `math.isclose <https://docs.python.org/3.5/library/math.html/>`_ function.
+The "reference" value and tolerances are passed in as a list in the order ``[reference, [relative_tolerance, [absolute_tolerance]]]``, where the inner ``[]``\s denote optional values.
+Note that default values are ``relative_tolerance
 = 1e-09`` and ``absolute_tolerance = 0``.
 
 .. code-block:: python
