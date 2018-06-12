@@ -814,7 +814,18 @@ def main_shell(args):
         print("If you want to initialize a project, execute `$ signac init <project-name>`, "
               "where <project-name> can be freely chosen.")
     else:
-        local_ns = dict(project=project, pr=project)
+        _jobs = find_with_filter(args)
+
+        def jobs():
+            for _id in _jobs:
+                yield project.open_job(id=_id)
+
+        job = _open_job_by_id(project, list(_jobs)[0]) if len(_jobs) == 1 else None
+
+        local_ns = dict(
+            project=project, pr=project,
+            jobs=iter(jobs()), job=job)
+
         readline.set_completer(Completer(local_ns).complete)
         readline.parse_and_bind('tab: complete')
         code.interact(
@@ -1126,6 +1137,27 @@ def main():
     parser_schema.set_defaults(func=main_schema)
 
     parser_shell = subparsers.add_parser('shell')
+    selection_group = parser_shell.add_argument_group(
+        'select',
+        description="Specify one or more jobs to preset the `jobs` variable as a generator "
+                    "over all job handles associated with the given selection. If the selection "
+                    "contains only one job, an additional `job` variable is referencing that "
+                    "single job, otherwise it is `None`.")
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given job ids.")
     parser_shell.set_defaults(func=main_shell)
 
     parser_sync = subparsers.add_parser(
