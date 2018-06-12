@@ -294,7 +294,7 @@ class CollectionTest(unittest.TestCase):
 
     def test_find_near(self):
         self.assertEqual(len(self.c), 0)
-        # find 0 items in empthy collection
+        # find 0 items in empty collection
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(), 0)
         self.assertEqual(self.c.find({'a': {'$near': [10, 100]}}).count(), 0)
         self.assertEqual(self.c.find({'a': {'$near': [10, 100, 100]}}).count(), 0)
@@ -322,8 +322,11 @@ class CollectionTest(unittest.TestCase):
         # test with lists that are too long
         with self.assertRaises(ValueError):
             self.c.find({'a': {'$near': [10, 0.5, 1, 1]}})
+        with self.assertRaises(ValueError):
             self.c.find({'a': {'$near': [10, 0.5, 1, 1, 5]}})
+        with self.assertRaises(ValueError):
             self.c.find({'a': {'$near': (10, 0.5, 1, 1)}})
+        with self.assertRaises(ValueError):
             self.c.find({'a': {'$near': (10, 0.5, 1, 1, 5)}})
 
     def test_find_array_operators(self):
