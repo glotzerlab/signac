@@ -1,5 +1,6 @@
 next:
 
+	- Add `$near` operator to `signac find` command
 	- Fix issue where a job instance would not be properly updated after more
 	than one state point reset.
 
