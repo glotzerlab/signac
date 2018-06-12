@@ -27,6 +27,7 @@ from ..common import six
 from .filterparse import parse_filter_arg
 if six.PY2:
     from collections import Mapping
+
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
@@ -190,6 +191,7 @@ def _find_with_index_operator(index, op, argument):
         argument = float(argument)
         rel_tol = float(rel_tol)
         abs_tol = float(abs_tol)
+
         def op(value, argument):
             return isclose(value, argument, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
