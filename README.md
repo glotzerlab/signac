@@ -31,7 +31,7 @@ To install **signac** *via* **pip**, execute:
 
     pip install signac
 
-**Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://signac.readthedocs.io/en/latest/installation.html).**
+**Detailed information about alternative installation methods can be found in the [documentation](https://signac.readthedocs.io/en/latest/installation.html).**
 
 ## Quickstart
 
@@ -50,6 +50,14 @@ and access the project handle:
 
 The documentation for this package is hosted at [https://signac.readthedocs.io](https://signac.readthedocs.io).
 We further invite you to check out the [framework documentation](https://signac-docs.readthedocs.io), which provides a more comprehensive overview over all components of the framework.
+
+## Testing
+
+You can test this package either by executing
+
+    $ python -m unittest discover tests/
+
+within the repository root directory or with [tox](https://tox.readthedocs.io/en/latest/).
 
 ## Acknowledgment
 
