@@ -1,8 +1,9 @@
 # signac - simple data management
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
+[![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/signac/badges/version.svg)](https://anaconda.org/conda-forge/signac)
-[![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://img.shields.io/pypi/v/signac.svg)
+[![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
 [![RTD](https://readthedocs.org/projects/signac/badge/?version=latest)](https://signac.readthedocs.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://bitbucket.org/glotzer/signac/src/master/LICENSE.txt)
 
