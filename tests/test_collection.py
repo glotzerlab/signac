@@ -292,6 +292,43 @@ class CollectionTest(unittest.TestCase):
         for expr, n in ARITHMETIC_EXPRESSIONS:
             self.assertEqual(len(self.c.find({'a': expr})), n)
 
+    def test_find_near(self):
+        self.assertEqual(len(self.c), 0)
+        # find 0 items in empty collection
+        self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': [10, 100]}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': [10, 100, 100]}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': (10)}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': (10, 100)}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': (10, 100, 100)}}).count(), 0)
+        self.c.update(ARITHMETIC_DOCS)
+        self.assertEqual(len(self.c), len(ARITHMETIC_DOCS))
+        # test known cases with lists and tuples
+        self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(), 1)
+        self.assertEqual(self.c.find({'a': {'$near': (10)}}).count(), 1)
+        self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
+            self.c.find({'a': {'$near': (10)}}).count())
+        self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
+            self.c.find({'a': {'$near': 10}}).count())
+        self.assertEqual(self.c.find({'a': {'$near': [10, 0.5]}}).count(), 16)
+        self.assertEqual(self.c.find({'a': {'$near': (10, 0.5)}}).count(), 16)
+        self.assertEqual(self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count(), 16)
+        self.assertEqual(self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count(), 16)
+        # increasing abs_tol should increase # of jobs found
+        self.assertTrue(self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() >
+            self.c.find({'a': {'$near': [10, 0.5]}}).count())
+        self.assertEqual(self.c.find({'a': {'$near': [10.5, 0.005]}}).count(), 0)
+        self.assertEqual(self.c.find({'a': {'$near': (10.5, 0.005)}}).count(), 0)
+        # test with lists that are too long
+        with self.assertRaises(ValueError):
+            self.c.find({'a': {'$near': [10, 0.5, 1, 1]}})
+        with self.assertRaises(ValueError):
+            self.c.find({'a': {'$near': [10, 0.5, 1, 1, 5]}})
+        with self.assertRaises(ValueError):
+            self.c.find({'a': {'$near': (10, 0.5, 1, 1)}})
+        with self.assertRaises(ValueError):
+            self.c.find({'a': {'$near': (10, 0.5, 1, 1, 5)}})
+
     def test_find_array_operators(self):
         self.assertEqual(len(self.c), 0)
         for expr, n in ARRAY_EXPRESSIONS:

@@ -27,15 +27,20 @@ from ..common import six
 from .filterparse import parse_filter_arg
 if six.PY2:
     from collections import Mapping
+
+    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
     from collections.abc import Mapping
+    from math import isclose
 
 
 logger = logging.getLogger(__name__)
 
 
 _INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
-                    '$in', '$nin', '$regex', '$type', '$where')
+                    '$in', '$nin', '$regex', '$type', '$where',
+                    '$near')
 
 _TYPES = {
     'int': int,
@@ -170,6 +175,25 @@ def _find_with_index_operator(index, op, argument):
     elif op == '$where':
         def op(value, argument):
             return eval(argument)(value)
+    elif op == '$near':
+        rel_tol, abs_tol = 1e-9, 0.0  # default values
+        if isinstance(argument, (list, tuple)):
+            if len(argument) == 1:
+                argument = argument[0]
+            elif len(argument) == 2:
+                argument, rel_tol = argument
+            elif len(argument) == 3:
+                argument, rel_tol, abs_tol = argument
+            else:
+                err_msg = 'The argument of the $near operator must be a float '
+                err_msg += 'or a list of floats with length 1, 2, or 3.'
+                raise ValueError(err_msg)
+        argument = float(argument)
+        rel_tol = float(rel_tol)
+        abs_tol = float(abs_tol)
+
+        def op(value, argument):
+            return isclose(value, argument, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
     matches = set()
