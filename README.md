@@ -15,27 +15,20 @@ It provides a simple and robust data model to create a well-defined indexable st
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
 **The package's documentation is available at: [https://signac.readthedocs.io](https://signac.readthedocs.io)**
+**The framework documentation is available at: [https://signac-docs.readthedocs.io](https://signac-docs.readthedocs.io)**
 
 ## Installation
 
 The recommendend installation method for **signac** is through **conda** or **pip**.
 The software is tested for python versions 2.7.x and 3.x and is built for all major platforms.
 
-### Install via **conda**
+To install **signac** *via* the [conda-forge](https://conda-forge.github.io/) channel, execute:
 
-Installing **signac** from the **conda-forge** channel can be achieved by adding **conda-forge** to your channels with:
+    conda install -c conda-forge signac
 
-    conda config --add channels conda-forge
+To install **signac** *via* **pip**, execute:
 
-Once the **conda-forge** channel has been enabled, **signac** can be installed with:
-
-    conda install signac
-
-### Install via **pip**
-
-To install **signac** via **pip**, execute:
-
-    pip install --user signac
+    pip install signac
 
 **Detailed information about alternative installation methods and configuration of this package can be found in the [documentation](https://signac.readthedocs.io/en/latest/installation.html).**
 
@@ -54,9 +47,11 @@ and access the project handle:
 
 ## Documentation
 
-The documentation is available **online** at [https://signac.readthedocs.io](https://signac.readthedocs.io).
-We further invite you to check out the [signac-examples](https://bitbucket.org/glotzer/signac-examples), which contain Jupyter notebooks, which can serve as tutorials, and signac project example implementations.
+The documentation for this package is hosted at [https://signac.readthedocs.io](https://signac.readthedocs.io).
+We further invite you to check out the [framework documentation](https://signac-docs.readthedocs.io), which provides a more comprehensive overview over all components of the framework.
 
 ## Acknowledgment
 
-When using **signac** as part of your work towards a publication, we would really appreciate that you acknowledge **signac** appropriately. We have prepared examples on how to do that [here](http://signac.readthedocs.io/en/latest/acknowledge.html). **Thank you very much!**
+When using **signac** as part of your work towards a publication, we would really appreciate that you acknowledge **signac** appropriately.
+We have prepared examples on how to do that [here](http://signac.readthedocs.io/en/latest/acknowledge.html).
+**Thank you very much!**
