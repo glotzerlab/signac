@@ -77,9 +77,10 @@ pipelines:
             - tox
             - python3.6 -m coverage report -i --include="signac*"
             - python -c "import json; json.load(open('.zenodo.json'))"
-     - step:
-          name: 'test-deploy'
+      - step:
+          name: 'deploy-test.pypi.org'
           image: python:3.6
+          deployment: test
           script:
             - python --version
             - python -m pip --version
@@ -112,8 +113,9 @@ pipelines:
             - tox
             - python3.6 -m coverage report -i --include="signac*"
      - step:
-          name: 'deploy'
+          name: 'deploy-pypi.org'
           image: python:3.6
+          deployment: production
           script:
             - python --version
             - python -m pip --version
