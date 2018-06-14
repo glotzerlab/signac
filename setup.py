@@ -3,8 +3,13 @@ from setuptools import setup, find_packages
 
 description = "Simple file data management database."
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+try:
+    this_path = os.path.dirname(os.path.abspath(__file__))
+    fn_readme = os.path.join(this_path, 'README.md')
+    with open(fn_readme) as fh:
+        long_description = fh.read()
+except OSError:
+    long_description = description
 
 setup(
     name='signac',
