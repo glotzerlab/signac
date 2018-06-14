@@ -31,7 +31,7 @@ if six.PY2:
 else:
     from collections.abc import Mapping
 
-if six.PY2 or six.PY34:
+if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
 
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
