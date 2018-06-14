@@ -1,4 +1,4 @@
-nbconvert==5.0.0
-nbsphinx==0.2.11
+nbconvert
+nbsphinx>=0.3
 IPython
 jupyter_client

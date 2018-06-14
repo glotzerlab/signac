@@ -3,6 +3,7 @@
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/signac/badges/version.svg)](https://anaconda.org/conda-forge/signac)
 [![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://img.shields.io/pypi/v/signac.svg)
+[![RTD](https://readthedocs.org/projects/signac/badge/?version=latest)](https://signac.readthedocs.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://bitbucket.org/glotzer/signac/src/master/LICENSE.txt)
 
 ## About
@@ -12,7 +13,7 @@ The [signac framework](http://www.signac.io) aids in the management of large and
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
-**The package's documentation is available at: [http://signac.readthedocs.io](http://signac.readthedocs.io)**
+**The package's documentation is available at: [https://signac.readthedocs.io](https://signac.readthedocs.io)**
 
 ## Installation
 
@@ -53,10 +54,7 @@ and access the project handle:
 ## Documentation
 
 The documentation is available **online** at [https://signac.readthedocs.io](https://signac.readthedocs.io).
-We further invite you to check out the collection of [Jupyter notebooks](https://bitbucket.org/glotzer/signac-examples), which serve both as **tutorial** and **examples collection**.
-
-The **tutorial** is also hosted [online](http://www.mybinder.org:/repo/csadorf/signac-examples) as a free service by courtesy of [mybinder.org](http://www.mybinder.org).
-Please note, that the online hosting of notebooks is not always available.
+We further invite you to check out the [signac-examples](https://bitbucket.org/glotzer/signac-examples), which contain Jupyter notebooks, which can serve as tutorials, and signac project example implementations.
 
 ## Acknowledgment
 

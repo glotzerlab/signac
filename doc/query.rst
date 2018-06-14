@@ -97,7 +97,7 @@ Note that we have replaced the value for p with the expression ``{'$gt': 2}`` to
 Here is a complete list of all available **arithmetic operators**:
 
   * ``$eq``: equal to
-  * ``$neq``: not equal to
+  * ``$ne``: not equal to
   * ``$gt``: greater than
   * ``$gte``: greater or equal than
   * ``$lt``: less than
