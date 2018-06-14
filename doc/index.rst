@@ -15,10 +15,24 @@ Welcome to signac's documentation!
 .. image:: https://img.shields.io/pypi/v/signac.svg
    :target: https://img.shields.io/pypi/v/signac.svg
 
+.. image:: https://readthedocs.org/projects/signac/badge/?version=latest
+   :target: https://signac.readthedocs.io
+
+.. image:: https://img.shields.io/github/license/csadorf/signac.svg
+   :target: https://bitbucket.org/glotzer/signac/src/master/LICENSE.txt
+
 .. image:: images/minimal.svg
     :align: right
 
 .. automodule:: signac
+
+.. important::
+
+    This is documentation for the **signac** *package*, which is part of the signac_ framework.
+    See the signac-docs_ for a comprehensive introduction to the **signac** *framework*.
+
+.. _signac: https://glotzerlab.engin.umich.edu/signac/
+.. _signac-docs: https://signac-docs.readthedocs.io/en/latest
 
 Contents
 --------
@@ -32,6 +46,7 @@ Contents
    tutorial
    reference
    quick_reference
+   changes
    acknowledge
    signac
 
