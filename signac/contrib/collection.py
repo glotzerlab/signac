@@ -25,13 +25,17 @@ from itertools import islice
 from ..core.json import json
 from ..common import six
 from .filterparse import parse_filter_arg
+
 if six.PY2:
     from collections import Mapping
+else:
+    from collections.abc import Mapping
+
+if six.PY2 or six.PY34:
 
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
-    from collections.abc import Mapping
     from math import isclose
 
 
