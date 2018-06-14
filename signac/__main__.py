@@ -9,6 +9,9 @@ import json
 import logging
 import getpass
 import difflib
+import code
+import readline
+from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
@@ -76,6 +79,18 @@ MSG_SYNC_STATS = """
 Number of files transferred: {stats.num_files}
 Total transfer volume:       {stats.volume}
 """
+
+
+SHELL_BANNER = """Python {python_version}
+signac {signac_version}
+
+Project:\t{project_id}
+Root:\t\t{root_path}
+Workspace:\t{workspace_path}
+Size:\t\t{size}
+
+Interact with the project interface using the "project" or "pr" variable.
+Type "help(project)" for more information."""
 
 
 def _print_err(msg=None, *args):
@@ -789,6 +804,41 @@ def main_config_host(args):
         print(_hide_password(line))
 
 
+def main_shell(args):
+
+    try:
+        project = get_project()
+    except LookupError:
+        print("signac", __version__)
+        print("No project within this directory.")
+        print("If you want to initialize a project, execute `$ signac init <project-name>`, "
+              "where <project-name> can be freely chosen.")
+    else:
+        _jobs = find_with_filter(args)
+
+        def jobs():
+            for _id in _jobs:
+                yield project.open_job(id=_id)
+
+        job = _open_job_by_id(project, list(_jobs)[0]) if len(_jobs) == 1 else None
+
+        local_ns = dict(
+            project=project, pr=project,
+            jobs=iter(jobs()), job=job)
+
+        readline.set_completer(Completer(local_ns).complete)
+        readline.parse_and_bind('tab: complete')
+        code.interact(
+            local=local_ns,
+            banner=SHELL_BANNER.format(
+                python_version=sys.version,
+                signac_version=__version__,
+                project_id=project.get_id(),
+                root_path=project.root_directory(),
+                workspace_path=project.workspace(),
+                size=len(project)))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="signac aids in the management, access and analysis of "
@@ -1085,6 +1135,30 @@ def main():
         nargs='+',
         help="Detect schema only for jobs with the given job ids.")
     parser_schema.set_defaults(func=main_schema)
+
+    parser_shell = subparsers.add_parser('shell')
+    selection_group = parser_shell.add_argument_group(
+        'select',
+        description="Specify one or more jobs to preset the `jobs` variable as a generator "
+                    "over all job handles associated with the given selection. If the selection "
+                    "contains only one job, an additional `job` variable is referencing that "
+                    "single job, otherwise it is `None`.")
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Reduce selection to jobs that match the given job ids.")
+    parser_shell.set_defaults(func=main_shell)
 
     parser_sync = subparsers.add_parser(
         'sync',

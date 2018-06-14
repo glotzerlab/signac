@@ -11,6 +11,7 @@ Added
 +++++
 
  - Add `$near` operator to `signac find` command
+ - Add the `$ signac shell` sub command to directly launch a Python interpreter within a project directory.
 
 Fixed
 +++++
