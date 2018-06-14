@@ -12,17 +12,17 @@ cat <<'EOF' >> ~/.pypirc
 [distutils]
 index-servers=
     pypi
-    pypitest
+    testpypi
 
 [pypi]
-repository:https://pypi.python.org/pypi
-username:$PYPI_USERNAME
-password:$PYPI_PASSWORD
+repository: https://pypi.python.org/pypi
+username: $PYPI_USERNAME
+password: $PYPI_PASSWORD
 
-[pypitest]
-repository:https://test.pypi.org/legacy/
-username:$PYPI_USERNAME
-password:$PYPI_PASSWORD
+[testpypi]
+repository: https://test.pypi.org/legacy/
+username: $PYPI_USERNAME
+password: $PYPI_PASSWORD
 EOF
 
 python setup.py bdist_wheel
