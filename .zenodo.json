@@ -32,6 +32,11 @@
     "related_identifiers": [
         {
             "scheme": "url",
+            "identifier": "https://dx.doi.org/10.1016/j.commatsci.2018.01.035",
+            "relation": "isSupplementedBy"
+        },
+        {
+            "scheme": "url",
             "identifier": "arXiv://1611.03543 [cs.DB]",
             "relation": "isSupplementedBy"
         }
