@@ -4,21 +4,6 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
-Next
-====
-
-Added
-+++++
-
- - Add `$near` operator to `signac find` command
- - Add the `$ signac shell` sub command to directly launch a Python interpreter within a project directory.
-
-Fixed
-+++++
-
- - Fix issue where a job instance would not be properly updated after more than one state point reset.
-
-
 Version 0.9
 ===========
 
@@ -28,7 +13,22 @@ Highlights
  - Adds persistent state point index caching, which speeds up all functions that require indexing, for example the ``$ signac find`` command.
  - Adds the ``$ signac sync`` tool for synchronization of multiple **signac** projects.
  - Add the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
+ - Add the ``$near`` operator to match numbers with up to a specific precision.
  - Add functions for the management of data on the project level, as opposed to the job level.
+
+[0.9.3] -- 2018-06-14
+---------------------
+
+Added
++++++
+
+ - Add `$near` operator to express queries for numerical values that match up to a certain precision.
+ - Add the `$ signac shell` sub command to directly launch a Python interpreter within a project directory.
+
+Fixed
++++++
+
+ - Fix issue where a job instance would not be properly updated after more than one state point reset.
 
 [0.9.2] -- 2017-12-18
 ---------------------
