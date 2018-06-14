@@ -1,9 +1,10 @@
-import sys
+import os
 from setuptools import setup, find_packages
 
-if sys.version_info < (2, 7, 0):
-    print("Error: signac requires python version >= 2.7.x.")
-    sys.exit(1)
+description = "Simple file data management database."
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(
     name='signac',
@@ -13,7 +14,9 @@ setup(
 
     author='Carl Simon Adorf',
     author_email='csadorf@umich.edu',
-    description="Simple data management framework.",
+    description=description,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     keywords='simulation database index collaboration workflow',
     url="https://bitbucket.org/glotzer/signac",
 
@@ -21,6 +24,7 @@ setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
+        "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.3",
@@ -30,6 +34,8 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
+
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4',
 
     extras_require={
         'db': ['pymongo>=3.0'],
