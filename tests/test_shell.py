@@ -54,10 +54,13 @@ class BasicShellTest(unittest.TestCase):
     def return_to_cwd(self):
         os.chdir(self.cwd)
 
-    def call(self, command, input=None):
+    def call(self, command, input=None, shell=False):
         p = subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate(input=input)
+            command,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
+        if input:
+            p.stdin.write(input if six.PY2 else input.encode())
+        out, err = p.communicate()
         if p.returncode != 0:
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
         if six.PY2:
@@ -193,6 +196,53 @@ class BasicShellTest(unittest.TestCase):
         self.assertEqual(len(job_to_remove.doc), 0)
         self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
         self.assertNotIn(job_to_remove, project)
+
+    def test_shell(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        out = self.call(
+            'python -m signac shell',
+            'from __future__ import print_function;'
+            'print(str(project), job, len(list(jobs))); exit()', shell=True)
+        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
+
+    def test_shell_with_jobs(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        for i in range(3):
+            project.open_job(dict(a=i)).init()
+        assert len(project)
+        out = self.call(
+            'python -m signac shell',
+            'from __future__ import print_function;'
+            'print(str(project), job, len(list(jobs))); exit()', shell=True)
+        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
+
+    def test_shell_with_jobs_and_selection(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        for i in range(3):
+            project.open_job(dict(a=i)).init()
+        assert len(project)
+        out = self.call(
+            'python -m signac shell -f a.\$gt 0',
+            'from __future__ import print_function;'
+            'print(str(project), job, len(list(jobs))); exit()', shell=True)
+        n = len(project.find_jobs({'a': {'$gt': 0}}))
+        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, n))
+
+    def test_shell_with_jobs_and_selection_only_one_job(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        for i in range(3):
+            project.open_job(dict(a=i)).init()
+        assert len(project)
+        out = self.call(
+            'python -m signac shell -f a 0',
+            'from __future__ import print_function;'
+            'print(str(project), job, len(list(jobs))); exit()', shell=True)
+        job = list(project.find_jobs({'a': 0}))[0]
+        self.assertEqual(out.strip(), '>>> {} {} 1'.format(project, job))
 
 
 if __name__ == '__main__':
