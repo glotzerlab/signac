@@ -511,6 +511,28 @@ def main_sync(args):
     raise RuntimeWarning("Synchronization aborted.")
 
 
+def main_import(args):
+    project = get_project()
+    try:
+        jobs = project.import_data(args.root, schema_path=args.schema_path)
+    except SchemaPathMisMatchError as error:
+        raise
+    else:
+        if jobs:
+            _print_err("Imported {} job(s).".format(len(jobs)))
+        else:
+            _print_err("Nothing to import.")
+
+
+def main_export(args):
+    project = get_project()
+    paths = project.export_data(args.prefix, args.remove_statepoint_metadata)
+    if paths:
+        _print_err("Exported {} job(s).".format(len(paths)))
+    else:
+        _print_err("No jobs to export.")
+
+
 def main_update_cache(args):
     project = get_project()
     _print_err("Updating cache...")
@@ -1311,6 +1333,27 @@ job documents."
         nargs='+',
         help="Only synchronize jobs with the given job ids.")
     parser_sync.set_defaults(func=main_sync)
+    
+    parser_import = subparsers.add_parser(
+        'import',
+        description="""Import an existing dataset into this project. Optionally provide a file path
+based schema to specify the state point metadata. This is only necessary if the data set was not
+previously exported from a signac project.""")
+    parser_import.add_argument('root', default='.', nargs='?')
+    parser_import.add_argument('schema_path', nargs='?')
+    parser_import.set_defaults(func=main_import)
+
+    parser_export = subparsers.add_parser(
+        'export',
+        description="")
+    parser_export.add_argument(
+        'prefix',
+    )
+    parser_export.add_argument(
+        '--remove-statepoint-metadata',
+        action='store_true',
+    )
+    parser_export.set_defaults(func=main_export)
 
     parser_update_cache = subparsers.add_parser(
         'update-cache',

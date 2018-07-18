@@ -15,6 +15,7 @@ from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
 from .contrib.errors import JobsCorruptedError
+from .contrib.errors import SchemaPathMismatchError
 
 
 class SyncConflict(Error, RuntimeError):
@@ -54,6 +55,7 @@ __all__ = [
     'FetchError',
     'DestinationExistsError',
     'JobsCorruptedError',
+    'SchemaPathMismatchError',
     'SyncConflict',
     'FileSyncConflict',
     'DocumentSyncConflict',

@@ -26,3 +26,14 @@ class JobsCorruptedError(Error, RuntimeError):
     def __init__(self, job_ids):
         self.job_ids = job_ids
         "The job id(s) of the corrupted job(s)."
+
+
+class SchemaPathMismatchError(Error, RuntimeError):
+    "The state point provided by the manifest file does not match the one parsed from the path."
+    def __init__(self, path, sp_from_manifest, sp_from_path):
+        self.path = path
+        self.sp_from_manifest = sp_from_manifest
+        self.sp_from_path = sp_from_path
+
+    def __str__(self):
+        return super().__str__()

@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
@@ -961,6 +961,41 @@ class Project(object):
             doc_sync=doc_sync,
             selection=selection,
             **kwargs)
+
+    def import_data(self, root=None, schema_path=None):
+        from .import_export import _find_workspaces
+        from .import_export import _find_data_dirs
+        from .import_export import _parse_metadata
+        if root is None:
+            root = os.getcwd()
+        if schema_path is None:
+            paths = _find_workspaces(root, self.Job.FN_MANIFEST)
+        else:
+            paths = _find_data_dirs(root, schema_path)
+        jobs = dict(_parse_metadata(self, paths))
+        if jobs:
+            logger.info("Import into workspace...")
+            if not os.path.isdir(self.workspace()):
+                os.makedirs(self.workspace())
+            for job, path in jobs.items():
+                dst = job.workspace()
+                if path == dst:
+                    logger.info("Already imported '{}'.".format(path))
+                os.rename(path, dst)    # Move the data
+                job.init()              # Create the job manifest file
+        return jobs
+
+    def export_data(self, prefix, remove_statepoint_metadata=False):
+        from .import_export import _generate_data_paths
+        paths = _generate_data_paths(self)
+        for dst, src in paths.items():
+            dst_ = os.path.join(prefix, dst)
+            dirname = os.path.dirname(dst_)
+            os.makedirs(dirname, exist_ok=True)
+            os.rename(src, dst_)
+            if remove_statepoint_metadata:
+                os.remove(os.path.join(dst_, self.Job.FN_MANIFEST))
+        return paths
 
     def check(self, job_ids=None):
         """Check the project's workspace for corruption.
