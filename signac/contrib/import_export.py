@@ -119,7 +119,7 @@ def _parse_workspaces(fn_manifest):
         try:
             with open(os.path.join(path, fn_manifest), 'rb') as file:
                 return json.loads(file.read().decode())
-        except OSError as error:
+        except (IOError, OSError) as error:
             if error.errno != errno.ENOENT:
                 raise error
 
