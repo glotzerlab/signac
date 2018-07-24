@@ -353,10 +353,10 @@ class CollectionTest(unittest.TestCase):
         for (v, t) in types:
             self.assertEqual(len(self.c.find({'a': {'$type': t}})), 0)
         for i, (v, t) in enumerate(types):
-            self.c.insert_one({i: v})
+            self.c.insert_one({str(i): v})
         self.assertEqual(len(self.c), len(types))
         for i, (v, t) in enumerate(types):
-            self.assertEqual(len(self.c.find({i: {'$type': t}})), 1)
+            self.assertEqual(len(self.c.find({str(i): {'$type': t}})), 1)
 
     def test_find_where_expression(self):
         self.assertEqual(len(self.c), 0)

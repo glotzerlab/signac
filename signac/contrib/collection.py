@@ -431,12 +431,8 @@ class Collection(object):
 
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
-        if six.PY2:
-            if not isinstance(_id, basestring):  # noqa
-                raise TypeError("The primary key must be of type str!")
-        else:
-            if not isinstance(_id, str):
-                raise TypeError("The primary key must be of type str!")
+        if not isinstance(_id, six.string_types):
+            raise TypeError("The primary key must be of type str!")
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
             raise ValueError("Primary key mismatch!")

@@ -513,15 +513,11 @@ def main_sync(args):
 
 def main_import(args):
     project = get_project()
-    try:
-        jobs = project.import_data(args.root, schema_path=args.schema_path)
-    except SchemaPathMisMatchError as error:
-        raise
+    jobs = project.import_data(args.root, schema=args.schema_path)
+    if jobs:
+        _print_err("Imported {} job(s).".format(len(jobs)))
     else:
-        if jobs:
-            _print_err("Imported {} job(s).".format(len(jobs)))
-        else:
-            _print_err("Nothing to import.")
+        _print_err("Nothing to import.")
 
 
 def main_export(args):
