@@ -1286,6 +1286,7 @@ class Project(object):
             name = os.path.join(self.get_id(), str(uuid.uuid4()))
         if dir is None:
             dir = self.workspace()
+        _mkdir_p(self.workspace())  # ensure workspace exists
         with TemporaryProject(name=name, dir=dir) as tmp_project:
             yield tmp_project
 
