@@ -1066,6 +1066,16 @@ class ProjectTest(BaseProjectTest):
                 self.assertEqual(str(job), k)
         self.assertEqual(group_count, len(list(self.project.find_jobs())))
 
+    def test_temp_project(self):
+        with self.project.temporary_project() as tmp_project:
+            self.assertEqual(len(tmp_project), 0)
+            tmp_root_dir = tmp_project.root_directory()
+            self.assertTrue(os.path.isdir(tmp_root_dir))
+            for i in range(10):     # init some jobs
+                tmp_project.open_job(dict(a=i)).init()
+            self.assertEqual(len(tmp_project), 10)
+        self.assertFalse(os.path.isdir(tmp_root_dir))
+
 
 class ProjectExportImportTest(BaseProjectTest):
 
