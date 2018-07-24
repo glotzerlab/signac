@@ -1329,7 +1329,7 @@ job documents."
         nargs='+',
         help="Only synchronize jobs with the given job ids.")
     parser_sync.set_defaults(func=main_sync)
-    
+
     parser_import = subparsers.add_parser(
         'import',
         description="""Import an existing dataset into this project. Optionally provide a file path
