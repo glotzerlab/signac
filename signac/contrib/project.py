@@ -1027,7 +1027,7 @@ class Project(object):
         else:
             raise RuntimeError("Unknown extension: '{}'.".format(ext))
 
-    def _import_from(self, root, schema):
+    def _import_from(self, root, schema, copytree):
         """Import a data space located at root into the project's workspace."""
         from .import_export import _parse_workspaces
         from .import_export import _make_schema_path_function
@@ -1057,25 +1057,49 @@ class Project(object):
                 if os.path.realpath(path) == os.path.realpath(dst):
                     continue     # skip (already part of the data space)
 
-                os.rename(path, dst)  # Move the data.
+                dst_exists = os.path.exists(dst)
                 try:
-                    job._init()  # Ensure existence and correctness job manifest file.
+                    copytree(path, dst)
+                except OSError as error:
+                    if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
+                        raise DestinationExistsError(dst)
+                    else:
+                        raise
+                try:
+                    job._init()  # Ensure existence and correctness of job manifest file.
                 except Exception:   # rollback
-                    os.rename(dst, path)
+                    if not dst_exists:
+                        if copytree == os.rename:
+                            os.rename(dst, path)
+                        else:
+                            shutil.rmtree(dst)
                     raise
 
                 jobs.append(job)
         return jobs
 
-    def import_from(self, origin=None, schema=None):
+    def import_from(self, origin=None, schema=None, sync=None, copytree=None):
         from .utility import _extract
+
+        if copytree is None:
+            copytree = shutil.copytree
+
+        if sync:
+            with self.temporary_project() as tmp_project:
+                ret = tmp_project.import_from(origin=origin, schema=schema)
+                if sync is True:
+                    self.sync(other=tmp_project)
+                else:
+                    self.sync(other=tmp_project, **sync)
+                return ret
+
         if origin is None:
-            return self._import_from(root=os.getcwd(), schema=schema)
+            return self._import_from(root=os.getcwd(), schema=schema, copytree=copytree)
         elif os.path.isfile(origin):
             with _extract(origin) as root:
-                return self._import_from(root=root, schema=schema)
+                return self._import_from(root=root, schema=schema, copytree=copytree)
         else:
-            return self._import_from(root=origin, schema=schema)
+            return self._import_from(root=origin, schema=schema, copytree=copytree)
 
     def check(self, job_ids=None):
         """Check the project's workspace for corruption.
