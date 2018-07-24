@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
@@ -12,6 +12,7 @@ import collections
 import uuid
 import gzip
 import time
+from contextlib import contextmanager
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
 
@@ -1279,6 +1280,15 @@ class Project(object):
         logger.info("Created access module file '{}'.".format(filename))
         return filename
 
+    @contextmanager
+    def temporary_project(self, name=None, dir=None):
+        if name is None:
+            name = os.path.join(self.get_id(), str(uuid.uuid4()))
+        if dir is None:
+            dir = self.workspace()
+        with TemporaryProject(name=name, dir=dir) as tmp_project:
+            yield tmp_project
+
     @classmethod
     def init_project(cls, name, root=None, workspace=None, make_dir=True):
         """Initialize a project with the given name.
@@ -1348,6 +1358,15 @@ class Project(object):
                 "Unable to determine project id for path '{}'.".format(
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
+
+
+@contextmanager
+def TemporaryProject(name=None, **kwargs):
+    from ..common.tempdir import TemporaryDirectory
+    if name is None:
+        name = str(uuid.uuid4())
+    with TemporaryDirectory(**kwargs) as tmp_dir:
+        yield Project.init_project(name=name, root=tmp_dir)
 
 
 def _find_all_links(root, leaf='job'):
