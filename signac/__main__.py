@@ -4,6 +4,7 @@
 from __future__ import print_function
 import os
 import sys
+import shutil
 import argparse
 import json
 import logging
@@ -513,7 +514,11 @@ def main_sync(args):
 
 def main_import(args):
     project = get_project()
-    jobs = project.import_data(args.root, schema=args.schema_path)
+    jobs = project.import_from(
+        origin=args.root,
+        schema=args.schema_path,
+        sync=args.sync,
+        copytree=shutil.move if args.move else None)
     if jobs:
         _print_err("Imported {} job(s).".format(len(jobs)))
     else:
@@ -521,8 +526,13 @@ def main_import(args):
 
 
 def main_export(args):
+    if args.move and os.path.splitext(args.prefix)[1] != '':
+        raise RuntimeError(
+            "The `--move` argument can only be used for 'directory' targets.")
     project = get_project()
-    paths = project.export_data(args.prefix, args.remove_statepoint_metadata)
+    paths = project.export_to(
+        target=args.prefix,
+        copytree=shutil.move if args.move else None)
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
     else:
@@ -1337,6 +1347,14 @@ based schema to specify the state point metadata. This is only necessary if the 
 previously exported from a signac project.""")
     parser_import.add_argument('root', default='.', nargs='?')
     parser_import.add_argument('schema_path', nargs='?')
+    parser_import.add_argument(
+        '--move',
+        action='store_true',
+        help="Move data instead of copy.")
+    parser_import.add_argument(
+        '--sync',
+        action='store_true',
+        help="Attempt synchronization with default arguments.")
     parser_import.set_defaults(func=main_import)
 
     parser_export = subparsers.add_parser(
@@ -1346,9 +1364,9 @@ previously exported from a signac project.""")
         'prefix',
     )
     parser_export.add_argument(
-        '--remove-statepoint-metadata',
+        '--move',
         action='store_true',
-    )
+        help="Move data instead of copy.")
     parser_export.set_defaults(func=main_export)
 
     parser_update_cache = subparsers.add_parser(
