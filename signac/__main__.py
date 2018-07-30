@@ -12,6 +12,7 @@ import getpass
 import difflib
 import code
 import readline
+import importlib
 from rlcompleter import Completer
 import re
 import errno
@@ -92,6 +93,15 @@ Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
 Type "help(project)" for more information."""
+
+
+SHELL_BANNER_INTERACTIVE_IMPORT = SHELL_BANNER + """
+
+The data from origin '{origin}' has been imported into a temporary project.
+Synchronize your project with the temporary project, for example with:
+
+                    project.sync(tmp_project)
+"""
 
 
 def _print_err(msg=None, *args):
@@ -273,7 +283,7 @@ def main_remove(args):
             "Are you sure you want to {action} job with id '{job._id}'?".format(
                 action='clear' if args.clear else 'remove',
                 job=job), default='no'):
-                continue
+            continue
         if args.clear:
             job.clear()
         else:
@@ -512,27 +522,88 @@ def main_sync(args):
     raise RuntimeWarning("Synchronization aborted.")
 
 
-def main_import(args):
-    project = get_project()
-    jobs = project.import_from(
-        origin=args.root,
-        schema=args.schema_path,
-        sync=args.sync,
-        copytree=shutil.move if args.move else None)
-    if jobs:
-        _print_err("Imported {} job(s).".format(len(jobs)))
+def _main_import_interactive(project, args):
+    with project.temporary_project() as tmp_project:
+        paths = tmp_project.import_from(origin=args.origin, schema=args.schema_path)
+
+        local_ns = dict(
+            signac=importlib.import_module(__package__),
+            project=project, pr=project,
+            tmp_project=tmp_project)
+        readline.set_completer(Completer(local_ns).complete)
+        readline.parse_and_bind('tab: complete')
+        code.interact(
+            local=local_ns,
+            banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
+                python_version=sys.version,
+                signac_version=__version__,
+                project_id=project.get_id(),
+                root_path=project.root_directory(),
+                workspace_path=project.workspace(),
+                size=len(project),
+                origin=args.origin))
+
+        return paths
+
+
+def _main_import_non_interactive(project, args):
+    try:
+        paths = project.import_from(
+            origin=args.origin,
+            schema=args.schema_path,
+            sync=args.sync,
+            copytree=shutil.move if args.move else None)
+    except DestinationExistsError as error:
+        _print_err("Destination '{}' already exists.".format(error))
+        if not args.sync:
+            _print_err("Consider using '--sync' or '--sync-interactive'!")
+            return
+    except SchemaSyncConflict as error:
+        _print_err("The detected schemas of the two data spaces differ!")
+    except DocumentSyncConflict as error:
+        _print_err("Synchronization conflict occured, no strategy defined "
+                   "to synchronize keys:\n{}".format(', '.join(error.keys)))
+    except FileSyncConflict as error:
+        _print_err("Synchroniation conflict occured, no strategy defined "
+                   "to synchronize files:\n{}".format(error))
     else:
-        _print_err("Nothing to import.")
+        if paths:
+            _print_err("Imported {} job(s).".format(len(paths)))
+        else:
+            _print_err("Nothing to import.")
+        return
+    _print_err("Consider using '--sync-interactive'!")
+
+
+def main_import(args):
+    if args.move and os.path.splitext(args.origin)[1] != '':
+        raise RuntimeError(
+            "The '--move' argument can only be used when importing from directories.")
+
+    project = get_project()
+    if args.sync_interactive:
+        _main_import_interactive(project, args)
+    else:
+        _main_import_non_interactive(project, args)
 
 
 def main_export(args):
+    from .common.tqdm import tqdm
+    from .contrib.import_export import export_jobs
     if args.move and os.path.splitext(args.prefix)[1] != '':
         raise RuntimeError(
-            "The `--move` argument can only be used for 'directory' targets.")
+            "The '--move' argument can only be used when exporting to directories.")
+    copytree = shutil.move if args.move else None
+
     project = get_project()
-    paths = project.export_to(
-        target=args.prefix,
-        copytree=shutil.move if args.move else None)
+    jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+
+    paths = dict()
+    with tqdm(total=len(jobs), desc='Export') as pbar:
+        for src, dst in export_jobs(jobs=jobs, target=args.prefix, copytree=copytree):
+            paths[src] = dst
+            pbar.update(1)
+
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
     else:
@@ -1069,7 +1140,7 @@ def main():
         description="""All filter arguments may be provided either directly in JSON
                        encoding or in a simplified form, e.g., -- $ signac find a 42 --
                        is equivalent to -- $ signac find '{"a": 42}'."""
-                       )
+    )
     parser_find.add_argument(
         'filter',
         type=str,
@@ -1198,7 +1269,7 @@ means "Synchronize all jobs within this project with those in the other project;
 files if the source files is newer and overwrite all conflicting keys in the project and
 job documents."
 """
-        )
+    )
     parser_sync.add_argument(
         'source',
         help="The root directory of the project that this project should be synchronized with.")
@@ -1343,30 +1414,63 @@ job documents."
     parser_import = subparsers.add_parser(
         'import',
         description="""Import an existing dataset into this project. Optionally provide a file path
-based schema to specify the state point metadata. This is only necessary if the data set was not
-previously exported from a signac project.""")
-    parser_import.add_argument('root', default='.', nargs='?')
-    parser_import.add_argument('schema_path', nargs='?')
+ based schema to specify the state point metadata. Providing a path based schema is only necessary
+ if the data set was not previously exported from a signac project.""")
+    parser_import.add_argument(
+        'origin',
+        default='.',
+        nargs='?',
+        help="The origin to import from. May be a path to a directory, a zip-file or a tarball. "
+             "Defaults to the current working directory.")
+    parser_import.add_argument(
+        'schema_path',
+        nargs='?',
+        help="Specify an optional import path, such as 'foo/{foo:int}'. Possible type definitions "
+             "include bool, int, float, and str. The type is assumed to be 'str' if no type is "
+             "specified.")
     parser_import.add_argument(
         '--move',
         action='store_true',
-        help="Move data instead of copy.")
+        help="Move the data upon import instead of copying. Can only be used when importing from "
+             "a directory.")
     parser_import.add_argument(
         '--sync',
         action='store_true',
         help="Attempt synchronization with default arguments.")
+    parser_import.add_argument(
+        '--sync-interactive',
+        action='store_true',
+        help="Synchronize the project with the origin data space interactively.")
     parser_import.set_defaults(func=main_import)
 
     parser_export = subparsers.add_parser(
         'export',
-        description="")
+        description="""Export the project data space (or a subset) to a directory, a zipfile,
+ or a tarball.""")
     parser_export.add_argument(
         'prefix',
     )
     parser_export.add_argument(
         '--move',
         action='store_true',
-        help="Move data instead of copy.")
+        help="Move data to export target instead of copying. Can only be used when exporting "
+             "to a directory target.")
+    selection_group = parser_export.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching this document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching the provided job ids.")
     parser_export.set_defaults(func=main_export)
 
     parser_update_cache = subparsers.add_parser(

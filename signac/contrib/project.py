@@ -12,9 +12,6 @@ import collections
 import uuid
 import gzip
 import time
-import shutil
-import tarfile
-from zipfile import ZipFile, ZIP_DEFLATED
 from contextlib import contextmanager
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
@@ -23,7 +20,6 @@ from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
 from .collection import Collection
-from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
 from ..sync import sync_projects
@@ -424,20 +420,11 @@ class Project(object):
         :yields: Pairs of state point keys and mappings of values to a set of all
             corresponding job ids.
         """
+        from .schema import _build_job_statepoint_index
         if index is None:
-            index = self.index(include_job_document=False)
-        collection = Collection(index, _trust=True)
-        for doc in collection.find():
-            for key, _ in _traverse_filter(doc):
-                if key == '_id' or key.split('.')[0] != 'statepoint':
-                    continue
-                collection.index(key, build=True)
-        tmp = collection._indexes
-        for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
-            if exclude_const and len(tmp[k]) == 1 \
-                    and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
-                continue
-            yield tuple(k.split('.')[1:]), tmp[k]
+            index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+        for x in _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index):
+            yield x
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
@@ -795,9 +782,14 @@ class Project(object):
         """
         if prefix is None:
             prefix = 'view'
+
         if index is None:
-            index = self.index(include_job_document=False)
-        if job_ids is not None:
+            if job_ids is None:
+                index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+            else:
+                index = [{'_id': job_id, 'statepoint': self.open_job(id=job_id).sp()}
+                         for job_id in job_ids]
+        elif job_ids is not None:
             if not isinstance(job_ids, set):
                 job_ids = set(job_ids)
             index = [doc for doc in index if doc['_id'] in job_ids]
@@ -966,124 +958,11 @@ class Project(object):
             selection=selection,
             **kwargs)
 
-    def _export_to(self, target, path, copytree):
-        paths = {job.workspace(): path(job) for job in self}
-
-        # Check whether the mapped paths are unique.
-        if not len(set(paths.values())) == len(paths):
-            raise RuntimeError("Paths generated with given path function are not unique!")
-
-        for src, dst in paths.items():
-            copytree(src, dst)
-        return paths
-
-    class EXPORT_PATH(object):
-        EXPAND = True
-        IDENTITY = None
-
-    def export_to(self, target, path=EXPORT_PATH.EXPAND, copytree=None):
-        from operator import methodcaller
-        from .import_export import _make_path_function
-
-        if path is self.EXPORT_PATH.EXPAND:
-            path = _make_path_function(self)
-        elif path is self.EXPORT_PATH.IDENTITY:
-            path = methodcaller('workspace')
-
-        if copytree is None:
-            copytree = shutil.copytree
-
-        ext = os.path.splitext(target)[1]
-        if ext == '':   # target is directory
-
-            def copytree_to_dir(src, dst):
-                dst_ = os.path.join(target, dst)
-                _mkdir_p(os.path.dirname(dst_))
-                copytree(src, dst_)
-
-            self._export_to(target=target, path=path, copytree=copytree_to_dir)
-        elif ext == '.zip':
-            assert not os.path.isfile(target)
-            _mkdir_p(os.path.dirname(target))
-            with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as file:
-
-                def copytree_to_zip(src, dst):
-                    for root, dirnames, filenames in os.walk(src):
-                        for fn in filenames:
-                            file.write(
-                                filename=os.path.join(root, fn),
-                                arcname=os.path.join(dst, os.path.relpath(root, src), fn))
-
-                self._export_to(target=target, path=path, copytree=copytree_to_zip)
-        elif ext == '.tar':
-            _mkdir_p(os.path.dirname(target))
-            with tarfile.open(name=target, mode='a') as file:
-                self._export_to(target='', path=path, copytree=file.add)
-        elif ext in ('.gz', '.bz2', '.xz'):
-            assert not os.path.isfile(target)
-            _mkdir_p(os.path.dirname(target))
-            with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
-                self._export_to(target='', path=path, copytree=file.add)
-        else:
-            raise RuntimeError("Unknown extension: '{}'.".format(ext))
-
-    def _import_from(self, root, schema, copytree):
-        """Import a data space located at root into the project's workspace."""
-        from .import_export import _parse_workspaces
-        from .import_export import _make_schema_path_function
-
-        if schema is None:
-            schema_function = _parse_workspaces(self.Job.FN_MANIFEST)
-        elif callable(schema):
-            schema_function = schema
-        elif isinstance(schema, six.string_types):
-            if not schema.startswith(root):
-                schema = root + r'\/' + schema
-            schema_function = _make_schema_path_function(schema)
-        else:
-            raise TypeError("The schema variable must be None, callable, or a string.")
-
-        jobs = list()
-        ws_exists = os.path.isdir(self.workspace())
-        for path, dirs, _ in os.walk(root):
-            sp = schema_function(path)
-            if sp is not None:
-                del dirs[:]         # skip sub-directories
-                if not ws_exists:   # create project workspace if necessary
-                    os.makedirs(self.workspace())
-                    ws_exists = True
-                job = self.open_job(sp)
-                dst = job.workspace()
-                if os.path.realpath(path) == os.path.realpath(dst):
-                    continue     # skip (already part of the data space)
-
-                dst_exists = os.path.exists(dst)
-                try:
-                    copytree(path, dst)
-                except OSError as error:
-                    if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
-                        raise DestinationExistsError(dst)
-                    else:
-                        raise
-                try:
-                    job._init()  # Ensure existence and correctness of job manifest file.
-                except Exception:   # rollback
-                    if not dst_exists:
-                        if copytree == os.rename:
-                            os.rename(dst, path)
-                        else:
-                            shutil.rmtree(dst)
-                    raise
-
-                jobs.append(job)
-        return jobs
+    def export_to(self, target, path=None, copytree=None):
+        return self.find_jobs().export_to(target=target, path=path, copytree=copytree)
 
     def import_from(self, origin=None, schema=None, sync=None, copytree=None):
-        from .utility import _extract
-
-        if copytree is None:
-            copytree = shutil.copytree
-
+        from .import_export import import_into_project
         if sync:
             with self.temporary_project() as tmp_project:
                 ret = tmp_project.import_from(origin=origin, schema=schema)
@@ -1093,13 +972,9 @@ class Project(object):
                     self.sync(other=tmp_project, **sync)
                 return ret
 
-        if origin is None:
-            return self._import_from(root=os.getcwd(), schema=schema, copytree=copytree)
-        elif os.path.isfile(origin):
-            with _extract(origin) as root:
-                return self._import_from(root=root, schema=schema, copytree=copytree)
-        else:
-            return self._import_from(root=origin, schema=schema, copytree=copytree)
+        paths = dict(import_into_project(
+            origin=origin, project=self, schema=schema, copytree=copytree))
+        return paths
 
     def check(self, job_ids=None):
         """Check the project's workspace for corruption.
@@ -1791,6 +1666,10 @@ class JobsCursor(object):
             def keyfunction(job):
                 return key(job.document)
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
+
+    def export_to(self, target, path=None, copytree=None):
+        from .import_export import export_jobs
+        return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

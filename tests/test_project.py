@@ -1092,6 +1092,16 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_single_job(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(1):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        self.assertEqual(len(self.project), 1)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
     def test_export_custom_path_function(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
@@ -1358,6 +1368,17 @@ class ProjectExportImportTest(BaseProjectTest):
         self.project.import_from(origin=prefix_data, schema='b.c/{b.c:int}/a/{a:int}')
         self.assertEqual(len(self.project), len(statepoints))
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_import_own_project(self):
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.import_from(origin=self.project.workspace())
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        with self.project.temporary_project() as tmp_project:
+            tmp_project.import_from(origin=self.project.workspace())
+            self.assertEqual(ids_before_export, list(sorted(tmp_project.find_job_ids())))
+            self.assertEqual(len(tmp_project), len(self.project))
 
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
