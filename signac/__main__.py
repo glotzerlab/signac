@@ -25,6 +25,7 @@ from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
+from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
 from .errors import DestinationExistsError
 from .sync import FileSync
 from .sync import DocSync
@@ -589,8 +590,7 @@ def main_import(args):
 
 def main_export(args):
     from .common.tqdm import tqdm
-    from .contrib.import_export import export_jobs
-    if args.move and os.path.splitext(args.prefix)[1] != '':
+    if args.move and os.path.splitext(args.target)[1] != '':
         raise RuntimeError(
             "The '--move' argument can only be used when exporting to directories.")
     copytree = shutil.move if args.move else None
@@ -600,9 +600,17 @@ def main_export(args):
 
     paths = dict()
     with tqdm(total=len(jobs), desc='Export') as pbar:
-        for src, dst in export_jobs(jobs=jobs, target=args.prefix, copytree=copytree):
-            paths[src] = dst
-            pbar.update(1)
+        try:
+            for src, dst in export_jobs(
+                    jobs=jobs,
+                    target=args.target,
+                    path=args.schema_path,
+                    copytree=copytree):
+                paths[src] = dst
+                pbar.update(1)
+        except _SchemaPathEvaluationError as error:
+            _print_err("An error occured while evaluation the schema path:", error)
+            raise RuntimeWarning("Export failed.")
 
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
@@ -1420,7 +1428,7 @@ job documents."
         'origin',
         default='.',
         nargs='?',
-        help="The origin to import from. May be a path to a directory, a zip-file or a tarball. "
+        help="The origin to import from. May be a path to a directory, a zip-file, or a tarball. "
              "Defaults to the current working directory.")
     parser_import.add_argument(
         'schema_path',
@@ -1448,8 +1456,14 @@ job documents."
         description="""Export the project data space (or a subset) to a directory, a zipfile,
  or a tarball.""")
     parser_export.add_argument(
-        'prefix',
+        'target',
+        help="The target to export to. May be a path to a directory, a zip-file, or a tarball.",
     )
+    parser_export.add_argument(
+        'schema_path',
+        nargs='?',
+        help="Specify an optional export path, based on the job state point, e.g., "
+             "'foo/{job.sp.foo}'.")
     parser_export.add_argument(
         '--move',
         action='store_true',

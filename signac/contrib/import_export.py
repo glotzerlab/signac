@@ -56,13 +56,31 @@ def _make_path_function(jobs, delimiter_nested='.'):
     return get_path
 
 
+class _SchemaPathEvaluationError(RuntimeError):
+    pass
+
+
 def _export_jobs(jobs, path, copytree):
     "This is a generic export function."
     if path is None:
-        path = _make_path_function(jobs=jobs)
+        path_function = _make_path_function(jobs=jobs)
+    elif isinstance(path, six.string_types):
+
+        def path_function(job):
+            try:
+                return path.format(job=job)
+            except AttributeError as error:
+                raise _SchemaPathEvaluationError("Attribute Error: {}.".format(error))
+            except KeyError as error:
+                raise _SchemaPathEvaluationError("Key Error: {}.".format(error))
+            except Exception as error:
+                raise _SchemaPathEvaluationError("Unknown error: '{}'.".format(error))
+
+    else:
+        path_function = path
 
     # Determine export path for each job.
-    paths = {job.workspace(): path(job) for job in jobs}
+    paths = {job.workspace(): path_function(job) for job in jobs}
 
     # Check whether the mapped paths are unique.
     if not len(set(paths.values())) == len(paths):
@@ -125,7 +143,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
             with tarfile.open(name=target, mode='a') as file:
                 for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
                     yield src_dst
-        elif ext in ('.gz', 'bz2', 'xz'):    # target is compressed tarball
+        elif ext in ('.gz', '.bz2', '.xz'):    # target is compressed tarball
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
                 for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
                     yield src_dst

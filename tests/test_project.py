@@ -1121,6 +1121,24 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_custom_path_string(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(target=prefix_data, path='my_a/{job.sp.a}')
+
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'my_a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
     def test_export_move(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
