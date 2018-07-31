@@ -19,7 +19,6 @@ import logging
 import warnings
 import argparse
 import operator
-from collections import defaultdict
 from itertools import islice
 
 from ..core.json import json
@@ -115,9 +114,52 @@ def _valid_filter(f, top=True):
         return True
 
 
+class _TypedSetDefaultDict(dict):
+    """Dictionary that is guaranteed to store differently typed values separately.
+
+    This is necessary, because the hash value of integers with float type is identical
+    to the same integer as int type, which means they cannot be stored separately in a
+    standard dict.
+    """
+
+    @classmethod
+    def _convert_to_typed(cls, x):
+        return (type(x), x)
+
+    def _convert_from_typed(cls, x):
+        return x[1]
+
+    def keys(self):
+        for key in super(_TypedSetDefaultDict, self).keys():
+            yield self._convert_from_typed(key)
+
+    __iter__ = keys
+
+    def items(self):
+        for key, value in super(_TypedSetDefaultDict, self).items():
+            yield self._convert_from_typed(key), value
+
+    def __missing__(self, key):
+        value = set()
+        super(_TypedSetDefaultDict, self).__setitem__(key, value)
+        return value
+
+    def __getitem__(self, key):
+        return super(_TypedSetDefaultDict, self).__getitem__(self._convert_to_typed(key))
+
+    def __setitem__(self, key, value):
+        return super(_TypedSetDefaultDict, self).__setitem__(self._convert_to_typed(key), value)
+
+    def __delitem__(self, key):
+        super(_TypedSetDefaultDict, self).__delitem__(self._convert_to_typed(key))
+
+    def get(self, key, default=None):
+        return super(_TypedSetDefaultDict, self).get(self._convert_to_typed(key), default)
+
+
 def _build_index(docs, key, primary_key):
     nodes = key.split('.')
-    index = defaultdict(set)
+    index = _TypedSetDefaultDict()
 
     for doc in docs:
         try:
