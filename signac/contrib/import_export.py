@@ -173,7 +173,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
             for src_dst in export_to_directory(
                     jobs=jobs, target=target, path=path, copytree=copytree):
                 yield src_dst
-        elif ext == '.zip':     # target is zip-archive
+        elif ext == '.zip':     # target is zipfile
             with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as zipfile:
                 for src_dst in export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path):
                     yield src_dst

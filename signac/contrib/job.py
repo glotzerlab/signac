@@ -315,7 +315,7 @@ class Job(object):
         the job manifest already exist.
 
         :param force:
-                Overwrite any existing state points manifest
+                Overwrite any existing state point's manifest
                 files, e.g., to repair them when they got corrupted.
         :type force:
                 bool

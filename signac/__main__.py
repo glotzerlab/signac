@@ -565,7 +565,7 @@ def _main_import_non_interactive(project, args):
         _print_err("Synchronization conflict occured, no strategy defined "
                    "to synchronize keys:\n{}".format(', '.join(error.keys)))
     except FileSyncConflict as error:
-        _print_err("Synchroniation conflict occured, no strategy defined "
+        _print_err("Synchronization conflict occured, no strategy defined "
                    "to synchronize files:\n{}".format(error))
     else:
         if paths:
@@ -609,7 +609,7 @@ def main_export(args):
                 paths[src] = dst
                 pbar.update(1)
         except _SchemaPathEvaluationError as error:
-            _print_err("An error occured while evaluation the schema path:", error)
+            _print_err("An error occured while evaluating the schema path:", error)
             raise RuntimeWarning("Export failed.")
 
     if paths:
@@ -1428,7 +1428,7 @@ job documents."
         'origin',
         default='.',
         nargs='?',
-        help="The origin to import from. May be a path to a directory, a zip-file, or a tarball. "
+        help="The origin to import from. May be a path to a directory, a zipfile, or a tarball. "
              "Defaults to the current working directory.")
     parser_import.add_argument(
         'schema_path',
@@ -1457,7 +1457,7 @@ job documents."
  or a tarball.""")
     parser_export.add_argument(
         'target',
-        help="The target to export to. May be a path to a directory, a zip-file, or a tarball.",
+        help="The target to export to. May be a path to a directory, a zipfile, or a tarball.",
     )
     parser_export.add_argument(
         'schema_path',
