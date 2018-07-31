@@ -82,6 +82,15 @@ signac.contrib.project module
     :undoc-members:
     :show-inheritance:
 
+signac.contrib.import_export module
+-----------------------------------
+
+.. automodule:: signac.contrib.import_export
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 signac.contrib.utility module
 -----------------------------
 

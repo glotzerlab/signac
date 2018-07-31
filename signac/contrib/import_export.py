@@ -102,10 +102,10 @@ def export_to_directory(jobs, target, path=None, copytree=None):
         already exist.
     :param path:
         The path function for export, must be a function of job or
-        a string, which is evaluated with `path.format(job=job)`.
+        a string, which is evaluated with ``path.format(job=job)``.
     :param copytree:
         The function used for the actualy copying of directory tree
-        structures. Defaults to `shutil.copytree`.
+        structures. Defaults to :func:`shutil.copytree`.
     :returns:
         A dict that maps the source directory paths, to the target
         directory paths.
@@ -122,12 +122,12 @@ def export_to_directory(jobs, target, path=None, copytree=None):
 
 
 def export_to_tarfile(jobs, tarfile, path=None):
-    """Like :func:`.export_to_directory`, but target is an instance of :class:`tarfile.TarFile`."""
+    """Like :func:`~.export_to_directory`, but target is an instance of :class:`tarfile.TarFile`."""
     return _export_jobs(jobs=jobs, path=path, copytree=tarfile.add)
 
 
 def export_to_zipfile(jobs, zipfile, path=None):
-    """Like :func:`.export_to_directory`, but target is an instance of :class:`zipfile.ZipFile`."""
+    """Like :func:`~.export_to_directory`, but target is an instance of :class:`zipfile.ZipFile`."""
 
     def copytree_to_zip(src, dst):
         for root, dirnames, filenames in os.walk(src):
@@ -149,10 +149,10 @@ def export_jobs(jobs, target, path=None, copytree=None):
         already exist.
     :param path:
         The path function for export, must be a function of job or
-        a string, which is evaluated with `path.format(job=job)`.
+        a string, which is evaluated with ``path.format(job=job)``.
     :param copytree:
         The function used for the actualy copying of directory tree
-        structures. Defaults to `shutil.copytree`.
+        structures. Defaults to :func:`shutil.copytree`.
         Can only be used when the target is a directory.
     :returns:
         A dict that maps the source directory paths, to the target
@@ -347,22 +347,22 @@ def import_into_project(origin, project, schema=None, copytree=None):
     This function will walk through the data space located at origin and try to identify
     data space paths that can be imported as a job workspace into project.
 
-    The default schema function will simply look for state point manifest files, usually named
-    'signac_statepoint.json' and then import all data located within that path into the job
+    The default schema function will simply look for state point manifest files -- usually named
+    ``signac_statepoint.json`` -- and then import all data located within that path into the job
     workspace corresponding to the state point specified in the manifest file.
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
-    for example: 'foo/{foo:int}' will be converted into a function, where paths that begin with
-    'foo/' will be parsed, such that the part after 'foo/' is interpreted as an integer value,
-    named 'foo' as part of the state point.
+    for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
+    ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+    the state point.
 
-    Use `copytree=os.rename` or `copytree=shutil.move` to move dataspaces on import, instead of
-    copying them.
+    .. tip::
 
-    .. warning::
+        Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+        instead of copying them.
 
-        Imports can fail due to conflicts. Moving data instead of copying may therefore lead
-        to inconsistent states and users are advised to use caution.
+        Warning: Imports can fail due to conflicts. Moving data instead of copying may
+        therefore lead to inconsistent states and users are advised to apply caution.
 
     :param origin:
         The path to the data space origin, which is to be imported. This may be a path to
@@ -370,9 +370,8 @@ def import_into_project(origin, project, schema=None, copytree=None):
     :param project:
         The project to import the data into.
     :param schema:
-        An optional schema function, which is a function that takes a path as its only argument
-        and returns a dict, that represents the state point that is associated with the data located
-        within the path.
+        An optional schema function, which is either a string or a function that accepts a
+        path as its first and only argument and returns the corresponding state point as dict.
     :param copytree:
         Specify which exact function to use for the actual copytree operation.
         Defaults to :func:`shutil.copytree`.

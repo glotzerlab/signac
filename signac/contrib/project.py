@@ -962,22 +962,24 @@ class Project(object):
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
 
-        Use this function in combination with :func:`.find_jobs` to export only a select number
+        Use this function in combination with :meth:`~.find_jobs` to export only a select number
         of jobs, for example:
 
         .. code-block:: python
 
             project.find_jobs({'foo': 0}).export_to('foo_0.tar')
 
+        .. seealso:: Import data spaces with :meth:`~.import_from`.
+
         :param target:
             A path to a directory to export to. The directory can not
             already exist.
         :param path:
             The path function for export, must be a function of job or
-            a string, which is evaluated with `path.format(job=job)`.
+            a string, which is evaluated with ``path.format(job=job)``.
         :param copytree:
             The function used for the actualy copying of directory tree
-            structures. Defaults to `shutil.copytree`.
+            structures. Defaults to :func:`shutil.copytree`.
             Can only be used when the target is a directory.
         :returns:
             A dict that maps the source directory paths, to the target
@@ -986,37 +988,36 @@ class Project(object):
         return self.find_jobs().export_to(target=target, path=path, copytree=copytree)
 
     def import_from(self, origin=None, schema=None, sync=None, copytree=None):
-        """Import the data space located at origin into project.
+        """Import the data space located at origin into this project.
 
-        This function will walk through the data space located at origin and try to identify
-        data space paths that can be imported as a job workspace into project.
+        This function will walk through the data space located at origin and will try to identify
+        data space paths that can be imported as a job workspace into this project.
 
-        The default schema function will simply look for state point manifest files, usually named
-        'signac_statepoint.json' and then import all data located within that path into the job
+        The default schema function will simply look for state point manifest files -- usually named
+        ``signac_statepoint.json`` -- and then import all data located within that path into the job
         workspace corresponding to the state point specified in the manifest file.
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
-        for example: 'foo/{foo:int}' will be converted into a function, where paths that begin with
-        'foo/' will be parsed, such that the part after 'foo/' is interpreted as an integer value,
-        named 'foo' as part of the state point.
+        for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
+        ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+        the state point.
 
-        Use `copytree=os.rename` or `copytree=shutil.move` to move dataspaces on import, instead of
-        copying them.
+        .. tip::
 
-        .. warning::
+            Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+            instead of copying them.
 
-            Imports can fail due to conflicts. Moving data instead of copying may therefore lead
-            to inconsistent states and users are advised to use caution.
+            Warning: Imports can fail due to conflicts. Moving data instead of copying may
+            therefore lead to inconsistent states and users are advised to apply caution.
+
+        .. seealso:: Export the project data space with :meth:`~.export_to`.
 
         :param origin:
             The path to the data space origin, which is to be imported. This may be a path to
-            a directory, a zipfile, or a tarball archive.
-        :param project:
-            The project to import the data into.
+            a directory, a zip-file, or a tarball archive.
         :param schema:
-            An optional schema function, which is a function that takes a path as its only argument
-            and returns a dict, that represents the state point that is associated with the data
-            located within the path.
+            An optional schema function, which is either a string or a function that accepts a
+            path as its first and only argument and returns the corresponding state point as dict.
         :param copytree:
             Specify which exact function to use for the actual copytree operation.
             Defaults to :func:`shutil.copytree`.
@@ -1331,7 +1332,7 @@ class Project(object):
         this project's index part of a master index.
 
         :param filename: The name of the access module file.
-            Defaults to the standard name and should ususally
+            Defaults to the standard name and should usually
             not be changed.
         :type filename: str
         :param master: If True, add directives for the compilation
@@ -1364,7 +1365,7 @@ class Project(object):
         for how this method can be used for the import and synchronization of
         external data spaces.
 
-        .. code-block::
+        .. code-block:: python
 
             with project.temporary_project() as tmp_project:
                 tmp_project.import_from('/data')
@@ -1465,7 +1466,7 @@ def TemporaryProject(name=None, **kwargs):
     This is a factory function that creates a Project within a temporary directory
     and must be used as context manager, for example like this:
 
-    .. code-block::
+    .. code-block:: python
 
         with TemporaryProject() as tmp_project:
             tmp_project.import_from('/data')
@@ -1771,6 +1772,8 @@ class JobsCursor(object):
 
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+
+        .. seealso:: Import data spaces with :meth:`~.import_from`.
 
         :param target:
             A path to a directory to export to. The directory can not
