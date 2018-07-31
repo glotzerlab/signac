@@ -1359,8 +1359,25 @@ class Project(object):
     def temporary_project(self, name=None, dir=None):
         """Context manager for the initialization of a temporary project.
 
-        The temporary project is created within the root project's workspace
-        as to ensure that they share the same file system.
+        The temporary project is by default created within the root project's
+        workspace to ensure that they share the same file system. This is an example
+        for how this method can be used for the import and synchronization of
+        external data spaces.
+
+        .. code-block::
+
+            with project.temporary_project() as tmp_project:
+                tmp_project.import_from('/data')
+                project.sync(tmp_project)
+
+        :param name:
+            An optional name for the temporary project.
+            Defaults to a unique random string.
+        :param dir:
+            Optionally specify where the temporary project root directory is to be
+            created. Defaults to the project's workspace directory.
+        :returns:
+            An instance of :class:`.Project`.
         """
         if name is None:
             name = os.path.join(self.get_id(), str(uuid.uuid4()))
@@ -1443,7 +1460,25 @@ class Project(object):
 
 @contextmanager
 def TemporaryProject(name=None, **kwargs):
-    """Context manager for the generation of a temporary project."""
+    """Context manager for the generation of a temporary project.
+
+    This is a factory function that creates a Project within a temporary directory
+    and must be used as context manager, for example like this:
+
+    .. code-block::
+
+        with TemporaryProject() as tmp_project:
+            tmp_project.import_from('/data')
+
+    :param name:
+        An optional name for the temporary project.
+        Defaults to a unique random string.
+    :param kwargs:
+        Optional key-word arguments that are forwarded to the TemporaryDirectory class
+        constructor, which is used to create a temporary root directory.
+    :returns:
+        An instance of :class:`.Project`.
+    """
     if name is None:
         name = str(uuid.uuid4())
     with TemporaryDirectory(**kwargs) as tmp_dir:
