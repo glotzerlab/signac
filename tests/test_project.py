@@ -1295,6 +1295,21 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(self.project.import_from(prefix_data, schema=my_schema)), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_import_schema_callable_non_unique(self):
+
+        def my_schema_non_unique(path):
+            import re
+            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            if m:
+                return dict(a=0)
+
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        with self.assertRaises(RuntimeError):
+            self.project.import_from(prefix_data, schema=my_schema_non_unique)
+
     def test_export_import_simple_path(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
