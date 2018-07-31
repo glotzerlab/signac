@@ -22,6 +22,7 @@ from ..core.jsondict import JSONDict
 from .collection import Collection
 from ..common import six
 from ..common.config import load_config
+from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -1356,6 +1357,11 @@ class Project(object):
 
     @contextmanager
     def temporary_project(self, name=None, dir=None):
+        """Context manager for the initialization of a temporary project.
+
+        The temporary project is created within the root project's workspace
+        as to ensure that they share the same file system.
+        """
         if name is None:
             name = os.path.join(self.get_id(), str(uuid.uuid4()))
         if dir is None:
@@ -1437,7 +1443,7 @@ class Project(object):
 
 @contextmanager
 def TemporaryProject(name=None, **kwargs):
-    from ..common.tempdir import TemporaryDirectory
+    """Context manager for the generation of a temporary project."""
     if name is None:
         name = str(uuid.uuid4())
     with TemporaryDirectory(**kwargs) as tmp_dir:
