@@ -31,7 +31,7 @@ The project interface provides simple and consistent access to the project's und
 
 .. [#f1] You can access a project interface from other locations by explicitly specifying the root directory.
 
-To initialize a project, simply execute ``$signac init <projectname>`` on the command line inside the desired project directory (create a new project directory if needed).
+To initialize a project, simply execute ``$ signac init <project-name>`` on the command line inside the desired project directory (create a new project directory if needed).
 For example, to initialize a **signac** project named *MyProject* in a directory called ``my_project``, execute:
 
 .. code-block:: bash
@@ -333,7 +333,7 @@ Grouping by Multiple Keys
 Grouping by multiple state point parameters or job document values is possible, by passing an iterable of fields that should be used for grouping.
 For example, we can group jobs by state point parameters *c* and *d*:
 
-.. code-blocK:: python
+.. code-block:: python
 
     for (c, d), group in project.groupby(('c', 'd')):
         print(c, d, list(group))
@@ -684,6 +684,12 @@ Then we would call ``signac sync`` with the path of the project that we want to 
 This would copy data *from the remote project to the local project*.
 For more details on how to use ``signac sync``, type ``$ signac sync --help``.
 
+Projects can also be synchronized using the Python API.
+
+.. code-block:: python
+
+    project.sync('/remote/my_project')
+
 .. _import-export:
 
 Importing and Exporting Data
@@ -710,12 +716,18 @@ Then we would call ``signac export`` with the target path and an export naming s
     $ signac export /data/my_project_archive "a_{job.sp.a}/b_{job.sp.b}"
 
 This would copy data *from the source project to the export directory*.
-It would also be possible to export to a zipfile by specifying a path of "/data/my_project_archive.zip".
+It would also be possible to export to a zipfile by specifying a path of ``/data/my_project_archive.zip``.
 For more details on how to use ``signac export``, type ``$ signac export --help``.
+
+Projects can also be exported using the Python API.
+
+.. code-block:: python
+
+    project.export_to('/data/my_project_archive', 'a_{job.sp.a}/b_{job.sp.b}')
 
 Importing
 ---------
-Archives exported by signac include state point files, simplifying the process of importing from an archive.
+Archives exported by **signac** include state point files, simplifying the process of importing from an archive.
 Here, we import the previously-exported project into a new project.
 We make a new project, and call ``signac import`` with the origin path we wish to import from.
 
@@ -726,7 +738,7 @@ We make a new project, and call ``signac import`` with the origin path we wish t
     $ signac init my_new_project
     $ signac import /data/my_project_archive
 
-We can also explicitly define the schema for importing projects without signac state point files.
+We can also explicitly define the schema for importing projects without state point files.
 
 .. code-block:: bash
 
@@ -735,3 +747,9 @@ We can also explicitly define the schema for importing projects without signac s
 This would copy data *from the source archive to the current project*.
 Importing from zipfiles and tarballs works similarly, by specifying that path as the origin.
 For more details on how to use ``signac import``, type ``$ signac import --help``.
+
+Archived data can also be imported using the Python API.
+
+.. code-block:: python
+
+    project.import_from('/data/my_project_archive', 'a_{a:int}/b_{b:int}')
