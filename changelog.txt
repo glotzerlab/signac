@@ -12,9 +12,21 @@ Highlights
 
  - Adds persistent state point index caching, which speeds up all functions that require indexing, for example the ``$ signac find`` command.
  - Adds the ``$ signac sync`` tool for synchronization of multiple **signac** projects.
- - Add the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
- - Add the ``$near`` operator to match numbers with up to a specific precision.
+ - Adds the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
+ - Adds the ``$near`` operator to match numbers with up to a specific precision.
+ - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
+
+[next] -- XXXX-XX-XX
+--------------------
+
+Added
++++++
+
+ - Adds the ``$ signac import`` command and the ``Project.import_from()`` method for the import of data spaces into a project workspace, such as a directory, a tarball, or a zip-file.
+ - Adds the ``$ signac export`` command and the ``Project.export_to()`` method for the export of project workspaces to an external location, such as a directory, a tarball, or a zip-file.
+ - Adds functionality for the rapid initialization of temporary projects with the ``signac.TemporaryProject` context manager.
+ - Adds the``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
 
 [0.9.3] -- 2018-06-14
 ---------------------
