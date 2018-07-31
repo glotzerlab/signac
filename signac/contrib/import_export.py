@@ -287,8 +287,55 @@ def _parse_workspaces(fn_manifest):
     return _parse_workspace
 
 
+def _crawl_data_space(root, project, schema_function):
+    # We compare paths to the 'realpath' of the project workspace to catch loops.
+    workspace_real_path = os.path.realpath(project.workspace())
+
+    for path, dirs, _ in os.walk(root):
+        sp = schema_function(path)
+        if sp is not None:
+            del dirs[:]         # skip sub-directories
+            job = project.open_job(sp)
+            dst = job.workspace()
+            if os.path.realpath(path) == os.path.realpath(dst):
+                continue     # skip (already part of the data space)
+            elif os.path.realpath(path).startswith(workspace_real_path):
+                continue     # skip (part of the project's workspace)
+            yield path, job
+
+
+def _import_data_into_project(data_mapping, project, copytree):
+    ws_exists = os.path.isdir(project.workspace())
+    for src, job in data_mapping:
+        if not ws_exists:
+            os.makedirs(project.workspace())
+            ws_exists = True
+
+        dst = job.workspace()
+        dst_exists = os.path.exists(dst)
+
+        try:
+            copytree(src, dst)
+        except OSError as error:
+            if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
+                raise DestinationExistsError(dst)
+            else:
+                raise
+        try:
+            job._init()  # Ensure existence and correctness of job manifest file.
+        except Exception:   # rollback
+            if not dst_exists:
+                if copytree == os.rename:
+                    os.rename(dst, src)
+                else:
+                    shutil.rmtree(dst)
+            raise
+
+        yield src, dst
+
+
 def _import_into_project(root, project, schema, copytree):
-    "Low-level function for the import of data space at root into project."
+    "Low-level generator function for the import of data space at root into project."
     if root is None:
         root = os.getcwd()
     if schema is None:
@@ -304,41 +351,15 @@ def _import_into_project(root, project, schema, copytree):
     if copytree is None:
         copytree = shutil.copytree
 
-    workspace_real_path = os.path.realpath(project.workspace())
-    ws_exists = os.path.isdir(project.workspace())
-    for path, dirs, _ in os.walk(root):
-        sp = schema_function(path)
-        if sp is not None:
-            del dirs[:]         # skip sub-directories
-            if not ws_exists:   # create project workspace if necessary
-                os.makedirs(project.workspace())
-                ws_exists = True
-            job = project.open_job(sp)
-            dst = job.workspace()
-            if os.path.realpath(path) == os.path.realpath(dst):
-                continue     # skip (already part of the data space)
-            elif os.path.realpath(path).startswith(workspace_real_path):
-                continue     # skip (part of the project's workspace)
+    # Determine the data space mapping from directories at root to project jobs.
+    data_mapping = dict(_crawl_data_space(root, project, schema_function))
+    # Check whether the mapped paths are unique.
+    if not len(set(data_mapping.values())) == len(data_mapping):
+        raise RuntimeError("The jobs identified with the given schema function are not unique!")
 
-            dst_exists = os.path.exists(dst)
-            try:
-                copytree(path, dst)
-            except OSError as error:
-                if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
-                    raise DestinationExistsError(dst)
-                else:
-                    raise
-            try:
-                job._init()  # Ensure existence and correctness of job manifest file.
-            except Exception:   # rollback
-                if not dst_exists:
-                    if copytree == os.rename:
-                        os.rename(dst, path)
-                    else:
-                        shutil.rmtree(dst)
-                raise
-
-            yield path, dst
+    # Import each directory and yield the src and destination paths.
+    for src, dst in _import_data_into_project(data_mapping.items(), project, copytree):
+        yield src, dst
 
 
 def import_into_project(origin, project, schema=None, copytree=None):
