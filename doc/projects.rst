@@ -664,7 +664,7 @@ This works similar for ``$ signac view`` on the command line, for example, in co
 .. _synchronization:
 
 Synchronization
-================
+===============
 
 In some cases it may be necessary to store a project at more than one location, perhaps for backup purposes or for remote execution of data space operations.
 In this case there will be a regular need to synchronize these data spaces.
@@ -678,8 +678,60 @@ Then we would call ``signac sync`` with the path of the project that we want to 
 
 .. code-block:: bash
 
-    $ cd /data/my_projcet
+    $ cd /data/my_project
     $ signac sync /remote/my_project
 
 This would copy data *from the remote project to the local project*.
 For more details on how to use ``signac sync``, type ``$ signac sync --help``.
+
+.. _import-export:
+
+Importing and Exporting Data
+============================
+
+Data archival is important to preserving the integrity, utility, and shareability of a project.
+To this end, signac provides interfaces for importing workspaces from and exporting workspaces to directories, zipfiles, and tarballs.
+The exported project archives are useful for publishing data, e.g. for researchers wishing to make an original data set available alongside a publication.
+
+Exporting
+---------
+
+Exporting a project could be as simple as zipping the project files and workspace paths.
+The functionality in ``signac export`` is more fine-grained and allows the use of a custom path structure or exporting a subset of the jobs based on state point, document, or id filters.
+
+For example, suppose we have a project stored locally in the path ``/data/my_project`` and want to export it to ``/data/my_project_archive``.
+The project's jobs are assumed to have state point keys "a" and "b" with integer values.
+We would first change into the root directory of the project that we want to export.
+Then we would call ``signac export`` with the target path and an export naming scheme.
+
+.. code-block:: bash
+
+    $ cd /data/my_project
+    $ signac export /data/my_project_archive "a_{job.sp.a}/b_{job.sp.b}"
+
+This would copy data *from the source project to the export directory*.
+It would also be possible to export to a zipfile by specifying a path of "/data/my_project_archive.zip".
+For more details on how to use ``signac export``, type ``$ signac export --help``.
+
+Importing
+---------
+Archives exported by signac include state point files, simplifying the process of importing from an archive.
+Here, we import the previously-exported project into a new project.
+We make a new project, and call ``signac import`` with the origin path we wish to import from.
+
+.. code-block:: bash
+
+    $ mkdir /data/my_new_project
+    $ cd /data/my_new_project
+    $ signac init my_new_project
+    $ signac import /data/my_project_archive
+
+We can also explicitly define the schema for importing projects without signac state point files.
+
+.. code-block:: bash
+
+    $ signac import /data/my_project_archive "a_{a:int}/b_{b:int}"
+
+This would copy data *from the source archive to the current project*.
+Importing from zipfiles and tarballs works similarly, by specifying that path as the origin.
+For more details on how to use ``signac import``, type ``$ signac import --help``.
