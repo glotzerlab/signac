@@ -35,7 +35,8 @@ RE_TYPES = {
 #  ### Export related  ###
 
 
-def _make_path_function(jobs, delimiter_nested='.'):
+def _make_schema_based_path_function(jobs, delimiter_nested='.'):
+    "Generate a schema based path function for the given jobs."
     from .schema import _build_job_statepoint_index
     if len(jobs) <= 1:
         return lambda job: ''
@@ -61,9 +62,9 @@ class _SchemaPathEvaluationError(RuntimeError):
 
 
 def _export_jobs(jobs, path, copytree):
-    "This is a generic export function."
+    "Generic export function for jobs, using the provided copytree method."
     if path is None:
-        path_function = _make_path_function(jobs=jobs)
+        path_function = _make_schema_based_path_function(jobs=jobs)
     elif isinstance(path, six.string_types):
 
         def path_function(job):
@@ -91,7 +92,24 @@ def _export_jobs(jobs, path, copytree):
         yield src, dst
 
 
-def export_to_directory(jobs, target, path=None, copytree=None, progress=False):
+def export_to_directory(jobs, target, path=None, copytree=None):
+    """Export jobs to a directory target.
+
+    :param jobs:
+        A sequence of jobs to export.
+    :param target:
+        A path to a directory to export to. The directory can not
+        already exist.
+    :param path:
+        The path function for export, must be a function of job or
+        a string, which is evaluated with `path.format(job=job)`.
+    :param copytree:
+        The function used for the actualy copying of directory tree
+        structures. Defaults to `shutil.copytree`.
+    :returns:
+        A dict that maps the source directory paths, to the target
+        directory paths.
+    """
     if copytree is None:
         copytree = shutil.copytree
 
@@ -104,10 +122,12 @@ def export_to_directory(jobs, target, path=None, copytree=None, progress=False):
 
 
 def export_to_tarfile(jobs, tarfile, path=None):
+    """Like :func:`.export_to_directory`, but target is an instance of :class:`tarfile.TarFile`."""
     return _export_jobs(jobs=jobs, path=path, copytree=tarfile.add)
 
 
 def export_to_zipfile(jobs, zipfile, path=None):
+    """Like :func:`.export_to_directory`, but target is an instance of :class:`zipfile.ZipFile`."""
 
     def copytree_to_zip(src, dst):
         for root, dirnames, filenames in os.walk(src):
@@ -120,6 +140,24 @@ def export_to_zipfile(jobs, zipfile, path=None):
 
 
 def export_jobs(jobs, target, path=None, copytree=None):
+    """Export jobs to a target location, such as a directory or a (zipped) archive file.
+
+    :param jobs:
+        A sequence of jobs to export.
+    :param target:
+        A path to a directory to export to. The directory can not
+        already exist.
+    :param path:
+        The path function for export, must be a function of job or
+        a string, which is evaluated with `path.format(job=job)`.
+    :param copytree:
+        The function used for the actualy copying of directory tree
+        structures. Defaults to `shutil.copytree`.
+        Can only be used when the target is a directory.
+    :returns:
+        A dict that maps the source directory paths, to the target
+        directory paths.
+    """
     if copytree is not None:
         if not (isinstance(target, six.string_types) and os.path.splitext(target)[1] == ''):
             raise ValueError(
@@ -205,6 +243,7 @@ def _convert_schema_path_to_regex(schema_path):
 
 
 def _make_schema_path_function(schema_path):
+    "Generate a schema function that is based on a directory path schema."
     schema_regex, types = _convert_schema_path_to_regex(schema_path)
 
     def parse_path(path):
@@ -235,6 +274,7 @@ def _convert_to_nested(sp):
 
 
 def _parse_workspaces(fn_manifest):
+    "Generate a schema function that is based on parsing state point manifest files."
 
     def _parse_workspace(path):
         try:
@@ -248,6 +288,7 @@ def _parse_workspaces(fn_manifest):
 
 
 def _import_into_project(root, project, schema, copytree):
+    "Low-level function for the import of data space at root into project."
     if root is None:
         root = os.getcwd()
     if schema is None:
@@ -301,6 +342,44 @@ def _import_into_project(root, project, schema, copytree):
 
 
 def import_into_project(origin, project, schema=None, copytree=None):
+    """Import the data space located at origin into project.
+
+    This function will walk through the data space located at origin and try to identify
+    data space paths that can be imported as a job workspace into project.
+
+    The default schema function will simply look for state point manifest files, usually named
+    'signac_statepoint.json' and then import all data located within that path into the job
+    workspace corresponding to the state point specified in the manifest file.
+
+    Alternatively the schema argument may be a string, that is converted into a schema function,
+    for example: 'foo/{foo:int}' will be converted into a function, where paths that begin with
+    'foo/' will be parsed, such that the part after 'foo/' is interpreted as an integer value,
+    named 'foo' as part of the state point.
+
+    Use `copytree=os.rename` or `copytree=shutil.move` to move dataspaces on import, instead of
+    copying them.
+
+    .. warning::
+
+        Imports can fail due to conflicts. Moving data instead of copying may therefore lead
+        to inconsistent states and users are advised to use caution.
+
+    :param origin:
+        The path to the data space origin, which is to be imported. This may be a path to
+        a directory, a zipfile, or a tarball archive.
+    :param project:
+        The project to import the data into.
+    :param schema:
+        An optional schema function, which is a function that takes a path as its only argument
+        and returns a dict, that represents the state point that is associated with the data located
+        within the path.
+    :param copytree:
+        Specify which exact function to use for the actual copytree operation.
+        Defaults to :func:`shutil.copytree`.
+    :returns:
+        A dict that maps the source directory paths, to the target
+        directory paths.
+    """
     if os.path.isfile(origin):
         if copytree is not None:
             raise ValueError(

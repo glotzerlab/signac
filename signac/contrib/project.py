@@ -959,9 +959,70 @@ class Project(object):
             **kwargs)
 
     def export_to(self, target, path=None, copytree=None):
+        """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+
+        Use this function in combination with :func:`.find_jobs` to export only a select number
+        of jobs, for example:
+
+        .. code-block:: python
+
+            project.find_jobs({'foo': 0}).export_to('foo_0.tar')
+
+        :param target:
+            A path to a directory to export to. The directory can not
+            already exist.
+        :param path:
+            The path function for export, must be a function of job or
+            a string, which is evaluated with `path.format(job=job)`.
+        :param copytree:
+            The function used for the actualy copying of directory tree
+            structures. Defaults to `shutil.copytree`.
+            Can only be used when the target is a directory.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
         return self.find_jobs().export_to(target=target, path=path, copytree=copytree)
 
     def import_from(self, origin=None, schema=None, sync=None, copytree=None):
+        """Import the data space located at origin into project.
+
+        This function will walk through the data space located at origin and try to identify
+        data space paths that can be imported as a job workspace into project.
+
+        The default schema function will simply look for state point manifest files, usually named
+        'signac_statepoint.json' and then import all data located within that path into the job
+        workspace corresponding to the state point specified in the manifest file.
+
+        Alternatively the schema argument may be a string, that is converted into a schema function,
+        for example: 'foo/{foo:int}' will be converted into a function, where paths that begin with
+        'foo/' will be parsed, such that the part after 'foo/' is interpreted as an integer value,
+        named 'foo' as part of the state point.
+
+        Use `copytree=os.rename` or `copytree=shutil.move` to move dataspaces on import, instead of
+        copying them.
+
+        .. warning::
+
+            Imports can fail due to conflicts. Moving data instead of copying may therefore lead
+            to inconsistent states and users are advised to use caution.
+
+        :param origin:
+            The path to the data space origin, which is to be imported. This may be a path to
+            a directory, a zipfile, or a tarball archive.
+        :param project:
+            The project to import the data into.
+        :param schema:
+            An optional schema function, which is a function that takes a path as its only argument
+            and returns a dict, that represents the state point that is associated with the data
+            located within the path.
+        :param copytree:
+            Specify which exact function to use for the actual copytree operation.
+            Defaults to :func:`shutil.copytree`.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
         from .import_export import import_into_project
         if sync:
             with self.temporary_project() as tmp_project:
@@ -1587,7 +1648,7 @@ class JobsCursor(object):
         if isinstance(key, six.string_types):
             if default is None:
                 def keyfunction(job):
-                        return job.sp[key]
+                    return job.sp[key]
             else:
                 def keyfunction(job):
                     return job.sp.get(key, default)
@@ -1668,6 +1729,22 @@ class JobsCursor(object):
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
 
     def export_to(self, target, path=None, copytree=None):
+        """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+
+        :param target:
+            A path to a directory to export to. The directory can not
+            already exist.
+        :param path:
+            The path function for export, must be a function of job or
+            a string, which is evaluated with `path.format(job=job)`.
+        :param copytree:
+            The function used for the actualy copying of directory tree
+            structures. Defaults to `shutil.copytree`.
+            Can only be used when the target is a directory.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
 
