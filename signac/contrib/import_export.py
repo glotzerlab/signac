@@ -87,7 +87,7 @@ def _export_jobs(jobs, path, copytree):
     paths = {job.workspace(): path_function(job) for job in jobs}
 
     # Check whether the mapped paths are unique.
-    if not len(set(paths.values())) == len(paths):
+    if len(set(paths.values())) != len(paths):
         raise RuntimeError("Paths generated with given path function are not unique!")
 
     for src, dst in paths.items():
@@ -438,7 +438,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
             skip_subdirs.add(name)
 
     # Check uniqueness
-    if not len(set(mappings.values())) == len(mappings):
+    if len(set(mappings.values())) != len(mappings):
         raise RuntimeError("The jobs identified with the given schema function are not unique!")
 
     for path, job in mappings.items():
@@ -497,7 +497,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
             skip_subdirs.add(name)
 
     # Check uniqueness
-    if not len(set(mappings.values())) == len(mappings):
+    if len(set(mappings.values())) != len(mappings):
         raise RuntimeError("The jobs identified with the given schema function are not unique!")
 
     tarfile.extractall(path=tmpdir)
