@@ -63,7 +63,7 @@ CONFIG_HOST_CHOICES = {
 
 
 MSG_SYNC_SPECIFY_KEY = """
-Synchronization conflict occured, no strategy defined to synchronize keys:
+Synchronization conflict occurred, no strategy defined to synchronize keys:
 {keys}
 
 Use the `-k/--key` option to specify a regular expression pattern matching
@@ -72,7 +72,7 @@ keys, or `--no-keys` to overwrite none of the conflicting keys."""
 
 
 MSG_SYNC_FILE_CONFLICT = """
-Synchronization conflict occured, no strategy defined to synchronize files:
+Synchronization conflict occurred, no strategy defined to synchronize files:
 {files}
 
 Use the `-s/--strategy` option to specify a file synchronization strategy,
@@ -629,7 +629,7 @@ def main_export(args):
                 paths[src] = dst
                 pbar.update(1)
         except _SchemaPathEvaluationError as error:
-            _print_err("An error occured while evaluating the schema path:", error)
+            _print_err("An error occurred while evaluating the schema path:", error)
             raise RuntimeWarning("Export failed.")
 
     if paths:
