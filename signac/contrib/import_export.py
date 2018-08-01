@@ -256,7 +256,7 @@ def _make_path_based_schema_function(schema_path):
     schema_regex, types = _convert_schema_path_to_regex(schema_path)
 
     def parse_path(path):
-        match = re.match(schema_regex, path)
+        match = re.match(schema_regex, os.path.normpath(path))
         if match:
             sp = match.groupdict()
             for key in types:
