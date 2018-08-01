@@ -5,6 +5,7 @@ import os
 import re
 import errno
 import shutil
+import zipfile
 import tarfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
@@ -12,9 +13,10 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 from ..common import six
+from ..common.tempdir import TemporaryDirectory
 from ..core.json import json
 from .errors import DestinationExistsError
-from .utility import _mkdir_p, _extract
+from .utility import _mkdir_p
 
 import logging
 
@@ -186,6 +188,8 @@ def export_jobs(jobs, target, path=None, copytree=None):
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
                 for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
                     yield src_dst
+        else:
+            raise TypeError("Unknown extension '{}'.".format(ext))
     elif isinstance(target, ZipFile):
         for src_dst in export_to_zipfile(jobs=jobs, zipfile=target, path=path):
             yield src_dst
@@ -243,7 +247,7 @@ def _convert_schema_path_to_regex(schema_path):
     return schema_regex, types
 
 
-def _make_schema_path_function(schema_path):
+def _make_path_based_schema_function(schema_path):
     "Generate a schema function that is based on a directory path schema."
     schema_regex, types = _convert_schema_path_to_regex(schema_path)
 
@@ -274,6 +278,21 @@ def _convert_to_nested(sp):
     return ret
 
 
+def _with_consistency_check(schema_function, read_sp_manifest_file):
+
+    def _check(path):
+        if schema_function is read_sp_manifest_file:
+            return schema_function(path)
+        else:
+            sp = schema_function(path)
+            sp_default = read_sp_manifest_file(path)
+            if sp and sp_default and sp_default != sp:
+                raise _SchemaPathEvaluationError(
+                    "Identified state point conflicts with state point in job manifest file!")
+            return sp
+    return _check
+
+
 def _parse_workspaces(fn_manifest):
     "Generate a schema function that is based on parsing state point manifest files."
 
@@ -288,7 +307,7 @@ def _parse_workspaces(fn_manifest):
     return _parse_workspace
 
 
-def _crawl_data_space(root, project, schema_function):
+def _crawl_directory_data_space(root, project, schema_function):
     # We compare paths to the 'realpath' of the project workspace to catch loops.
     workspace_real_path = os.path.realpath(project.workspace())
 
@@ -305,64 +324,205 @@ def _crawl_data_space(root, project, schema_function):
             yield path, job
 
 
-def _import_data_into_project(src, job, copytree):
+def _copy_to_job_workspace(src, job, copytree):
     dst = job.workspace()
-    dst_exists = os.path.exists(dst)
-
     try:
         copytree(src, dst)
-    except OSError as error:
+    except (IOError, OSError) as error:
         if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
-            raise DestinationExistsError(dst)
-        else:
-            raise
-    try:
-        job._init()  # Ensure existence and correctness of job manifest file.
-    except Exception:   # rollback
-        if not dst_exists:
-            if copytree == os.rename:
-                os.rename(dst, src)
-            else:
-                shutil.rmtree(dst)
+            raise DestinationExistsError(job)
         raise
-
+    else:
+        job._init()
     return dst
 
 
-def _analyze_data_space_for_import(root, project, schema):
+class _CopyFromDirectoryExecutor(object):
+
+    def __init__(self, src, job):
+        self.src = src
+        self.job = job
+
+    def __call__(self, copytree=None):
+        if copytree is None:
+            copytree = shutil.copytree
+        return _copy_to_job_workspace(self.src, self.job, copytree)
+
+
+def _analyze_directory_for_import(root, project, schema):
     "Prepare the data space located at the root directory for import into project."
     # Determine schema function
+
+    read_sp_manifest_file = _parse_workspaces(project.Job.FN_MANIFEST)
     if schema is None:
-        schema_function = _parse_workspaces(project.Job.FN_MANIFEST)
+        schema_function = read_sp_manifest_file
     elif callable(schema):
-        schema_function = schema
+        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
     elif isinstance(schema, six.string_types):
         if not schema.startswith(root):
-            schema = root + r'\/' + schema
-        schema_function = _make_schema_path_function(schema)
+            schema = os.path.normpath(os.path.join(root, schema))
+        schema_function = _with_consistency_check(
+            _make_path_based_schema_function(schema), read_sp_manifest_file)
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
     # Determine the data space mapping from directories at root to project jobs.
     jobs = set()
-    for src, job in _crawl_data_space(root, project, schema_function):
+    for src, job in _crawl_directory_data_space(root, project, schema_function):
         if job in jobs:
             raise RuntimeError("The jobs identified with the given schema function are not unique!")
         else:
             jobs.add(job)
-            yield src, job
+            yield src, _CopyFromDirectoryExecutor(src, job)
+
+
+class _CopyFromZipFileExecutor(object):
+
+    def __init__(self, zipfile, root, job, names):
+        self.zipfile = zipfile
+        self.root = root
+        self.job = job
+        self.names = names
+
+    def __call__(self, copytree=None):
+        assert copytree is None
+
+        for name in self.names:
+            fn_dst = self.job.fn(os.path.relpath(name, self.root))
+            _mkdir_p(os.path.dirname(fn_dst))
+            with open(fn_dst, 'wb') as dst:
+                dst.write(self.zipfile.read(name))
+        return self.job.workspace()
+
+    def __str__(self):
+        return "{}({} -> {})".format(type(self).__name__, self.root, self.job)
+
+
+def _analyze_zipfile_for_import(zipfile, project, schema):
+    names = zipfile.namelist()
+
+    def read_sp_manifest_file(path):
+        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        if fn_manifest in names:
+            return json.loads(zipfile.read(fn_manifest).decode())
+
+    if schema is None:
+        schema_function = read_sp_manifest_file
+    elif callable(schema):
+        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+    elif isinstance(schema, six.string_types):
+        schema_function = _with_consistency_check(
+            _make_path_based_schema_function(schema), read_sp_manifest_file)
+    else:
+        raise TypeError("The schema variable must be None, callable, or a string.")
+
+    mappings = dict()
+    skip_subdirs = set()
+
+    dirs = {os.path.dirname(name) for name in names}
+    for name in sorted(dirs):
+        cont = False
+        for skip in skip_subdirs:
+            if name.startswith(skip):
+                cont = True
+                break
+        if cont:
+            continue
+
+        sp = schema_function(name)
+        if sp is not None:
+            job = project.open_job(sp)
+            if os.path.exists(job.workspace()):
+                raise DestinationExistsError(job)
+            mappings[name] = job
+            skip_subdirs.add(name)
+
+    # Check uniqueness
+    if not len(set(mappings.values())) == len(mappings):
+        raise RuntimeError("The jobs identified with the given schema function are not unique!")
+
+    for path, job in mappings.items():
+        _names = [name for name in names if name.startswith(path)]
+        yield path, _CopyFromZipFileExecutor(zipfile, path, job, _names)
+
+
+class _CopyFromTarFileExecutor(object):
+
+    def __init__(self, src, job):
+        self.src = src
+        self.job = job
+
+    def __call__(self, copytree=None):
+        assert copytree is None
+        assert os.path.isdir(self.src)
+        return _copy_to_job_workspace(self.src, self.job, shutil.copytree)
+
+
+def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
+
+    def read_sp_manifest_file(path):
+        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        try:
+            from contextlib import closing
+            with closing(tarfile.extractfile(fn_manifest)) as file:
+                return json.loads(file.read())
+        except KeyError:
+            pass
+
+    if schema is None:
+        schema_function = read_sp_manifest_file
+    elif callable(schema):
+        schema_function = _with_consistency_check(schema, read_sp_manifest_file)
+    elif isinstance(schema, six.string_types):
+        schema_function = _with_consistency_check(
+            _make_path_based_schema_function(schema), read_sp_manifest_file)
+    else:
+        raise TypeError("The schema variable must be None, callable, or a string.")
+
+    mappings = dict()
+    skip_subdirs = set()
+
+    dirs = [member.name for member in tarfile.getmembers() if member.isdir()]
+    for name in sorted(dirs):
+        if os.path.dirname(name) in skip_subdirs:   # skip all sub-dirs of identified dirs
+            skip_subdirs.add(name)
+            continue
+
+        sp = schema_function(name)
+        if sp is not None:
+            job = project.open_job(sp)
+            if os.path.exists(job.workspace()):
+                raise DestinationExistsError(job)
+            mappings[name] = job
+            skip_subdirs.add(name)
+
+    # Check uniqueness
+    if not len(set(mappings.values())) == len(mappings):
+        raise RuntimeError("The jobs identified with the given schema function are not unique!")
+
+    tarfile.extractall(path=tmpdir)
+    for path, job in mappings.items():
+        src = os.path.join(tmpdir, path)
+        assert os.path.isdir(tmpdir)
+        assert os.path.isdir(src)
+        yield src, _CopyFromTarFileExecutor(src, job)
 
 
 @contextmanager
 def _prepare_import_into_project(origin, project, schema=None):
     "Prepare the data space at origin for import into project with the given schema function."
     if os.path.isfile(origin):
-        logger.info("Extracting '{}'...".format(origin))
-        with _extract(origin) as tmp_root:
-            with _prepare_import_into_project(tmp_root, project, schema) as tmp:
-                yield tmp
+        if zipfile.is_zipfile(origin):
+            with zipfile.ZipFile(origin) as file:
+                yield _analyze_zipfile_for_import(file, project, schema)
+        elif tarfile.is_tarfile(origin):
+            with TemporaryDirectory() as tmpdir:
+                with tarfile.open(origin) as file:
+                    yield _analyze_tarfile_for_import(file, project, schema, tmpdir)
+        else:
+            raise RuntimeError("Unknown file type: '{}'.".format(origin))
     elif os.path.isdir(origin):
-        yield _analyze_data_space_for_import(root=origin, project=project, schema=schema)
+        yield _analyze_directory_for_import(root=origin, project=project, schema=schema)
     else:
         raise ValueError("Unable to import from '{}'. Does the origin exist?".format(origin))
 
@@ -384,7 +544,7 @@ def import_into_project(origin, project, schema=None, copytree=None):
 
     .. tip::
 
-        Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+        Use ``copytree=os.renames`` or ``copytree=shutil.move`` to move dataspaces on import
         instead of copying them.
 
         Warning: Imports can fail due to conflicts. Moving data instead of copying may
@@ -409,8 +569,8 @@ def import_into_project(origin, project, schema=None, copytree=None):
         origin = os.getcwd()
 
     with _prepare_import_into_project(origin, project, schema) as data_mapping:
-        if copytree is None:
+        if copytree is None and os.path.isdir(origin):
             copytree = shutil.copytree
 
-        for src, job in data_mapping:
-            yield src, _import_data_into_project(src, job, copytree)
+        for src, copy in data_mapping:
+            yield src, copy(copytree)

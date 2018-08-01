@@ -103,7 +103,7 @@ SHELL_BANNER_INTERACTIVE_IMPORT = SHELL_BANNER + """
 The data from origin '{origin}' has been imported into a temporary project.
 Synchronize your project with the temporary project, for example with:
 
-                    project.sync(tmp_project)
+                    project.sync(tmp_project, recursive=True)
 """
 
 
@@ -526,16 +526,17 @@ def main_sync(args):
 
 
 def _main_import_interactive(project, origin, args):
-    from .contrib.import_export import _import_data_into_project
     from .contrib.import_export import _prepare_import_into_project
     if args.move:
         raise ValueError("Cannot use '--move' in combination with '--sync-interactive'.")
 
     with project.temporary_project() as tmp_project:
+        _print_err("Prepare data space for import...")
         with _prepare_import_into_project(origin, tmp_project, args.schema_path) as data_mapping:
             paths = dict()
-            for src, job in tqdm(data_mapping.items(), desc='Import to temporary project'):
-                paths[src] = _import_data_into_project(src, job, shutil.copytree)
+            for src, copy_executor in tqdm(
+                    dict(data_mapping).items(), desc='Import to temporary project'):
+                paths[src] = copy_executor()
 
             local_ns = dict(
                 signac=importlib.import_module(__package__),
@@ -559,26 +560,26 @@ def _main_import_interactive(project, origin, args):
 
 def _main_import_non_interactive(project, origin, args):
     from .contrib.import_export import _prepare_import_into_project
-    from .contrib.import_export import _import_data_into_project
     try:
-        copytree = shutil.move if args.move else shutil.copytree
         paths = dict()
         if args.sync:
             with project.temporary_project() as tmp_project:
+                _print_err("Prepare data space for import...")
                 with _prepare_import_into_project(origin, tmp_project, args.schema_path) as mapping:
-                    for src, job in tqdm(mapping, desc='Import to temporary project'):
-                        paths[src] = _import_data_into_project(src, job, copytree)
+                    for src, copy_executor in tqdm(
+                            dict(mapping).items(), desc='Import to temporary project'):
+                        paths[src] = copy_executor()
                     _print_err("Synchronizing project with temporary project...")
-                    project.sync(tmp_project)
+                    project.sync(tmp_project, recursive=True)
         else:
+            _print_err("Prepare data space for import...")
             with _prepare_import_into_project(origin, project, args.schema_path) as data_mapping:
-                for src, job in tqdm(dict(data_mapping).items(), 'Importing'):
-                    paths[src] = _import_data_into_project(src, job, copytree)
+                for src, copy_executor in tqdm(dict(data_mapping).items(), 'Importing'):
+                    paths[src] = copy_executor(copytree=shutil.move if args.move else None)
     except DestinationExistsError as error:
-        _print_err("Destination '{}' already exists.".format(error))
+        _print_err("Destination '{}' already exists.".format(error.destination))
         if not args.sync:
             _print_err("Consider using '--sync' or '--sync-interactive'!")
-            return
     except SyncConflict as error:
         _print_err("Synchronization failed with error: {}".format(error))
         _print_err("Consider using '--sync-interactive'!")
@@ -587,6 +588,9 @@ def _main_import_non_interactive(project, origin, args):
 
 
 def main_import(args):
+    if args.move and os.path.isfile(args.origin):
+        raise ValueError(
+            "Cannot use '--move' when importing from a file.")
     if args.move and (args.sync or args.sync_interactive):
         raise ValueError(
             "Cannot use '--move' in combination with '--sync' or '--sync-interactive'.")
@@ -596,7 +600,10 @@ def main_import(args):
         paths = _main_import_interactive(project, args.origin, args)
     else:
         paths = _main_import_non_interactive(project, args.origin, args)
-    if paths and len(paths):
+
+    if paths is None:
+        _print_err("Import failed.")
+    elif len(paths):
         _print_err("Imported {} job(s).".format(len(paths)))
     elif paths is not None:
         _print_err("Nothing to import.")
@@ -1457,7 +1464,7 @@ job documents."
     parser_import.add_argument(
         '--sync',
         action='store_true',
-        help="Attempt synchronization with default arguments.")
+        help="Attempt recursive synchronization with default arguments.")
     parser_import.add_argument(
         '--sync-interactive',
         action='store_true',

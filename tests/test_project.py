@@ -6,6 +6,7 @@ import os
 import uuid
 import warnings
 import logging
+import json
 from tarfile import TarFile
 from zipfile import ZipFile
 
@@ -16,6 +17,7 @@ from signac.contrib.project import _find_all_links
 from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
+from signac.contrib.import_export import _SchemaPathEvaluationError
 
 from test_job import BaseJobTest
 
@@ -1197,34 +1199,46 @@ class ProjectExportImportTest(BaseProjectTest):
     def test_export_import_tarfile_zipped(self):
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
         for i in range(10):
-            self.project.open_job(dict(a=i)).init()
+            with self.project.open_job(dict(a=i)) as job:
+                os.makedirs(job.fn('sub-dir'))
+                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                    file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
         self.assertEqual(len(self.project), 10)
         with TarFile.open(name=target, mode='r:gz') as tarfile:
             for i in range(10):
                 self.assertIn('a/{}'.format(i), tarfile.getnames())
+                self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), tarfile.getnames())
         os.rename(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        for job in self.project:
+            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
 
     def test_export_import_zipfile(self):
         target = os.path.join(self._tmp_dir.name, 'data.zip')
         for i in range(10):
-            self.project.open_job(dict(a=i)).init()
+            with self.project.open_job(dict(a=i)) as job:
+                os.makedirs(job.fn('sub-dir'))
+                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                    file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
         self.assertEqual(len(self.project), 10)
         with ZipFile(target) as zipfile:
             for i in range(10):
                 self.assertIn('a/{}/signac_statepoint.json'.format(i), zipfile.namelist())
+                self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), zipfile.namelist())
         os.rename(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        for job in self.project:
+            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
 
     def test_export_import(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
@@ -1321,7 +1335,7 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
         for i in range(10):
             self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
-        with self.assertRaises(JobsCorruptedError):
+        with self.assertRaises(_SchemaPathEvaluationError):
             self.project.import_from(origin=prefix_data, schema='a/{b:int}')
         self.assertEqual(len(self.project.import_from(prefix_data)), 10)
         self.assertEqual(len(self.project), 10)
