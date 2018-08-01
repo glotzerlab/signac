@@ -714,7 +714,7 @@ We would first change into the root directory of the project that we want to exp
     $ cd /data/my_project
     $ signac export /data/my_project_archive
 
-This would **copy** data *from the source project to the export directory* with the following directory structure:
+This would **copy** data from the source project to the export directory with the following directory structure:
 
 .. code-block:: bash
 
@@ -730,7 +730,6 @@ The default path function is based on the implicit schema of all exported jobs, 
     $ signac export /data/my_project_archive "a_{job.sp.a}/b_{job.sp.b}"
 
 It is possible to directly export to a zip-file or tarball by simply providing the path to the archive-file as target (*e.g.* ``$ signac export /data/my_project_archive.zip``).
-This works equivalently for zip-files, as well as uncompressed and compressed tarballs.
 For more details on how to use ``signac export``, type ``$ signac export --help``.
 
 .. note::
@@ -748,10 +747,9 @@ For more details on how to use ``signac export``, type ``$ signac export --help`
 Importing
 ---------
 Archives exported by **signac** include state point files, simplifying the process of importing from an archive.
-That means the definiton of a *path-based* schema is not necessary!
+That means the definition of a *path-based* schema is not necessary!
 
-Here, we import the previously-exported project into a new project.
-We make a new project, and call ``signac import`` with the origin path we wish to import from.
+Here, we import the previously-exported project into a new project by first initializing it and then calling ``signac import`` with the origin path we wish to import from.
 
 .. code-block:: bash
 
