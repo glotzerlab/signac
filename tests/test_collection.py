@@ -358,6 +358,12 @@ class CollectionTest(unittest.TestCase):
         for i, (v, t) in enumerate(types):
             self.assertEqual(len(self.c.find({i: {'$type': t}})), 1)
 
+    def test_find_type_integer_values_identical_keys(self):
+        self.c.insert_one({'a': 1})
+        self.c.insert_one({'a': 1.0})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
+
     def test_find_where_expression(self):
         self.assertEqual(len(self.c), 0)
         self.assertEqual(len(self.c.find({'a': {'$where': 'lambda x: x < 42'}})), 0)
