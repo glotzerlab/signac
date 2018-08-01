@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
 from ..core.json import json
+from .errors import StatepointParsingError
 from .errors import DestinationExistsError
 from .utility import _mkdir_p
 
@@ -72,13 +73,16 @@ def _export_jobs(jobs, path, copytree):
 
         def path_function(job):
             try:
-                return path.format(job=job)
+                try:
+                    return path.format(job=job, **job.sp())
+                except TypeError:
+                    return path.format(job=job)
             except AttributeError as error:
-                raise _SchemaPathEvaluationError("Attribute Error: {}.".format(error))
+                raise _SchemaPathEvaluationError(error)
             except KeyError as error:
-                raise _SchemaPathEvaluationError("Key Error: {}.".format(error))
+                raise _SchemaPathEvaluationError("Unknown key: {}".format(error))
             except Exception as error:
-                raise _SchemaPathEvaluationError("Unknown error: '{}'.".format(error))
+                raise _SchemaPathEvaluationError(error)
 
     else:
         path_function = path
@@ -287,7 +291,7 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
             sp = schema_function(path)
             sp_default = read_sp_manifest_file(path)
             if sp and sp_default and sp_default != sp:
-                raise _SchemaPathEvaluationError(
+                raise StatepointParsingError(
                     "Identified state point conflicts with state point in job manifest file!")
             return sp
     return _check
@@ -370,7 +374,8 @@ def _analyze_directory_for_import(root, project, schema):
     jobs = set()
     for src, job in _crawl_directory_data_space(root, project, schema_function):
         if job in jobs:
-            raise RuntimeError("The jobs identified with the given schema function are not unique!")
+            raise StatepointParsingError(
+                "The jobs identified with the given schema function are not unique!")
         else:
             jobs.add(job)
             yield src, _CopyFromDirectoryExecutor(src, job)
@@ -498,7 +503,8 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     # Check uniqueness
     if len(set(mappings.values())) != len(mappings):
-        raise RuntimeError("The jobs identified with the given schema function are not unique!")
+        raise StatepointParsingError(
+            "The jobs identified with the given schema function are not unique!")
 
     tarfile.extractall(path=tmpdir)
     for path, job in mappings.items():

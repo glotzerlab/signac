@@ -17,7 +17,7 @@ from signac.contrib.project import _find_all_links
 from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
-from signac.contrib.import_export import _SchemaPathEvaluationError
+from signac.contrib.errors import StatepointParsingError
 
 from test_job import BaseJobTest
 
@@ -1335,7 +1335,7 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
         for i in range(10):
             self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
-        with self.assertRaises(_SchemaPathEvaluationError):
+        with self.assertRaises(StatepointParsingError):
             self.project.import_from(origin=prefix_data, schema='a/{b:int}')
         self.assertEqual(len(self.project.import_from(prefix_data)), 10)
         self.assertEqual(len(self.project), 10)

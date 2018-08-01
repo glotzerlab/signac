@@ -629,8 +629,8 @@ def main_export(args):
                 paths[src] = dst
                 pbar.update(1)
         except _SchemaPathEvaluationError as error:
-            _print_err("An error occurred while evaluating the schema path:", error)
-            raise RuntimeWarning("Export failed.")
+            raise RuntimeWarning(
+                "An error occurred while evaluating the schema path: {}".format(error))
 
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
