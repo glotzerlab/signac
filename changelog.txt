@@ -28,6 +28,12 @@ Added
  - Adds functionality for the rapid initialization of temporary projects with the ``signac.TemporaryProject`` context manager.
  - Adds the ``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
 
+Fixed
++++++
+
+ - Fix issue where differently typed integer values stored within a Collection under the same key would not be indexed correctly. This issue affected the correct function of the `$type` operator for aforementioned cases and would lead to incorrect types in the Project schema detection algorithm for integer values.
+
+
 [0.9.3] -- 2018-06-14
 ---------------------
 
