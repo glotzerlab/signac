@@ -1,4 +1,4 @@
-"""Backports the TemporaryDirectoy class for Python 2.7.
+"""Backports the TemporaryDirectory class for Python 2.7.
 
 Source: https://stackoverflow.com/a/19299884
 """
