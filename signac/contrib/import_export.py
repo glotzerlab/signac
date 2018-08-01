@@ -9,6 +9,7 @@ import tarfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
 from collections import defaultdict
+from contextlib import contextmanager
 
 from ..common import six
 from ..core.json import json
@@ -304,40 +305,33 @@ def _crawl_data_space(root, project, schema_function):
             yield path, job
 
 
-def _import_data_into_project(data_mapping, project, copytree):
-    ws_exists = os.path.isdir(project.workspace())
-    for src, job in data_mapping:
-        if not ws_exists:
-            os.makedirs(project.workspace())
-            ws_exists = True
+def _import_data_into_project(src, job, copytree):
+    dst = job.workspace()
+    dst_exists = os.path.exists(dst)
 
-        dst = job.workspace()
-        dst_exists = os.path.exists(dst)
-
-        try:
-            copytree(src, dst)
-        except OSError as error:
-            if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
-                raise DestinationExistsError(dst)
-            else:
-                raise
-        try:
-            job._init()  # Ensure existence and correctness of job manifest file.
-        except Exception:   # rollback
-            if not dst_exists:
-                if copytree == os.rename:
-                    os.rename(dst, src)
-                else:
-                    shutil.rmtree(dst)
+    try:
+        copytree(src, dst)
+    except OSError as error:
+        if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
+            raise DestinationExistsError(dst)
+        else:
             raise
+    try:
+        job._init()  # Ensure existence and correctness of job manifest file.
+    except Exception:   # rollback
+        if not dst_exists:
+            if copytree == os.rename:
+                os.rename(dst, src)
+            else:
+                shutil.rmtree(dst)
+        raise
 
-        yield src, dst
+    return dst
 
 
-def _import_into_project(root, project, schema, copytree):
-    "Low-level generator function for the import of data space at root into project."
-    if root is None:
-        root = os.getcwd()
+def _analyze_data_space_for_import(root, project, schema):
+    "Prepare the data space located at the root directory for import into project."
+    # Determine schema function
     if schema is None:
         schema_function = _parse_workspaces(project.Job.FN_MANIFEST)
     elif callable(schema):
@@ -348,18 +342,29 @@ def _import_into_project(root, project, schema, copytree):
         schema_function = _make_schema_path_function(schema)
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
-    if copytree is None:
-        copytree = shutil.copytree
 
     # Determine the data space mapping from directories at root to project jobs.
-    data_mapping = dict(_crawl_data_space(root, project, schema_function))
-    # Check whether the mapped paths are unique.
-    if not len(set(data_mapping.values())) == len(data_mapping):
-        raise RuntimeError("The jobs identified with the given schema function are not unique!")
+    jobs = set()
+    for src, job in _crawl_data_space(root, project, schema_function):
+        if job in jobs:
+            raise RuntimeError("The jobs identified with the given schema function are not unique!")
+        else:
+            jobs.add(job)
+            yield src, job
 
-    # Import each directory and yield the src and destination paths.
-    for src, dst in _import_data_into_project(data_mapping.items(), project, copytree):
-        yield src, dst
+
+@contextmanager
+def _prepare_import_into_project(origin, project, schema=None):
+    "Prepare the data space at origin for import into project with the given schema function."
+    if os.path.isfile(origin):
+        logger.info("Extracting '{}'...".format(origin))
+        with _extract(origin) as tmp_root:
+            with _prepare_import_into_project(tmp_root, project, schema) as tmp:
+                yield tmp
+    elif os.path.isdir(origin):
+        yield _analyze_data_space_for_import(root=origin, project=project, schema=schema)
+    else:
+        raise ValueError("Unable to import from '{}'. Does the origin exist?".format(origin))
 
 
 def import_into_project(origin, project, schema=None, copytree=None):
@@ -400,18 +405,12 @@ def import_into_project(origin, project, schema=None, copytree=None):
         A dict that maps the source directory paths, to the target
         directory paths.
     """
-    if os.path.isfile(origin):
-        if copytree is not None:
-            raise ValueError(
-                "Cannot use `copytree` argument when importing from a file!")
-        logger.info("Extracting '{}'...".format(origin))
-        with _extract(origin) as tmp_root:
-            for src_dst in _import_into_project(
-                    root=tmp_root, project=project, schema=schema, copytree=shutil.copytree):
-                yield src_dst
-    elif origin is None or os.path.isdir(origin):
-        for src_dst in _import_into_project(
-                root=origin, project=project, schema=schema, copytree=copytree):
-            yield src_dst
-    else:
-        raise ValueError("Unable to import from '{}'. Does the origin exist?".format(origin))
+    if origin is None:
+        origin = os.getcwd()
+
+    with _prepare_import_into_project(origin, project, schema) as data_mapping:
+        if copytree is None:
+            copytree = shutil.copytree
+
+        for src, job in data_mapping:
+            yield src, _import_data_into_project(src, job, copytree)

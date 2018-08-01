@@ -23,12 +23,14 @@ from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
+from .common.tqdm import tqdm
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
 from .errors import DestinationExistsError
 from .sync import FileSync
 from .sync import DocSync
+from .errors import SyncConflict
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
@@ -523,73 +525,84 @@ def main_sync(args):
     raise RuntimeWarning("Synchronization aborted.")
 
 
-def _main_import_interactive(project, args):
+def _main_import_interactive(project, origin, args):
+    from .contrib.import_export import _import_data_into_project
+    from .contrib.import_export import _prepare_import_into_project
+    if args.move:
+        raise ValueError("Cannot use '--move' in combination with '--sync-interactive'.")
+
     with project.temporary_project() as tmp_project:
-        paths = tmp_project.import_from(origin=args.origin, schema=args.schema_path)
+        with _prepare_import_into_project(origin, tmp_project, args.schema_path) as data_mapping:
+            paths = dict()
+            for src, job in tqdm(data_mapping.items(), desc='Import to temporary project'):
+                paths[src] = _import_data_into_project(src, job, shutil.copytree)
 
-        local_ns = dict(
-            signac=importlib.import_module(__package__),
-            project=project, pr=project,
-            tmp_project=tmp_project)
-        readline.set_completer(Completer(local_ns).complete)
-        readline.parse_and_bind('tab: complete')
-        code.interact(
-            local=local_ns,
-            banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
-                python_version=sys.version,
-                signac_version=__version__,
-                project_id=project.get_id(),
-                root_path=project.root_directory(),
-                workspace_path=project.workspace(),
-                size=len(project),
-                origin=args.origin))
+            local_ns = dict(
+                signac=importlib.import_module(__package__),
+                project=project, pr=project,
+                tmp_project=tmp_project)
+            readline.set_completer(Completer(local_ns).complete)
+            readline.parse_and_bind('tab: complete')
+            code.interact(
+                local=local_ns,
+                banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
+                    python_version=sys.version,
+                    signac_version=__version__,
+                    project_id=project.get_id(),
+                    root_path=project.root_directory(),
+                    workspace_path=project.workspace(),
+                    size=len(project),
+                    origin=args.origin))
 
-        return paths
+            return paths
 
 
-def _main_import_non_interactive(project, args):
+def _main_import_non_interactive(project, origin, args):
+    from .contrib.import_export import _prepare_import_into_project
+    from .contrib.import_export import _import_data_into_project
     try:
-        paths = project.import_from(
-            origin=args.origin,
-            schema=args.schema_path,
-            sync=args.sync,
-            copytree=shutil.move if args.move else None)
+        copytree = shutil.move if args.move else shutil.copytree
+        paths = dict()
+        if args.sync:
+            with project.temporary_project() as tmp_project:
+                with _prepare_import_into_project(origin, tmp_project, args.schema_path) as mapping:
+                    for src, job in tqdm(mapping, desc='Import to temporary project'):
+                        paths[src] = _import_data_into_project(src, job, copytree)
+                    _print_err("Synchronizing project with temporary project...")
+                    project.sync(tmp_project)
+        else:
+            with _prepare_import_into_project(origin, project, args.schema_path) as data_mapping:
+                for src, job in tqdm(dict(data_mapping).items(), 'Importing'):
+                    paths[src] = _import_data_into_project(src, job, copytree)
     except DestinationExistsError as error:
         _print_err("Destination '{}' already exists.".format(error))
         if not args.sync:
             _print_err("Consider using '--sync' or '--sync-interactive'!")
             return
-    except SchemaSyncConflict as error:
-        _print_err("The detected schemas of the two data spaces differ!")
-    except DocumentSyncConflict as error:
-        _print_err("Synchronization conflict occured, no strategy defined "
-                   "to synchronize keys:\n{}".format(', '.join(error.keys)))
-    except FileSyncConflict as error:
-        _print_err("Synchronization conflict occured, no strategy defined "
-                   "to synchronize files:\n{}".format(error))
+    except SyncConflict as error:
+        _print_err("Synchronization failed with error: {}".format(error))
+        _print_err("Consider using '--sync-interactive'!")
     else:
-        if paths:
-            _print_err("Imported {} job(s).".format(len(paths)))
-        else:
-            _print_err("Nothing to import.")
-        return
-    _print_err("Consider using '--sync-interactive'!")
+        return paths
 
 
 def main_import(args):
-    if args.move and os.path.splitext(args.origin)[1] != '':
-        raise RuntimeError(
-            "The '--move' argument can only be used when importing from directories.")
+    if args.move and (args.sync or args.sync_interactive):
+        raise ValueError(
+            "Cannot use '--move' in combination with '--sync' or '--sync-interactive'.")
 
     project = get_project()
     if args.sync_interactive:
-        _main_import_interactive(project, args)
+        paths = _main_import_interactive(project, args.origin, args)
     else:
-        _main_import_non_interactive(project, args)
+        paths = _main_import_non_interactive(project, args.origin, args)
+    if paths and len(paths):
+        _print_err("Imported {} job(s).".format(len(paths)))
+    elif paths is not None:
+        _print_err("Nothing to import.")
 
 
 def main_export(args):
-    from .common.tqdm import tqdm
     if args.move and os.path.splitext(args.target)[1] != '':
         raise RuntimeError(
             "The '--move' argument can only be used when exporting to directories.")
