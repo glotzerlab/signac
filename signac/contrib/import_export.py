@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import re
+import sys
 import errno
 import shutil
 import zipfile
@@ -10,7 +11,7 @@ import tarfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
 from collections import defaultdict
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
@@ -468,9 +469,11 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
     def read_sp_manifest_file(path):
         fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
         try:
-            from contextlib import closing
             with closing(tarfile.extractfile(fn_manifest)) as file:
-                return json.loads(file.read())
+                if six.PY3 and sys.version_info.minor < 6:
+                    return json.loads(file.read().decode())
+                else:
+                    return json.loads(file.read())
         except KeyError:
             pass
 
