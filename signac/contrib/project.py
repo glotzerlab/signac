@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
@@ -12,6 +12,7 @@ import collections
 import uuid
 import gzip
 import time
+from contextlib import contextmanager
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
 
@@ -19,9 +20,9 @@ from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
 from .collection import Collection
-from .collection import _traverse_filter
 from ..common import six
 from ..common.config import load_config
+from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -420,20 +421,11 @@ class Project(object):
         :yields: Pairs of state point keys and mappings of values to a set of all
             corresponding job ids.
         """
+        from .schema import _build_job_statepoint_index
         if index is None:
-            index = self.index(include_job_document=False)
-        collection = Collection(index, _trust=True)
-        for doc in collection.find():
-            for key, _ in _traverse_filter(doc):
-                if key == '_id' or key.split('.')[0] != 'statepoint':
-                    continue
-                collection.index(key, build=True)
-        tmp = collection._indexes
-        for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
-            if exclude_const and len(tmp[k]) == 1 \
-                    and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
-                continue
-            yield tuple(k.split('.')[1:]), tmp[k]
+            index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+        for x in _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index):
+            yield x
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
@@ -791,9 +783,14 @@ class Project(object):
         """
         if prefix is None:
             prefix = 'view'
+
         if index is None:
-            index = self.index(include_job_document=False)
-        if job_ids is not None:
+            if job_ids is None:
+                index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+            else:
+                index = [{'_id': job_id, 'statepoint': self.open_job(id=job_id).sp()}
+                         for job_id in job_ids]
+        elif job_ids is not None:
             if not isinstance(job_ids, set):
                 job_ids = set(job_ids)
             index = [doc for doc in index if doc['_id'] in job_ids]
@@ -961,6 +958,86 @@ class Project(object):
             doc_sync=doc_sync,
             selection=selection,
             **kwargs)
+
+    def export_to(self, target, path=None, copytree=None):
+        """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+
+        Use this function in combination with :meth:`~.find_jobs` to export only a select number
+        of jobs, for example:
+
+        .. code-block:: python
+
+            project.find_jobs({'foo': 0}).export_to('foo_0.tar')
+
+        .. seealso:: Import data spaces with :meth:`~.import_from`.
+
+        :param target:
+            A path to a directory to export to. The directory can not
+            already exist.
+        :param path:
+            The path function for export, must be a function of job or
+            a string, which is evaluated with ``path.format(job=job)``.
+        :param copytree:
+            The function used for the actualy copying of directory tree
+            structures. Defaults to :func:`shutil.copytree`.
+            Can only be used when the target is a directory.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
+        return self.find_jobs().export_to(target=target, path=path, copytree=copytree)
+
+    def import_from(self, origin=None, schema=None, sync=None, copytree=None):
+        """Import the data space located at origin into this project.
+
+        This function will walk through the data space located at origin and will try to identify
+        data space paths that can be imported as a job workspace into this project.
+
+        The default schema function will simply look for state point manifest files -- usually named
+        ``signac_statepoint.json`` -- and then import all data located within that path into the job
+        workspace corresponding to the state point specified in the manifest file.
+
+        Alternatively the schema argument may be a string, that is converted into a schema function,
+        for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
+        ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+        the state point.
+
+        .. tip::
+
+            Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+            instead of copying them.
+
+            Warning: Imports can fail due to conflicts. Moving data instead of copying may
+            therefore lead to inconsistent states and users are advised to apply caution.
+
+        .. seealso:: Export the project data space with :meth:`~.export_to`.
+
+        :param origin:
+            The path to the data space origin, which is to be imported. This may be a path to
+            a directory, a zip-file, or a tarball archive.
+        :param schema:
+            An optional schema function, which is either a string or a function that accepts a
+            path as its first and only argument and returns the corresponding state point as dict.
+        :param copytree:
+            Specify which exact function to use for the actual copytree operation.
+            Defaults to :func:`shutil.copytree`.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
+        from .import_export import import_into_project
+        if sync:
+            with self.temporary_project() as tmp_project:
+                ret = tmp_project.import_from(origin=origin, schema=schema)
+                if sync is True:
+                    self.sync(other=tmp_project)
+                else:
+                    self.sync(other=tmp_project, **sync)
+                return ret
+
+        paths = dict(import_into_project(
+            origin=origin, project=self, schema=schema, copytree=copytree))
+        return paths
 
     def check(self, job_ids=None):
         """Check the project's workspace for corruption.
@@ -1255,7 +1332,7 @@ class Project(object):
         this project's index part of a master index.
 
         :param filename: The name of the access module file.
-            Defaults to the standard name and should ususally
+            Defaults to the standard name and should usually
             not be changed.
         :type filename: str
         :param master: If True, add directives for the compilation
@@ -1278,6 +1355,38 @@ class Project(object):
             os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))
         return filename
+
+    @contextmanager
+    def temporary_project(self, name=None, dir=None):
+        """Context manager for the initialization of a temporary project.
+
+        The temporary project is by default created within the root project's
+        workspace to ensure that they share the same file system. This is an example
+        for how this method can be used for the import and synchronization of
+        external data spaces.
+
+        .. code-block:: python
+
+            with project.temporary_project() as tmp_project:
+                tmp_project.import_from('/data')
+                project.sync(tmp_project)
+
+        :param name:
+            An optional name for the temporary project.
+            Defaults to a unique random string.
+        :param dir:
+            Optionally specify where the temporary project root directory is to be
+            created. Defaults to the project's workspace directory.
+        :returns:
+            An instance of :class:`.Project`.
+        """
+        if name is None:
+            name = os.path.join(self.get_id(), str(uuid.uuid4()))
+        if dir is None:
+            dir = self.workspace()
+        _mkdir_p(self.workspace())  # ensure workspace exists
+        with TemporaryProject(name=name, dir=dir) as tmp_project:
+            yield tmp_project
 
     @classmethod
     def init_project(cls, name, root=None, workspace=None, make_dir=True):
@@ -1348,6 +1457,33 @@ class Project(object):
                 "Unable to determine project id for path '{}'.".format(
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
+
+
+@contextmanager
+def TemporaryProject(name=None, **kwargs):
+    """Context manager for the generation of a temporary project.
+
+    This is a factory function that creates a Project within a temporary directory
+    and must be used as context manager, for example like this:
+
+    .. code-block:: python
+
+        with TemporaryProject() as tmp_project:
+            tmp_project.import_from('/data')
+
+    :param name:
+        An optional name for the temporary project.
+        Defaults to a unique random string.
+    :param kwargs:
+        Optional key-word arguments that are forwarded to the TemporaryDirectory class
+        constructor, which is used to create a temporary root directory.
+    :returns:
+        An instance of :class:`.Project`.
+    """
+    if name is None:
+        name = str(uuid.uuid4())
+    with TemporaryDirectory(**kwargs) as tmp_dir:
+        yield Project.init_project(name=name, root=tmp_dir)
 
 
 def _find_all_links(root, leaf='job'):
@@ -1554,7 +1690,7 @@ class JobsCursor(object):
         if isinstance(key, six.string_types):
             if default is None:
                 def keyfunction(job):
-                        return job.sp[key]
+                    return job.sp[key]
             else:
                 def keyfunction(job):
                     return job.sp.get(key, default)
@@ -1633,6 +1769,28 @@ class JobsCursor(object):
             def keyfunction(job):
                 return key(job.document)
         return groupby(sorted(self, key=keyfunction), key=keyfunction)
+
+    def export_to(self, target, path=None, copytree=None):
+        """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+
+        .. seealso:: Import data spaces with :meth:`~.import_from`.
+
+        :param target:
+            A path to a directory to export to. The directory can not
+            already exist.
+        :param path:
+            The path function for export, must be a function of job or
+            a string, which is evaluated with `path.format(job=job)`.
+        :param copytree:
+            The function used for the actualy copying of directory tree
+            structures. Defaults to `shutil.copytree`.
+            Can only be used when the target is a directory.
+        :returns:
+            A dict that maps the source directory paths, to the target
+            directory paths.
+        """
+        from .import_export import export_jobs
+        return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

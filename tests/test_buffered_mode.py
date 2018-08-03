@@ -31,7 +31,7 @@ with TemporaryDirectory() as tmp_dir:
         os.chmod(path, S_IREAD)
         with open(os.path.join(path, 'testfile.txt'), 'w') as file:
             pass
-    except OSError:
+    except (IOError, OSError):
         ABLE_TO_PREVENT_WRITE = True
     else:
         ABLE_TO_PREVENT_WRITE = False

@@ -28,6 +28,9 @@ class FileSyncConflict(SyncConflict):
         self.filename = filename
         "The filename of the file that caused the conflict."
 
+    def __str__(self):
+        return "The file with filename '{}' caused a conflict.".format(self.filename)
+
 
 class DocumentSyncConflict(SyncConflict):
     "Raised when a synchronization operation fails due to a document conflict."
@@ -35,12 +38,18 @@ class DocumentSyncConflict(SyncConflict):
         self.keys = keys
         "The keys that caused the conflict."
 
+    def __str__(self):
+        return "The following keys caused a conflict: {}".format(', '.join(self.keys))
+
 
 class SchemaSyncConflict(SyncConflict):
     "Raised when a synchronization operation fails due to schema differences."
     def __init__(self, schema_src, schema_dst):
         self.schema_src = schema_src
         self.schema_dst = schema_dst
+
+    def __str__(self):
+        return "The synchronization failed, because of a schema conflict."
 
 
 __all__ = [

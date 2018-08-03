@@ -249,16 +249,7 @@ class Job(object):
     def doc(self, new_doc):
         self.document = new_doc
 
-    def init(self, force=False):
-        """Initialize the job's workspace directory.
-
-        This function will do nothing if the directory and
-        the job manifest already exist.
-
-        :param force: Overwrite any existing state points manifest
-            files, e.g., to repair them when they got corrupted.
-        :type force: bool
-        """
+    def _init(self, force=False):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
@@ -309,16 +300,32 @@ class Job(object):
         "Check whether the manifest file, if it exists, is correct."
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
-            try:
-                with open(fn_manifest, 'rb') as file:
-                    assert calc_id(json.loads(file.read().decode())) == self._id
-            except IOError as error:
-                if error.errno != errno.ENOENT:
-                    raise error
-        except Exception as error:
+            with open(fn_manifest, 'rb') as file:
+                assert calc_id(json.loads(file.read().decode())) == self._id
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+        except (AssertionError, ValueError):
+            raise JobsCorruptedError([self._id])
+
+    def init(self, force=False):
+        """Initialize the job's workspace directory.
+
+        This function will do nothing if the directory and
+        the job manifest already exist.
+
+        :param force:
+                Overwrite any existing state point's manifest
+                files, e.g., to repair them when they got corrupted.
+        :type force:
+                bool
+        """
+        try:
+            self._init(force=force)
+        except Exception:
             logger.error(
                 "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
-            raise JobsCorruptedError([self._id])
+            raise
 
     def clear(self):
         """Remove all job data, but not the job itself.

@@ -31,7 +31,7 @@ The project interface provides simple and consistent access to the project's und
 
 .. [#f1] You can access a project interface from other locations by explicitly specifying the root directory.
 
-To initialize a project, simply execute ``$signac init <projectname>`` on the command line inside the desired project directory (create a new project directory if needed).
+To initialize a project, simply execute ``$ signac init <project-name>`` on the command line inside the desired project directory (create a new project directory if needed).
 For example, to initialize a **signac** project named *MyProject* in a directory called ``my_project``, execute:
 
 .. code-block:: bash
@@ -333,7 +333,7 @@ Grouping by Multiple Keys
 Grouping by multiple state point parameters or job document values is possible, by passing an iterable of fields that should be used for grouping.
 For example, we can group jobs by state point parameters *c* and *d*:
 
-.. code-blocK:: python
+.. code-block:: python
 
     for (c, d), group in project.groupby(('c', 'd')):
         print(c, d, list(group))
@@ -664,7 +664,7 @@ This works similar for ``$ signac view`` on the command line, for example, in co
 .. _synchronization:
 
 Synchronization
-================
+===============
 
 In some cases it may be necessary to store a project at more than one location, perhaps for backup purposes or for remote execution of data space operations.
 In this case there will be a regular need to synchronize these data spaces.
@@ -678,8 +678,113 @@ Then we would call ``signac sync`` with the path of the project that we want to 
 
 .. code-block:: bash
 
-    $ cd /data/my_projcet
+    $ cd /data/my_project
     $ signac sync /remote/my_project
 
 This would copy data *from the remote project to the local project*.
 For more details on how to use ``signac sync``, type ``$ signac sync --help``.
+
+Projects can also be synchronized using the Python API:
+
+.. code-block:: python
+
+    project.sync('/remote/my_project')
+
+.. _import-export:
+
+Importing and Exporting Data
+============================
+
+Data archival is important to preserving the integrity, utility, and shareability of a project.
+To this end, signac provides interfaces for importing workspaces from and exporting workspaces to directories, zip-files, and tarballs.
+The exported project archives are useful for publishing data, *e.g.*, for researchers wishing to make an original data set available alongside a publication.
+
+Exporting
+---------
+
+Exporting a project could be as simple as zipping the project files and workspace paths (``$ zip -r project_archive.zip /data/my_project/``).
+The functionality provided by ``signac export`` is a bit more fine-grained and allows the use of a custom path structure or exporting a subset of the jobs based on state point, document, or id filters.
+
+For example, suppose we have a project stored locally in the path ``/data/my_project`` and want to export it to a directory ``/data/my_project_archive``.
+The project's jobs are assumed to have state point keys *a* and *b* with integer values.
+We would first change into the root directory of the project that we want to export and then call ``signac export`` with the target path:
+
+.. code-block:: bash
+
+    $ cd /data/my_project
+    $ signac export /data/my_project_archive
+
+This would **copy** data from the source project to the export directory with the following directory structure:
+
+.. code-block:: bash
+
+    /data/my_project_archive/a/0/b/0/
+    /data/my_project_archive/a/0/b/1/
+    /data/my_project_archive/a/0/b/2/
+    # etc.
+
+The default path function is based on the implicit schema of all exported jobs, but we can also **optionally** specify a specific export path:
+
+.. code-block:: bash
+
+    $ signac export /data/my_project_archive "a_{job.sp.a}/b_{job.sp.b}"
+
+It is possible to directly export to a zip-file or tarball by simply providing the path to the archive-file as target (*e.g.* ``$ signac export /data/my_project_archive.zip``).
+For more details on how to use ``signac export``, type ``$ signac export --help``.
+
+.. note::
+
+    Project data spaces can also be exported using the Python API:
+
+    .. code-block:: python
+
+        # Export the complete project data space with custom path:
+        project.export_to('/data/my_project_archive', path='a_{job.sp.a}/b_{job.sp.b}')
+
+        # Export a data sub space to a zip-file:
+        project.find_jobs({'a': 0}).export_to('/data/a_0_archive.zip')
+
+Importing
+---------
+Archives exported by **signac** include state point files, simplifying the process of importing from an archive.
+That means the definition of a *path-based* schema is not necessary!
+
+Here, we import the previously-exported project into a new project by first initializing it and then calling ``signac import`` with the origin path we wish to import from.
+
+.. code-block:: bash
+
+    $ mkdir /data/my_new_project
+    $ cd /data/my_new_project
+    $ signac init my_new_project
+    $ signac import /data/my_project_archive
+
+This will **copy** all data from ``/data/my_project_archive`` into the new project's workspace.
+We can also explicitly define a path-based schema for importing projects without state point files.
+
+.. code-block:: bash
+
+    $ signac import /data/non_signac_archive "a_{a:int}/b_{b:int}"
+
+The command above will copy all data from the the ``/data/non_signac_archive`` directory and use the paths of sub-directories to identify the associated state points.
+For example, the path ``a_0/b_1`` will be interpreted as ``{'a': 0, 'b': 1}``.
+The type specification -- here ``int`` for both *a* and *b* -- is optional and will default to ``str`` if omitted.
+
+Importing from zip-files and tarballs works similarly, by specifying that path as the origin.
+For more details on how to use ``signac import``, type ``$ signac import --help``.
+
+.. note::
+
+    Archived data can also be imported using the Python API:
+
+    .. code-block:: python
+
+        # Import from directory '/data/my_project_archive' with explicit path-based schema:
+        project.import_from(origin='/data/my_project_archive', schema='a_{a:int}/b_{b:int}')
+
+    Using the Python API, we can also provide a *function* as the ``schema`` argument, *e.g.*:
+
+    .. code-block:: python
+
+        project.import_from(
+            origin='/data/my_project_archive',
+            schema=lambda path: {'a': int(path[2]), 'b': int(path[6])})

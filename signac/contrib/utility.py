@@ -8,10 +8,14 @@ import os
 import getpass
 import argparse
 import errno
+import zipfile
+import tarfile
 from time import time
 from datetime import timedelta
+from contextlib import contextmanager
 
 from ..common import six
+from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +207,18 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
         write("{}100%".format(desc))
     else:
         yield iterable
+
+
+@contextmanager
+def _extract(filename):
+    with TemporaryDirectory() as tmpdir:
+        if zipfile.is_zipfile(filename):
+            with zipfile.ZipFile(filename) as file:
+                file.extractall(tmpdir)
+                yield tmpdir
+        elif tarfile.is_tarfile(filename):
+            with tarfile.open(filename) as file:
+                file.extractall(path=tmpdir)
+                yield tmpdir
+        else:
+            raise RuntimeError("Unknown file type: '{}'.".format(filename))
