@@ -307,7 +307,7 @@ class Collection(object):
     By default a collection object will reside in memory. However, it is
     possible to manage a collection associated to a file on disk. To open
     a collection which is associated with a file on disk, use the
-    :py:meth:`.open` class method:
+    :py:meth:`Collection.open` class method:
 
     .. code-block:: python
 
@@ -887,9 +887,9 @@ class Collection(object):
         the file if it does not exist yet.
 
         Modifications to the file will be written to the file when the
-        :py:meth:`.flush` method is called or the collection is explicitly
-        closed by calling the :py:meth:`.close` method or implicitly by
-        leaving the `with`-clause:
+        :py:meth:`~Collection.flush` method is called or the collection is
+        explicitly closed by calling the :py:meth:`Collection.close` method or
+        implicitly by leaving the `with`-clause:
 
         .. code-block:: python
 
@@ -912,7 +912,8 @@ class Collection(object):
         """Write all changes to the associated file.
 
         If the collection instance is associated with a file-object,
-        calling the :py:meth:`~.flush` method will write all changes to this file.
+        calling the :py:meth:`~Collection.flush` method will write all changes
+        to this file.
 
         This method is also called when the collection is explicitly or
         implicitly closed.

@@ -16,6 +16,8 @@ Submodules
 signac.contrib.indexing module
 ------------------------------
 
+.. currentmodule:: signac.contrib.indexing
+
 .. automodule:: signac.contrib.indexing
     :noindex:
     :members:
@@ -24,6 +26,8 @@ signac.contrib.indexing module
 
 signac.contrib.collection module
 --------------------------------
+
+.. currentmodule:: signac.contrib.collection
 
 .. automodule:: signac.contrib.collection
     :noindex:
@@ -34,6 +38,8 @@ signac.contrib.collection module
 signac.contrib.errors module
 ----------------------------
 
+.. currentmodule:: signac.contrib.errors
+
 .. automodule:: signac.contrib.errors
     :members:
     :undoc-members:
@@ -41,6 +47,8 @@ signac.contrib.errors module
 
 signac.contrib.filesystems module
 ---------------------------------
+
+.. currentmodule:: signac.contrib.filesystems
 
 .. automodule:: signac.contrib.filesystems
     :members:
@@ -51,6 +59,8 @@ signac.contrib.filesystems module
 signac.contrib.hashing module
 -----------------------------
 
+.. currentmodule:: signac.contrib.hashing
+
 .. automodule:: signac.contrib.hashing
     :members:
     :undoc-members:
@@ -58,6 +68,8 @@ signac.contrib.hashing module
 
 signac.contrib.job module
 -------------------------
+
+.. currentmodule:: signac.contrib.job
 
 .. automodule:: signac.contrib.job
     :noindex:
@@ -68,6 +80,8 @@ signac.contrib.job module
 signac.contrib.mpipool module
 -----------------------------
 
+.. currentmodule:: signac.contrib.mpipool
+
 .. automodule:: signac.contrib.mpipool
     :members:
     :undoc-members:
@@ -75,6 +89,8 @@ signac.contrib.mpipool module
 
 signac.contrib.project module
 -----------------------------
+
+.. currentmodule:: signac.contrib.project
 
 .. automodule:: signac.contrib.project
     :noindex:
@@ -93,6 +109,8 @@ signac.contrib.import_export module
 
 signac.contrib.utility module
 -----------------------------
+
+.. currentmodule:: signac.contrib.utility
 
 .. automodule:: signac.contrib.utility
     :members:

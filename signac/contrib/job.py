@@ -39,7 +39,7 @@ class Job(object):
     """The job instance is a handle to the data of a unique statepoint.
 
     Application developers should usually not need to directly
-    instantiate this class, but use :meth:`~.project.Project.open_job`
+    instantiate this class, but use :meth:`~signac.Project.open_job`
     instead."""
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
@@ -94,7 +94,7 @@ class Job(object):
 
     @property
     def ws(self):
-        "The job's workspace directory."
+        """Alias for :attr:`.workspace`."""
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
@@ -183,7 +183,8 @@ class Job(object):
 
     @property
     def statepoint(self):
-        "Access the job's state point as attribute dictionary."
+        """Access the job's state point as attribute dictionary.
+        """
         if self._sp is None:
             self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         return self._sp
@@ -194,9 +195,7 @@ class Job(object):
 
     @property
     def sp(self):
-        """Access the job's state point as attribute dictionary.
-
-        Alias for :attr:`.statepoint`.
+        """ Alias for :attr:`.statepoint`.
         """
         return self.statepoint
 
@@ -243,6 +242,8 @@ class Job(object):
 
     @property
     def doc(self):
+        """Alias for :attr:`~signac.contrib.job.Job.document`.
+        """
         return self.document
 
     @doc.setter

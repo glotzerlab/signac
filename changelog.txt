@@ -396,9 +396,7 @@ Removed
 +++++++
 
  - All modules related to the stale *conversion framework* feature have been removed resulting in a removal of the optional networkx dependency.
- - Multiple modules related to the *conversion framework* feature have been
- removed, including: ``contrib.formats_network``, ``contrib.conversion``, and
- ``contrib.adapters``.
+ - Multiple modules related to the *conversion framework* feature have been removed, including: ``contrib.formats_network``, ``contrib.conversion``, and ``contrib.adapters``.
 
 Fixed
 +++++

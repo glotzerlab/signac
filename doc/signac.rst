@@ -1,14 +1,15 @@
 .. _api:
 
+===
 API
 ===
 
-The complete **signac** application interface (API).
+The complete **signac** application programming interface (API).
 
 Command Line Interface
-----------------------
+======================
 
-Some core **signac** functions are -- in addition to the Python interface -- accessible
+Some core **signac** functions are---in addition to the Python interface---accessible
 directly via the ``$ signac`` command.
 
 For more information, please see ``$ signac --help``.
@@ -33,20 +34,119 @@ For more information, please see ``$ signac --help``.
       -y, --yes             Answer all questions with yes. Useful for scripted
                             interaction.
 
-Module contents
----------------
 
-.. automodule:: signac
+Python API
+==========
+
+.. _python-api-project:
+
+Project
+-------
+.. currentmodule:: signac
+
+.. autoclass:: Project
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+    ~Project.build_job_search_index
+    ~Project.build_job_statepoint_index
+    ~Project.check
+    ~Project.clone
+    ~Project.config
+    ~Project.create_access_module
+    ~Project.create_linked_view
+    ~Project.detect_schema
+    ~Project.doc
+    ~Project.document
+    ~Project.dump_statepoints
+    ~Project.find_job_documents
+    ~Project.find_job_ids
+    ~Project.find_jobs
+    ~Project.find_statepoints
+    ~Project.fn
+    ~Project.get_id
+    ~Project.get_statepoint
+    ~Project.groupby
+    ~Project.groupbydoc
+    ~Project.index
+    ~Project.isfile
+    ~Project.min_len_unique_id
+    ~Project.num_jobs
+    ~Project.open_job
+    ~Project.read_statepoints
+    ~Project.repair
+    ~Project.reset_statepoint
+    ~Project.root_directory
+    ~Project.sync
+    ~Project.update_cache
+    ~Project.update_statepoint
+    ~Project.workspace
+    ~Project.write_statepoints
+
+
+.. autoclass:: Project
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :exclude-members: Job
+
+.. _python-api-job:
+
+Job
+---
+.. currentmodule:: signac.contrib.job
+
+.. autoclass:: Job
+
+.. rubric:: Attributes
+
+.. autosummary::
+
+    ~Job.clear
+    ~Job.close
+    ~Job.doc
+    ~Job.document
+    ~Job.fn
+    ~Job.get_id
+    ~Job.init
+    ~Job.isfile
+    ~Job.move
+    ~Job.open
+    ~Job.remove
+    ~Job.reset
+    ~Job.reset_statepoint
+    ~Job.sp
+    ~Job.statepoint
+    ~Job.sync
+    ~Job.update_statepoint
+    ~Job.workspace
+    ~Job.ws
+
+
+.. autoclass:: signac.contrib.job.Job
     :members:
     :undoc-members:
     :show-inheritance:
 
 
+Signac
+------
+
+.. automodule:: signac
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :exclude-members: Project
+
+
 .. automodule:: signac.cite
     :members:
 
+
 Subpackages
------------
+===========
 
 .. toctree::
 
