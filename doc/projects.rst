@@ -7,6 +7,9 @@ Projects
 Introduction
 ============
 
+For a full reference of the Project API, please see the :ref:`Python API
+<python-api-project>`.
+
 A **signac** project is a conceptual entity consisting of three components:
 
   1. a **data space**,
@@ -80,6 +83,9 @@ Or with the :py:func:`~signac.get_project` function:
 
 Jobs
 ====
+
+For a full reference of the Job API, please see the :ref:`Python API
+<python-api-job>`.
 
 The central assumption of the **signac** data model is that the *data space* is divisible into individual data points, consisting of data and metadata, which are uniquely addressable in some manner.
 In the context of **signac**, each data point is called a *job*, and its unique address is referred to as a *state point*.

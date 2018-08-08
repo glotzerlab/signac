@@ -112,7 +112,7 @@ The behavior of ``$near`` matches that of python's `math.isclose <https://docs.p
 The "reference" value and tolerances are passed in as a list in the order ``[reference, [relative_tolerance, [absolute_tolerance]]]``, where the inner ``[]``\s denote optional values.
 Note that default values are ``relative_tolerance = 1e-09`` and ``absolute_tolerance = 0``.
 
-.. code-block:: python
+.. code-block:: bash
 
     signac find theta.\$near 0.6  # easier than typing 0.600000001
     signac find '{"p.$near": [100, 0.05]}'  # p within 5% of 100
@@ -221,7 +221,7 @@ Finally, you can use ``/<regex>/`` intead of ``{'$regex': '<regex>'}`` for regul
 
 The following list shows simplified expressions on the left and their equivalent standard expression on the right.
 
-.. code-block:: python
+.. code-block:: bash
 
     simplified            standard
     --------------------  ------------------------------------

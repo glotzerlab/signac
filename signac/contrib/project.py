@@ -283,7 +283,7 @@ class Project(object):
     def doc(self):
         """The document associated with this project.
 
-        Alias for :attr:`~.document`.
+        Alias for :attr:`~signac.Project.document`.
 
         :return: The project document handle.
         :rtype: :class:`~.JSONDict`
@@ -581,7 +581,7 @@ class Project(object):
 
         :param key:
             The statepoint grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, `job.document`.
+            or a function that will be passed one argument, :attr:`Job.document`.
         :type key:
             str, iterable, or function
         :param default:
@@ -1603,7 +1603,7 @@ class JobsCursor(object):
 
         :param key:
             The statepoint grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, `job.document`.
+            or a function that will be passed one argument, :attr:`job.document`.
         :type key:
             str, iterable, or function
         :param default:
