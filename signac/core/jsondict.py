@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 "Dict implementation with backend JSON file."
@@ -12,7 +12,7 @@ from tempfile import mkstemp
 from contextlib import contextmanager
 
 from .errors import Error
-from .json import json
+from .json import json, CustomJSONEncoder
 from .attrdict import SyncedAttrDict
 from ..common import six
 
@@ -236,7 +236,7 @@ class JSONDict(SyncedAttrDict):
             data = self._as_dict()
 
         # Serialize data:
-        blob = json.dumps(data).encode()
+        blob = json.dumps(data, cls=CustomJSONEncoder).encode()
 
         if _BUFFERED_MODE > 0:
             _store_in_buffer(self._filename, blob)

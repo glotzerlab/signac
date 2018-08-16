@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """The signac framework aids in the management of large and
@@ -33,6 +33,7 @@ from .contrib import index
 from .contrib import RegexFileCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
+from .contrib.lookup import lookup
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
 from .core.jsondict import in_buffered_mode as is_buffered
@@ -54,5 +55,6 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'RegexFileCrawler',
            'MasterCrawler',
            'SignacProjectCrawler',
+           'lookup',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
            ]

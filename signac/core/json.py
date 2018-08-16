@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import absolute_import
@@ -12,7 +12,24 @@ try:
     logger.debug(msg.format('rapidjson'))
 except ImportError:
     import json
+    from json import JSONEncoder
+
     logger.debug(msg.format('json'))
 
 
-__all__ = ['json']
+class CustomJSONEncoder(JSONEncoder):
+    """Attempt to JSON-encode objects beyond the default supported types.
+
+    This encoder will attempt to obtain a JSON-serializable representation of
+    a otherwise not serializable object, by calling a potentially implemented
+    `_as_dict()` method.
+    """
+    def default(self, o):
+        try:
+            return o._as_dict()
+        except AttributeError:
+            # Call the super method, which probably raise a TypeError.
+            return super(CustomJSONEncoder, self).default(o)
+
+
+__all__ = ['json', 'CustomJSONEncoder']

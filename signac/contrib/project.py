@@ -1458,6 +1458,51 @@ class Project(object):
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
 
+    def make_link(self, job):
+        "Make a link document for job with paths relative to this project root directory."
+        return job.make_link(start=self.root_directory())
+
+    @classmethod
+    def _lookup_job(cls, link, ignore_missing, start=None):
+        # Obtain project either from absolute or relative path.
+        try:
+            if os.path.isabs(link['project']['root']):
+                project = cls.get_project(root=link['project']['root'])
+            elif start is None:
+                project = cls.get_project(root=link['project']['root'])
+            else:
+                project = cls.get_project(root=os.path.join(start, link['project']['root']))
+        except LookupError as error:
+            raise LookupError("Unable to determine project for link '{}'.".format(link['project']))
+
+        # Open the job from state point for obtained project.
+        job = project.open_job(link['statepoint'])
+
+        # Check if the job exists.
+        if not ignore_missing and job not in project:
+            raise KeyError(link['statepoint'])
+
+        return job
+
+    def lookup(self, link, ignore_missing=False):
+        """Lookup jobs from link documents.
+
+        :seealso: :py:meth:`.Job.make_link`
+
+        :param links:
+            The documents that link to the individual jobs.
+        :param init:
+            Initialize jobs from links if necessary.
+        :type init:
+            bool
+        :raises LookupError:
+            If a project specified by a link cannot be found.
+        :raises KeyError:
+            If a job specified by a link does not exist, unless
+            the init argument is set to True.
+        """
+        return self._lookup_job(link, ignore_missing, self.root_directory())
+
 
 @contextmanager
 def TemporaryProject(name=None, **kwargs):

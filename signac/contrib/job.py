@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
@@ -9,6 +9,7 @@ import uuid
 
 from ..common import six
 from ..core.json import json
+from ..core.json import CustomJSONEncoder
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
 from .hashing import calc_id
@@ -55,7 +56,7 @@ class Job(object):
         if _trust:
             self._statepoint = dict(statepoint)
         else:
-            self._statepoint = json.loads(json.dumps(statepoint))
+            self._statepoint = json.loads(json.dumps(statepoint, cls=CustomJSONEncoder))
         self._id = calc_id(self._statepoint)
         self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = os.path.join(project.workspace(), self._id)
@@ -81,6 +82,34 @@ class Job(object):
         return "{}(project={}, statepoint={})".format(
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
+
+    def make_link(self, start=None):
+        """Create a link document for this job.
+
+        The link document can be used to lookup this job for instance to create
+        one-to-one or one-to-many relationships across projects.
+
+        :seealso: :meth:`.Project.lookup`
+
+        :param start:
+            If specified, the path to the related project root directory will be stored
+            *relative* to this path.
+        :type start:
+            str
+        """
+        if start is None:
+            project_root = self._project.root_directory()
+        else:
+            project_root = os.path.relpath(self._project.root_directory(), start)
+        return {
+            'project': {
+                '_id': self._project.get_id(),
+                'root': project_root,
+            },
+            'statepoint': self.statepoint(),
+        }
+
+    _as_dict = make_link
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -296,6 +325,7 @@ class Job(object):
             raise error
         else:
             self._check_manifest()
+        return self
 
     def _check_manifest(self):
         "Check whether the manifest file, if it exists, is correct."
@@ -322,7 +352,7 @@ class Job(object):
                 bool
         """
         try:
-            self._init(force=force)
+            return self._init(force=force)
         except Exception:
             logger.error(
                 "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
