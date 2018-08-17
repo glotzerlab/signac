@@ -74,10 +74,6 @@ def _to_tuples(l):
         return l
 
 
-class _DictPlaceholder(object):
-    pass
-
-
 def _encode_tree(x):
     if isinstance(x, list):
         return _to_tuples(x)
@@ -167,7 +163,7 @@ def _build_index(docs, key, primary_key):
             for n in nodes[1:]:
                 v = v[n]
             if type(v) == dict:
-                v = _DictPlaceholder
+                continue
         except (KeyError, TypeError):
             pass
         except Exception as error:
