@@ -51,7 +51,7 @@ class Job(object):
     FN_DOCUMENT = 'signac_job_document.json'
     "The job's document filename."
 
-    MAX_LEN_ID_HISTORY = 100
+    MAX_LEN_MIGRATION_HISTORY = 10
     "The maximum number of old ids to store within the job document after migration."
 
     def __init__(self, project, statepoint, _trust=False):
@@ -137,7 +137,7 @@ class Job(object):
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
-        old_id = self._id
+        backup = self._id, self._statepoint.copy()
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
@@ -166,9 +166,11 @@ class Job(object):
             self._fn_doc = dst._fn_doc
             self._document = None
             self._cwd = list()
-            history = self.document.get('_id_history', list())
-            history.insert(0, old_id)
-            self.document._id_history = history[:self.MAX_LEN_ID_HISTORY]
+
+            history = self.document.get('_history', list())
+            history.insert(0, backup)
+            self.document._history = history[:self.MAX_LEN_MIGRATION_HISTORY]
+
             logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
