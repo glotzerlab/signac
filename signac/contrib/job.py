@@ -83,33 +83,16 @@ class Job(object):
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
 
-    def make_link(self, start=None):
-        """Create a link document for this job.
-
-        The link document can be used to lookup this job for instance to create
-        one-to-one or one-to-many relationships across projects.
-
-        :seealso: :meth:`.Project.lookup`
-
-        :param start:
-            If specified, the path to the related project root directory will be stored
-            *relative* to this path.
-        :type start:
-            str
-        """
+    def _as_dict(self, start=None):
         if start is None:
-            project_root = self._project.root_directory()
-        else:
-            project_root = os.path.relpath(self._project.root_directory(), start)
-        return {
-            'project': {
-                '_id': self._project.get_id(),
-                'root': project_root,
-            },
-            'statepoint': self.statepoint(),
-        }
+            start = self._project.get_project()
 
-    _as_dict = make_link
+        try:
+            path = os.path.relpath(self._project.root_directory(), start.root_directory())
+        except AttributeError:
+            path = os.path.relpath(self._project.root_directory(), start)
+
+        return "signac://{}#{}".format(path, self._id)
 
     def __eq__(self, other):
         return hash(self) == hash(other)

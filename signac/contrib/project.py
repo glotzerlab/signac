@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
+from urllib.parse import urlparse
 
 from .. import syncutil
 from ..core.json import json
@@ -40,7 +41,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-JOB_ID_REGEX = re.compile('[a-f0-9]{32}')
+JOB_ID_REGEX = '[a-f0-9]{32}'
 
 ACCESS_MODULE_MINIMAL = """import signac
 
@@ -337,7 +338,7 @@ class Project(object):
     def _job_dirs(self):
         try:
             for d in os.listdir(self._wd):
-                if JOB_ID_REGEX.match(d):
+                if re.match(JOB_ID_REGEX, d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
@@ -1458,36 +1459,35 @@ class Project(object):
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
 
-    def make_link(self, job):
+    def link_to(self, job):
         "Make a link document for job with paths relative to this project root directory."
-        return job.make_link(start=self.root_directory())
+        return job._as_dict(start=self.root_directory())
 
     @classmethod
-    def _lookup_job(cls, link, ignore_missing, start=None):
-        # Obtain project either from absolute or relative path.
+    def _lookup_project(cls, link, start):
+        o = urlparse(link)
+        root = o.netloc + o.path
         try:
-            if os.path.isabs(link['project']['root']):
-                project = cls.get_project(root=link['project']['root'])
-            elif start is None:
-                project = cls.get_project(root=link['project']['root'])
+            if start is None:
+                if os.path.isabs(root):
+                    return cls.get_project(root=root)
+                else:
+                    start = cls.get_project().root_directory()
+                    return cls.get_project(root=os.path.join(start, root))
             else:
-                project = cls.get_project(root=os.path.join(start, link['project']['root']))
+                try:
+                    return cls.get_project(root=os.path.join(start.root_directory(), root))
+                except AttributeError:
+                    return cls.get_project(root=os.path.join(start, root))
         except LookupError as error:
-            raise LookupError("Unable to determine project for link '{}'.".format(link['project']))
+            raise LookupError("Unable to determine project for link '{}'.".format(link))
 
-        # Open the job from state point for obtained project.
-        job = project.open_job(link['statepoint'])
+    def lookup_project(self, link):
+        return self._lookup_project(link=link, start=self.root_directory())
 
-        # Check if the job exists.
-        if not ignore_missing and job not in project:
-            raise KeyError(link['statepoint'])
-
-        return job
-
-    def lookup(self, link, ignore_missing=False):
+    @classmethod
+    def _lookup(cls, link, start=None):
         """Lookup jobs from link documents.
-
-        :seealso: :py:meth:`.Job.make_link`
 
         :param links:
             The documents that link to the individual jobs.
@@ -1501,7 +1501,14 @@ class Project(object):
             If a job specified by a link does not exist, unless
             the init argument is set to True.
         """
-        return self._lookup_job(link, ignore_missing, self.root_directory())
+        # Determine project for link.
+        project = cls._lookup_project(link=link, start=start)
+
+        # Open the job from state point for obtained project.
+        return project.open_job(id=urlparse(link).fragment)
+
+    def lookup(self, link):
+        return self._lookup(link=link, start=self.root_directory())
 
 
 @contextmanager
