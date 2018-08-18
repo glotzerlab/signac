@@ -12,7 +12,7 @@ def link_to(job, start=None):
 
     :seealso: :func:`.lookup`
     """
-    return job._as_dict(start=start)
+    return job._as_link(start=start)
 
 
 def lookup(link, start=None):

@@ -83,16 +83,22 @@ class Job(object):
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
 
-    def _as_dict(self, start=None):
-        if start is None:
-            start = self._project.get_project()
-
-        try:
-            path = os.path.relpath(self._project.root_directory(), start.root_directory())
-        except AttributeError:
-            path = os.path.relpath(self._project.root_directory(), start)
+    def _as_link(self, start=None):
+        if start is None:        # Use *current project* as start.
+            path = os.path.relpath(
+                self._project.root_directory(),
+                self._project.get_project().root_directory())
+        elif start:     # Use provided start value as start (either as project or direct path).
+            try:
+                path = os.path.relpath(self._project.root_directory(), start.root_directory())
+            except AttributeError:
+                path = os.path.relpath(self._project.root_directory(), start)
+        else:   # Use the absolute path.
+            path = self._project.root_directory()
 
         return "signac://{}#{}".format(path, self._id)
+
+    _to_json = _as_link
 
     def __eq__(self, other):
         return hash(self) == hash(other)

@@ -1461,7 +1461,7 @@ class Project(object):
 
     def link_to(self, job):
         "Make a link document for job with paths relative to this project root directory."
-        return job._as_dict(start=self.root_directory())
+        return job._as_link(start=self.root_directory())
 
     @classmethod
     def _lookup_project(cls, link, start):

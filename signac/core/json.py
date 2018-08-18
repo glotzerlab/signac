@@ -26,7 +26,7 @@ class CustomJSONEncoder(JSONEncoder):
     """
     def default(self, o):
         try:
-            return o._as_dict()
+            return o._to_json()
         except AttributeError:
             # Call the super method, which probably raise a TypeError.
             return super(CustomJSONEncoder, self).default(o)
