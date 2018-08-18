@@ -15,7 +15,6 @@ import time
 from contextlib import contextmanager
 from itertools import chain, groupby
 from multiprocessing.pool import ThreadPool
-from urllib.parse import urlparse
 
 from .. import syncutil
 from ..core.json import json
@@ -35,8 +34,10 @@ from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 if six.PY2:
+    from urlparse import urlparse
     from collections import Mapping
 else:
+    from urllib.parse import urlparse
     from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
