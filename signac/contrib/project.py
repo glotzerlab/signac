@@ -1467,7 +1467,7 @@ class Project(object):
     @classmethod
     def _lookup_project(cls, link, start):
         o = urlparse(link)
-        root = o.netloc + o.path
+        root = os.path.expanduser(o.netloc + o.path)
         try:
             if start is None:
                 if os.path.isabs(root):
@@ -1506,7 +1506,11 @@ class Project(object):
         project = cls._lookup_project(link=link, start=start)
 
         # Open the job from state point for obtained project.
-        return project.open_job(id=urlparse(link).fragment)
+        jobid = urlparse(link).fragment
+        if jobid:
+            return project.open_job(id=urlparse(link).fragment)
+        else:
+            return project
 
     def lookup(self, link):
         return self._lookup(link=link, start=self.root_directory())
