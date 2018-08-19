@@ -137,7 +137,6 @@ class Job(object):
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
-        backup = self._id, self._statepoint.copy()
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
@@ -166,11 +165,6 @@ class Job(object):
             self._fn_doc = dst._fn_doc
             self._document = None
             self._cwd = list()
-
-            history = self.document.get('_history', list())
-            history.insert(0, backup)
-            self.document._history = history[:self.MAX_LEN_MIGRATION_HISTORY]
-
             logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
