@@ -165,6 +165,15 @@ class Project(object):
                     wd=self.workspace())
 
     def _as_link(self, start=None):
+        """Generate a link for this given instance.
+
+        :param start:
+            Generate the link relative to the provided path. Defaults to the root
+            directory of the *current* project, that means the return value of
+            `signac.get_project().root_directory()`. If the value for start is an
+            instance of :py:class:`.Project`, the root directory of that project
+            instance is used as start path.
+        """
         if start is None or start is True:  # Use *current project* as start.
             path = os.path.relpath(
                 self.root_directory(),
@@ -1482,50 +1491,42 @@ class Project(object):
         return job._as_link(start=self.root_directory())
 
     @classmethod
-    def _lookup_project(cls, link, start):
-        o = urlparse(link)
-        root = os.path.expanduser(o.netloc + o.path)
-        try:
-            if start is None:
-                if os.path.isabs(root):
-                    return cls.get_project(root=root)
-                else:
-                    start = cls.get_project().root_directory()
-                    return cls.get_project(root=os.path.join(start, root))
+    def _lookup_project(cls, root, start):
+        if start is None:
+            if os.path.isabs(root):
+                return cls.get_project(root=root)
             else:
-                try:
-                    return cls.get_project(root=os.path.join(start.root_directory(), root))
-                except AttributeError:
-                    return cls.get_project(root=os.path.join(start, root))
-        except LookupError as error:
-            raise LookupError("Unable to determine project for link '{}'.".format(link))
-
-    def lookup_project(self, link):
-        return self._lookup_project(link=link, start=self.root_directory())
+                start = cls.get_project().root_directory()
+                return cls.get_project(root=os.path.join(start, root))
+        else:
+            try:
+                return cls.get_project(root=os.path.join(start.root_directory(), root))
+            except AttributeError:
+                return cls.get_project(root=os.path.join(start, root))
 
     @classmethod
     def _lookup(cls, link, start=None):
-        """Lookup jobs from link documents.
+        """Lookup a project or job from the provided link.
 
-        :param links:
-            The documents that link to the individual jobs.
-        :param init:
-            Initialize jobs from links if necessary.
-        :type init:
-            bool
+        :param link:
+            The URL that links to the referenced project or job.
         :raises LookupError:
-            If a project specified by a link cannot be found.
+            If a project specified by a link cannot be found or the provided job id
+            is ambiguous.
         :raises KeyError:
-            If a job specified by a link does not exist, unless
-            the init argument is set to True.
+            If a job specified by a link cannot be found.
         """
+        # Parse the provided link
+        o = urlparse(link)
+        root = os.path.expanduser(o.netloc + o.path)
+        _id = o.fragment
+
         # Determine project for link.
-        project = cls._lookup_project(link=link, start=start)
+        project = cls._lookup_project(root=root, start=start)
 
         # Open the job from state point for obtained project.
-        jobid = urlparse(link).fragment
-        if jobid:
-            return project.open_job(id=urlparse(link).fragment)
+        if _id:
+            return project.open_job(id=_id)
         else:
             return project
 

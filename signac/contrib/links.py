@@ -5,10 +5,9 @@ from .project import Project
 
 
 def link_to(project_or_job, start=None):
-    """Create a link document for job.
+    """Create a link for a project or job.
 
-    The link document can be used to lookup this job for instance to create
-    one-to-one or one-to-many relationships across projects.
+    The link can be used to lookup this instance of project or job.
 
     :seealso: :func:`.lookup`
     """
@@ -16,12 +15,12 @@ def link_to(project_or_job, start=None):
 
 
 def lookup(link, start=None):
-    """Lookup jobs from link document.
+    """Lookup a project or job from the provided link.
 
-    :seealso: :py:meth:`.Job.make_link`
+    :seealso: :py:func:`.link_to`
 
     :param link:
-        The document that links to the referenced job.
+        The URL that links to the referenced project or job.
     :raises LookupError:
         If a project specified by a link cannot be found.
     :raises KeyError:
