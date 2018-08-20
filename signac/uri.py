@@ -27,7 +27,7 @@ def link_to(resource, start=None):
     This function will generate a URL for the provided resource
     that can then be retrieved *via* the :func:`.lookup` function.
     """
-    return resource._as_link(start=start)
+    return resource._as_url(start=start)
 
 
 def lookup(url, start=None):
