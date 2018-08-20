@@ -85,26 +85,6 @@ def _process_url_resource_request(cls, path, start):
     else:
         return _get_project_from_url_path(cls=cls, root='.', start=start), None
 
-    assert 0
-    tmp_path = path
-    rest = list()
-    while tmp_path:
-        try:
-            project = _get_project_from_url_path(cls=cls, root=tmp_path, start=start)
-            print(project, tmp_path)
-        except LookupError:
-            nodes = tmp_path.split('/')
-            tmp_path = '/'.join(nodes[:-1])
-            rest.append(nodes[-1])
-        else:
-            break
-    else:
-        raise LookupError(path)
-    if rest:
-        return project, os.path.normpath('/'.join(reversed(rest)))
-    else:
-        return project, None
-
 
 def _lookup(cls, url, start=None):
     """Lookup the resource specified in url.
