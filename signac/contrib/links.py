@@ -4,7 +4,7 @@
 from .project import Project
 
 
-def link_to(job, start=None):
+def link_to(project_or_job, start=None):
     """Create a link document for job.
 
     The link document can be used to lookup this job for instance to create
@@ -12,7 +12,7 @@ def link_to(job, start=None):
 
     :seealso: :func:`.lookup`
     """
-    return job._as_link(start=start)
+    return project_or_job._as_link(start=start)
 
 
 def lookup(link, start=None):

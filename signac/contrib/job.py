@@ -87,19 +87,7 @@ class Job(object):
             repr(self._project), self._statepoint)
 
     def _as_link(self, start=None):
-        if start is None:        # Use *current project* as start.
-            path = os.path.relpath(
-                self._project.root_directory(),
-                self._project.get_project().root_directory())
-        elif start:     # Use provided start value as start (either as project or direct path).
-            try:
-                path = os.path.relpath(self._project.root_directory(), start.root_directory())
-            except AttributeError:
-                path = os.path.relpath(self._project.root_directory(), start)
-        else:   # Use the absolute path.
-            path = self._project.root_directory()
-
-        return "signac://{}#{}".format(path, self._id)
+        return self._project._as_link(start=start) + '#{}'.format(self._id)
 
     _to_json = _as_link
 

@@ -164,6 +164,23 @@ class Project(object):
                     rd=self.root_directory(),
                     wd=self.workspace())
 
+    def _as_link(self, start=None):
+        if start is None or start is True:  # Use *current project* as start.
+            path = os.path.relpath(
+                self.root_directory(),
+                self.get_project().root_directory())
+        elif start:     # Use provided start value as start (either as project or direct path).
+            try:
+                path = os.path.relpath(self.root_directory(), start.root_directory())
+            except AttributeError:
+                path = os.path.relpath(self.root_directory(), start)
+        else:   # Use the absolute path.
+            path = self.root_directory()
+
+        return "signac://{}".format(path)
+
+    _to_json = _as_link
+
     def __eq__(self, other):
         return repr(self) == repr(other)
 
