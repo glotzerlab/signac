@@ -33,8 +33,8 @@ from .contrib import index
 from .contrib import RegexFileCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
-from .contrib.links import link_to
-from .contrib.links import lookup
+from .uri import link_to
+from .uri import lookup
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
 from .core.jsondict import in_buffered_mode as is_buffered

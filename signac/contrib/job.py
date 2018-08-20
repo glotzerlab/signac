@@ -86,10 +86,10 @@ class Job(object):
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
 
-    def _as_link(self, start=None):
-        return self._project._as_link(start=start) + '#{}'.format(self._id)
+    def _as_url(self, start=None):
+        return self._project._as_url(start=start) + '#{}'.format(self._id)
 
-    _to_json = _as_link
+    _to_json = _as_url
 
     def __eq__(self, other):
         return hash(self) == hash(other)

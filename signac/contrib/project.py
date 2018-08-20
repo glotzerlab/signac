@@ -34,10 +34,8 @@ from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 if six.PY2:
-    from urlparse import urlparse
     from collections import Mapping
 else:
-    from urllib.parse import urlparse
     from collections.abc import Mapping
 
 logger = logging.getLogger(__name__)
@@ -164,7 +162,7 @@ class Project(object):
                     rd=self.root_directory(),
                     wd=self.workspace())
 
-    def _as_link(self, start=None):
+    def _as_url(self, start=None):
         """Generate a link for this given instance.
 
         :param start:
@@ -188,7 +186,7 @@ class Project(object):
 
         return "signac://{}".format(path)
 
-    _to_json = _as_link
+    _to_json = _as_url
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -1488,50 +1486,11 @@ class Project(object):
 
     def link_to(self, job):
         "Make a link document for job with paths relative to this project root directory."
-        return job._as_link(start=self.root_directory())
+        return job._as_url(start=self.root_directory())
 
-    @classmethod
-    def _lookup_project(cls, root, start):
-        if start is None:
-            if os.path.isabs(root):
-                return cls.get_project(root=root)
-            else:
-                start = cls.get_project().root_directory()
-                return cls.get_project(root=os.path.join(start, root))
-        else:
-            try:
-                return cls.get_project(root=os.path.join(start.root_directory(), root))
-            except AttributeError:
-                return cls.get_project(root=os.path.join(start, root))
-
-    @classmethod
-    def _lookup(cls, link, start=None):
-        """Lookup a project or job from the provided link.
-
-        :param link:
-            The URL that links to the referenced project or job.
-        :raises LookupError:
-            If a project specified by a link cannot be found or the provided job id
-            is ambiguous.
-        :raises KeyError:
-            If a job specified by a link cannot be found.
-        """
-        # Parse the provided link
-        o = urlparse(link)
-        root = os.path.expanduser(o.netloc + o.path)
-        _id = o.fragment
-
-        # Determine project for link.
-        project = cls._lookup_project(root=root, start=start)
-
-        # Open the job from state point for obtained project.
-        if _id:
-            return project.open_job(id=_id)
-        else:
-            return project
-
-    def lookup(self, link):
-        return self._lookup(link=link, start=self.root_directory())
+    def lookup(self, url):
+        from ..uri import _lookup
+        return _lookup(cls=type(self), url=url, start=self.root_directory())
 
 
 @contextmanager
@@ -1726,6 +1685,9 @@ class JobsCursor(object):
         return self._project.open_job(id=next(self._ids_iterator))
 
     next = __next__  # python 2.7 compatibility
+
+    def __getitem__(self, key):
+        raise NotImplementedError()
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
