@@ -134,7 +134,10 @@ def _parse_slicing_operator(slice_string):
 def _process_request_version_1(project, request, url):
     "Process a request as part of a url for API version 1."
     try:
-        magic_word, version, *resource = request.split('/')
+        nodes = request.split('/')
+        magic_word, version = nodes[:2]
+        resource = nodes[2:]
+        # With Py3: magic_word, version, *resource = request.split('/')
     except ValueError:
         raise InvalidRequestError(request)
     if magic_word == 'api':
