@@ -505,10 +505,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        return JobsCursor(self, self.find_job_ids(filter, doc_filter, index))
+        return JobsCursor(self, filter, doc_filter)
 
     def __iter__(self):
-        return self.find_jobs()
+        return iter(self.find_jobs())
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
@@ -545,7 +545,7 @@ class Project(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
-        return self.__iter__().groupby(key, default=default)
+        return self.find_jobs().groupby(key, default=default)
 
     def groupbydoc(self, key=None, default=None):
         """Groups jobs according to one or more document values.
@@ -580,7 +580,7 @@ class Project(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
-        return self.__iter__().groupbydoc(key, default=default)
+        return self.find_jobs().groupbydoc(key, default=default)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1631,26 +1631,40 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
-class JobsCursor(object):
-    """An iterator over a search query result, enabling simple iteration and
-    grouping operations.
-    """
+class _JobsCursorIterator(object):
 
     def __init__(self, project, ids):
         self._project = project
         self._ids = ids
         self._ids_iterator = iter(ids)
 
-    def __len__(self):
-        return len(self._ids)
-
-    def __iter__(self):
-        return self
-
     def __next__(self):
         return self._project.open_job(id=next(self._ids_iterator))
 
-    next = __next__  # python 2.7 compatibility
+    next = __next__  # Python 2.7 compatibility
+
+    def __iter__(self):
+        return type(self)(self._project, self._ids)
+
+
+class JobsCursor(object):
+    """An iterator over a search query result, enabling simple iteration and
+    grouping operations.
+    """
+
+    def __init__(self, project, filter, doc_filter):
+        self._project = project
+        self._filter = filter
+        self._doc_filter = doc_filter
+
+    def _find_ids(self):
+        return self._project.find_job_ids(self._filter, self._doc_filter)
+
+    def __len__(self):
+        return len(self._find_ids())
+
+    def __iter__(self):
+        return _JobsCursorIterator(self._project, self._find_ids())
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
@@ -1711,7 +1725,7 @@ class JobsCursor(object):
         else:
             keyfunction = key
 
-        return groupby(sorted(self, key=keyfunction), key=keyfunction)
+        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def groupbydoc(self, key=None, default=None):
         """Groups jobs according to one or more document values.
@@ -1768,7 +1782,7 @@ class JobsCursor(object):
             # Pass the job document to lambda functions
             def keyfunction(job):
                 return key(job.document)
-        return groupby(sorted(self, key=keyfunction), key=keyfunction)
+        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
