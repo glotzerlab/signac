@@ -154,15 +154,15 @@ class ProjectTest(BaseProjectTest):
     def test_no_workspace_warn_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
         with self.assertLogs(level='INFO') as cm:
-            self.project.find_jobs()
-            self.assertEqual(len(cm.output), 1)
+            list(self.project.find_jobs())
+            self.assertEqual(len(cm.output), 2)
 
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
         os.symlink(wd + '~', self.project.fn('workspace-link'))
         self.project.config['workspace_dir'] = 'workspace-link'
         with self.assertRaises(WorkspaceError):
-            self.project.find_jobs()
+            list(self.project.find_jobs())
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -178,13 +178,13 @@ class ProjectTest(BaseProjectTest):
         if six.PY34:
             with self.assertLogs(level='ERROR') as cm:
                 with self.assertRaises(WorkspaceError):
-                    self.project.find_jobs()
+                    list(self.project.find_jobs())
                 self.assertEqual(len(cm.output), 1)
         else:
             try:
                 logging.disable(logging.ERROR)
                 with self.assertRaises(WorkspaceError):
-                    self.project.find_jobs()
+                    list(self.project.find_jobs())
             finally:
                 logging.disable(logging.NOTSET)
 
@@ -255,7 +255,7 @@ class ProjectTest(BaseProjectTest):
             self.project.open_job({'a': i, 'b': {'c': i}}).init()
         self.assertEqual(len(self.project), 10)
         with self.assertRaises(ValueError):
-            self.project.find_jobs({'$and': {'foo': 'bar'}})
+            list(self.project.find_jobs({'$and': {'foo': 'bar'}}))
         self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'a': 0}]})), 1)
         self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'a': 0}]})), len(self.project))
         q = {'$and': [{'a': 0}, {'a': 1}]}
