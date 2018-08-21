@@ -35,8 +35,10 @@ from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 if six.PY2:
     from collections import Mapping
+    from urllib import quote
 else:
     from collections.abc import Mapping
+    from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
@@ -1839,6 +1841,17 @@ class JobsCursor(object):
         """
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
+
+    def _as_url(self, start):
+        if self._doc_filter:
+            raise NotImplementedError("Query to URL currently only supported without doc-filter.")
+        q = quote(json.dumps(self._filter))
+        if self._filter:
+            return self._project._as_url(start=start) + '/api/v1/jobs/?filter={}'.format(q)
+        else:
+            return self._project._as_url(start=start) + '/api/v1/jobs'
+
+    _to_json = _as_url
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
