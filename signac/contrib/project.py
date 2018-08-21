@@ -1842,7 +1842,7 @@ class JobsCursor(object):
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
 
-    def _as_url(self, start):
+    def _as_url(self, start=None):
         if self._doc_filter:
             raise NotImplementedError("Query to URL currently only supported without doc-filter.")
         q = quote(json.dumps(self._filter))
