@@ -119,10 +119,7 @@ def _parse_url_filter_query(query):
     "Parse a filter specified as part of a url."
     kwargs = dict(map(lambda x: x.split('='), query.rstrip('&').split('&')))
     if len(kwargs) == 1 and 'filter' in kwargs:
-        try:
-            return unquote(json.loads(kwargs['filter']))
-        except json.decoder.JSONDecodeError:
-            pass
+        return json.loads(unquote(kwargs['filter']))
     return {k: _cast(v) for k, v in kwargs.items()}
 
 
