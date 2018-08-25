@@ -37,22 +37,12 @@ pipelines:
         script:
           - python --version
           - python setup.py build
-          - pip install -U tqdm psutil pandas
-          - wget https://bitbucket.org/glotzer/signac/get/${BENCHMARK_VERSION}.tar.gz -O signac-${BENCHMARK_VERSION}.tar.gz
-          - tar -xvzf signac-${BENCHMARK_VERSION}.tar.gz
-          - mv glotzer-signac-* signac-${BENCHMARK_VERSION}
-          - wget https://bitbucket.org/glotzer/signac-benchmarks/get/master.tar.gz -O signac-benchmarks.tar.gz
-          - tar -xvzf signac-benchmarks.tar.gz
-          - cd glotzer-signac-benchmarks-*/
-          - rm compare.txt
-          - PYTHONPATH=../signac-${BENCHMARK_VERSION} python -m signac --version
-          - PYTHONPATH=../signac-${BENCHMARK_VERSION} python run_benchmark.py -o compare.txt -N 100
-          - PYTHONPATH=../signac-${BENCHMARK_VERSION} python run_benchmark.py -o compare.txt -N 1000
-          - PYTHONPATH=.. python -m signac --version
-          - PYTHONPATH=.. python run_benchmark.py -N 100
-          - PYTHONPATH=.. python run_benchmark.py -N 1000
-          - PYTHONPATH=.. python report_benchmark.py
-          - PYTHONPATH=.. python calc_score.py --pass-above=${BENCHMARK_PASS_ABOVE:-0.9}
+          - pip install -U gitpython psutil pandas tqdm
+          - python benchmark.py run -N 100 1000   # this revision
+          - python benchmark.py report
+          - git reset --hard master   # compare against 'master'
+          - python benchmark.py run -N 100 1000
+          - python benchmark.py compare master "${BITBUCKET_COMMIT}"
   branches:
     release-*:
       - step:
