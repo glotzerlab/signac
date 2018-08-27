@@ -364,7 +364,9 @@ def main_compare(args):
     doc_other = read_benchmark(args.filename, {'meta.versions.git.sha1': str(rev_other)})
     assert len(doc_other), "Can't find results for '{}'.".format(args.rev_other)
 
-    print("Showing runtime {} / {}:".format(args.rev_this, args.rev_other))
+    print("Showing runtime {} ({}) / {} ({}):".format(
+        args.rev_this, str(rev_this)[:6],
+        args.rev_other, str(rev_other)[:6]))
     print()
     print(doc_this.min() / doc_other.min())
     print()

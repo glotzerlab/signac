@@ -70,6 +70,7 @@ jobs:
             pip install -U gitpython psutil pandas tqdm
             python benchmark.py run -N 100 1000  # this revision
             python benchmark.py report
-            git reset --hard master  # compare against 'master'
-            python benchmark.py run -N 100 1000
-            python benchmark.py compare master "$CIRCLE_SHA1"
+            git reset --hard origin/master
+            git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+            python benchmark.py run -N 100 1000 --force
+            python benchmark.py compare origin/master "${CIRCLE_SHA1}"
