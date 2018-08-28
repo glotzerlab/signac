@@ -27,9 +27,9 @@ import timeit
 import argparse
 import logging
 import warnings
-import platform
 import base64
 import json
+import platform
 from pprint import pprint
 from cProfile import Profile
 from collections import OrderedDict
@@ -43,9 +43,8 @@ import git
 import psutil
 import pandas as pd
 from tqdm import tqdm
-
 if six.PY2:
-    from tempdir import TemporaryDirectory
+    from backports.tempfile import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
 
@@ -66,7 +65,7 @@ COMPLEXITY = {
 def size(fn):
     try:
         return os.path.getsize(fn)
-    except FileNotFoundError:
+    except (OSError, IOError):
         return 0
 
 
@@ -94,6 +93,12 @@ def get_partition(path):
 
 def create_doc(args):
     tmpdir = gettempdir() if args.root is None else args.root
+    if six.PY2:
+        platform_doc = dict((k, v) for k, v in
+                            zip(('system', 'node', 'release', 'version',
+                                 'machine', 'processor'), platform.uname()))
+    else:
+        platform_doc = platform.uname()._asdict()
     return {'meta': {
         'tool': 'signac',
         'num_keys': args.num_keys,
@@ -102,7 +107,7 @@ def create_doc(args):
         'seed': args.seed,
         'cached': args.cached,
         'categories': args.categories,
-        'platform': platform.uname()._asdict(),
+        'platform': platform_doc,
         'fstype': get_partition(tmpdir).fstype,
     }}
 
@@ -178,10 +183,10 @@ def setup_random_project(N, num_keys=1, num_doc_keys=0,
 class Timer(timeit.Timer):
 
     def timeit(self, number=10):
-        return number, super().timeit(number=number)
+        return number, timeit.Timer.timeit(self, number=number)
 
     def repeat(self, repeat=3, number=10):
-        return super().repeat(repeat=repeat, number=number)
+        return timeit.Timer.repeat(self, repeat=repeat, number=number)
 
 
 def noop(*args, **kwargs):
@@ -255,7 +260,7 @@ def main_run(args):
             with signac.Collection.open(args.output) as c:
                 c.replace_one(key, doc, upsert=True)
 
-    repo = git.Repo()
+    repo = git.Repo(search_parent_directories=True)
 
     if not args.force and args.output != '-' and repo.is_dirty():
         raise RuntimeError(
@@ -356,7 +361,7 @@ def main_report(args):
 
 
 def main_compare(args):
-    repo = git.Repo()
+    repo = git.Repo(search_parent_directories=True)
     rev_this = str(repo.commit(args.rev_this))
     doc_this = read_benchmark(args.filename, {'meta.versions.git.sha1': rev_this})
     assert len(doc_this), "Can't find results for '{}'.".format(args.rev_this)

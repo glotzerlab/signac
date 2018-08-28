@@ -3,8 +3,24 @@
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
 version: 2
+
 jobs:
-  build:
+  style-check:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: style-check
+          command: |
+            pip install --user -U flake8
+            python -m flake8 --show-source signac/
+
+
+  test-3.6: &test-template
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -20,31 +36,17 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: style check
-          command: |
-            pip install --user -U flake8
-            python -m flake8 --show-source signac/
-
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
 
       - run:
           name: install dependencies
           command: |
-            python3 -m venv venv
+            pip install -U virtualenv --user
+            mkdir -p ./venv
+            python -m virtualenv ./venv
             . venv/bin/activate
             pip install -r requirements.txt
-            pip install -U coverage
-
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+            pip install -U coverage mock
 
       # run tests!
       # this example uses Django's built-in test-runner
@@ -55,7 +57,6 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python -m unittest discover tests/ -v
             coverage run --source=signac/ -m unittest discover tests/
             coverage report -i --include="signac*"
 
@@ -67,10 +68,40 @@ jobs:
           name: benchmark
           command: |
             . venv/bin/activate
-            pip install -U gitpython psutil pandas tqdm
+            pip install -U gitpython psutil pandas tqdm backports.tempfile
             python benchmark.py run -N 100 1000  # this revision
             python benchmark.py report
             git reset --hard origin/master
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             python benchmark.py run -N 100 1000 --force
             python benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.5:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+  test-3.4:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
+  test-2.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:2.7-jessie
+
+workflows:
+  version: 2
+  style-check-and-tests:
+    jobs:
+      - style-check
+      - test-2.7:
+          requires:
+            - style-check
+      - test-3.4:
+          requires:
+            - style-check
+      - test-3.5:
+          requires:
+            - style-check
+      - test-3.6:
+          requires:
+            - style-check
