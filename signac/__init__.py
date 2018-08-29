@@ -16,6 +16,7 @@ from . import db
 from . import cite
 from . import errors
 from . import sync
+from . import uri
 from .contrib import Project
 from .contrib import TemporaryProject
 from .contrib import get_project
@@ -33,8 +34,6 @@ from .contrib import index
 from .contrib import RegexFileCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
-from .uri import link_to
-from .uri import lookup
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
 from .core.jsondict import in_buffered_mode as is_buffered
@@ -45,7 +44,7 @@ from .core.jsondict import get_buffer_load
 
 __version__ = '0.9.3'
 
-__all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
+__all__ = ['__version__', 'contrib', 'db', 'errors', 'sync', 'uri',
            'cite',
            'Project', 'TemporaryProject', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',
@@ -56,6 +55,5 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'sync',
            'RegexFileCrawler',
            'MasterCrawler',
            'SignacProjectCrawler',
-           'link_to', 'lookup',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
            ]

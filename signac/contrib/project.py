@@ -1490,9 +1490,9 @@ class Project(object):
         "Make a link document for job with paths relative to this project root directory."
         return job._as_url(start=self.root_directory())
 
-    def lookup(self, url):
-        from ..uri import _lookup
-        return _lookup(cls=type(self), url=url, start=self.root_directory())
+    def retrieve(self, url):
+        from ..uri import _retrieve
+        return _retrieve(cls=type(self), url=url, start=self.root_directory())
 
 
 @contextmanager

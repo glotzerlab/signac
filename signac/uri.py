@@ -25,12 +25,12 @@ def link_to(resource, start=None):
     """Create a URL for a resource, such as a project or a job.
 
     This function will generate a URL for the provided resource
-    that can then be retrieved *via* the :func:`.lookup` function.
+    that can then be retrieved *via* the :func:`.retrieve` function.
     """
     return resource._as_url(start=start)
 
 
-def lookup(url, start=None):
+def retrieve(url, start=None):
     """Locate a resource, such as a project or a job from the provided URL.
 
     :seealso: :py:func:`.link_to`
@@ -44,7 +44,7 @@ def lookup(url, start=None):
     :raises KeyError:
         If a job specified by a URL does not exist.
     """
-    return _lookup(cls=Project, url=url, start=start)
+    return _retrieve(cls=Project, url=url, start=start)
 
 
 def _get_project_from_url_path(cls, root, start):
@@ -86,7 +86,7 @@ def _process_url_resource_request(cls, path, start):
         return _get_project_from_url_path(cls=cls, root='.', start=start), None
 
 
-def _lookup(cls, url, start=None):
+def _retrieve(cls, url, start=None):
     """Lookup the resource specified in url.
 
     :param url:
@@ -175,3 +175,6 @@ def _process_request_version_1(project, request, url):
 
     # The request must be invalid if we were not able to process the request up until this point.
     raise InvalidRequestError(request)
+
+
+__all__ = ['InvalidRequestError', 'link_to', 'retrieve']
