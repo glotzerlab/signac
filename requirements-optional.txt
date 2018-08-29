@@ -1,0 +1,4 @@
+# db
+pymongo>=3.0
+# mpi
+mpi4py

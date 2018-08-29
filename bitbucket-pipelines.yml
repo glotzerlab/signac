@@ -31,6 +31,18 @@ pipelines:
           - tox --version
           - tox
           - python3.6 -m coverage report -i --include="signac*"
+    - step:
+        name: 'benchmark'
+        max-time: 5
+        script:
+          - python --version
+          - python setup.py build
+          - pip install -U gitpython psutil pandas tqdm
+          - python benchmark.py run -N 100 1000   # this revision
+          - python benchmark.py report
+          - git reset --hard master   # compare against 'master'
+          - python benchmark.py run -N 100 1000
+          - python benchmark.py compare master "${BITBUCKET_COMMIT}"
   branches:
     release-*:
       - step:

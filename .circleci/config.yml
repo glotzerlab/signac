@@ -1,0 +1,107 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+
+jobs:
+  style-check:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: style-check
+          command: |
+            pip install --user -U flake8
+            python -m flake8 --show-source signac/
+
+
+  test-3.6: &test-template
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: circleci/python:3.6.1
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+
+      - run:
+          name: install dependencies
+          command: |
+            pip install -U virtualenv --user
+            mkdir -p ./venv
+            python -m virtualenv ./venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            pip install -U coverage mock
+
+      # run tests!
+      # this example uses Django's built-in test-runner
+      # other common Python testing frameworks include pytest and nose
+      # https://pytest.org
+      # https://nose.readthedocs.io
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            coverage run --source=signac/ -m unittest discover tests/
+            coverage report -i --include="signac*"
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+      - run:
+          name: benchmark
+          command: |
+            . venv/bin/activate
+            pip install -U gitpython psutil pandas tqdm backports.tempfile
+            python benchmark.py run -N 100 1000  # this revision
+            python benchmark.py report
+            git reset --hard origin/master
+            git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+            python benchmark.py run -N 100 1000 --force
+            python benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.5:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+  test-3.4:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
+  test-2.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:2.7-jessie
+
+workflows:
+  version: 2
+  style-check-and-tests:
+    jobs:
+      - style-check
+      - test-2.7:
+          requires:
+            - style-check
+      - test-3.4:
+          requires:
+            - style-check
+      - test-3.5:
+          requires:
+            - style-check
+      - test-3.6:
+          requires:
+            - style-check
