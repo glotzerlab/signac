@@ -72,12 +72,14 @@ Project
     ~Project.groupbydoc
     ~Project.index
     ~Project.isfile
+    ~Project.link_to
     ~Project.min_len_unique_id
     ~Project.num_jobs
     ~Project.open_job
     ~Project.read_statepoints
     ~Project.repair
     ~Project.reset_statepoint
+    ~Project.retrieve
     ~Project.root_directory
     ~Project.sync
     ~Project.update_cache
@@ -140,6 +142,8 @@ Signac
     :show-inheritance:
     :exclude-members: Project
 
+.. automodule:: signac.uri
+   :members:
 
 .. automodule:: signac.cite
     :members:
