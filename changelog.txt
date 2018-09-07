@@ -32,6 +32,7 @@ Fixed
 +++++
 
  - Fix issue where differently typed integer values stored within a Collection under the same key would not be indexed correctly. This issue affected the correct function of the `$type` operator for aforementioned cases and would lead to incorrect types in the Project schema detection algorithm for integer values.
+ - Fix non-deterministic issue occuring on network file systems when trying to open jobs where the user has no write access to the job workspace directory.
 
 
 [0.9.3] -- 2018-06-14
