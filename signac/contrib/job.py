@@ -284,8 +284,8 @@ class Job(object):
                 else:
                     with open(fn_manifest, 'w' if force else 'x') as file:
                         file.write(blob)
-            except IOError as error:
-                if not error.errno == errno.EEXIST:
+            except (IOError, OSError) as error:
+                if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise
         except Exception as error:
             # Attempt to delete the file on error, to prevent corruption.
