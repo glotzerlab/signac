@@ -172,7 +172,7 @@ class CollectionTest(unittest.TestCase):
             {doc['a'] for doc in docs},
             {doc['a'] for doc in self.c.find()})
 
-    def test_find(self):
+    def test_find_integer(self):
         self.assertEqual(len(self.c.find()), 0)
         self.assertEqual(list(self.c.find()), [])
         self.assertEqual(len(self.c.find({'a': 0})), 0)
@@ -180,12 +180,50 @@ class CollectionTest(unittest.TestCase):
         self.c.update(docs)
         self.assertEqual(len(self.c.find()), len(docs))
         self.assertEqual(len(self.c.find({'a': 0})), 1)
+        self.assertEqual(len(self.c.find({'a': 0.0})), 0)
         self.assertEqual(list(self.c.find({'a': 0}))[0], docs[0])
         self.assertEqual(len(self.c.find({'a': -1})), 0)
         self.assertEqual(len(self.c.find({'a.b': 0})), 0)
         self.assertEqual(len(self.c.find(limit=5)), 5)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 10)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 0)
         del self.c[docs[0]['_id']]
         self.assertEqual(len(self.c.find({'a': 0})), 0)
+
+    def test_find_float(self):
+        self.assertEqual(len(self.c.find()), 0)
+        self.assertEqual(list(self.c.find()), [])
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+        docs = [dict(a=float(i)) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c.find()), len(docs))
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+        self.assertEqual(len(self.c.find({'a': 0.0})), 1)
+        self.assertEqual(list(self.c.find({'a': 0.0}))[0], docs[0])
+        self.assertEqual(len(self.c.find({'a': -1})), 0)
+        self.assertEqual(len(self.c.find({'a.b': 0})), 0)
+        self.assertEqual(len(self.c.find(limit=5)), 5)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 0)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 10)
+        del self.c[docs[0]['_id']]
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+
+    def test_find_int_float(self):
+        id_float = self.c.insert_one({'a': float(1.0)})
+        id_int = self.c.insert_one({'a': 1})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
+
+        # Reversing order
+        self.c.clear()
+        id_int = self.c.insert_one({'a': 1})
+        id_float = self.c.insert_one({'a': float(1.0)})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
 
     def test_find_with_dots(self):
         with warnings.catch_warnings(record=True) as w:
