@@ -95,7 +95,7 @@ Workspace:\t{workspace_path}
 Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
-Type "help(project)" for more information."""
+Type "help(project)" or "help(signac)" for more information."""
 
 
 SHELL_BANNER_INTERACTIVE_IMPORT = SHELL_BANNER + """
@@ -951,7 +951,8 @@ def main_shell(args):
 
         local_ns = dict(
             project=project, pr=project,
-            jobs=iter(jobs()), job=job)
+            jobs=iter(jobs()), job=job,
+            signac=sys.modules['signac'])
 
         readline.set_completer(Completer(local_ns).complete)
         readline.parse_and_bind('tab: complete')
