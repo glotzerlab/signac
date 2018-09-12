@@ -193,6 +193,12 @@ class JobSPInterfaceTest(BaseJobTest):
                 setattr(job.sp.g, x, v)
                 self.assertEqual(getattr(job.sp.g, x), v)
 
+    def test_interface_job_identity_change(self):
+        job = self.open_job({'a': 0})
+        old_id = job.get_id()
+        job.sp.a = 1
+        self.assertNotEqual(old_id, job.get_id())
+
     def test_interface_nested_kws(self):
         job = self.open_job({'a.b.c': 0})
         self.assertEqual(job.sp['a.b.c'], 0)
@@ -203,6 +209,14 @@ class JobSPInterfaceTest(BaseJobTest):
         job.sp.a = dict(b=dict(c=2))
         self.assertEqual(job.sp.a.b.c, 2)
         self.assertEqual(job.sp['a']['b']['c'], 2)
+
+    def test_interface_lists(self):
+        job = self.open_job({'a': [1, 2, 3]})
+        self.assertEqual(job.sp.a, [1, 2, 3])
+        old_id = job.get_id()
+        job.sp.a.append(4)
+        self.assertEqual(job.sp.a, [1, 2, 3, 4])
+        self.assertNotEqual(old_id, job.get_id())
 
     def test_interface_reserved_keywords(self):
         job = self.open_job({'with': 0, 'pop': 1})

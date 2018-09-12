@@ -4,6 +4,8 @@
 "Synchronized dictionary."
 import logging
 from contextlib import contextmanager
+from functools import wraps
+from copy import deepcopy
 
 from ..common import six
 
@@ -16,6 +18,52 @@ else:
 
 
 logger = logging.getLogger(__name__)
+
+
+class _SyncedList(list):
+
+    def __init__(self, iterable, parent):
+        self._parent = parent
+        super(_SyncedList, self).__init__(iterable)
+
+    def __deepcopy__(self, memo):
+        ret = type(self)([], deepcopy(self._parent, memo))
+        for item in self:
+            super(_SyncedList, ret).append(deepcopy(item, memo))
+        return ret
+
+    def __getitem__(self, key):
+        self._parent.load()
+        ret = super(_SyncedList, self).__getitem__(key)
+        return ret
+
+    def __setitem__(self, key, value):
+        self._parent.load()
+        ret = super(_SyncedList, self).__setitem__(key, value)
+        self._parent.save()
+        return ret
+
+    def __delitem__(self, key):
+        self._parent.load()
+        super(_SyncedList, self).__delitem__(key)
+        self._parent.save()
+
+    def __getattribute__(self, name):
+        outer = super(_SyncedList, self).__getattribute__(name)
+
+        if name in ('append', 'clear', 'extend', 'insert', 'pop',
+                    'remove', 'reverse', 'sort'):
+
+            @wraps(outer)
+            def outer_wrapped_in_load_and_save(*args, **kwargs):
+                self._parent.load()
+                ret = outer(*args, **kwargs)
+                self._parent.save()
+                return ret
+
+            return outer_wrapped_in_load_and_save
+        else:
+            return outer
 
 
 class _SyncedDict(MutableMapping):
@@ -34,7 +82,7 @@ class _SyncedDict(MutableMapping):
         self._suspend_sync_ = 0
 
     def _dfs_convert(self, root):
-        if type(root) == type(self):
+        if type(root) is type(self):
             for k in root:
                 root[k] = self._dfs_convert(root[k])
         elif isinstance(root, Mapping):
@@ -43,6 +91,8 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = root[k]
             return ret
+        elif type(root) is list:
+            return _SyncedList(root, self)
         return root
 
     @classmethod
@@ -54,9 +104,11 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = cls._convert_to_dict(root[k])
             return ret
-        elif type(root) == dict:
+        elif type(root) is dict:
             for k in root:
                 root[k] = cls._convert_to_dict(root[k])
+        elif type(root) is _SyncedList:
+            return [cls._convert_to_dict(item) for item in root]
         return root
 
     @contextmanager
