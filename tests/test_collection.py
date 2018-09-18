@@ -72,6 +72,16 @@ class CollectionTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
 
+    def test_int_float_equality(self):
+        self.c.insert_one(dict(a=1))
+        self.c.insert_one(dict(a=1.0))
+        self.assertEqual(len(self.c.find(dict(a=1))), 1)
+        self.assertEqual(len(self.c.find(dict(a=1.0))), 1)
+        for doc in self.c.find(dict(a=1)):
+            self.assertEqual(type(doc['a']), int)
+        for doc in self.c.find(dict(a=1.0)):
+            self.assertEqual(type(doc['a']), float)
+
     def test_copy(self):
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
