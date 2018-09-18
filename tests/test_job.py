@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import absolute_import
@@ -17,6 +17,7 @@ import signac.common.config
 from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
+from signac.warnings import SignacDeprecationWarning
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -200,12 +201,23 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertNotEqual(old_id, job.get_id())
 
     def test_interface_nested_kws(self):
-        job = self.open_job({'a.b.c': 0})
-        self.assertEqual(job.sp['a.b.c'], 0)
-        with self.assertRaises(AttributeError):
-            job.sp.a.b.c
-        job.sp['a.b.c'] = 1
-        self.assertEqual(job.sp['a.b.c'], 1)
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')
+            with self.assertRaises(SignacDeprecationWarning):
+                job = self.open_job({'a.b.c': 0})
+        with warnings.catch_warnings(record=True) as warning_record:
+            warnings.simplefilter('always')
+            job = self.open_job({'a.b.c': 0})
+            self.assertEqual(job.sp['a.b.c'], 0)
+            with self.assertRaises(AttributeError):
+                job.sp.a.b.c
+            job.sp['a.b.c'] = 1
+            self.assertEqual(job.sp['a.b.c'], 1)
+            self.assertEqual(len(warning_record), 4)
+            for warning in warning_record:
+                self.assertTrue(issubclass(warning.category, SignacDeprecationWarning))
+                self.assertIn('dots', str(warning.message))
+        job.sp.clear()
         job.sp.a = dict(b=dict(c=2))
         self.assertEqual(job.sp.a.b.c, 2)
         self.assertEqual(job.sp['a']['b']['c'], 2)
@@ -316,6 +328,7 @@ class JobSPInterfaceTest(BaseJobTest):
             job2 = self.project.open_job(id=id0)
             self.assertEqual(job.sp, job2.sp)
             self.assertEqual(job.get_id(), job2.get_id())
+
 
 class ConfigTest(BaseJobTest):
 

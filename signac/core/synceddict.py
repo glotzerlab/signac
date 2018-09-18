@@ -1,8 +1,9 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 "Synchronized dictionary."
 import logging
+import warnings
 from contextlib import contextmanager
 from functools import wraps
 from copy import deepcopy
@@ -76,10 +77,22 @@ class _SyncedDict(MutableMapping):
             self._data = dict()
         else:
             self._data = {
-                k: self._dfs_convert(v)
+                self._validate_key(k): self._dfs_convert(v)
                 for k, v in initialdata.items()
             }
         self._suspend_sync_ = 0
+
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            from ..warnings import SignacDeprecationWarning
+            warnings.warn(
+                "\nThe use of '.' (dots) in keys is deprecated and may lead to "
+                "unexpected behavior!\nSee http://www.signac.io/document-wide-migration/ "
+                "for a recipe on how to replace dots in all keys.",
+                SignacDeprecationWarning)
+        return key
 
     def _dfs_convert(self, root):
         if type(root) is type(self):
@@ -168,7 +181,7 @@ class _SyncedDict(MutableMapping):
     def __setitem__(self, key, value):
         self._synced_load()
         with self._suspend_sync():
-            self._data[key] = self._dfs_convert(value)
+            self._data[self._validate_key(key)] = self._dfs_convert(value)
         self._synced_save()
         return value
 
