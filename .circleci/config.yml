@@ -41,9 +41,10 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            export PATH=$PATH:$HOME/.local/bin
             pip install -U virtualenv --user
             mkdir -p ./venv
-            python -m virtualenv ./venv
+            virtualenv ./venv
             . venv/bin/activate
             pip install -r requirements.txt
             pip install -U coverage mock
@@ -87,6 +88,14 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:2.7-jessie
+  test-pypy-2:
+    <<: *test-template
+    docker:
+      - image: pypy:2
+  test-pypy-3:
+    <<: *test-template
+    docker:
+      - image: pypy:3
 
 workflows:
   version: 2
@@ -105,3 +114,9 @@ workflows:
       - test-3.6:
           requires:
             - style-check
+      - test-pypy-2:
+          requires:
+            - test-2.7
+      - test-pypy-3:
+          requires:
+            - test-3.6

@@ -5,6 +5,7 @@ import unittest
 import os
 import json
 import logging
+import platform
 from time import sleep
 from stat import S_IREAD
 
@@ -20,6 +21,9 @@ if six.PY2:
     from tempdir import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
+
+
+PYPY = 'PyPy' in platform.python_implementation()
 
 
 # Determine if we can run permission error tests
@@ -39,6 +43,7 @@ with TemporaryDirectory() as tmp_dir:
         os.chmod(path, mode)
 
 
+@unittest.skipIf(PYPY, "Buffered mode not supported for PyPy.")
 class BufferedModeTest(BaseProjectTest):
 
     def test_enter_exit_buffered_mode(self):
