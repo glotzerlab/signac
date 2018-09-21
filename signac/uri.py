@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+from collections import namedtuple
 
 from .core.json import json
 from .common import six
@@ -19,6 +20,11 @@ else:
 class InvalidRequestError(ValueError):
     "Indicates that a request specified as part of a URL is invalid."
     pass
+
+
+ParseResult = namedtuple(
+    'ParseResult',
+    ['scheme', 'root', 'path', 'query', 'fragment'])
 
 
 def link_to(resource, start=None):
@@ -62,28 +68,21 @@ def _get_project_from_url_path(cls, root, start):
             return cls.get_project(root=os.path.join(start, root))
 
 
-def _process_url_resource_request(cls, path, start):
-    "Attempt to separate the resource and request specified in the provided path."
-    nodes = path.split('/')
-    n = len(nodes)
-    if path:
-        for i in range(n):
-            try:
-                root = os.path.join(* nodes[:n-i])
-                project = _get_project_from_url_path(cls=cls, root=root, start=start)
-            except LookupError:
-                pass
-            else:
-                break
-        else:
-            raise LookupError(path)
-        rest = nodes[n-i:]
-        if rest:
-            return project, os.path.normpath('/'.join(rest))
-        else:
-            return project, None
+def _urlparse(url):
+    o = urlparse(url)
+    path = os.path.expanduser(o.netloc + o.path)
+    if ':' in path:
+        root_path, path = path.split(':', 1)
     else:
-        return _get_project_from_url_path(cls=cls, root='.', start=start), None
+        root_path, path = path, None
+
+    return ParseResult(
+        scheme=o.scheme,
+        root=root_path,
+        path=path,
+        query=o.query,
+        fragment=o.fragment,
+    )
 
 
 def _retrieve(cls, url, start=None):
@@ -98,21 +97,11 @@ def _retrieve(cls, url, start=None):
         If a job specified by a link cannot be found.
     """
     # Parse the provided url
-    o = urlparse(url)
-    path = os.path.expanduser(o.netloc + o.path)
+    o = _urlparse(url)
 
     # Acquire project for given url.
-    # Determine project for url.
-    project, request = _process_url_resource_request(cls, path, start)
-
-    if request:
-        return _process_request_version_1(project, request, url)
-    else:   # return resource directly
-        # Open the job from state point for obtained project.
-        if o.fragment:
-            return project.open_job(id=o.fragment)
-        else:
-            return project
+    project = _get_project_from_url_path(cls, o.root, start)
+    return _process_request_version_1(project, o)
 
 
 def _parse_url_filter_query(query):
@@ -128,53 +117,66 @@ def _parse_slicing_operator(slice_string):
     return slice(*map(lambda x: int(x.strip()) if x.strip() else None, slice_string.split(':')))
 
 
-def _process_request_version_1(project, request, url):
-    "Process a request as part of a url for API version 1."
-    try:
-        nodes = request.split('/')
-        magic_word, version = nodes[:2]
-        resource = nodes[2:]
-        # With Py3: magic_word, version, *resource = request.split('/')
-    except ValueError:
-        raise InvalidRequestError(request)
-    if magic_word == 'api':
-        if version != 'v1':
-            raise RuntimeError("Protocol version {} not supported.".format(version))
+def _process_request_document(document, path):
+    if path:
+        nodes = path.split('.')
+        v = document[nodes[0]]
+        for node in nodes[1:]:
+            v = v[node]
+        return v
     else:
-        raise InvalidRequestError(request)
+        return document
 
-    o = urlparse(url)
-    if resource[0] == 'root':
-        return project.root_director()
-    elif resource[0] == 'workspace':
-        return project.workspace()
-    elif resource[0] == 'jobs':
-        if o.query:
-            filter = _parse_url_filter_query(o.query)
-        else:
-            filter = None
-        jobs = project.find_jobs(filter)
-        if o.fragment:
-            if ':' in o.fragment:
-                idx = _parse_slicing_operator(o.fragment)
-                return list(jobs)[idx]
-            else:
-                return list(jobs)[int(o.fragment)]
-        else:
-            return jobs
-    elif resource[0] == 'job':
-        job = project.open_job(id=resource[1])
-        if len(resource) > 3:
-            if resource[2] == 'fn':
-                return job.fn(os.path.join(* resource[3:]))
-        elif len(resource) == 3:
-            if resource[2] == 'fn':
-                return job.workspace()
-        elif len(resource) == 2:
-            return job
 
-    # The request must be invalid if we were not able to process the request up until this point.
-    raise InvalidRequestError(request)
+def _process_request_job(job, path):
+    if path and '/' in path:
+        head, tail = path.split('/', 1)
+    else:
+        head, tail = path, ''
+
+    if head == 'workspace':
+        return os.path.join(job.workspace(), tail)
+    elif head == 'document':
+        return _process_request_document(job.document, tail)
+    elif head:
+        raise InvalidRequestError("Unknown request: '{}'.".format(head))
+    else:
+        return job
+
+
+def _process_request_jobs(project, query):
+    if query:
+        filter = _parse_url_filter_query(query)
+    else:
+        filter = None
+    return project.find_jobs(filter)
+
+
+def _process_request_version_1(project, o):
+    if o.path and '/' in o.path:
+        head, tail = o.path.split('/', 1)
+    else:
+        head, tail = o.path, ''
+
+    if head == 'job':
+        if tail and '/' in tail:
+            jobid, path = tail.split('/', 1)
+        else:
+            jobid, path = tail, ''
+        job = project.open_job(id=jobid)
+        return _process_request_job(job, path)
+    elif head == 'jobs':
+        return _process_request_jobs(project, o.query)
+    elif head == 'workspace':
+        return os.path.join(project.workspace(), tail)
+    elif head == 'root':
+        return os.path.join(project.root_directory())
+    elif head == 'document':
+        return _process_request_document(project.document, tail)
+    elif head:
+        raise InvalidRequestError("Unknown request '{}'.".format(head))
+    else:
+        return project
 
 
 __all__ = ['InvalidRequestError', 'link_to', 'retrieve']
