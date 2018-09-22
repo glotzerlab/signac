@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import logging
 from collections import namedtuple
 from functools import partial
 
@@ -17,6 +18,9 @@ if six.PY2:
 else:
     from urllib.parse import urlparse
     from urllib.parse import unquote
+
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidRequestError(ValueError):
@@ -192,6 +196,39 @@ def _process_resource_jobs(project, query):
     return project.find_jobs(filter)
 
 
+def _open_job_with_redirects(project, job_id, history=None):
+    "Open job with possible redirect."
+    try:
+        return project.open_job(id=job_id)
+    except KeyError as error:
+        if history is None:  # Initialize history if necessary.
+            history = set()
+
+        # Raise error if this particular was already encountered.
+        if job_id in history:
+            raise RuntimeError("Detected inifinite loop!")
+        else:
+            history.add(job_id)
+
+        # Check whether this particular id is in the redirect mapping and return job.
+        try:
+            redirects = project.doc._redirects
+            redirected_id = redirects[job_id]
+            logger.warning("Job '{}' was redirected to '{}'.".format(job_id, redirected_id))
+            return _open_job_with_redirects(project, redirected_id, history)
+        except AttributeError:
+            # no redirect mapping
+            raise error
+        except KeyError:
+            candidates = {_id for _id in redirects if _id.startswith(job_id)}
+            if len(candidates) == 1:
+                return _open_job_with_redirects(project, candidates.pop(), history)
+            elif len(candidates) > 1:
+                raise LookupError("Multiple redirect matches for '{}'.".format(job_id))
+            else:
+                raise error
+
+
 def _process_resource_project_api_version_1(project, o):
     head, tail = _split(o.path)
 
@@ -200,8 +237,8 @@ def _process_resource_project_api_version_1(project, o):
     elif head in ('len', 'num_jobs'):
         return len(project)
     elif head == 'job':
-        jobid, path = _split(tail)
-        job = project.open_job(id=jobid)
+        job_id, path = _split(tail)
+        job = _open_job_with_redirects(project, job_id)
         return _process_resource_job(job, path, o.query)
     elif head == 'jobs':
         return _process_resource_jobs(project, o.query)

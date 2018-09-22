@@ -149,6 +149,9 @@ class Job(object):
             else:
                 raise
         else:
+            # Create redirect
+            self._project.document.setdefault('_redirects', dict())[self._id] = dst._id
+
             # Update this instance
             self._statepoint = dst._statepoint
             self._id = dst._id
@@ -157,6 +160,7 @@ class Job(object):
             self._fn_doc = dst._fn_doc
             self._document = None
             self._cwd = list()
+
             logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
