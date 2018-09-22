@@ -26,10 +26,13 @@ class CustomJSONEncoder(JSONEncoder):
     """
     def default(self, o):
         try:
-            return o._to_json()
+            return o._to_url()
         except AttributeError:
-            # Call the super method, which probably raise a TypeError.
-            return super(CustomJSONEncoder, self).default(o)
+            try:
+                return o._to_json()
+            except AttributeError:
+                # Call the super method, which probably raise a TypeError.
+                return super(CustomJSONEncoder, self).default(o)
 
 
 __all__ = ['json', 'CustomJSONEncoder']

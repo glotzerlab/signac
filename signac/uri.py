@@ -35,7 +35,7 @@ def link_to(resource, start=None):
     This function will generate a URL for the provided resource
     that can then be retrieved *via* the :func:`.retrieve` function.
     """
-    return resource._as_url(start=start)
+    return resource._to_url(start=start)
 
 
 def retrieve(url, start=None):

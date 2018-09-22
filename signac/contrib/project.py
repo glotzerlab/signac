@@ -164,8 +164,8 @@ class Project(object):
                     rd=self.root_directory(),
                     wd=self.workspace())
 
-    def _as_url(self, start=None):
-        """Generate a link for this given instance.
+    def _to_url(self, start=None):
+        """Generate URL for this instance.
 
         :param start:
             Generate the link relative to the provided path. Defaults to the root
@@ -188,7 +188,11 @@ class Project(object):
 
         return "signac://{}".format(path)
 
-    _to_json = _as_url
+    def _to_json(self, start=None):
+        return {
+            '_id': self.get_id(),
+            'url': self._to_url(start=start),
+        }
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -1487,7 +1491,7 @@ class Project(object):
         return cls(config=config)
 
     def link_to(self, job):
-        "Make a link document for job with paths relative to this project root directory."
+        "Generate a URL linking to job relative to this project."
         return job._as_url(start=self.root_directory())
 
     def retrieve(self, url):
@@ -1842,16 +1846,16 @@ class JobsCursor(object):
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
 
-    def _as_url(self, start=None):
+    def _to_url(self, start=None):
         if self._doc_filter:
             raise NotImplementedError("Query to URL currently only supported without doc-filter.")
         q = quote(json.dumps(self._filter))
         if self._filter:
-            return self._project._as_url(start=start) + '/api/v1/jobs/?filter={}'.format(q)
+            return self._project._to_url(start=start) + ':jobs/?filter={}'.format(q)
         else:
-            return self._project._as_url(start=start) + '/api/v1/jobs'
+            return self._project._to_url(start=start) + ':jobs'
 
-    _to_json = _as_url
+    _to_json = _to_url
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

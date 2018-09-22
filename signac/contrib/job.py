@@ -86,10 +86,14 @@ class Job(object):
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
 
-    def _as_url(self, start=None):
-        return self._project._as_url(start=start) + '#{}'.format(self._id)
+    def _to_url(self, start=None):
+        return self._project._to_url(start=start) + ':job/{}'.format(self._id)
 
-    _to_json = _as_url
+    def _to_json(self, start=None):
+        return {
+            '_id': self.get_id(),
+            'url': self._to_url(start=start),
+        }
 
     def __eq__(self, other):
         return hash(self) == hash(other)
