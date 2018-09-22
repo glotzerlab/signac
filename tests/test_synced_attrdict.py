@@ -156,13 +156,16 @@ class SyncedAttrDictTest(unittest.TestCase):
     def test_copy_as_dict_sync(self):
         sad = self.get_sad()
         self.assert_no_read_write()
-        sad['a'] = {'b': 0}
+        sad['a'] = {'b': 0, 'c': [0]}
         self.assert_read_write()
         sad2 = copy(sad)
         sad3 = deepcopy(sad)
+        sad4 = sad()
         self.assertEqual(sad, sad2)
-        self.assert_only_read(2)
+        self.assert_only_read(3)
         self.assertEqual(sad, sad3)
+        self.assert_only_read(1)
+        self.assertEqual(sad, sad4)
         self.assert_only_read(1)
         sad.a.b = 1
         self.assert_read_write(2, 1)
@@ -171,6 +174,16 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertEqual(sad2.a.b, 1)
         self.assert_only_read(2)
         self.assertEqual(sad3.a.b, 0)
+        self.assert_only_read(0)
+        sad.a.c[0] = 1
+        self.assert_read_write(3, 1)
+        self.assertEqual(sad.a.c[0], 1)
+        self.assert_only_read(3)
+        self.assertEqual(sad2.a.c[0], 1)
+        self.assert_only_read(3)
+        self.assertEqual(sad3.a.c[0], 0)
+        self.assert_only_read(0)
+        self.assertEqual(sad4['a']['c'][0], 0)
         self.assert_only_read(0)
 
     def test_iter(self):
@@ -441,6 +454,41 @@ class SyncedAttrDictTest(unittest.TestCase):
             b = B
             self.assertEqual(b, B)
             self.assertEqual(sad.a.b, A)
+
+    def test_list_modification(self):
+        sad = self.get_sad()
+        sad['a'] = [1, 2, 3]
+        self.assert_read_write()
+        self.assertEqual(len(sad.a), 3)
+        self.assert_only_read()
+        self.assertEqual(sad['a'], [1, 2, 3])
+        self.assert_only_read()
+        self.assertEqual(sad.a, [1, 2, 3])
+        self.assert_only_read()
+        sad['a'].append(4)
+        self.assert_read_write(2, 1)
+        self.assertEqual(len(sad.a), 4)
+        self.assert_only_read()
+        self.assertEqual(sad['a'], [1, 2, 3, 4])
+        self.assert_only_read()
+        self.assertEqual(sad.a, [1, 2, 3, 4])
+        self.assert_only_read()
+        sad.a.insert(0, 0)
+        self.assert_read_write(2, 1)
+        self.assertEqual(len(sad.a), 5)
+        self.assert_only_read()
+        self.assertEqual(sad['a'], [0, 1, 2, 3, 4])
+        self.assert_only_read()
+        self.assertEqual(sad.a, [0, 1, 2, 3, 4])
+        self.assert_only_read()
+        del sad.a[0]
+        self.assert_read_write(2)
+        self.assertEqual(len(sad.a), 4)
+        self.assert_only_read()
+        self.assertIsNotNone(sad.a.pop())
+        self.assert_read_write(2)
+        self.assertEqual(len(sad.a), 3)
+        self.assert_only_read()
 
     def test_suspend_sync(self):
         sad = self.get_sad()

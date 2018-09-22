@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 
@@ -68,18 +68,14 @@ def _flatten(container):
 
 
 def _to_tuples(l):
-    if isinstance(l, list):
+    if type(l) is list:
         return tuple(_to_tuples(_) for _ in l)
     else:
         return l
 
 
-class _DictPlaceholder(object):
-    pass
-
-
 def _encode_tree(x):
-    if isinstance(x, list):
+    if type(x) is list:
         return _to_tuples(x)
     else:
         return x
@@ -106,12 +102,26 @@ def _traverse_filter(t):
 
 
 def _valid_filter(f, top=True):
-    if isinstance(f, Mapping):
+    if f is None:
+        return True
+    elif type(f) is dict:
         return all(_valid_filter(v, top=False) for v in f.values())
-    elif isinstance(f, list):
+    elif type(f) is list:
         return not top
     else:
         return True
+
+
+class _float(float):
+    # Numerical objects of either integer or float type, that share the same numerical value,
+    # but not the same type, are distinguished within a Collection, but considered equal within
+    # Python. We manipulate the hash value, to enable the storage of both an int and a float
+    # that share the same numerical value within a collection index (dict).
+
+    # There is no risk of accidentally equating ints and floats with different values, since the
+    # hash equality is only a necessary, not a sufficient condition for equality.
+    def __hash__(self):
+        return super(_float, self).__hash__() + 1
 
 
 class _TypedSetDefaultDict(dict):
@@ -122,42 +132,40 @@ class _TypedSetDefaultDict(dict):
     standard dict.
     """
 
-    @classmethod
-    def _convert_to_typed(cls, x):
-        return (type(x), x)
-
-    def _convert_from_typed(cls, x):
-        return x[1]
-
     def keys(self):
-        for key in super(_TypedSetDefaultDict, self).keys():
-            yield self._convert_from_typed(key)
+        for key in dict.keys(self):
+            yield float(key) if type(key) is _float else key
 
     __iter__ = keys
 
     def items(self):
-        for key, value in super(_TypedSetDefaultDict, self).items():
-            yield self._convert_from_typed(key), value
+        for key, value in dict.items(self):
+            yield float(key) if type(key) is _float else key, value
 
     def __missing__(self, key):
         value = set()
-        super(_TypedSetDefaultDict, self).__setitem__(key, value)
+        dict.__setitem__(self, key, value)
         return value
 
     def __getitem__(self, key):
-        return super(_TypedSetDefaultDict, self).__getitem__(self._convert_to_typed(key))
+        return dict.__getitem__(self,
+                                _float(key) if type(key) is float else key)
 
     def __setitem__(self, key, value):
-        return super(_TypedSetDefaultDict, self).__setitem__(self._convert_to_typed(key), value)
+        return dict.__setitem__(self,
+                                _float(key) if type(key) is float else key, value)
 
     def __delitem__(self, key):
-        super(_TypedSetDefaultDict, self).__delitem__(self._convert_to_typed(key))
+        dict.__delitem__(self,
+                         _float(key) if type(key) is float else key)
 
     def get(self, key, default=None):
-        return super(_TypedSetDefaultDict, self).get(self._convert_to_typed(key), default)
+        return dict.get(self,
+                        _float(key) if type(key) is float else key, default)
 
 
 def _build_index(docs, key, primary_key):
+    "Build an index for 'key'; highly performance critical code path."
     nodes = key.split('.')
     index = _TypedSetDefaultDict()
 
@@ -166,8 +174,8 @@ def _build_index(docs, key, primary_key):
             v = doc[nodes[0]]
             for n in nodes[1:]:
                 v = v[n]
-            if type(v) == dict:
-                v = _DictPlaceholder
+            if type(v) is dict:
+                continue
         except (KeyError, TypeError):
             pass
         except Exception as error:
@@ -176,7 +184,9 @@ def _build_index(docs, key, primary_key):
                 "doc '{}': {}.".format(doc, error))
         else:
             # inlined for performance
-            if type(v) == list:   # performance
+            if type(v) is dict:
+                continue
+            elif type(v) is list:   # performance
                 index[_to_tuples(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
@@ -191,7 +201,7 @@ def _build_index(docs, key, primary_key):
                     "Using keys with dots ('.') is pending deprecation in the future!",
                     PendingDeprecationWarning)
                 # inlined for performance
-                if type(v) == list:     # performance
+                if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
                 else:
                     index[v].add(doc[primary_key])
@@ -207,7 +217,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, basestring if six.PY2 else str):  # noqa
+            if isinstance(value, six.string_types):
                 return re.search(argument, value)
             else:
                 return False
@@ -549,13 +559,6 @@ class Collection(object):
                 raise KeyError('Primary key collision!')
             self[_id] = doc
 
-    def _check_filter(self, filter):
-        "Check if filter is a valid filter argument."
-        if filter is None:
-            return True
-        if not _valid_filter(filter):
-            raise ValueError(filter)
-
     def _find_expression(self, key, value):
         logger.debug("Find documents for expression '{}: {}'.".format(key, value))
         if '$' in key:
@@ -657,12 +660,14 @@ class Collection(object):
         :returns: A set of ids of documents that match the given filter.
         """
         self._assert_open()
-        filter = json.loads(json.dumps(filter))  # Normalize
-        self._check_filter(filter)
-        if filter is None or not len(filter):
+        if filter:
+            filter = json.loads(json.dumps(filter))  # Normalize
+            if not _valid_filter(filter):
+                raise ValueError(filter)
+            result = self._find_result(filter)
+            return set(islice(result, limit if limit else None))
+        else:
             return set(islice(self._docs.keys(), limit if limit else None))
-        result = self._find_result(filter)
-        return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
         """Find all documents matching filter, but not more than limit.

@@ -106,13 +106,13 @@ class JobSearchIndex(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        if filter is None:
-            f = dict()
-        else:
-            f = dict(self._resolve_statepoint_filter(filter))
-        if doc_filter is not None:
-            f.update(doc_filter)
-        return self._collection._find(f)
+        if filter:
+            filter = dict(self._resolve_statepoint_filter(filter))
+            if doc_filter:
+                filter.update(doc_filter)
+        elif doc_filter:
+            filter = doc_filter
+        return self._collection._find(filter)
 
 
 class Project(object):
@@ -352,8 +352,16 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
+            # second best case
             job = self.Job(project=self, statepoint=statepoint)
+            if job._id not in self._sp_cache:
+                self._sp_cache[job._id] = dict(job._statepoint)
+            return job
+        elif id in self._sp_cache:
+            # optimal case
+            return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
+            # worst case (no statepoint and cache miss)
             if len(id) < 32:
                 job_ids = self.find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
@@ -361,10 +369,7 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            job = self.Job(project=self, statepoint=self.get_statepoint(id), _trust=True)
-        if job.get_id() not in self._sp_cache:
-            self._register(job)
-        return job
+            return self.Job(project=self, statepoint=self.get_statepoint(id), _id=id)
 
     def _job_dirs(self):
         try:
@@ -388,7 +393,12 @@ class Project(object):
 
     def num_jobs(self):
         "Return the number of initialized jobs."
-        return len(list(self._job_dirs()))
+        # We simply count the the number of valid directories and avoid building a list
+        # for improved performance.
+        i = 0
+        for i, _ in enumerate(self._job_dirs(), 1):
+            pass
+        return i
 
     __len__ = num_jobs
 
@@ -513,7 +523,9 @@ class Project(object):
                 index = self._sp_index()
             else:
                 index = self.index(include_job_document=True)
-        search_index = self.build_job_search_index(index, _trust=True)
+            search_index = JobSearchIndex(index, _trust=True)
+        else:
+            search_index = JobSearchIndex(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None, index=None):
@@ -1186,10 +1198,9 @@ class Project(object):
 
     def _build_index(self, include_job_document=False):
         "Return a basic state point index."
-        wd = self.workspace() if self.Job == Job else None
+        wd = self.workspace() if self.Job is Job else None
         for _id in self.find_job_ids():
-            sp = self.get_statepoint(_id)
-            doc = dict(_id=_id, statepoint=sp)
+            doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
             if include_job_document:
                 if wd is None:
                     doc.update(self.open_job(id=_id).document)
@@ -1697,14 +1708,22 @@ class JobsCursor(object):
         self._filter = filter
         self._doc_filter = doc_filter
 
-    def _find_ids(self):
-        return self._project.find_job_ids(self._filter, self._doc_filter)
-
     def __len__(self):
-        return len(self._find_ids())
+        # Highly performance critical code path!!
+        if self._filter or self._doc_filter:
+            # We use the standard function for determining job ids if and only if
+            # any of the two filter is provided.
+            return len(self._project.find_job_ids(self._filter, self._doc_filter))
+        else:
+            # Without filter we can simply return the length of the whole project.
+            return self._project.__len__()
 
     def __iter__(self):
-        return _JobsCursorIterator(self._project, self._find_ids())
+        # Code duplication here for improved performance.
+        return _JobsCursorIterator(
+            self._project,
+            self._project.find_job_ids(self._filter, self._doc_filter),
+            )
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.

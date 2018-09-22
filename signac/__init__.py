@@ -15,6 +15,7 @@ from . import contrib
 from . import db
 from . import cite
 from . import errors
+from . import warnings
 from . import sync
 from . import uri
 from .contrib import Project
@@ -44,8 +45,8 @@ from .core.jsondict import get_buffer_load
 
 __version__ = '0.9.3'
 
-__all__ = ['__version__', 'contrib', 'db', 'errors', 'sync', 'uri',
-           'cite',
+__all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
+           'uri', 'cite',
            'Project', 'TemporaryProject', 'get_project', 'init_project',
            'get_database', 'fetch', 'fetch_one',
            'export_one', 'export', 'export_to_mirror',
