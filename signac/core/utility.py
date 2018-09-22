@@ -52,8 +52,8 @@ class Version(dict):
 def parse_version(version_str):
     """Parse a version number into a version object."""
     p = re.compile(
-        r"(?P<major>[0-9]*)\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)"
-        r"\.(?P<change>[0-9])(?P<prerelease>\w*))?")
+        r"(?P<major>[0-9]*)(\.(?P<minor>[0-9]*)((?P<postrelease>-?\w*)"
+        r"\.(?P<change>[0-9])(?P<prerelease>\w*))?)?")
     r = p.match(version_str)
     v = r.groupdict()
     version = Version(**{

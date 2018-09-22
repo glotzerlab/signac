@@ -3,8 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 from collections import namedtuple
+from functools import partial
 
 from .core.json import json
+from .core.utility import parse_version
 from .common import six
 from .contrib.project import Project
 from .contrib.filterparse import _cast
@@ -70,18 +72,29 @@ def _get_project_from_url_path(cls, root, start):
 
 def _urlparse(url):
     o = urlparse(url)
+
+    # We do not distinguish between the net-location and path.
     path = os.path.expanduser(o.netloc + o.path)
+
+    # Split url into the project root directory and the remaining path.
     if ':' in path:
         root_path, path = path.split(':', 1)
     else:
         root_path, path = path, None
 
+    # Parse the query string.
+    if o.query:
+        query = dict(map(lambda x: x.split('='), o.query.rstrip('&').split('&')))
+    else:
+        query = dict()
+
+    # Return parsed result as named tuple for further processing.
     return ParseResult(
-        scheme=o.scheme,
-        root=root_path,
-        path=path,
-        query=o.query,
-        fragment=o.fragment,
+        scheme=o.scheme,      # The url scheme, assumed to be 'signac'
+        root=root_path,       # The path to the project root directory.
+        path=path,            # An optional path for further resource specification.
+        query=query,          # An optional query dictionary.
+        fragment=o.fragment,  # The fragment bit.
     )
 
 
@@ -101,15 +114,21 @@ def _retrieve(cls, url, start=None):
 
     # Acquire project for given url.
     project = _get_project_from_url_path(cls, o.root, start)
-    return _process_request_version_1(project, o)
+
+    api_version = parse_version(o.query.get('api', '1.0'))
+    if api_version.to_tuple()[0] == 1:
+        return _process_resource_project_api_version_1(project, o)
+    else:
+        raise InvalidRequestError(
+            "Unable to process request for API version '{}'.".format(api_version))
 
 
 def _parse_url_filter_query(query):
     "Parse a filter specified as part of a url."
-    kwargs = dict(map(lambda x: x.split('='), query.rstrip('&').split('&')))
-    if len(kwargs) == 1 and 'filter' in kwargs:
-        return json.loads(unquote(kwargs['filter']))
-    return {k: _cast(v) for k, v in kwargs.items()}
+    if len(query) == 1 and 'filter' in query:
+        return json.loads(unquote(query['filter']))
+    else:
+        return {k: _cast(v) for k, v in query.items()}
 
 
 def _parse_slicing_operator(slice_string):
@@ -117,9 +136,16 @@ def _parse_slicing_operator(slice_string):
     return slice(*map(lambda x: int(x.strip()) if x.strip() else None, slice_string.split(':')))
 
 
-def _process_request_document(document, path):
+def _split(path):
+    if path and '/' in path:
+        return path.split('/', 1)
+    else:
+        return path, ''
+
+
+def _process_resource_document(document, path, query):
     if path:
-        nodes = path.split('.')
+        nodes = path.replace('/', '.').split('.')
         v = document[nodes[0]]
         for node in nodes[1:]:
             v = v[node]
@@ -128,23 +154,37 @@ def _process_request_document(document, path):
         return document
 
 
-def _process_request_job(job, path):
-    if path and '/' in path:
-        head, tail = path.split('/', 1)
+def _process_resource_schema(project, path, query):
+    head, tail = _split(path)
+    if head:
+        return project.detect_schema(** query)[head]
     else:
-        head, tail = path, ''
+        return project.detect_schema(** query)
 
-    if head == 'workspace':
+
+def _process_resource_index(project, path, query):
+    index = project.index(** query)
+    get = partial(_process_resource_document, path=path, query=query)
+    return map(get, index)
+
+
+def _process_resource_job(job, path, query):
+    head, tail = _split(path)
+    if head == 'id':
+        return job.get_id()
+    elif head in ('ws', 'workspace'):
         return os.path.join(job.workspace(), tail)
-    elif head == 'document':
-        return _process_request_document(job.document, tail)
+    elif head in ('sp', 'statepoint'):
+        return _process_resource_document(job.statepoint, tail, query)
+    elif head in ('doc', 'document'):
+        return _process_resource_document(job.document, tail, query)
     elif head:
         raise InvalidRequestError("Unknown request: '{}'.".format(head))
     else:
         return job
 
 
-def _process_request_jobs(project, query):
+def _process_resource_jobs(project, query):
     if query:
         filter = _parse_url_filter_query(query)
     else:
@@ -152,27 +192,29 @@ def _process_request_jobs(project, query):
     return project.find_jobs(filter)
 
 
-def _process_request_version_1(project, o):
-    if o.path and '/' in o.path:
-        head, tail = o.path.split('/', 1)
-    else:
-        head, tail = o.path, ''
+def _process_resource_project_api_version_1(project, o):
+    head, tail = _split(o.path)
 
-    if head == 'job':
-        if tail and '/' in tail:
-            jobid, path = tail.split('/', 1)
-        else:
-            jobid, path = tail, ''
+    if head == 'id':
+        return project.get_id()
+    elif head in ('len', 'num_jobs'):
+        return len(project)
+    elif head == 'job':
+        jobid, path = _split(tail)
         job = project.open_job(id=jobid)
-        return _process_request_job(job, path)
+        return _process_resource_job(job, path, o.query)
     elif head == 'jobs':
-        return _process_request_jobs(project, o.query)
+        return _process_resource_jobs(project, o.query)
     elif head == 'workspace':
         return os.path.join(project.workspace(), tail)
     elif head == 'root':
         return os.path.join(project.root_directory())
-    elif head == 'document':
-        return _process_request_document(project.document, tail)
+    elif head in ('doc', 'document'):
+        return _process_resource_document(project.document, tail, o.query)
+    elif head == 'schema':
+        return _process_resource_schema(project, tail, o.query)
+    elif head == 'index':
+        return _process_resource_index(project, tail, o.query)
     elif head:
         raise InvalidRequestError("Unknown request '{}'.".format(head))
     else:
