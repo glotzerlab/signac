@@ -166,6 +166,7 @@ class _TypedSetDefaultDict(dict):
 
 def _build_index(docs, key, primary_key):
     "Build an index for 'key'; highly performance critical code path."
+    assert key != primary_key
     nodes = key.split('.')
     index = _TypedSetDefaultDict()
 
@@ -388,14 +389,22 @@ class Collection(object):
                 self._remove_from_indexes(_id)
             docs = [self[_id] for _id in self._dirty]
             for key, index in self._indexes.items():
-                tmp = _build_index(docs, key, self._primary_key)
-                for v, group in tmp.items():
-                    index[v].update(group)
+                if key == self._primary_key:
+                    for _id in self._dirty:
+                        index[_id] = {_id}
+                else:
+                    tmp = _build_index(docs, key, self._primary_key)
+                    for v, group in tmp.items():
+                        index[v].update(group)
             self._dirty.clear()
 
     def _build_index(self, key):
         logger.debug("Building index for key '{}'...".format(key))
-        self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
+        if key == self._primary_key:
+            warnings.warn("Generating index for primary key.", RuntimeWarning)
+            self._indexes[key] = {_id: {_id} for _id in self.ids}
+        else:
+            self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
         logger.debug("Built index for key '{}'.".format(key))
 
     def index(self, key, build=False):
@@ -426,9 +435,7 @@ class Collection(object):
         :raises KeyError: In case that build is False and the index has not
             been built yet.
         """
-        if key == self._primary_key:
-            raise KeyError("Can't access index for primary key via index() method.")
-        elif key in self._indexes:
+        if key in self._indexes:
             if len(self._dirty) > self.index_rebuild_threshold * len(self):
                 logger.debug("Indexes outdated, rebuilding...")
                 self._indexes.clear()
@@ -584,6 +591,40 @@ class Collection(object):
             index = self.index(key, build=True)
             return index.get(value, set())
 
+    def _find_result_primary_key_expression(self, op, value):
+        if op == '$eq':
+            return {value} if value in self.ids else set()
+        elif op == '$ne':
+            return set(self.ids).difference((value, ))
+        elif op == '$in':
+            return set(self.ids).intersection(value)
+        elif op == '$nin':
+            return set(self.ids).difference(value)
+        else:
+            raise ValueError("Invalid _id-expression: '_id.{}'.".format(op))
+
+    def _find_result_primary_key(self, expr):
+        "Non-indexed result determination for primary-key expressions."
+        _id = expr.get(self._primary_key, None)
+
+        if isinstance(_id, six.string_types):
+            # _id value is an actual id (optimal case)
+            del expr[self._primary_key]
+            yield {_id} if _id in self else set()
+
+        elif type(_id) is dict:
+            # _id value is an expression (sub-optimal case)
+            for op, value in _id.items():
+                yield self._find_result_primary_key_expression(op, value)
+            del expr[self._primary_key]
+
+        elif _id is None:
+            # There is no key equal to primary-key, but there might be a '_id.$*'-expression:
+            _id_expr = {k[4:]: v for k, v in expr.items() if k.startswith('_id.')}
+            for op, value in _id_expr.items():
+                del expr['_id.' + op]
+                yield self._find_result_primary_key_expression(op, value)
+
     def _find_result(self, expr):
         result = None
         if not len(expr):
@@ -597,11 +638,9 @@ class Collection(object):
             else:               # Update previous match
                 return result.intersection(match)
 
-        # Check if filter contains primary key, in which case we can
-        # immediately reduce the result.
-        _id = expr.pop(self._primary_key, None)
-        if _id is not None and _id in self:
-            result = _reduce_result(result, {_id})
+        # Special-case handling for primary-key expressions:
+        for tmp in self._find_result_primary_key(expr):
+            result = _reduce_result(result, tmp)
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
