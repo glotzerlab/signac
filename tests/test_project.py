@@ -243,6 +243,17 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
 
+    def test_find_jobs_with_id_expression(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            job = self.project.open_job(sp)
+            job.init()
+        n = len(statepoints)
+        self.assertEqual(len(self.project.find_jobs()), n)  # baseline
+        self.assertEqual(len(self.project.find_jobs({'_id': job._id})), 1)
+        self.assertEqual(len(self.project.find_jobs({'_id.$eq': job._id})), 1)
+        self.assertEqual(len(self.project.find_jobs({'_id.$ne': job._id})), n-1)
+
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
