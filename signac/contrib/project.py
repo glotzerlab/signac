@@ -79,7 +79,9 @@ class JobSearchIndex(object):
 
     def _resolve_statepoint_filter(self, q):
         for k, v in q.items():
-            if k in ('$and', '$or'):
+            if k.split('.')[0] == '_id':
+                yield k, v
+            elif k in ('$and', '$or'):
                 if not isinstance(v, list) or isinstance(v, tuple):
                     raise ValueError(
                         "The argument to a logical operator must be a sequence (e.g. a list)!")
