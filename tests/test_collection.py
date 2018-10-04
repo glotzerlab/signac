@@ -182,6 +182,71 @@ class CollectionTest(unittest.TestCase):
             {doc['a'] for doc in docs},
             {doc['a'] for doc in self.c.find()})
 
+    def test_find_primary_id(self):
+        doc = self.c['0'] = dict(a=0)
+        # blank
+        self.assertEqual(len(self.c), 1)
+        self.assertEqual(len(self.c.find()), 1)
+        # positive
+        self.assertEqual(len(self.c.find({'_id': '0'})), 1)
+        self.assertEqual(list(self.c.find({'_id': '0'})), [doc])
+        self.assertEqual(len(self.c.find({'_id.$eq': '0'})), 1)
+        self.assertEqual(list(self.c.find({'_id.$eq': '0'})), [doc])
+        # negative
+        self.assertEqual(len(self.c.find({'_id': '1'})), 0)
+        self.assertEqual(list(self.c.find({'_id': '1'})), [])
+        self.assertEqual(len(self.c.find({'_id.$ne': '0'})), 0)
+        self.assertEqual(list(self.c.find({'_id.$ne': '0'})), [])
+        # logical positive
+        self.assertEqual(len(self.c.find({'$or': [{'_id': '0'}]})), 1)
+        self.assertEqual(len(self.c.find({'$or': [{'_id.$eq': '0'}]})), 1)
+        # logical negative
+        self.assertEqual(len(self.c.find({'$or': [{'_id': '1'}]})), 0)
+        self.assertEqual(len(self.c.find({'$or': [{'_id.$eq': '1'}]})), 0)
+        # positive expression
+        self.assertEqual(len(self.c.find({'_id': {'$in': ['0']}})), 1)
+        self.assertEqual(len(self.c.find({'_id.$in': ['0']})), 1)
+        self.assertEqual(list(self.c.find({'_id.$in': ['0']})), [doc])
+        # negative expression
+        self.assertEqual(len(self.c.find({'_id': {'$nin': ['0']}})), 0)
+        self.assertEqual(len(self.c.find({'_id.$nin': ['0']})), 0)
+        self.assertEqual(list(self.c.find({'_id.$nin': ['0']})), [])
+
+    def test_find_primary_id_expand_shrink(self):
+        self.assertEqual(len(self.c.find({'_id': '0'})), 0)
+        doc = self.c['0'] = dict(a=0)
+        self.assertEqual(len(self.c.find({'_id': '0'})), 1)
+        self.assertEqual(list(self.c.find({'_id': '0'})), [doc])
+        doc = self.c['1'] = dict(a=1)
+        self.assertEqual(len(self.c.find({'_id': '0'})), 1)
+        self.assertEqual(len(self.c.find({'_id': '1'})), 1)
+        self.assertEqual(list(self.c.find({'_id': '1'})), [doc])
+        del self.c['0']
+        self.assertEqual(len(self.c.find({'_id': '0'})), 0)
+        self.assertEqual(len(self.c.find({'_id': '1'})), 1)
+
+    def test_find_primary_id_expand_shrink_with_index_always_rebuild(self):
+        def noop(expr):
+            yield
+        self.c._find_result_primary_key = noop
+        self.c.index_rebuild_threshold = 0
+
+        with warnings.catch_warnings(record=True) as w:
+            self.test_find_primary_id_expand_shrink()
+            self.assertEqual(w[0].category, RuntimeWarning)
+            self.assertEqual(str(w[0].message), 'Generating index for primary key.')
+
+    def test_find_primary_id_expand_shrink_with_index_always_update(self):
+        def noop(expr):
+            yield
+        self.c._find_result_primary_key = noop
+        self.c.index_rebuild_threshold = 1000
+
+        with warnings.catch_warnings(record=True) as w:
+            self.test_find_primary_id_expand_shrink()
+            self.assertEqual(w[0].category, RuntimeWarning)
+            self.assertEqual(str(w[0].message), 'Generating index for primary key.')
+
     def test_find_integer(self):
         self.assertEqual(len(self.c.find()), 0)
         self.assertEqual(list(self.c.find()), [])
