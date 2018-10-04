@@ -233,8 +233,10 @@ class CollectionTest(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             self.test_find_primary_id_expand_shrink()
-            self.assertEqual(w[0].category, RuntimeWarning)
-            self.assertEqual(str(w[0].message), 'Generating index for primary key.')
+            if six.PY34:  # warning registry not cleared in earlier versions
+                assert len(w) == 1
+                assert issubclass(w[0].category, RuntimeWarning)
+                assert str(w[0].message) == 'Generating index for primary key.'
 
     def test_find_primary_id_expand_shrink_with_index_always_update(self):
         def noop(expr):
@@ -244,8 +246,10 @@ class CollectionTest(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             self.test_find_primary_id_expand_shrink()
-            self.assertEqual(w[0].category, RuntimeWarning)
-            self.assertEqual(str(w[0].message), 'Generating index for primary key.')
+            if six.PY34:  # warning registry not cleared in earlier versions
+                assert len(w) == 1
+                assert issubclass(w[0].category, RuntimeWarning)
+                assert str(w[0].message) == 'Generating index for primary key.'
 
     def test_find_integer(self):
         self.assertEqual(len(self.c.find()), 0)
