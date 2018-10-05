@@ -2,6 +2,7 @@ import os
 import io
 import warnings
 import unittest
+from collections import OrderedDict
 
 from signac import Collection
 from signac.common import six
@@ -330,6 +331,57 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(len(self.c), len(docs) - 1)
         self.c.delete_one({})
         self.assertEqual(len(self.c), len(docs) - 2)
+
+    def test_find_exists_operator(self):
+        self.assertEqual(len(self.c), 0)
+        data = OrderedDict((
+            ('a', True),
+            ('b', 'b'),
+            ('c', 0),
+            ('d', 0.1),
+            ('e', dict(a=0)),
+            ('f', dict(a='b')),
+            ('g', [0, 'a', True])))
+
+        # Test without data
+        for key in data:
+            self.assertEqual(len(self.c.find({key: {'$exists': False}})), len(self.c))
+            self.assertEqual(len(self.c.find({key: {'$exists': True}})), 0)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): False})), len(self.c))
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): True})), 0)
+
+        # Test for nested cases
+        self.assertEqual(len(self.c.find({'e.a.$exists': True})), 0)
+        self.assertEqual(len(self.c.find({'e.a.$exists': False})), 0)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': True}})), 0)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': False}})), 0)
+        self.assertEqual(len(self.c.find({'f.a.$exists': True})), 0)
+        self.assertEqual(len(self.c.find({'f.a.$exists': False})), 0)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': True}})), 0)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': False}})), 0)
+
+        # Test with data
+        for key, value in data.items():
+            self.c.insert_one({key: value})
+        self.c.insert_one({'e': -1})  # heterogeneous nesting
+
+        for key in data:
+            n = 2 if key == 'e' else 1
+            self.assertEqual(len(self.c.find({key: {'$exists': False}})), len(self.c) - n)
+            self.assertEqual(len(self.c.find({key: {'$exists': True}})), n)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): False})), len(self.c) - n)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): True})), n)
+
+        # Test for nested cases
+        self.assertEqual(len(self.c.find({'e.$exists': True})), 2)
+        self.assertEqual(len(self.c.find({'e.a.$exists': True})), 1)
+        self.assertEqual(len(self.c.find({'e.a.$exists': False})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': True}})), 1)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': False}})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'f.a.$exists': True})), 1)
+        self.assertEqual(len(self.c.find({'f.a.$exists': False})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': True}})), 1)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': False}})), len(self.c) - 1)
 
     def test_find_arithmetic_operators(self):
         self.assertEqual(len(self.c), 0)

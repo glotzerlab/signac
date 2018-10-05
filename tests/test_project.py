@@ -892,12 +892,12 @@ class ProjectTest(BaseProjectTest):
                 'b': {'b2': i},
                 'c': [i, 0, 0],
                 'd': [[i, 0, 0]],
-                'e': {'e2': [i, 0, 0]},
+                'e': {'e2': [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
                 'f': {'f2': [[i, 0, 0]]},
             }).init()
 
         s = self.project.detect_schema()
-        self.assertEqual(len(s), 8)
+        self.assertEqual(len(s), 9)
         for k in 'const', 'const2.const3', 'a', 'b.b2', 'c', 'd', 'e.e2', 'f.f2':
             self.assertIn(k, s)
             self.assertIn(k.split('.'), s)
@@ -907,10 +907,11 @@ class ProjectTest(BaseProjectTest):
         repr(s)
         self.assertEqual(s.format(), str(s))
         s = self.project.detect_schema(exclude_const=True)
-        self.assertEqual(len(s), 6)
+        self.assertEqual(len(s), 7)
         self.assertNotIn('const', s)
         self.assertNotIn(('const2', 'const3'), s)
         self.assertNotIn('const2.const3', s)
+        self.assertNotIn(type, s['e'])
 
     def test_schema_subset(self):
         for i in range(5):
