@@ -367,6 +367,7 @@ def main_view(args):
     project = get_project()
     project.create_linked_view(
         prefix=args.prefix,
+        path=args.path,
         job_ids=find_with_filter(args),
         index=_read_index(args.index))
 
@@ -1203,6 +1204,13 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
+    parser_view.add_argument(
+        'path',
+        type=str,
+        nargs='?',
+        default='{{auto}}',
+        help="The path used for the generation of the linked view hierarchy, "
+             "defaults to '{{auto}}'.")
     selection_group = parser_view.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',

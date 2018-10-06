@@ -151,10 +151,10 @@ class BasicShellTest(unittest.TestCase):
         os.mkdir('view')
         self.call('python -m signac view'.split())
         for sp in sps:
-            self.assertTrue(os.path.isdir('view/a_{}'.format(sp['a'])))
-            self.assertTrue(os.path.isdir('view/a_{}/job'.format(sp['a'])))
+            self.assertTrue(os.path.isdir('view/a/{}'.format(sp['a'])))
+            self.assertTrue(os.path.isdir('view/a/{}/job'.format(sp['a'])))
             self.assertEqual(
-                os.path.realpath('view/a_{}/job'.format(sp['a'])),
+                os.path.realpath('view/a/{}/job'.format(sp['a'])),
                 os.path.realpath(project.open_job(sp).workspace()))
 
     def test_find(self):

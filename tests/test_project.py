@@ -405,7 +405,7 @@ class ProjectTest(BaseProjectTest):
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         self.assertEqual(src, dst)
 
-    def test_create_linked_view_homogeneous_schema_flat(self):
+    def test_create_linked_view_homogeneous_schema_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
         b_vals = range(3, 8)
@@ -417,17 +417,95 @@ class ProjectTest(BaseProjectTest):
                     self.project.open_job(sp).init()
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        c_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['c', x]) for x in c_vals]), sorted(c_dirs))
-        for c in c_dirs:
-            c_view_prefix = os.path.join(view_prefix, c)
-            b_dirs = os.listdir(c_view_prefix)
-            self.assertEqual(sorted(['_'.join(['b', str(x)]) for x in b_vals]), sorted(b_dirs))
-            for b in b_dirs:
-                b_view_prefix = os.path.join(c_view_prefix, b)
-                a_dirs = os.listdir(b_view_prefix)
-                self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', str(
+                        sp['c']), 'b', str(sp['b']), 'a', str(sp['a']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_tree_tree(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
+                        sp['a']), 'c', str(sp['c']), 'b', str(sp['b']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_tree_flat(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/{{auto:_}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
+                        sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_flat_flat(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a_{a}/{{auto:_}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(
+                        view_prefix, 'a_%s/c_%s_b_%s' % (str(sp['a']), str(sp['c']), str(sp['b'])),
+                        'job')))
+
+    def test_create_linked_view_homogeneous_schema_flat_tree(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        d_vals = ["rock", "paper", "scissors"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    for d in d_vals:
+                        sp = {'a': a, 'b': b, 'c': c, 'd': d}
+                        self.project.open_job(sp).init()
+
+        self.project.create_linked_view(prefix=view_prefix, path='a_{a}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    for d in d_vals:
+                        sp = {'a': a, 'b': b, 'c': c, 'd': d}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a_%s' %
+                                                                   str(sp['a']), 'c', str(sp['c']),
+                                                                   'd', str(sp['d']), 'b',
+                                                                   str(sp['b']), 'job')))
 
     def test_create_linked_view_homogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
@@ -439,25 +517,41 @@ class ProjectTest(BaseProjectTest):
                 for c in c_vals:
                     sp = {'a': a, 'd': {'b': b, 'c': c}}
                     self.project.open_job(sp).init()
+
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        a_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
-        for a in a_dirs:
-            a_view_prefix = os.path.join(view_prefix, a)
-            d_c_dirs = os.listdir(a_view_prefix)
-            self.assertEqual(
-                sorted(['_'.join(['d', 'c', str(x)]) for x in c_vals]),
-                sorted(d_c_dirs))
-            for d_c in d_c_dirs:
-                d_c_view_prefix = os.path.join(a_view_prefix, d_c)
-                d_b_dirs = os.listdir(d_c_view_prefix)
-                self.assertEqual(
-                    sorted(['_'.join(['d', 'b', str(x)]) for x in b_vals]),
-                    sorted(d_b_dirs))
+        # check all dir:
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'd.c', str(sp['d']['c']), 'd.b',
+                                                               str(sp['d']['b']), 'job')))
 
-    def test_create_linked_view_heterogeneous_disjoint_schema_flat(self):
+    def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.project.open_job(sp).init()
+
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/d.c/{d.c}/{{auto}}')
+
+        # check all dir:
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'd.c', str(sp['d']['c']), 'd.b',
+                                                               str(sp['d']['b']), 'job')))
+
+    def test_create_linked_view_heterogeneous_disjoint_schema(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(3, 13)
@@ -471,21 +565,16 @@ class ProjectTest(BaseProjectTest):
                 self.project.open_job(sp).init()
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_a_dirs = ['_'.join(['a', str(x)]) for x in a_vals]
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_c_dirs = ['_'.join(['c', x]) for x in c_vals]
-        self.assertEqual(sorted(expected_a_dirs + expected_c_dirs), sorted(root_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            if rt in expected_a_dirs:
-                self.assertEqual(sorted(expected_b_dirs), sorted(subdirs))
-            elif rt in expected_c_dirs:
-                self.assertEqual(sorted(expected_a_dirs), sorted(subdirs))
-            else:
-                raise RuntimeError("Unexpected top-level directory.")
+        # test each directory
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'b': b}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                           'b', str(sp['b']), 'job')))
+            for c in c_vals:
+                sp = {'a': a, 'c': c}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
+                                                           str(sp['a']), 'job')))
 
     def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
@@ -501,17 +590,17 @@ class ProjectTest(BaseProjectTest):
                 self.project.open_job(sp).init()
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        a_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
-        for a in a_dirs:
-            a_view_prefix = os.path.join(view_prefix, a)
-            d_dirs = os.listdir(a_view_prefix)
-            expected_d_b_dirs = ['_'.join(['d', 'b', str(x)]) for x in b_vals]
-            expected_d_c_dirs = ['_'.join(['d', 'c', str(x)]) for x in c_vals]
-            self.assertEqual(sorted(expected_d_b_dirs + expected_d_c_dirs), sorted(d_dirs))
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'd': {'b': b}}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                           'd.b', str(sp['d']['b']), 'job')))
+            for c in c_vals:
+                sp = {'a': a, 'd': {'c': c}}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']), 'd.c',
+                                                           sp['d']['c'], 'job')))
 
-    def test_create_linked_view_heterogeneous_fizz_buzz_schema_flat(self):
+    def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(5)
@@ -526,23 +615,20 @@ class ProjectTest(BaseProjectTest):
                     self.project.open_job(sp).init()
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_a_dirs = ['a_0', 'a_3']
-        expected_c_dirs = ['c_bar', 'c_baz', 'c_foo']
-        self.assertEqual(sorted(expected_a_dirs + expected_c_dirs), sorted(root_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            if rt in expected_a_dirs:
-                self.assertEqual(sorted(expected_b_dirs), sorted(subdirs))
-            elif rt in expected_c_dirs:
-                self.assertEqual(['a_1', 'a_2', 'a_4'], sorted(subdirs))
-            else:
-                raise RuntimeError("Unexpected top-level directory.")
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    if a % 3 == 0:
+                        sp = {'a': a, 'b': b}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                                   'b', str(sp['b']), 'job')))
+                    else:
+                        sp = {'a': a, 'b': b, 'c': c}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
+                                                                   str(sp['a']), 'b', str(sp['b']),
+                                                                   'job')))
 
-    def test_create_linked_view_heterogeneous_fizz_buzz_schema_nested(self):
+    def test_create_linked_view_heterogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
         b_vals = range(10)
@@ -555,20 +641,51 @@ class ProjectTest(BaseProjectTest):
                 self.project.open_job(sp).init()
         self.project.create_linked_view(prefix=view_prefix)
 
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_a_dirs = ['_'.join(['a', str(x)]) for x in a_vals]
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_nested_b_dirs = ['_'.join(['b', 'c', str(x)]) for x in b_vals]
-        self.assertEqual(sorted(root_dirs), sorted(expected_a_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            a, x = rt.split('_')
-            if int(x) % 3 == 0:
-                self.assertEqual(sorted(subdirs), expected_nested_b_dirs)
-            else:
-                self.assertEqual(sorted(subdirs), expected_b_dirs)
+        for a in a_vals:
+            for b in b_vals:
+                if a % 3 == 0:
+                    sp = {'a': a, 'b': {'c': b}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'b.c', str(sp['b']['c']), 'job')))
+                else:
+                    sp = {'a': a, 'b': b}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'b', str(sp['b']), 'job')))
+
+    def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(5)
+        b_vals = range(10)
+        d_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for d in d_vals:
+                for b in b_vals:
+                    if a % 3 == 0:
+                        sp = {'a': a, 'b': {'c': b}, 'd': d}
+                    else:
+                        sp = {'a': a, 'b': b, 'd': d}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='d/{d}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                if a % 3 == 0:
+                    sp = {'a': a, 'b': {'c': b}, 'd': d}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
+                                                               str(sp['a']), 'b.c',
+                                                               str(sp['b']['c']), 'job')))
+                else:
+                    sp = {'a': a, 'b': b, 'd': d}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
+                                                               str(sp['a']), 'b', str(sp['b']),
+                                                               'job')))
+
+    def test_create_linked_view_heterogeneous_schema_problematic(self):
+        self.project.open_job(dict(a=1)).init()
+        self.project.open_job(dict(a=1, b=1)).init()
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        with self.assertRaises(RuntimeError):
+            self.project.create_linked_view(view_prefix)
 
     def test_find_job_documents(self):
         with warnings.catch_warnings():
@@ -1124,6 +1241,111 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_custom_path_string_modify_tree_flat(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path=os.path.join('a', '{a}', 'b', '{b}', '{{auto:_}}'))
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a',
+                                                                   str(i), 'b', str(j),
+                                                                   'c_%d_d_%d' % (k, l))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_tree_tree(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path=os.path.join('c', '{c}', 'b', '{b}', '{{auto}}'))
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'c',
+                                                                   str(k), 'b', str(j), 'd',
+                                                                   str(l), 'a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_flat_flat(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(target=prefix_data, path='c_{c}_b_{b}/{{auto:_}}')
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 4)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(
+                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (l, i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_flat_tree(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path='c_{c}_b_{b}/{{auto}}')
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 4)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(
+                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, l, i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
     def test_export_custom_path_string(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
@@ -1133,7 +1355,7 @@ class ProjectExportImportTest(BaseProjectTest):
         with self.assertRaises(RuntimeError):
             self.project.export_to(target=prefix_data, path='non_unique')
 
-        self.project.export_to(target=prefix_data, path='my_a/{job.sp.a}')
+        self.project.export_to(target=prefix_data, path='my_a/{job.sp.a}')  # why not jus {a}
 
         self.assertEqual(len(self.project), 10)
         self.assertEqual(len(os.listdir(prefix_data)), 1)

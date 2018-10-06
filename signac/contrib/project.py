@@ -157,10 +157,8 @@ class Project(object):
     def __repr__(self):
         return "{type}({{'project': '{id}', 'project_dir': '{rd}',"\
                " 'workspace_dir': '{wd}'}})".format(
-                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
-                    id=self.get_id(),
-                    rd=self.root_directory(),
-                    wd=self.workspace())
+                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
+                   id=self.get_id(), rd=self.root_directory(), wd=self.workspace())
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -754,34 +752,42 @@ class Project(object):
         self._sp_cache[jobid] = sp
         return sp
 
-    def create_linked_view(self, prefix=None, job_ids=None, index=None):
+    def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
-        This method determines unique paths for each job based on the job's
-        statepoint and creates symbolic links to the associated workspace
-        directories. This is useful for browsing through the data space in a
-        human-readable manner.
+        Similar to :meth:`~.export_to`, this function expands the data space for the selected
+        jobs, but instead of copying data will create symbolic links to the individual job
+        workspace directories. This is primarily uselful for browsing through the data
+        space using a file-browser with human-interpretable directory paths.
 
-        Assuming that the parameter space is
+        By default, the paths of the view will be based on variable state point keys as part
+        of the *implicit* schema of the selected jobs that we create the view for. For example,
+        creating a linked view for a data space with schema
 
-            * a=0, b=0
-            * a=1, b=0
-            * a=2, b=0
-            * ...,
+        .. code-block:: python
 
-        where *b* does not vary over all statepoints, this method will create
-        the following *symbolic links* within the specified view prefix:
+            >>> print(project.detect_schema())
+            {
+             'foo': 'int([0, 1, 2, ..., 8, 9], 10)',
+            }
+
+        by calling ``project.create_linked_view('my_view')`` will look similar to:
 
         .. code-block:: bash
 
-            view/a/0/job -> /path/to/workspace/7f9fb369851609ce9cb91404549393f3
-            view/a/1/job -> /path/to/workspace/017d53deb17a290d8b0d2ae02fa8bd9d
+            my_view/foo/0/job -> workspace/b8fcc6b8f99c56509eb65568922e88b8
+            my_view/foo/1/job -> workspace/b6cd26b873ae3624653c9268deff4485
             ...
+
+        It is possible to control the paths using the ``path`` argument, which behaves in
+        the exact same manner as the equivalent argument for :meth:`~.Project.export_to`.
 
         .. note::
 
-            To maximize the compactness of each view path, *b* which does not
-            vary over the selected data space, is ignored.
+            The behavior of this function is almost equivalent to
+            ``project.export_to('my_view', copytree=os.symlink)`` with the major difference,
+            that view hierarchies are actually *updated*, that means no longer valid links
+            are automatically removed.
 
         :param prefix:
             The path where the linked view will be created or updated.
@@ -792,40 +798,47 @@ class Project(object):
             otherwise only for the sub space constituted by the provided job ids.
         :param index:
             A document index.
+        :param path:
+            The path (function) used to structure the linked data space.
+        :returns:
+            A dict that maps the source directory paths, to the linked
+            directory paths.
         """
+        from .import_export import _make_path_function
+        from .import_export import _check_directory_structure_validity
         if prefix is None:
             prefix = 'view'
 
         if index is None:
             if job_ids is None:
                 index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+                jobs = list(self)
             else:
                 index = [{'_id': job_id, 'statepoint': self.open_job(id=job_id).sp()}
                          for job_id in job_ids]
+                jobs = list(self.open_job(id=job_id) for job_id in job_ids)
         elif job_ids is not None:
             if not isinstance(job_ids, set):
                 job_ids = set(job_ids)
             index = [doc for doc in index if doc['_id'] in job_ids]
+            jobs = list(self.open_job(id=job_id) for job_id in job_ids)
             if not job_ids.issubset({doc['_id'] for doc in index}):
                 raise ValueError("Insufficient index for selected data space.")
 
-        jsi = self.build_job_statepoint_index(exclude_const=True, index=index)
-        sp_index = collections.OrderedDict(jsi)
-        tmp = collections.defaultdict(list)
-        for key, values in sp_index.items():
-            for value, group in values.items():
-                p = '_'.join(str(_) for _ in (key + (value, )))
-                for job_id in group:
-                    tmp[job_id].append(p)
+        path_function = _make_path_function(jobs, path)
+
         links = dict()
-        for job_id, p in tmp.items():
-            path = os.path.join(* p + ['job'])
-            links[path] = self.open_job(id=job_id).workspace()
+        for job in jobs:
+            paths = os.path.join(path_function(job), 'job')
+            links[paths] = job.workspace()
         if not links:   # data space contains less than two elements
             for job in self.find_jobs():
                 links['./job'] = job.workspace()
             assert len(links) < 2
+        _check_directory_structure_validity(links.keys())
+
         _update_view(prefix, links)
+        return links
 
     def find_job_documents(self, filter=None):
         """Find all job documents in the project's workspace.
@@ -972,7 +985,7 @@ class Project(object):
             **kwargs)
 
     def export_to(self, target, path=None, copytree=None):
-        """Export all jobs to a target location, such as a directory or a (zipped) archive file.
+        """Export all jobs to a target location, such as a directory or a (compressed) archive file.
 
         Use this function in combination with :meth:`~.find_jobs` to export only a select number
         of jobs, for example:
@@ -981,14 +994,57 @@ class Project(object):
 
             project.find_jobs({'foo': 0}).export_to('foo_0.tar')
 
-        .. seealso:: Import data spaces with :meth:`~.import_from`.
+        The ``path`` argument enables users to control how exactly the exported data space is to be
+        expanded. By default, the path-function will be based on the *implicit* schema of the
+        exported jobs. For example, exporting jobs that all differ by a state point key *foo* with
+        ``project.export_to('data/')``, the exported directory structure could look like this:
+
+        .. code-block:: bash
+
+            data/foo/0
+            data/foo/1
+            ...
+
+        That would be equivalent to specifying ``path=lambda job: os.path.join('foo', job.sp.foo)``.
+
+        Instead of a function, we can also provide a string, where fields for state point keys
+        are automatically formatted. For example, the following two path arguments are equivalent:
+        "foo/{foo}" and "foo/{job.sp.foo}".
+
+        Any attribute of job can be used as a field here, so ``job.doc.bar``,
+        ``job._id``, and ``job.ws`` can also be used as path fields.
+
+        A special ``{{auto}}`` field allows us to expand the path automatically with state point
+        keys that have not been specified explicitly. So, for example, one can provide
+        ``path="foo/{foo}/{{auto}}"`` to specify that the path shall begin with ``foo/{foo}/``,
+        but is then automatically expanded with all other state point key-value pairs. How
+        key-value pairs are concatenated can be controlled *via* the format-specifier, so for
+        example, ``path="{{auto:_}}"`` will generate a structure such as
+
+        .. code-block:: bash
+
+            data/foo_0
+            data/foo_1
+            ...
+
+        Finally, providing ``path=False`` is equivalent to ``path="{job._id}"``.
+
+        .. seealso::
+
+            Previously exported or non-signac data spaces can be imported
+            with :meth:`~.import_from`.
 
         :param target:
-            A path to a directory to export to. The directory can not
-            already exist.
+            A path to a directory to export to. The target can not already exist.
+            Besides directories, possible targets are tar-files (`.tar`), gzipped tar-files
+            (`.tar.gz`), zip-files (`.zip`), bzip2-compressed files (`.bz2`),
+            and xz-compressed files (`.xz`).
         :param path:
-            The path function for export, must be a function of job or
-            a string, which is evaluated with ``path.format(job=job)``.
+            The path (function) used to structure the exported data space.
+            This argument must either be a callable which returns a path (str) as a function
+            of `job`, a string where fields are replaced using the job-state point dictionary,
+            or `False`, which means that we just use the job-id as path.
+            Defaults to the equivalent of ``{{auto}}``.
         :param copytree:
             The function used for the actualy copying of directory tree
             structures. Defaults to :func:`shutil.copytree`.
@@ -1005,8 +1061,10 @@ class Project(object):
         This function will walk through the data space located at origin and will try to identify
         data space paths that can be imported as a job workspace into this project.
 
-        The default schema function will simply look for state point manifest files -- usually named
-        ``signac_statepoint.json`` -- and then import all data located within that path into the job
+        The ``schema`` argument expects a function that takes a path argument and returns a state
+        point dictionary. A default function is used when no argument is provided.
+        The default schema function will simply look for state point manifest files--usually named
+        ``signac_statepoint.json``--and then import all data located within that path into the job
         workspace corresponding to the state point specified in the manifest file.
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
@@ -1806,24 +1864,11 @@ class JobsCursor(object):
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (zipped) archive file.
 
-        .. seealso:: Import data spaces with :meth:`~.import_from`.
-
-        :param target:
-            A path to a directory to export to. The directory can not
-            already exist.
-        :param path:
-            The path function for export, must be a function of job or
-            a string, which is evaluated with `path.format(job=job)`.
-        :param copytree:
-            The function used for the actualy copying of directory tree
-            structures. Defaults to `shutil.copytree`.
-            Can only be used when the target is a directory.
-        :returns:
-            A dict that maps the source directory paths, to the target
-            directory paths.
+        See help(signac.Project.export_to) for full details on how to use this function.
         """
         from .import_export import export_jobs
-        return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
+        return dict(export_jobs(jobs=list(self), target=target,
+                                path=path, copytree=copytree))
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

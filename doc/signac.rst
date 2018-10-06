@@ -61,6 +61,7 @@ Project
     ~Project.doc
     ~Project.document
     ~Project.dump_statepoints
+    ~Project.export_to
     ~Project.find_job_documents
     ~Project.find_job_ids
     ~Project.find_jobs
@@ -70,6 +71,7 @@ Project
     ~Project.get_statepoint
     ~Project.groupby
     ~Project.groupbydoc
+    ~Project.import_from
     ~Project.index
     ~Project.isfile
     ~Project.min_len_unique_id

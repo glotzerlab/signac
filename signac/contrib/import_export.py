@@ -10,8 +10,8 @@ import zipfile
 import tarfile
 from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
-from collections import defaultdict
 from contextlib import contextmanager, closing
+from string import Formatter
 
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
@@ -40,8 +40,8 @@ RE_TYPES = {
 #  ### Export related  ###
 
 
-def _make_schema_based_path_function(jobs, delimiter_nested='.'):
-    "Generate a schema based path function for the given jobs."
+def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='.'):
+    "Generate schema based paths as a function of the given jobs."
     from .schema import _build_job_statepoint_index
     if len(jobs) <= 1:
         return lambda job: ''
@@ -49,44 +49,111 @@ def _make_schema_based_path_function(jobs, delimiter_nested='.'):
     index = [{'_id': job._id, 'statepoint': job.sp()} for job in jobs]
     jsi = _build_job_statepoint_index(jobs=jobs, exclude_const=True, index=index)
     sp_index = OrderedDict(jsi)
-    tmp = defaultdict(list)
-    for key, values in sp_index.items():
+
+    paths = dict()
+    for key_tokens, values in sp_index.items():
+        key = delimiter_nested.join(map(str, key_tokens))
+        if exclude_keys and key in exclude_keys:
+            continue
         for value, group in values.items():
-            path = delimiter_nested.join((str(k) for k in key)) + os.path.sep + str(value)
+            path_tokens = key, str(value)
             for job_id in group:
-                tmp[job_id].append(path)
+                paths.setdefault(job_id, list())
+                paths[job_id].extend(path_tokens)
 
-    def get_path(job):
-        return os.path.join(* tmp[job.get_id()])
+    def path(job, sep=None):
+        try:
+            if sep:
+                return os.path.normpath(sep.join(paths[job._id]))
+            else:
+                return os.path.normpath(os.path.join(* paths[job._id]))
+        except KeyError:
+            raise RuntimeError(
+                "Unable to determine path for job '{}'.\nThis is usually caused by a "
+                "heterogeneous schema, where some keys are only present in some jobs. "
+                "Try providing a custom path.".format(job))
+    return path
 
-    return get_path
+
+class _AutoPathFormatter(Formatter):
+
+    def __init__(self, paths):
+        self.paths = paths
+
+    def format_field(self, value, format_spec):
+        from .job import Job
+        if isinstance(value, Job):
+            return self.paths(value, format_spec)
+        else:
+            return super(_AutoPathFormatter, self).format_field(value, format_spec)
 
 
 class _SchemaPathEvaluationError(RuntimeError):
     pass
 
 
-def _export_jobs(jobs, path, copytree):
-    "Generic export function for jobs, using the provided copytree method."
+def _make_path_function(jobs, path):
+    "Generate a path function for jobs or use `path` if its a callable."
+
     if path is None:
+        # Generate a path function based on the schema detected for jobs.
         path_function = _make_schema_based_path_function(jobs=jobs)
+
+    elif path is False:
+
+        # Just use the job-id as path.
+        def path_function(job):
+            return str(job.get_id())
+
     elif isinstance(path, six.string_types):
+        # Detect keys that are already provided as part of the path specifier and
+        # and should therefore be excluded from the 'auto'-part.
+        exclude_keys = [x[1] for x in Formatter().parse(path)]
+
+        # Generate the paths based on the provided selection, excluding any keys
+        # that have already been provided by the user.
+        paths = _make_schema_based_path_function(jobs=jobs, exclude_keys=exclude_keys)
 
         def path_function(job):
             try:
                 try:
-                    return path.format(job=job, **job.sp())
+                    ret = path.format(job=job, **job.sp)
                 except TypeError:
-                    return path.format(job=job)
+                    ret = path.format(job=job)
+                return _AutoPathFormatter(paths).format(ret, auto=job)
             except AttributeError as error:
                 raise _SchemaPathEvaluationError(error)
             except KeyError as error:
                 raise _SchemaPathEvaluationError("Unknown key: {}".format(error))
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
-
     else:
+        raise ValueError(
+            "The path argument must either be `None`, `False`, or of type `str`.")
+
+    return path_function
+
+
+def _check_directory_structure_validity(paths):
+    "Check the consistency of the directory structure for export."
+    check = set()
+    for dst in paths:
+        if dst in check:
+            raise RuntimeError(
+                "The path '{}' is both a leaf and node in the path structure.".format(dst))
+        tokens = dst.split(os.path.sep)
+        for i in range(1, len(tokens)):
+            check.add(os.path.sep.join(tokens[:i]))
+
+
+def _export_jobs(jobs, path, copytree):
+    "Generic export function for jobs, using the provided copytree method."
+
+    # Transform the path argument into a callable if necessary.
+    if callable(path):
         path_function = path
+    else:
+        path_function = _make_path_function(jobs, path)
 
     # Determine export path for each job.
     paths = {job.workspace(): path_function(job) for job in jobs}
@@ -95,22 +162,23 @@ def _export_jobs(jobs, path, copytree):
     if len(set(paths.values())) != len(paths):
         raise RuntimeError("Paths generated with given path function are not unique!")
 
+    # Check leaf/node consistency
+    _check_directory_structure_validity(paths.values())
+
     for src, dst in paths.items():
         copytree(src, dst)
         yield src, dst
 
 
 def export_to_directory(jobs, target, path=None, copytree=None):
-    """Export jobs to a directory target.
+    """Export jobs to a directory.
 
     :param jobs:
         A sequence of jobs to export.
     :param target:
-        A path to a directory to export to. The directory can not
-        already exist.
+        A path to a directory to export to. The directory can not already exist.
     :param path:
-        The path function for export, must be a function of job or
-        a string, which is evaluated with ``path.format(job=job)``.
+        The path (function) used to structure the exported data space.
     :param copytree:
         The function used for the actualy copying of directory tree
         structures. Defaults to :func:`shutil.copytree`.
@@ -148,16 +216,14 @@ def export_to_zipfile(jobs, zipfile, path=None):
 
 
 def export_jobs(jobs, target, path=None, copytree=None):
-    """Export jobs to a target location, such as a directory or a (zipped) archive file.
+    """Export jobs to a target location, such as a directory or a (compressed) archive file.
 
     :param jobs:
         A sequence of jobs to export.
     :param target:
-        A path to a directory to export to. The directory can not
-        already exist.
+        A path to a directory or archive file to export to.
     :param path:
-        The path function for export, must be a function of job or
-        a string, which is evaluated with ``path.format(job=job)``.
+        The path (function) used to structure the exported data space.
     :param copytree:
         The function used for the actualy copying of directory tree
         structures. Defaults to :func:`shutil.copytree`.
@@ -284,6 +350,7 @@ def _convert_to_nested(sp):
 
 
 def _with_consistency_check(schema_function, read_sp_manifest_file):
+    "Check whether the state point detected from the schema function matches the manifest file."
 
     def _check(path):
         if schema_function is read_sp_manifest_file:
@@ -356,8 +423,8 @@ class _CopyFromDirectoryExecutor(object):
 
 def _analyze_directory_for_import(root, project, schema):
     "Prepare the data space located at the root directory for import into project."
-    # Determine schema function
 
+    # Determine schema function
     read_sp_manifest_file = _parse_workspaces(project.Job.FN_MANIFEST)
     if schema is None:
         schema_function = read_sp_manifest_file
