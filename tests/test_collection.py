@@ -105,15 +105,15 @@ class CollectionTest(unittest.TestCase):
     def test_contains(self):
         self.assertFalse('0' in self.c)
         _id = self.c.insert_one(dict())
-        self.assertTrue(_id in self.c)
+        self.assertIn(_id, self.c)
         del self.c[_id]
         self.assertFalse(_id in self.c)
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         for _id in self.c.ids:
-            self.assertTrue(_id in self.c)
+            self.assertIn(_id, self.c)
         for doc in docs:
-            self.assertTrue(doc['_id'] in self.c)
+            self.assertIn(doc['_id'], self.c)
 
     def test_update(self):
         docs = [dict(a=i) for i in range(10)]
@@ -407,16 +407,16 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(), 1)
         self.assertEqual(self.c.find({'a': {'$near': (10)}}).count(), 1)
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
-            self.c.find({'a': {'$near': (10)}}).count())
+                         self.c.find({'a': {'$near': (10)}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
-            self.c.find({'a': {'$near': 10}}).count())
+                         self.c.find({'a': {'$near': 10}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10, 0.5]}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': (10, 0.5)}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count(), 16)
         # increasing abs_tol should increase # of jobs found
-        self.assertTrue(self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() >
-            self.c.find({'a': {'$near': [10, 0.5]}}).count())
+        self.assertGreater(self.c.find({'a': {'$near': [10, 0.5, 11]}}).count(),
+                           self.c.find({'a': {'$near': [10, 0.5]}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10.5, 0.005]}}).count(), 0)
         self.assertEqual(self.c.find({'a': {'$near': (10.5, 0.005)}}).count(), 0)
         # test with lists that are too long
@@ -544,7 +544,7 @@ class FileCollectionTest(CollectionTest):
         with Collection.open(self._fn_collection) as c:
             self.assertEqual(len(c), len(docs))
             for doc in self.c:
-                self.assertTrue(doc['_id'] in c)
+                self.assertIn(doc['_id'], c)
 
 
 class FileCollectionTestAppendPlus(FileCollectionTest):
