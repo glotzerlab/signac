@@ -131,7 +131,6 @@
 """
 import re
 import sys
-from pprint import pprint
 
 __version__ = '1.0.1'
 
@@ -167,18 +166,19 @@ __all__ = (
 )
 
 
-#TODO - #21 - six is part of the repo now, but we didn't switch over to it here
+# TODO - #21 - six is part of the repo now, but we didn't switch over to it here
 # this could be replaced if six is used for compatibility, or there are no
 # more assertions about items being a string
 if sys.version_info < (3,):
-    string_type = basestring
+    string_type = basestring     # noqa
 else:
     string_type = str
     # so tests that care about unicode on 2.x can specify unicode, and the same
     # tests when run on 3.x won't complain about a undefined name "unicode"
     # since all strings are unicode on 3.x we just want to pass it through
     # unchanged
-    unicode = lambda x: x
+
+    def unicode(x): return x
     # in python 3, all ints are equivalent to python 2 longs, and they'll
     # never show "L" in the repr
     long = int
@@ -272,11 +272,12 @@ def dottedQuadToNum(ip):
     """
 
     # import here to avoid it when ip_addr values are not used
-    import socket, struct
+    import socket
+    import struct
 
     try:
         return struct.unpack('!L',
-            socket.inet_aton(ip.strip()))[0]
+                             socket.inet_aton(ip.strip()))[0]
     except socket.error:
         raise ValueError('Not a good dotted-quad IP: %s' % ip)
     return
@@ -322,7 +323,8 @@ def numToDottedQuad(num):
     """
 
     # import here to avoid it when ip_addr values are not used
-    import socket, struct
+    import socket
+    import struct
 
     # no need to intercept here, 4294967295L is fine
     if num > long(4294967295) or num < 0:
@@ -381,7 +383,9 @@ class VdtParamError(SyntaxError):
         if value is self.NOT_GIVEN:
             SyntaxError.__init__(self, name_or_msg)
         else:
-            SyntaxError.__init__(self, 'passed an incorrect value "{}" for parameter "{}".'.format(value, name_or_msg))
+            SyntaxError.__init__(
+                self, 'passed an incorrect value "{}" for '
+                      'parameter "{}".'.format(value, name_or_msg))
 
 
 class VdtTypeError(ValidateError):
@@ -536,7 +540,6 @@ class Validator(object):
     # this regex takes apart keyword arguments
     _key_arg = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$',  re.DOTALL)
 
-
     # this regex finds keyword=list(....) type values
     _list_arg = _list_arg
 
@@ -547,7 +550,6 @@ class Validator(object):
     # and then pull the members out
     _paramfinder = re.compile(_paramstring, re.VERBOSE | re.DOTALL)
     _matchfinder = re.compile(_matchstring, re.VERBOSE | re.DOTALL)
-
 
     def __init__(self, functions=None):
         """
@@ -577,7 +579,6 @@ class Validator(object):
         # tekNico: for use by ConfigObj
         self.baseErrorClass = ValidateError
         self._cache = {}
-
 
     def check(self, check, value, missing=False):
         """
@@ -614,7 +615,6 @@ class Validator(object):
 
         return self._check_value(value, fun_name, fun_args, fun_kwargs)
 
-
     def _handle_none(self, value):
         if value == 'None':
             return None
@@ -622,7 +622,6 @@ class Validator(object):
             # Special case a quoted None
             value = self._unquote(value)
         return value
-
 
     def _parse_with_caching(self, check):
         if check in self._cache:
@@ -637,7 +636,6 @@ class Validator(object):
             self._cache[check] = fun_name, list(fun_args), dict(fun_kwargs), default
         return fun_name, fun_args, fun_kwargs, default
 
-
     def _check_value(self, value, fun_name, fun_args, fun_kwargs):
         try:
             fun = self.functions[fun_name]
@@ -645,7 +643,6 @@ class Validator(object):
             raise VdtUnknownCheckError(fun_name)
         else:
             return fun(value, *fun_args, **fun_kwargs)
-
 
     def _parse_check(self, check):
         fun_match = self._func_re.match(check)
@@ -670,7 +667,7 @@ class Validator(object):
                 keymatch = self._key_arg.match(arg)
                 if keymatch:
                     val = keymatch.group(2)
-                    if not val in ("'None'", '"None"'):
+                    if val not in ("'None'", '"None"'):
                         # Special case a quoted None
                         val = self._unquote(val)
                     fun_kwargs[keymatch.group(1)] = val
@@ -686,13 +683,11 @@ class Validator(object):
         default = fun_kwargs.pop('default', None)
         return fun_name, fun_args, fun_kwargs, default
 
-
     def _unquote(self, val):
         """Unquote a value if necessary."""
         if (len(val) >= 2) and (val[0] in ("'", '"')) and (val[0] == val[-1]):
             val = val[1:-1]
         return val
-
 
     def _list_handle(self, listmatch):
         """Take apart a ``keyword=list('val, 'val')`` type string."""
@@ -702,7 +697,6 @@ class Validator(object):
         for arg in self._list_members.findall(args):
             out.append(self._unquote(arg))
         return name, out
-
 
     def _pass(self, value):
         """
@@ -714,7 +708,6 @@ class Validator(object):
         '0'
         """
         return value
-
 
     def get_default_value(self, check):
         """
@@ -937,9 +930,9 @@ def is_boolean(value):
     # we do an equality test rather than an identity test
     # this ensures Python 2.2 compatibilty
     # and allows 0 and 1 to represent True and False
-    if value == False:
+    if value is False:
         return False
-    elif value == True:
+    elif value is True:
         return True
     else:
         raise VdtTypeError(value)
@@ -1239,7 +1232,6 @@ def force_list(value, min=None, max=None):
     return is_list(value, min, max)
 
 
-
 fun_dict = {
     int: is_integer,
     'int': is_integer,
@@ -1328,7 +1320,7 @@ def is_option(value, *options):
     """
     if not isinstance(value, string_type):
         raise VdtTypeError(value)
-    if not value in options:
+    if value not in options:
         raise VdtValueError(value)
     return value
 
@@ -1426,6 +1418,7 @@ def _test2():
     >>> v.get_default_value('integer(default=3) # comment')
     3
     """
+
 
 def _test3():
     r"""
