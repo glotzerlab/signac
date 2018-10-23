@@ -1494,6 +1494,32 @@ class Project(object):
                     os.getcwd() if root is None else os.path.abspath(root)))
         return cls(config=config)
 
+    @classmethod
+    def get_job(cls, root=None):
+        """From a job workspace directory, locate the closest project above
+        this directory and return this job.
+
+        :param root: The job root directory.
+            If no root directory is given, the current working directory is
+            assumed to be the job directory.
+        :type root: str
+        :returns: The job handle.
+        :raises LookupError: If this job cannot be found."""
+        if root is None:
+            root = os.getcwd()
+        statepoint_path = os.path.join(root, 'signac_statepoint.json')
+        if not os.path.exists(statepoint_path):
+            raise LookupError(
+                "No signac_statepoint.json found in path '{}'.".format(root))
+        else:
+            with open(statepoint_path, 'r') as file:
+                statepoint = json.loads(file.read())
+            config = load_config(root=os.path.join(root, os.pardir), local=False)
+            if 'project' not in config:
+                raise LookupError(
+                    "Unable to determine project id for path '{}'.".format(root))
+            return cls(config=config).open_job(statepoint)
+
 
 @contextmanager
 def TemporaryProject(name=None, **kwargs):
@@ -1741,3 +1767,16 @@ def get_project(root=None):
     :rtype: :py:class:`~.Project`
     :raises LookupError: If no project configuration can be found."""
     return Project.get_project(root=root)
+
+
+def get_job(root=None):
+    """From a job workspace directory, locate the closest parent project
+    and return this job.
+
+    :param root: The job root directory.
+        If no root directory is given, the current working directory is
+        assumed to be the job directory.
+    :type root: str
+    :returns: The job handle.
+    :raises LookupError: If this job cannot be found."""
+    return Project.get_job(root=root)

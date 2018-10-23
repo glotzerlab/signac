@@ -7,7 +7,7 @@ import logging
 from . import indexing
 from .project import Project
 from .project import TemporaryProject
-from .project import get_project, init_project
+from .project import get_project, init_project, get_job
 from .indexing import BaseCrawler
 from .indexing import RegexFileCrawler
 from .indexing import JSONCrawler
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     'indexing',
-    'Project', 'TemporaryProject', 'get_project', 'init_project',
+    'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
     'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
     'export_one', 'export', 'export_to_mirror', 'export_pymongo',

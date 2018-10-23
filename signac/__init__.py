@@ -21,6 +21,7 @@ from .contrib import Project
 from .contrib import TemporaryProject
 from .contrib import get_project
 from .contrib import init_project
+from .contrib import get_job
 from .contrib import fetch
 from .contrib import export_one
 from .contrib import export
@@ -46,7 +47,7 @@ __version__ = '0.9.3'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
-           'Project', 'TemporaryProject', 'get_project', 'init_project',
+           'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
            'get_database', 'fetch', 'fetch_one',
            'export_one', 'export', 'export_to_mirror',
            'Collection',

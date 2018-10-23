@@ -66,6 +66,10 @@ Python:
      with project.open_job(id='9bfd29') as job:
         pass
 
+     # From a job workspace directory
+     with signac.get_job() as job:
+        pass
+
 Command line:
 
 .. code-block:: bash

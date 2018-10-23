@@ -91,6 +91,15 @@ The central assumption of the **signac** data model is that the *data space* is 
 In the context of **signac**, each data point is called a *job*, and its unique address is referred to as a *state point*.
 A job can consist of any type of data, ranging from a single value to multiple terabytes of simulation data; **signac**'s only requirement is that this data can be encoded in a file.
 
+Access a signac job from its workspace directory:
+
+.. code-block:: python
+
+    >>> import signac
+    >>> job = signac.get_job()
+    >>> print(job)
+    42b7b4f2921788ea14dac5566e6f06d0
+
 .. _project-job-statepoints:
 
 State Points
