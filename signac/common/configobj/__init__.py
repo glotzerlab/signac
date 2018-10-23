@@ -31,7 +31,7 @@ except ImportError:
     # Python 2.7
     from collections import Mapping
 
-import six
+from .. import six
 from ._version import __version__    # noqa
 
 # imported lazily to avoid startup performance hit if it isn't used
