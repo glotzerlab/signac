@@ -3,6 +3,7 @@ import io
 import warnings
 import unittest
 from collections import OrderedDict
+from itertools import islice
 
 from signac import Collection
 from signac.common import six
@@ -60,6 +61,36 @@ class CollectionTest(unittest.TestCase):
     def test_init(self):
         self.assertEqual(len(self.c), 0)
 
+    def test_init_with_list_with_ids_sequential(self):
+        docs = [{'a': i, '_id': str(i)} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_with_ids_non_sequential(self):
+        docs = [{'a': i, '_id': '{:032d}'.format(i**3)} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_without_ids(self):
+        docs = [{'a': i} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_with_and_without_ids(self):
+        docs = [{'a': i} for i in range(10)]
+        for i, doc in enumerate(islice(docs, 5)):
+            doc.setdefault('_id', str(i))
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
     def test_insert(self):
         doc = dict(a=0)
         self.c['0'] = doc
@@ -72,6 +103,14 @@ class CollectionTest(unittest.TestCase):
             self.c[0] = dict(a=0)
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
+
+    def test_insert_multiple(self):
+        doc = dict(a=0)
+        self.assertEqual(len(self.c), 0)
+        self.c.insert_one(doc.copy())
+        self.assertEqual(len(self.c), 1)
+        self.c.insert_one(doc.copy())
+        self.assertEqual(len(self.c), 2)
 
     def test_int_float_equality(self):
         self.c.insert_one(dict(a=1))

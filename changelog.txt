@@ -29,6 +29,7 @@ Added
  - Adds the ``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
  - Add ``signac`` to the default namespace when invoking ``signac shell``.
  - Add option to specify a custom view path for the ``signac view``/ ``Project.create_linked_view()`` function.
+ - Iterables of documents used to construct a Collection no longer require an ``_id`` field (issue #92).
 
 Fixed
 +++++

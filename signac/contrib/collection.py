@@ -351,13 +351,15 @@ class Collection(object):
         self._requires_flush = False
         self._dirty = set()
         self._indexes = dict()
+        self._next_default_id_ = None
         self._docs = dict()
         if docs is not None:
             for doc in docs:
+                if self._primary_key not in doc:
+                    doc[self._primary_key] = self._next_default_id()
                 self.__setitem__(doc[self._primary_key], doc, _trust=_trust)
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
-        self._next_default_id_ = None
 
     def _assert_open(self):
         if self._docs is None:
