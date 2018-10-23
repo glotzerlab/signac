@@ -52,5 +52,6 @@ class DBTest(unittest.TestCase):
         c.authenticate()
         c.logout()
 
+
 if __name__ == '__main__':
     unittest.main()
