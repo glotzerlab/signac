@@ -49,6 +49,7 @@ pipelines:
       - step:
           name: 'check references.bib'
           script:
+            - pip install -U pybtex
             - python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
       - step:
           name: 'deploy-test.pypi.org'
