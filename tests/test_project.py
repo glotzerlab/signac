@@ -1765,6 +1765,27 @@ class ProjectInitTest(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
+    def test_get_job(self):
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        project.open_job({'a': 1}).init()
+        for job in project:
+            with job:
+                # The context manager enters the working directory of the job
+                self.assertEqual(project.get_job(), job)
+                self.assertEqual(signac.get_job(), job)
+        # We shouldn't be able to find a job while in the workspace directory,
+        # since no signac_statepoint.json exists.
+        cwd = os.getcwd()
+        try:
+            os.chdir(project.workspace())
+            with self.assertRaises(LookupError):
+                project.get_job()
+            with self.assertRaises(LookupError):
+                signac.get_job()
+        finally:
+            os.chdir(cwd)
+
 
 if __name__ == '__main__':
     unittest.main()
