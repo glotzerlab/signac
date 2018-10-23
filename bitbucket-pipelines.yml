@@ -46,7 +46,7 @@ pipelines:
           name: 'check zenodo metadata'
           script:
             - python -c "import json; json.load(open('.zenodo.json'))"
-     - step:
+      - step:
           name: 'check references.bib'
           script:
             - python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
