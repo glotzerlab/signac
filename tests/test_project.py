@@ -1765,24 +1765,25 @@ class ProjectInitTest(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
-    def test_get_job(self):
+    def test_get_job_valid_workspace(self):
+        # Test case: The root-path is the job workspace path.
         root = self._tmp_dir.name
         project = signac.init_project(name='testproject', root=root)
-        project.open_job({'a': 1}).init()
-        for job in project:
-            self.assertEqual(project.get_job(job.ws), job)
-            self.assertEqual(signac.get_job(job.ws), job)
-            with job:
-                # The context manager enters the working directory of the job
-                self.assertEqual(project.get_job(), job)
-                self.assertEqual(signac.get_job(), job)
-                nestedproject = signac.init_project('nestedproject')
-                nestedproject.open_job({'b': 2})
-                self.assertEqual(project.get_job(), job)
-                self.assertEqual(signac.get_job(), job)
-            self.assertEqual(project.get_job(job.ws), job)
-            self.assertEqual(signac.get_job(job.ws), job)
+        job = project.open_job({'a': 1})
+        job.init()
+        self.assertEqual(project.get_job(job.ws), job)
+        self.assertEqual(signac.get_job(job.ws), job)
+        with job:
+            # The context manager enters the working directory of the job
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
 
+    def test_get_job_invalid_workspace(self):
+        # Test case: The root-path is not the job workspace path.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
         # We shouldn't be able to find a job while in the workspace directory,
         # since no signac_statepoint.json exists.
         cwd = os.getcwd()
@@ -1794,6 +1795,27 @@ class ProjectInitTest(unittest.TestCase):
                 signac.get_job()
         finally:
             os.chdir(cwd)
+
+    def test_get_job_nested_project(self):
+        # Test case: The job workspace dir is also a project root dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2})
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
+
+    def test_get_job_subdir_of_project(self):
+        # Test case: The job workspace dir is a sub-directory of the project root dir.
+        pass
+
+    def test_get_job_not_subdir_of_project(self):
+        # Test case: The job workspace dir is not a sub-directory of project root dir.
+        # Test case: The job is not actually part of the project that we identified for this job.
+        pass
 
 
 if __name__ == '__main__':
