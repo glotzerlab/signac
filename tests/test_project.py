@@ -1770,10 +1770,19 @@ class ProjectInitTest(unittest.TestCase):
         project = signac.init_project(name='testproject', root=root)
         project.open_job({'a': 1}).init()
         for job in project:
+            self.assertEqual(project.get_job(job.ws), job)
+            self.assertEqual(signac.get_job(job.ws), job)
             with job:
                 # The context manager enters the working directory of the job
                 self.assertEqual(project.get_job(), job)
                 self.assertEqual(signac.get_job(), job)
+                nestedproject = signac.init_project('nestedproject')
+                nestedproject.open_job({'b': 2})
+                self.assertEqual(project.get_job(), job)
+                self.assertEqual(signac.get_job(), job)
+            self.assertEqual(project.get_job(job.ws), job)
+            self.assertEqual(signac.get_job(job.ws), job)
+
         # We shouldn't be able to find a job while in the workspace directory,
         # since no signac_statepoint.json exists.
         cwd = os.getcwd()
