@@ -118,7 +118,15 @@ def _make_path_function(jobs, path):
             try:
                 try:
                     ret = path.format(job=job, **job.sp)
-                except TypeError:
+                except TypeError as error:
+                    if str(error) == "format() got multiple values for keyword argument 'job'":
+                        try:
+                            ret = path.format(job=job)
+                        except KeyError:
+                            raise _SchemaPathEvaluationError(
+                                "You must use fully qualified fields for this path, because the "
+                                "state point contains a key called 'job', e.g.: '{job.sp.job}' "
+                                "instead of '{job}'.")
                     ret = path.format(job=job)
                 return _AutoPathFormatter(paths).format(ret, auto=job)
             except AttributeError as error:
