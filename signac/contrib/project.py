@@ -1307,7 +1307,7 @@ class Project(object):
 
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
-        """Generate an index of the project's workspace.
+        r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
         workspace until the specified `depth`.
@@ -1316,7 +1316,7 @@ class Project(object):
 
         .. code-block:: python
 
-            for doc in project.index({'.*\.txt', 'TextFile'}):
+            for doc in project.index({r'.*\.txt', 'TextFile'}):
                 print(doc)
 
         :param formats: The format definitions as mapping.
