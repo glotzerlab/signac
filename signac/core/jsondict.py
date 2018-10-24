@@ -103,7 +103,7 @@ def flush_all():
                     fd_tmp, fn_tmp = mkstemp(dir=os.path.dirname(filename), suffix='.json')
                     with os.fdopen(fd_tmp, 'wb') as file:
                         file.write(blob)
-                except OSError as error:
+                except OSError:
                     os.remove(fn_tmp)
                     raise
                 else:

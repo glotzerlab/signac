@@ -256,7 +256,7 @@ class Job(object):
         # Create the workspace directory if it did not exist yet.
         try:
             _mkdir_p(self._wd)
-        except OSError as error:
+        except OSError:
             logger.error("Error occured while trying to create "
                          "workspace directory for job '{}'.".format(self))
             raise

@@ -180,7 +180,7 @@ def _open_job_by_id(project, job_id):
     "Attempt to open a job by id and provide user feedback on error."
     try:
         return project.open_job(id=job_id)
-    except KeyError as error:
+    except KeyError:
         close_matches = difflib.get_close_matches(
             job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
         msg = "Did not find job corresponding to id '{}'.".format(job_id)
@@ -189,7 +189,7 @@ def _open_job_by_id(project, job_id):
         elif len(close_matches) > 1:
             msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
         raise KeyError(msg)
-    except LookupError as error:
+    except LookupError:
         n = project.min_len_unique_id()
         raise LookupError("Multiple matches for abbreviated id '{}'. "
                           "Use at least {} characters for guaranteed "
@@ -302,7 +302,7 @@ def main_move(args):
         try:
             job = _open_job_by_id(project, job_id)
             job.move(dst_project)
-        except DestinationExistsError as error:
+        except DestinationExistsError:
             _print_err(
                 "Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
@@ -316,7 +316,7 @@ def main_clone(args):
         try:
             job = _open_job_by_id(project, job_id)
             dst_project.clone(job)
-        except DestinationExistsError as error:
+        except DestinationExistsError:
             _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
             _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
