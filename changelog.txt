@@ -31,6 +31,11 @@ Added
  - Add option to specify a custom view path for the ``signac view``/ ``Project.create_linked_view()`` function.
  - Iterables of documents used to construct a Collection no longer require an ``_id`` field.
 
+Changed
++++++++
+
+ - The default path for linked views has been adjusted to match the one used for data exports.
+
 Fixed
 +++++
 
