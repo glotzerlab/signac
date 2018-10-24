@@ -42,7 +42,7 @@ from .core.jsondict import get_buffer_size
 from .core.jsondict import get_buffer_load
 
 
-__version__ = '0.9.3'
+__version__ = '0.9.4'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
