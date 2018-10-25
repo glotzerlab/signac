@@ -350,7 +350,7 @@ def _convert_to_nested(sp):
         if len(tokens) > 1:
             tmp = ret.setdefault(tokens[0], dict())
             for token in tokens[1:-1]:
-                tmp = tmp.setdefault(tokens, dict())
+                tmp = tmp.setdefault(token, dict())
             tmp[tokens[-1]] = value
         else:
             ret[tokens[0]] = value
