@@ -151,10 +151,10 @@ class BasicShellTest(unittest.TestCase):
         os.mkdir('view')
         self.call('python -m signac view'.split())
         for sp in sps:
-            self.assertTrue(os.path.isdir('view/a_{}'.format(sp['a'])))
-            self.assertTrue(os.path.isdir('view/a_{}/job'.format(sp['a'])))
+            self.assertTrue(os.path.isdir('view/a/{}'.format(sp['a'])))
+            self.assertTrue(os.path.isdir('view/a/{}/job'.format(sp['a'])))
             self.assertEqual(
-                os.path.realpath('view/a_{}/job'.format(sp['a'])),
+                os.path.realpath('view/a/{}/job'.format(sp['a'])),
                 os.path.realpath(project.open_job(sp).workspace()))
 
     def test_find(self):
@@ -225,7 +225,7 @@ class BasicShellTest(unittest.TestCase):
             project.open_job(dict(a=i)).init()
         assert len(project)
         out = self.call(
-            'python -m signac shell -f a.\$gt 0',
+            r'python -m signac shell -f a.\$gt 0',
             'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))

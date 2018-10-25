@@ -12,9 +12,38 @@ Highlights
 
  - Adds persistent state point index caching, which speeds up all functions that require indexing, for example the ``$ signac find`` command.
  - Adds the ``$ signac sync`` tool for synchronization of multiple **signac** projects.
- - Add the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
- - Add the ``$near`` operator to match numbers with up to a specific precision.
+ - Adds the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
+ - Adds the ``$near`` operator to match numbers with up to a specific precision.
+ - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
+
+[0.9.4] -- 2018-10-24
+---------------------
+
+Added
++++++
+
+ - Adds the ``$ signac import`` command and the ``Project.import_from()`` method for the import of data spaces into a project workspace, such as a directory, a tarball, or a zip-file.
+ - Adds the ``$ signac export`` command and the ``Project.export_to()`` method for the export of project workspaces to an external location, such as a directory, a tarball, or a zip-file.
+ - Adds functionality for the rapid initialization of temporary projects with the ``signac.TemporaryProject`` context manager.
+ - Adds the ``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
+ - Add ``signac`` to the default namespace when invoking ``signac shell``.
+ - Add option to specify a custom view path for the ``signac view``/ ``Project.create_linked_view()`` function.
+ - Iterables of documents used to construct a Collection no longer require an ``_id`` field.
+
+Changed
++++++++
+
+ - The default path for linked views has been adjusted to match the one used for data exports.
+
+Fixed
++++++
+
+ - Fix issue where differently typed integer values stored within a Collection under the same key would not be indexed correctly. This issue affected the correct function of the `$type` operator for aforementioned cases and would lead to incorrect types in the Project schema detection algorithm for integer values.
+ - Fix issue where jobs that are migrated (state point change), but are not initialized, were not properly updated.
+ - Fix issue where changes to lists as part of synchronized dictionary, for example a state point or document would not be saved.
+ - Fix non-deterministic issue occuring on network file systems when trying to open jobs where the user has no write access to the job workspace directory.
+
 
 [0.9.3] -- 2018-06-14
 ---------------------

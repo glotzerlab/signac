@@ -13,7 +13,7 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='0.9.3',
+    version='0.9.4',
     packages=find_packages(),
     zip_safe=True,
 
@@ -32,7 +32,6 @@ setup(
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",

@@ -6,14 +6,18 @@ import os
 import uuid
 import warnings
 import logging
+import json
+from tarfile import TarFile
+from zipfile import ZipFile
 
 import signac
 from signac.common import six
 from signac.errors import DestinationExistsError
-from signac.contrib.project import _find_all_links
+from signac.contrib.linked_view import _find_all_links
 from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
+from signac.contrib.errors import StatepointParsingError
 
 from test_job import BaseJobTest
 
@@ -150,15 +154,15 @@ class ProjectTest(BaseProjectTest):
     def test_no_workspace_warn_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
         with self.assertLogs(level='INFO') as cm:
-            self.project.find_jobs()
-            self.assertEqual(len(cm.output), 1)
+            list(self.project.find_jobs())
+            self.assertEqual(len(cm.output), 2)
 
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
         os.symlink(wd + '~', self.project.fn('workspace-link'))
         self.project.config['workspace_dir'] = 'workspace-link'
         with self.assertRaises(WorkspaceError):
-            self.project.find_jobs()
+            list(self.project.find_jobs())
 
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
@@ -174,13 +178,13 @@ class ProjectTest(BaseProjectTest):
         if six.PY34:
             with self.assertLogs(level='ERROR') as cm:
                 with self.assertRaises(WorkspaceError):
-                    self.project.find_jobs()
+                    list(self.project.find_jobs())
                 self.assertEqual(len(cm.output), 1)
         else:
             try:
                 logging.disable(logging.ERROR)
                 with self.assertRaises(WorkspaceError):
-                    self.project.find_jobs()
+                    list(self.project.find_jobs())
             finally:
                 logging.disable(logging.NOTSET)
 
@@ -251,7 +255,7 @@ class ProjectTest(BaseProjectTest):
             self.project.open_job({'a': i, 'b': {'c': i}}).init()
         self.assertEqual(len(self.project), 10)
         with self.assertRaises(ValueError):
-            self.project.find_jobs({'$and': {'foo': 'bar'}})
+            list(self.project.find_jobs({'$and': {'foo': 'bar'}}))
         self.assertEqual(len(self.project.find_jobs({'$and': [{}, {'a': 0}]})), 1)
         self.assertEqual(len(self.project.find_jobs({'$or': [{}, {'a': 0}]})), len(self.project))
         q = {'$and': [{'a': 0}, {'a': 1}]}
@@ -339,232 +343,6 @@ class ProjectTest(BaseProjectTest):
                 self.project.open_job(id=job.get_id()[:aid_len - 1])
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
-
-    def test_create_linked_view(self):
-
-        def clean(filter=None):
-            """Helper function for wiping out views"""
-            for job in self.project.find_jobs(filter):
-                job.remove()
-            self.project.create_linked_view(prefix=view_prefix)
-
-        sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
-        sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
-        sp_2 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
-                for i in range(5)]
-        statepoints = sp_0 + sp_1 + sp_2
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        # empty project
-        self.project.create_linked_view(prefix=view_prefix)
-        # one job
-        self.project.open_job(statepoints[0]).init()
-        self.project.create_linked_view(prefix=view_prefix)
-        # more jobs
-        for sp in statepoints:
-            self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-        self.assertTrue(os.path.isdir(view_prefix))
-        all_links = list(_find_all_links(view_prefix))
-        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
-        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
-        self.assertEqual(len(all_links), self.project.num_jobs())
-        self.project.create_linked_view(prefix=view_prefix)
-        all_links = list(_find_all_links(view_prefix))
-        self.assertEqual(len(all_links), self.project.num_jobs())
-        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
-        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
-        self.assertEqual(src, dst)
-        # update with subset
-        subset = list(self.project.find_job_ids({'b': 0}))
-        job_subset = [self.project.open_job(id=id) for id in subset]
-        bad_index = [dict(_id=i) for i in range(3)]
-        with self.assertRaises(ValueError):
-            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
-        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
-        all_links = list(_find_all_links(view_prefix))
-        self.assertEqual(len(all_links), len(subset))
-        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
-        src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
-        self.assertEqual(src, dst)
-        # some jobs removed
-        clean({'b': 0})
-        all_links = list(_find_all_links(view_prefix))
-        self.assertEqual(len(all_links), self.project.num_jobs())
-        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
-        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
-        self.assertEqual(src, dst)
-        # all jobs removed
-        clean()
-        all_links = list(_find_all_links(view_prefix))
-        self.assertEqual(len(all_links), self.project.num_jobs())
-        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
-        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
-        self.assertEqual(src, dst)
-
-    def test_create_linked_view_homogeneous_schema_flat(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(10)
-        b_vals = range(3, 8)
-        c_vals = ["foo", "bar", "baz"]
-        for a in a_vals:
-            for b in b_vals:
-                for c in c_vals:
-                    sp = {'a': a, 'b': b, 'c': c}
-                    self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        c_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['c', x]) for x in c_vals]), sorted(c_dirs))
-        for c in c_dirs:
-            c_view_prefix = os.path.join(view_prefix, c)
-            b_dirs = os.listdir(c_view_prefix)
-            self.assertEqual(sorted(['_'.join(['b', str(x)]) for x in b_vals]), sorted(b_dirs))
-            for b in b_dirs:
-                b_view_prefix = os.path.join(c_view_prefix, b)
-                a_dirs = os.listdir(b_view_prefix)
-                self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
-
-    def test_create_linked_view_homogeneous_schema_nested(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(2)
-        b_vals = range(3, 8)
-        c_vals = ["foo", "bar", "baz"]
-        for a in a_vals:
-            for b in b_vals:
-                for c in c_vals:
-                    sp = {'a': a, 'd': {'b': b, 'c': c}}
-                    self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        a_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
-        for a in a_dirs:
-            a_view_prefix = os.path.join(view_prefix, a)
-            d_c_dirs = os.listdir(a_view_prefix)
-            self.assertEqual(
-                sorted(['_'.join(['d', 'c', str(x)]) for x in c_vals]),
-                sorted(d_c_dirs))
-            for d_c in d_c_dirs:
-                d_c_view_prefix = os.path.join(a_view_prefix, d_c)
-                d_b_dirs = os.listdir(d_c_view_prefix)
-                self.assertEqual(
-                    sorted(['_'.join(['d', 'b', str(x)]) for x in b_vals]),
-                    sorted(d_b_dirs))
-
-    def test_create_linked_view_heterogeneous_disjoint_schema_flat(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(5)
-        b_vals = range(3, 13)
-        c_vals = ["foo", "bar", "baz"]
-        for a in a_vals:
-            for b in b_vals:
-                sp = {'a': a, 'b': b}
-                self.project.open_job(sp).init()
-            for c in c_vals:
-                sp = {'a': a, 'c': c}
-                self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_a_dirs = ['_'.join(['a', str(x)]) for x in a_vals]
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_c_dirs = ['_'.join(['c', x]) for x in c_vals]
-        self.assertEqual(sorted(expected_a_dirs + expected_c_dirs), sorted(root_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            if rt in expected_a_dirs:
-                self.assertEqual(sorted(expected_b_dirs), sorted(subdirs))
-            elif rt in expected_c_dirs:
-                self.assertEqual(sorted(expected_a_dirs), sorted(subdirs))
-            else:
-                raise RuntimeError("Unexpected top-level directory.")
-
-    def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(2)
-        b_vals = range(3, 8)
-        c_vals = ["foo", "bar", "baz"]
-        for a in a_vals:
-            for b in b_vals:
-                sp = {'a': a, 'd': {'b': b}}
-                self.project.open_job(sp).init()
-            for c in c_vals:
-                sp = {'a': a, 'd': {'c': c}}
-                self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        a_dirs = os.listdir(view_prefix)
-        self.assertEqual(sorted(['_'.join(['a', str(x)]) for x in a_vals]), sorted(a_dirs))
-        for a in a_dirs:
-            a_view_prefix = os.path.join(view_prefix, a)
-            d_dirs = os.listdir(a_view_prefix)
-            expected_d_b_dirs = ['_'.join(['d', 'b', str(x)]) for x in b_vals]
-            expected_d_c_dirs = ['_'.join(['d', 'c', str(x)]) for x in c_vals]
-            self.assertEqual(sorted(expected_d_b_dirs + expected_d_c_dirs), sorted(d_dirs))
-
-    def test_create_linked_view_heterogeneous_fizz_buzz_schema_flat(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(5)
-        b_vals = range(5)
-        c_vals = ["foo", "bar", "baz"]
-        for a in a_vals:
-            for b in b_vals:
-                for c in c_vals:
-                    if a % 3 == 0:
-                        sp = {'a': a, 'b': b}
-                    else:
-                        sp = {'a': a, 'b': b, 'c': c}
-                    self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_a_dirs = ['a_0', 'a_3']
-        expected_c_dirs = ['c_bar', 'c_baz', 'c_foo']
-        self.assertEqual(sorted(expected_a_dirs + expected_c_dirs), sorted(root_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            if rt in expected_a_dirs:
-                self.assertEqual(sorted(expected_b_dirs), sorted(subdirs))
-            elif rt in expected_c_dirs:
-                self.assertEqual(['a_1', 'a_2', 'a_4'], sorted(subdirs))
-            else:
-                raise RuntimeError("Unexpected top-level directory.")
-
-    def test_create_linked_view_heterogeneous_fizz_buzz_schema_nested(self):
-        view_prefix = os.path.join(self._tmp_pr, 'view')
-        a_vals = range(5)
-        b_vals = range(10)
-        for a in a_vals:
-            for b in b_vals:
-                if a % 3 == 0:
-                    sp = {'a': a, 'b': {'c': b}}
-                else:
-                    sp = {'a': a, 'b': b}
-                self.project.open_job(sp).init()
-        self.project.create_linked_view(prefix=view_prefix)
-
-        # Loop over levels and test each of them
-        root_dirs = os.listdir(view_prefix)
-        expected_a_dirs = ['_'.join(['a', str(x)]) for x in a_vals]
-        expected_b_dirs = ['_'.join(['b', str(x)]) for x in b_vals]
-        expected_nested_b_dirs = ['_'.join(['b', 'c', str(x)]) for x in b_vals]
-        self.assertEqual(sorted(root_dirs), sorted(expected_a_dirs))
-        for rt in root_dirs:
-            sub_view_prefix = os.path.join(view_prefix, rt)
-            subdirs = os.listdir(sub_view_prefix)
-            a, x = rt.split('_')
-            if int(x) % 3 == 0:
-                self.assertEqual(sorted(subdirs), expected_nested_b_dirs)
-            else:
-                self.assertEqual(sorted(subdirs), expected_b_dirs)
 
     def test_find_job_documents(self):
         with warnings.catch_warnings():
@@ -888,12 +666,12 @@ class ProjectTest(BaseProjectTest):
                 'b': {'b2': i},
                 'c': [i, 0, 0],
                 'd': [[i, 0, 0]],
-                'e': {'e2': [i, 0, 0]},
+                'e': {'e2': [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
                 'f': {'f2': [[i, 0, 0]]},
             }).init()
 
         s = self.project.detect_schema()
-        self.assertEqual(len(s), 8)
+        self.assertEqual(len(s), 9)
         for k in 'const', 'const2.const3', 'a', 'b.b2', 'c', 'd', 'e.e2', 'f.f2':
             self.assertIn(k, s)
             self.assertIn(k.split('.'), s)
@@ -903,10 +681,11 @@ class ProjectTest(BaseProjectTest):
         repr(s)
         self.assertEqual(s.format(), str(s))
         s = self.project.detect_schema(exclude_const=True)
-        self.assertEqual(len(s), 6)
+        self.assertEqual(len(s), 7)
         self.assertNotIn('const', s)
         self.assertNotIn(('const2', 'const3'), s)
         self.assertNotIn('const2.const3', s)
+        self.assertNotIn(type, s['e'])
 
     def test_schema_subset(self):
         for i in range(5):
@@ -1063,6 +842,834 @@ class ProjectTest(BaseProjectTest):
             for job in list(g):
                 self.assertEqual(str(job), k)
         self.assertEqual(group_count, len(list(self.project.find_jobs())))
+
+    def test_temp_project(self):
+        with self.project.temporary_project() as tmp_project:
+            self.assertEqual(len(tmp_project), 0)
+            tmp_root_dir = tmp_project.root_directory()
+            self.assertTrue(os.path.isdir(tmp_root_dir))
+            for i in range(10):     # init some jobs
+                tmp_project.open_job(dict(a=i)).init()
+            self.assertEqual(len(tmp_project), 10)
+        self.assertFalse(os.path.isdir(tmp_root_dir))
+
+
+class ProjectExportImportTest(BaseProjectTest):
+
+    def test_export(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_single_job(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(1):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        self.assertEqual(len(self.project), 1)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_function(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path=lambda job: 'non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path=lambda job: os.path.join('my_a', str(job.sp.a)))
+
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'my_a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_tree_flat(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path=os.path.join('a', '{a}', 'b', '{b}', '{{auto:_}}'))
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a',
+                                                                   str(i), 'b', str(j),
+                                                                   'c_%d_d_%d' % (k, l))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_tree_tree(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path=os.path.join('c', '{c}', 'b', '{b}', '{{auto}}'))
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'c',
+                                                                   str(k), 'b', str(j), 'd',
+                                                                   str(l), 'a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_flat_flat(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(target=prefix_data, path='c_{c}_b_{b}/{{auto:_}}')
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 4)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(
+                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (l, i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string_modify_flat_tree(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(
+            target=prefix_data, path='c_{c}_b_{b}/{{auto}}')
+
+        self.assertEqual(len(self.project), 80)
+        self.assertEqual(len(os.listdir(prefix_data)), 4)
+        # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            for j in range(2):
+                for k in range(2):
+                    for l in range(2):
+                        self.assertTrue(os.path.isdir(os.path.join(
+                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, l, i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_string(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(target=prefix_data, path='non_unique')
+
+        self.project.export_to(target=prefix_data, path='my_a/{job.sp.a}')  # why not jus {a}
+
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'my_a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_move(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
+        self.assertEqual(len(self.project.import_from(origin=prefix_data)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_custom_path_function_move(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        with self.assertRaises(RuntimeError):
+            self.project.export_to(
+                target=prefix_data,
+                path=lambda job: 'non_unique',
+                copytree=os.rename)
+
+        self.project.export_to(
+            target=prefix_data,
+            path=lambda job: os.path.join('my_a', str(job.sp.a)),
+            copytree=os.rename)
+
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'my_a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'my_a', str(i))))
+        self.assertEqual(len(self.project.import_from(origin=prefix_data)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_tarfile(self):
+        target = os.path.join(self._tmp_dir.name, 'data.tar')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=target)
+        self.assertEqual(len(self.project), 10)
+        with TarFile(name=target) as tarfile:
+            for i in range(10):
+                self.assertIn('a/{}'.format(i), tarfile.getnames())
+        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        self.assertEqual(len(self.project), 0)
+        self.project.import_from(origin=target)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_tarfile_zipped(self):
+        target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
+        for i in range(10):
+            with self.project.open_job(dict(a=i)) as job:
+                os.makedirs(job.fn('sub-dir'))
+                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                    file.write(json.dumps({"foo": 0}))
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=target)
+        self.assertEqual(len(self.project), 10)
+        with TarFile.open(name=target, mode='r:gz') as tarfile:
+            for i in range(10):
+                self.assertIn('a/{}'.format(i), tarfile.getnames())
+                self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), tarfile.getnames())
+        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        self.assertEqual(len(self.project), 0)
+        self.project.import_from(origin=target)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        for job in self.project:
+            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+
+    def test_export_import_zipfile(self):
+        target = os.path.join(self._tmp_dir.name, 'data.zip')
+        for i in range(10):
+            with self.project.open_job(dict(a=i)) as job:
+                os.makedirs(job.fn('sub-dir'))
+                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                    file.write(json.dumps({"foo": 0}))
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=target)
+        self.assertEqual(len(self.project), 10)
+        with ZipFile(target) as zipfile:
+            for i in range(10):
+                self.assertIn('a/{}/signac_statepoint.json'.format(i), zipfile.namelist())
+                self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), zipfile.namelist())
+        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        self.assertEqual(len(self.project), 0)
+        self.project.import_from(origin=target)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        for job in self.project:
+            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+
+    def test_export_import(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_conflict(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        with self.assertRaises(DestinationExistsError):
+            self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_conflict_synced(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        with self.assertRaises(DestinationExistsError):
+            self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+        with self.project.temporary_project() as tmp_project:
+            self.assertEqual(len(tmp_project.import_from(prefix_data)), 10)
+            self.assertEqual(len(tmp_project), 10)
+            self.project.sync(tmp_project)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        self.assertEqual(len(self.project.import_from(prefix_data, sync=True)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_conflict_synced_with_args(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data)
+        with self.assertRaises(DestinationExistsError):
+            self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+
+        selection = list(self.project.find_jobs(dict(a=0)))
+        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(self.project.import_from(prefix_data,
+                                                      sync=dict(selection=selection))), 10)
+        self.assertEqual(len(self.project), 1)
+        self.assertEqual(len(self.project.find_jobs(dict(a=0))), 1)
+        self.assertIn(list(self.project.find_job_ids())[0], ids_before_export)
+
+    def test_export_import_schema_callable(self):
+
+        def my_schema(path):
+            import re
+            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            if m:
+                return dict(a=int(m.groupdict()['a']))
+
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project.import_from(prefix_data, schema=my_schema)), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_schema_callable_non_unique(self):
+
+        def my_schema_non_unique(path):
+            import re
+            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            if m:
+                return dict(a=0)
+
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        with self.assertRaises(RuntimeError):
+            self.project.import_from(prefix_data, schema=my_schema_non_unique)
+
+    def test_export_import_simple_path(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
+        with self.assertRaises(StatepointParsingError):
+            self.project.import_from(origin=prefix_data, schema='a/{b:int}')
+        self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_simple_path_nested_with_schema(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=dict(b=dict(c=i)))).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a.b.c'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a.b.c', str(i))))
+        with self.assertRaises(StatepointParsingError):
+            self.project.import_from(origin=prefix_data, schema='a.b.c/{a.b:int}')
+        self.assertEqual(
+            len(self.project.import_from(origin=prefix_data, schema='a.b.c/{a.b.c:int}')), 10)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_simple_path_with_float(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=float(i))).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(float(i)))))
+        self.assertEqual(len(self.project.import_from(prefix_data)), 10)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_complex_path(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
+        sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        statepoints = sp_0 + sp_1 + sp_2
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.project.import_from(prefix_data)
+        self.assertEqual(len(self.project), len(statepoints))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_simple_path_schema_from_path(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(i))))
+        ret = self.project.import_from(origin=prefix_data, schema='a/{a:int}')
+        self.assertEqual(len(ret), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_simple_path_schema_from_path_float(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=float(i))).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a', str(float(i)))))
+        ret = self.project.import_from(origin=prefix_data, schema='a/{a:int}')
+        self.assertEqual(len(ret), 0)  # should not match
+        ret = self.project.import_from(origin=prefix_data, schema='a/{a:float}')
+        self.assertEqual(len(ret), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_export_import_complex_path_nested_schema_from_path(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        statepoints = [{'a': i, 'b': {'c': i % 3}} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.project.import_from(origin=prefix_data, schema='b.c/{b.c:int}/a/{a:int}')
+        self.assertEqual(len(self.project), len(statepoints))
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
+    def test_import_own_project(self):
+        for i in range(10):
+            self.project.open_job(dict(a=i)).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.import_from(origin=self.project.workspace())
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+        with self.project.temporary_project() as tmp_project:
+            tmp_project.import_from(origin=self.project.workspace())
+            self.assertEqual(ids_before_export, list(sorted(tmp_project.find_job_ids())))
+            self.assertEqual(len(tmp_project), len(self.project))
+
+
+class LinkedViewProjectTest(BaseProjectTest):
+
+    def test_create_linked_view(self):
+
+        def clean(filter=None):
+            """Helper function for wiping out views"""
+            for job in self.project.find_jobs(filter):
+                job.remove()
+            self.project.create_linked_view(prefix=view_prefix)
+
+        sp_0 = [{'a': i, 'b': i % 3} for i in range(5)]
+        sp_1 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0}} for i in range(5)]
+        sp_2 = [{'a': i, 'b': i % 3, 'c': {'a': i, 'b': 0, 'c': {'a': i, 'b': 0}}}
+                for i in range(5)]
+        statepoints = sp_0 + sp_1 + sp_2
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        # empty project
+        self.project.create_linked_view(prefix=view_prefix)
+        # one job
+        self.project.open_job(statepoints[0]).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        # more jobs
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+        self.assertTrue(os.path.isdir(view_prefix))
+        all_links = list(_find_all_links(view_prefix))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        self.project.create_linked_view(prefix=view_prefix)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
+        # update with subset
+        subset = list(self.project.find_job_ids({'b': 0}))
+        job_subset = [self.project.open_job(id=id) for id in subset]
+        bad_index = [dict(_id=i) for i in range(3)]
+        with self.assertRaises(ValueError):
+            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), len(subset))
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
+        self.assertEqual(src, dst)
+        # some jobs removed
+        clean({'b': 0})
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
+        # all jobs removed
+        clean()
+        all_links = list(_find_all_links(view_prefix))
+        self.assertEqual(len(all_links), self.project.num_jobs())
+        dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
+        src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
+        self.assertEqual(src, dst)
+
+    def test_create_linked_view_homogeneous_schema_tree(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', str(
+                        sp['c']), 'b', str(sp['b']), 'a', str(sp['a']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_tree_tree(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
+                        sp['a']), 'c', str(sp['c']), 'b', str(sp['b']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_tree_flat(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/{{auto:_}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
+                        sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_flat_flat(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='a_{a}/{{auto:_}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'b': b, 'c': c}
+                    self.assertTrue(os.path.isdir(os.path.join(
+                        view_prefix, 'a_%s/c_%s_b_%s' % (str(sp['a']), str(sp['c']), str(sp['b'])),
+                        'job')))
+
+    def test_create_linked_view_homogeneous_schema_flat_tree(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(10)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        d_vals = ["rock", "paper", "scissors"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    for d in d_vals:
+                        sp = {'a': a, 'b': b, 'c': c, 'd': d}
+                        self.project.open_job(sp).init()
+
+        self.project.create_linked_view(prefix=view_prefix, path='a_{a}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    for d in d_vals:
+                        sp = {'a': a, 'b': b, 'c': c, 'd': d}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a_%s' %
+                                                                   str(sp['a']), 'c', str(sp['c']),
+                                                                   'd', str(sp['d']), 'b',
+                                                                   str(sp['b']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_nested(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.project.open_job(sp).init()
+
+        self.project.create_linked_view(prefix=view_prefix)
+
+        # check all dir:
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'd.c', str(sp['d']['c']), 'd.b',
+                                                               str(sp['d']['b']), 'job')))
+
+    def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.project.open_job(sp).init()
+
+        self.project.create_linked_view(prefix=view_prefix, path='a/{a}/d.c/{d.c}/{{auto}}')
+
+        # check all dir:
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    sp = {'a': a, 'd': {'b': b, 'c': c}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'd.c', str(sp['d']['c']), 'd.b',
+                                                               str(sp['d']['b']), 'job')))
+
+    def test_create_linked_view_heterogeneous_disjoint_schema(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(5)
+        b_vals = range(3, 13)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'b': b}
+                self.project.open_job(sp).init()
+            for c in c_vals:
+                sp = {'a': a, 'c': c}
+                self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+
+        # test each directory
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'b': b}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                           'b', str(sp['b']), 'job')))
+            for c in c_vals:
+                sp = {'a': a, 'c': c}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
+                                                           str(sp['a']), 'job')))
+
+    def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(2)
+        b_vals = range(3, 8)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'd': {'b': b}}
+                self.project.open_job(sp).init()
+            for c in c_vals:
+                sp = {'a': a, 'd': {'c': c}}
+                self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+
+        for a in a_vals:
+            for b in b_vals:
+                sp = {'a': a, 'd': {'b': b}}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                           'd.b', str(sp['d']['b']), 'job')))
+            for c in c_vals:
+                sp = {'a': a, 'd': {'c': c}}
+                self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']), 'd.c',
+                                                           sp['d']['c'], 'job')))
+
+    def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(5)
+        b_vals = range(5)
+        c_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    if a % 3 == 0:
+                        sp = {'a': a, 'b': b}
+                    else:
+                        sp = {'a': a, 'b': b, 'c': c}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+
+        for a in a_vals:
+            for b in b_vals:
+                for c in c_vals:
+                    if a % 3 == 0:
+                        sp = {'a': a, 'b': b}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                                   'b', str(sp['b']), 'job')))
+                    else:
+                        sp = {'a': a, 'b': b, 'c': c}
+                        self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
+                                                                   str(sp['a']), 'b', str(sp['b']),
+                                                                   'job')))
+
+    def test_create_linked_view_heterogeneous_schema_nested(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(5)
+        b_vals = range(10)
+        for a in a_vals:
+            for b in b_vals:
+                if a % 3 == 0:
+                    sp = {'a': a, 'b': {'c': b}}
+                else:
+                    sp = {'a': a, 'b': b}
+                self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix)
+
+        for a in a_vals:
+            for b in b_vals:
+                if a % 3 == 0:
+                    sp = {'a': a, 'b': {'c': b}}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'b.c', str(sp['b']['c']), 'job')))
+                else:
+                    sp = {'a': a, 'b': b}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
+                                                               'b', str(sp['b']), 'job')))
+
+    def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(self):
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        a_vals = range(5)
+        b_vals = range(10)
+        d_vals = ["foo", "bar", "baz"]
+        for a in a_vals:
+            for d in d_vals:
+                for b in b_vals:
+                    if a % 3 == 0:
+                        sp = {'a': a, 'b': {'c': b}, 'd': d}
+                    else:
+                        sp = {'a': a, 'b': b, 'd': d}
+                    self.project.open_job(sp).init()
+        self.project.create_linked_view(prefix=view_prefix, path='d/{d}/{{auto}}')
+
+        for a in a_vals:
+            for b in b_vals:
+                if a % 3 == 0:
+                    sp = {'a': a, 'b': {'c': b}, 'd': d}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
+                                                               str(sp['a']), 'b.c',
+                                                               str(sp['b']['c']), 'job')))
+                else:
+                    sp = {'a': a, 'b': b, 'd': d}
+                    self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
+                                                               str(sp['a']), 'b', str(sp['b']),
+                                                               'job')))
+
+    def test_create_linked_view_heterogeneous_schema_problematic(self):
+        self.project.open_job(dict(a=1)).init()
+        self.project.open_job(dict(a=1, b=1)).init()
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        with self.assertRaises(RuntimeError):
+            self.project.create_linked_view(view_prefix)
 
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):

@@ -2,6 +2,8 @@ import os
 import io
 import warnings
 import unittest
+from collections import OrderedDict
+from itertools import islice
 
 from signac import Collection
 from signac.common import six
@@ -59,6 +61,36 @@ class CollectionTest(unittest.TestCase):
     def test_init(self):
         self.assertEqual(len(self.c), 0)
 
+    def test_init_with_list_with_ids_sequential(self):
+        docs = [{'a': i, '_id': str(i)} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_with_ids_non_sequential(self):
+        docs = [{'a': i, '_id': '{:032d}'.format(i**3)} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_without_ids(self):
+        docs = [{'a': i} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
+    def test_init_with_list_with_and_without_ids(self):
+        docs = [{'a': i} for i in range(10)]
+        for i, doc in enumerate(islice(docs, 5)):
+            doc.setdefault('_id', str(i))
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c), len(docs))
+        for doc in docs:
+            self.assertIn(doc['_id'], self.c)
+
     def test_insert(self):
         doc = dict(a=0)
         self.c['0'] = doc
@@ -71,6 +103,24 @@ class CollectionTest(unittest.TestCase):
             self.c[0] = dict(a=0)
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
+
+    def test_insert_multiple(self):
+        doc = dict(a=0)
+        self.assertEqual(len(self.c), 0)
+        self.c.insert_one(doc.copy())
+        self.assertEqual(len(self.c), 1)
+        self.c.insert_one(doc.copy())
+        self.assertEqual(len(self.c), 2)
+
+    def test_int_float_equality(self):
+        self.c.insert_one(dict(a=1))
+        self.c.insert_one(dict(a=1.0))
+        self.assertEqual(len(self.c.find(dict(a=1))), 1)
+        self.assertEqual(len(self.c.find(dict(a=1.0))), 1)
+        for doc in self.c.find(dict(a=1)):
+            self.assertEqual(type(doc['a']), int)
+        for doc in self.c.find(dict(a=1.0)):
+            self.assertEqual(type(doc['a']), float)
 
     def test_copy(self):
         docs = [dict(_id=str(i)) for i in range(10)]
@@ -94,15 +144,15 @@ class CollectionTest(unittest.TestCase):
     def test_contains(self):
         self.assertFalse('0' in self.c)
         _id = self.c.insert_one(dict())
-        self.assertTrue(_id in self.c)
+        self.assertIn(_id, self.c)
         del self.c[_id]
         self.assertFalse(_id in self.c)
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         for _id in self.c.ids:
-            self.assertTrue(_id in self.c)
+            self.assertIn(_id, self.c)
         for doc in docs:
-            self.assertTrue(doc['_id'] in self.c)
+            self.assertIn(doc['_id'], self.c)
 
     def test_update(self):
         docs = [dict(a=i) for i in range(10)]
@@ -172,7 +222,7 @@ class CollectionTest(unittest.TestCase):
             {doc['a'] for doc in docs},
             {doc['a'] for doc in self.c.find()})
 
-    def test_find(self):
+    def test_find_integer(self):
         self.assertEqual(len(self.c.find()), 0)
         self.assertEqual(list(self.c.find()), [])
         self.assertEqual(len(self.c.find({'a': 0})), 0)
@@ -180,12 +230,50 @@ class CollectionTest(unittest.TestCase):
         self.c.update(docs)
         self.assertEqual(len(self.c.find()), len(docs))
         self.assertEqual(len(self.c.find({'a': 0})), 1)
+        self.assertEqual(len(self.c.find({'a': 0.0})), 0)
         self.assertEqual(list(self.c.find({'a': 0}))[0], docs[0])
         self.assertEqual(len(self.c.find({'a': -1})), 0)
         self.assertEqual(len(self.c.find({'a.b': 0})), 0)
         self.assertEqual(len(self.c.find(limit=5)), 5)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 10)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 0)
         del self.c[docs[0]['_id']]
         self.assertEqual(len(self.c.find({'a': 0})), 0)
+
+    def test_find_float(self):
+        self.assertEqual(len(self.c.find()), 0)
+        self.assertEqual(list(self.c.find()), [])
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+        docs = [dict(a=float(i)) for i in range(10)]
+        self.c.update(docs)
+        self.assertEqual(len(self.c.find()), len(docs))
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+        self.assertEqual(len(self.c.find({'a': 0.0})), 1)
+        self.assertEqual(list(self.c.find({'a': 0.0}))[0], docs[0])
+        self.assertEqual(len(self.c.find({'a': -1})), 0)
+        self.assertEqual(len(self.c.find({'a.b': 0})), 0)
+        self.assertEqual(len(self.c.find(limit=5)), 5)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 0)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 10)
+        del self.c[docs[0]['_id']]
+        self.assertEqual(len(self.c.find({'a': 0})), 0)
+
+    def test_find_int_float(self):
+        id_float = self.c.insert_one({'a': float(1.0)})
+        id_int = self.c.insert_one({'a': 1})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
+
+        # Reversing order
+        self.c.clear()
+        id_int = self.c.insert_one({'a': 1})
+        id_float = self.c.insert_one({'a': float(1.0)})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
+        self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
 
     def test_find_with_dots(self):
         with warnings.catch_warnings(record=True) as w:
@@ -283,6 +371,57 @@ class CollectionTest(unittest.TestCase):
         self.c.delete_one({})
         self.assertEqual(len(self.c), len(docs) - 2)
 
+    def test_find_exists_operator(self):
+        self.assertEqual(len(self.c), 0)
+        data = OrderedDict((
+            ('a', True),
+            ('b', 'b'),
+            ('c', 0),
+            ('d', 0.1),
+            ('e', dict(a=0)),
+            ('f', dict(a='b')),
+            ('g', [0, 'a', True])))
+
+        # Test without data
+        for key in data:
+            self.assertEqual(len(self.c.find({key: {'$exists': False}})), len(self.c))
+            self.assertEqual(len(self.c.find({key: {'$exists': True}})), 0)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): False})), len(self.c))
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): True})), 0)
+
+        # Test for nested cases
+        self.assertEqual(len(self.c.find({'e.a.$exists': True})), 0)
+        self.assertEqual(len(self.c.find({'e.a.$exists': False})), 0)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': True}})), 0)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': False}})), 0)
+        self.assertEqual(len(self.c.find({'f.a.$exists': True})), 0)
+        self.assertEqual(len(self.c.find({'f.a.$exists': False})), 0)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': True}})), 0)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': False}})), 0)
+
+        # Test with data
+        for key, value in data.items():
+            self.c.insert_one({key: value})
+        self.c.insert_one({'e': -1})  # heterogeneous nesting
+
+        for key in data:
+            n = 2 if key == 'e' else 1
+            self.assertEqual(len(self.c.find({key: {'$exists': False}})), len(self.c) - n)
+            self.assertEqual(len(self.c.find({key: {'$exists': True}})), n)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): False})), len(self.c) - n)
+            self.assertEqual(len(self.c.find({'{}.$exists'.format(key): True})), n)
+
+        # Test for nested cases
+        self.assertEqual(len(self.c.find({'e.$exists': True})), 2)
+        self.assertEqual(len(self.c.find({'e.a.$exists': True})), 1)
+        self.assertEqual(len(self.c.find({'e.a.$exists': False})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': True}})), 1)
+        self.assertEqual(len(self.c.find({'e.a': {'$exists': False}})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'f.a.$exists': True})), 1)
+        self.assertEqual(len(self.c.find({'f.a.$exists': False})), len(self.c) - 1)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': True}})), 1)
+        self.assertEqual(len(self.c.find({'f.a': {'$exists': False}})), len(self.c) - 1)
+
     def test_find_arithmetic_operators(self):
         self.assertEqual(len(self.c), 0)
         for expr, n in ARITHMETIC_EXPRESSIONS:
@@ -307,16 +446,16 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(), 1)
         self.assertEqual(self.c.find({'a': {'$near': (10)}}).count(), 1)
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
-            self.c.find({'a': {'$near': (10)}}).count())
+                         self.c.find({'a': {'$near': (10)}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10]}}).count(),
-            self.c.find({'a': {'$near': 10}}).count())
+                         self.c.find({'a': {'$near': 10}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10, 0.5]}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': (10, 0.5)}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count(), 16)
         self.assertEqual(self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count(), 16)
         # increasing abs_tol should increase # of jobs found
-        self.assertTrue(self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() >
-            self.c.find({'a': {'$near': [10, 0.5]}}).count())
+        self.assertGreater(self.c.find({'a': {'$near': [10, 0.5, 11]}}).count(),
+                           self.c.find({'a': {'$near': [10, 0.5]}}).count())
         self.assertEqual(self.c.find({'a': {'$near': [10.5, 0.005]}}).count(), 0)
         self.assertEqual(self.c.find({'a': {'$near': (10.5, 0.005)}}).count(), 0)
         # test with lists that are too long
@@ -353,10 +492,16 @@ class CollectionTest(unittest.TestCase):
         for (v, t) in types:
             self.assertEqual(len(self.c.find({'a': {'$type': t}})), 0)
         for i, (v, t) in enumerate(types):
-            self.c.insert_one({i: v})
+            self.c.insert_one({str(i): v})
         self.assertEqual(len(self.c), len(types))
         for i, (v, t) in enumerate(types):
-            self.assertEqual(len(self.c.find({i: {'$type': t}})), 1)
+            self.assertEqual(len(self.c.find({str(i): {'$type': t}})), 1)
+
+    def test_find_type_integer_values_identical_keys(self):
+        self.c.insert_one({'a': 1})
+        self.c.insert_one({'a': 1.0})
+        self.assertEqual(len(self.c.find({'a': {'$type': 'int'}})), 1)
+        self.assertEqual(len(self.c.find({'a': {'$type': 'float'}})), 1)
 
     def test_find_where_expression(self):
         self.assertEqual(len(self.c), 0)
@@ -438,7 +583,7 @@ class FileCollectionTest(CollectionTest):
         with Collection.open(self._fn_collection) as c:
             self.assertEqual(len(c), len(docs))
             for doc in self.c:
-                self.assertTrue(doc['_id'] in c)
+                self.assertIn(doc['_id'], c)
 
 
 class FileCollectionTestAppendPlus(FileCollectionTest):

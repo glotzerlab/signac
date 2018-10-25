@@ -34,7 +34,7 @@ The project interface provides simple and consistent access to the project's und
 
 .. [#f1] You can access a project interface from other locations by explicitly specifying the root directory.
 
-To initialize a project, simply execute ``$signac init <projectname>`` on the command line inside the desired project directory (create a new project directory if needed).
+To initialize a project, simply execute ``$ signac init <project-name>`` on the command line inside the desired project directory (create a new project directory if needed).
 For example, to initialize a **signac** project named *MyProject* in a directory called ``my_project``, execute:
 
 .. code-block:: bash
@@ -339,7 +339,7 @@ Grouping by Multiple Keys
 Grouping by multiple state point parameters or job document values is possible, by passing an iterable of fields that should be used for grouping.
 For example, we can group jobs by state point parameters *c* and *d*:
 
-.. code-blocK:: python
+.. code-block:: python
 
     for (c, d), group in project.groupby(('c', 'd')):
         print(c, d, list(group))
@@ -473,6 +473,144 @@ This functionality is also available directly from the command line:
      'a': 'int([0, 1, 2], 3)',
      'b': 'bool([False, True], 2)',
     }
+
+.. _import-export:
+
+Importing and Exporting Data
+============================
+
+Data archival is important to preserving the integrity, utility, and shareability of a project.
+To this end, **signac** provides interfaces for importing workspaces from and exporting workspaces to directories, zip-files, and tarballs.
+The exported project archives are useful for publishing data, *e.g.*, for researchers wishing to make an original data set available alongside a publication.
+
+.. _data-export:
+
+Exporting a Workspace
+---------------------
+
+Exporting a project could be as simple as zipping the project files and workspace paths (``$ zip -r project_archive.zip /data/my_project/``).
+The functionality provided by ``signac export`` is a bit more fine-grained and allows the use of a custom path structure or the export of a subset of the jobs based on state point or document filters or by job id.
+
+For example, suppose we have a project stored locally in the path ``/data/my_project`` and want to export it to a directory ``/data/my_project_archive``.
+The project's jobs are assumed to have state point keys *a* and *b* with integer values.
+We would first change into the root directory of the project that we want to export and then call ``signac export`` with the target path:
+
+.. code-block:: bash
+
+    $ cd /data/my_project
+    $ signac export /data/my_project_archive
+
+This would **copy** data from the source project to the export directory with the following directory structure:
+
+.. code-block:: bash
+
+    /data/my_project_archive/a/0/b/0/
+    /data/my_project_archive/a/0/b/1/
+    /data/my_project_archive/a/0/b/2/
+    # etc.
+
+The default path function is based on the implicit schema of all exported jobs, but we can also **optionally** specify a specific export path, for example like this:
+
+.. code-block:: bash
+
+    $ signac export /data/my_project_archive "a_{a}/b_{b}"
+
+It is possible to directly export to a zip-file or tarball by simply providing the path to the archive-file as target (*e.g.* ``$ signac export /data/my_project_archive.zip``).
+For more details on how to use ``signac export``, type ``$ signac export --help`` or see the documentation for the :py:meth:`~.Project.export_to` method.
+
+.. _data-import:
+
+Importing a Data Space
+----------------------
+
+The import of data spaces into a **signac** workspace means to map all directories as part of an arbitrary directory structure to signac job state points.
+That is easiest when one imports a previously exported workspace, which will still contain all state point files.
+
+For example, we could first export our workspace in ``~/my_project`` to ``~/data/`` with
+
+.. code-block:: bash
+
+    ~/my_project $ signac export ~/data/
+
+and then import the exported data into a second project:
+
+.. code-block:: bash
+
+    ~/my_new_project $ signac import ~/data/
+
+Since the imported data space was previously exported with **signac**, all state point metadata is automatically determined from the state point manifest files.
+
+In the case that we want to import a data space that was not previously exported with **signac**, we need to provide a schema-function.
+In the simplest case, that is just a function based on the data space paths, *e.g.*,
+
+.. code-block:: bash
+
+    $ signac import /data/non_signac_archive "a_{a:int}/b_{b:int}"
+
+The command above will copy all data from the the ``/data/non_signac_archive`` directory and use the paths of sub-directories to identify the associated state points.
+For example, the path ``a_0/b_1`` will be interpreted as ``{'a': 0, 'b': 1}``.
+The type specification -- here ``int`` for both *a* and *b* -- is optional and means that these values are converted to type ``int``; the default type is ``str``.
+
+Importing from zip-files and tarballs works similarly, by specifying that path as the origin.
+For more details on how to use ``signac import``, type ``$ signac import --help`` or see the documentation for :py:meth:`~.Project.import_from`.
+
+.. _workspace-views:
+
+Linked Views
+============
+
+Data space organization by job id is both efficient and flexible, but the obfuscation introduced by the job id makes inspecting the workspace on the command line or *via* a file browser much harder.
+A *linked view* is a directory hierarchy with human-interpretable names that link to to the actual job workspace directories.
+Unlike the default mode for :ref:`data export <data-export>`, no data is copied for the generation of linked views.
+
+.. automethod:: signac.Project.create_linked_view
+   :noindex:
+
+To create views from the command line use the ``$ signac view`` command.
+
+.. important::
+
+    When the project data space is changed by adding or removing jobs, simply update the view, by executing :py:meth:`~.Project.create_linked_view` or ``signac view`` for the same view directory again.
+
+You can limit the *linked view* to a specific data subset by providing a set of *job ids* to the :py:meth:`~.Project.create_linked_view` method.
+This works similar for ``$ signac view`` on the command line, for example, in combination with ``signac find`` (using the `-j` option to explicitly specify which jobs to include in the view):
+
+.. code-block:: bash
+
+    $ signac find '{"a": 0}' | xargs signac view my_view -j
+
+.. tip::
+
+    Consider creating a linked view for large data sets on an in-memory file system for best performance.
+
+.. _synchronization:
+
+Synchronization
+===============
+
+In some cases it may be necessary to store a project at more than one location, perhaps for backup purposes or for remote execution of data space operations.
+In this case there will be a regular need to synchronize these data spaces.
+
+Synchronization of two projects can be accomplished by either using ``rsync`` to directly synchronize the respective workspace directories, or by using ``signac sync``, a tool designed for more fine-grained synchronization of project data spaces.
+Users who are familiar with ``rsync`` will recognize that most of the core functionality and API of ``rsync`` is replicated in ``signac sync``.
+
+As an example, let's assume that we have a project stored locally in the path ``/data/my_project`` and want to synchronize it with ``/remote/my_project``.
+We would first change into the root directory of the project that we want to synchronize data into.
+Then we would call ``signac sync`` with the path of the project that we want to *synchronize with*:
+
+.. code-block:: bash
+
+    $ cd /data/my_project
+    $ signac sync /remote/my_project
+
+This would copy data *from the remote project to the local project*.
+For more details on how to use ``signac sync``, type ``$ signac sync --help``.
+
+Projects can also be synchronized using the Python API:
+
+.. code-block:: python
+
+    project.sync('/remote/my_project')
 
 
 .. _data-space-operations:
@@ -618,74 +756,3 @@ Or even with `Open MPI`_ using a :py:class:`~.contrib.mpipool.MPIPool`:
     Without further knowledge about the exact nature of the data space operation, it is not possible to predict which parallelization method is most efficient.
     The best way to find out is to run a few benchmarks.
 
-.. _workspace-views:
-
-Workspace Views
-===============
-
-Workspace organization by job id is both efficient and flexible, but the obfuscation introduced by the job id makes inspecting the workspace directly much harder.
-In this case it is useful to create a *linked view*.
-In **signac**, a view is simply a directory hierarchy with human-readable names that link to the actual job workspace directories.
-The use of links ensures that no data is copied, but the human-readable naming conventions ensure that data can be inspected more easily.
-
-To create a linked view you can either call the :py:meth:`~.Project.create_linked_view` method or execute
-``signac view`` on the command line.
-
-Let's assume the data space contains the following *state points*:
-
-    * a=0, b=0
-    * a=1, b=0
-    * a=2, b=0
-    * ...,
-
-where *b* is **constant** for all state points.
-
-We then create the linked view with:
-
-.. code-block:: bash
-
-    $ signac view my_view
-    Indexing project...
-    $ ls my_view/
-    a_0 a_1 a_2 ...
-
-We see that the view directories are named according to state point keys and their corresponding values.
-Note that in this case the parameter *b* is ignored for the creation of the linked views because it is constant for all jobs within the data space.
-
-.. important::
-
-    When the project data space is changed by adding or removing jobs, simply update the view, by executing :py:meth:`~.Project.create_linked_view` or ``signac view`` for the same view directory again.
-
-You can limit the *linked view* to a specific data subset by providing a set of *job ids* to the :py:meth:`~.Project.create_linked_view` method.
-This works similar for ``$ signac view`` on the command line, for example, in combination with ``signac find`` (using the `-j` option to explicitly specify which jobs to include in the view):
-
-.. code-block:: bash
-
-    $ signac find '{"a": 0}' | xargs signac view my_view -j
-
-.. tip::
-
-    Consider creating a linked view for large data sets on an in-memory file system for best performance.
-
-.. _synchronization:
-
-Synchronization
-================
-
-In some cases it may be necessary to store a project at more than one location, perhaps for backup purposes or for remote execution of data space operations.
-In this case there will be a regular need to synchronize these data spaces.
-
-Synchronization of two projects can be accomplished by either using ``rsync`` to directly synchronize the respective workspace directories, or by using ``signac sync``, a tool designed for more fine-grained synchronization of project data spaces.
-Users who are familiar with ``rsync`` will recognize that most of the core functionality and API of ``rsync`` is replicated in ``signac sync``.
-
-As an example, let's assume that we have a project stored locally in the path ``/data/my_project`` and want to synchronize it with ``/remote/my_project``.
-We would first change into the root directory of the project that we want to synchronize data into.
-Then we would call ``signac sync`` with the path of the project that we want to *synchronize with*:
-
-.. code-block:: bash
-
-    $ cd /data/my_projcet
-    $ signac sync /remote/my_project
-
-This would copy data *from the remote project to the local project*.
-For more details on how to use ``signac sync``, type ``$ signac sync --help``.

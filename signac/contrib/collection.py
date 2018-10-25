@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 
@@ -19,7 +19,6 @@ import logging
 import warnings
 import argparse
 import operator
-from collections import defaultdict
 from itertools import islice
 
 from ..core.json import json
@@ -69,7 +68,7 @@ def _flatten(container):
 
 
 def _to_tuples(l):
-    if isinstance(l, list):
+    if type(l) is list:
         return tuple(_to_tuples(_) for _ in l)
     else:
         return l
@@ -80,7 +79,7 @@ class _DictPlaceholder(object):
 
 
 def _encode_tree(x):
-    if isinstance(x, list):
+    if type(x) is list:
         return _to_tuples(x)
     else:
         return x
@@ -107,24 +106,79 @@ def _traverse_filter(t):
 
 
 def _valid_filter(f, top=True):
-    if isinstance(f, Mapping):
+    if f is None:
+        return True
+    elif type(f) is dict:
         return all(_valid_filter(v, top=False) for v in f.values())
-    elif isinstance(f, list):
+    elif type(f) is list:
         return not top
     else:
         return True
 
 
+class _float(float):
+    # Numerical objects of either integer or float type, that share the same numerical value,
+    # but not the same type, are distinguished within a Collection, but considered equal within
+    # Python. We manipulate the hash value, to enable the storage of both an int and a float
+    # that share the same numerical value within a collection index (dict).
+
+    # There is no risk of accidentally equating ints and floats with different values, since the
+    # hash equality is only a necessary, not a sufficient condition for equality.
+    def __hash__(self):
+        return super(_float, self).__hash__() + 1
+
+
+class _TypedSetDefaultDict(dict):
+    """Dictionary that is guaranteed to store differently typed values separately.
+
+    This is necessary, because the hash value of integers with float type is identical
+    to the same integer as int type, which means they cannot be stored separately in a
+    standard dict.
+    """
+
+    def keys(self):
+        for key in dict.keys(self):
+            yield float(key) if type(key) is _float else key
+
+    __iter__ = keys
+
+    def items(self):
+        for key, value in dict.items(self):
+            yield float(key) if type(key) is _float else key, value
+
+    def __missing__(self, key):
+        value = set()
+        dict.__setitem__(self, key, value)
+        return value
+
+    def __getitem__(self, key):
+        return dict.__getitem__(self,
+                                _float(key) if type(key) is float else key)
+
+    def __setitem__(self, key, value):
+        return dict.__setitem__(self,
+                                _float(key) if type(key) is float else key, value)
+
+    def __delitem__(self, key):
+        dict.__delitem__(self,
+                         _float(key) if type(key) is float else key)
+
+    def get(self, key, default=None):
+        return dict.get(self,
+                        _float(key) if type(key) is float else key, default)
+
+
 def _build_index(docs, key, primary_key):
+    "Build an index for 'key'; highly performance critical code path."
     nodes = key.split('.')
-    index = defaultdict(set)
+    index = _TypedSetDefaultDict()
 
     for doc in docs:
         try:
             v = doc[nodes[0]]
             for n in nodes[1:]:
                 v = v[n]
-            if type(v) == dict:
+            if type(v) is dict:
                 v = _DictPlaceholder
         except (KeyError, TypeError):
             pass
@@ -134,7 +188,9 @@ def _build_index(docs, key, primary_key):
                 "doc '{}': {}.".format(doc, error))
         else:
             # inlined for performance
-            if type(v) == list:   # performance
+            if type(v) is dict:
+                continue
+            elif type(v) is list:   # performance
                 index[_to_tuples(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
@@ -149,7 +205,7 @@ def _build_index(docs, key, primary_key):
                     "Using keys with dots ('.') is pending deprecation in the future!",
                     PendingDeprecationWarning)
                 # inlined for performance
-                if type(v) == list:     # performance
+                if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
                 else:
                     index[v].add(doc[primary_key])
@@ -165,7 +221,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, basestring if six.PY2 else str):  # noqa
+            if isinstance(value, six.string_types):
                 return re.search(argument, value)
             else:
                 return False
@@ -295,13 +351,15 @@ class Collection(object):
         self._requires_flush = False
         self._dirty = set()
         self._indexes = dict()
+        self._next_default_id_ = None
         self._docs = dict()
         if docs is not None:
             for doc in docs:
+                if self._primary_key not in doc:
+                    doc[self._primary_key] = self._next_default_id()
                 self.__setitem__(doc[self._primary_key], doc, _trust=_trust)
             self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
-        self._next_default_id_ = None
 
     def _assert_open(self):
         if self._docs is None:
@@ -431,12 +489,8 @@ class Collection(object):
 
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
-        if six.PY2:
-            if not isinstance(_id, basestring):  # noqa
-                raise TypeError("The primary key must be of type str!")
-        else:
-            if not isinstance(_id, str):
-                raise TypeError("The primary key must be of type str!")
+        if not isinstance(_id, six.string_types):
+            raise TypeError("The primary key must be of type str!")
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
             raise ValueError("Primary key mismatch!")
@@ -511,13 +565,6 @@ class Collection(object):
                 raise KeyError('Primary key collision!')
             self[_id] = doc
 
-    def _check_filter(self, filter):
-        "Check if filter is a valid filter argument."
-        if filter is None:
-            return True
-        if not _valid_filter(filter):
-            raise ValueError(filter)
-
     def _find_expression(self, key, value):
         logger.debug("Find documents for expression '{}: {}'.".format(key, value))
         if '$' in key:
@@ -544,23 +591,28 @@ class Collection(object):
             return index.get(value, set())
 
     def _find_result(self, expr):
-        result = None
         if not len(expr):
             return set(self.ids)    # Empty expression yields all ids...
-        else:
-            result = None
 
-        def _reduce_result(result, match):
-            if result is None:  # First match
-                return match
-            else:               # Update previous match
-                return result.intersection(match)
+        class result:
+            "Mutable local result context class."
+            # Once we drop Python 2.7 support we can replace `result.ids`
+            # simply with `result_ids`, remove the `result` class, and use
+            # a local function and `nonlocal result_ids`.
+            ids = None
+
+            @classmethod
+            def reduce(cls, match):
+                if result.ids is None:  # First match
+                    result.ids = match
+                else:               # Update previous match
+                    result.ids = result.ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
-            result = _reduce_result(result, {_id})
+            result.reduce({_id})
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
@@ -569,29 +621,29 @@ class Collection(object):
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
-            result = _reduce_result(result, self._find_expression(key, value))
-            if not result:          # No match, no need to continue...
+            result.reduce(self._find_expression(key, value))
+            if not result.ids:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            result = _reduce_result(result, set(self.ids).difference(not_match))
+            result.reduce(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                result = _reduce_result(result, self._find_result(expr_))
+                result.reduce(self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
-            result = _reduce_result(result, or_results)
+            result.reduce(or_results)
 
-        assert result is not None
-        return result
+        assert result.ids is not None
+        return result.ids
 
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.
@@ -619,12 +671,14 @@ class Collection(object):
         :returns: A set of ids of documents that match the given filter.
         """
         self._assert_open()
-        filter = json.loads(json.dumps(filter))  # Normalize
-        self._check_filter(filter)
-        if filter is None or not len(filter):
+        if filter:
+            filter = json.loads(json.dumps(filter))  # Normalize
+            if not _valid_filter(filter):
+                raise ValueError(filter)
+            result = self._find_result(filter)
+            return set(islice(result, limit if limit else None))
+        else:
             return set(islice(self._docs.keys(), limit if limit else None))
-        result = self._find_result(filter)
-        return set(islice(result, limit if limit else None))
 
     def find(self, filter=None, limit=0):
         """Find all documents matching filter, but not more than limit.

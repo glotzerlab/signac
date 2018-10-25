@@ -1,5 +1,9 @@
 # validate.py
-# A Validator object
+# -*- coding: utf-8 -*-
+# pylint: disable=
+#
+# A Validator object.
+#
 # Copyright (C) 2005-2014:
 # (name) : (email)
 # Michael Foord: fuzzyman AT voidspace DOT org DOT uk
@@ -125,9 +129,10 @@
 
     A badly formatted set of arguments will raise a ``VdtParamError``.
 """
+import re
+import sys
 
 __version__ = '1.0.1'
-
 
 __all__ = (
     'dottedQuadToNum',
@@ -161,22 +166,19 @@ __all__ = (
 )
 
 
-import re
-import sys
-from pprint import pprint
-
-#TODO - #21 - six is part of the repo now, but we didn't switch over to it here
+# TODO - #21 - six is part of the repo now, but we didn't switch over to it here
 # this could be replaced if six is used for compatibility, or there are no
 # more assertions about items being a string
 if sys.version_info < (3,):
-    string_type = basestring
+    string_type = basestring     # noqa
 else:
     string_type = str
     # so tests that care about unicode on 2.x can specify unicode, and the same
     # tests when run on 3.x won't complain about a undefined name "unicode"
     # since all strings are unicode on 3.x we just want to pass it through
     # unchanged
-    unicode = lambda x: x
+
+    def unicode(x): return x
     # in python 3, all ints are equivalent to python 2 longs, and they'll
     # never show "L" in the repr
     long = int
@@ -258,17 +260,6 @@ _paramstring = r'''
 
 _matchstring = '^%s*' % _paramstring
 
-# Python pre 2.2.1 doesn't have bool
-try:
-    bool
-except NameError:
-    def bool(val):
-        """Simple boolean equivalent function. """
-        if val:
-            return 1
-        else:
-            return 0
-
 
 def dottedQuadToNum(ip):
     """
@@ -276,25 +267,17 @@ def dottedQuadToNum(ip):
 
     >>> int(dottedQuadToNum('1 '))
     1
-    >>> int(dottedQuadToNum(' 1.2'))
-    16777218
-    >>> int(dottedQuadToNum(' 1.2.3 '))
-    16908291
     >>> int(dottedQuadToNum('1.2.3.4'))
     16909060
-    >>> dottedQuadToNum('255.255.255.255')
-    4294967295
-    >>> dottedQuadToNum('255.255.255.256')
-    Traceback (most recent call last):
-    ValueError: Not a good dotted-quad IP: 255.255.255.256
     """
 
     # import here to avoid it when ip_addr values are not used
-    import socket, struct
+    import socket
+    import struct
 
     try:
         return struct.unpack('!L',
-            socket.inet_aton(ip.strip()))[0]
+                             socket.inet_aton(ip.strip()))[0]
     except socket.error:
         raise ValueError('Not a good dotted-quad IP: %s' % ip)
     return
@@ -340,7 +323,8 @@ def numToDottedQuad(num):
     """
 
     # import here to avoid it when ip_addr values are not used
-    import socket, struct
+    import socket
+    import struct
 
     # no need to intercept here, 4294967295L is fine
     if num > long(4294967295) or num < 0:
@@ -379,19 +363,29 @@ class VdtUnknownCheckError(ValidateError):
         Traceback (most recent call last):
         VdtUnknownCheckError: the check "yoda" is unknown.
         """
-        ValidateError.__init__(self, 'the check "%s" is unknown.' % (value,))
+        ValidateError.__init__(self, 'the check "{}" is unknown.'.format(value))
 
 
 class VdtParamError(SyntaxError):
     """An incorrect parameter was passed"""
 
-    def __init__(self, name, value):
+    NOT_GIVEN = object()
+
+    def __init__(self, name_or_msg, value=NOT_GIVEN):
         """
         >>> raise VdtParamError('yoda', 'jedi')
         Traceback (most recent call last):
         VdtParamError: passed an incorrect value "jedi" for parameter "yoda".
+        >>> raise VdtParamError('preformatted message')
+        Traceback (most recent call last):
+        VdtParamError: preformatted message
         """
-        SyntaxError.__init__(self, 'passed an incorrect value "%s" for parameter "%s".' % (value, name))
+        if value is self.NOT_GIVEN:
+            SyntaxError.__init__(self, name_or_msg)
+        else:
+            SyntaxError.__init__(
+                self, 'passed an incorrect value "{}" for '
+                      'parameter "{}".'.format(value, name_or_msg))
 
 
 class VdtTypeError(ValidateError):
@@ -403,7 +397,7 @@ class VdtTypeError(ValidateError):
         Traceback (most recent call last):
         VdtTypeError: the value "jedi" is of the wrong type.
         """
-        ValidateError.__init__(self, 'the value "%s" is of the wrong type.' % (value,))
+        ValidateError.__init__(self, 'the value "{}" is of the wrong type.'.format(value))
 
 
 class VdtValueError(ValidateError):
@@ -415,7 +409,7 @@ class VdtValueError(ValidateError):
         Traceback (most recent call last):
         VdtValueError: the value "jedi" is unacceptable.
         """
-        ValidateError.__init__(self, 'the value "%s" is unacceptable.' % (value,))
+        ValidateError.__init__(self, 'the value "{}" is unacceptable.'.format(value))
 
 
 class VdtValueTooSmallError(VdtValueError):
@@ -427,7 +421,7 @@ class VdtValueTooSmallError(VdtValueError):
         Traceback (most recent call last):
         VdtValueTooSmallError: the value "0" is too small.
         """
-        ValidateError.__init__(self, 'the value "%s" is too small.' % (value,))
+        ValidateError.__init__(self, 'the value "{}" is too small.'.format(value))
 
 
 class VdtValueTooBigError(VdtValueError):
@@ -439,7 +433,7 @@ class VdtValueTooBigError(VdtValueError):
         Traceback (most recent call last):
         VdtValueTooBigError: the value "1" is too big.
         """
-        ValidateError.__init__(self, 'the value "%s" is too big.' % (value,))
+        ValidateError.__init__(self, 'the value "{}" is too big.'.format(value))
 
 
 class VdtValueTooShortError(VdtValueError):
@@ -453,7 +447,7 @@ class VdtValueTooShortError(VdtValueError):
         """
         ValidateError.__init__(
             self,
-            'the value "%s" is too short.' % (value,))
+            'the value "{}" is too short.'.format(value))
 
 
 class VdtValueTooLongError(VdtValueError):
@@ -465,7 +459,7 @@ class VdtValueTooLongError(VdtValueError):
         Traceback (most recent call last):
         VdtValueTooLongError: the value "jedie" is too long.
         """
-        ValidateError.__init__(self, 'the value "%s" is too long.' % (value,))
+        ValidateError.__init__(self, 'the value "{}" is too long.'.format(value))
 
 
 class Validator(object):
@@ -537,7 +531,7 @@ class Validator(object):
     ConfigObj, an alternative to ConfigParser which supports lists and
     can validate a config file using a config schema.
     For more details on using Validator with ConfigObj see:
-    https://configobj.readthedocs.org/en/latest/configobj.html
+    https://configobj.readthedocs.io/en/latest/configobj.html
     """
 
     # this regex does the initial parsing of the checks
@@ -545,7 +539,6 @@ class Validator(object):
 
     # this regex takes apart keyword arguments
     _key_arg = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$',  re.DOTALL)
-
 
     # this regex finds keyword=list(....) type values
     _list_arg = _list_arg
@@ -557,7 +550,6 @@ class Validator(object):
     # and then pull the members out
     _paramfinder = re.compile(_paramstring, re.VERBOSE | re.DOTALL)
     _matchfinder = re.compile(_matchstring, re.VERBOSE | re.DOTALL)
-
 
     def __init__(self, functions=None):
         """
@@ -587,7 +579,6 @@ class Validator(object):
         # tekNico: for use by ConfigObj
         self.baseErrorClass = ValidateError
         self._cache = {}
-
 
     def check(self, check, value, missing=False):
         """
@@ -624,7 +615,6 @@ class Validator(object):
 
         return self._check_value(value, fun_name, fun_args, fun_kwargs)
 
-
     def _handle_none(self, value):
         if value == 'None':
             return None
@@ -632,7 +622,6 @@ class Validator(object):
             # Special case a quoted None
             value = self._unquote(value)
         return value
-
 
     def _parse_with_caching(self, check):
         if check in self._cache:
@@ -643,10 +632,9 @@ class Validator(object):
             fun_kwargs = dict(fun_kwargs)
         else:
             fun_name, fun_args, fun_kwargs, default = self._parse_check(check)
-            fun_kwargs = dict([(str(key), value) for (key, value) in list(fun_kwargs.items())])
+            fun_kwargs = {str(key): value for (key, value) in list(fun_kwargs.items())}
             self._cache[check] = fun_name, list(fun_args), dict(fun_kwargs), default
         return fun_name, fun_args, fun_kwargs, default
-
 
     def _check_value(self, value, fun_name, fun_args, fun_kwargs):
         try:
@@ -655,7 +643,6 @@ class Validator(object):
             raise VdtUnknownCheckError(fun_name)
         else:
             return fun(value, *fun_args, **fun_kwargs)
-
 
     def _parse_check(self, check):
         fun_match = self._func_re.match(check)
@@ -680,7 +667,7 @@ class Validator(object):
                 keymatch = self._key_arg.match(arg)
                 if keymatch:
                     val = keymatch.group(2)
-                    if not val in ("'None'", '"None"'):
+                    if val not in ("'None'", '"None"'):
                         # Special case a quoted None
                         val = self._unquote(val)
                     fun_kwargs[keymatch.group(1)] = val
@@ -696,13 +683,11 @@ class Validator(object):
         default = fun_kwargs.pop('default', None)
         return fun_name, fun_args, fun_kwargs, default
 
-
     def _unquote(self, val):
         """Unquote a value if necessary."""
         if (len(val) >= 2) and (val[0] in ("'", '"')) and (val[0] == val[-1]):
             val = val[1:-1]
         return val
-
 
     def _list_handle(self, listmatch):
         """Take apart a ``keyword=list('val, 'val')`` type string."""
@@ -712,7 +697,6 @@ class Validator(object):
         for arg in self._list_members.findall(args):
             out.append(self._unquote(arg))
         return name, out
-
 
     def _pass(self, value):
         """
@@ -724,7 +708,6 @@ class Validator(object):
         '0'
         """
         return value
-
 
     def get_default_value(self, check):
         """
@@ -767,7 +750,7 @@ def _is_num_param(names, values, to_float=False):
         elif isinstance(val, (int, long, float, string_type)):
             try:
                 out_params.append(fun(val))
-            except ValueError as e:
+            except ValueError:
                 raise VdtParamError(name, val)
         else:
             raise VdtParamError(name, val)
@@ -820,7 +803,8 @@ def is_integer(value, min=None, max=None):
     >>> vtor.check('integer(0, 9)', False)
     0
     """
-    (min_val, max_val) = _is_num_param(('min', 'max'), (min, max))
+    (min_val, max_val) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
+        ('min', 'max'), (min, max))
     if not isinstance(value, (int, long, string_type)):
         raise VdtTypeError(value)
     if isinstance(value, string_type):
@@ -871,7 +855,7 @@ def is_float(value, min=None, max=None):
     Traceback (most recent call last):
     VdtValueTooBigError: the value "35.0" is too big.
     """
-    (min_val, max_val) = _is_num_param(
+    (min_val, max_val) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
         ('min', 'max'), (min, max), to_float=True)
     if not isinstance(value, (int, long, float, string_type)):
         raise VdtTypeError(value)
@@ -946,9 +930,9 @@ def is_boolean(value):
     # we do an equality test rather than an identity test
     # this ensures Python 2.2 compatibilty
     # and allows 0 and 1 to represent True and False
-    if value == False:
+    if value is False:
         return False
-    elif value == True:
+    elif value is True:
         return True
     else:
         raise VdtTypeError(value)
@@ -1022,7 +1006,8 @@ def is_list(value, min=None, max=None):
     Traceback (most recent call last):
     VdtTypeError: the value "12" is of the wrong type.
     """
-    (min_len, max_len) = _is_num_param(('min', 'max'), (min, max))
+    (min_len, max_len) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
+        ('min', 'max'), (min, max))
     if isinstance(value, string_type):
         raise VdtTypeError(value)
     try:
@@ -1094,7 +1079,8 @@ def is_string(value, min=None, max=None):
     """
     if not isinstance(value, string_type):
         raise VdtTypeError(value)
-    (min_len, max_len) = _is_num_param(('min', 'max'), (min, max))
+    (min_len, max_len) = _is_num_param(  # pylint: disable=unbalanced-tuple-unpacking
+        ('min', 'max'), (min, max))
     try:
         num_members = len(value)
     except TypeError:
@@ -1246,12 +1232,18 @@ def force_list(value, min=None, max=None):
     return is_list(value, min, max)
 
 
-
 fun_dict = {
+    int: is_integer,
+    'int': is_integer,
     'integer': is_integer,
+    float: is_float,
     'float': is_float,
     'ip_addr': is_ip_addr,
+    str: is_string,
+    'str': is_string,
     'string': is_string,
+    bool: is_boolean,
+    'bool': is_boolean,
     'boolean': is_boolean,
 }
 
@@ -1309,8 +1301,8 @@ def is_mixed_list(value, *args):
         raise VdtValueTooLongError(value)
     try:
         return [fun_dict[arg](val) for arg, val in zip(args, value)]
-    except KeyError as e:
-        raise VdtParamError('mixed_list', e)
+    except KeyError as cause:
+        raise VdtParamError('mixed_list', cause)
 
 
 def is_option(value, *options):
@@ -1328,7 +1320,7 @@ def is_option(value, *options):
     """
     if not isinstance(value, string_type):
         raise VdtTypeError(value)
-    if not value in options:
+    if value not in options:
         raise VdtValueError(value)
     return value
 
@@ -1427,6 +1419,7 @@ def _test2():
     3
     """
 
+
 def _test3():
     r"""
     >>> vtor.check('string(default="")', '', missing=True)
@@ -1469,4 +1462,6 @@ if __name__ == '__main__':
     failures, tests = doctest.testmod(
         m, globs=globs,
         optionflags=doctest.IGNORE_EXCEPTION_DETAIL | doctest.ELLIPSIS)
-    assert not failures, '{} failures out of {} tests'.format(failures, tests)
+    print('{} {} failures out of {} tests'
+          .format("FAIL" if failures else "*OK*", failures, tests))
+    sys.exit(bool(failures))

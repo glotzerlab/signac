@@ -26,3 +26,8 @@ class JobsCorruptedError(Error, RuntimeError):
     def __init__(self, job_ids):
         self.job_ids = job_ids
         "The job id(s) of the corrupted job(s)."
+
+
+class StatepointParsingError(Error, RuntimeError):
+    "Indicates an error that occurred while tyring to identify a state point."
+    pass

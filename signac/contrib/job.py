@@ -50,13 +50,14 @@ class Job(object):
     FN_DOCUMENT = 'signac_job_document.json'
     "The job's document filename."
 
-    def __init__(self, project, statepoint, _trust=False):
+    def __init__(self, project, statepoint, _id=None):
         self._project = project
-        if _trust:
-            self._statepoint = dict(statepoint)
-        else:
+        if _id is None:
             self._statepoint = json.loads(json.dumps(statepoint))
-        self._id = calc_id(self._statepoint)
+            self._id = calc_id(self._statepoint)
+        else:
+            self._statepoint = dict(statepoint)
+            self._id = _id
         self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = os.path.join(project.workspace(), self._id)
         self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
@@ -135,16 +136,15 @@ class Job(object):
                 pass  # job is not initialized
             else:
                 raise
-        else:
-            # Update this instance
-            self._statepoint = dst._statepoint
-            self._id = dst._id
-            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
-            self._wd = dst._wd
-            self._fn_doc = dst._fn_doc
-            self._document = None
-            self._cwd = list()
-            logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        # Update this instance
+        self._statepoint = dst._statepoint
+        self._id = dst._id
+        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
+        self._wd = dst._wd
+        self._fn_doc = dst._fn_doc
+        self._document = None
+        self._cwd = list()
+        logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
         if new_sp is None:
@@ -250,22 +250,13 @@ class Job(object):
     def doc(self, new_doc):
         self.document = new_doc
 
-    def init(self, force=False):
-        """Initialize the job's workspace directory.
-
-        This function will do nothing if the directory and
-        the job manifest already exist.
-
-        :param force: Overwrite any existing state points manifest
-            files, e.g., to repair them when they got corrupted.
-        :type force: bool
-        """
+    def _init(self, force=False):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
         try:
             _mkdir_p(self._wd)
-        except OSError as error:
+        except OSError:
             logger.error("Error occured while trying to create "
                          "workspace directory for job '{}'.".format(self))
             raise
@@ -293,8 +284,8 @@ class Job(object):
                 else:
                     with open(fn_manifest, 'w' if force else 'x') as file:
                         file.write(blob)
-            except IOError as error:
-                if not error.errno == errno.EEXIST:
+            except (IOError, OSError) as error:
+                if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise
         except Exception as error:
             # Attempt to delete the file on error, to prevent corruption.
@@ -310,16 +301,32 @@ class Job(object):
         "Check whether the manifest file, if it exists, is correct."
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
-            try:
-                with open(fn_manifest, 'rb') as file:
-                    assert calc_id(json.loads(file.read().decode())) == self._id
-            except IOError as error:
-                if error.errno != errno.ENOENT:
-                    raise error
-        except Exception as error:
+            with open(fn_manifest, 'rb') as file:
+                assert calc_id(json.loads(file.read().decode())) == self._id
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+        except (AssertionError, ValueError):
+            raise JobsCorruptedError([self._id])
+
+    def init(self, force=False):
+        """Initialize the job's workspace directory.
+
+        This function will do nothing if the directory and
+        the job manifest already exist.
+
+        :param force:
+                Overwrite any existing state point's manifest
+                files, e.g., to repair them when they got corrupted.
+        :type force:
+                bool
+        """
+        try:
+            self._init(force=force)
+        except Exception:
             logger.error(
                 "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
-            raise JobsCorruptedError([self._id])
+            raise
 
     def clear(self):
         """Remove all job data, but not the job itself.

@@ -33,7 +33,7 @@ else:
     from unittest.mock import Mock
 
 
-SIGNAC_ACCESS_MODULE_LEGACY = """import os
+SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
 import re
 
 from signac.contrib import RegexFileCrawler
@@ -49,19 +49,19 @@ def get_crawlers(root):
     yield Crawler(root)
 """
 
-SIGNAC_ACCESS_MODULE = """import signac
+SIGNAC_ACCESS_MODULE = r"""import signac
 
 def get_indexes(root):
-    yield signac.index_files(root, '.*a_(?P<a>\d)\.txt')
+    yield signac.index_files(root, r'.*a_(?P<a>\d)\.txt')
 
 get_indexes.tags = {'test1', 'test2'}
 """
 
-SIGNAC_ACCESS_MODULE_GET_CRAWLERS = """import signac
+SIGNAC_ACCESS_MODULE_GET_CRAWLERS = r"""import signac
 
 class Crawler(signac.RegexFileCrawler):
     tags = {'test1', 'test2'}
-Crawler.define('.*_(?P<a>\d)\.txt')
+Crawler.define(r'.*_(?P<a>\d)\.txt')
 
 def get_crawlers(root):
     yield Crawler(root)
@@ -169,7 +169,7 @@ class IndexingBaseTest(unittest.TestCase):
         class Crawler(indexing.RegexFileCrawler):
             pass
 
-        regex = re.compile(".*a_(?P<a>\d)\.txt")
+        regex = re.compile(r".*a_(?P<a>\d)\.txt")
         Crawler.define(regex, TestFormat)
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
@@ -195,7 +195,7 @@ class IndexingBaseTest(unittest.TestCase):
         self.assertEqual(len(list(crawler.crawl())), 0)
 
         # Now with pattern(s)
-        pattern = ".*a_(?P<a>\d)\.txt"
+        pattern = r".*a_(?P<a>\d)\.txt"
         regex = re.compile(pattern)
         Crawler.define(pattern, TestFormat)
         Crawler.define("negativematch", "negativeformat")
@@ -249,7 +249,7 @@ class IndexingBaseTest(unittest.TestCase):
         self.assertEqual(len(list(signac.index_files(root))), 5)
 
         # Now with pattern(s)
-        pattern_positive = ".*a_(?P<a>\d)\.txt"
+        pattern_positive = r".*a_(?P<a>\d)\.txt"
         pattern_negative = "nomatch"
 
         self.assertEqual(len(list(signac.index_files(root, pattern_positive))), 2)
@@ -259,7 +259,7 @@ class IndexingBaseTest(unittest.TestCase):
         for doc in signac.index_files(root, pattern_positive):
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
-            self.assertIsNotNone(re.match(".*a_(?P<a>\d)\.txt", ffn))
+            self.assertIsNotNone(re.match(r".*a_(?P<a>\d)\.txt", ffn))
             self.assertTrue(os.path.isfile(ffn))
             with open(ffn) as file:
                 doc2 = json.load(file)

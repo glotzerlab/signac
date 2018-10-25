@@ -1,4 +1,4 @@
-"""Backports the TemporaryDirectoy class for Python 2.7.
+"""Backports the TemporaryDirectory class for Python 2.7.
 
 Source: https://stackoverflow.com/a/19299884
 """
@@ -91,13 +91,3 @@ class TemporaryDirectory(object):
             self._rmdir(path)
         except OSError:
             pass
-
-
-if __name__ == '__main__':
-    import os
-    with TemporaryDirectory() as tmp_dir:
-        print("Temporary directory path: %s" % tmp_dir)
-        print(os.path.isdir(tmp_dir))
-
-# here the temporary diretory does not exist any more.
-    print(os.path.isdir(tmp_dir))

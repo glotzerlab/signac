@@ -15,7 +15,6 @@ index-servers=
     testpypi
 
 [pypi]
-repository: https://pypi.python.org/pypi
 username: ${PYPI_USERNAME}
 password: ${PYPI_PASSWORD}
 

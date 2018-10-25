@@ -1,0 +1,108 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+
+jobs:
+  style-check:
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - run:
+          name: style-check
+          command: |
+            pip install --user -U flake8
+            python -m flake8 --show-source signac/
+
+
+  test-3.6: &test-template
+    docker:
+      - image: circleci/python:3.6.1
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - run:
+          name: install dependencies
+          command: |
+            export PATH=$PATH:$HOME/.local/bin
+            pip install -U virtualenv --user
+            mkdir -p ./venv
+            virtualenv ./venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            pip install -U coverage mock
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            coverage run --source=signac/ -m unittest discover tests/
+            coverage report -i --include="signac*"
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+      - run:
+          name: benchmark
+          command: |
+            . venv/bin/activate
+            pip install -U gitpython psutil pandas tqdm backports.tempfile
+            python benchmark.py run -N 100 1000  # this revision
+            python benchmark.py report
+            git reset --hard origin/master
+            git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+            python benchmark.py run -N 100 1000 --force
+            python benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.5:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+  test-3.4:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
+  test-2.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:2.7-jessie
+  test-pypy-2:
+    <<: *test-template
+    docker:
+      - image: pypy:2
+  test-pypy-3:
+    <<: *test-template
+    docker:
+      - image: pypy:3
+
+workflows:
+  version: 2
+  style-check-and-tests:
+    jobs:
+      - style-check
+      - test-2.7:
+          requires:
+            - style-check
+      - test-3.4:
+          requires:
+            - style-check
+      - test-3.5:
+          requires:
+            - style-check
+      - test-3.6:
+          requires:
+            - style-check
+      - test-pypy-2:
+          requires:
+            - test-2.7
+      - test-pypy-3:
+          requires:
+            - test-3.6

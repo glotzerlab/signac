@@ -25,6 +25,30 @@ def _collect_by_type(values):
     return values_by_type
 
 
+def _build_job_statepoint_index(jobs, exclude_const, index):
+    from .collection import Collection
+    from .collection import _traverse_filter
+    from .collection import _DictPlaceholder
+    collection = Collection(index, _trust=True)
+    for doc in collection.find():
+        for key, _ in _traverse_filter(doc):
+            if key == '_id' or key.split('.')[0] != 'statepoint':
+                continue
+            collection.index(key, build=True)
+    tmp = collection._indexes
+
+    def strip_prefix(key): return k[len('statepoint.'):]
+
+    def remove_dict_placeholder(x):
+        return {k: v for k, v in x.items() if k is not _DictPlaceholder}
+
+    for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
+        if exclude_const and len(tmp[k]) == 1 \
+                and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
+            continue
+        yield tuple(strip_prefix(k).split('.')), remove_dict_placeholder(tmp[k])
+
+
 class ProjectSchema(object):
     "A description of a project's state point schema."
 

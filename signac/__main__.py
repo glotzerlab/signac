@@ -4,6 +4,7 @@
 from __future__ import print_function
 import os
 import sys
+import shutil
 import argparse
 import json
 import logging
@@ -11,6 +12,7 @@ import getpass
 import difflib
 import code
 import readline
+import importlib
 from rlcompleter import Completer
 import re
 import errno
@@ -21,11 +23,14 @@ from . import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
+from .common.tqdm import tqdm
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
+from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
 from .errors import DestinationExistsError
 from .sync import FileSync
 from .sync import DocSync
+from .errors import SyncConflict
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
@@ -58,7 +63,7 @@ CONFIG_HOST_CHOICES = {
 
 
 MSG_SYNC_SPECIFY_KEY = """
-Synchronization conflict occured, no strategy defined to synchronize keys:
+Synchronization conflict occurred, no strategy defined to synchronize keys:
 {keys}
 
 Use the `-k/--key` option to specify a regular expression pattern matching
@@ -67,7 +72,7 @@ keys, or `--no-keys` to overwrite none of the conflicting keys."""
 
 
 MSG_SYNC_FILE_CONFLICT = """
-Synchronization conflict occured, no strategy defined to synchronize files:
+Synchronization conflict occurred, no strategy defined to synchronize files:
 {files}
 
 Use the `-s/--strategy` option to specify a file synchronization strategy,
@@ -90,7 +95,16 @@ Workspace:\t{workspace_path}
 Size:\t\t{size}
 
 Interact with the project interface using the "project" or "pr" variable.
-Type "help(project)" for more information."""
+Type "help(project)" or "help(signac)" for more information."""
+
+
+SHELL_BANNER_INTERACTIVE_IMPORT = SHELL_BANNER + """
+
+The data from origin '{origin}' has been imported into a temporary project.
+Synchronize your project with the temporary project, for example with:
+
+                    project.sync(tmp_project, recursive=True)
+"""
 
 
 def _print_err(msg=None, *args):
@@ -166,7 +180,7 @@ def _open_job_by_id(project, job_id):
     "Attempt to open a job by id and provide user feedback on error."
     try:
         return project.open_job(id=job_id)
-    except KeyError as error:
+    except KeyError:
         close_matches = difflib.get_close_matches(
             job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
         msg = "Did not find job corresponding to id '{}'.".format(job_id)
@@ -175,7 +189,7 @@ def _open_job_by_id(project, job_id):
         elif len(close_matches) > 1:
             msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
         raise KeyError(msg)
-    except LookupError as error:
+    except LookupError:
         n = project.min_len_unique_id()
         raise LookupError("Multiple matches for abbreviated id '{}'. "
                           "Use at least {} characters for guaranteed "
@@ -272,7 +286,7 @@ def main_remove(args):
             "Are you sure you want to {action} job with id '{job._id}'?".format(
                 action='clear' if args.clear else 'remove',
                 job=job), default='no'):
-                continue
+            continue
         if args.clear:
             job.clear()
         else:
@@ -288,7 +302,7 @@ def main_move(args):
         try:
             job = _open_job_by_id(project, job_id)
             job.move(dst_project)
-        except DestinationExistsError as error:
+        except DestinationExistsError:
             _print_err(
                 "Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
@@ -302,7 +316,7 @@ def main_clone(args):
         try:
             job = _open_job_by_id(project, job_id)
             dst_project.clone(job)
-        except DestinationExistsError as error:
+        except DestinationExistsError:
             _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
         else:
             _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
@@ -353,6 +367,7 @@ def main_view(args):
     project = get_project()
     project.create_linked_view(
         prefix=args.prefix,
+        path=args.path,
         job_ids=find_with_filter(args),
         index=_read_index(args.index))
 
@@ -509,6 +524,119 @@ def main_sync(args):
         _print_err("Done.")
         return
     raise RuntimeWarning("Synchronization aborted.")
+
+
+def _main_import_interactive(project, origin, args):
+    from .contrib.import_export import _prepare_import_into_project
+    if args.move:
+        raise ValueError("Cannot use '--move' in combination with '--sync-interactive'.")
+
+    with project.temporary_project() as tmp_project:
+        _print_err("Prepare data space for import...")
+        with _prepare_import_into_project(origin, tmp_project, args.schema_path) as data_mapping:
+            paths = dict()
+            for src, copy_executor in tqdm(
+                    dict(data_mapping).items(), desc='Import to temporary project'):
+                paths[src] = copy_executor()
+
+            local_ns = dict(
+                signac=importlib.import_module(__package__),
+                project=project, pr=project,
+                tmp_project=tmp_project)
+            readline.set_completer(Completer(local_ns).complete)
+            readline.parse_and_bind('tab: complete')
+            code.interact(
+                local=local_ns,
+                banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
+                    python_version=sys.version,
+                    signac_version=__version__,
+                    project_id=project.get_id(),
+                    root_path=project.root_directory(),
+                    workspace_path=project.workspace(),
+                    size=len(project),
+                    origin=args.origin))
+
+            return paths
+
+
+def _main_import_non_interactive(project, origin, args):
+    from .contrib.import_export import _prepare_import_into_project
+    try:
+        paths = dict()
+        if args.sync:
+            with project.temporary_project() as tmp_project:
+                _print_err("Prepare data space for import...")
+                with _prepare_import_into_project(origin, tmp_project, args.schema_path) as mapping:
+                    for src, copy_executor in tqdm(
+                            dict(mapping).items(), desc='Import to temporary project'):
+                        paths[src] = copy_executor()
+                    _print_err("Synchronizing project with temporary project...")
+                    project.sync(tmp_project, recursive=True)
+        else:
+            _print_err("Prepare data space for import...")
+            with _prepare_import_into_project(origin, project, args.schema_path) as data_mapping:
+                for src, copy_executor in tqdm(dict(data_mapping).items(), 'Importing'):
+                    paths[src] = copy_executor(copytree=shutil.move if args.move else None)
+    except DestinationExistsError as error:
+        _print_err("Destination '{}' already exists.".format(error.destination))
+        if not args.sync:
+            _print_err("Consider using '--sync' or '--sync-interactive'!")
+    except SyncConflict as error:
+        _print_err("Synchronization failed with error: {}".format(error))
+        _print_err("Consider using '--sync-interactive'!")
+    else:
+        return paths
+
+
+def main_import(args):
+    if args.move and os.path.isfile(args.origin):
+        raise ValueError(
+            "Cannot use '--move' when importing from a file.")
+    if args.move and (args.sync or args.sync_interactive):
+        raise ValueError(
+            "Cannot use '--move' in combination with '--sync' or '--sync-interactive'.")
+
+    project = get_project()
+    if args.sync_interactive:
+        paths = _main_import_interactive(project, args.origin, args)
+    else:
+        paths = _main_import_non_interactive(project, args.origin, args)
+
+    if paths is None:
+        _print_err("Import failed.")
+    elif len(paths):
+        _print_err("Imported {} job(s).".format(len(paths)))
+    elif paths is not None:
+        _print_err("Nothing to import.")
+
+
+def main_export(args):
+    if args.move and os.path.splitext(args.target)[1] != '':
+        raise RuntimeError(
+            "The '--move' argument can only be used when exporting to directories.")
+    copytree = shutil.move if args.move else None
+
+    project = get_project()
+    jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+
+    paths = dict()
+    with tqdm(total=len(jobs), desc='Export') as pbar:
+        try:
+            for src, dst in export_jobs(
+                    jobs=jobs,
+                    target=args.target,
+                    path=args.schema_path,
+                    copytree=copytree):
+                paths[src] = dst
+                pbar.update(1)
+        except _SchemaPathEvaluationError as error:
+            raise RuntimeWarning(
+                "An error occurred while evaluating the schema path: {}".format(error))
+
+    if paths:
+        _print_err("Exported {} job(s).".format(len(paths)))
+    else:
+        _print_err("No jobs to export.")
 
 
 def main_update_cache(args):
@@ -824,7 +952,8 @@ def main_shell(args):
 
         local_ns = dict(
             project=project, pr=project,
-            jobs=iter(jobs()), job=job)
+            jobs=iter(jobs()), job=job,
+            signac=sys.modules['signac'])
 
         readline.set_completer(Completer(local_ns).complete)
         readline.parse_and_bind('tab: complete')
@@ -1041,7 +1170,7 @@ def main():
         description="""All filter arguments may be provided either directly in JSON
                        encoding or in a simplified form, e.g., -- $ signac find a 42 --
                        is equivalent to -- $ signac find '{"a": 42}'."""
-                       )
+    )
     parser_find.add_argument(
         'filter',
         type=str,
@@ -1075,6 +1204,13 @@ def main():
         nargs='?',
         default='view',
         help="The path where the view is to be created.")
+    parser_view.add_argument(
+        'path',
+        type=str,
+        nargs='?',
+        default='{{auto}}',
+        help="The path used for the generation of the linked view hierarchy, "
+             "defaults to '{{auto}}'.")
     selection_group = parser_view.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
@@ -1170,7 +1306,7 @@ means "Synchronize all jobs within this project with those in the other project;
 files if the source files is newer and overwrite all conflicting keys in the project and
 job documents."
 """
-        )
+    )
     parser_sync.add_argument(
         'source',
         help="The root directory of the project that this project should be synchronized with.")
@@ -1311,6 +1447,74 @@ job documents."
         nargs='+',
         help="Only synchronize jobs with the given job ids.")
     parser_sync.set_defaults(func=main_sync)
+
+    parser_import = subparsers.add_parser(
+        'import',
+        description="""Import an existing dataset into this project. Optionally provide a file path
+ based schema to specify the state point metadata. Providing a path based schema is only necessary
+ if the data set was not previously exported from a signac project.""")
+    parser_import.add_argument(
+        'origin',
+        default='.',
+        nargs='?',
+        help="The origin to import from. May be a path to a directory, a zipfile, or a tarball. "
+             "Defaults to the current working directory.")
+    parser_import.add_argument(
+        'schema_path',
+        nargs='?',
+        help="Specify an optional import path, such as 'foo/{foo:int}'. Possible type definitions "
+             "include bool, int, float, and str. The type is assumed to be 'str' if no type is "
+             "specified.")
+    parser_import.add_argument(
+        '--move',
+        action='store_true',
+        help="Move the data upon import instead of copying. Can only be used when importing from "
+             "a directory.")
+    parser_import.add_argument(
+        '--sync',
+        action='store_true',
+        help="Attempt recursive synchronization with default arguments.")
+    parser_import.add_argument(
+        '--sync-interactive',
+        action='store_true',
+        help="Synchronize the project with the origin data space interactively.")
+    parser_import.set_defaults(func=main_import)
+
+    parser_export = subparsers.add_parser(
+        'export',
+        description="""Export the project data space (or a subset) to a directory, a zipfile,
+ or a tarball.""")
+    parser_export.add_argument(
+        'target',
+        help="The target to export to. May be a path to a directory, a zipfile, or a tarball.",
+    )
+    parser_export.add_argument(
+        'schema_path',
+        nargs='?',
+        help="Specify an optional export path, based on the job state point, e.g., "
+             "'foo/{job.sp.foo}'.")
+    parser_export.add_argument(
+        '--move',
+        action='store_true',
+        help="Move data to export target instead of copying. Can only be used when exporting "
+             "to a directory target.")
+    selection_group = parser_export.add_argument_group('select')
+    selection_group.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching the state point filter.")
+    selection_group.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching this document filter.")
+    selection_group.add_argument(
+        '-j', '--job-id',
+        type=str,
+        nargs='+',
+        help="Limit the jobs to export to those matching the provided job ids.")
+    parser_export.set_defaults(func=main_export)
 
     parser_update_cache = subparsers.add_parser(
         'update-cache',

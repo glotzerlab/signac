@@ -7,7 +7,7 @@ image: python:3.6
 pipelines:
   default:
     - step:
-        name: 'build and test'
+        name: 'build and test (py36)'
         script:
           - python --version
           - pip --version
@@ -16,67 +16,41 @@ pipelines:
           - python setup.py build
           - python -m unittest discover tests/ -v
   branches:
-    master:
+    release/*:
       - step:
-          name: 'build and test'
+          name: 'build and test (py36)'
+          script:
+            - python --version
+            - pip --version
+            - pip install -U flake8
+            - python -m flake8 --show-source signac/
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+      - step:
+          name: 'build and test (py27-3x)'
           image: themattrix/tox
           services:
             - mongo
           script:
             - python3.6 --version
             - pip3.6 --version
-            - pip3.6 install -U coverage
+            - pip3.6 install -U coverage flake8 pymongo
             - python3.6 -m coverage --version
-            - pip3.6 install -U flake8
             - python3.6 -m flake8 --show-source signac/
             - python3.6 setup.py build
-            - python3.6 -m unittest discover tests/ -v
-            - pip3.6 install -U pymongo
             - python3.6 -m signac config -l host testing
             - tox --version
             - tox
             - python3.6 -m coverage report -i --include="signac*"
-    develop:
       - step:
-          name: 'build and test'
-          image: themattrix/tox
-          services:
-            - mongo
+          name: 'check zenodo metadata'
           script:
-            - python3.6 --version
-            - pip3.6 --version
-            - pip3.6 install -U coverage
-            - python3.6 -m coverage --version
-            - pip3.6 install -U flake8
-            - python3.6 -m flake8 --show-source signac/
-            - python3.6 setup.py build
-            - python3.6 -m unittest discover tests/ -v
-            - pip3.6 install -U pymongo
-            - python3.6 -m signac config -l host testing
-            - tox --version
-            - tox
-            - python3.6 -m coverage report -i --include="signac*"
-    release-*:
-      - step:
-          name: 'build and test'
-          image: themattrix/tox
-          services:
-            - mongo
-          script:
-            - python3.6 --version
-            - pip3.6 --version
-            - pip3.6 install -U coverage
-            - python3.6 -m coverage --version
-            - pip3.6 install -U flake8
-            - python3.6 -m flake8 --show-source signac/
-            - python3.6 setup.py build
-            - python3.6 -m unittest discover tests/ -v
-            - pip3.6 install -U pymongo
-            - python3.6 -m signac config -l host testing
-            - tox --version
-            - tox
-            - python3.6 -m coverage report -i --include="signac*"
             - python -c "import json; json.load(open('.zenodo.json'))"
+      - step:
+          name: 'check references.bib'
+          script:
+            - pip install -U pybtex
+            - python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
       - step:
           name: 'deploy-test.pypi.org'
           image: python:3.6
@@ -87,32 +61,39 @@ pipelines:
             - python -m pip install -U twine wheel setuptools
             - python -m twine --version
             - python -m wheel version
-            - python -c "import json; json.load(open('.zenodo.json'))"
             - bash .test-deploy.bash
   tags:
    v*:
-     - step:
-          name: 'build and test'
+      - step:
+          name: 'check zenodo metadata'
+          script:
+            - python -c "import json; json.load(open('.zenodo.json'))"
+      - step:
+          name: 'build and test (py36)'
+          script:
+            - python --version
+            - pip --version
+            - pip install -U flake8
+            - python -m flake8 --show-source signac/
+            - python setup.py build
+            - python -m unittest discover tests/ -v
+      - step:
+          name: 'build and test (py27-3x)'
           image: themattrix/tox
           services:
             - mongo
           script:
             - python3.6 --version
             - pip3.6 --version
-            - pip3.6 install -U twine
-            - python3.6 -m twine --version
-            - pip3.6 install -U coverage
+            - pip3.6 install -U coverage flake8 pymongo
             - python3.6 -m coverage --version
-            - pip3.6 install -U flake8
             - python3.6 -m flake8 --show-source signac/
             - python3.6 setup.py build
-            - python3.6 -m unittest discover tests/ -v
-            - pip3.6 install -U pymongo
             - python3.6 -m signac config -l host testing
             - tox --version
             - tox
             - python3.6 -m coverage report -i --include="signac*"
-     - step:
+      - step:
           name: 'deploy-pypi.org'
           image: python:3.6
           deployment: production
@@ -122,7 +103,6 @@ pipelines:
             - python -m pip install -U twine wheel setuptools
             - python -m twine --version
             - python -m wheel version
-            - python -c "import json; json.load(open('.zenodo.json'))"
             - bash .deploy.bash
 
 definitions:

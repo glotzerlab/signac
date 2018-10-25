@@ -14,9 +14,7 @@ The [signac framework](http://www.signac.io) aids in the management of large and
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
-**The package documentation is available at: [https://signac.readthedocs.io](https://signac.readthedocs.io)**
-
-**The framework documentation is available at: [https://signac-docs.readthedocs.io](https://signac-docs.readthedocs.io)**
+**The documentation is available at: [https://signac.readthedocs.io](https://signac.readthedocs.io)**
 
 ## Installation
 
@@ -48,8 +46,7 @@ and access the project handle:
 
 ## Documentation
 
-The documentation for this package is hosted at [https://signac.readthedocs.io](https://signac.readthedocs.io).
-We further invite you to check out the [framework documentation](https://signac-docs.readthedocs.io), which provides a more comprehensive overview over all components of the framework.
+The documentation is hosted at [https://signac.readthedocs.io](https://signac.readthedocs.io).
 
 ## Testing
 
