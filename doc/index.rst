@@ -1,8 +1,3 @@
-.. signac documentation master file, created by
-   sphinx-quickstart on Fri Oct 23 17:41:32 2015.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Signac (core) package documentation
 ===================================
 
@@ -11,8 +6,8 @@ Signac (core) package documentation
     This is documentation for the **signac** *core package*, which is part of the signac_ framework.
     See `here <signac-docs_>`_ for a comprehensive introduction to the **signac** *framework*.
 
-.. _signac: https://glotzerlab.engin.umich.edu/signac/
-.. _signac-docs: https://signac.readthedocs.io/en/latest
+.. _signac: http://www.signac.io/
+.. _signac-docs: https://docs.signac.io/
 
 Contents
 --------
@@ -20,7 +15,7 @@ Contents
 .. toctree::
    :hidden:
 
-   Go to Framework Documentation <https://docs.signac.io/en/latest/>
+   Go to Framework Documentation <https://docs.signac.io/>
 
 .. toctree::
    :maxdepth: 2
@@ -32,7 +27,7 @@ Contents
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
