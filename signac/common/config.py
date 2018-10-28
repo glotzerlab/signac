@@ -79,7 +79,7 @@ def read_config_file(filename):
     except (IOError, OSError, ConfigObjError) as error:
         msg = "Failed to read configuration file '{}':\n{}"
         raise ConfigError(msg.format(filename, error))
-    verification = config.verify(skip_missing=True)
+    verification = config.verify()
     if verification is not True:
         logger.debug("Config file '{}' may contain invalid values.".format(
             os.path.abspath(filename)))

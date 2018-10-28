@@ -525,7 +525,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
             destination.clone(src_job, copytree=proxy.copytree)
             logger.more("Cloned job '{}'.".format(src_job))
             return 1
-        except DestinationExistsError as e:
+        except DestinationExistsError:
             dst_job = destination.open_job(id=src_job.get_id())
             sync_jobs(
                 src=src_job,

@@ -8,7 +8,6 @@ import re
 import logging
 import warnings
 import errno
-import collections
 import uuid
 import gzip
 import time
@@ -34,9 +33,9 @@ from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 if six.PY2:
-    from collections import Mapping
+    from collections import Mapping, Iterable
 else:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -1308,7 +1307,7 @@ class Project(object):
 
     def index(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
-        """Generate an index of the project's workspace.
+        r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
         workspace until the specified `depth`.
@@ -1317,7 +1316,7 @@ class Project(object):
 
         .. code-block:: python
 
-            for doc in project.index({'.*\.txt', 'TextFile'}):
+            for doc in project.index({r'.*\.txt', 'TextFile'}):
                 print(doc)
 
         :param formats: The format definitions as mapping.
@@ -1644,7 +1643,7 @@ class JobsCursor(object):
                 def keyfunction(job):
                     return job.sp.get(key, default)
 
-        elif isinstance(key, collections.Iterable):
+        elif isinstance(key, Iterable):
             if default is None:
                 def keyfunction(job):
                     return tuple(job.sp[k] for k in key)
@@ -1702,7 +1701,7 @@ class JobsCursor(object):
             else:
                 def keyfunction(job):
                     return job.document.get(key, default)
-        elif isinstance(key, collections.Iterable):
+        elif isinstance(key, Iterable):
             if default is None:
                 def keyfunction(job):
                     return tuple(job.document[k] for k in key)

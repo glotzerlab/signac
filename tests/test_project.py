@@ -1221,6 +1221,24 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_import_simple_path_nested_with_schema(self):
+        prefix_data = os.path.join(self._tmp_dir.name, 'data')
+        for i in range(10):
+            self.project.open_job(dict(a=dict(b=dict(c=i)))).init()
+        ids_before_export = list(sorted(self.project.find_job_ids()))
+        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.assertEqual(len(self.project), 0)
+        self.assertEqual(len(os.listdir(prefix_data)), 1)
+        self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a.b.c'))), 10)
+        for i in range(10):
+            self.assertTrue(os.path.isdir(os.path.join(prefix_data, 'a.b.c', str(i))))
+        with self.assertRaises(StatepointParsingError):
+            self.project.import_from(origin=prefix_data, schema='a.b.c/{a.b:int}')
+        self.assertEqual(
+            len(self.project.import_from(origin=prefix_data, schema='a.b.c/{a.b.c:int}')), 10)
+        self.assertEqual(len(self.project), 10)
+        self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
+
     def test_export_import_simple_path_with_float(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):

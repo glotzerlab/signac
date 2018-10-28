@@ -28,7 +28,7 @@ FILTERS = [
     {'a.b': {'$exists': False}},
     {'a': {'$exists': True}},
     {'a': {'$exists': False}},
-    {'c': {'$regex': '^\d$'}},
+    {'c': {'$regex': r'^\d$'}},
     {'c': {'$type': 'str'}},
     {'d': {'$type': 'list'}},
     {'a.b': {'$where': "lambda x: x < 10"}},

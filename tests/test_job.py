@@ -185,8 +185,8 @@ class JobSPInterfaceTest(BaseJobTest):
         for x in ('a', 'b', 'c', 'd', 'e'):
             self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
             self.assertEqual(job.sp[x], sp[x])
-        l = [1, 1.0, '1.0', True, None]
-        b = list(l) + [l] + [tuple(l)]
+        a = [1, 1.0, '1.0', True, None]
+        b = list(a) + [a] + [tuple(a)]
         for v in b:
             for x in ('a', 'b', 'c', 'd', 'e'):
                 setattr(job.sp, x, v)

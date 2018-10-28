@@ -125,7 +125,7 @@ class BaseCrawler(object):
 
 
 class RegexFileCrawler(BaseCrawler):
-    """Generate documents from filenames and associate each file with a data type.
+    r"""Generate documents from filenames and associate each file with a data type.
 
     The `RegexFileCrawler` uses regular expressions to generate
     data from files. This is a particular easy method to retrieve meta data
@@ -286,7 +286,7 @@ class RegexFileCrawler(BaseCrawler):
 
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
-    fn_regex = '.*\.json'
+    fn_regex = r'.*\.json'
 
     def docs_from_json(self, doc):
         yield doc
@@ -411,7 +411,7 @@ class SignacProjectCrawler(RegexFileCrawler):
 
 
 class MasterCrawler(BaseCrawler):
-    """Compiles a master index from indexes defined in access modules.
+    r"""Compiles a master index from indexes defined in access modules.
 
     An instance of this crawler will search the data space for access
     modules, which by default are named ``signac_access.py``. Once such
@@ -430,7 +430,7 @@ class MasterCrawler(BaseCrawler):
         import signac
 
         def get_indexes(root):
-            yield signac.index_files(root, '.*\.txt')
+            yield signac.index_files(root, r'.*\.txt')
 
         def get_crawlers(root):
             yield MyCrawler(root)
@@ -833,7 +833,7 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
 
 
 def index_files(root='.', formats=None, depth=0):
-    """Generate a file index.
+    r"""Generate a file index.
 
     This generator function yields file index documents,
     where each index document corresponds to one file.
@@ -875,7 +875,7 @@ def index_files(root='.', formats=None, depth=0):
     .. code-block:: python
 
         for doc in signac.index_files(formats=
-            {'.*\.txt': 'TextFile', '.*\.zip': 'ZipFile'}):
+            {r'.*\.txt': 'TextFile', r'.*\.zip': 'ZipFile'}):
             print(doc)
 
     :param root: The directory to index, defaults to the
@@ -908,7 +908,7 @@ def index_files(root='.', formats=None, depth=0):
 
 
 def index(root='.', tags=None, depth=0, **kwargs):
-    """Generate a master index.
+    r"""Generate a master index.
 
     A master index is compiled from other indexes by searching
     for modules named ``signac_access.py`` and compiling all
@@ -924,7 +924,7 @@ def index(root='.', tags=None, depth=0, **kwargs):
         import signac
 
         def get_indexes(root):
-            yield signac.index_files(root, '.*\.txt')
+            yield signac.index_files(root, r'.*\.txt')
 
     Internally, this function constructs an instance of
     :py:class:`.MasterCrawler` and all extra key-word arguments

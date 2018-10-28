@@ -225,7 +225,7 @@ class BasicShellTest(unittest.TestCase):
             project.open_job(dict(a=i)).init()
         assert len(project)
         out = self.call(
-            'python -m signac shell -f a.\$gt 0',
+            r'python -m signac shell -f a.\$gt 0',
             'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))

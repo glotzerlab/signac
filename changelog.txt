@@ -17,8 +17,8 @@ Highlights
  - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
 
-[next] -- XXXX-XX-XX
---------------------
+[0.9.4] -- 2018-10-24
+---------------------
 
 Added
 +++++
@@ -29,7 +29,12 @@ Added
  - Adds the ``signac.Project.temporary_project()`` context manager which creates a temporary project within the root project workspace.
  - Add ``signac`` to the default namespace when invoking ``signac shell``.
  - Add option to specify a custom view path for the ``signac view``/ ``Project.create_linked_view()`` function.
- - Iterables of documents used to construct a Collection no longer require an ``_id`` field (issue #92).
+ - Iterables of documents used to construct a Collection no longer require an ``_id`` field.
+
+Changed
++++++++
+
+ - The default path for linked views has been adjusted to match the one used for data exports.
 
 Fixed
 +++++

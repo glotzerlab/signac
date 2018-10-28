@@ -529,7 +529,7 @@ class JobSyncTest(BaseJobTest):
         self.assertNotEqual(job_dst.document['a'], job_src.document['a'])
         self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
         reset()
-        job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('(nested\.)?a'))
+        job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey(r'(nested\.)?a'))
         self.assertEqual(job_dst.document, job_src.document)
         self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
         self.assertEqual(job_dst.document['a'], job_src.document['a'])

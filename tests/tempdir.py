@@ -92,6 +92,7 @@ class TemporaryDirectory(object):
         except OSError:
             pass
 
+
 if __name__ == '__main__':
     import os
     with TemporaryDirectory() as tmp_dir:
