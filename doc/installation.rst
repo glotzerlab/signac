@@ -4,29 +4,22 @@
 Installation
 ============
 
-The recommendend installation method for **signac** is via conda_ or pip_.
-The software is tested for python versions 2.7.x and 3.x and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
+The recommended installation method for **signac** is via conda_ or pip_.
+The software is tested for Python versions 2.7.x and 3.4+ and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
 However, some extra features, such as the database integration require additional packages.
 
-.. _conda: https://anaconda.org/
-.. _pip: https://docs.python.org/3.5/installing/index.html
+.. _conda: https://conda.io/
+.. _conda-forge: https://conda-forge.org/
+.. _pip: https://pip.pypa.io/en/stable/
 
 Install with conda
 ==================
 
-To install **signac** via conda, you first need to add the conda-forge_ channel with:
-
-.. _conda-forge: https://conda-forge.github.io
+You can install **signac** via conda (available on the conda-forge_ channel), with:
 
 .. code:: bash
 
-    $ conda config --add channels conda-forge
-
-Once the **conda-forge** channel has been enabled, **signac** can be installed with:
-
-.. code:: bash
-
-    $ conda install signac
+    $ conda install -c conda-forge signac
 
 All additional dependencies will be installed automatically.
 To upgrade the package, execute:
@@ -54,7 +47,7 @@ To upgrade the package, simply execute the same command with the ``--upgrade`` o
 
     $ pip install signac --user --upgrade
 
-Consider to install optional dependencies:
+Consider installing optional dependencies:
 
 .. code:: bash
 
@@ -72,7 +65,7 @@ Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/s
   cd signac
   python setup.py install --user
 
-Consider to install :ref:`optional dependencies <optional_dependencies>`.
+Consider installing :ref:`optional dependencies <optional_dependencies>`.
 
 .. _optional_dependencies:
 

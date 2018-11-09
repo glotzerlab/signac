@@ -1420,7 +1420,7 @@ class Project(object):
         if dir is None:
             dir = self.workspace()
         _mkdir_p(self.workspace())  # ensure workspace exists
-        with TemporaryProject(name=name, dir=dir) as tmp_project:
+        with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
     @classmethod
@@ -1521,7 +1521,7 @@ class Project(object):
 
 
 @contextmanager
-def TemporaryProject(name=None, **kwargs):
+def TemporaryProject(name=None, cls=None, **kwargs):
     """Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
@@ -1535,6 +1535,9 @@ def TemporaryProject(name=None, **kwargs):
     :param name:
         An optional name for the temporary project.
         Defaults to a unique random string.
+    :param cls:
+        The class of the temporary project.
+        Defaults to :class:`.Project`.
     :param kwargs:
         Optional key-word arguments that are forwarded to the TemporaryDirectory class
         constructor, which is used to create a temporary root directory.
@@ -1543,8 +1546,10 @@ def TemporaryProject(name=None, **kwargs):
     """
     if name is None:
         name = str(uuid.uuid4())
+    if cls is None:
+        cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield Project.init_project(name=name, root=tmp_dir)
+        yield cls.init_project(name=name, root=tmp_dir)
 
 
 def _skip_errors(iterable, log=print):
