@@ -1495,8 +1495,7 @@ class Project(object):
 
     @classmethod
     def get_job(cls, root=None):
-        """From a job workspace directory, locate the closest project above
-        this directory and return this job.
+        """From a job workspace directory or subdirectory, get the job.
 
         :param root: The job root directory.
             If no root directory is given, the current working directory is
@@ -1506,14 +1505,23 @@ class Project(object):
         :raises LookupError: If this job cannot be found."""
         if root is None:
             root = os.getcwd()
-        job_id = re.findall(JOB_ID_REGEX, root)[-1]
-        project = cls.get_project()
-        job = project.open_job(id=job_id)
-        if job in project:
-            return job
+        results = re.findall(JOB_ID_REGEX, root)
+        if len(results) > 0:
+            job_id = results[-1]
         else:
-            raise LookupError("Unable to find job id {} in project '{}'.".format(
-                job_id, project))
+            raise LookupError("Could not find a job id in path '{}'.".format(
+                os.path.abspath(root)))
+        project = cls.get_project()
+        try:
+            job = project.open_job(id=job_id)
+        except KeyError:
+            raise
+        else:
+            if job in project:
+                return job
+            else:
+                raise LookupError("Unable to find job id {} in project '{}'.".format(
+                    job_id, project))
 
 
 @contextmanager

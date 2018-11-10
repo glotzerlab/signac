@@ -1789,8 +1789,6 @@ class ProjectInitTest(unittest.TestCase):
         project = signac.init_project(name='testproject', root=root)
         job = project.open_job({'a': 1})
         job.init()
-        self.assertEqual(project.get_job(job.ws), job)
-        self.assertEqual(signac.get_job(job.ws), job)
         with job:
             # The context manager enters the working directory of the job
             self.assertEqual(project.get_job(), job)
@@ -1822,9 +1820,11 @@ class ProjectInitTest(unittest.TestCase):
         job.init()
         with job:
             nestedproject = signac.init_project('nestedproject')
-            nestedproject.open_job({'b': 2})
-            self.assertEqual(project.get_job(), job)
-            self.assertEqual(signac.get_job(), job)
+            nestedproject.open_job({'b': 2}).init()
+            with self.assertRaises(KeyError):
+                project.get_job()
+            with self.assertRaises(KeyError):
+                signac.get_job()
 
     def test_get_job_subdir_of_project(self):
         # Test case: The job workspace dir is a sub-directory of the project root dir.
