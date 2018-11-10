@@ -1506,18 +1506,22 @@ class Project(object):
         :raises LookupError: If this job cannot be found."""
         if root is None:
             root = os.getcwd()
-        statepoint_path = os.path.join(root, 'signac_statepoint.json')
-        if os.path.exists(statepoint_path):
-            with open(statepoint_path, 'r') as file:
-                statepoint = json.loads(file.read())
-            config = load_config(root=os.path.join(root, os.pardir), local=False)
-            if 'project' not in config:
-                raise LookupError(
-                    "Unable to determine project id for path '{}'.".format(root))
-            return cls(config=config).open_job(statepoint)
-        else:
-            raise LookupError(
-                "No signac_statepoint.json found in path '{}'.".format(root))
+        while True:
+            statepoint_path = os.path.join(root, 'signac_statepoint.json')
+            if os.path.exists(statepoint_path):
+                with open(statepoint_path, 'r') as file:
+                    statepoint = json.loads(file.read())
+                config = load_config(root=os.path.join(root, os.pardir), local=False)
+                if 'project' not in config:
+                    raise LookupError(
+                        "Unable to determine project id for path '{}'.".format(root))
+                return cls(config=config).open_job(statepoint)
+            else:
+                up = os.path.abspath(os.path.join(root, '..'))
+                if up == root:
+                    raise LookupError("No signac_statepoint.json found.")
+                else:
+                    root = up
 
 
 @contextmanager
