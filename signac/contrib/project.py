@@ -1783,7 +1783,7 @@ def get_job(root=None):
 
     :param root: The job root directory.
         If no root directory is given, the current working directory is
-        assumed to be the job directory.
+        assumed to be within the current job workspace directory.
     :type root: str
     :returns: The job handle.
     :raises LookupError: If this job cannot be found."""
