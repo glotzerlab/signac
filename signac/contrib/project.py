@@ -591,6 +591,13 @@ class Project(object):
         """
         return self.find_jobs().groupbydoc(key, default=default)
 
+    def to_dataframe(self, *args, **kwargs):
+        """Export the project metadata to a pandas dataframe.
+
+        The arguments to this function are forwarded to :py:meth:`.JobsCursor.to_dataframe`.
+        """
+        return self.find_jobs().to_dataframe(*args, **kwargs)
+
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
@@ -1705,6 +1712,37 @@ class JobsCursor(object):
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
+
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+        """Convert the selection of jobs to a pandas dataframe.
+
+        This function exports the job metadata to a :py:class:`pandas.DataFrame`.
+        All state point and document keys are prefixed by default to be able to distinguish them.
+
+        :param sp_prefix:
+            Prefix state point keys with the given string. Defaults to "sp.".
+        :type sp_prefix:
+            str
+        :param doc_prefix:
+            Prefix document keys with the given string. Defaults to ".doc".
+        :type doc_prefix:
+            str
+        :returns:
+            A pandas dataframe with all job metadata.
+        :rtype:
+            :py:class:`pandas.DataFrame`
+        """
+        import pandas
+
+        def _export_sp_and_doc(job):
+            for key, value in job.sp.items():
+                yield sp_prefix + key, value
+            for key, value in job.doc.items():
+                yield doc_prefix + key, value
+
+        return pandas.DataFrame.from_dict(
+            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            orient='index').infer_objects()
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

@@ -309,5 +309,6 @@ texinfo_documents = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
-    'pymongo': ('https://api.mongodb.com/python/current/', None)
+    'pymongo': ('https://api.mongodb.com/python/current/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
