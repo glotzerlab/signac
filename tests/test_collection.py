@@ -159,6 +159,15 @@ class CollectionTest(unittest.TestCase):
         self.c.update(docs)
         self.assertEqual(len(self.c), len(docs))
 
+    def test_update_collision(self):
+        docs = [dict(_id=str(i), a=i) for i in range(10)]
+        self.c.update(docs)
+        # Update the first ten, insert the second ten
+        new_docs = [dict(_id=str(i), a=i*2) for i in range(20)]
+        self.c.update(new_docs)
+        self.assertEqual(len(self.c), len(new_docs))
+        self.assertEqual(self.c['0'], new_docs[0])
+
     def test_index(self):
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)

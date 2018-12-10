@@ -561,8 +561,6 @@ class Collection(object):
                 _id = doc[self._primary_key]
             else:
                 _id = doc[self._primary_key] = self._next_default_id()
-            if _id in self:
-                raise KeyError('Primary key collision!')
             self[_id] = doc
 
     def _find_expression(self, key, value):
