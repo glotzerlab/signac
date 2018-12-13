@@ -203,15 +203,6 @@ class Job(object):
     def sp(self, new_sp):
         self.statepoint = new_sp
 
-    def _read_document(self):
-        try:
-            with open(self._fn_doc, 'rb') as file:
-                return json.loads(file.read().decode())
-        except IOError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            return dict()
-
     def _reset_document(self, new_doc):
         if not isinstance(new_doc, Mapping):
             raise ValueError("The document must be a mapping.")
