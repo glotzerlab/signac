@@ -20,6 +20,11 @@ Highlights
 [next] -- YYYY-MM-DD
 --------------------
 
+Added
++++++
+
+ - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
+
 Fixed
 +++++
 
