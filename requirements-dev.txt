@@ -1,0 +1,5 @@
+coverage
+mock
+numpy
+pandas; python_version<='3.4' or implementation_name!='cpython' --no-binary pandas
+pandas; python_version>'3.4'
