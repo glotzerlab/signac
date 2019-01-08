@@ -32,11 +32,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v1-{{ arch }}
-            - python-env-v1
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v2-{{ arch }}
+            - python-env-v2
 
       - run:
           name: install dependencies
@@ -46,10 +46,15 @@ jobs:
             mkdir -p ./venv
             virtualenv ./venv
             . venv/bin/activate
+            if [[ "$CIRCLE_JOB" == *"pypy"* ]]; then
+              apt update -qq && apt install -qq libhdf5-dev
+            else
+              sudo apt update -qq && sudo apt install -qq libhdf5-dev
+            fi
             pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
@@ -57,7 +62,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            coverage run --source=signac/ -m unittest discover tests/
+            coverage run --source=signac/ -m unittest discover tests/ -v
             coverage report -i --include="signac*"
 
       - store_artifacts:

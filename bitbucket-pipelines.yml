@@ -4,6 +4,8 @@
 # You can specify a custom docker image from Dockerhub as your build environment.
 image: python:3.6
 
+options:
+  max-time: 20
 pipelines:
   default:
     - step:
@@ -15,8 +17,9 @@ pipelines:
           - python -m flake8 --show-source signac/
           - pip install -U numpy
           - python -c "import numpy; print(numpy.__version__)"
-          - pip install -U pandas
+          - pip install -U pandas h5py
           - python -c "import pandas; print(pandas.__version__)"
+          - python -c "import h5py; print(h5py.__version__)"
           - python setup.py build
           - python -m unittest discover tests/ -v
   branches:
@@ -30,8 +33,9 @@ pipelines:
             - python -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
-            - pip install -U pandas
+            - pip install -U pandas h5py
             - python -c "import pandas; print(pandas.__version__)"
+            - python -c "import h5py; print(h5py.__version__)"
             - python setup.py build
             - python -m unittest discover tests/ -v
       - step:
@@ -47,8 +51,9 @@ pipelines:
             - python3.6 -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
-            - pip install -U pandas
+            - pip install -U pandas h5py
             - python -c "import pandas; print(pandas.__version__)"
+            - python -c "import h5py; print(h5py.__version__)"
             - python3.6 setup.py build
             - python3.6 -m signac config -l host testing
             - tox --version
@@ -89,8 +94,9 @@ pipelines:
             - python -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
-            - pip install -U pandas
+            - pip install -U pandas h5py
             - python -c "import pandas; print(pandas.__version__)"
+            - python -c "import h5py; print(h5py.__version__)"
             - python setup.py build
             - python -m unittest discover tests/ -v
       - step:
@@ -106,8 +112,9 @@ pipelines:
             - python3.6 -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
-            - pip install -U pandas
+            - pip install -U pandas h5py
             - python -c "import pandas; print(pandas.__version__)"
+            - python -c "import h5py; print(h5py.__version__)"
             - python3.6 setup.py build
             - python3.6 -m signac config -l host testing
             - tox --version

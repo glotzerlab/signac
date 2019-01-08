@@ -18,6 +18,7 @@ from multiprocessing.pool import ThreadPool
 from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
+from ..core.h5store import H5Store
 from .collection import Collection
 from ..common import six
 from ..common.config import load_config
@@ -123,6 +124,9 @@ class Project(object):
     FN_DOCUMENT = 'signac_project_document.json'
     "The project's document filename."
 
+    FN_DATA = 'signac_data.h5'
+    "The project's datastore filename."
+
     FN_STATEPOINTS = 'signac_statepoints.json'
     "The default filename to read from and write statepoints to."
 
@@ -140,6 +144,10 @@ class Project(object):
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
+
+        # Prepare project datastore
+        self._fn_data = os.path.join(self._rd, self.FN_DATA)
+        self._data = None
 
         # Internal caches
         self._index_cache = dict()
@@ -292,13 +300,29 @@ class Project(object):
     def doc(self, new_doc):
         self.document = new_doc
 
+    @property
+    def data(self):
+        """The data associated with this project.
+
+        :return: An HDF5-backed datastore.
+        :rtype: :class:`~signac.core.h5store.H5Store`
+        """
+        if self._data is None:
+            self._data = H5Store(filename=self._fn_data)
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        self._data.clear()
+        self._data.update(new_data)
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
         This method returns the job instance associated with
         the given statepoint or job id.
         Opening a job by a valid statepoint never fails.
-        Opening a job by id, requires a lookup of the statepoint
+        Opening a job by id requires a lookup of the statepoint
         from the job id, which may fail if the job was not
         previously initialized.
 

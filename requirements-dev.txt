@@ -2,4 +2,7 @@ coverage
 mock
 numpy
 pandas; python_version<='3.4' or implementation_name!='cpython' --no-binary pandas
-pandas; python_version>'3.4'
+pandas; python_version>'3.4' and implementation_name=='cpython'
+h5py; implementation_name!='cpython' --no-binary h5py
+h5py; implementation_name=='cpython'
+tables
