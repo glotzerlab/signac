@@ -308,6 +308,10 @@ class H5Store(MutableMapping):
         with _ensure_open(self):
             return len(self._file)
 
+    def __contains__(self, key):
+        with _ensure_open(self):
+            return key in self._file
+
     def clear(self):
         with _ensure_open(self):
             self._file.clear()
