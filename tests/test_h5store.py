@@ -390,6 +390,12 @@ class H5StoreNestedDataTest(H5StoreTest):
         return dict(a=super(H5StoreNestedDataTest, self).get_testdata(size))
 
 
+class H5StoreBytesDataTest(H5StoreTest):
+
+    def get_testdata(self, size=None):
+        return super(H5StoreBytesDataTest, self).get_testdata(size=size).encode()
+
+
 class H5StoreClosedTest(H5StoreTest):
 
     @contextmanager

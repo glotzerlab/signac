@@ -61,18 +61,29 @@ def _h5set(file, grp, key, value, path=None):
     import numpy    # h5py depends on numpy, so this is safe.
     path = path + '/' + key if path else key
 
+    # Delete any existing data
     if key in grp:
         del grp[key]
+
+    # Mapping-types
     if isinstance(value, Mapping):
         subgrp = grp.create_group(key)
         for k, v in value.items():
             _h5set(file, subgrp, k, v, path)
+
+    # Regular built-in types:
     elif value is None:
         grp.create_dataset(key, data=None, shape=None, dtype='f')
-    elif isinstance(value, (int, float, str, bool, array.array)):  # officially supported types
+    elif isinstance(value, (int, float, str, bool, array.array)):
         grp[key] = value
-    elif type(value).__module__ == numpy.__name__:       # numpy types
+    elif isinstance(value, bytes):
+        grp[key] = numpy.bytes_(value)
+
+    # NumPy types
+    elif type(value).__module__ == numpy.__name__:
         grp[key] = value
+
+    # Other types
     else:
         _load_pandas()   # might be a pandas type
         if _is_pandas_type(value):
