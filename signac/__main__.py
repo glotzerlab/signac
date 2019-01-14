@@ -933,6 +933,9 @@ def main_config_host(args):
 
 
 def main_shell(args):
+    if args.file and args.command:
+        raise ValueError(
+            "Cannot provide file and -c/--command argument at the same time!")
 
     try:
         project = get_project()
@@ -955,17 +958,31 @@ def main_shell(args):
             jobs=iter(jobs()), job=job,
             signac=sys.modules['signac'])
 
-        readline.set_completer(Completer(local_ns).complete)
-        readline.parse_and_bind('tab: complete')
-        code.interact(
-            local=local_ns,
-            banner=SHELL_BANNER.format(
-                python_version=sys.version,
-                signac_version=__version__,
-                project_id=project.get_id(),
-                root_path=project.root_directory(),
-                workspace_path=project.workspace(),
-                size=len(project)))
+        if args.file or args.command:
+            interpreter = code.InteractiveInterpreter(locals=local_ns)
+            if args.file and args.file == '-':
+                try:
+                    while True:
+                        interpreter.runsource(input(), filename="<input>", symbol="exec")
+                except EOFError:
+                    pass
+            elif args.file:
+                with open(args.file) as file:
+                    interpreter.runsource(file.read(), filename=args.file, symbol="exec")
+            else:
+                interpreter.runsource(args.command, filename="<input>", symbol="exec")
+        else:   # interactive
+            readline.set_completer(Completer(local_ns).complete)
+            readline.parse_and_bind('tab: complete')
+            code.interact(
+                local=local_ns,
+                banner=SHELL_BANNER.format(
+                    python_version=sys.version,
+                    signac_version=__version__,
+                    project_id=project.get_id(),
+                    root_path=project.root_directory(),
+                    workspace_path=project.workspace(),
+                    size=len(project)))
 
 
 def main():
@@ -1273,6 +1290,15 @@ def main():
     parser_schema.set_defaults(func=main_schema)
 
     parser_shell = subparsers.add_parser('shell')
+    parser_shell.add_argument(
+        'file',
+        type=str,
+        nargs='?',
+        help="Execute Python script in file.")
+    parser_shell.add_argument(
+        '-c', '--command',
+        type=str,
+        help="Execute Python program passed as string.")
     selection_group = parser_shell.add_argument_group(
         'select',
         description="Specify one or more jobs to preset the `jobs` variable as a generator "
