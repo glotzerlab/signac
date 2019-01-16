@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from time import time
 from functools import partial
 from platform import python_implementation
+from multiprocessing.pool import ThreadPool
+from contextlib import closing
 
 from signac.core.h5store import H5Store
 from signac.common import six
@@ -67,8 +69,32 @@ class BaseH5StoreTest(unittest.TestCase):
             size = 1024
         return ''.join([random.choice(string.ascii_lowercase) for i in range(size)])
 
+    def assertEqual(self, a, b):
+        if hasattr(a, 'shape'):
+            if not NUMPY:
+                raise unittest.SkipTest("This test requires the numpy package.")
+            numpy.testing.assert_array_equal(a, b)
+        else:
+            super(BaseH5StoreTest, self).assertEqual(a, b)
+
 
 class H5StoreTest(BaseH5StoreTest):
+
+    valid_types = {
+        'int': 123,
+        'float': 123.456,
+        'string': 'foobar',
+        'none': None,
+        'float_array': array('f', [-1.5, 0, 1.5]),
+        'double_array': array('d', [-1.5, 0, 1.5]),
+        'int_array': array('i', [-1, 0, 1]),
+        'uint_array': array('I', [0, 1, 2]),
+        'dict': {
+            'a': 1,
+            'b': None,
+            'c': 'test',
+        },
+    }
 
     def test_init(self):
         self.get_h5store()
@@ -219,27 +245,9 @@ class H5StoreTest(BaseH5StoreTest):
 
     def test_write_valid_types(self):
         with self.open_h5store() as h5s:
-            valid_types = {
-                'int': 123,
-                'float': 123.456,
-                'string': 'foobar',
-                'none': None,
-                'float_array': array('f', [-1.5, 0, 1.5]),
-                'double_array': array('d', [-1.5, 0, 1.5]),
-                'int_array': array('i', [-1, 0, 1]),
-                'uint_array': array('I', [0, 1, 2]),
-                'dict': {
-                    'a': 1,
-                    'b': None,
-                    'c': 'test',
-                },
-            }
-            for k, v in valid_types.items():
+            for k, v in self.valid_types.items():
                 h5s[k] = v
-                if k.endswith('array'):
-                    self.assertTrue((h5s[k] == v).all())
-                else:
-                    self.assertEqual(h5s[k], v)
+                self.assertEqual(h5s[k], v)
 
     def test_write_invalid_type(self):
         class Foo(object):
@@ -398,6 +406,18 @@ class H5StoreBytesDataTest(H5StoreTest):
 
 class H5StoreClosedTest(H5StoreTest):
 
+    valid_types = {
+        'int': 123,
+        'float': 123.456,
+        'string': 'foobar',
+        'none': None,
+        'dict': {
+            'a': 1,
+            'b': None,
+            'c': 'test',
+        },
+    }
+
     @contextmanager
     def open_h5store(self):
         yield self.get_h5store()
@@ -453,6 +473,34 @@ class H5StoreNestedPandasDataTest(H5StorePandasDataTest):
             assert isinstance(a, Mapping) and isinstance(b, Mapping)
 
 
+class H5StoreMultiThreadingTest(BaseH5StoreTest):
+
+    def test_multithreading(self):
+
+        def set_x(x):
+            self.get_h5store()['x'] = x
+
+        with closing(ThreadPool(2)) as pool:
+            pool.map(set_x, range(100))
+        pool.join()
+
+        self.assertIn(self.get_h5store()['x'], set(range(100)))
+
+    def test_multithreading_with_error(self):
+
+        def set_x(x):
+            self.get_h5store()['x'] = x
+            if x == 50:
+                raise RuntimeError()
+
+        with self.assertRaises(RuntimeError):
+            with closing(ThreadPool(2)) as pool:
+                pool.map(set_x, range(100))
+        pool.join()
+
+        self.assertIn(self.get_h5store()['x'], set(range(100)))
+
+
 @unittest.skipIf(not NUMPY, 'requires numpy package')
 @unittest.skipUnless(python_implementation() == 'CPython', 'Optimized for CPython.')
 class H5StorePerformanceTest(BaseH5StoreTest):
@@ -491,9 +539,10 @@ class H5StorePerformanceTest(BaseH5StoreTest):
         key = 'test_speed_get'
         value = self.get_testdata()
         self.get_h5store()[key] = value
+        self.assertEqual(self.get_h5store()[key], value)  # sanity check
         for i in range(len(times)):
             start = time()
-            self.assertEqual(self.get_h5store()[key], value)
+            self.get_h5store()[key]
             times[i] = time() - start
         self.assertSpeed(times)
 
@@ -505,6 +554,7 @@ class H5StorePerformanceTest(BaseH5StoreTest):
             start = time()
             self.get_h5store()[key] = value
             times[i] = time() - start
+        self.assertEqual(self.get_h5store()[key], value)  # sanity check
         self.assertSpeed(times)
 
 

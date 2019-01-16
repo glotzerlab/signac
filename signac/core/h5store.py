@@ -114,6 +114,8 @@ def _h5get(file, grp, key, path=None):
         shape = result.shape
         if shape is None:
             return None
+        elif shape:
+            return result
         else:
             return result[()]
     except AttributeError:
@@ -266,13 +268,15 @@ class H5Store(MutableMapping):
 
     def close(self):
         """Closes the datastore file."""
+        locked = True
         try:
             self._file.close()
             self._file = None
-        except AttributeError:  # If _file is None, AttributeError is raised
-            pass
-        else:
-            self._thread_lock.release()
+        except AttributeError:
+            locked = False
+        finally:
+            if locked:
+                self._thread_lock.release()
 
     def flush(self):
         self._file.flush()
