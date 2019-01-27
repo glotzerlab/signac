@@ -73,7 +73,8 @@ jobs:
           name: benchmark
           command: |
             . venv/bin/activate
-            pip install -U gitpython psutil pandas tqdm backports.tempfile
+            pip install -r requirements-benchmark.txt
+            pip freeze
             python benchmark.py run -N 100 1000  # this revision
             python benchmark.py report
             git reset --hard origin/master
