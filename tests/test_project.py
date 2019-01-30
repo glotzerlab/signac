@@ -7,6 +7,7 @@ import uuid
 import warnings
 import logging
 import json
+import pickle
 from tarfile import TarFile
 from zipfile import ZipFile
 
@@ -1782,6 +1783,25 @@ class ProjectInitTest(unittest.TestCase):
             check_root()
         finally:
             os.chdir(cwd)
+
+
+class ProjectPicklingTest(BaseProjectTest):
+
+    def test_pickle_project_empty(self):
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_project_with_jobs(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_jobs_directly(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        for job in self.project:
+            self.assertEqual(pickle.loads(pickle.dumps(job)), job)
 
 
 if __name__ == '__main__':

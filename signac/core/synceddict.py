@@ -57,10 +57,13 @@ class _SyncedList(list):
 
             @wraps(outer)
             def outer_wrapped_in_load_and_save(*args, **kwargs):
-                self._parent.load()
-                ret = outer(*args, **kwargs)
-                self._parent.save()
-                return ret
+                if hasattr(self, '_parent'):
+                    self._parent.load()
+                    ret = outer(*args, **kwargs)
+                    self._parent.save()
+                    return ret
+                else:
+                    return outer(*args, **kwargs)
 
             return outer_wrapped_in_load_and_save
         else:
