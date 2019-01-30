@@ -1557,6 +1557,10 @@ class JobsCursor(object):
         self._filter = filter
         self._doc_filter = doc_filter
 
+        # This private attribute allows us to implement the deprecated
+        # next() method for this class.
+        self._next_iter = None
+
     def __len__(self):
         # Highly performance critical code path!!
         if self._filter or self._doc_filter:
@@ -1573,6 +1577,22 @@ class JobsCursor(object):
             self._project,
             self._project.find_job_ids(self._filter, self._doc_filter),
             )
+
+    def next(self):
+        """Return the next element.
+
+        This function is deprecated, users should use iter(..).next() instead!
+
+        .. deprecated:: 0.9.6
+        """
+        warnings.warn("Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning)
+        if self._next_iter is None:
+            self._next_iter = iter(self)
+        try:
+            return self._next_iter.next()
+        except StopIteration:
+            self._next_iter = None
+            raise
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.

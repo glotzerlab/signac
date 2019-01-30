@@ -244,6 +244,23 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
 
+    def test_find_jobs_next(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        jobs = self.project.find_jobs()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            for i in range(2):  # run this twice
+                jobs_ = set()
+                for i in range(len(self.project)):
+                    job = jobs.next()
+                    self.assertIn(job, self.project)
+                    jobs_.add(job)
+                with self.assertRaises(StopIteration):
+                    job = jobs.next()
+                self.assertEqual(jobs_, set(self.project))
+
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
