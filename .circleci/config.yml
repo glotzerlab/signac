@@ -16,7 +16,7 @@ jobs:
       - run:
           name: style-check
           command: |
-            pip install --user -U flake8
+            pip install --user -U flake8==3.7.1
             python -m flake8 --show-source signac/
 
 

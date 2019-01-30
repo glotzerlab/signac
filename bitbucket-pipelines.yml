@@ -13,7 +13,7 @@ pipelines:
         script:
           - python --version
           - pip --version
-          - pip install -U flake8
+          - pip install -U flake8==3.7.1
           - python -m flake8 --show-source signac/
           - pip install -U numpy
           - python -c "import numpy; print(numpy.__version__)"
@@ -29,7 +29,7 @@ pipelines:
           script:
             - python --version
             - pip --version
-            - pip install -U flake8
+            - pip install -U flake8==3.7.1
             - python -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
@@ -46,7 +46,7 @@ pipelines:
           script:
             - python3.6 --version
             - pip3.6 --version
-            - pip3.6 install -U coverage flake8 pymongo
+            - pip3.6 install -U coverage flake8==3.7.1 pymongo
             - python3.6 -m coverage --version
             - python3.6 -m flake8 --show-source signac/
             - pip install -U numpy
@@ -90,7 +90,7 @@ pipelines:
           script:
             - python --version
             - pip --version
-            - pip install -U flake8
+            - pip install -U flake8==3.7.1
             - python -m flake8 --show-source signac/
             - pip install -U numpy
             - python -c "import numpy; print(numpy.__version__)"
@@ -107,7 +107,7 @@ pipelines:
           script:
             - python3.6 --version
             - pip3.6 --version
-            - pip3.6 install -U coverage flake8 pymongo
+            - pip3.6 install -U coverage flake8==3.7.1 pymongo
             - python3.6 -m coverage --version
             - python3.6 -m flake8 --show-source signac/
             - pip install -U numpy

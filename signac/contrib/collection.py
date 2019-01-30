@@ -910,7 +910,7 @@ class Collection(object):
                         collection = cls(docs=(json.loads(line) for line in text_io))
                         text_io.detach()
             else:
-                    collection = cls(docs=(json.loads(line) for line in file))
+                collection = cls(docs=(json.loads(line) for line in file))
         except (IOError, io.UnsupportedOperation) as error:
             if str(error) in ('not readable', 'read'):
                 collection = cls()

@@ -237,7 +237,7 @@ def main_project(args):
 
 def main_job(args):
     project = get_project()
-    if args.statepoint is '-':
+    if args.statepoint == '-':
         sp = input()
     else:
         sp = args.statepoint
