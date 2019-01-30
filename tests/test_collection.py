@@ -1,3 +1,4 @@
+from __future__ import division
 import os
 import io
 import warnings
@@ -60,6 +61,13 @@ class CollectionTest(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(len(self.c), 0)
+
+    def test_buffer_size(self):
+        docs = [{'a': i, '_id': str(i)} for i in range(10)]
+        self.c = Collection(docs)
+        self.assertEqual(len(self.c._file.getvalue()), 0)
+        self.c.flush()
+        self.assertGreater(len(self.c._file.getvalue()), 0)
 
     def test_init_with_list_with_ids_sequential(self):
         docs = [{'a': i, '_id': str(i)} for i in range(10)]
@@ -538,6 +546,30 @@ class CollectionTest(unittest.TestCase):
                 self.assertEqual(len(self.c.find({'$not': {'$not': expr}})), expectation)
 
 
+class CompressedCollectionTest(CollectionTest):
+
+    def setUp(self):
+        self.c = Collection.open(filename=':memory:', compresslevel=9)
+
+    def test_compression(self):
+        # Fill with data
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
+
+        # Create uncompressed copy to compare to.
+        c2 = Collection(self.c)
+        c2.flush()
+
+        self.assertIsInstance(self.c._file, io.BytesIO)
+        size_compressed = len(self.c._file.getvalue())
+        self.assertGreater(size_compressed, 0)
+        size_uncompressed = len(c2._file.getvalue().encode('utf-8'))
+        self.assertGreater(size_uncompressed, 0)
+        compresslevel = size_uncompressed / size_compressed
+        self.assertGreater(compresslevel, 1.0)
+
+
 class FileCollectionTestReadOnly(unittest.TestCase):
 
     def setUp(self):
@@ -559,35 +591,36 @@ class FileCollectionTestReadOnly(unittest.TestCase):
         self.assertEqual(len(list(c)), 10)
         c.insert_one(dict())
         self.assertEqual(len(list(c)), 11)
-        if six.PY2:
-            with self.assertRaises(IOError):
-                c.flush()
-            with self.assertRaises(IOError):
-                c.close()
-        else:
-            with self.assertRaises(io.UnsupportedOperation):
-                c.flush()
-            with self.assertRaises(io.UnsupportedOperation):
-                c.close()
+        with self.assertRaises(io.UnsupportedOperation):
+            c.flush()
+        with self.assertRaises(io.UnsupportedOperation):
+            c.close()
         with self.assertRaises(RuntimeError):
             c.find()
 
 
 class FileCollectionTest(CollectionTest):
     mode = 'w'
+    filename = 'test.txt'
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
-        self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
+        self._fn_collection = os.path.join(self._tmp_dir.name, self.filename)
         self.addCleanup(self._tmp_dir.cleanup)
         self.c = Collection.open(self._fn_collection, mode=self.mode)
         self.addCleanup(self.c.close)
 
-    def test_reopen(self):
+    def test_write_and_flush(self):
         docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
+        self.assertGreater(os.path.getsize(self._fn_collection), 0)
 
-        with Collection.open(self._fn_collection) as c:
-            c.update(docs)
+    def test_write_flush_and_reopen(self):
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
+        self.assertGreater(os.path.getsize(self._fn_collection), 0)
 
         with Collection.open(self._fn_collection) as c:
             self.assertEqual(len(c), len(docs))
@@ -595,8 +628,12 @@ class FileCollectionTest(CollectionTest):
                 self.assertIn(doc['_id'], c)
 
 
-class FileCollectionTestAppendPlus(FileCollectionTest):
-    mode = 'a+'
+class BinaryFileCollectionTest(CollectionTest):
+    mode = 'wb'
+
+
+class FileCollectionAppendTest(FileCollectionTest):
+    mode = 'a'
 
     def test_file_size(self):
         docs = [dict(_id=str(i)) for i in range(10)]
@@ -615,6 +652,46 @@ class FileCollectionTestAppendPlus(FileCollectionTest):
             self.assertEqual(len(c), len(docs))
         with open(self._fn_collection) as f:
             self.assertEqual(len(list(f)), len(docs))
+
+
+class BinaryFileCollectionAppendTest(FileCollectionAppendTest):
+    mode = 'ab'
+
+
+class FileCollectionAppendPlusTest(FileCollectionAppendTest):
+    mode = 'a+'
+
+
+class BinaryFileCollectionAppendPlusTest(FileCollectionAppendTest):
+    mode = 'ab+'
+
+
+class ZippedFileCollectionTest(FileCollectionTest):
+    filename = 'test.txt.gz'
+    mode = 'wb'
+
+    def test_compression_level(self):
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
+        fn_txt = self._fn_collection + '.txt'
+        with Collection.open(fn_txt) as c_text:
+            c_text.update(self.c)
+        size_txt = os.path.getsize(fn_txt)
+        size_gz = os.path.getsize(self._fn_collection)
+        self.assertGreater(size_txt, 0)
+        self.assertGreater(size_gz, 0)
+        compresslevel = size_txt / size_gz
+        self.assertGreater(compresslevel, 1.0)
+
+
+class ZippedFileCollectionAppendTest(ZippedFileCollectionTest):
+    filename = 'test.txt.gz'
+    mode = 'ab'
+
+
+class ZippedFileCollectionAppendPlusTest(ZippedFileCollectionAppendTest):
+    mode = 'ab'
 
 
 if __name__ == '__main__':

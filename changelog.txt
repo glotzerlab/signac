@@ -25,6 +25,7 @@ Added
 
  - Adds an ``H5Store`` class, useful for storing array-like data with an HDF5 backend. Accessible via ``with job.data:`` or ``with project.data:``.
  - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
+ - Enable `Collection` class to manage collections stored in gzip files.
 
 Fixed
 +++++
