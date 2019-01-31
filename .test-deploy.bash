@@ -3,8 +3,6 @@
 set -e
 set -u
 
-python -m pip install -U twine wheel setuptools
-
 # PYPI_USERNAME - (Required) Username for the publisher's account on PyPI
 # PYPI_PASSWORD - (Required, Secret) Password for the publisher's account on PyPI
 
