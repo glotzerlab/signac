@@ -7,7 +7,7 @@ version: 2
 jobs:
   style-check:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7
 
     working_directory: ~/repo
 
@@ -16,18 +16,27 @@ jobs:
       - run:
           name: style-check
           command: |
-            pip install --user -U flake8
+            pip install --user -U flake8==3.7.1
             python -m flake8 --show-source signac/
 
 
-  test-3.6: &test-template
+  test-3.7: &test-template
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7
 
     working_directory: ~/repo
 
     steps:
+
       - checkout
+
+      - restore_cache:
+          keys:
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v2-{{ arch }}
+            - python-env-v2
 
       - run:
           name: install dependencies
@@ -37,14 +46,23 @@ jobs:
             mkdir -p ./venv
             virtualenv ./venv
             . venv/bin/activate
-            pip install -r requirements.txt
-            pip install -U coverage mock
+            if [[ "$CIRCLE_JOB" == *"pypy"* ]]; then
+              apt update -qq && apt install -qq libhdf5-dev
+            else
+              sudo apt update -qq && sudo apt install -qq libhdf5-dev
+            fi
+            pip install -U -e . -r requirements-dev.txt
+
+      - save_cache:
+          key: python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          paths:
+            - "venv"
 
       - run:
           name: run tests
           command: |
             . venv/bin/activate
-            coverage run --source=signac/ -m unittest discover tests/
+            coverage run --source=signac/ -m unittest discover tests/ -v
             coverage report -i --include="signac*"
 
       - store_artifacts:
@@ -55,25 +73,30 @@ jobs:
           name: benchmark
           command: |
             . venv/bin/activate
-            pip install -U gitpython psutil pandas tqdm backports.tempfile
+            pip install -r requirements-benchmark.txt
+            pip freeze
             python benchmark.py run -N 100 1000  # this revision
             python benchmark.py report
             git reset --hard origin/master
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             python benchmark.py run -N 100 1000 --force
             python benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6
   test-3.5:
     <<: *test-template
     docker:
-      - image: circleci/python:3.5-jessie
+      - image: circleci/python:3.5
   test-3.4:
     <<: *test-template
     docker:
-      - image: circleci/python:3.4-jessie
+      - image: circleci/python:3.4
   test-2.7:
     <<: *test-template
     docker:
-      - image: circleci/python:2.7-jessie
+      - image: circleci/python:2.7
   test-pypy-2:
     <<: *test-template
     docker:
@@ -98,6 +121,9 @@ workflows:
           requires:
             - style-check
       - test-3.6:
+          requires:
+            - style-check
+      - test-3.7:
           requires:
             - style-check
       - test-pypy-2:
