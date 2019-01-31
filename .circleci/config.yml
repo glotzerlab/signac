@@ -132,6 +132,7 @@ jobs:
       - run:
           name: test-deploy-pypi
           command: |
+            pip install --user -U -r .requirements-deploy.txt
             bash .test-deploy.bash
 
   deploy-pypi:
@@ -143,6 +144,7 @@ jobs:
       - run:
           name: deploy-pypi
           command: |
+            pip install --user -U -r .requirements-deploy.txt
             bash .deploy.bash
 
 
