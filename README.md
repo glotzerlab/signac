@@ -5,7 +5,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/signac/badges/version.svg)](https://anaconda.org/conda-forge/signac)
 [![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
 [![RTD](https://readthedocs.org/projects/signac/badge/?version=latest)](https://signac.readthedocs.io)
-[![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://bitbucket.org/glotzer/signac/src/master/LICENSE.txt)
+[![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 
 ## About
 

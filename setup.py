@@ -23,7 +23,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='simulation database index collaboration workflow',
-    url="https://bitbucket.org/glotzer/signac",
+    url="https://signac.io",
 
     classifiers=[
         "Development Status :: 4 - Beta",

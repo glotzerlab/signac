@@ -405,7 +405,7 @@ class SignacProjectCrawler(RegexFileCrawler):
                 signac_id_alias=self.signac_id_alias,
                 encoding=self.encoding,
                 statepoint_dict=self._statepoints):
-                yield self.process(doc, None, None)
+            yield self.process(doc, None, None)
         for doc in super(SignacProjectCrawler, self).crawl(depth=depth):
             yield doc
 
