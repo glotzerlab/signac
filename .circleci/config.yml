@@ -107,9 +107,48 @@ jobs:
     docker:
       - image: pypy:3
 
+  check-metadata:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: check-zenodo-metadata
+          command: |
+            python -c "import json; json.load(open('.zenodo.json'))"
+      - run:
+          name: references.bib
+          command: |
+            pip install --user -U pybtex
+            python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
+
+  test-deploy-pypi:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: test-deploy-pypi
+          command: |
+            bash .test-deploy.bash
+
+  deploy-pypi:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: deploy-pypi
+          command: |
+            bash .deploy.bash
+
+
 workflows:
   version: 2
-  style-check-and-tests:
+  test:
     jobs:
       - style-check
       - test-2.7:
@@ -133,3 +172,27 @@ workflows:
       - test-pypy-3:
           requires:
             - test-3.6
+      - check-metadata:
+          filters:
+            branches:
+              only: /release\/.*/
+      - test-deploy-pypi:
+          filters:
+            branches:
+              only: /release\/.*/
+          requires:
+            - test-2.7
+            - test-3.4
+            - test-3.5
+            - test-3.6
+            - test-3.7
+            - test-pypy-2
+            - test-pypy-3
+  deploy:
+    jobs:
+      - deploy-pypi:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/
