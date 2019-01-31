@@ -51,6 +51,7 @@ jobs:
             else
               sudo apt update -qq && sudo apt install -qq libhdf5-dev
             fi
+            pip install versioneer
             pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
