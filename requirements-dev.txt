@@ -1,8 +1,8 @@
 coverage==4
 mock==2
 numpy==1.15
-pandas==0.22; python_version<='3.4' or implementation_name!='cpython' --no-binary pandas
-pandas==0.23; python_version>'3.4' and implementation_name=='cpython'
+pandas==0.24; python_version<='3.4' or implementation_name!='cpython' --no-binary pandas
+pandas==0.24; python_version>'3.4' and implementation_name=='cpython'
 h5py==2.9; implementation_name!='cpython' --no-binary h5py
 h5py==2.9; implementation_name=='cpython'
 tables==3.4.4
