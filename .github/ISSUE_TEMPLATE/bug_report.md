@@ -28,3 +28,5 @@ Please complete the following information:
  - Operating System [e.g. macOS]:
  - Version of Python [e.g. 3.7]:
  - Version of signac [e.g. 1.0]:
+
+Or copy & paste the output of: `python -c 'import platform; print(platform.platform()); import sys; print(sys.version); import signac; print(signac.__version__)'`
