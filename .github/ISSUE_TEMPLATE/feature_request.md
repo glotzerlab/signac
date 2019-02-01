@@ -8,15 +8,16 @@ assignees: ''
 ---
 <!-- Please replace the text in the individual sections below. -->
 
-### Is this feature request related to a specific problem or pain point?
+### Feature description
 
-A concise description of the problem, for example: "It is really annoying to ..." or "It should be easier to ...".
+A concise description of the enhancement that this feature provides or the problem it solves.
+For example: "I would like to ..." or "It would be nice if it was easier to ...".
 
 ### Proposed solution
 
 A description of how you would like a possible solution to look like.
 
-*Important: You do **not** have to provide a technical solution or a proposed way to implement the desired feature! A rough description of the desired behavior is sufficient.*
+*Proposals for an implementation of the idea are welcome, but not necessary.*
 
 ### Additional context
 

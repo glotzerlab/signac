@@ -15,7 +15,7 @@ A concise description of what is causing an issue and what you expected to happe
 
 ### To reproduce
 
-Please copy & paste the code that is triggering the issue into this section and describe the context and prior steps that lead to the problem as detailed as possible.
+Please copy & paste the code that is triggering the issue into this section and describe the context and prior steps that lead to the problem with as much detail as possible.
 
 ### Error output
 
