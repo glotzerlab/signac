@@ -11,12 +11,18 @@ import logging
 import getpass
 import difflib
 import code
-import readline
 import importlib
 from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
+
+try:
+    import readline
+except ImportError:
+    READLINE = False
+else:
+    READLINE = True
 
 from . import Project, get_project, init_project, index
 from . import __version__
@@ -543,8 +549,9 @@ def _main_import_interactive(project, origin, args):
                 signac=importlib.import_module(__package__),
                 project=project, pr=project,
                 tmp_project=tmp_project)
-            readline.set_completer(Completer(local_ns).complete)
-            readline.parse_and_bind('tab: complete')
+            if READLINE:
+                readline.set_completer(Completer(local_ns).complete)
+                readline.parse_and_bind('tab: complete')
             code.interact(
                 local=local_ns,
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
@@ -972,8 +979,9 @@ def main_shell(args):
             else:
                 interpreter.runsource(args.command, filename="<input>", symbol="exec")
         else:   # interactive
-            readline.set_completer(Completer(local_ns).complete)
-            readline.parse_and_bind('tab: complete')
+            if READLINE:
+                readline.set_completer(Completer(local_ns).complete)
+                readline.parse_and_bind('tab: complete')
             code.interact(
                 local=local_ns,
                 banner=SHELL_BANNER.format(

@@ -7,6 +7,7 @@ import uuid
 import warnings
 import logging
 import json
+import pickle
 from tarfile import TarFile
 from zipfile import ZipFile
 
@@ -268,6 +269,23 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(self.project), len(self.project.find_jobs({})))
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
+
+    def test_find_jobs_next(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        jobs = self.project.find_jobs()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            for i in range(2):  # run this twice
+                jobs_ = set()
+                for i in range(len(self.project)):
+                    job = jobs.next()
+                    self.assertIn(job, self.project)
+                    jobs_.add(job)
+                with self.assertRaises(StopIteration):
+                    job = jobs.next()
+                self.assertEqual(jobs_, set(self.project))
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -1808,6 +1826,25 @@ class ProjectInitTest(unittest.TestCase):
             check_root()
         finally:
             os.chdir(cwd)
+
+
+class ProjectPicklingTest(BaseProjectTest):
+
+    def test_pickle_project_empty(self):
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_project_with_jobs(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_jobs_directly(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        for job in self.project:
+            self.assertEqual(pickle.loads(pickle.dumps(job)), job)
 
 
 if __name__ == '__main__':

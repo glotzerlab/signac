@@ -3,11 +3,11 @@
 ## Feedback
 
 The report of issues and the proposal of new features is very welcome.
-Please use the bitbucket issue page for this.
+Please use the [issue page](https://github.com/glotzerlab/signac/issues) for this.
 
 ## Contributing code
 
-Code contributions to the signac open-source project are welcomed via pull requests on bitbucket.
+Code contributions to the signac open-source project are welcomed via pull requests on GitHub.
 Prior any work you should contact the signac developers to ensure that the planned development meshes well with the directions and standards of the project.
 All contributors must agree to the Contributor Agreement ([ContributorAgreement.md](ContributorAgreement.md)) before their pull request can be merged.
 

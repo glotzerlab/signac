@@ -17,6 +17,7 @@ Highlights
  - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
 
+
 [next] -- YYYY-MM-DD
 --------------------
 
@@ -31,6 +32,17 @@ Fixed
 +++++
 
  - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
+
+[0.9.5] -- 2019-01-31
+--------------------
+
+Fixed
++++++
+
+ - Ensure that the next() function can be called for a JobsIterator, e.g., `project.find()`.
+ - Pickling issue that occurs when a _SyncedDict (job.statepoint, job.document, etc.) contains a list.
+ - Issue with the readline module that would cause signac shell to fail on Windows operating systems.
+
 
 [0.9.4] -- 2018-10-24
 ---------------------
