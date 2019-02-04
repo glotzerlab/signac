@@ -266,7 +266,11 @@ class H5Store(MutableMapping):
         self.close()
 
     def __enter__(self):
-        self.open()
+        try:
+            self.open()
+        except OSError as error:
+            if 'is already open' not in str(error):
+                raise
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
