@@ -26,7 +26,7 @@ This pull request is based on
 - [ ] I am familiar with the [**Contributing Guidelines**](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**Contributor Agreement**](https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md).
 - [ ] My name is on the [list of contributors](https://github.com/glotzerlab/signac/blob/master/contributors.txt).
-- [ ] My code follows the [code style guideline](https://github.com/glotzerlab/signac/blob/misc/contributor-flow/CONTRIBUTING.md#code-style) of this project.
+- [ ] My code follows the [code style guideline](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md#code-style) of this project.
 - [ ] The changes introduced by this pull request are covered by existing or newly introduced tests.
 
 If necessary:
