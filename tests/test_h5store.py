@@ -243,6 +243,11 @@ class H5StoreTest(BaseH5StoreTest):
             self.assertEqual(len(h5s), 1)
             self.assertEqual(h5s[key], d)
 
+    def test_open_reentry(self):
+        with self.open_h5store() as h5s:
+            with h5s:
+                pass
+
     def test_reopen_explicit_open_close(self):
         h5s = self.get_h5store().open()
         key = 'reopen'
