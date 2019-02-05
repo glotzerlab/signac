@@ -55,6 +55,11 @@ def _requires_tables():
 logger = logging.getLogger(__name__)
 
 
+class ClosedFileError(RuntimeError):
+    "Raised when trying to access a closed group."
+    pass
+
+
 def _h5set(file, grp, key, value, path=None):
     """Set a key in an h5py container, recursively converting Mappings to h5py
     groups and transparently handling None."""
@@ -62,8 +67,9 @@ def _h5set(file, grp, key, value, path=None):
     import numpy    # h5py depends on numpy, so this is safe.
     path = path + '/' + key if path else key
 
-    if isinstance(value, Mapping) and path in file and file[path] == value:
-        raise RuntimeError("Cannot assign mapping to the same key!")
+    if isinstance(value, H5Group) and key in grp:
+        if grp[key] == value._group:
+            return  # Groups are identical, do nothing.
 
     # Delete any existing data
     if key in grp:
@@ -174,7 +180,7 @@ class H5Group(MutableMapping):
 
     @property
     def _group(self):
-        return self._file._file[self._path]
+        return self._file.file[self._path]
 
     def __getitem__(self, key):
         with _ensure_open(self._file):
@@ -286,6 +292,13 @@ class H5Store(MutableMapping):
         finally:
             if locked:
                 self._thread_lock.release()
+
+    @property
+    def file(self):
+        if self._file is None:
+            raise ClosedFileError(self._filename)
+        else:
+            return self._file
 
     def flush(self):
         self._file.flush()
