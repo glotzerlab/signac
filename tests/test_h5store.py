@@ -490,7 +490,7 @@ class H5StorePandasDataTest(H5StoreTest):
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
             assert isinstance(b, Mapping)
-            super().assertEqual(a.keys(), b.keys())
+            super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
             for key in a:
                 self.assertEqual(a[key], b[key])
         else:
