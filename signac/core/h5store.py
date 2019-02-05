@@ -237,8 +237,20 @@ class H5Group(MutableMapping):
 
 
 class H5Store(MutableMapping):
-    """An HDF5 backend for storing arbitrary array-like and dictionary-like data.
-    Both attribute-based and index-based operations are supported.
+    """An HDF5-backed container for storing array-like and dictionary-like data.
+
+    The H5Store API implements the MutableMapping API and behaves similar
+    to a dict, but all data is persistently stored in the associated HDF5-file.
+
+    Supported types include:
+
+      * built-in types (int, float, str, bool, NoneType, array)
+      * numpy arrays
+      * pandas data frames (requires pandas and pytables),
+
+    as well as mappings of values of these types.
+
+    Values can be accessed as attributes (h5s.foo) or via key index (h5s['foo']).
 
     Example:
 
@@ -246,8 +258,9 @@ class H5Store(MutableMapping):
 
         with H5Store('file.h5') as h5s:
             h5s['foo'] = 'bar'
+            assert 'foo' in h5s
             assert h5s.foo == 'bar'
-
+            assert h5s['foo'] == 'bar'
     """
     __slots__ = ['_filename', '_file']
 
@@ -279,7 +292,7 @@ class H5Store(MutableMapping):
         self.close()
 
     def open(self):
-        """Opens the datastore file."""
+        """Open the underlying HDF5-file."""
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
@@ -292,7 +305,7 @@ class H5Store(MutableMapping):
         return self
 
     def close(self):
-        """Closes the datastore file."""
+        """Close the underlying HDF5-file."""
         locked = True
         try:
             self._file.close()
@@ -311,6 +324,7 @@ class H5Store(MutableMapping):
             return self._file
 
     def flush(self):
+        """Flush the underlying HDF5-file."""
         self._file.flush()
 
     def __getitem__(self, key):
@@ -360,5 +374,11 @@ class H5Store(MutableMapping):
             return key in self._file
 
     def clear(self):
+        """Remove all data from this store.
+
+            .. danger::
+
+                All data will be removed, this action cannot be reversed!
+        """
         with _ensure_open(self):
             self._file.clear()
