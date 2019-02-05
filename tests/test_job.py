@@ -273,6 +273,13 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertNotIn('b', job.sp)
         with self.assertRaises(AttributeError):
             job.sp.b
+        job.sp.b = 0
+        self.assertIn('b', job.sp)
+        self.assertEqual(job.sp.b, 0)
+        del job.sp.b
+        self.assertNotIn('b', job.sp)
+        with self.assertRaises(AttributeError):
+            job.sp.b
 
     def test_interface_destination_conflict(self):
         job_a = self.open_job(dict(a=0))

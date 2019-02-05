@@ -124,6 +124,13 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(len(jsd), 0)
         with self.assertRaises(KeyError):
             jsd[key]
+        jsd[key] = d
+        self.assertEqual(len(jsd), 1)
+        self.assertEqual(jsd[key], d)
+        del jsd.delete
+        self.assertEqual(len(jsd), 0)
+        with self.assertRaises(KeyError):
+            jsd[key]
 
     def test_update(self):
         jsd = self.get_json_dict()
