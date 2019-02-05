@@ -282,7 +282,7 @@ class H5StoreTest(BaseH5StoreTest):
                     self.assertEqual(h5s[k], v)
                     try:
                         same_h5s[k] = h5s[k]
-                    except ClosedFileError as error:
+                    except ClosedFileError:
                         pass
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(same_h5s[k], v)
@@ -490,7 +490,12 @@ class H5StorePandasDataTest(H5StoreTest):
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
             assert isinstance(b, Mapping)
-            super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
+            if six.PY2:
+                super(H5StorePandasDataTest, self).assertEqual(
+                    sorted(map(str, a.keys())),
+                    sorted(map(str, b.keys())))
+            else:
+                super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
             for key in a:
                 self.assertEqual(a[key], b[key])
         else:
