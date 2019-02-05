@@ -54,6 +54,7 @@ class BaseH5StoreTest(unittest.TestCase):
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
+        self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
         self.addCleanup(self._tmp_dir.cleanup)
 
     def get_h5store(self):
@@ -62,6 +63,14 @@ class BaseH5StoreTest(unittest.TestCase):
     @contextmanager
     def open_h5store(self):
         with self.get_h5store() as h5s:
+            yield h5s
+
+    def get_other_h5store(self):
+        return H5Store(filename=self._fn_store_other)
+
+    @contextmanager
+    def open_other_h5store(self):
+        with self.get_other_h5store() as h5s:
             yield h5s
 
     def get_testdata(self, size=None):
@@ -250,6 +259,51 @@ class H5StoreTest(BaseH5StoreTest):
             for k, v in self.valid_types.items():
                 h5s[k] = v
                 self.assertEqual(h5s[k], v)
+
+    def test_assign_valid_types_within_identical_file(self):
+        with self.open_h5store() as h5s:
+            for k, v in self.valid_types.items():
+                h5s[k] = v
+                self.assertEqual(h5s[k], v)
+                if isinstance(v, Mapping):
+                    with self.assertRaises(RuntimeError):
+                        h5s[k] = h5s[k]
+                else:
+                    h5s[k] = h5s[k]
+                    self.assertEqual(h5s[k], v)
+
+                k_other = k + '-other'
+                h5s[k_other] = h5s[k]
+                self.assertEqual(h5s[k], v)
+                self.assertEqual(h5s[k_other], v)
+                self.assertEqual(h5s[k], h5s[k_other])
+
+    def test_assign_valid_types_within_same_file(self):
+        with self.open_h5store() as h5s:
+            with self.open_h5store() as other_h5s:
+                for k, v in self.valid_types.items():
+
+                    h5s[k] = v
+                    self.assertEqual(h5s[k], v)
+                    if isinstance(v, Mapping):
+                        with self.assertRaises(RuntimeError):
+                            other_h5s[k] = h5s[k]
+                    else:
+                        other_h5s[k] = h5s[k]
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(other_h5s[k], v)
+                    self.assertEqual(h5s[k], other_h5s[k])
+
+    def test_assign_valid_types_between_files(self):
+        with self.open_h5store() as h5s:
+            with self.open_other_h5store() as other_h5s:
+                for k, v in self.valid_types.items():
+                    h5s[k] = v
+                    self.assertEqual(h5s[k], v)
+                    other_h5s[k] = h5s[k]
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(other_h5s[k], v)
+                    self.assertEqual(h5s[k], other_h5s[k])
 
     def test_write_invalid_type(self):
         class Foo(object):
