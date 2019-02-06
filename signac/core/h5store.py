@@ -239,8 +239,9 @@ class H5Group(MutableMapping):
 class H5Store(MutableMapping):
     """An HDF5-backed container for storing array-like and dictionary-like data.
 
-    The H5Store API implements the MutableMapping API and behaves similar
-    to a dict, but all data is persistently stored in the associated HDF5-file.
+    The H5Store API is a :class:`collections.abc.MutableMapping` and therefore
+    behaves similar to a :class:`dict`, but all data is stored persisently in
+    the associated HDF5-file on disk.
 
     Supported types include:
 
@@ -248,9 +249,8 @@ class H5Store(MutableMapping):
       * numpy arrays
       * pandas data frames (requires pandas and pytables),
 
-    as well as mappings of values of these types.
-
-    Values can be accessed as attributes (h5s.foo) or via key index (h5s['foo']).
+    as well as mappings of values of these types. Values can be accessed as
+    attributes (`h5s.foo`) or via key index (`h5s['foo']`).
 
     Example:
 
