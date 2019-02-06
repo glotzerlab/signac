@@ -15,7 +15,7 @@ from platform import python_implementation
 from multiprocessing.pool import ThreadPool
 from contextlib import closing
 
-from signac.core.h5store import H5Store
+from signac.core.h5store import H5Store, ClosedH5StoreError
 from signac.common import six
 from signac.warnings import SignacDeprecationWarning
 
@@ -54,6 +54,7 @@ class BaseH5StoreTest(unittest.TestCase):
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
+        self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
         self.addCleanup(self._tmp_dir.cleanup)
 
     def get_h5store(self):
@@ -62,6 +63,14 @@ class BaseH5StoreTest(unittest.TestCase):
     @contextmanager
     def open_h5store(self):
         with self.get_h5store() as h5s:
+            yield h5s
+
+    def get_other_h5store(self):
+        return H5Store(filename=self._fn_store_other)
+
+    @contextmanager
+    def open_other_h5store(self):
+        with self.get_other_h5store() as h5s:
             yield h5s
 
     def get_testdata(self, size=None):
@@ -89,6 +98,8 @@ class H5StoreTest(BaseH5StoreTest):
         'double_array': array('d', [-1.5, 0, 1.5]),
         'int_array': array('i', [-1, 0, 1]),
         'uint_array': array('I', [0, 1, 2]),
+        'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
+        'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
         'dict': {
             'a': 1,
             'b': None,
@@ -248,6 +259,45 @@ class H5StoreTest(BaseH5StoreTest):
             for k, v in self.valid_types.items():
                 h5s[k] = v
                 self.assertEqual(h5s[k], v)
+
+    def test_assign_valid_types_within_identical_file(self):
+        with self.open_h5store() as h5s:
+            for k, v in self.valid_types.items():
+                h5s[k] = v
+                self.assertEqual(h5s[k], v)
+                h5s[k] = h5s[k]
+                self.assertEqual(h5s[k], v)
+
+                k_other = k + '-other'
+                h5s[k_other] = h5s[k]
+                self.assertEqual(h5s[k], v)
+                self.assertEqual(h5s[k_other], v)
+                self.assertEqual(h5s[k], h5s[k_other])
+
+    def test_assign_valid_types_within_same_file(self):
+        with self.open_h5store() as h5s:
+            with self.open_h5store() as same_h5s:
+                for k, v in self.valid_types.items():
+                    h5s[k] = v
+                    self.assertEqual(h5s[k], v)
+                    try:
+                        same_h5s[k] = h5s[k]
+                    except ClosedH5StoreError:
+                        pass
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(same_h5s[k], v)
+                    self.assertEqual(h5s[k], same_h5s[k])
+
+    def test_assign_valid_types_between_files(self):
+        with self.open_h5store() as h5s:
+            with self.open_other_h5store() as other_h5s:
+                for k, v in self.valid_types.items():
+                    h5s[k] = v
+                    self.assertEqual(h5s[k], v)
+                    other_h5s[k] = h5s[k]
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(other_h5s[k], v)
+                    self.assertEqual(h5s[k], other_h5s[k])
 
     def test_write_invalid_type(self):
         class Foo(object):
@@ -438,12 +488,23 @@ class H5StorePandasDataTest(H5StoreTest):
             numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)])
 
     def assertEqual(self, a, b):
-        try:
-            return (a == b).all()
-        except (AttributeError, ValueError):
-            return super(H5StorePandasDataTest, self).assertEqual(a, b)
+        if isinstance(a, Mapping):
+            assert isinstance(b, Mapping)
+            if six.PY2:
+                super(H5StorePandasDataTest, self).assertEqual(
+                    sorted(map(str, a.keys())),
+                    sorted(map(str, b.keys())))
+            else:
+                super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
+            for key in a:
+                self.assertEqual(a[key], b[key])
         else:
-            assert isinstance(a, pandas.DataFrame)
+            try:
+                return (a == b).all()
+            except (AttributeError, ValueError):
+                return super(H5StorePandasDataTest, self).assertEqual(a, b)
+            else:
+                assert isinstance(a, pandas.DataFrame)
 
 
 @unittest.skipIf(not PANDAS_AND_TABLES, 'requires pandas and pytables')
@@ -455,22 +516,6 @@ class H5StoreNestedPandasDataTest(H5StorePandasDataTest):
             size = 1024
         return dict(df=pandas.DataFrame(
             numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]))
-
-    def assertEqual(self, a, b):
-        try:
-            super(H5StoreNestedPandasDataTest, self).assertEqual(len(a), len(b))
-            if six.PY2:
-                super(H5StoreNestedPandasDataTest, self).assertEqual(
-                    list(map(str, sorted(a.keys()))),
-                    list(map(str, sorted(b.keys()))))
-            else:
-                super(H5StoreNestedPandasDataTest, self).assertEqual(a.keys(), b.keys())
-            for key in a:
-                super(H5StoreNestedPandasDataTest, self).assertEqual(a[key], b[key])
-        except (TypeError, AttributeError):
-            super(H5StoreNestedPandasDataTest, self).assertEqual(a, b)
-        else:
-            assert isinstance(a, Mapping) and isinstance(b, Mapping)
 
 
 class H5StoreMultiThreadingTest(BaseH5StoreTest):

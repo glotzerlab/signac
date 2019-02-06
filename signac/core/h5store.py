@@ -55,11 +55,24 @@ def _requires_tables():
 logger = logging.getLogger(__name__)
 
 
+class ClosedH5StoreError(RuntimeError):
+    "Raised when trying to access a closed group."
+    pass
+
+
 def _h5set(file, grp, key, value, path=None):
     """Set a key in an h5py container, recursively converting Mappings to h5py
     groups and transparently handling None."""
+    import h5py
     import numpy    # h5py depends on numpy, so this is safe.
     path = path + '/' + key if path else key
+
+    # Guard against assigning a group to itself, e.g., `h5s[key] = h5s[key]`,
+    # where h5s[key] is a mapping. This is necessary, because the original
+    # mapping would be deleted prior to assignment.
+    if isinstance(value, H5Group) and key in grp:
+        if grp[key] == value._group:
+            return  # Groups are identical, do nothing.
 
     # Delete any existing data
     if key in grp:
@@ -82,6 +95,10 @@ def _h5set(file, grp, key, value, path=None):
     # NumPy types
     elif type(value).__module__ == numpy.__name__:
         grp[key] = value
+
+    # h5py native types
+    elif isinstance(value, h5py._hl.dataset.Dataset):
+        grp[key] = value[()]    # Create a copy, not a hard link!
 
     # Other types
     else:
@@ -167,7 +184,7 @@ class H5Group(MutableMapping):
 
     @property
     def _group(self):
-        return self._file._file[self._path]
+        return self._file.file[self._path]
 
     def __getitem__(self, key):
         with _ensure_open(self._file):
@@ -208,7 +225,9 @@ class H5Group(MutableMapping):
 
     def __eq__(self, other):
         with _ensure_open(self._file):
-            if type(other) == type(self):
+            if isinstance(self, Mapping) and isinstance(other, Mapping):
+                return super(H5Group, self).__eq__(other)
+            elif type(other) == type(self):
                 return self._group == other._group
             else:
                 return super(H5Group, self).__eq__(other)
@@ -277,6 +296,13 @@ class H5Store(MutableMapping):
         finally:
             if locked:
                 self._thread_lock.release()
+
+    @property
+    def file(self):
+        if self._file is None:
+            raise ClosedH5StoreError(self._filename)
+        else:
+            return self._file
 
     def flush(self):
         self._file.flush()
