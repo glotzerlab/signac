@@ -67,6 +67,9 @@ def _h5set(file, grp, key, value, path=None):
     import numpy    # h5py depends on numpy, so this is safe.
     path = path + '/' + key if path else key
 
+    # Guard against assigning a group to itself, e.g., `h5s[key] = h5s[key]`,
+    # where h5s[key] is a mapping. This is necessary, because the original
+    # mapping would be deleted prior to assignment.
     if isinstance(value, H5Group) and key in grp:
         if grp[key] == value._group:
             return  # Groups are identical, do nothing.
