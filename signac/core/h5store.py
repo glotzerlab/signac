@@ -55,9 +55,8 @@ def _requires_tables():
 logger = logging.getLogger(__name__)
 
 
-class ClosedH5StoreError(RuntimeError):
-    "Raised when trying to access a closed group."
-    pass
+class H5StoreClosedError(RuntimeError):
+    "Raised when trying to access a closed store."
 
 
 class H5StoreAlreadyOpenError(OSError):
@@ -307,7 +306,7 @@ class H5Store(MutableMapping):
     @property
     def file(self):
         if self._file is None:
-            raise ClosedH5StoreError(self._filename)
+            raise H5StoreClosedError(self._filename)
         else:
             return self._file
 

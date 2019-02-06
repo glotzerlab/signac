@@ -15,7 +15,7 @@ from platform import python_implementation
 from multiprocessing.pool import ThreadPool
 from contextlib import closing
 
-from signac.core.h5store import H5Store, ClosedH5StoreError, H5StoreAlreadyOpenError
+from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
 from signac.common import six
 from signac.warnings import SignacDeprecationWarning
 
@@ -296,7 +296,7 @@ class H5StoreTest(BaseH5StoreTest):
                     self.assertEqual(h5s[k], v)
                     try:
                         same_h5s[k] = h5s[k]
-                    except ClosedH5StoreError:
+                    except H5StoreClosedError:
                         pass
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(same_h5s[k], v)
