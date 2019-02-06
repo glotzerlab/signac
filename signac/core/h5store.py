@@ -240,7 +240,7 @@ class H5Store(MutableMapping):
     """An HDF5-backed container for storing array-like and dictionary-like data.
 
     The H5Store API is a :class:`collections.abc.MutableMapping` and therefore
-    behaves similar to a :class:`dict`, but all data is stored persisently in
+    behaves similar to a :class:`dict`, but all data is stored persistently in
     the associated HDF5-file on disk.
 
     Supported types include:
