@@ -55,9 +55,12 @@ def _requires_tables():
 logger = logging.getLogger(__name__)
 
 
-class ClosedH5StoreError(RuntimeError):
-    "Raised when trying to access a closed group."
-    pass
+class H5StoreClosedError(RuntimeError):
+    "Raised when trying to access a closed store."
+
+
+class H5StoreAlreadyOpenError(OSError):
+    """Indicates that the underlying HDF5-file is already openend."""
 
 
 def _h5set(file, grp, key, value, path=None):
@@ -266,7 +269,10 @@ class H5Store(MutableMapping):
         self.close()
 
     def __enter__(self):
-        self.open()
+        try:
+            self.open()
+        except H5StoreAlreadyOpenError:
+            pass
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -275,7 +281,7 @@ class H5Store(MutableMapping):
     def open(self):
         """Opens the datastore file."""
         if self._file is not None:
-            raise OSError("File '{}' is already open.".format(self))
+            raise H5StoreAlreadyOpenError(self)
         import h5py
         self._thread_lock.acquire()
         try:
@@ -300,7 +306,7 @@ class H5Store(MutableMapping):
     @property
     def file(self):
         if self._file is None:
-            raise ClosedH5StoreError(self._filename)
+            raise H5StoreClosedError(self._filename)
         else:
             return self._file
 
