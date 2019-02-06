@@ -60,6 +60,10 @@ class ClosedH5StoreError(RuntimeError):
     pass
 
 
+class H5StoreAlreadyOpenError(OSError):
+    """Indicates that the underlying HDF5-file is already openend."""
+
+
 def _h5set(file, grp, key, value, path=None):
     """Set a key in an h5py container, recursively converting Mappings to h5py
     groups and transparently handling None."""
@@ -268,9 +272,8 @@ class H5Store(MutableMapping):
     def __enter__(self):
         try:
             self.open()
-        except OSError as error:
-            if 'is already open' not in str(error):
-                raise
+        except H5StoreAlreadyOpenError:
+            pass
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -279,7 +282,7 @@ class H5Store(MutableMapping):
     def open(self):
         """Opens the datastore file."""
         if self._file is not None:
-            raise OSError("File '{}' is already open.".format(self))
+            raise H5StoreAlreadyOpenError(self)
         import h5py
         self._thread_lock.acquire()
         try:
