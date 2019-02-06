@@ -96,6 +96,7 @@ def _h5set(file, grp, key, value, path=None):
     elif type(value).__module__ == numpy.__name__:
         grp[key] = value
 
+    # h5py native types
     elif isinstance(value, h5py._hl.dataset.Dataset):
         grp[key] = value[()]    # Create a copy, not a hard link!
 
