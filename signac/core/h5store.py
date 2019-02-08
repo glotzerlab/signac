@@ -263,10 +263,9 @@ class H5Store(MutableMapping):
             assert h5s['foo'] == 'bar'
 
     :param filename:
-        The filename of the underlying HDF5-file. This file will be create if it
-        does not exist yet with the standard open mode ('a').
+        The filename of the underlying HDF5-file.
     :param mode:
-        The file open mode to use, defaults to 'a'.
+        The file open mode to use. Defaults to 'a' (append).
     :param kwargs:
         Additional keyword arguments to be forward to the h5py.File constructor
         See documentation for :class:`h5py.File` for more information.
