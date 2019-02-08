@@ -310,7 +310,7 @@ class H5Store(MutableMapping):
         import h5py
         self._thread_lock.acquire()
         try:
-            self._file = h5py.File(self._filename, mode=self.mode, **self._kwargs)
+            self._file = h5py.File(self._filename, mode=self._mode, **self._kwargs)
         except:  # noqa We need to release under **all** circumstances upon error!
             self._thread_lock.release()
             raise
