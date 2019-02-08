@@ -57,20 +57,20 @@ class BaseH5StoreTest(unittest.TestCase):
         self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
         self.addCleanup(self._tmp_dir.cleanup)
 
-    def get_h5store(self, mode=None):
-        return H5Store(filename=self._fn_store, mode=mode)
+    def get_h5store(self, **kwargs):
+        return H5Store(filename=self._fn_store, **kwargs)
 
     @contextmanager
-    def open_h5store(self, mode=None):
-        with self.get_h5store(mode=mode) as h5s:
+    def open_h5store(self, **kwargs):
+        with self.get_h5store(**kwargs) as h5s:
             yield h5s
 
-    def get_other_h5store(self, mode=None):
-        return H5Store(filename=self._fn_store_other, mode=mode)
+    def get_other_h5store(self, **kwargs):
+        return H5Store(filename=self._fn_store_other, **kwargs)
 
     @contextmanager
-    def open_other_h5store(self, mode=None):
-        with self.get_other_h5store(mode=mode) as h5s:
+    def open_other_h5store(self, **kwargs):
+        with self.get_other_h5store(**kwargs) as h5s:
             yield h5s
 
     def get_testdata(self, size=None):
@@ -85,6 +85,40 @@ class BaseH5StoreTest(unittest.TestCase):
             numpy.testing.assert_array_equal(a, b)
         else:
             super(BaseH5StoreTest, self).assertEqual(a, b)
+
+
+class H5StoreOpenTests(BaseH5StoreTest):
+
+    def test_open(self):
+        h5s = self.get_h5store()
+        h5s.open()
+        h5s.close()
+
+    def test_open_read_only(self):
+        with self.open_h5store() as h5s:
+            h5s['foo'] = 'bar'
+
+        with self.open_h5store(mode='r') as h5s:
+            self.assertIn('foo', h5s)
+            self.assertEqual(h5s['foo'], 'bar')
+
+    def test_open_write_only(self):
+        with self.open_h5store(mode='w') as h5s:
+            h5s['foo'] = 'bar'
+            self.assertIn('foo', h5s)
+            self.assertEqual(h5s['foo'], 'bar')
+
+    def test_open_write_and_read_only(self):
+        with self.open_h5store(mode='w') as h5s_w:
+            with self.open_h5store(mode='r') as h5s_r:
+                self.assertNotIn('foo', h5s_r)
+                self.assertNotIn('foo', h5s_w)
+
+                h5s_w['foo'] = 'bar'
+                self.assertIn('foo', h5s_r)
+                self.assertEqual(h5s_r['foo'], 'bar')
+                self.assertIn('foo', h5s_w)
+                self.assertEqual(h5s_r['foo'], 'bar')
 
 
 class H5StoreTest(BaseH5StoreTest):
@@ -233,37 +267,6 @@ class H5StoreTest(BaseH5StoreTest):
             self.assertEqual(h5s[key], d)
             h5s.clear()
             self.assertEqual(len(h5s), 0)
-
-    def test_open(self):
-        h5s = self.get_h5store()
-        h5s.open()
-        h5s.close()
-
-    def test_open_read_only(self):
-        with self.open_h5store() as h5s:
-            h5s['foo'] = 'bar'
-
-        with self.open_h5store(mode='r') as h5s:
-            self.assertIn('foo', h5s)
-            self.assertEqual(h5s['foo'], 'bar')
-
-    def test_open_write_only(self):
-        with self.open_h5store(mode='w') as h5s:
-            h5s['foo'] = 'bar'
-            self.assertIn('foo', h5s)
-            self.assertEqual(h5s['foo'], 'bar')
-
-    def test_open_write_and_read_only(self):
-        with self.open_h5store(mode='w') as h5s_w:
-            with self.open_h5store(mode='r') as h5s_r:
-                self.assertNotIn('foo', h5s_r)
-                self.assertNotIn('foo', h5s_w)
-
-                h5s_w['foo'] = 'bar'
-                self.assertIn('foo', h5s_r)
-                self.assertEqual(h5s_r['foo'], 'bar')
-                self.assertIn('foo', h5s_w)
-                self.assertEqual(h5s_r['foo'], 'bar')
 
     def test_reopen(self):
         with self.open_h5store() as h5s:
@@ -514,8 +517,8 @@ class H5StoreClosedTest(H5StoreTest):
     }
 
     @contextmanager
-    def open_h5store(self):
-        yield self.get_h5store()
+    def open_h5store(self, **kwargs):
+        yield self.get_h5store(**kwargs)
 
 
 class H5StoreNestedDataClosedTest(H5StoreNestedDataTest, H5StoreClosedTest):
