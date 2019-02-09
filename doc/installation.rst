@@ -57,11 +57,11 @@ Consider installing optional dependencies:
 Source Code Installation
 ========================
 
-Alternatively you can clone the `git repository <https://bitbucket.org/glotzer/signac>`_ and execute the ``setup.py`` script to install the package.
+Alternatively you can clone the `git repository <https://github.com/glotzerlab/signac>`_ and execute the ``setup.py`` script to install the package.
 
 .. code:: bash
 
-  git clone https://bitbucket.org/glotzer/signac.git
+  git clone https://github.com/glotzerlab/signac.git
   cd signac
   python setup.py install --user
 

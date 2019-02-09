@@ -7,6 +7,7 @@ import uuid
 import warnings
 import logging
 import json
+import pickle
 from tarfile import TarFile
 from zipfile import ZipFile
 
@@ -120,6 +121,32 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self.project.doc, {'a': {'b': 44}})
         self.project.doc = {'a': {'b': 45}}
         self.assertEqual(self.project.doc, {'a': {'b': 45}})
+
+    def test_data(self):
+        with self.project.data:
+            self.assertFalse(self.project.data)
+            self.assertEqual(len(self.project.data), 0)
+            self.project.data['a'] = 42
+            self.assertEqual(len(self.project.data), 1)
+            self.assertTrue(self.project.data)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        with prj2.data:
+            self.assertTrue(prj2.data)
+            self.assertEqual(len(prj2.data), 1)
+        with self.project.data:
+            self.project.data.clear()
+            self.assertFalse(self.project.data)
+            self.assertEqual(len(self.project.data), 0)
+        with prj2.data:
+            self.assertFalse(prj2.data)
+            self.assertEqual(len(prj2.data), 0)
+        with self.project.data:
+            self.project.data.a = {'b': 43}
+            self.assertEqual(self.project.data, {'a': {'b': 43}})
+            self.project.data.a.b = 44
+            self.assertEqual(self.project.data, {'a': {'b': 44}})
+            self.project.data = {'a': {'b': 45}}
+            self.assertEqual(self.project.data, {'a': {'b': 45}})
 
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -242,6 +269,23 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(len(self.project), len(self.project.find_jobs({})))
         self.assertEqual(1, len(list(self.project.find_jobs({'a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'a': 5}))))
+
+    def test_find_jobs_next(self):
+        statepoints = [{'a': i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+        jobs = self.project.find_jobs()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+            for i in range(2):  # run this twice
+                jobs_ = set()
+                for i in range(len(self.project)):
+                    job = jobs.next()
+                    self.assertIn(job, self.project)
+                    jobs_.add(job)
+                with self.assertRaises(StopIteration):
+                    job = jobs.next()
+                self.assertEqual(jobs_, set(self.project))
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -1834,6 +1878,25 @@ class ProjectInitTest(unittest.TestCase):
         # Test case: The job workspace dir is not a sub-directory of project root dir.
         # Test case: The job is not actually part of the project that we identified for this job.
         pass
+
+
+class ProjectPicklingTest(BaseProjectTest):
+
+    def test_pickle_project_empty(self):
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_project_with_jobs(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        blob = pickle.dumps(self.project)
+        self.assertEqual(pickle.loads(blob), self.project)
+
+    def test_pickle_jobs_directly(self):
+        for i in range(3):
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+        for job in self.project:
+            self.assertEqual(pickle.loads(pickle.dumps(job)), job)
 
 
 if __name__ == '__main__':

@@ -17,6 +17,34 @@ Highlights
  - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
 
+
+[next] -- YYYY-MM-DD
+--------------------
+
+Added
++++++
+
+ - Adds an ``H5Store`` class, useful for storing array-like data with an HDF5 backend. Accessible via ``with job.data:`` or ``with project.data:``.
+ - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
+ - Enable `Collection` class to manage collections stored in gzip files.
+ - Enable deleting of `JSONDict` keys through the attribute interface, e.g., `del job.doc.foo`.
+
+Fixed
++++++
+
+ - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
+
+[0.9.5] -- 2019-01-31
+--------------------
+
+Fixed
++++++
+
+ - Ensure that the next() function can be called for a JobsIterator, e.g., `project.find()`.
+ - Pickling issue that occurs when a _SyncedDict (job.statepoint, job.document, etc.) contains a list.
+ - Issue with the readline module that would cause signac shell to fail on Windows operating systems.
+
+
 [0.9.4] -- 2018-10-24
 ---------------------
 
@@ -43,7 +71,6 @@ Fixed
  - Fix issue where jobs that are migrated (state point change), but are not initialized, were not properly updated.
  - Fix issue where changes to lists as part of synchronized dictionary, for example a state point or document would not be saved.
  - Fix non-deterministic issue occuring on network file systems when trying to open jobs where the user has no write access to the job workspace directory.
-
 
 [0.9.3] -- 2018-06-14
 ---------------------
@@ -80,7 +107,6 @@ Fixed
 
   - Fix critical issue in the ``JSONDict`` implementation that would previously overwrite the underlying file when attempting to store values that are not JSON serializable.
   - Fix issue where the ``Project.export()`` function would ignore the update argument when the index to export to would be a MongoDB collection.
-
 
 [0.9.1] -- 2017-11-07
 ---------------------
@@ -439,7 +465,6 @@ Version 0.4
 [0.4.0] -- 2016-08-05
 ---------------------
 
-
 Added
 +++++
 
@@ -463,7 +488,6 @@ Removed
 
  - Remove previously deprecated *crawl* keyword argument in index export functions.
  - Remove previously deprecated function common.config.write_config().
-
 
 Version 0.3
 ===========

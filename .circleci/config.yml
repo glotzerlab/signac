@@ -7,7 +7,7 @@ version: 2
 jobs:
   style-check:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7
 
     working_directory: ~/repo
 
@@ -16,18 +16,27 @@ jobs:
       - run:
           name: style-check
           command: |
-            pip install --user -U flake8
+            pip install --user -U flake8==3.7.1
             python -m flake8 --show-source signac/
 
 
-  test-3.6: &test-template
+  test-3.7: &test-template
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7
 
     working_directory: ~/repo
 
     steps:
+
       - checkout
+
+      - restore_cache:
+          keys:
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v2-{{ arch }}
+            - python-env-v2
 
       - run:
           name: install dependencies
@@ -37,14 +46,24 @@ jobs:
             mkdir -p ./venv
             virtualenv ./venv
             . venv/bin/activate
-            pip install -r requirements.txt
-            pip install -U coverage mock
+            if [[ "$CIRCLE_JOB" == *"pypy"* ]]; then
+              apt update -qq && apt install -qq libhdf5-dev
+            else
+              sudo apt update -qq && sudo apt install -qq libhdf5-dev
+            fi
+            pip install -U pip==18
+            pip install -U -e . -r requirements-dev.txt
+
+      - save_cache:
+          key: python-env-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          paths:
+            - "venv"
 
       - run:
           name: run tests
           command: |
             . venv/bin/activate
-            coverage run --source=signac/ -m unittest discover tests/
+            coverage run --source=signac/ -m unittest discover tests/ -v
             coverage report -i --include="signac*"
 
       - store_artifacts:
@@ -55,25 +74,30 @@ jobs:
           name: benchmark
           command: |
             . venv/bin/activate
-            pip install -U gitpython psutil pandas tqdm backports.tempfile
+            pip install -r requirements-benchmark.txt
+            pip freeze
             python benchmark.py run -N 100 1000  # this revision
             python benchmark.py report
             git reset --hard origin/master
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             python benchmark.py run -N 100 1000 --force
             python benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6
   test-3.5:
     <<: *test-template
     docker:
-      - image: circleci/python:3.5-jessie
+      - image: circleci/python:3.5
   test-3.4:
     <<: *test-template
     docker:
-      - image: circleci/python:3.4-jessie
+      - image: circleci/python:3.4
   test-2.7:
     <<: *test-template
     docker:
-      - image: circleci/python:2.7-jessie
+      - image: circleci/python:2.7
   test-pypy-2:
     <<: *test-template
     docker:
@@ -83,9 +107,50 @@ jobs:
     docker:
       - image: pypy:3
 
+  check-metadata:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: check-zenodo-metadata
+          command: |
+            python -c "import json; json.load(open('.zenodo.json'))"
+      - run:
+          name: references.bib
+          command: |
+            pip install --user -U pybtex
+            python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
+
+  test-deploy-pypi:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: test-deploy-pypi
+          command: |
+            pip install --user -U -r .requirements-deploy.txt
+            bash .test-deploy.bash
+
+  deploy-pypi:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: deploy-pypi
+          command: |
+            pip install --user -U -r .requirements-deploy.txt
+            bash .deploy.bash
+
+
 workflows:
   version: 2
-  style-check-and-tests:
+  test:
     jobs:
       - style-check
       - test-2.7:
@@ -100,9 +165,36 @@ workflows:
       - test-3.6:
           requires:
             - style-check
+      - test-3.7:
+          requires:
+            - style-check
       - test-pypy-2:
           requires:
             - test-2.7
       - test-pypy-3:
           requires:
             - test-3.6
+      - check-metadata:
+          filters:
+            branches:
+              only: /release\/.*/
+      - test-deploy-pypi:
+          filters:
+            branches:
+              only: /release\/.*/
+          requires:
+            - test-2.7
+            - test-3.4
+            - test-3.5
+            - test-3.6
+            - test-3.7
+            - test-pypy-2
+            - test-pypy-3
+  deploy:
+    jobs:
+      - deploy-pypi:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/

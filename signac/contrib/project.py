@@ -18,6 +18,7 @@ from multiprocessing.pool import ThreadPool
 from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
+from ..core.h5store import H5Store
 from .collection import Collection
 from ..common import six
 from ..common.config import load_config
@@ -123,6 +124,9 @@ class Project(object):
     FN_DOCUMENT = 'signac_project_document.json'
     "The project's document filename."
 
+    FN_DATA = 'signac_data.h5'
+    "The project's datastore filename."
+
     FN_STATEPOINTS = 'signac_statepoints.json'
     "The default filename to read from and write statepoints to."
 
@@ -140,6 +144,10 @@ class Project(object):
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
+
+        # Prepare project datastore
+        self._fn_data = os.path.join(self._rd, self.FN_DATA)
+        self._data = None
 
         # Internal caches
         self._index_cache = dict()
@@ -292,13 +300,29 @@ class Project(object):
     def doc(self, new_doc):
         self.document = new_doc
 
+    @property
+    def data(self):
+        """The data associated with this project.
+
+        :return: An HDF5-backed datastore.
+        :rtype: :class:`~signac.core.h5store.H5Store`
+        """
+        if self._data is None:
+            self._data = H5Store(filename=self._fn_data)
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        self._data.clear()
+        self._data.update(new_data)
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
         This method returns the job instance associated with
         the given statepoint or job id.
         Opening a job by a valid statepoint never fails.
-        Opening a job by id, requires a lookup of the statepoint
+        Opening a job by id requires a lookup of the statepoint
         from the job id, which may fail if the job was not
         previously initialized.
 
@@ -590,6 +614,13 @@ class Project(object):
             be sortable).
         """
         return self.find_jobs().groupbydoc(key, default=default)
+
+    def to_dataframe(self, *args, **kwargs):
+        """Export the project metadata to a pandas dataframe.
+
+        The arguments to this function are forwarded to :py:meth:`.JobsCursor.to_dataframe`.
+        """
+        return self.find_jobs().to_dataframe(*args, **kwargs)
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
@@ -1592,6 +1623,10 @@ class JobsCursor(object):
         self._filter = filter
         self._doc_filter = doc_filter
 
+        # This private attribute allows us to implement the deprecated
+        # next() method for this class.
+        self._next_iter = None
+
     def __len__(self):
         # Highly performance critical code path!!
         if self._filter or self._doc_filter:
@@ -1608,6 +1643,22 @@ class JobsCursor(object):
             self._project,
             self._project.find_job_ids(self._filter, self._doc_filter),
             )
+
+    def next(self):
+        """Return the next element.
+
+        This function is deprecated, users should use iter(..).next() instead!
+
+        .. deprecated:: 0.9.6
+        """
+        warnings.warn("Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning)
+        if self._next_iter is None:
+            self._next_iter = iter(self)
+        try:
+            return self._next_iter.next()
+        except StopIteration:
+            self._next_iter = None
+            raise
 
     def groupby(self, key=None, default=None):
         """Groups jobs according to one or more statepoint parameters.
@@ -1735,6 +1786,37 @@ class JobsCursor(object):
         from .import_export import export_jobs
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
+
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+        """Convert the selection of jobs to a pandas dataframe.
+
+        This function exports the job metadata to a :py:class:`pandas.DataFrame`.
+        All state point and document keys are prefixed by default to be able to distinguish them.
+
+        :param sp_prefix:
+            Prefix state point keys with the given string. Defaults to "sp.".
+        :type sp_prefix:
+            str
+        :param doc_prefix:
+            Prefix document keys with the given string. Defaults to ".doc".
+        :type doc_prefix:
+            str
+        :returns:
+            A pandas dataframe with all job metadata.
+        :rtype:
+            :py:class:`pandas.DataFrame`
+        """
+        import pandas
+
+        def _export_sp_and_doc(job):
+            for key, value in job.sp.items():
+                yield sp_prefix + key, value
+            for key, value in job.doc.items():
+                yield doc_prefix + key, value
+
+        return pandas.DataFrame.from_dict(
+            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            orient='index').infer_objects()
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

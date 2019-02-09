@@ -13,7 +13,7 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='0.9.4',
+    version='0.9.5',
     packages=find_packages(),
     zip_safe=True,
 
@@ -23,7 +23,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='simulation database index collaboration workflow',
-    url="https://bitbucket.org/glotzer/signac",
+    url="https://signac.io",
 
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -35,6 +35,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],

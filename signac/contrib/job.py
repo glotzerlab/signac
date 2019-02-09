@@ -8,9 +8,10 @@ import shutil
 import uuid
 
 from ..common import six
-from ..core.json import json
+from ..core.json import json, CustomJSONEncoder
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
+from ..core.h5store import H5Store
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -41,27 +42,46 @@ class Job(object):
     Application developers should usually not need to directly
     instantiate this class, but use :meth:`~signac.Project.open_job`
     instead."""
+
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
 
     The job manifest, this means a human-readable dump of the job's\
     statepoint is stored in each workspace directory.
     """
+
     FN_DOCUMENT = 'signac_job_document.json'
     "The job's document filename."
 
+    FN_DATA = 'signac_data.h5'
+    "The job's datastore filename."
+
     def __init__(self, project, statepoint, _id=None):
         self._project = project
+
+        # Ensure that the job id is configured
         if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint))
+            self._statepoint = json.loads(json.dumps(statepoint, cls=CustomJSONEncoder))
             self._id = calc_id(self._statepoint)
         else:
             self._statepoint = dict(statepoint)
             self._id = _id
+
+        # Prepare job statepoint
         self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
+
+        # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
+
+        # Prepare job document
         self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
+
+        # Prepare job datastore
+        self._fn_data = os.path.join(self._wd, self.FN_DATA)
+        self._data = None
+
+        # Prepare current working directory for context management
         self._cwd = list()
 
     def get_id(self):
@@ -95,7 +115,7 @@ class Job(object):
 
     @property
     def ws(self):
-        """Alias for :attr:`.workspace`."""
+        """Alias for :attr:`Job.workspace`."""
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
@@ -143,6 +163,8 @@ class Job(object):
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
         self._document = None
+        self._fn_data = dst._fn_data
+        self._data = None
         self._cwd = list()
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
@@ -195,22 +217,13 @@ class Job(object):
 
     @property
     def sp(self):
-        """ Alias for :attr:`.statepoint`.
+        """ Alias for :attr:`Job.statepoint`.
         """
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
         self.statepoint = new_sp
-
-    def _read_document(self):
-        try:
-            with open(self._fn_doc, 'rb') as file:
-                return json.loads(file.read().decode())
-        except IOError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            return dict()
 
     def _reset_document(self, new_doc):
         if not isinstance(new_doc, Mapping):
@@ -219,7 +232,7 @@ class Job(object):
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc).encode())
+            tmpfile.write(json.dumps(new_doc, cls=CustomJSONEncoder).encode())
         if six.PY2:
             os.rename(fn_tmp, self._fn_doc)
         else:
@@ -242,13 +255,29 @@ class Job(object):
 
     @property
     def doc(self):
-        """Alias for :attr:`~signac.contrib.job.Job.document`.
+        """Alias for :attr:`Job.document`.
         """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
         self.document = new_doc
+
+    @property
+    def data(self):
+        """The data associated with this job.
+
+        :return: An HDF5-backed datastore.
+        :rtype: :class:`~signac.core.h5store.H5Store`"""
+        if self._data is None:
+            self.init()
+            self._data = H5Store(filename=self._fn_data)
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        self._data.clear()
+        self._data.update(new_data)
 
     def _init(self, force=False):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -263,7 +292,7 @@ class Job(object):
 
         try:
             # Ensure to create the binary to write before file creation
-            blob = json.dumps(self._statepoint, indent=2)
+            blob = json.dumps(self._statepoint, indent=2, cls=CustomJSONEncoder)
 
             try:
                 # Open the file for writing only if it does not exist yet.
@@ -374,6 +403,7 @@ class Job(object):
                     if not error.errno == errno.ENOENT:
                         raise error
                 self._document = None
+            self._data = None
 
     def move(self, project):
         """Move this job to project.

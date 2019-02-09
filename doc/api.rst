@@ -38,6 +38,7 @@ The Project
     Project.create_access_module
     Project.create_linked_view
     Project.detect_schema
+    Project.data
     Project.doc
     Project.document
     Project.dump_statepoints
@@ -88,6 +89,7 @@ The Job class
 
     Job.clear
     Job.close
+    Job.data
     Job.doc
     Job.document
     Job.fn
