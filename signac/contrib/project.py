@@ -1508,7 +1508,7 @@ class Project(object):
                         name, os.path.abspath(root)))
 
     @classmethod
-    def get_project(cls, root=None, search=False):
+    def get_project(cls, root=None, search=True):
         """Find a project configuration and return the associated project.
 
         :param root:
@@ -1823,7 +1823,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
 
 
-def get_project(root=None, search=False):
+def get_project(root=None, search=True):
     """Find a project configuration and return the associated project.
 
     :param root:
