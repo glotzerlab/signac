@@ -1827,6 +1827,20 @@ class ProjectInitTest(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
+    def test_get_project_non_local(self):
+        root = self._tmp_dir.name
+        subdir = os.path.join(root, 'subdir')
+        os.mkdir(subdir)
+        project = signac.init_project(root=root, name='testproject')
+        self.assertEqual(project, project.get_project(root=root))
+        self.assertEqual(project, signac.get_project(root=root))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, project.get_project(root=subdir))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, signac.get_project(root=subdir))
+        self.assertEqual(project, project.get_project(root=subdir, search=True))
+        self.assertEqual(project, signac.get_project(root=subdir, search=True))
+
 
 class ProjectPicklingTest(BaseProjectTest):
 

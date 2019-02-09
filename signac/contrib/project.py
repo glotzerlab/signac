@@ -1482,7 +1482,7 @@ class Project(object):
         if root is None:
             root = os.getcwd()
         try:
-            project = cls.get_project(root=root)
+            project = cls.get_project(root=root, search=False)
         except LookupError:
             fn_config = os.path.join(root, 'signac.rc')
             if make_dir:
@@ -1508,20 +1508,27 @@ class Project(object):
                         name, os.path.abspath(root)))
 
     @classmethod
-    def get_project(cls, root=None):
+    def get_project(cls, root=None, search=False):
         """Find a project configuration and return the associated project.
 
-        :param root: The project root directory.
-            If no root directory is given, the next project found
-            within or above the current working directory is returned.
+        :param root:
+            The starting point to search for a project, defaults to the
+            current working directory.
         :type root: str
+        :param search:
+            If True, search for project configurations inside and above
+            the specified root directory, otherwise only return projects
+            with a root directory identical to the specified root arugment.
+        :type search: bool
         :returns: The project handle.
-        :raises LookupError: If no project configuration can be found."""
-        config = load_config(root=root, local=root is not None)
-        if 'project' not in config:
+        :raises LookupError: If no project configuration can be found.
+        """
+        if root is None:
+            root = os.getcwd()
+        config = load_config(root=root, local=False)
+        if 'project' not in config or (not search and config['project_dir'] != root):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(
-                    os.getcwd() if root is None else os.path.abspath(root)))
+                "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
         return cls(config=config)
 
 
@@ -1816,14 +1823,19 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
 
 
-def get_project(root=None):
+def get_project(root=None, search=False):
     """Find a project configuration and return the associated project.
 
-    :param root: The project root directory.
-        If no root directory is given, the next project found
-        within or above the current working directory is returned.
+    :param root:
+        The starting point to search for a project, defaults to the
+        current working directory.
     :type root: str
+    :param search:
+        If True, search for project configurations inside and above
+        the specified root directory, otherwise only return projects
+        with a root directory identical to the specified root arugment.
+    :type search: bool
     :returns: The project handle.
-    :rtype: :py:class:`~.Project`
-    :raises LookupError: If no project configuration can be found."""
-    return Project.get_project(root=root)
+    :raises LookupError: If no project configuration can be found.
+    """
+    return Project.get_project(root=root, search=search)
