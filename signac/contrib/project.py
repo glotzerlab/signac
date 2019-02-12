@@ -1526,7 +1526,8 @@ class Project(object):
 
     @classmethod
     def get_job(cls, root=None):
-        """From a job workspace directory or subdirectory, get the job.
+        """Find a Job in or above the current working directory (or
+        provided path).
 
         :param root: The job root directory.
             If no root directory is given, the current working directory is
@@ -1860,13 +1861,23 @@ def get_project(root=None):
 
 
 def get_job(root=None):
-    """From a job workspace directory, locate the closest parent project
-    and return this job.
+    """When the current working directory or provided root directory is a job
+    workspace directory (or subdirectory thereof), locate the closest parent
+    project and return this job.
 
     :param root: The job root directory.
         If no root directory is given, the current working directory is
         assumed to be within the current job workspace directory.
     :type root: str
     :returns: The job handle.
-    :raises LookupError: If this job cannot be found."""
+    :raises LookupError: If this job cannot be found.
+
+    For example, when the current directory is a job workspace directory:
+
+    .. code-block:: python
+
+        >>> signac.get_job()
+        signac.contrib.job.Job(project=..., statepoint={...})
+
+    """
     return Project.get_job(root=root)
