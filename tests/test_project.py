@@ -1765,6 +1765,20 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
 
+    def test_get_project_non_local(self):
+        root = self._tmp_dir.name
+        subdir = os.path.join(root, 'subdir')
+        os.mkdir(subdir)
+        project = signac.init_project(root=root, name='testproject')
+        self.assertEqual(project, project.get_project(root=root))
+        self.assertEqual(project, signac.get_project(root=root))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, project.get_project(root=subdir, search=False))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, signac.get_project(root=subdir, search=False))
+        self.assertEqual(project, project.get_project(root=subdir, search=True))
+        self.assertEqual(project, signac.get_project(root=subdir, search=True))
+
     def test_init(self):
         root = self._tmp_dir.name
         with self.assertRaises(LookupError):

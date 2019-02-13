@@ -261,16 +261,28 @@ class H5Store(MutableMapping):
             assert 'foo' in h5s
             assert h5s.foo == 'bar'
             assert h5s['foo'] == 'bar'
+
+    :param filename:
+        The filename of the underlying HDF5-file.
+    :param mode:
+        The file open mode to use. Defaults to 'a' (append).
+    :param kwargs:
+        Additional keyword arguments to be forward to the h5py.File constructor
+        See documentation for :class:`h5py.File` for more information.
     """
-    __slots__ = ['_filename', '_file']
+    __slots__ = ['_filename', '_file', '_mode', '_kwargs']
 
     _thread_lock = RLock()
 
-    def __init__(self, filename):
+    def __init__(self, filename, mode=None, **kwargs):
         if not (isinstance(filename, six.string_types) and len(filename) > 0):
             raise ValueError('H5Store filename must be a non-empty string.')
+        if mode is None:
+            mode = 'a'
         self._filename = os.path.realpath(filename)
         self._file = None
+        self._mode = mode
+        self._kwargs = kwargs
 
     def __repr__(self):
         return "<{}(filename={})>".format(type(self).__name__, os.path.relpath(self._filename))
@@ -298,7 +310,7 @@ class H5Store(MutableMapping):
         import h5py
         self._thread_lock.acquire()
         try:
-            self._file = h5py.File(self._filename)
+            self._file = h5py.File(self._filename, mode=self._mode, **self._kwargs)
         except:  # noqa We need to release under **all** circumstances upon error!
             self._thread_lock.release()
             raise
@@ -322,6 +334,10 @@ class H5Store(MutableMapping):
             raise H5StoreClosedError(self._filename)
         else:
             return self._file
+
+    @property
+    def mode(self):
+        return self._mode
 
     def flush(self):
         """Flush the underlying HDF5-file."""
