@@ -1518,7 +1518,7 @@ class Project(object):
         :param search:
             If True, search for project configurations inside and above
             the specified root directory, otherwise only return projects
-            with a root directory identical to the specified root arugment.
+            with a root directory identical to the specified root argument.
         :type search: bool
         :returns: The project handle.
         :raises LookupError: If no project configuration can be found.
@@ -1544,13 +1544,24 @@ class Project(object):
         :raises LookupError: If this job cannot be found."""
         if root is None:
             root = os.getcwd()
+        root = os.path.abspath(root)
+
+        # Ensure the root path exists, which is not guaranteed by the regex match
+        if not os.path.exists(root):
+            raise LookupError("Path does not exist: '{}'.".format(root))
+
+        # Find the last match instance of a job id
         results = re.findall(JOB_ID_REGEX, root)
         if len(results) > 0:
             job_id = results[-1]
         else:
-            raise LookupError("Could not find a job id in path '{}'.".format(
-                os.path.abspath(root)))
-        project = cls.get_project(root=root)
+            raise LookupError("Could not find a job id in path '{}'.".format(root))
+
+        # Find a project *above* the root directory (if the provided root
+        # contains a project, we must search from its parent)
+        project = cls.get_project(os.path.join(root, os.pardir))
+
+        # Search for the matched job id in the found project
         try:
             job = project.open_job(id=job_id)
         except KeyError:

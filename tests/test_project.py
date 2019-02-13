@@ -1879,19 +1879,38 @@ class ProjectInitTest(unittest.TestCase):
         with job:
             nestedproject = signac.init_project('nestedproject')
             nestedproject.open_job({'b': 2}).init()
-            with self.assertRaises(KeyError):
-                project.get_job()
-            with self.assertRaises(KeyError):
-                signac.get_job()
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
 
-    def test_get_job_subdir_of_project(self):
-        # Test case: The job workspace dir is a sub-directory of the project root dir.
-        pass
+    def test_get_job_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
 
-    def test_get_job_not_subdir_of_project(self):
-        # Test case: The job workspace dir is not a sub-directory of project root dir.
-        # Test case: The job is not actually part of the project that we identified for this job.
-        pass
+    def test_get_job_symlink_other_project(self):
+        # Test case: Get a job from a symlink in another project workspace
+        root = self._tmp_dir.name
+        project_a_dir = os.path.join(root, 'project_a')
+        project_b_dir = os.path.join(root, 'project_b')
+        os.mkdir(project_a_dir)
+        os.mkdir(project_b_dir)
+        project_a = signac.init_project(name='project_a', root=project_a_dir)
+        project_b = signac.init_project(name='project_b', root=project_b_dir)
+        job_a = project_a.open_job({'a': 1})
+        job_a.init()
+        job_b = project_b.open_job({'b': 1})
+        job_b.init()
+        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        os.symlink(job_a.ws, symlink_path)
+        self.assertEqual(project_a.get_job(symlink_path), job_a)
+        self.assertEqual(project_b.get_job(symlink_path), job_a)
+        self.assertEqual(signac.get_job(symlink_path), job_a)
 
 
 class ProjectPicklingTest(BaseProjectTest):
