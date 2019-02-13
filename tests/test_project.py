@@ -1893,6 +1893,20 @@ class ProjectInitTest(unittest.TestCase):
             self.assertEqual(project.get_job('test_subdir'), job)
             self.assertEqual(signac.get_job('test_subdir'), job)
 
+    def test_get_job_nested_project_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir
+        # when the job workspace is also a project root dir
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2}).init()
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
+
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
         root = self._tmp_dir.name

@@ -1551,15 +1551,16 @@ class Project(object):
             raise LookupError("Path does not exist: '{}'.".format(root))
 
         # Find the last match instance of a job id
-        results = re.findall(JOB_ID_REGEX, root)
-        if len(results) > 0:
-            job_id = results[-1]
-        else:
+        results = list(re.finditer(JOB_ID_REGEX, root))
+        if len(results) == 0:
             raise LookupError("Could not find a job id in path '{}'.".format(root))
+        match = results[-1]
+        job_id = match.group(0)
+        job_root = root[:match.end()]
 
         # Find a project *above* the root directory (if the provided root
         # contains a project, we must search from its parent)
-        project = cls.get_project(os.path.join(root, os.pardir))
+        project = cls.get_project(os.path.join(job_root, os.pardir))
 
         # Search for the matched job id in the found project
         try:
