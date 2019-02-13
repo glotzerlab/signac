@@ -1550,7 +1550,7 @@ class Project(object):
         else:
             raise LookupError("Could not find a job id in path '{}'.".format(
                 os.path.abspath(root)))
-        project = cls.get_project()
+        project = cls.get_project(root=root)
         try:
             job = project.open_job(id=job_id)
         except KeyError:
