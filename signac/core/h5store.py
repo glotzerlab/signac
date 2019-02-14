@@ -162,15 +162,16 @@ def _validate_key(key):
 
 class _ensure_open(object):
 
-    __slots__ = ['file', 'open']
+    __slots__ = ['file', 'open', 'kwargs']
 
-    def __init__(self, file):
+    def __init__(self, file, **kwargs):
         self.file = file
         self.open = False
+        self.kwargs = kwargs
 
     def __enter__(self):
         if self.file._file is None:
-            self.file.open()
+            self.file._open(** self.kwargs)
             self.open = True
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -306,18 +307,29 @@ class H5Store(MutableMapping):
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.close()
 
-    def open(self):
-        """Open the underlying HDF5-file."""
+    def _open(self, **kwargs):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
+
+        # We use the default file parameters, which can optionally be overriden
+        # by additional keyword arguments (kwargs). This option is intentionally
+        # not exposed to the public API.
+        parameters = dict(self._kwargs)
+        parameters['mode'] = self.mode
+        parameters.update(kwargs)
+
         self._thread_lock.acquire()
         try:
-            self._file = h5py.File(self._filename, mode=self._mode, **self._kwargs)
+            self._file = h5py.File(self._filename, **parameters)
         except:  # noqa We need to release under **all** circumstances upon error!
             self._thread_lock.release()
             raise
         return self
+
+    def open(self):
+        """Open the underlying HDF5-file."""
+        return self._open()
 
     def close(self):
         """Close the underlying HDF5-file."""
@@ -385,11 +397,11 @@ class H5Store(MutableMapping):
                 yield key
 
     def __len__(self):
-        with _ensure_open(self):
+        with _ensure_open(self, mode='r'):
             return len(self._file)
 
     def __contains__(self, key):
-        with _ensure_open(self):
+        with _ensure_open(self, mode='r'):
             return key in self._file
 
     def clear(self):

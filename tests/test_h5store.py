@@ -211,8 +211,6 @@ class H5StoreTest(BaseH5StoreTest):
             key = 'copy_value'
             key2 = 'copy_value2'
             d = self.get_testdata()
-            self.assertNotIn(key, h5s)
-            self.assertNotIn(key2, h5s)
             h5s[key] = d
             self.assertIn(key, h5s)
             self.assertEqual(h5s[key], d)
