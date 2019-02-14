@@ -1533,8 +1533,7 @@ class Project(object):
 
     @classmethod
     def get_job(cls, root=None):
-        """Find a Job in or above the current working directory (or
-        provided path).
+        """Find a Job in or above the current working directory (or provided path).
 
         :param root: The job root directory.
             If no root directory is given, the current working directory is
@@ -1558,21 +1557,11 @@ class Project(object):
         job_id = match.group(0)
         job_root = root[:match.end()]
 
-        # Find a project *above* the root directory (if the provided root
-        # contains a project, we must search from its parent)
+        # Find a project *above* the root directory (avoid finding nested projects)
         project = cls.get_project(os.path.join(job_root, os.pardir))
 
-        # Search for the matched job id in the found project
-        try:
-            job = project.open_job(id=job_id)
-        except KeyError:
-            raise
-        else:
-            if job in project:
-                return job
-            else:
-                raise LookupError("Unable to find job id {} in project '{}'.".format(
-                    job_id, project))
+        # Return the matched job id from the found project
+        return project.open_job(id=job_id)
 
 
 @contextmanager
@@ -1886,9 +1875,7 @@ def get_project(root=None, search=True):
 
 
 def get_job(root=None):
-    """When the current working directory or provided root directory is a job
-    workspace directory (or subdirectory thereof), locate the closest parent
-    project and return this job.
+    """Find a Job in or above the current working directory (or provided path).
 
     :param root: The job root directory.
         If no root directory is given, the current working directory is

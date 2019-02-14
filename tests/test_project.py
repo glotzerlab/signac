@@ -1892,6 +1892,8 @@ class ProjectInitTest(unittest.TestCase):
             os.mkdir('test_subdir')
             self.assertEqual(project.get_job('test_subdir'), job)
             self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
 
     def test_get_job_nested_project_subdir(self):
         # Test case: Get a job from a sub-directory of the job workspace dir
@@ -1906,6 +1908,8 @@ class ProjectInitTest(unittest.TestCase):
             os.mkdir('test_subdir')
             self.assertEqual(project.get_job('test_subdir'), job)
             self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
 
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
