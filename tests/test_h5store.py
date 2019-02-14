@@ -326,12 +326,34 @@ class H5StoreTest(BaseH5StoreTest):
         with self.open_h5store() as h5s:
             with self.open_h5store() as same_h5s:
                 for k, v in self.valid_types.items():
+                    # First, store v under k
                     h5s[k] = v
                     self.assertEqual(h5s[k], v)
+
+                    # Assign the same value under the same key.
                     try:
                         same_h5s[k] = h5s[k]
                     except H5StoreClosedError:
                         pass
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(same_h5s[k], v)
+                    self.assertEqual(h5s[k], same_h5s[k])
+
+                    # Assign the same value, under a different key.
+                    other_key = k + '-other'
+                    try:
+                        same_h5s[other_key] = h5s[k]
+                    except H5StoreClosedError:
+                        pass
+                    self.assertEqual(h5s[other_key], v)
+                    self.assertEqual(same_h5s[other_key], v)
+                    self.assertEqual(h5s[k], same_h5s[other_key])
+
+                    # Deleting the value assigned to the alternative key should have
+                    # no effect on the value stored under the original key, regardless
+                    # whether it was copied by reference (hard-link) or copied by
+                    # value (true copy).
+                    del same_h5s[other_key]
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(same_h5s[k], v)
                     self.assertEqual(h5s[k], same_h5s[k])
@@ -342,7 +364,14 @@ class H5StoreTest(BaseH5StoreTest):
                 for k, v in self.valid_types.items():
                     h5s[k] = v
                     self.assertEqual(h5s[k], v)
-                    other_h5s[k] = h5s[k]
+                    try:
+                        other_h5s[k] = h5s[k]
+                    except RuntimeError as error:
+                        self.assertEqual(
+                            str(error),
+                            "Unable to create link (interfile hard links are not allowed)")
+                        self.assertTrue(isinstance(v, (array, numpy.ndarray)))
+                        other_h5s[k] = h5s[k][()]
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(other_h5s[k], v)
                     self.assertEqual(h5s[k], other_h5s[k])
