@@ -73,12 +73,15 @@ def _h5set(file, grp, key, value, path=None):
     # Guard against assigning a group to itself, e.g., `h5s[key] = h5s[key]`,
     # where h5s[key] is a mapping. This is necessary, because the original
     # mapping would be deleted prior to assignment.
-    if isinstance(value, H5Group) and key in grp:
-        if grp[key] == value._group:
-            return  # Groups are identical, do nothing.
-
-    # Delete any existing data
     if key in grp:
+        if isinstance(value, H5Group):
+            if grp[key] == value._group:
+                return  # Groups are identical, do nothing.
+        elif isinstance(value, h5py._hl.dataset.Dataset):
+            if grp == value.parent:
+                return  # Dataset is identical, do nothing.
+
+        # Delete any existing data
         del grp[key]
 
     # Mapping-types
@@ -101,7 +104,7 @@ def _h5set(file, grp, key, value, path=None):
 
     # h5py native types
     elif isinstance(value, h5py._hl.dataset.Dataset):
-        grp[key] = value[()]    # Create a copy, not a hard link!
+        grp[key] = value  # Creates hard-link!
 
     # Other types
     else:

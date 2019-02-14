@@ -342,7 +342,14 @@ class H5StoreTest(BaseH5StoreTest):
                 for k, v in self.valid_types.items():
                     h5s[k] = v
                     self.assertEqual(h5s[k], v)
-                    other_h5s[k] = h5s[k]
+                    try:
+                        other_h5s[k] = h5s[k]
+                    except RuntimeError as error:
+                        self.assertEqual(
+                            str(error),
+                            "Unable to create link (interfile hard links are not allowed)")
+                        self.assertTrue(isinstance(v, (array, numpy.ndarray)))
+                        other_h5s[k] = h5s[k][()]
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(other_h5s[k], v)
                     self.assertEqual(h5s[k], other_h5s[k])
