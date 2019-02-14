@@ -1765,6 +1765,20 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
 
+    def test_get_project_non_local(self):
+        root = self._tmp_dir.name
+        subdir = os.path.join(root, 'subdir')
+        os.mkdir(subdir)
+        project = signac.init_project(root=root, name='testproject')
+        self.assertEqual(project, project.get_project(root=root))
+        self.assertEqual(project, signac.get_project(root=root))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, project.get_project(root=subdir, search=False))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, signac.get_project(root=subdir, search=False))
+        self.assertEqual(project, project.get_project(root=subdir, search=True))
+        self.assertEqual(project, signac.get_project(root=subdir, search=True))
+
     def test_init(self):
         root = self._tmp_dir.name
         with self.assertRaises(LookupError):
@@ -1827,19 +1841,94 @@ class ProjectInitTest(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
-    def test_get_project_non_local(self):
+    def test_get_job_valid_workspace(self):
+        # Test case: The root-path is the job workspace path.
         root = self._tmp_dir.name
-        subdir = os.path.join(root, 'subdir')
-        os.mkdir(subdir)
-        project = signac.init_project(root=root, name='testproject')
-        self.assertEqual(project, project.get_project(root=root))
-        self.assertEqual(project, signac.get_project(root=root))
-        with self.assertRaises(LookupError):
-            self.assertEqual(project, project.get_project(root=subdir, search=False))
-        with self.assertRaises(LookupError):
-            self.assertEqual(project, signac.get_project(root=subdir, search=False))
-        self.assertEqual(project, project.get_project(root=subdir, search=True))
-        self.assertEqual(project, signac.get_project(root=subdir, search=True))
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            # The context manager enters the working directory of the job
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
+
+    def test_get_job_invalid_workspace(self):
+        # Test case: The root-path is not the job workspace path.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        # We shouldn't be able to find a job while in the workspace directory,
+        # since no signac_statepoint.json exists.
+        cwd = os.getcwd()
+        try:
+            os.chdir(project.workspace())
+            with self.assertRaises(LookupError):
+                project.get_job()
+            with self.assertRaises(LookupError):
+                signac.get_job()
+        finally:
+            os.chdir(cwd)
+
+    def test_get_job_nested_project(self):
+        # Test case: The job workspace dir is also a project root dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2}).init()
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
+
+    def test_get_job_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
+
+    def test_get_job_nested_project_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir
+        # when the job workspace is also a project root dir
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2}).init()
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
+
+    def test_get_job_symlink_other_project(self):
+        # Test case: Get a job from a symlink in another project workspace
+        root = self._tmp_dir.name
+        project_a_dir = os.path.join(root, 'project_a')
+        project_b_dir = os.path.join(root, 'project_b')
+        os.mkdir(project_a_dir)
+        os.mkdir(project_b_dir)
+        project_a = signac.init_project(name='project_a', root=project_a_dir)
+        project_b = signac.init_project(name='project_b', root=project_b_dir)
+        job_a = project_a.open_job({'a': 1})
+        job_a.init()
+        job_b = project_b.open_job({'b': 1})
+        job_b.init()
+        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        os.symlink(job_a.ws, symlink_path)
+        self.assertEqual(project_a.get_job(symlink_path), job_a)
+        self.assertEqual(project_b.get_job(symlink_path), job_a)
+        self.assertEqual(signac.get_job(symlink_path), job_a)
 
 
 class ProjectPicklingTest(BaseProjectTest):

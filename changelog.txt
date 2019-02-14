@@ -25,6 +25,7 @@ Added
 +++++
 
  - Adds an ``H5Store`` class, useful for storing array-like data with an HDF5 backend. Accessible via ``with job.data:`` or ``with project.data:``.
+ - Adds the ``signac.get_job()`` and the ``signac.Project.get_job()`` functions which allow users to get a job handle by switching into or providing the job's workspace directory.
  - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
  - Enable `Collection` class to manage collections stored in gzip files.
  - Enable deleting of `JSONDict` keys through the attribute interface, e.g., `del job.doc.foo`.

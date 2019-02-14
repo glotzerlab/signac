@@ -95,7 +95,7 @@ Total transfer volume:       {stats.volume}
 SHELL_BANNER = """Python {python_version}
 signac {signac_version}
 
-Project:\t{project_id}
+Project:\t{project_id}{job_banner}
 Root:\t\t{root_path}
 Workspace:\t{workspace_path}
 Size:\t\t{size}
@@ -558,6 +558,7 @@ def _main_import_interactive(project, origin, args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.get_id(),
+                    job_banner='',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
@@ -958,7 +959,13 @@ def main_shell(args):
             for _id in _jobs:
                 yield project.open_job(id=_id)
 
-        job = _open_job_by_id(project, list(_jobs)[0]) if len(_jobs) == 1 else None
+        if len(_jobs) == 1:
+            job = _open_job_by_id(project, list(_jobs)[0])
+        else:
+            try:
+                job = project.get_job()
+            except LookupError:
+                job = None
 
         local_ns = dict(
             project=project, pr=project,
@@ -988,6 +995,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.get_id(),
+                    job_banner='\nJob:\t\t{job._id}'.format(job=job) if job is not None else '',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project)))

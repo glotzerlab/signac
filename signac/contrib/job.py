@@ -92,7 +92,7 @@ class Job(object):
         return self._id
 
     def __hash__(self):
-        return hash(self._wd)
+        return hash(os.path.realpath(self._wd))
 
     def __str__(self):
         "Returns the job's id."
