@@ -4,6 +4,7 @@
 "Data store implementation with backend HDF5 file."
 import logging
 import os
+import errno
 import warnings
 import array
 from threading import RLock
@@ -401,8 +402,8 @@ class H5Store(MutableMapping):
             with _ensure_open(self, mode='r'):
                 return len(self._file)
         except (OSError, IOError) as error:
-            if 'errno = 2' in str(error):
-                return 0
+            if 'errno = {}'.format(errno.ENOENT) in str(error):
+                return 0     # file does not exist
             else:
                 raise
 
@@ -411,8 +412,8 @@ class H5Store(MutableMapping):
             with _ensure_open(self, mode='r'):
                 return key in self._file
         except (OSError, IOError) as error:
-            if 'errno = 2' in str(error):
-                return False
+            if 'errno = {}'.format(errno.ENOENT) in str(error):
+                return False     # file does not exist
             else:
                 raise
 
