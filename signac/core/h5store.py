@@ -400,7 +400,7 @@ class H5Store(MutableMapping):
         try:
             with _ensure_open(self, mode='r'):
                 return len(self._file)
-        except OSError as error:
+        except (OSError, IOError) as error:
             if 'errno = 2' in str(error):
                 return 0
             else:
@@ -410,7 +410,7 @@ class H5Store(MutableMapping):
         try:
             with _ensure_open(self, mode='r'):
                 return key in self._file
-        except OSError as error:
+        except (OSError, IOError) as error:
             if 'errno = 2' in str(error):
                 return False
             else:
