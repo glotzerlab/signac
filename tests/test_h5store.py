@@ -645,14 +645,14 @@ def _read_from_h5store(filename, **kwargs):
 class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
     def test_single_writer_multiple_reader_same_process(self):
-        with self.open_h5store() as w1:
+        with self.open_h5store() as writer:
             with self.open_h5store():   # second writer
-                with self.open_h5store(mode='r') as r1:
-                    with self.open_h5store(mode='r') as r2:
-                        w1['test'] = True
-                        self.assertEqual(w1['test'], True)
-                        self.assertEqual(r1['test'], True)
-                        self.assertEqual(r2['test'], True)
+                with self.open_h5store(mode='r') as reader1:
+                    with self.open_h5store(mode='r') as reader2:
+                        writer['test'] = True
+                        self.assertEqual(writer['test'], True)
+                        self.assertEqual(reader1['test'], True)
+                        self.assertEqual(reader2['test'], True)
 
     def test_single_writer_multiple_reader_same_instance(self):
         from multiprocessing import Process
@@ -662,9 +662,9 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             p.start()
             p.join()
 
-        with self.open_h5store() as w1:
+        with self.open_h5store() as writer:
             read()
-            w1['test'] = True
+            writer['test'] = True
             read()
 
     def test_multiple_reader_different_process_no_swmr(self):
@@ -700,15 +700,15 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
         read_cmd += 'h5s = H5Store("{}", mode="r", swmr=True); '.format(self._fn_store)
         read_cmd += "list(h5s); h5s.close()'"
 
-        with self.open_h5store(libver='latest') as w1:
+        with self.open_h5store(libver='latest') as writer:
             with self.assertRaises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
         try:
-            with self.open_h5store(libver='latest') as w1:
-                w1.file.swmr_mode = True
+            with self.open_h5store(libver='latest') as writer:
+                writer.file.swmr_mode = True
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
-                w1['test'] = True
+                writer['test'] = True
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as error:
             print('\n', error.output.decode(), file=sys.stderr)
