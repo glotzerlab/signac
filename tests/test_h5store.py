@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import sys
 import unittest
 import random
 import string
@@ -628,6 +629,9 @@ def _read_from_h5store(filename, **kwargs):
         list(h5s)
 
 
+@unittest.skipIf(
+    six.PY2 or six.PY3 and sys.version_info.minor < 4,
+    'tests only implemented for Python > 3.4')
 class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
     def test_single_writer_multiple_reader_same_process(self):
