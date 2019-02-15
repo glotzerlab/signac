@@ -1,11 +1,14 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+from __future__ import print_function
 import os
+import sys
 import unittest
 import random
 import string
 import warnings
+import subprocess
 from itertools import chain
 from array import array
 from contextlib import contextmanager
@@ -205,13 +208,23 @@ class H5StoreTest(BaseH5StoreTest):
             str(h5s)    # open
         str(h5s)    # closed
 
+    def test_len(self):
+        h5s = self.get_h5store()
+        self.assertEqual(len(h5s), 0)
+        h5s['test_len'] = True
+        self.assertEqual(len(h5s), 1)
+
+    def test_contains(self):
+        h5s = self.get_h5store()
+        self.assertNotIn('test_contains', h5s)
+        h5s['test_contains'] = True
+        self.assertIn('test_contains', h5s)
+
     def test_copy_value(self):
         with self.open_h5store() as h5s:
             key = 'copy_value'
             key2 = 'copy_value2'
             d = self.get_testdata()
-            self.assertNotIn(key, h5s)
-            self.assertNotIn(key2, h5s)
             h5s[key] = d
             self.assertIn(key, h5s)
             self.assertEqual(h5s[key], d)
@@ -621,6 +634,87 @@ class H5StoreMultiThreadingTest(BaseH5StoreTest):
         pool.join()
 
         self.assertIn(self.get_h5store()['x'], set(range(100)))
+
+
+def _read_from_h5store(filename, **kwargs):
+    from signac.core.h5store import H5Store
+    with H5Store(filename, **kwargs) as h5s:
+        list(h5s)
+
+
+class H5StoreMultiProcessingTest(BaseH5StoreTest):
+
+    def test_single_writer_multiple_reader_same_process(self):
+        with self.open_h5store() as writer:
+            with self.open_h5store():   # second writer
+                with self.open_h5store(mode='r') as reader1:
+                    with self.open_h5store(mode='r') as reader2:
+                        writer['test'] = True
+                        self.assertEqual(writer['test'], True)
+                        self.assertEqual(reader1['test'], True)
+                        self.assertEqual(reader2['test'], True)
+
+    def test_single_writer_multiple_reader_same_instance(self):
+        from multiprocessing import Process
+
+        def read():
+            p = Process(target=_read_from_h5store, args=(self._fn_store,), kwargs=(dict(mode=None)))
+            p.start()
+            p.join()
+
+        with self.open_h5store() as writer:
+            read()
+            writer['test'] = True
+            read()
+
+    def test_multiple_reader_different_process_no_swmr(self):
+
+        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
+        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
+        read_cmd += "list(h5s); h5s.close()'"
+
+        with self.open_h5store():
+            pass    # create file
+
+        try:
+            with self.open_h5store(mode='r'):    # single reader
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as error:
+            print('\n', error.output.decode(), file=sys.stderr)
+            raise
+
+    @unittest.skipIf(six.PY2, 'requires Python 3')
+    def test_single_writer_multiple_reader_different_process_no_swmr(self):
+
+        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
+        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
+        read_cmd += "list(h5s); h5s.close()'"
+
+        with self.open_h5store():   # single writer
+            with self.assertRaises(subprocess.CalledProcessError):
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
+
+    @unittest.skipIf(six.PY2, 'requires Python 3')
+    @unittest.skipUnless(python_implementation() == 'CPython', 'SWMR mode not available.')
+    def test_single_writer_multiple_reader_different_process_swmr(self):
+
+        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
+        read_cmd += 'h5s = H5Store("{}", mode="r", swmr=True); '.format(self._fn_store)
+        read_cmd += "list(h5s); h5s.close()'"
+
+        with self.open_h5store(libver='latest') as writer:
+            with self.assertRaises(subprocess.CalledProcessError):
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
+
+        try:
+            with self.open_h5store(libver='latest') as writer:
+                writer.file.swmr_mode = True
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+                writer['test'] = True
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as error:
+            print('\n', error.output.decode(), file=sys.stderr)
+            raise
 
 
 @unittest.skipIf(not NUMPY, 'requires numpy package')
