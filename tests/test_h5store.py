@@ -696,6 +696,7 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             with self.assertRaises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
+    @unittest.skipUnless(python_implementation() == 'CPython', 'SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
         read_cmd = "python -c 'from signac.core.h5store import H5Store; "
