@@ -397,12 +397,24 @@ class H5Store(MutableMapping):
                 yield key
 
     def __len__(self):
-        with _ensure_open(self, mode='r'):
-            return len(self._file)
+        try:
+            with _ensure_open(self, mode='r'):
+                return len(self._file)
+        except OSError as error:
+            if 'errno = 2' in str(error):
+                return 0
+            else:
+                raise
 
     def __contains__(self, key):
-        with _ensure_open(self, mode='r'):
-            return key in self._file
+        try:
+            with _ensure_open(self, mode='r'):
+                return key in self._file
+        except OSError as error:
+            if 'errno = 2' in str(error):
+                return False
+            else:
+                raise
 
     def clear(self):
         """Remove all data from this store.

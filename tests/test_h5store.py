@@ -207,6 +207,18 @@ class H5StoreTest(BaseH5StoreTest):
             str(h5s)    # open
         str(h5s)    # closed
 
+    def test_len(self):
+        h5s = self.get_h5store()
+        self.assertEqual(len(h5s), 0)
+        h5s['test_len'] = True
+        self.assertEqual(len(h5s), 1)
+
+    def test_contains(self):
+        h5s = self.get_h5store()
+        self.assertNotIn('test_contains', h5s)
+        h5s['test_contains'] = True
+        self.assertIn('test_contains', h5s)
+
     def test_copy_value(self):
         with self.open_h5store() as h5s:
             key = 'copy_value'
