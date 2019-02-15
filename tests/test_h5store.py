@@ -1,6 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+from __future__ import print_function
 import os
 import sys
 import unittest
@@ -642,7 +643,7 @@ def _read_from_h5store(filename, **kwargs):
 
 
 @unittest.skipIf(
-    six.PY2 or six.PY3 and sys.version_info.minor < 4,
+    six.PY2 or (six.PY3 and sys.version_info.minor < 4),
     'tests only implemented for Python > 3.4')
 class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
@@ -678,8 +679,12 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
         with self.open_h5store():
             pass    # create file
 
-        with self.open_h5store(mode='r'):    # single reader
-            subprocess.run(read_cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
+        try:
+            with self.open_h5store(mode='r'):    # single reader
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as error:
+            print('\n', error.output.decode(), file=sys.stderr)
+            raise
 
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
@@ -689,7 +694,7 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
         with self.open_h5store():   # single writer
             with self.assertRaises(subprocess.CalledProcessError):
-                subprocess.run(read_cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
@@ -699,13 +704,17 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
         with self.open_h5store(libver='latest') as w1:
             with self.assertRaises(subprocess.CalledProcessError):
-                subprocess.run(read_cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
-        with self.open_h5store(libver='latest') as w1:
-            w1.file.swmr_mode = True
-            subprocess.run(read_cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
-            w1['test'] = True
-            subprocess.run(read_cmd, shell=True, check=True, stderr=subprocess.DEVNULL)
+        try:
+            with self.open_h5store(libver='latest') as w1:
+                w1.file.swmr_mode = True
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+                w1['test'] = True
+                subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as error:
+            print('\n', error.output.decode(), file=sys.stderr)
+            raise
 
 
 @unittest.skipIf(not NUMPY, 'requires numpy package')
