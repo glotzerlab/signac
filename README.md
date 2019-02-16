@@ -2,12 +2,13 @@
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/signac/badges/version.svg)](https://anaconda.org/conda-forge/signac)
+[![conda-forge](https://img.shields.io/conda/vn/conda-forge/signac.svg?style=flat)](https://anaconda.org/conda-forge/signac)
 [![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
-[![RTD](https://readthedocs.org/projects/signac/badge/?version=latest)](https://docs.signac.io)
+[![RTD](https://img.shields.io/readthedocs/signac.svg?style=flat)](https://docs.signac.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
+[![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
-<img style="float: left;" src="doc/images/logo.png" width="150" height="150">
+<img src="doc/images/logo.png" width="150" height="150">
 
 The [signac framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
 
