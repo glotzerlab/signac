@@ -1807,7 +1807,7 @@ class JobsCursor(object):
         :type sp_prefix:
             str
         :param doc_prefix:
-            Prefix document keys with the given string. Defaults to ".doc".
+            Prefix document keys with the given string. Defaults to "doc.".
         :type doc_prefix:
             str
         :returns:
