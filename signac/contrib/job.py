@@ -136,7 +136,7 @@ class Job(object):
         """
         dst = self._project.open_job(new_statepoint)
         if dst == self:
-            return self
+            return
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
@@ -167,7 +167,6 @@ class Job(object):
         self._data = None
         self._cwd = list()
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
-        return self
 
     def _reset_sp(self, new_sp=None):
         if new_sp is None:
@@ -202,7 +201,7 @@ class Job(object):
                 if statepoint.get(key, value) != value:
                     raise KeyError(key)
         statepoint.update(update)
-        return self.reset_statepoint(statepoint)
+        self.reset_statepoint(statepoint)
 
     @property
     def statepoint(self):
@@ -345,11 +344,15 @@ class Job(object):
         This function will do nothing if the directory and
         the job manifest already exist.
 
+        Returns the calling job.
+
         :param force:
                 Overwrite any existing state point's manifest
                 files, e.g., to repair them when they got corrupted.
         :type force:
                 bool
+        :return: The job handle.
+        :rtype: :class:`~.Job`
         """
         try:
             self._init(force=force)
@@ -378,7 +381,6 @@ class Job(object):
         except (OSError, IOError) as error:
             if error.errno != errno.ENOENT:
                 raise error
-        return self
 
     def reset(self):
         """Remove all job data, but not the job itself.
@@ -387,7 +389,6 @@ class Job(object):
         initialized."""
         self.clear()
         self.init()
-        return self
 
     def remove(self):
         """Remove the job's workspace including the job document.
@@ -426,7 +427,6 @@ class Job(object):
         except OSError:
             raise DestinationExistsError(dst)
         self.__dict__.update(dst.__dict__)
-        return self
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
         """Perform a one-way synchronization of this job with the other job.
@@ -476,7 +476,6 @@ class Job(object):
             exclude=exclude,
             doc_sync=doc_sync,
             **kwargs)
-        return self
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
