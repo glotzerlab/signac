@@ -7,7 +7,7 @@
 [![RTD](https://readthedocs.org/projects/signac/badge/?version=latest)](https://docs.signac.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 
-## About
+<img style="float: left;" src="doc/images/logo.png" width="150" height="150">
 
 The [signac framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
 
