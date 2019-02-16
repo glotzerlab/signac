@@ -347,12 +347,14 @@ class Job(object):
         Returns the calling job.
 
         :param force:
-                Overwrite any existing state point's manifest
-                files, e.g., to repair them when they got corrupted.
+            Overwrite any existing state point's manifest
+            files, e.g., to repair them when they got corrupted.
         :type force:
-                bool
-        :return: The job handle.
-        :rtype: :class:`~.Job`
+            bool
+        :return:
+            The job handle.
+        :rtype:
+            :class:`~.Job`
         """
         try:
             self._init(force=force)
