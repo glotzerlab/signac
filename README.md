@@ -9,7 +9,7 @@
 
 ## About
 
-The [signac framework](http://www.signac.io) aids in the management of large and heterogeneous data spaces.
+The [signac framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
 
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
@@ -18,8 +18,8 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 
 ## Installation
 
-The recommendend installation method for **signac** is through **conda** or **pip**.
-The software is tested for python versions 2.7.x and 3.x and is built for all major platforms.
+The recommended installation method for **signac** is through **conda** or **pip**.
+The software is tested for Python versions 2.7.x and 3.x and is built for all major platforms.
 
 To install **signac** *via* the [conda-forge](https://conda-forge.github.io/) channel, execute:
 
