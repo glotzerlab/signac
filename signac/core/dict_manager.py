@@ -106,3 +106,10 @@ class DictManager(object):
 
     def __len__(self):
         return len(list(self.keys()))
+
+    def __getstate__(self):
+        return dict(_prefix=self._prefix, _dict_registry=self._dict_registry)
+
+    def __setstate__(self, d):
+        self._prefix = d['_prefix']
+        self._dict_registry = d['_dict_registry']

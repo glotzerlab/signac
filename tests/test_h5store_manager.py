@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import unittest
+import pickle
 
 from signac.core.h5store import H5StoreManager
 from signac.common import six
@@ -88,6 +89,9 @@ class TestH5StoreManager(unittest.TestCase):
             self.store[key] = dict(test=True)
         for key in keys:
             self.assertIn(key, self.store)
+
+    def test_pickle(self):
+        self.assertEqual(pickle.loads(pickle.dumps(self.store)), self.store)
 
 
 if __name__ == '__main__':
