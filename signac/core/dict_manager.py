@@ -47,12 +47,12 @@ class DictManager(object):
                 raise ValueError("Cannot asssign empty value!")
             else:
                 raise error
-        except Exception:
+        except Exception as error:
             try:
                 del self[tmp_key]
             except KeyError:
                 pass
-            raise
+            raise error
 
     def __delitem__(self, key):
         try:
