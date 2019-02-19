@@ -364,7 +364,10 @@ class H5Store(MutableMapping):
 
     def flush(self):
         """Flush the underlying HDF5-file."""
-        self._file.flush()
+        if self._file is None:
+            raise H5StoreClosedError(self._filename)
+        else:
+            self._file.flush()
 
     def __getitem__(self, key):
         key = key if key.startswith('/') else '/' + key
