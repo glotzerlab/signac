@@ -57,7 +57,7 @@ class DictManager(object):
     def __delitem__(self, key):
         try:
             os.unlink(self[key].filename)
-        except IOError as error:
+        except (IOError, OSError) as error:
             if error.errno == errno.ENOENT:
                 raise KeyError(key)
             else:
