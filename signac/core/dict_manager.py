@@ -89,11 +89,11 @@ class DictManager(object):
         else:
             self.__setitem__(name, value)
 
-    def __delattr__(self, name, value):
+    def __delattr__(self, name):
         if name.startswith('__') or name in self.__slots__:
-            super(DictManager, self).__delattr__(name, value)
+            super(DictManager, self).__delattr__(name)
         else:
-            self.__delitem__(name, value)
+            self.__delitem__(name)
 
     def __iter__(self):
         for fn in os.listdir(self.prefix):
