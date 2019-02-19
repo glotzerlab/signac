@@ -76,6 +76,9 @@ class Job(object):
         self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
 
+        # Prepare job h5-stores
+        self._stores = H5StoreManager(self._wd)
+
         # Prepare current working directory for context management
         self._cwd = list()
 
@@ -259,7 +262,7 @@ class Job(object):
 
     @property
     def stores(self):
-        return H5StoreManager(self._wd)
+        return self.init()._stores
 
     @property
     def data(self):
@@ -271,7 +274,7 @@ class Job(object):
 
         :return: An HDF5-backed datastore.
         :rtype: :class:`~signac.core.h5store.H5Store`"""
-        return self.init().stores[self.KEY_DATA]
+        return self.stores[self.KEY_DATA]
 
     @data.setter
     def data(self, new_data):
