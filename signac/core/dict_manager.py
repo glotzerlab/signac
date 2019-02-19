@@ -15,12 +15,17 @@ class DictManager(object):
     cls = None
     suffix = None
 
-    __slots__ = ['prefix']
+    __slots__ = ['_prefix', '_dict_registry']
 
     def __init__(self, prefix):
         assert self.cls is not None
         assert self.suffix is not None
-        self.prefix = os.path.abspath(prefix)
+        self._prefix = os.path.abspath(prefix)
+        self._dict_registry = dict()
+
+    @property
+    def prefix(self):
+        return self._prefix
 
     def __eq__(self, other):
         return os.path.realpath(self.prefix) == os.path.realpath(other.prefix) and \
@@ -32,7 +37,9 @@ class DictManager(object):
     __str__ = __repr__
 
     def __getitem__(self, key):
-        return self.cls(os.path.join(self.prefix, key) + self.suffix)
+        if key not in self._dict_registry:
+            self._dict_registry[key] = self.cls(os.path.join(self.prefix, key) + self.suffix)
+        return self._dict_registry[key]
 
     def __setitem__(self, key, value):
         tmp_key = str(uuid.uuid4())
@@ -53,6 +60,8 @@ class DictManager(object):
             except KeyError:
                 pass
             raise error
+        else:
+            del self._dict_registry[key]
 
     def __delitem__(self, key):
         try:
