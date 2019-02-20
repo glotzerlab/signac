@@ -377,6 +377,15 @@ class JobOpenAndClosingTest(BaseJobTest):
         self.assertTrue(os.path.isdir(job.ws))
         self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
 
+    def test_chained_init(self):
+        job = self.open_job(test_token)
+        self.assertFalse(os.path.isdir(job.workspace()))
+        job = self.open_job(test_token).init()
+        self.assertEqual(job.workspace(), job.ws)
+        self.assertTrue(os.path.isdir(job.workspace()))
+        self.assertTrue(os.path.isdir(job.ws))
+        self.assertTrue(os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST)))
+
     def test_construction(self):
         job = self.open_job(test_token)
         job2 = eval(repr(job))
