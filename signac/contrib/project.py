@@ -167,6 +167,22 @@ class Project(object):
                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
                    id=self.get_id(), rd=self.root_directory(), wd=self.workspace())
 
+    def _repr_html_(self):
+        html = repr(self)
+        len_self = len(self)
+        if len_self <= 100:
+            try:
+                # Attempt to use pandas representation
+                import pandas
+                with pandas.option_context("display.max_rows", 20):
+                    html += self.to_dataframe()._repr_html_()
+            except ImportError:
+                warnings.warn('Install pandas for a pretty representation of JobsCursor.')
+                html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+        else:
+            html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+        return html
+
     def __eq__(self, other):
         return repr(self) == repr(other)
 
@@ -1827,14 +1843,30 @@ class JobsCursor(object):
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
             orient='index').infer_objects()
 
+    def __repr__(self):
+        return "{type}({{'project': '{project}', 'filter': '{filter}',"\
+               " 'docfilter': '{doc_filter}'}})".format(
+                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
+                   project=self._project,
+                   filter=self._filter,
+                   doc_filter=self._doc_filter)
+
     def _repr_html_(self):
         """Represent a JobsCursor in IPython Notebooks."""
-        try:
-            # Attempt to use pandas representation
-            return self.to_dataframe()._repr_html_()
-        except ImportError:
-            import warnings
-            warnings.warn('Install pandas for a pretty representation of JobsCursor.')
+        html = repr(self)
+        len_self = len(self)
+        if len_self <= 100:
+            try:
+                # Attempt to use pandas representation
+                import pandas
+                with pandas.option_context("display.max_rows", 20):
+                    html += self.to_dataframe()._repr_html_()
+            except ImportError:
+                warnings.warn('Install pandas for a pretty representation of JobsCursor.')
+                html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+        else:
+            html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+        return html
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
