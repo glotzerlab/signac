@@ -1829,29 +1829,12 @@ class JobsCursor(object):
 
     def _repr_html_(self):
         """Represent a JobsCursor in IPython Notebooks."""
-        # Determine the schema
-        attribs = {'.'.join(k) for k in self._project.detect_schema().keys()}
-        html = ["<table>"]
-
-        # Add header row
-        html.append("<td><b>{0}</b></td>".format('id'))
-        for attrib in attribs:
-            html.append("<td><b>{0}</b></td>".format(attrib))
-
-        # Add rows for each job
-        for job in self:
-            html.append("<tr>")
-            html.append("<td><b>{0}</b></td>".format(job.get_id()))
-
-            for attrib in attribs:
-                try:
-                    html.append("<td>{0}</td>".format(job.sp[attrib]))
-                except KeyError:
-                    html.append("<td></td>")
-
-            html.append("</tr>")
-        html.append("</table>")
-        return ''.join(html)
+        try:
+            # Attempt to use pandas representation
+            return self.to_dataframe()._repr_html_()
+        except ImportError:
+            import warnings
+            warnings.warn('Install pandas for a pretty representation of JobsCursor.')
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
