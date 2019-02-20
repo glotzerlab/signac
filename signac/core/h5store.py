@@ -400,6 +400,12 @@ class H5Store(MutableMapping):
         else:
             self.__setitem__(key, value)
 
+    def __delattr__(self, key):
+        if key.startswith('__') or key in self.__slots__:
+            super(H5Store, self).__delattr__(key)
+        else:
+            self.__delitem__(key)
+
     def __iter__(self):
         with _ensure_open(self):
             # The generator below should be refactored to use 'yield from'
