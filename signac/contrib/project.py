@@ -520,8 +520,10 @@ class Project(object):
     def find_jobs(self, filter=None, doc_filter=None, index=None):
         """Find all jobs in the project's workspace.
 
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
+        The optional filter arguments must be a Mapping of key-value pairs and
+        JSON serializable. The `filter` argument is used to search against job
+        statepoints, whereas the `doc_filter` argument compares against job
+        document keys.
 
         .. note::
             Providing a pre-calculated index may vastly increase the
@@ -532,6 +534,7 @@ class Project(object):
         :type filter: Mapping
         :param doc_filter: A mapping of key-value pairs that all
             indexed job documents are compared against.
+        :type doc_filter: Mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`
         :raise TypeError: If the filters are not JSON serializable.
         :raises ValueError: If the filters are invalid.
@@ -624,6 +627,10 @@ class Project(object):
 
     def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
+
+        This function is deprecated.
+
+        .. deprecated:: 0.9.0
 
         :param filter: If not None, only yield statepoints matching the filter.
         :type filter: mapping
@@ -840,11 +847,15 @@ class Project(object):
     def find_job_documents(self, filter=None):
         """Find all job documents in the project's workspace.
 
+        This function is deprecated.
+
         This method iterates through all jobs or all jobs matching
         the filter and yields each job's document as a dict.
         Each dict additionally contains a field 'statepoint',
         with the job's statepoint and a field '_id', which is
         the job's id.
+
+        .. deprecated:: 0.9.0
 
         :param filter: If not None,
             only find job documents matching filter.
