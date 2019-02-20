@@ -29,7 +29,7 @@ Added
  - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
  - Enable `Collection` class to manage collections stored in gzip files.
  - Enable deleting of `JSONDict` keys through the attribute interface, e.g., `del job.doc.foo`.
- - Added HTML representation of JobsCursor objects for Jupyter Notebooks (uses pandas).
+ - Added HTML representation of Project and JobsCursor objects for Jupyter Notebooks (uses pandas).
 
 Fixed
 +++++
