@@ -28,6 +28,13 @@ if six.PY2:
 else:
     from tempfile import TemporaryDirectory
 
+try:
+    import pandas  # noqa
+except ImportError:
+    PANDAS = False
+else:
+    PANDAS = True
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -1368,6 +1375,78 @@ class ProjectExportImportTest(BaseProjectTest):
             tmp_project.import_from(origin=self.project.workspace())
             self.assertEqual(ids_before_export, list(sorted(tmp_project.find_job_ids())))
             self.assertEqual(len(tmp_project), len(self.project))
+
+
+@unittest.skipIf(six.PY2, 'requires python 3')
+class ProjectRepresentationTest(BaseProjectTest):
+
+    valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
+
+    num_few_jobs = 10
+    num_many_jobs = 200
+
+    def call_repr_methods(self):
+
+        with self.subTest(of='project'):
+            with self.subTest(type='str'):
+                str(self.project)
+            with self.subTest(type='repr'):
+                repr(self.project)
+            with self.subTest(type='html'):
+                for use_pandas in (True, False):
+                    type(self.project)._use_use_pandas_for_html_repr = use_pandas
+                    with self.subTest(use_pandas=use_pandas):
+                        if use_pandas and not PANDAS:
+                            raise unittest.SkipTest('requires use_pandas')
+                        self.project._repr_html_()
+
+        with self.subTest(of='JobsCursor'):
+            for filter_ in (None, ):
+                with self.subTest(filter=filter_):
+                    with self.subTest(type='str'):
+                        str(self.project.find_jobs(filter_))
+                    with self.subTest(type='repr'):
+                        repr(self.project.find_jobs(filter_))
+                    with self.subTest(type='html'):
+                        for use_pandas in (True, False):
+                            type(self.project)._use_use_pandas_for_html_repr = use_pandas
+                            with self.subTest(use_pandas=use_pandas):
+                                if use_pandas and not PANDAS:
+                                    raise unittest.SkipTest('requires use_pandas')
+                                self.project.find_jobs(filter_)._repr_html_()
+
+    def test_repr_no_jobs(self):
+        self.call_repr_methods()
+
+    def test_repr_few_jobs_homogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_few_jobs):
+            self.project.open_job(
+                {'{}_{}'.format(i, j): v
+                 for j, v in enumerate(self.valid_sp_values)}).init()
+        self.call_repr_methods()
+
+    def test_repr_many_jobs_homogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_many_jobs):
+            self.project.open_job(
+                {'{}_{}'.format(i, j): v
+                 for j, v in enumerate(self.valid_sp_values)}).init()
+        self.call_repr_methods()
+
+    def test_repr_few_jobs_heterogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_few_jobs):
+            for v in self.valid_sp_values:
+                self.project.open_job(dict(a=v)).init()
+        self.call_repr_methods()
+
+    def test_repr_many_jobs_heterogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_many_jobs):
+            for v in self.valid_sp_values:
+                self.project.open_job(dict(a=v)).init()
+        self.call_repr_methods()
 
 
 class LinkedViewProjectTest(BaseProjectTest):
