@@ -1236,14 +1236,18 @@ def main():
         type=str,
         nargs='?',
         default='view',
-        help="The path where the view is to be created.")
+        help="The path where the view is to be created. Note that this must "
+             "be specified before any filters e.g. signac view $PATH_TO_VIEW "
+             "-f FILTERS -d DOC_FILTERS.")
     parser_view.add_argument(
         'path',
         type=str,
         nargs='?',
         default='{{auto}}',
         help="The path used for the generation of the linked view hierarchy, "
-             "defaults to '{{auto}}'.")
+             "defaults to '{{auto}}'. Note that this must be specified before "
+             "any filters e.g. signac view $PATH_SPEC -f FILTERS -d "
+             "DOC_FILTERS.")
     selection_group = parser_view.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
