@@ -303,17 +303,16 @@ class H5Store(MutableMapping):
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.close()
 
-    def _open(self, mode=None, **kwargs):
+    def _open(self, **kwargs):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
-
         # We use the default file parameters, which can optionally be overriden
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
         parameters = dict(self._kwargs)
         parameters.update(kwargs)
-        parameters['mode'] = mode
+        parameters.setdefault('mode', 'a')
 
         self._thread_lock.acquire()
         try:
@@ -332,7 +331,7 @@ class H5Store(MutableMapping):
             This H5Store instance.
         """
         if mode is None:
-            mode = 'a'
+            mode = self._kwargs.get('mode', 'a')
         return self._open(mode=mode)
 
     def close(self):
