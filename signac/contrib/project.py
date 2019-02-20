@@ -133,6 +133,8 @@ class Project(object):
     FN_CACHE = '.signac_sp_cache.json.gz'
     "The default filename for the state point cache file."
 
+    _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
+
     def __init__(self, config=None):
         if config is None:
             config = load_config()
@@ -168,20 +170,7 @@ class Project(object):
                    id=self.get_id(), rd=self.root_directory(), wd=self.workspace())
 
     def _repr_html_(self):
-        html = repr(self)
-        len_self = len(self)
-        if len_self <= 100:
-            try:
-                # Attempt to use pandas representation
-                import pandas
-                with pandas.option_context("display.max_rows", 20):
-                    html += self.to_dataframe()._repr_html_()
-            except ImportError:
-                warnings.warn('Install pandas for a pretty representation of JobsCursor.')
-                html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
-        else:
-            html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
-        return html
+        return repr(self) + self.find_jobs()._repr_html_jobs()
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -1642,6 +1631,7 @@ class JobsCursor(object):
     """An iterator over a search query result, enabling simple iteration and
     grouping operations.
     """
+    _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
     def __init__(self, project, filter, doc_filter):
         self._project = project
@@ -1851,22 +1841,29 @@ class JobsCursor(object):
                    filter=self._filter,
                    doc_filter=self._doc_filter)
 
-    def _repr_html_(self):
-        """Represent a JobsCursor in IPython Notebooks."""
-        html = repr(self)
+    def _repr_html_jobs(self):
+        html = ''
         len_self = len(self)
-        if len_self <= 100:
-            try:
-                # Attempt to use pandas representation
+        try:
+            if len_self > 100:
+                raise RuntimeError  # too large
+            if self._use_pandas_for_html_repr:
                 import pandas
-                with pandas.option_context("display.max_rows", 20):
-                    html += self.to_dataframe()._repr_html_()
-            except ImportError:
-                warnings.warn('Install pandas for a pretty representation of JobsCursor.')
-                html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+            else:
+                raise RuntimeError
+        except ImportError:
+            warnings.warn('Install pandas for a pretty representation of jobs.')
+            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
+        except RuntimeError:
+            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
         else:
-            html += '<br/><strong>{}</strong> result(s) found'.format(len_self)
+            with pandas.option_context("display.max_rows", 20):
+                html += self.to_dataframe()._repr_html_()
         return html
+
+    def _repr_html_(self):
+        """Returns an HTML representation of JobsCursor."""
+        return repr(self) + self._repr_html_jobs()
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
