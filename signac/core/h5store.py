@@ -269,24 +269,19 @@ class H5Store(MutableMapping):
 
     :param filename:
         The filename of the underlying HDF5-file.
-    :param mode:
-        The file open mode to use. Defaults to 'a' (append).
     :param kwargs:
         Additional keyword arguments to be forward to the h5py.File constructor
         See documentation for :class:`h5py.File` for more information.
     """
-    __slots__ = ['_filename', '_file', '_mode', '_kwargs']
+    __slots__ = ['_filename', '_file', '_kwargs']
 
     _thread_lock = RLock()
 
-    def __init__(self, filename, mode=None, **kwargs):
+    def __init__(self, filename, **kwargs):
         if not (isinstance(filename, six.string_types) and len(filename) > 0):
             raise ValueError('H5Store filename must be a non-empty string.')
-        if mode is None:
-            mode = 'a'
         self._filename = os.path.realpath(filename)
         self._file = None
-        self._mode = mode
         self._kwargs = kwargs
 
     def __repr__(self):
@@ -308,7 +303,7 @@ class H5Store(MutableMapping):
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self.close()
 
-    def _open(self, **kwargs):
+    def _open(self, mode=None, **kwargs):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
@@ -317,8 +312,8 @@ class H5Store(MutableMapping):
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
         parameters = dict(self._kwargs)
-        parameters['mode'] = self.mode
         parameters.update(kwargs)
+        parameters['mode'] = mode
 
         self._thread_lock.acquire()
         try:
@@ -328,9 +323,17 @@ class H5Store(MutableMapping):
             raise
         return self
 
-    def open(self):
-        """Open the underlying HDF5-file."""
-        return self._open()
+    def open(self, mode=None):
+        """Open the underlying HDF5-file.
+
+        :param mode:
+            The file open mode to use. Defaults to 'a' (append).
+        :returns:
+            This H5Store instance.
+        """
+        if mode is None:
+            mode = 'a'
+        return self._open(mode=mode)
 
     def close(self):
         """Close the underlying HDF5-file."""
