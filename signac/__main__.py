@@ -1230,20 +1230,34 @@ def main():
         help="Print output in JSON and on one line.")
     parser_find.set_defaults(func=main_find)
 
-    parser_view = subparsers.add_parser('view')
+    parser_view = subparsers.add_parser(
+            'view',
+            description="""Generate a human readable set of paths representing
+                           state points in the workspace, e.g.
+                           view/param_name_1/param_value_1/param_name_2/param_value_2/job.
+                           The leaf nodes of this directory structure are
+                           symlinks (named "job") into the workspace directory
+                           for that parameter combination. Note that all
+                           positional arguments must be provided before any
+                           keyword arguments. In particular, the prefix and
+                           path must be specified before arguments such as the
+                           filters, e.g.  signac view $PREFIX $VIEW_PATH -f
+                           FILTERS -d DOC_FILTERS."""  # noqa:E501
+            )
     parser_view.add_argument(
         'prefix',
         type=str,
         nargs='?',
         default='view',
-        help="The path where the view is to be created.")
+        help="The path where the view is to be created. Defaults to view.")
     parser_view.add_argument(
         'path',
         type=str,
         nargs='?',
         default='{{auto}}',
         help="The path used for the generation of the linked view hierarchy, "
-             "defaults to '{{auto}}'.")
+             "defaults to '{{auto}}' (see Project.export_to for information "
+             "on how this is expanded).")
     selection_group = parser_view.add_argument_group('select')
     selection_group.add_argument(
         '-f', '--filter',
