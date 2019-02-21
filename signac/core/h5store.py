@@ -269,24 +269,19 @@ class H5Store(MutableMapping):
 
     :param filename:
         The filename of the underlying HDF5-file.
-    :param mode:
-        The file open mode to use. Defaults to 'a' (append).
     :param kwargs:
         Additional keyword arguments to be forward to the h5py.File constructor
         See documentation for :class:`h5py.File` for more information.
     """
-    __slots__ = ['_filename', '_file', '_mode', '_kwargs']
+    __slots__ = ['_filename', '_file', '_kwargs']
 
     _thread_lock = RLock()
 
-    def __init__(self, filename, mode=None, **kwargs):
+    def __init__(self, filename, **kwargs):
         if not (isinstance(filename, six.string_types) and len(filename) > 0):
             raise ValueError('H5Store filename must be a non-empty string.')
-        if mode is None:
-            mode = 'a'
         self._filename = os.path.realpath(filename)
         self._file = None
-        self._mode = mode
         self._kwargs = kwargs
 
     def __repr__(self):
@@ -312,13 +307,12 @@ class H5Store(MutableMapping):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
-
         # We use the default file parameters, which can optionally be overriden
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
         parameters = dict(self._kwargs)
-        parameters['mode'] = self.mode
         parameters.update(kwargs)
+        parameters.setdefault('mode', 'a')
 
         self._thread_lock.acquire()
         try:
@@ -328,9 +322,17 @@ class H5Store(MutableMapping):
             raise
         return self
 
-    def open(self):
-        """Open the underlying HDF5-file."""
-        return self._open()
+    def open(self, mode=None):
+        """Open the underlying HDF5-file.
+
+        :param mode:
+            The file open mode to use. Defaults to 'a' (append).
+        :returns:
+            This H5Store instance.
+        """
+        if mode is None:
+            mode = self._kwargs.get('mode', 'a')
+        return self._open(mode=mode)
 
     def close(self):
         """Close the underlying HDF5-file."""
