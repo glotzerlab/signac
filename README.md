@@ -1,4 +1,4 @@
-# signac - simple data management
+# <img src="doc/images/logo.png" width="100" height="100"> Signac - Simple Data Management
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
@@ -8,7 +8,6 @@
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
-<img src="doc/images/logo.png" width="150" height="150">
 
 The [signac framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
 
