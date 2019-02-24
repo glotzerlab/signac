@@ -367,41 +367,6 @@ class ProjectTest(BaseProjectTest):
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
 
-    def test_find_job_documents(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).document['test'] = True
-            self.assertEqual(
-                len(list(self.project.find_job_documents({'a': 0}))), 1)
-            job_docs = list(self.project.find_job_documents())
-            self.assertEqual(len(statepoints), len(job_docs))
-            for job_doc in job_docs:
-                sp = job_doc['statepoint']
-                self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
-
-    def test_find_job_documents_illegal_key(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).document['test'] = True
-            list(self.project.find_job_documents())
-            self.assertEqual(len(statepoints), len(
-                list(self.project.find_job_documents())))
-            list(self.project.find_job_documents({'a': 1}))
-            self.project.open_job({'a': 0}).document['_id'] = True
-            with self.assertRaises(KeyError):
-                list(self.project.find_job_documents())
-            del self.project.open_job({'a': 0}).document['_id']
-            list(self.project.find_job_documents())
-            self.project.open_job({'a': 1}).document['statepoint'] = True
-            with self.assertRaises(KeyError):
-                list(self.project.find_job_documents())
-            del self.project.open_job({'a': 1}).document['statepoint']
-            list(self.project.find_job_documents())
-
     def test_missing_statepoint_file(self):
         job = self.project.open_job(dict(a=0))
         job.init()
