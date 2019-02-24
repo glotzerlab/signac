@@ -1,2 +1,5 @@
 [run]
-omit = */configobj/*.py
+omit =
+    signac/common/configobj/*.py
+    signac/common/tqdm/*.py
+    signac/common/six.py
