@@ -32,6 +32,11 @@ Added
  - The `Job.init()` method returns the job to allow one-line job creation and initialization.
  - Add HTML representation of instances of `Project` and `JobsCursor` targeted at Jupyter Notebooks (requires pandas).
 
+Changed
++++++++
+
+ - `Project.find_jobs()` no longer has the unused argument `index`.
+
 Fixed
 +++++
 
