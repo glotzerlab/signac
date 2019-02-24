@@ -18,8 +18,8 @@ class DictManager(object):
     __slots__ = ['_prefix', '_dict_registry']
 
     def __init__(self, prefix):
-        assert self.cls is not None
-        assert self.suffix is not None
+        assert self.cls is not None, "Subclasses of DictManager must define the cls variable."
+        assert self.suffix is not None, "Subclasses of DictManager must define the suffix variable."
         self._prefix = os.path.abspath(prefix)
         self._dict_registry = dict()
 
