@@ -7,7 +7,6 @@
 [![RTD](https://img.shields.io/readthedocs/signac.svg?style=flat)](https://docs.signac.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 [![PyPI-downloads](https://img.shields.io/pypi/dm/signac.svg?style=flat)](https://pypistats.org/packages/signac)
-[![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
 
@@ -21,15 +20,19 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 ## Installation
 
 The recommended installation method for **signac** is through **conda** or **pip**.
-The software is tested for Python versions 2.7.x and 3.x and is built for all major platforms.
+The software is tested for Python versions 2.7 and 3.4+ and is built for all major platforms.
 
 To install **signac** *via* the [conda-forge](https://conda-forge.github.io/) channel, execute:
 
-    conda install -c conda-forge signac
+```bash
+conda install -c conda-forge signac
+```
 
 To install **signac** *via* **pip**, execute:
 
-    pip install signac
+```bash
+pip install signac
+```
 
 **Detailed information about alternative installation methods can be found in the [documentation](https://docs.signac.io/en/latest/installation.html).**
 
@@ -38,13 +41,17 @@ To install **signac** *via* **pip**, execute:
 The framework facilitates a project-based workflow.
 Setup a new project:
 
-    $ mkdir my_project
-    $ cd my_project
-    $ signac init MyProject
+```bash
+$ mkdir my_project
+$ cd my_project
+$ signac init MyProject
+```
 
 and access the project handle:
 
-    >>> project = signac.get_project()
+```python
+>>> project = signac.get_project()
+```
 
 ## Documentation
 
@@ -54,7 +61,9 @@ The documentation is hosted at [https://docs.signac.io](https://docs.signac.io).
 
 You can test this package by executing:
 
-    $ python -m unittest discover tests/
+```bash
+$ python -m unittest discover tests/
+```
 
 ## Acknowledgment
 
