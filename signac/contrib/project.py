@@ -522,17 +522,13 @@ class Project(object):
             search_index = JobSearchIndex(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
-    def find_jobs(self, filter=None, doc_filter=None, index=None):
+    def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
 
         The optional filter arguments must be a Mapping of key-value pairs and
         JSON serializable. The `filter` argument is used to search against job
         statepoints, whereas the `doc_filter` argument compares against job
         document keys.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
 
         :param filter: A mapping of key-value pairs that all
             indexed job statepoints are compared against.
@@ -630,7 +626,7 @@ class Project(object):
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
+    def find_statepoints(self, filter=None, doc_filter=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         This function is deprecated.
@@ -648,11 +644,7 @@ class Project(object):
             "The Project.find_statepoints() method is deprecated.",
             DeprecationWarning)
 
-        if index is None:
-            index = self.index(include_job_document=False)
-        if skip_errors:
-            index = _skip_errors(index, logger.critical)
-        jobs = self.find_jobs(filter, doc_filter, index)
+        jobs = self.find_jobs(filter, doc_filter)
         if skip_errors:
             jobs = _skip_errors(jobs, logger.critical)
         for job in jobs:
