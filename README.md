@@ -1,11 +1,13 @@
 # <img src="doc/images/logo.png" width="100" height="100"> Signac - Simple Data Management
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
-[![PyPi](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
+[![PyPI](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/signac.svg?style=flat)](https://anaconda.org/conda-forge/signac)
-[![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
+![CircleCI](https://img.shields.io/circleci/project/github/glotzerlab/signac/master.svg)
 [![RTD](https://img.shields.io/readthedocs/signac.svg?style=flat)](https://docs.signac.io)
 [![License](https://img.shields.io/github/license/csadorf/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
+[![PyPI-downloads](https://img.shields.io/pypi/dm/signac.svg?style=flat)](https://pypistats.org/packages/signac)
+[![conda-forge-downloads](https://img.shields.io/conda/dn/conda-forge/signac.svg)](https://anaconda.org/conda-forge/signac)
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
 
