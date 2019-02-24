@@ -1,5 +1,6 @@
 [run]
-omit =
+source=signac
+omit=
     signac/common/configobj/*.py
     signac/common/tqdm/*.py
     signac/common/six.py
