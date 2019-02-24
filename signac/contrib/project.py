@@ -303,6 +303,28 @@ class Project(object):
 
     @property
     def stores(self):
+        """Access HDF5-stores associated wit this project.
+
+        Use this property to access an HDF5-file within the project's root
+        directory using the H5Store dict-like interface.
+
+        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        the project's root directory:
+
+            project.stores['my_data']['array'] = np.random((32, 4))
+
+        This is equivalent to:
+
+            H5Store(project.fn('my_data.h5'))['array'] = np.random((32, 4))
+
+        Both the `project.stores` and the `H5Store` itself support attribute
+        access. The above example could therefore also be expressed as
+
+            project.stores.my_data.array = np.random((32, 4))
+
+        :return: The HDF5-Store manager for this project.
+        :rtype: :class:`~..core.h5store.H5StoreManager
+        """
         return H5StoreManager(self._rd)
 
     @property
@@ -314,7 +336,7 @@ class Project(object):
             return project.store['signac_data']
 
         :return: An HDF5-backed datastore.
-        :rtype: :class:`~signac.core.h5store.H5DictManager`
+        :rtype: :class:`~..core.h5store.H5Store`
         """
         return self.stores[self.KEY_DATA]
 

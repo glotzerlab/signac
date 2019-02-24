@@ -262,6 +262,28 @@ class Job(object):
 
     @property
     def stores(self):
+        """Access HDF5-stores associated wit this job.
+
+        Use this property to access an HDF5-file within the job's workspace
+        directory using the H5Store dict-like interface.
+
+        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        the job's workspace:
+
+            job.stores['my_data']['array'] = np.random((32, 4))
+
+        This is equivalent to:
+
+            H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
+
+        Both the `job.stores` and the `H5Store` itself support attribute
+        access. The above example could therefore also be expressed as
+
+            job.stores.my_data.array = np.random((32, 4))
+
+        :return: The HDF5-Store manager for this job.
+        :rtype: :class:`~..core.h5store.H5StoreManager
+        """
         return self.init()._stores
 
     @property
@@ -270,10 +292,10 @@ class Job(object):
 
         Equivalent to:
 
-            return job.store['signac_data']
+            return job.stores['signac_data']
 
         :return: An HDF5-backed datastore.
-        :rtype: :class:`~signac.core.h5store.H5Store`"""
+        :rtype: :class:`~..core.h5store.H5Store`"""
         return self.stores[self.KEY_DATA]
 
     @data.setter
