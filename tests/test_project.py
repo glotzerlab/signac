@@ -225,34 +225,6 @@ class ProjectTest(BaseProjectTest):
         self.assertFalse(os.path.isdir(self._tmp_wd))
         self.assertFalse(os.path.isdir(self.project.workspace()))
 
-    def test_find_statepoints(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).init()
-            self.assertEqual(
-                len(statepoints),
-                len(list(self.project.find_statepoints())))
-            self.assertEqual(
-                1, len(list(self.project.find_statepoints({'a': 0}))))
-
-    def test_find_statepoint_sequences(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': (i, i + 1)} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).init()
-            self.assertEqual(
-                len(statepoints),
-                len(list(self.project.find_statepoints())))
-            self.assertEqual(
-                1,
-                len(list(self.project.find_statepoints({'a': [0, 1]}))))
-            self.assertEqual(
-                1,
-                len(list(self.project.find_statepoints({'a': (0, 1)}))))
-
     def test_find_job_ids(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:

@@ -626,30 +626,6 @@ class Project(object):
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def find_statepoints(self, filter=None, doc_filter=None, skip_errors=False):
-        """Find all statepoints in the project's workspace.
-
-        This function is deprecated.
-
-        .. deprecated:: 0.9.0
-
-        :param filter: If not None, only yield statepoints matching the filter.
-        :type filter: mapping
-        :param skip_errors: Show, but otherwise ignore errors while
-            iterating over the workspace. Use this argument to repair
-            a corrupted workspace.
-        :type skip_errors: bool
-        :yields: statepoints as dict"""
-        warnings.warn(
-            "The Project.find_statepoints() method is deprecated.",
-            DeprecationWarning)
-
-        jobs = self.find_jobs(filter, doc_filter)
-        if skip_errors:
-            jobs = _skip_errors(jobs, logger.critical)
-        for job in jobs:
-            yield dict(job._statepoint)
-
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
 
