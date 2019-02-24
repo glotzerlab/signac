@@ -35,7 +35,7 @@ Added
 Changed
 +++++++
 
- - `Project.find_jobs()` no longer has the unused argument `index`.
+ - `Project.find_jobs()` and `Project.find_statepoints()` no longer have the unused argument `index`.
 
 Fixed
 +++++

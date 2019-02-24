@@ -626,7 +626,7 @@ class Project(object):
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
+    def find_statepoints(self, filter=None, doc_filter=None, skip_errors=False):
         """Find all statepoints in the project's workspace.
 
         This function is deprecated.
@@ -644,11 +644,7 @@ class Project(object):
             "The Project.find_statepoints() method is deprecated.",
             DeprecationWarning)
 
-        if index is None:
-            index = self.index(include_job_document=False)
-        if skip_errors:
-            index = _skip_errors(index, logger.critical)
-        jobs = self.find_jobs(filter, doc_filter, index)
+        jobs = self.find_jobs(filter, doc_filter)
         if skip_errors:
             jobs = _skip_errors(jobs, logger.critical)
         for job in jobs:
