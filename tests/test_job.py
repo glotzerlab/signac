@@ -1383,6 +1383,19 @@ class JobClosedDataTest(JobOpenDataTest):
     def open_data(job):
         yield
 
+    def test_implicit_initialization(self):
+        job = self.open_job(test_token)
+        self.assertNotIn('test', job.stores)
+        self.assertNotIn('foo', job.stores.test)
+        self.assertEqual(list(job.stores.keys()), [])
+        self.assertEqual(list(job.stores), [])
+        self.assertNotIn('test', job.stores)
+        job.stores.test.foo = True
+        self.assertIn('test', job.stores)
+        self.assertIn('foo', job.stores.test)
+        self.assertEqual(list(job.stores.keys()), ['test'])
+        self.assertEqual(list(job.stores), ['test'])
+
 
 class JobOpenCustomDataTest(BaseJobTest):
 
