@@ -522,17 +522,13 @@ class Project(object):
             search_index = JobSearchIndex(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
-    def find_jobs(self, filter=None, doc_filter=None, index=None):
+    def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
 
         The optional filter arguments must be a Mapping of key-value pairs and
         JSON serializable. The `filter` argument is used to search against job
         statepoints, whereas the `doc_filter` argument compares against job
         document keys.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
 
         :param filter: A mapping of key-value pairs that all
             indexed job statepoints are compared against.
