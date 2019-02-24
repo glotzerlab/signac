@@ -1394,7 +1394,7 @@ class ProjectRepresentationTest(BaseProjectTest):
                 repr(self.project)
             with self.subTest(type='html'):
                 for use_pandas in (True, False):
-                    type(self.project)._use_use_pandas_for_html_repr = use_pandas
+                    type(self.project)._use_pandas_for_html_repr = use_pandas
                     with self.subTest(use_pandas=use_pandas):
                         if use_pandas and not PANDAS:
                             raise unittest.SkipTest('requires use_pandas')
@@ -1409,7 +1409,7 @@ class ProjectRepresentationTest(BaseProjectTest):
                         repr(self.project.find_jobs(filter_))
                     with self.subTest(type='html'):
                         for use_pandas in (True, False):
-                            type(self.project)._use_use_pandas_for_html_repr = use_pandas
+                            type(self.project)._use_pandas_for_html_repr = use_pandas
                             with self.subTest(use_pandas=use_pandas):
                                 if use_pandas and not PANDAS:
                                     raise unittest.SkipTest('requires use_pandas')
