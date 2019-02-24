@@ -1634,7 +1634,7 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertEqual(len(job.stores.test), 0)
 
     def test_reopen(self):
-        key = 'clear'
+        key = 'reopen'
         d = testdata()
         job = self.open_job(test_token)
         with self.open_data(job):
