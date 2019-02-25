@@ -202,7 +202,8 @@ def _build_index(docs, key, primary_key):
             else:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
-                    "\nThe use of '.' (dots) in keys is invalid.\n\n"
+                    "\nThe document contains invalid keys. "
+                    "Specifically keys with dots ('.').\n\n"
                     "See https://signac.io/document-wide-migration/ "
                     "for a recipe on how to replace dots in existing keys.")
                 # inlined for performance
@@ -493,6 +494,24 @@ class Collection(object):
             self._assert_open()
             raise
 
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            from ..errors import InvalidKeyError
+            raise InvalidKeyError("Keys may not contain dots ('.').")
+        return key
+
+    @classmethod
+    def _validate_doc(cls, doc):
+        "Emit a warning or raise an exception if the document is invalid. Returns doc."
+        try:
+            for key in doc.keys():
+                cls._validate_doc(doc[cls._validate_key(key)])
+        except AttributeError:
+            return
+        return doc
+
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
         if not isinstance(_id, six.string_types):
@@ -503,7 +522,7 @@ class Collection(object):
         if _trust:
             self._docs[_id] = doc
         else:
-            self._docs[_id] = json.loads(json.dumps(doc))
+            self._docs[_id] = self._validate_doc(json.loads(json.dumps(doc)))
         self._dirty.add(_id)
         self._requires_flush = True
 

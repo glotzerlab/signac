@@ -292,22 +292,37 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
         self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
 
-    def test_find_with_dots(self):
+    def test_insert_docs_with_dots(self):
         with self.assertRaises(InvalidKeyError):
-            self.assertEqual(len(self.c.find()), 0)
-            self.assertEqual(list(self.c.find()), [])
-            self.assertEqual(len(self.c.find({'a.b': 0})), 0)
-            docs = [{'a.b': i} for i in range(10)]
-            self.c.update(docs)
-            self.assertEqual(len(self.c.find()), len(docs))
-            self.assertEqual(len(self.c.find({'a.b': 0})), 1)
-            self.assertEqual(list(self.c.find({'a.b': 0}))[0], docs[0])
-            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
-            docs = [{'a': {'b': i}} for i in range(10)]
-            self.c.update(docs)
-            self.assertEqual(len(self.c.find()), 2 * len(docs))
-            self.assertEqual(len(self.c.find({'a.b': 0})), 2)
-            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
+            self.c.__setitem__('0', {'a.b': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c.insert_one({'a.b': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c['0'] = {'a.b': 0}
+        with self.assertRaises(InvalidKeyError):
+            self.c.insert_one({'a': {'b.c': 0}})
+        with self.assertRaises(InvalidKeyError):
+            self.c['0'] = {'a': {'b.c': 0}}
+        with self.assertRaises(InvalidKeyError):
+            self.c.update([{'_id': '0', 'a.b': 0}])
+        with self.assertRaises(InvalidKeyError):
+            self.c.update([{'_id': '0', 'a': {'b.c': 0}}])
+
+    def test_replace_docs_with_dots(self):
+        self.c.insert_one({'a': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c.replace_one({'a': 0}, {'a.b': 0})
+
+    def test_insert_docs_with_dots_force(self):
+        self.c.__setitem__('0', {'a.b': 0}, _trust=True)
+
+        # These searches will not catch the error:
+        self.c.find()
+        self.c.find({'a': 0})
+
+        # This one will:
+        with self.assertRaises(InvalidKeyError):
+            self.c.find({'a.b': 0})
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!
