@@ -10,7 +10,7 @@
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
 
-The [**signac** framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
+The [**signac** framework](https://signac.io) is a lightweight, application-agnostic framework to help users manage and scale file-based workflows, facilitating data reuse, sharing, and reproducibility.
 
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
