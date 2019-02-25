@@ -601,11 +601,6 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
                 raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
 
 
-def fetch_one(doc, *args, **kwargs):
-    raise DeprecationWarning(
-        "The fetch_one() function has been removed. Use fetch() instead.")
-
-
 def fetched(docs):
     """Iterate over documents and yield associated files."""
     for doc in docs:
