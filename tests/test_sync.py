@@ -375,7 +375,8 @@ class JobSyncTest(BaseJobTest):
         job_dst.sync(job_src, sync.FileSync.always, exclude='test', recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
-        job_dst.sync(job_src, sync.FileSync.always, exclude=['test', 'bs'], recursive=True)
+        job_dst.sync(job_src, sync.FileSync.always,
+                     exclude=['test', 'non-existent-key'], recursive=True)
         self.assertTrue(differs('test'))
         self.assertTrue(differs('subdir/test2'))
         sleep(1)
