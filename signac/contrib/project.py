@@ -649,30 +649,6 @@ class Project(object):
         """
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
-    def find_statepoints(self, filter=None, doc_filter=None, skip_errors=False):
-        """Find all statepoints in the project's workspace.
-
-        This function is deprecated.
-
-        .. deprecated:: 0.9.0
-
-        :param filter: If not None, only yield statepoints matching the filter.
-        :type filter: mapping
-        :param skip_errors: Show, but otherwise ignore errors while
-            iterating over the workspace. Use this argument to repair
-            a corrupted workspace.
-        :type skip_errors: bool
-        :yields: statepoints as dict"""
-        warnings.warn(
-            "The Project.find_statepoints() method is deprecated.",
-            DeprecationWarning)
-
-        jobs = self.find_jobs(filter, doc_filter)
-        if skip_errors:
-            jobs = _skip_errors(jobs, logger.critical)
-        for job in jobs:
-            yield dict(job._statepoint)
-
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
 
@@ -863,41 +839,6 @@ class Project(object):
         """
         from .linked_view import create_linked_view
         return create_linked_view(self, prefix, job_ids, index, path)
-
-    def find_job_documents(self, filter=None):
-        """Find all job documents in the project's workspace.
-
-        This function is deprecated.
-
-        This method iterates through all jobs or all jobs matching
-        the filter and yields each job's document as a dict.
-        Each dict additionally contains a field 'statepoint',
-        with the job's statepoint and a field '_id', which is
-        the job's id.
-
-        .. deprecated:: 0.9.0
-
-        :param filter: If not None,
-            only find job documents matching filter.
-        :type filter: mapping
-        :yields: Instances of dict.
-        :raises KeyError: If the job document already contains the fields
-            '_id' or 'statepoint'."""
-        warnings.warn(
-            "The Project.find_job_documents() method is deprecated.",
-            DeprecationWarning)
-
-        for job in self.find_jobs(filter=filter):
-            doc = dict(job.document)
-            if '_id' in doc:
-                raise KeyError(
-                    "The job document already contains a field '_id'!")
-            if 'statepoint' in doc:
-                raise KeyError(
-                    "The job document already contains a field 'statepoint'!")
-            doc['_id'] = str(job)
-            doc['statepoint'] = dict(job._statepoint)
-            yield doc
 
     def reset_statepoint(self, job, new_statepoint):
         """Reset the state point of job.
@@ -1312,7 +1253,7 @@ class Project(object):
                 raise error
 
     def update_cache(self):
-        """Update the persistent state point cache (experimental).
+        """Update the persistent state point cache.
 
         This function updates a persistent state point cache, which
         is stored in the project root directory. Most data space operations,
@@ -1320,9 +1261,6 @@ class Project(object):
         to be significantly faster after calling this function, especially
         for large data spaces.
         """
-        warnings.warn(
-            "The Project.update_cache() method is experimental and "
-            "might be removed in future releases.", FutureWarning)
         logger.info('Update cache...')
         start = time.time()
         cache = self._read_cache()
