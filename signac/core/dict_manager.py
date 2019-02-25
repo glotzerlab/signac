@@ -41,7 +41,13 @@ class DictManager(object):
             self._dict_registry[key] = self.cls(os.path.join(self.prefix, key) + self.suffix)
         return self._dict_registry[key]
 
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        return key
+
     def __setitem__(self, key, value):
+        self._validate_key(key)
         tmp_key = str(uuid.uuid4())
         try:
             self[tmp_key].update(value)

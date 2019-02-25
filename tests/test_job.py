@@ -18,7 +18,7 @@ import signac.common.config
 from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
-from signac.warnings import SignacDeprecationWarning
+from signac.errors import InvalidKeyError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -202,24 +202,10 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertNotEqual(old_id, job.get_id())
 
     def test_interface_nested_kws(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('error')
-            with self.assertRaises(SignacDeprecationWarning):
-                job = self.open_job({'a.b.c': 0})
-        with warnings.catch_warnings(record=True) as warning_record:
-            warnings.simplefilter('always')
+        with self.assertRaises(InvalidKeyError):
             job = self.open_job({'a.b.c': 0})
-            self.assertEqual(job.sp['a.b.c'], 0)
-            with self.assertRaises(AttributeError):
-                job.sp.a.b.c
-            job.sp['a.b.c'] = 1
-            self.assertEqual(job.sp['a.b.c'], 1)
-            self.assertEqual(len(warning_record), 4)
-            for warning in warning_record:
-                self.assertTrue(issubclass(warning.category, SignacDeprecationWarning))
-                self.assertIn('dots', str(warning.message))
-        job.sp.clear()
-        job.sp.a = dict(b=dict(c=2))
+
+        job = self.open_job(dict(a=dict(b=dict(c=2))))
         self.assertEqual(job.sp.a.b.c, 2)
         self.assertEqual(job.sp['a']['b']['c'], 2)
 

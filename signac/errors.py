@@ -52,6 +52,10 @@ class SchemaSyncConflict(SyncConflict):
         return "The synchronization failed, because of a schema conflict."
 
 
+class InvalidKeyError(ValueError):
+    """Raised when a user uses a non-conforming key."""
+
+
 __all__ = [
     'Error',
     'BufferException',
@@ -67,4 +71,5 @@ __all__ = [
     'FileSyncConflict',
     'DocumentSyncConflict',
     'SchemaSyncConflict',
+    'InvalidKeyError',
 ]

@@ -7,7 +7,6 @@ import sys
 import unittest
 import random
 import string
-import warnings
 import subprocess
 from itertools import chain
 from array import array
@@ -20,7 +19,7 @@ from contextlib import closing
 
 from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
 from signac.common import six
-from signac.warnings import SignacDeprecationWarning
+from signac.errors import InvalidKeyError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -406,15 +405,12 @@ class H5StoreTest(BaseH5StoreTest):
             self.assertEqual(h5s[key], d)
 
     def test_keys_with_dots(self):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertRaises(InvalidKeyError):
             with self.open_h5store() as h5s:
                 key = 'a.b'
                 d = self.get_testdata()
                 h5s[key] = d
                 self.assertEqual(h5s[key], d)
-            assert len(w) >= 1
-            assert any(issubclass(w_.category, SignacDeprecationWarning) for w_ in w)
 
     def test_keys_with_slashes(self):
         # HDF5 uses slashes for nested keys internally
