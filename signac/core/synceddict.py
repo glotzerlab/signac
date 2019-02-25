@@ -90,9 +90,9 @@ class _SyncedDict(MutableMapping):
         if '.' in key:
             from ..errors import InvalidKeyError
             raise InvalidKeyError(
-                "\nThe use of '.' (dots) in keys is deprecated and may lead to "
-                "unexpected behavior!\nSee http://www.signac.io/document-wide-migration/ "
-                "for a recipe on how to replace dots in all keys.")
+                "\nThe use of '.' (dots) in keys is invalid.\n\n"
+                "See https://signac.io/document-wide-migration/ "
+                "for a recipe on how to replace dots in existing keys.")
         return key
 
     def _dfs_convert(self, root):
