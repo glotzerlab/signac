@@ -52,6 +52,7 @@ jobs:
               sudo apt update -qq && sudo apt install -qq libhdf5-dev
             fi
             pip install -U pip==18
+            pip install -U codecov
             pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
@@ -63,8 +64,9 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            coverage run --source=signac/ -m unittest discover tests/ -v
-            coverage report -i --include="signac*"
+            coverage run -m unittest discover tests/ -v
+            coverage report -i
+            codecov
 
       - store_artifacts:
           path: test-reports

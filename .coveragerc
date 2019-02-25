@@ -1,2 +1,7 @@
 [run]
-omit = */configobj/*.py
+source=signac
+omit=
+    signac/common/configobj/*.py
+    signac/common/tempdir.py
+    signac/common/tqdm/*.py
+    signac/common/six.py
