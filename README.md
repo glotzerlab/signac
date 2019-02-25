@@ -1,4 +1,7 @@
-<h1><img src="doc/images/logo.png" width="50" height="50" style="float:right">signac &mdash; simple data management</h1>
+<p>
+  <img src="doc/images/logo.png" width="75" height="75" style="float:right">
+  <h1>signac &mdash; simple data management</h1>
+</p>
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![PyPI](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
