@@ -14,7 +14,6 @@ from .indexing import JSONCrawler
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .indexing import fetch
-from .indexing import fetch_one  # deprecated
 from .indexing import fetched
 from .indexing import export_one
 from .indexing import export
@@ -31,7 +30,7 @@ __all__ = [
     'indexing',
     'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
-    'MasterCrawler', 'fetch', 'fetch_one', 'fetched',
+    'MasterCrawler', 'fetch', 'fetched',
     'export_one', 'export', 'export_to_mirror', 'export_pymongo',
     'index_files', 'index',
     'Collection',

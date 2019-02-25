@@ -27,7 +27,6 @@ from .contrib import export_one
 from .contrib import export
 from .contrib import export_to_mirror
 from .contrib import export_pymongo
-from .contrib import fetch_one  # deprecated
 from .contrib import filesystems as fs
 from .contrib import Collection
 from .contrib import index_files
@@ -51,7 +50,7 @@ __version__ = '0.9.5'
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
            'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
-           'get_database', 'fetch', 'fetch_one',
+           'get_database', 'fetch',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
            'export_pymongo', 'fs',
