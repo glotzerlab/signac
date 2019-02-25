@@ -507,7 +507,7 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job.document)
         self.assertEqual(job.document[key], d)
         self.assertEqual(job.document.get(key), d)
-        self.assertEqual(job.document.get('bs', d), d)
+        self.assertEqual(job.document.get('non-existent-key', d), d)
 
     def test_del(self):
         key = 'del0'
@@ -544,7 +544,7 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job.doc)
         self.assertEqual(job.doc[key], d)
         self.assertEqual(job.doc.get(key), d)
-        self.assertEqual(job.doc.get('bs', d), d)
+        self.assertEqual(job.doc.get('non-existent-key', d), d)
 
     def test_set_set_doc(self):
         key0, key1 = 'set_set0', 'set_set1'
@@ -682,14 +682,14 @@ class JobDocumentTest(BaseJobTest):
         self.assertIn(key, job.document)
         self.assertEqual(job.document[key], d)
         self.assertEqual(job.document.get(key), d)
-        self.assertEqual(job.document.get('bs', d), d)
+        self.assertEqual(job.document.get('non-existent-key', d), d)
         copy = dict(job.document)
         self.assertTrue(bool(copy))
         self.assertEqual(len(copy), 1)
         self.assertIn(key, copy)
         self.assertEqual(copy[key], d)
         self.assertEqual(copy.get(key), d)
-        self.assertEqual(copy.get('bs', d), d)
+        self.assertEqual(copy.get('non-existent-key', d), d)
 
     def test_update(self):
         key = 'get_set'
@@ -958,7 +958,7 @@ class JobOpenDataTest(BaseJobTest):
             self.assertIn(key, job.data)
             self.assertEqual(job.data[key], d)
             self.assertEqual(job.data.get(key), d)
-            self.assertEqual(job.data.get('bs', d), d)
+            self.assertEqual(job.data.get('non-existent-key', d), d)
 
     def test_del(self):
         key = 'del0'
@@ -997,7 +997,7 @@ class JobOpenDataTest(BaseJobTest):
             self.assertIn(key, job.data)
             self.assertEqual(job.data[key], d)
             self.assertEqual(job.data.get(key), d)
-            self.assertEqual(job.data.get('bs', d), d)
+            self.assertEqual(job.data.get('non-existent-key', d), d)
 
     def test_set_set_data(self):
         key0, key1 = 'set_set0', 'set_set1'
@@ -1143,14 +1143,14 @@ class JobOpenDataTest(BaseJobTest):
             self.assertIn(key, job.data)
             self.assertEqual(job.data[key], d)
             self.assertEqual(job.data.get(key), d)
-            self.assertEqual(job.data.get('bs', d), d)
+            self.assertEqual(job.data.get('non-existent-key', d), d)
             copy = dict(job.data)
             self.assertTrue(bool(copy))
             self.assertEqual(len(copy), 1)
             self.assertIn(key, copy)
             self.assertEqual(copy[key], d)
             self.assertEqual(copy.get(key), d)
-            self.assertEqual(copy.get('bs', d), d)
+            self.assertEqual(copy.get('non-existent-key', d), d)
 
     def test_update(self):
         key = 'get_set'
@@ -1419,7 +1419,7 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertIn(key, job.stores.test)
             self.assertEqual(job.stores.test[key], d)
             self.assertEqual(job.stores.test.get(key), d)
-            self.assertEqual(job.stores.test.get('bs', d), d)
+            self.assertEqual(job.stores.test.get('non-existent-key', d), d)
 
     def test_del(self):
         key = 'del0'
@@ -1458,7 +1458,7 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertIn(key, job.stores.test)
             self.assertEqual(job.stores.test[key], d)
             self.assertEqual(job.stores.test.get(key), d)
-            self.assertEqual(job.stores.test.get('bs', d), d)
+            self.assertEqual(job.stores.test.get('non-existent-key', d), d)
 
     def test_set_set_data(self):
         key0, key1 = 'set_set0', 'set_set1'
@@ -1604,14 +1604,14 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertIn(key, job.stores.test)
             self.assertEqual(job.stores.test[key], d)
             self.assertEqual(job.stores.test.get(key), d)
-            self.assertEqual(job.stores.test.get('bs', d), d)
+            self.assertEqual(job.stores.test.get('non-existent-key', d), d)
             copy = dict(job.stores.test)
             self.assertTrue(bool(copy))
             self.assertEqual(len(copy), 1)
             self.assertIn(key, copy)
             self.assertEqual(copy[key], d)
             self.assertEqual(copy.get(key), d)
-            self.assertEqual(copy.get('bs', d), d)
+            self.assertEqual(copy.get('non-existent-key', d), d)
 
     def test_update(self):
         key = 'get_set'

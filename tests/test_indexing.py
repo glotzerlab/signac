@@ -418,11 +418,11 @@ class IndexingBaseTest(unittest.TestCase):
         self.assertEqual(2, len(list(crawler.crawl())))
         crawler.tags = {'test1', 'test2'}
         self.assertEqual(2, len(list(crawler.crawl())))
-        crawler.tags = {'test1', 'bs'}
+        crawler.tags = {'test1', 'non-existent-key'}
         self.assertEqual(2, len(list(crawler.crawl())))
-        crawler.tags = {'test2', 'bs'}
+        crawler.tags = {'test2', 'non-existent-key'}
         self.assertEqual(2, len(list(crawler.crawl())))
-        crawler.tags = {'test1', 'test2', 'bs'}
+        crawler.tags = {'test1', 'test2', 'non-existent-key'}
         self.assertEqual(2, len(list(crawler.crawl())))
 
 
