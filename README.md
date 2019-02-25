@@ -1,4 +1,4 @@
-# <img src="doc/images/logo.png" width="100" height="100"> Signac - Simple Data Management
+# <img src="doc/images/logo.png" width="100" height="100"> signac - simple data management
 
 [![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![PyPI](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
@@ -10,12 +10,19 @@
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
 
 
-The [signac framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
+The [**signac** framework](https://signac.io) aids in the management of large and heterogeneous data spaces.
 
 It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata.
 This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.
 
-**The documentation is available at: [https://docs.signac.io](https://docs.signac.io)**
+## Resources
+
+- [Framework documentation](https://docs.signac.io/):
+  Examples, tutorials, topic guides, and package Python APIs.
+- [Chat Support](https://gitter.im/signac/Lobby):
+  Get help and ask questions on the **signac** gitter channel.
+- [**signac** website](https://signac.io/):
+  Framework overview and news.
 
 ## Installation
 
@@ -39,7 +46,7 @@ pip install signac
 ## Quickstart
 
 The framework facilitates a project-based workflow.
-Setup a new project:
+Set up a new project:
 
 ```bash
 $ mkdir my_project
@@ -52,10 +59,6 @@ and access the project handle:
 ```python
 >>> project = signac.get_project()
 ```
-
-## Documentation
-
-The documentation is hosted at [https://docs.signac.io](https://docs.signac.io).
 
 ## Testing
 
