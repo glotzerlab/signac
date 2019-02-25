@@ -41,6 +41,9 @@ from .core.jsondict import in_buffered_mode as is_buffered
 from .core.jsondict import flush_all as flush
 from .core.jsondict import get_buffer_size
 from .core.jsondict import get_buffer_load
+from .core.jsondict import JSONDict
+from .core.h5store import H5Store
+from .core.h5store import H5StoreManager
 
 
 __version__ = '0.9.5'
@@ -57,4 +60,6 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'MasterCrawler',
            'SignacProjectCrawler',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
+           'JSONDict',
+           'H5Store', 'H5StoreManager',
            ]
