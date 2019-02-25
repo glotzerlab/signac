@@ -10,6 +10,7 @@ import array
 from threading import RLock
 
 from ..common import six
+from ..errors import InvalidKeyError
 from .dict_manager import DictManager
 
 if six.PY2:
@@ -153,12 +154,7 @@ def _h5get(file, grp, key, path=None):
 def _validate_key(key):
     "Emit a warning or raise an exception if key is invalid. Returns key."
     if '.' in key:
-        from ..warnings import SignacDeprecationWarning
-        warnings.warn(
-            "\nThe use of '.' (dots) in keys is deprecated and may lead to "
-            "unexpected behavior!\nSee http://www.signac.io/document-wide-migration/ "
-            "for a recipe on how to replace dots in all keys.",
-            SignacDeprecationWarning)
+        raise InvalidKeyError("Keys for the H5Store may not contain dots ('.').")
     return key
 
 

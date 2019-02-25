@@ -1,13 +1,13 @@
 from __future__ import division
 import os
 import io
-import warnings
 import unittest
 from collections import OrderedDict
 from itertools import islice
 
 from signac import Collection
 from signac.common import six
+from signac.errors import InvalidKeyError
 if six.PY2:
     from tempdir import TemporaryDirectory
 else:
@@ -293,8 +293,7 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
 
     def test_find_with_dots(self):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('once')
+        with self.assertRaises(InvalidKeyError):
             self.assertEqual(len(self.c.find()), 0)
             self.assertEqual(list(self.c.find()), [])
             self.assertEqual(len(self.c.find({'a.b': 0})), 0)
@@ -309,10 +308,6 @@ class CollectionTest(unittest.TestCase):
             self.assertEqual(len(self.c.find()), 2 * len(docs))
             self.assertEqual(len(self.c.find({'a.b': 0})), 2)
             self.assertEqual(len(self.c.find({'a.b': -1})), 0)
-            if six.PY34:  # warning registry not cleared in earlier versions
-                assert len(w) == 1
-                assert issubclass(w[0].category, PendingDeprecationWarning)
-                assert 'deprecation' in str(w[0].message)
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!

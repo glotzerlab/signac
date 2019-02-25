@@ -16,7 +16,6 @@ import sys
 import io
 import re
 import logging
-import warnings
 import argparse
 import operator
 from itertools import islice
@@ -201,9 +200,11 @@ def _build_index(docs, key, primary_key):
             except KeyError:
                 pass
             else:
-                warnings.warn(
-                    "Using keys with dots ('.') is pending deprecation in the future!",
-                    PendingDeprecationWarning)
+                from ..errors import InvalidKeyError
+                raise InvalidKeyError(
+                    "\nThe use of '.' (dots) in keys is invalid.\n\n"
+                    "See http://www.signac.io/document-wide-migration/ "
+                    "for a recipe on how to replace dots in all keys.")
                 # inlined for performance
                 if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
