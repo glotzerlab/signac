@@ -66,7 +66,7 @@ class H5StoreAlreadyOpenError(OSError):
     """Indicates that the underlying HDF5-file is already openend."""
 
 
-def _h5set(file, grp, key, value, path=None):
+def _h5set(store, grp, key, value, path=None):
     """Set a key in an h5py container, recursively converting Mappings to h5py
     groups and transparently handling None."""
     import h5py
@@ -91,7 +91,7 @@ def _h5set(file, grp, key, value, path=None):
     if isinstance(value, Mapping):
         subgrp = grp.create_group(key)
         for k, v in value.items():
-            _h5set(file, subgrp, k, v, path)
+            _h5set(store, subgrp, k, v, path)
 
     # Regular built-in types:
     elif value is None:
@@ -114,10 +114,10 @@ def _h5set(file, grp, key, value, path=None):
         _load_pandas()   # might be a pandas type
         if _is_pandas_type(value):
             _requires_tables()
-            file.close()
-            with _pandas.HDFStore(file._filename) as store:
-                store[path] = value
-            file.open()
+            store.close()
+            with _pandas.HDFStore(store._filename) as store_:
+                store_[path] = value
+            store.open()
         else:
             grp[key] = value
             warnings.warn(
@@ -125,7 +125,7 @@ def _h5set(file, grp, key, value, path=None):
                 "type is not officially supported!".format(type(value)))
 
 
-def _h5get(file, grp, key, path=None):
+def _h5get(store, grp, key, path=None):
     """Retrieve the underlying data for a key from its h5py container."""
     path = path + '/' + key if path else key
     result = grp[key]
@@ -146,16 +146,9 @@ def _h5get(file, grp, key, path=None):
             return result[()]
     except AttributeError:
         if isinstance(result, MutableMapping):
-            return H5Group(file, path)
+            return H5Group(store, path)
         else:
             return result
-
-
-def _validate_key(key):
-    "Emit a warning or raise an exception if key is invalid. Returns key."
-    if '.' in key:
-        raise InvalidKeyError("Keys for the H5Store may not contain dots ('.').")
-    return key
 
 
 class _ensure_open(object):
@@ -181,31 +174,31 @@ class _ensure_open(object):
 class H5Group(MutableMapping):
     """An abstraction layer over h5py's Group objects, to manage and return data."""
 
-    __slots__ = ['_file', '_path']
+    __slots__ = ['_store', '_path']
 
-    def __init__(self, file, path):
-        self._file = file
+    def __init__(self, store, path):
+        self._store = store
         self._path = path
 
     @property
     def _group(self):
-        return self._file.file[self._path]
+        return self._store.file[self._path]
 
     def __getitem__(self, key):
-        with _ensure_open(self._file):
-            return _h5get(self._file, self._group, key, self._path)
+        with _ensure_open(self._store):
+            return _h5get(self._store, self._group, key, self._path)
 
     def __setitem__(self, key, value):
-        with _ensure_open(self._file):
-            _h5set(self._file, self._group, _validate_key(key), value, self._path)
+        with _ensure_open(self._store):
+            _h5set(self._store, self._group, self._store._validate_key(key), value, self._path)
             return value
 
     def __delitem__(self, key):
-        with _ensure_open(self._file):
+        with _ensure_open(self._store):
             del self._group[key]
 
     def __getattr__(self, name):
-        with _ensure_open(self._file):
+        with _ensure_open(self._store):
             if name in self._group.keys():
                 return self.__getitem__(name)
             else:
@@ -220,16 +213,16 @@ class H5Group(MutableMapping):
     def __iter__(self):
         # The generator below should be refactored to use 'yield from'
         # once we drop Python 2.7 support.
-        with _ensure_open(self._file):
+        with _ensure_open(self._store):
             for key in self._group.keys():
                 yield key
 
     def __len__(self):
-        with _ensure_open(self._file):
+        with _ensure_open(self._store):
             return len(self._group)
 
     def __eq__(self, other):
-        with _ensure_open(self._file):
+        with _ensure_open(self._store):
             if isinstance(self, Mapping) and isinstance(other, Mapping):
                 return super(H5Group, self).__eq__(other)
             elif type(other) == type(self):
@@ -370,9 +363,16 @@ class H5Store(MutableMapping):
         with _ensure_open(self):
             return _h5get(self, self._file, key)
 
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            raise InvalidKeyError("Keys for the H5Store may not contain dots ('.').")
+        return key
+
     def __setitem__(self, key, value):
         with _ensure_open(self):
-            _h5set(self, self._file, _validate_key(key), value)
+            _h5set(self, self._file, self._validate_key(key), value)
             return value
 
     def __delitem__(self, key):
@@ -443,3 +443,10 @@ class H5Store(MutableMapping):
 class H5StoreManager(DictManager):
     cls = H5Store
     suffix = '.h5'
+
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            raise InvalidKeyError("Keys for the H5StoreManager may not contain dots ('.').")
+        return key
