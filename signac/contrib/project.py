@@ -18,7 +18,7 @@ from multiprocessing.pool import ThreadPool
 from .. import syncutil
 from ..core.json import json
 from ..core.jsondict import JSONDict
-from ..core.h5store import H5Store
+from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common import six
 from ..common.config import load_config
@@ -124,8 +124,8 @@ class Project(object):
     FN_DOCUMENT = 'signac_project_document.json'
     "The project's document filename."
 
-    FN_DATA = 'signac_data.h5'
-    "The project's datastore filename."
+    KEY_DATA = 'signac_data'
+    "The project's datastore key."
 
     FN_STATEPOINTS = 'signac_statepoints.json'
     "The default filename to read from and write statepoints to."
@@ -146,10 +146,6 @@ class Project(object):
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
-
-        # Prepare project datastore
-        self._fn_data = os.path.join(self._rd, self.FN_DATA)
-        self._data = None
 
         # Internal caches
         self._index_cache = dict()
@@ -306,20 +302,47 @@ class Project(object):
         self.document = new_doc
 
     @property
+    def stores(self):
+        """Access HDF5-stores associated wit this project.
+
+        Use this property to access an HDF5-file within the project's root
+        directory using the H5Store dict-like interface.
+
+        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        the project's root directory:
+
+            project.stores['my_data']['array'] = np.random((32, 4))
+
+        This is equivalent to:
+
+            H5Store(project.fn('my_data.h5'))['array'] = np.random((32, 4))
+
+        Both the `project.stores` and the `H5Store` itself support attribute
+        access. The above example could therefore also be expressed as
+
+            project.stores.my_data.array = np.random((32, 4))
+
+        :return: The HDF5-Store manager for this project.
+        :rtype: :class:`~..core.h5store.H5StoreManager
+        """
+        return H5StoreManager(self._rd)
+
+    @property
     def data(self):
         """The data associated with this project.
 
+        Equivalent to:
+
+            return project.store['signac_data']
+
         :return: An HDF5-backed datastore.
-        :rtype: :class:`~signac.core.h5store.H5Store`
+        :rtype: :class:`~..core.h5store.H5Store`
         """
-        if self._data is None:
-            self._data = H5Store(filename=self._fn_data)
-        return self._data
+        return self.stores[self.KEY_DATA]
 
     @data.setter
     def data(self, new_data):
-        self._data.clear()
-        self._data.update(new_data)
+        self.stores[self.KEY_DATA] = new_data
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.

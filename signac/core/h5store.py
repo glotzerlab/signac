@@ -10,6 +10,7 @@ import array
 from threading import RLock
 
 from ..common import six
+from .dict_manager import DictManager
 
 if six.PY2:
     from collections import Mapping
@@ -284,6 +285,10 @@ class H5Store(MutableMapping):
         self._file = None
         self._kwargs = kwargs
 
+    @property
+    def filename(self):
+        return self._filename
+
     def __repr__(self):
         return "<{}(filename={})>".format(type(self).__name__, os.path.relpath(self._filename))
 
@@ -359,7 +364,10 @@ class H5Store(MutableMapping):
 
     def flush(self):
         """Flush the underlying HDF5-file."""
-        self._file.flush()
+        if self._file is None:
+            raise H5StoreClosedError(self._filename)
+        else:
+            self._file.flush()
 
     def __getitem__(self, key):
         key = key if key.startswith('/') else '/' + key
@@ -391,6 +399,12 @@ class H5Store(MutableMapping):
             super(H5Store, self).__setattr__(key, value)
         else:
             self.__setitem__(key, value)
+
+    def __delattr__(self, key):
+        if key.startswith('__') or key in self.__slots__:
+            super(H5Store, self).__delattr__(key)
+        else:
+            self.__delitem__(key)
 
     def __iter__(self):
         with _ensure_open(self):
@@ -428,3 +442,8 @@ class H5Store(MutableMapping):
         """
         with _ensure_open(self):
             self._file.clear()
+
+
+class H5StoreManager(DictManager):
+    cls = H5Store
+    suffix = '.h5'

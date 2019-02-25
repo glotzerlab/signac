@@ -11,7 +11,7 @@ from ..common import six
 from ..core.json import json, CustomJSONEncoder
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
-from ..core.h5store import H5Store
+from ..core.h5store import H5StoreManager
 from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -53,8 +53,7 @@ class Job(object):
     FN_DOCUMENT = 'signac_job_document.json'
     "The job's document filename."
 
-    FN_DATA = 'signac_data.h5'
-    "The job's datastore filename."
+    KEY_DATA = 'signac_data'
 
     def __init__(self, project, statepoint, _id=None):
         self._project = project
@@ -77,9 +76,8 @@ class Job(object):
         self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
 
-        # Prepare job datastore
-        self._fn_data = os.path.join(self._wd, self.FN_DATA)
-        self._data = None
+        # Prepare job h5-stores
+        self._stores = H5StoreManager(self._wd)
 
         # Prepare current working directory for context management
         self._cwd = list()
@@ -163,7 +161,6 @@ class Job(object):
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
         self._document = None
-        self._fn_data = dst._fn_data
         self._data = None
         self._cwd = list()
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
@@ -264,20 +261,46 @@ class Job(object):
         self.document = new_doc
 
     @property
+    def stores(self):
+        """Access HDF5-stores associated wit this job.
+
+        Use this property to access an HDF5-file within the job's workspace
+        directory using the H5Store dict-like interface.
+
+        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        the job's workspace:
+
+            job.stores['my_data']['array'] = np.random((32, 4))
+
+        This is equivalent to:
+
+            H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
+
+        Both the `job.stores` and the `H5Store` itself support attribute
+        access. The above example could therefore also be expressed as
+
+            job.stores.my_data.array = np.random((32, 4))
+
+        :return: The HDF5-Store manager for this job.
+        :rtype: :class:`~..core.h5store.H5StoreManager
+        """
+        return self.init()._stores
+
+    @property
     def data(self):
         """The data associated with this job.
 
+        Equivalent to:
+
+            return job.stores['signac_data']
+
         :return: An HDF5-backed datastore.
-        :rtype: :class:`~signac.core.h5store.H5Store`"""
-        if self._data is None:
-            self.init()
-            self._data = H5Store(filename=self._fn_data)
-        return self._data
+        :rtype: :class:`~..core.h5store.H5Store`"""
+        return self.stores[self.KEY_DATA]
 
     @data.setter
     def data(self, new_data):
-        self._data.clear()
-        self._data.update(new_data)
+        self.stores[self.KEY_DATA] = new_data
 
     def _init(self, force=False):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
