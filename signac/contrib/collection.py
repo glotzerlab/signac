@@ -20,7 +20,7 @@ import argparse
 import operator
 from itertools import islice
 
-from ..core.json import json
+from ..core import json
 from ..common import six
 from .filterparse import parse_filter_arg
 

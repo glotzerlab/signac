@@ -8,8 +8,18 @@ logger = logging.getLogger(__name__)
 msg = "Using '{}' package for JSON encoding/decoding."
 
 try:
+    import numpy
+    NUMPY = True
+except ImportError:
+    NUMPY = False
+
+try:
     import rapidjson as json
-    from rapidjson import Encoder as JSONEncoder
+    from rapidjson import Encoder
+
+    class JSONEncoder(Encoder):
+        encode = Encoder.__call__
+
     logger.debug(msg.format('rapidjson'))
 except ImportError:
     import json
@@ -17,11 +27,8 @@ except ImportError:
 
     logger.debug(msg.format('json'))
 
-try:
-    import numpy
-    NUMPY = True
-except ImportError:
-    NUMPY = False
+
+_has_default = hasattr(JSONEncoder, 'default')
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -40,8 +47,20 @@ class CustomJSONEncoder(JSONEncoder):
         try:
             return o._as_dict()
         except AttributeError:
-            # Call the super method, which probably raise a TypeError.
-            return super(CustomJSONEncoder, self).default(o)
+            if _has_default:
+                # Call the super method, which probably raise a TypeError.
+                return super(CustomJSONEncoder, self).default(o)
+            else:
+                raise TypeError(
+                    "Unable to serialize object '{}'.".format(o))
 
 
-__all__ = ['json', 'CustomJSONEncoder']
+def loads(s):
+    return json.loads(s)
+
+
+def dumps(o, sort_keys=False, indent=None):
+    return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
+
+
+__all__ = ['loads', 'dumps']
