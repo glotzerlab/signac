@@ -2,10 +2,12 @@ from __future__ import division
 import os
 import io
 import unittest
+import array
 from collections import OrderedDict
 from itertools import islice
 
 from signac import Collection
+from signac.contrib.collection import JSONParseError
 from signac.common import six
 from signac.errors import InvalidKeyError
 if six.PY2:
@@ -99,6 +101,11 @@ class CollectionTest(unittest.TestCase):
         for doc in docs:
             self.assertIn(doc['_id'], self.c)
 
+    def test_init_with_non_serializable(self):
+        docs = [dict(a=array.array('f', [1, 2, 3])) for i in range(10)]
+        with self.assertRaises(TypeError):
+            self.c = Collection(docs)
+
     def test_insert(self):
         doc = dict(a=0)
         self.c['0'] = doc
@@ -111,6 +118,11 @@ class CollectionTest(unittest.TestCase):
             self.c[0] = dict(a=0)
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
+
+    def test_insert_non_serializable(self):
+        doc = dict(a=array.array('f', [1, 2, 3]))
+        with self.assertRaises(TypeError):
+            self.c['0'] = doc
 
     def test_insert_multiple(self):
         doc = dict(a=0)
@@ -578,6 +590,26 @@ class CompressedCollectionTest(CollectionTest):
         self.assertGreater(size_uncompressed, 0)
         compresslevel = size_uncompressed / size_compressed
         self.assertGreater(compresslevel, 1.0)
+
+
+class FileCollectionTestBadJson(unittest.TestCase):
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
+        self.addCleanup(self._tmp_dir.cleanup)
+        with open(self._fn_collection, 'w') as file:
+            for i in range(3):
+                file.write('{"a": 0}\n')
+
+    def test_read(self):
+        with Collection.open(self._fn_collection, mode='r') as c:
+            self.assertEqual(len(list(c)), 3)
+        with open(self._fn_collection, 'a') as file:
+            file.write("{'a': 0}\n")      # ill-formed JSON (single quotes instead of double quotes)
+        with self.assertRaises(JSONParseError):
+            with Collection.open(self._fn_collection, mode='r') as c:
+                pass
 
 
 class FileCollectionTestReadOnly(unittest.TestCase):

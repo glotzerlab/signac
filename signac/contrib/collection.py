@@ -288,6 +288,10 @@ class _CollectionSearchResults(object):
     count = __len__
 
 
+class JSONParseError(ValueError):
+    pass
+
+
 class Collection(object):
     """A collection of documents.
 
@@ -522,7 +526,12 @@ class Collection(object):
         if _trust:
             self._docs[_id] = doc
         else:
-            self._docs[_id] = self._validate_doc(json.loads(json.dumps(doc)))
+            try:
+                doc_ = json.loads(json.dumps(doc))
+            except TypeError as error:
+                raise TypeError(
+                    "Serialization of document '{}' failed with error: {}".format(doc, error))
+            self._docs[_id] = self._validate_doc(doc_)
         self._dirty.add(_id)
         self._requires_flush = True
 
@@ -936,6 +945,13 @@ class Collection(object):
                 collection = cls()
             else:
                 raise error
+        except ValueError as error:
+            if hasattr(file, 'name'):
+                raise JSONParseError(
+                    "Error while trying to parse file '{}': {}.".format(file.name, error))
+            else:
+                raise JSONParseError(
+                    "Error while trying to parse '{}': {}.".format(file, error))
         except AttributeError as e:
             # This error occurs in python27 and has been evaluated as being
             # fine to accept in this manner
