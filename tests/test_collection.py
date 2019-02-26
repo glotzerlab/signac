@@ -2,10 +2,12 @@ from __future__ import division
 import os
 import io
 import unittest
+import array
 from collections import OrderedDict
 from itertools import islice
 
 from signac import Collection
+from signac.contrib.collection import JSONParseError
 from signac.common import six
 from signac.errors import InvalidKeyError
 if six.PY2:
@@ -99,6 +101,11 @@ class CollectionTest(unittest.TestCase):
         for doc in docs:
             self.assertIn(doc['_id'], self.c)
 
+    def test_init_with_non_serializable(self):
+        docs = [dict(a=array.array('f', [1, 2, 3])) for i in range(10)]
+        with self.assertRaises(TypeError):
+            self.c = Collection(docs)
+
     def test_insert(self):
         doc = dict(a=0)
         self.c['0'] = doc
@@ -111,6 +118,11 @@ class CollectionTest(unittest.TestCase):
             self.c[0] = dict(a=0)
         with self.assertRaises(TypeError):
             self.c[1.0] = dict(a=0)
+
+    def test_insert_non_serializable(self):
+        doc = dict(a=array.array('f', [1, 2, 3]))
+        with self.assertRaises(TypeError):
+            self.c['0'] = doc
 
     def test_insert_multiple(self):
         doc = dict(a=0)
@@ -292,22 +304,37 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.c.find_one({'a': {'$type': 'int'}})['_id'], id_int)
         self.assertEqual(self.c.find_one({'a': {'$type': 'float'}})['_id'], id_float)
 
-    def test_find_with_dots(self):
+    def test_insert_docs_with_dots(self):
         with self.assertRaises(InvalidKeyError):
-            self.assertEqual(len(self.c.find()), 0)
-            self.assertEqual(list(self.c.find()), [])
-            self.assertEqual(len(self.c.find({'a.b': 0})), 0)
-            docs = [{'a.b': i} for i in range(10)]
-            self.c.update(docs)
-            self.assertEqual(len(self.c.find()), len(docs))
-            self.assertEqual(len(self.c.find({'a.b': 0})), 1)
-            self.assertEqual(list(self.c.find({'a.b': 0}))[0], docs[0])
-            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
-            docs = [{'a': {'b': i}} for i in range(10)]
-            self.c.update(docs)
-            self.assertEqual(len(self.c.find()), 2 * len(docs))
-            self.assertEqual(len(self.c.find({'a.b': 0})), 2)
-            self.assertEqual(len(self.c.find({'a.b': -1})), 0)
+            self.c.__setitem__('0', {'a.b': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c.insert_one({'a.b': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c['0'] = {'a.b': 0}
+        with self.assertRaises(InvalidKeyError):
+            self.c.insert_one({'a': {'b.c': 0}})
+        with self.assertRaises(InvalidKeyError):
+            self.c['0'] = {'a': {'b.c': 0}}
+        with self.assertRaises(InvalidKeyError):
+            self.c.update([{'_id': '0', 'a.b': 0}])
+        with self.assertRaises(InvalidKeyError):
+            self.c.update([{'_id': '0', 'a': {'b.c': 0}}])
+
+    def test_replace_docs_with_dots(self):
+        self.c.insert_one({'a': 0})
+        with self.assertRaises(InvalidKeyError):
+            self.c.replace_one({'a': 0}, {'a.b': 0})
+
+    def test_insert_docs_with_dots_force(self):
+        self.c.__setitem__('0', {'a.b': 0}, _trust=True)
+
+        # These searches will not catch the error:
+        self.c.find()
+        self.c.find({'a': 0})
+
+        # This one will:
+        with self.assertRaises(InvalidKeyError):
+            self.c.find({'a.b': 0})
 
     def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!
@@ -563,6 +590,26 @@ class CompressedCollectionTest(CollectionTest):
         self.assertGreater(size_uncompressed, 0)
         compresslevel = size_uncompressed / size_compressed
         self.assertGreater(compresslevel, 1.0)
+
+
+class FileCollectionTestBadJson(unittest.TestCase):
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
+        self.addCleanup(self._tmp_dir.cleanup)
+        with open(self._fn_collection, 'w') as file:
+            for i in range(3):
+                file.write('{"a": 0}\n')
+
+    def test_read(self):
+        with Collection.open(self._fn_collection, mode='r') as c:
+            self.assertEqual(len(list(c)), 3)
+        with open(self._fn_collection, 'a') as file:
+            file.write("{'a': 0}\n")      # ill-formed JSON (single quotes instead of double quotes)
+        with self.assertRaises(JSONParseError):
+            with Collection.open(self._fn_collection, mode='r') as c:
+                pass
 
 
 class FileCollectionTestReadOnly(unittest.TestCase):
