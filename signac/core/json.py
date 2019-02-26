@@ -9,6 +9,7 @@ msg = "Using '{}' package for JSON encoding/decoding."
 
 try:
     import rapidjson as json
+    from rapidjson import Encoder as JSONEncoder
     logger.debug(msg.format('rapidjson'))
 except ImportError:
     import json
