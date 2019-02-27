@@ -18,8 +18,8 @@ Highlights
  - Add functions for the management of data on the project level, as opposed to the job level.
 
 
-[next] -- YYYY-MM-DD
---------------------
+[1.0.0] -- 2019-02-28
+---------------------
 
 Added
 +++++
@@ -43,7 +43,7 @@ Fixed
  - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
 
 [0.9.5] -- 2019-01-31
---------------------
+---------------------
 
 Fixed
 +++++

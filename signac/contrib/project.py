@@ -1429,7 +1429,7 @@ class Project(object):
 
         It is safe to call this function multiple times with
         the same arguments.
-        However, a RuntimeError is raised in case where an
+        However, a :class:`RuntimeError` is raised in case where an
         existing project configuration would conflict with
         the provided initialization parameters.
 
@@ -1835,7 +1835,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     It is safe to call this function multiple times with
     the same arguments.
-    However, a RuntimeError is raised in case where an
+    However, a :class:`RuntimeError` is raised in case where an
     existing project configuration would conflict with
     the provided initialization parameters.
 
@@ -1867,7 +1867,7 @@ def get_project(root=None, search=True):
     :param search:
         If True, search for project configurations inside and above
         the specified root directory, otherwise only return projects
-        with a root directory identical to the specified root arugment.
+        with a root directory identical to the specified root argument.
     :type search: bool
     :returns: The project handle.
     :rtype: :py:class:`~.Project`
