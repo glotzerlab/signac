@@ -441,9 +441,17 @@ class Job(object):
         This function will attempt to move this instance of job from
         its original project to a different project.
 
-        :param project: The project to move this job to.
-        :type project: :py:class:`~.project.Project`
-        :raises DestinationExistsError: If the job is already initialized in project.
+        :param project:
+            The project to move this job to.
+        :type project:
+            :py:class:`~.project.Project`
+        :raises DestinationExistsError:
+            If the job is already initialized in project.
+        :raises RuntimeError:
+            If the job is not initialized or the destination is on a different
+            device.
+        :raies OSError:
+            When the move failed due unexpected file system issues.
         """
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
