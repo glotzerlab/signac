@@ -455,6 +455,9 @@ class Job(object):
                     "Cannot move job '{}', because it is not initialized!".format(self))
             elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
                 raise DestinationExistsError(dst)
+            elif error.errno == errno.EXDEV:
+                raise RuntimeError(
+                    "Cannot move jobs across different devices (file systems).")
             else:
                 raise error
         self.__dict__.update(dst.__dict__)
