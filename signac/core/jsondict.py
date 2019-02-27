@@ -223,7 +223,7 @@ class JSONDict(SyncedAttrDict):
         The filename of the associated JSON-file on disk.
     :param write_concern:
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file.
+        first, before replacing the original file. Default is False.
     :param parent:
         A parent instance of JSONDict or None.
     """
