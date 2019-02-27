@@ -449,8 +449,14 @@ class Job(object):
         _mkdir_p(project.workspace())
         try:
             os.rename(self.workspace(), dst.workspace())
-        except OSError:
-            raise DestinationExistsError(dst)
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                raise RuntimeError(
+                    "Cannot move job '{}', because it is not initialized!".format(self))
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+                raise DestinationExistsError(dst)
+            else:
+                raise error
         self.__dict__.update(dst.__dict__)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
