@@ -202,11 +202,11 @@ class JSONDict(SyncedAttrDict):
 
     .. code-block:: python
 
-            doc = JSONDict('data.json', write_concern=True)
-            doc['foo'] = "bar"
-            assert doc.foo == doc['foo'] == "bar"
-            assert 'foo' in doc
-            del doc['foo']
+        doc = JSONDict('data.json', write_concern=True)
+        doc['foo'] = "bar"
+        assert doc.foo == doc['foo'] == "bar"
+        assert 'foo' in doc
+        del doc['foo']
 
     This class allows access to keys both with the slicing and attributes.
     That means ``doc.foo`` and ``doc['foo']`` are equivalent.
@@ -214,11 +214,11 @@ class JSONDict(SyncedAttrDict):
 
     .. code-block:: python
 
-            >>> doc['foo'] = dict(bar=True)
-            >>> doc
-            {'foo': {'bar': True}}
-            >>> doc.foo.bar = False
-            {'foo': {'bar': False}}
+        >>> doc['foo'] = dict(bar=True)
+        >>> doc
+        {'foo': {'bar': True}}
+        >>> doc.foo.bar = False
+        {'foo': {'bar': False}}
 
     :param filename:
         The filename of the associated JSON-file on disk.
