@@ -208,9 +208,8 @@ class JSONDict(SyncedAttrDict):
         assert 'foo' in doc
         del doc['foo']
 
-    This class allows access to keys both with the slicing and attributes.
-    That means ``doc.foo`` and ``doc['foo']`` are equivalent.
-    Nested keys can also be accessed like that:
+    This class allows access to values through key indexing or attributes
+    named by keys, including nested keys:
 
     .. code-block:: python
 
