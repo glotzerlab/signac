@@ -441,16 +441,33 @@ class Job(object):
         This function will attempt to move this instance of job from
         its original project to a different project.
 
-        :param project: The project to move this job to.
-        :type project: :py:class:`~.project.Project`
-        :raises DestinationExistsError: If the job is already initialized in project.
+        :param project:
+            The project to move this job to.
+        :type project:
+            :py:class:`~.project.Project`
+        :raises DestinationExistsError:
+            If the job is already initialized in project.
+        :raises RuntimeError:
+            If the job is not initialized or the destination is on a different
+            device.
+        :raises OSError:
+            When the move failed due unexpected file system issues.
         """
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
         try:
             os.rename(self.workspace(), dst.workspace())
-        except OSError:
-            raise DestinationExistsError(dst)
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                raise RuntimeError(
+                    "Cannot move job '{}', because it is not initialized!".format(self))
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+                raise DestinationExistsError(dst)
+            elif error.errno == errno.EXDEV:
+                raise RuntimeError(
+                    "Cannot move jobs across different devices (file systems).")
+            else:
+                raise error
         self.__dict__.update(dst.__dict__)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):

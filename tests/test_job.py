@@ -1184,6 +1184,27 @@ class JobOpenDataTest(BaseJobTest):
                 self.assertIn(key, job.data)
                 self.assertIn(key, job2.data)
 
+    def test_move_not_initialized(self):
+        job = self.open_job(test_token)
+        with self.assertRaises(RuntimeError):
+            job.move(job._project)
+
+    def test_move_intra_project(self):
+        job = self.open_job(test_token).init()
+        job.move(self.project)  # no-op
+
+    def test_move_inter_project(self):
+        job = self.open_job(test_token).init()
+        project_a = self.project
+        project_b = self.project_class.init_project(
+            name='project_b',
+            root=os.path.join(self._tmp_pr, 'project_b'))
+        job.move(project_b)
+        job.move(project_a)
+        project_b.clone(job)
+        with self.assertRaises(DestinationExistsError):
+            job.move(project_b)
+
     def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
