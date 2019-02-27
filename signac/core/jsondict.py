@@ -194,8 +194,41 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
 
 
 class JSONDict(SyncedAttrDict):
+    """A dict-like mapping interface to a persistent JSON-file.
 
-    def __init__(self, parent=None, filename=None, write_concern=False):
+    The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
+    behaves similar to a :class:`dict`, but all data is stored persistently in
+    the associated JSON-file on disk.
+
+    .. code-block:: python
+
+            doc = JSONDict('data.json', write_concern=True)
+            doc['foo'] = "bar"
+            assert doc.foo == doc['foo'] == "bar"
+            assert 'foo' in doc
+            del doc['foo']
+
+    This class allows access to keys both with the slicing and attributes.
+    That means ``doc.foo`` and ``doc['foo']`` are equivalent.
+    Nested keys can also be accessed like that:
+
+    .. code-block:: python
+
+            >>> doc['foo'] = dict(bar=True)
+            >>> doc
+            {'foo': {'bar': True}}
+            >>> doc.foo.bar = False
+            {'foo': {'bar': False}}
+
+    :param filename:
+        The filename of the associated JSON-file on disk.
+    :param write_concern:
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file.
+    :param parent:
+        A parent instance of JSONDict or None.
+    """
+    def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
