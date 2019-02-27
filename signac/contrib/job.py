@@ -450,7 +450,7 @@ class Job(object):
         :raises RuntimeError:
             If the job is not initialized or the destination is on a different
             device.
-        :raies OSError:
+        :raises OSError:
             When the move failed due unexpected file system issues.
         """
         dst = project.open_job(self.statepoint())
