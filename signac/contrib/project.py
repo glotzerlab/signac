@@ -16,7 +16,7 @@ from itertools import groupby
 from multiprocessing.pool import ThreadPool
 
 from .. import syncutil
-from ..core.json import json
+from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection

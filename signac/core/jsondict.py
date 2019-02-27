@@ -12,7 +12,7 @@ from tempfile import mkstemp
 from contextlib import contextmanager
 
 from .errors import Error
-from .json import json, CustomJSONEncoder
+from . import json
 from .attrdict import SyncedAttrDict
 from ..common import six
 
@@ -236,7 +236,7 @@ class JSONDict(SyncedAttrDict):
             data = self._as_dict()
 
         # Serialize data:
-        blob = json.dumps(data, cls=CustomJSONEncoder).encode()
+        blob = json.dumps(data).encode()
 
         if _BUFFERED_MODE > 0:
             _store_in_buffer(self._filename, blob)

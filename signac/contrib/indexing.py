@@ -11,7 +11,7 @@ import errno
 from time import sleep
 from collections import defaultdict
 
-from ..core.json import json
+from ..core import json
 from ..common import six
 from ..common import errors
 from .utility import walkdepth, is_string

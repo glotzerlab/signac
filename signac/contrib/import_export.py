@@ -15,7 +15,7 @@ from string import Formatter
 
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
-from ..core.json import json
+from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError
 from .utility import _mkdir_p

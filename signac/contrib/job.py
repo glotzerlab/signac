@@ -8,7 +8,7 @@ import shutil
 import uuid
 
 from ..common import six
-from ..core.json import json, CustomJSONEncoder
+from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
@@ -60,7 +60,7 @@ class Job(object):
 
         # Ensure that the job id is configured
         if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint, cls=CustomJSONEncoder))
+            self._statepoint = json.loads(json.dumps(statepoint))
             self._id = calc_id(self._statepoint)
         else:
             self._statepoint = dict(statepoint)
@@ -229,7 +229,7 @@ class Job(object):
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc, cls=CustomJSONEncoder).encode())
+            tmpfile.write(json.dumps(new_doc).encode())
         if six.PY2:
             os.rename(fn_tmp, self._fn_doc)
         else:
@@ -315,7 +315,7 @@ class Job(object):
 
         try:
             # Ensure to create the binary to write before file creation
-            blob = json.dumps(self._statepoint, indent=2, cls=CustomJSONEncoder)
+            blob = json.dumps(self._statepoint, indent=2)
 
             try:
                 # Open the file for writing only if it does not exist yet.
