@@ -4,6 +4,61 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
+Version 1.0
+===========
+
+Highlights
+----------
+
+ - Native integration of HDF5 files with the ``H5Store`` and ``H5StoreManager``, which are exposed as the ``job.data``, ``job.stores``, ``project.data``, and ``project.stores`` properties respectively.
+ - The newly added ``signac.get_job()`` function makes it easier to obtain instances of `Job` by calling the function from within a job's workspace directory or by directly providing the path to the job's workspace directory. This is especially useful for interactive work or when accessing jobs which are outside of the current project.
+ - Simplified export of project and job data to pandas dataframes *via* the ``to_dataframe()`` function.
+ - Projects and job search results are displayed nicely in Jupyter Notebooks.
+ - Support for compressed Collection files.
+
+
+[1.0.0] -- 2019-02-28
+---------------------
+
+Added
++++++
+
+ - Official support for Python 3.7.
+ - The ``H5Store`` and ``H5StoreManager`` classes, which are useful for storing (numerical) array-like data with an HDF5-backend. These classes are exposed within the root namespace.
+ - The ``job.data`` and ``project.data`` properties which present an instance of ``H5Store`` to access numerical data within the job workspace and project root directory.
+ - The ``job.stores`` and ``project.stores`` properties, which present an instance of ``H5StoreManager`` to manage multiple instances of ``H5Store`` to store numerical array-like data within the project workspace and project root directory.
+ - The ``signac.get_job()`` and the ``signac.Project.get_job()`` functions that allow users to get a job handle by switching into or providing the job's workspace directory.
+ - The ``job`` variable is automatically set when opening a ``signac shell`` from within a job's workspace directory.
+ - Add the `signac shell -c` option which allows the direct specification of Python commands to be executed within the shell.
+ - Automatic cast of ``numpy`` arrays to lists when storing them within a ``JSONDict``, e.g., a ``job.statepoint`` or ``job.document``.
+ - Enable ``Collection`` class to manage collections stored in compressed files (gzip, zip, etc.).
+ - Enable deleting of ``JSONDict`` keys through the attribute interface, e.g., ``del job.doc.foo``.
+ - The ``Job.init()`` method returns the job to allow one-line job creation and initialization.
+ - Pretty HTML representation of instances of ``Project`` and ``JobsCursor`` targeted at Jupyter Notebooks (requires pandas, automatically enabled when installed).
+ - The ``to_dataframe()`` function to export the job state point and document data of a ``Project`` or a ``JobsCursor``, e.g., the result of ``Project.find_jobs()``, as a ``pandas.Dataframe`` (requires pandas).
+
+Changed
++++++++
+
+ - Dots (`.`) in keys are no longer allowed for ``JSONDict`` and ``Collection`` keys (previously deprecated).
+ - The ``JSONDict`` module is exposed in the root namespace, which is useful for storing text-serializable data  with a JSON-backend similar to the `job.statepoint` or `job.document`, etc.
+ - The ``search`` argument was added to the `signac.get_project()` function, which when True (the default), will cause signac to search for a project within *and above* a specified root directory, not only within the root directory. The behavior without any arguments remains unchanged.
+
+Fixed
++++++
+
+ - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
+ - Fix issue where the `Job.move()` would trigger a confusing ``DestinationExists`` exception when trying to move jobs across devices / file systems.
+ - Fix issue that caused failures when the `python-rapidjson` package is installed.
+
+Removed
++++++++
+
+ - Removes the obsolete and deprecated ``core.search_engine`` module.
+ - The previously deprecated ``Project.find_statepoints()`` and ``Project.find_job_documents()`` functions have been removed.
+ - The ``Project.find_jobs()`` no longer accepts the obsolete ``index`` argument.
+
+
 Version 0.9
 ===========
 
@@ -17,30 +72,6 @@ Highlights
  - Adds functions for the import and export of data spaces.
  - Add functions for the management of data on the project level, as opposed to the job level.
 
-
-[1.0.0] -- 2019-02-28
----------------------
-
-Added
-+++++
-
- - Adds an ``H5Store`` and a ``H5StoreManager`` class, useful for storing array-like data with an HDF5-backend. Those classes are exposed as part of the ``job.data``, ``job.stores``, ``project.data``, and ``project.stores``, properties.
- - Adds the ``signac.get_job()`` and the ``signac.Project.get_job()`` functions which allow users to get a job handle by switching into or providing the job's workspace directory.
- - Add automatic cast of numpy arrays to lists when storing them within a `JSONDict`, e.g., a `job.statepoint` or `job.document`.
- - Enable `Collection` class to manage collections stored in gzip files.
- - Enable deleting of `JSONDict` keys through the attribute interface, e.g., `del job.doc.foo`.
- - The `Job.init()` method returns the job to allow one-line job creation and initialization.
- - Add HTML representation of instances of `Project` and `JobsCursor` targeted at Jupyter Notebooks (requires pandas).
-
-Changed
-+++++++
-
- - `Project.find_jobs()` and `Project.find_statepoints()` no longer have the unused argument `index`.
-
-Fixed
-+++++
-
- - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
 
 [0.9.5] -- 2019-01-31
 ---------------------
