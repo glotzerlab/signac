@@ -63,7 +63,7 @@ class H5StoreClosedError(RuntimeError):
 
 
 class H5StoreAlreadyOpenError(OSError):
-    """Indicates that the underlying HDF5-file is already openend."""
+    """Indicates that the underlying HDF5 file is already openend."""
 
 
 def _h5set(store, grp, key, value, path=None):
@@ -236,7 +236,7 @@ class H5Store(MutableMapping):
 
     The H5Store API is a :class:`collections.abc.MutableMapping` and therefore
     behaves similar to a :class:`dict`, but all data is stored persistently in
-    the associated HDF5-file on disk.
+    the associated HDF5 file on disk.
 
     Supported types include:
 
@@ -258,7 +258,7 @@ class H5Store(MutableMapping):
             assert h5s['foo'] == 'bar'
 
     :param filename:
-        The filename of the underlying HDF5-file.
+        The filename of the underlying HDF5 file.
     :param kwargs:
         Additional keyword arguments to be forward to the h5py.File constructor
         See documentation for :class:`h5py.File` for more information.
@@ -317,7 +317,7 @@ class H5Store(MutableMapping):
         return self
 
     def open(self, mode=None):
-        """Open the underlying HDF5-file.
+        """Open the underlying HDF5 file.
 
         :param mode:
             The file open mode to use. Defaults to 'a' (append).
@@ -329,7 +329,7 @@ class H5Store(MutableMapping):
         return self._open(mode=mode)
 
     def close(self):
-        """Close the underlying HDF5-file."""
+        """Close the underlying HDF5 file."""
         locked = True
         try:
             self._file.close()
@@ -352,7 +352,7 @@ class H5Store(MutableMapping):
         return self._mode
 
     def flush(self):
-        """Flush the underlying HDF5-file."""
+        """Flush the underlying HDF5 file."""
         if self._file is None:
             raise H5StoreClosedError(self._filename)
         else:

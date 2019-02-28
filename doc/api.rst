@@ -113,6 +113,7 @@ The Job class
     :undoc-members:
     :show-inheritance:
 
+.. currentmodule:: signac
 
 The Collection
 ==============
@@ -121,6 +122,16 @@ The Collection
 
 .. autoclass:: Collection
    :members:
+
+
+The JSONDict
+============
+
+This class implements the interface for the job's :attr:`~signac.contrib.job.Job.statepoint` and :attr:`~signac.contrib.job.Job.document` attributes, but can also be used stand-alone:
+
+.. autoclass:: JSONDict
+   :members:
+
 
 Top-level functions
 ===================

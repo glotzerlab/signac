@@ -264,10 +264,10 @@ class Job(object):
     def stores(self):
         """Access HDF5-stores associated wit this job.
 
-        Use this property to access an HDF5-file within the job's workspace
+        Use this property to access an HDF5 file within the job's workspace
         directory using the H5Store dict-like interface.
 
-        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        This is an example for accessing an HDF5 file called 'my_data.h5' within
         the job's workspace:
 
             job.stores['my_data']['array'] = np.random((32, 4))

@@ -305,10 +305,10 @@ class Project(object):
     def stores(self):
         """Access HDF5-stores associated wit this project.
 
-        Use this property to access an HDF5-file within the project's root
+        Use this property to access an HDF5 file within the project's root
         directory using the H5Store dict-like interface.
 
-        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        This is an example for accessing an HDF5 file called 'my_data.h5' within
         the project's root directory:
 
             project.stores['my_data']['array'] = np.random((32, 4))
@@ -1005,8 +1005,8 @@ class Project(object):
 
         :param target:
             A path to a directory to export to. The target can not already exist.
-            Besides directories, possible targets are tar-files (`.tar`), gzipped tar-files
-            (`.tar.gz`), zip-files (`.zip`), bzip2-compressed files (`.bz2`),
+            Besides directories, possible targets are tar files (`.tar`), gzipped tar files
+            (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
         :param path:
             The path (function) used to structure the exported data space.
@@ -1053,7 +1053,7 @@ class Project(object):
 
         :param origin:
             The path to the data space origin, which is to be imported. This may be a path to
-            a directory, a zip-file, or a tarball archive.
+            a directory, a zip file, or a tarball archive.
         :param schema:
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
