@@ -203,6 +203,16 @@ class Job(object):
     @property
     def statepoint(self):
         """Access the job's state point as attribute dictionary.
+
+        .. warning::
+
+            The statepoint object behaves like a dictionary in most cases,
+            but because it persists changes to the filesystem, making a copy
+            requires explicitly converting it to a dict. If you need a
+            modifiable copy that will not modify the underlying JSON file,
+            you can access a dict copy of the statepoint by calling it, e.g.
+            `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
+            For more information, see :class:`~signac.JSONDict`.
         """
         if self._sp is None:
             self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
@@ -215,6 +225,12 @@ class Job(object):
     @property
     def sp(self):
         """ Alias for :attr:`Job.statepoint`.
+
+        .. warning::
+
+            As with :attr:`Job.statepoint`, use `job.sp()` instead of
+            `job.sp` if you need to deep copy that will not modify the
+            underlying persisted JSON file.
         """
         return self.statepoint
 
@@ -239,6 +255,13 @@ class Job(object):
     def document(self):
         """The document associated with this job.
 
+        .. warning::
+
+            If you need to deep copy that will not modify the underlying
+            persisted JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
+
         :return:
             The job document handle.
         :rtype:
@@ -256,6 +279,13 @@ class Job(object):
     @property
     def doc(self):
         """Alias for :attr:`Job.document`.
+
+        .. warning::
+
+            If you need to deep copy that will not modify the underlying
+            persisted JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
         """
         return self.document
 
