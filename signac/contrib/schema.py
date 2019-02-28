@@ -4,6 +4,7 @@
 from pprint import pformat
 from collections import defaultdict as ddict
 from numbers import Number
+import itertools
 
 from ..common import six
 if six.PY2:
@@ -179,9 +180,10 @@ class ProjectSchema(object):
     def __call__(self, jobs_or_statepoints):
         "Evaluate the schema for the given state points."
         s = dict()
-        for key in self:
+        iterators = itertools.tee(jobs_or_statepoints, len(self))
+        for key, it in zip(self, iterators):
             values = []
-            for sp in jobs_or_statepoints:
+            for sp in it:
                 if not isinstance(sp, Mapping):
                     sp = sp.statepoint
                 v = sp[key[0]]
