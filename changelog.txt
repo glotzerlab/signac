@@ -16,6 +16,10 @@ Highlights
  - Projects and job search results are displayed nicely in Jupyter Notebooks.
  - Support for compressed Collection files.
 
+next
+----
+
+ - Fixed tests that depend on ``h5py`` to only run if ``h5py`` is installed. 
 
 [1.0.0] -- 2019-02-28
 ---------------------
