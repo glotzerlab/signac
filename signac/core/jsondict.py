@@ -194,11 +194,11 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
 
 
 class JSONDict(SyncedAttrDict):
-    """A dict-like mapping interface to a persistent JSON-file.
+    """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
     behaves similar to a :class:`dict`, but all data is stored persistently in
-    the associated JSON-file on disk.
+    the associated JSON file on disk.
 
     .. code-block:: python
 
@@ -220,7 +220,7 @@ class JSONDict(SyncedAttrDict):
         {'foo': {'bar': False}}
 
     :param filename:
-        The filename of the associated JSON-file on disk.
+        The filename of the associated JSON file on disk.
     :param write_concern:
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file. Default is False.
