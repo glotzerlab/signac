@@ -16,8 +16,9 @@ from itertools import groupby
 from multiprocessing.pool import ThreadPool
 
 from .. import syncutil
-from ..core.json import json
+from ..core import json
 from ..core.jsondict import JSONDict
+from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common import six
 from ..common.config import load_config
@@ -123,11 +124,16 @@ class Project(object):
     FN_DOCUMENT = 'signac_project_document.json'
     "The project's document filename."
 
+    KEY_DATA = 'signac_data'
+    "The project's datastore key."
+
     FN_STATEPOINTS = 'signac_statepoints.json'
     "The default filename to read from and write statepoints to."
 
     FN_CACHE = '.signac_sp_cache.json.gz'
     "The default filename for the state point cache file."
+
+    _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
     def __init__(self, config=None):
         if config is None:
@@ -158,6 +164,9 @@ class Project(object):
                " 'workspace_dir': '{wd}'}})".format(
                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
                    id=self.get_id(), rd=self.root_directory(), wd=self.workspace())
+
+    def _repr_html_(self):
+        return repr(self) + self.find_jobs()._repr_html_jobs()
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -292,13 +301,56 @@ class Project(object):
     def doc(self, new_doc):
         self.document = new_doc
 
+    @property
+    def stores(self):
+        """Access HDF5-stores associated wit this project.
+
+        Use this property to access an HDF5 file within the project's root
+        directory using the H5Store dict-like interface.
+
+        This is an example for accessing an HDF5 file called 'my_data.h5' within
+        the project's root directory:
+
+            project.stores['my_data']['array'] = np.random((32, 4))
+
+        This is equivalent to:
+
+            H5Store(project.fn('my_data.h5'))['array'] = np.random((32, 4))
+
+        Both the `project.stores` and the `H5Store` itself support attribute
+        access. The above example could therefore also be expressed as
+
+            project.stores.my_data.array = np.random((32, 4))
+
+        :return: The HDF5-Store manager for this project.
+        :rtype: :class:`~..core.h5store.H5StoreManager
+        """
+        return H5StoreManager(self._rd)
+
+    @property
+    def data(self):
+        """The data associated with this project.
+
+        Equivalent to:
+
+            return project.store['signac_data']
+
+        :return: An HDF5-backed datastore.
+        :rtype: :class:`~..core.h5store.H5Store`
+        """
+        return self.stores[self.KEY_DATA]
+
+    @data.setter
+    def data(self, new_data):
+        self.stores[self.KEY_DATA] = new_data
+
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
 
         This method returns the job instance associated with
         the given statepoint or job id.
         Opening a job by a valid statepoint never fails.
-        Opening a job by id, requires a lookup of the statepoint
+        Opening a job by id requires a lookup of the statepoint
         from the job id, which may fail if the job was not
         previously initialized.
 
@@ -493,21 +545,20 @@ class Project(object):
             search_index = JobSearchIndex(index)
         return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
-    def find_jobs(self, filter=None, doc_filter=None, index=None):
+    def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
 
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        .. note::
-            Providing a pre-calculated index may vastly increase the
-            performance of this function.
+        The optional filter arguments must be a Mapping of key-value pairs and
+        JSON serializable. The `filter` argument is used to search against job
+        statepoints, whereas the `doc_filter` argument compares against job
+        document keys.
 
         :param filter: A mapping of key-value pairs that all
             indexed job statepoints are compared against.
         :type filter: Mapping
         :param doc_filter: A mapping of key-value pairs that all
             indexed job documents are compared against.
+        :type doc_filter: Mapping
         :yields: Instances of :class:`~signac.contrib.job.Job`
         :raise TypeError: If the filters are not JSON serializable.
         :raises ValueError: If the filters are invalid.
@@ -591,29 +642,12 @@ class Project(object):
         """
         return self.find_jobs().groupbydoc(key, default=default)
 
-    def find_statepoints(self, filter=None, doc_filter=None, index=None, skip_errors=False):
-        """Find all statepoints in the project's workspace.
+    def to_dataframe(self, *args, **kwargs):
+        """Export the project metadata to a pandas dataframe.
 
-        :param filter: If not None, only yield statepoints matching the filter.
-        :type filter: mapping
-        :param skip_errors: Show, but otherwise ignore errors while
-            iterating over the workspace. Use this argument to repair
-            a corrupted workspace.
-        :type skip_errors: bool
-        :yields: statepoints as dict"""
-        warnings.warn(
-            "The Project.find_statepoints() method is deprecated.",
-            DeprecationWarning)
-
-        if index is None:
-            index = self.index(include_job_document=False)
-        if skip_errors:
-            index = _skip_errors(index, logger.critical)
-        jobs = self.find_jobs(filter, doc_filter, index)
-        if skip_errors:
-            jobs = _skip_errors(jobs, logger.critical)
-        for job in jobs:
-            yield dict(job._statepoint)
+        The arguments to this function are forwarded to :py:meth:`.JobsCursor.to_dataframe`.
+        """
+        return self.find_jobs().to_dataframe(*args, **kwargs)
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
@@ -806,37 +840,6 @@ class Project(object):
         from .linked_view import create_linked_view
         return create_linked_view(self, prefix, job_ids, index, path)
 
-    def find_job_documents(self, filter=None):
-        """Find all job documents in the project's workspace.
-
-        This method iterates through all jobs or all jobs matching
-        the filter and yields each job's document as a dict.
-        Each dict additionally contains a field 'statepoint',
-        with the job's statepoint and a field '_id', which is
-        the job's id.
-
-        :param filter: If not None,
-            only find job documents matching filter.
-        :type filter: mapping
-        :yields: Instances of dict.
-        :raises KeyError: If the job document already contains the fields
-            '_id' or 'statepoint'."""
-        warnings.warn(
-            "The Project.find_job_documents() method is deprecated.",
-            DeprecationWarning)
-
-        for job in self.find_jobs(filter=filter):
-            doc = dict(job.document)
-            if '_id' in doc:
-                raise KeyError(
-                    "The job document already contains a field '_id'!")
-            if 'statepoint' in doc:
-                raise KeyError(
-                    "The job document already contains a field 'statepoint'!")
-            doc['_id'] = str(job)
-            doc['statepoint'] = dict(job._statepoint)
-            yield doc
-
     def reset_statepoint(self, job, new_statepoint):
         """Reset the state point of job.
 
@@ -1002,8 +1005,8 @@ class Project(object):
 
         :param target:
             A path to a directory to export to. The target can not already exist.
-            Besides directories, possible targets are tar-files (`.tar`), gzipped tar-files
-            (`.tar.gz`), zip-files (`.zip`), bzip2-compressed files (`.bz2`),
+            Besides directories, possible targets are tar files (`.tar`), gzipped tar files
+            (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
         :param path:
             The path (function) used to structure the exported data space.
@@ -1050,7 +1053,7 @@ class Project(object):
 
         :param origin:
             The path to the data space origin, which is to be imported. This may be a path to
-            a directory, a zip-file, or a tarball archive.
+            a directory, a zip file, or a tarball archive.
         :param schema:
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
@@ -1250,7 +1253,7 @@ class Project(object):
                 raise error
 
     def update_cache(self):
-        """Update the persistent state point cache (experimental).
+        """Update the persistent state point cache.
 
         This function updates a persistent state point cache, which
         is stored in the project root directory. Most data space operations,
@@ -1258,9 +1261,6 @@ class Project(object):
         to be significantly faster after calling this function, especially
         for large data spaces.
         """
-        warnings.warn(
-            "The Project.update_cache() method is experimental and "
-            "might be removed in future releases.", FutureWarning)
         logger.info('Update cache...')
         start = time.time()
         cache = self._read_cache()
@@ -1420,7 +1420,7 @@ class Project(object):
         if dir is None:
             dir = self.workspace()
         _mkdir_p(self.workspace())  # ensure workspace exists
-        with TemporaryProject(name=name, dir=dir) as tmp_project:
+        with TemporaryProject(name=name, cls=type(self), dir=dir) as tmp_project:
             yield tmp_project
 
     @classmethod
@@ -1429,7 +1429,7 @@ class Project(object):
 
         It is safe to call this function multiple times with
         the same arguments.
-        However, a RuntimeError is raised in case where an
+        However, a :class:`RuntimeError` is raised in case where an
         existing project configuration would conflict with
         the provided initialization parameters.
 
@@ -1451,7 +1451,7 @@ class Project(object):
         if root is None:
             root = os.getcwd()
         try:
-            project = cls.get_project(root=root)
+            project = cls.get_project(root=root, search=False)
         except LookupError:
             fn_config = os.path.join(root, 'signac.rc')
             if make_dir:
@@ -1477,25 +1477,64 @@ class Project(object):
                         name, os.path.abspath(root)))
 
     @classmethod
-    def get_project(cls, root=None):
+    def get_project(cls, root=None, search=True):
         """Find a project configuration and return the associated project.
 
-        :param root: The project root directory.
-            If no root directory is given, the next project found
-            within or above the current working directory is returned.
+        :param root:
+            The starting point to search for a project, defaults to the
+            current working directory.
         :type root: str
+        :param search:
+            If True, search for project configurations inside and above
+            the specified root directory, otherwise only return projects
+            with a root directory identical to the specified root argument.
+        :type search: bool
         :returns: The project handle.
-        :raises LookupError: If no project configuration can be found."""
-        config = load_config(root=root, local=root is not None)
-        if 'project' not in config:
+        :raises LookupError: If no project configuration can be found.
+        """
+        if root is None:
+            root = os.getcwd()
+        config = load_config(root=root, local=False)
+        if 'project' not in config or (not search and config['project_dir'] != root):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(
-                    os.getcwd() if root is None else os.path.abspath(root)))
+                "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
         return cls(config=config)
+
+    @classmethod
+    def get_job(cls, root=None):
+        """Find a Job in or above the current working directory (or provided path).
+
+        :param root: The job root directory.
+            If no root directory is given, the current working directory is
+            assumed to be the job directory.
+        :type root: str
+        :returns: The job handle.
+        :raises LookupError: If this job cannot be found."""
+        if root is None:
+            root = os.getcwd()
+        root = os.path.abspath(root)
+
+        # Ensure the root path exists, which is not guaranteed by the regex match
+        if not os.path.exists(root):
+            raise LookupError("Path does not exist: '{}'.".format(root))
+
+        # Find the last match instance of a job id
+        results = list(re.finditer(JOB_ID_REGEX, root))
+        if len(results) == 0:
+            raise LookupError("Could not find a job id in path '{}'.".format(root))
+        match = results[-1]
+        job_id = match.group(0)
+        job_root = root[:match.end()]
+
+        # Find a project *above* the root directory (avoid finding nested projects)
+        project = cls.get_project(os.path.join(job_root, os.pardir))
+
+        # Return the matched job id from the found project
+        return project.open_job(id=job_id)
 
 
 @contextmanager
-def TemporaryProject(name=None, **kwargs):
+def TemporaryProject(name=None, cls=None, **kwargs):
     """Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
@@ -1509,6 +1548,9 @@ def TemporaryProject(name=None, **kwargs):
     :param name:
         An optional name for the temporary project.
         Defaults to a unique random string.
+    :param cls:
+        The class of the temporary project.
+        Defaults to :class:`.Project`.
     :param kwargs:
         Optional key-word arguments that are forwarded to the TemporaryDirectory class
         constructor, which is used to create a temporary root directory.
@@ -1517,8 +1559,10 @@ def TemporaryProject(name=None, **kwargs):
     """
     if name is None:
         name = str(uuid.uuid4())
+    if cls is None:
+        cls = Project
     with TemporaryDirectory(**kwargs) as tmp_dir:
-        yield Project.init_project(name=name, root=tmp_dir)
+        yield cls.init_project(name=name, root=tmp_dir)
 
 
 def _skip_errors(iterable, log=print):
@@ -1551,6 +1595,7 @@ class JobsCursor(object):
     """An iterator over a search query result, enabling simple iteration and
     grouping operations.
     """
+    _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
     def __init__(self, project, filter, doc_filter):
         self._project = project
@@ -1721,13 +1766,76 @@ class JobsCursor(object):
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
 
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+        """Convert the selection of jobs to a pandas dataframe.
+
+        This function exports the job metadata to a :py:class:`pandas.DataFrame`.
+        All state point and document keys are prefixed by default to be able to distinguish them.
+
+        :param sp_prefix:
+            Prefix state point keys with the given string. Defaults to "sp.".
+        :type sp_prefix:
+            str
+        :param doc_prefix:
+            Prefix document keys with the given string. Defaults to "doc.".
+        :type doc_prefix:
+            str
+        :returns:
+            A pandas dataframe with all job metadata.
+        :rtype:
+            :py:class:`pandas.DataFrame`
+        """
+        import pandas
+
+        def _export_sp_and_doc(job):
+            for key, value in job.sp.items():
+                yield sp_prefix + key, value
+            for key, value in job.doc.items():
+                yield doc_prefix + key, value
+
+        return pandas.DataFrame.from_dict(
+            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            orient='index').infer_objects()
+
+    def __repr__(self):
+        return "{type}({{'project': '{project}', 'filter': '{filter}',"\
+               " 'docfilter': '{doc_filter}'}})".format(
+                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
+                   project=self._project,
+                   filter=self._filter,
+                   doc_filter=self._doc_filter)
+
+    def _repr_html_jobs(self):
+        html = ''
+        len_self = len(self)
+        try:
+            if len_self > 100:
+                raise RuntimeError  # too large
+            if self._use_pandas_for_html_repr:
+                import pandas
+            else:
+                raise RuntimeError
+        except ImportError:
+            warnings.warn('Install pandas for a pretty representation of jobs.')
+            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
+        except RuntimeError:
+            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
+        else:
+            with pandas.option_context("display.max_rows", 20):
+                html += self.to_dataframe()._repr_html_()
+        return html
+
+    def _repr_html_(self):
+        """Returns an HTML representation of JobsCursor."""
+        return repr(self) + self._repr_html_jobs()
+
 
 def init_project(name, root=None, workspace=None, make_dir=True):
     """Initialize a project with the given name.
 
     It is safe to call this function multiple times with
     the same arguments.
-    However, a RuntimeError is raised in case where an
+    However, a :class:`RuntimeError` is raised in case where an
     existing project configuration would conflict with
     the provided initialization parameters.
 
@@ -1749,14 +1857,41 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
 
 
-def get_project(root=None):
+def get_project(root=None, search=True):
     """Find a project configuration and return the associated project.
 
-    :param root: The project root directory.
-        If no root directory is given, the next project found
-        within or above the current working directory is returned.
+    :param root:
+        The starting point to search for a project, defaults to the
+        current working directory.
     :type root: str
+    :param search:
+        If True, search for project configurations inside and above
+        the specified root directory, otherwise only return projects
+        with a root directory identical to the specified root argument.
+    :type search: bool
     :returns: The project handle.
     :rtype: :py:class:`~.Project`
-    :raises LookupError: If no project configuration can be found."""
-    return Project.get_project(root=root)
+    :raises LookupError: If no project configuration can be found.
+    """
+    return Project.get_project(root=root, search=search)
+
+
+def get_job(root=None):
+    """Find a Job in or above the current working directory (or provided path).
+
+    :param root: The job root directory.
+        If no root directory is given, the current working directory is
+        assumed to be within the current job workspace directory.
+    :type root: str
+    :returns: The job handle.
+    :raises LookupError: If this job cannot be found.
+
+    For example, when the current directory is a job workspace directory:
+
+    .. code-block:: python
+
+        >>> signac.get_job()
+        signac.contrib.job.Job(project=..., statepoint={...})
+
+    """
+    return Project.get_job(root=root)

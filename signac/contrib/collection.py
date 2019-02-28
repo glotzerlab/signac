@@ -16,12 +16,11 @@ import sys
 import io
 import re
 import logging
-import warnings
 import argparse
 import operator
 from itertools import islice
 
-from ..core.json import json
+from ..core import json
 from ..common import six
 from .filterparse import parse_filter_arg
 
@@ -201,9 +200,12 @@ def _build_index(docs, key, primary_key):
             except KeyError:
                 pass
             else:
-                warnings.warn(
-                    "Using keys with dots ('.') is pending deprecation in the future!",
-                    PendingDeprecationWarning)
+                from ..errors import InvalidKeyError
+                raise InvalidKeyError(
+                    "\nThe document contains invalid keys. "
+                    "Specifically keys with dots ('.').\n\n"
+                    "See https://signac.io/document-wide-migration/ "
+                    "for a recipe on how to replace dots in existing keys.")
                 # inlined for performance
                 if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
@@ -286,6 +288,10 @@ class _CollectionSearchResults(object):
     count = __len__
 
 
+class JSONParseError(ValueError):
+    pass
+
+
 class Collection(object):
     """A collection of documents.
 
@@ -338,16 +344,22 @@ class Collection(object):
         time complexity of O(N) in the worst case and O(1) on average.
         All documents must have a primary key value. The default primary
         key is `_id`.
+    :param compresslevel: The level of compression to use. Any positive value
+        implies compression and is used by the underlying gzip implementation.
+        Default value is 0 (no compression).
     """
-
-    def __init__(self, docs=None, primary_key='_id', _trust=False):
+    def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
         if isinstance(docs, six.string_types):
             raise ValueError(
                 "First argument cannot be of str type. "
                 "Did you mean to use {}.open()?".format(type(self).__name__))
         self.index_rebuild_threshold = 0.1
         self._primary_key = primary_key
-        self._file = io.StringIO()
+        if compresslevel > 0:
+            self._file = io.BytesIO()
+        else:
+            self._file = io.StringIO()
+        self._compresslevel = compresslevel
         self._requires_flush = False
         self._dirty = set()
         self._indexes = dict()
@@ -358,7 +370,6 @@ class Collection(object):
                 if self._primary_key not in doc:
                     doc[self._primary_key] = self._next_default_id()
                 self.__setitem__(doc[self._primary_key], doc, _trust=_trust)
-            self._requires_flush = False  # not needed after initial read!
             self._update_indexes()
 
     def _assert_open(self):
@@ -487,6 +498,24 @@ class Collection(object):
             self._assert_open()
             raise
 
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            from ..errors import InvalidKeyError
+            raise InvalidKeyError("Keys may not contain dots ('.').")
+        return key
+
+    @classmethod
+    def _validate_doc(cls, doc):
+        "Emit a warning or raise an exception if the document is invalid. Returns doc."
+        try:
+            for key in doc.keys():
+                cls._validate_doc(doc[cls._validate_key(key)])
+        except AttributeError:
+            return
+        return doc
+
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
         if not isinstance(_id, six.string_types):
@@ -497,7 +526,12 @@ class Collection(object):
         if _trust:
             self._docs[_id] = doc
         else:
-            self._docs[_id] = json.loads(json.dumps(doc))
+            try:
+                doc_ = json.loads(json.dumps(doc))
+            except TypeError as error:
+                raise TypeError(
+                    "Serialization of document '{}' failed with error: {}".format(doc, error))
+            self._docs[_id] = self._validate_doc(doc_)
         self._dirty.add(_id)
         self._requires_flush = True
 
@@ -561,8 +595,6 @@ class Collection(object):
                 _id = doc[self._primary_key]
             else:
                 _id = doc[self._primary_key] = self._next_default_id()
-            if _id in self:
-                raise KeyError('Primary key collision!')
             self[_id] = doc
 
     def _find_expression(self, key, value):
@@ -856,6 +888,15 @@ class Collection(object):
         for _id in to_delete:
             del self[_id]
 
+    def _dump(self, text_buffer):
+        "Dump collection content serialized to JSON to text-buffer."
+        if six.PY2:
+            for doc in self._docs.values():
+                text_buffer.write(unicode(json.dumps(doc) + '\n', 'utf-8'))  # noqa
+        else:
+            for doc in self._docs.values():
+                text_buffer.write((json.dumps(doc) + '\n'))
+
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
 
@@ -873,21 +914,58 @@ class Collection(object):
         :param file: The file to write the encoded blob to.
         """
         self._assert_open()
-        for doc in self._docs.values():
-            file.write(json.dumps(doc) + '\n')
+        if self._compresslevel > 0:
+            import gzip
+            with gzip.GzipFile(
+                    compresslevel=self._compresslevel, fileobj=file, mode='wb') as gzipfile:
+                text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
+                self._dump(text_io)
+                text_io.flush()
+        else:
+            self._dump(file)
 
     @classmethod
-    def _open(cls, file):
+    def _open(cls, file, compresslevel=0):
         try:
-            docs = (json.loads(line) for line in file)
-            collection = cls(docs=docs)
-        except (IOError, io.UnsupportedOperation):
-            collection = cls()
+            if compresslevel > 0:
+                import gzip
+                with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
+                    if six.PY2 or (sys.version_info.major == 3 and sys.version_info.minor < 6):
+                        text = gzipfile.read().decode('utf-8')
+                        docs = [json.loads(line) for line in text.splitlines()]
+                        collection = cls(docs=docs)
+                    else:
+                        text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
+                        collection = cls(docs=(json.loads(line) for line in text_io))
+                        text_io.detach()
+            else:
+                collection = cls(docs=(json.loads(line) for line in file))
+        except (IOError, io.UnsupportedOperation) as error:
+            if str(error) in ('not readable', 'read'):
+                collection = cls()
+            else:
+                raise error
+        except ValueError as error:
+            if hasattr(file, 'name'):
+                raise JSONParseError(
+                    "Error while trying to parse file '{}': {}.".format(file.name, error))
+            else:
+                raise JSONParseError(
+                    "Error while trying to parse '{}': {}.".format(file, error))
+        except AttributeError as e:
+            # This error occurs in python27 and has been evaluated as being
+            # fine to accept in this manner
+            if str(e) == "'GzipFile' object has no attribute 'extrastart'":
+                collection = cls()
+            else:
+                raise AttributeError(e)
         collection._file = file
+        collection._compresslevel = compresslevel
+        collection._requires_flush = False  # not needed after initial read
         return collection
 
     @classmethod
-    def open(cls, filename, mode='a+'):
+    def open(cls, filename, mode=None, compresslevel=None):
         """Open a collection associated with a file on disk.
 
         Using this factory method will return a collection that is
@@ -915,14 +993,39 @@ class Collection(object):
 
         The open-modes work as expected, so for example to open a collection
         file in *read-only* mode, use ``Collection.open('collection.txt', 'r')``.
+
+        Opening a gzip (`*.gz`) file also works as expected. Because gzip does not
+        support a combined read and write mode, `mode=*+` is not available. Be
+        sure to open the file in read, write, or append mode as required. Due to
+        the manner in which gzip works, opening a file in `mode=wt` will
+        effectively erase the current file, so take care using `mode=wt`.
         """
+        if compresslevel is None:
+            compresslevel = 9 if filename.endswith('.gz') else 0
+
         logger.debug("Open collection '{}'.".format(filename))
         if filename == ':memory:':
-            file = io.StringIO()
+            if mode is not None:
+                raise RuntimeError("File open-mode must be None for in-memory collection.")
+            return cls(compresslevel=compresslevel)    # That's the default open mode.
         else:
-            file = open(filename, mode)
+            # Set default mode
+            if mode is None:
+                mode = 'ab+'
+
+            file = io.open(filename, mode)
             file.seek(0)
-        return cls._open(file)
+
+            if 'b' in mode:
+                if compresslevel > 0:
+                    return cls._open(file, compresslevel=compresslevel)
+                else:
+                    return cls._open(io.TextIOWrapper(file, encoding='utf-8'))
+            elif compresslevel > 0:
+                raise RuntimeError(
+                    "Compressed collections must be opened in binary mode, for example: 'ab+'.")
+            else:
+                return cls._open(file)
 
     def flush(self):
         """Write all changes to the associated file.
@@ -940,9 +1043,18 @@ class Collection(object):
                 logger.debug("Flushed collection.")
             else:
                 logger.debug("Flush collection to file '{}'.".format(self._file))
-                self._file.truncate(0)
-                self.dump(self._file)
-                self._file.flush()
+                try:
+                    self._file.truncate(0)
+                except ValueError as error:
+                    if isinstance(error, io.UnsupportedOperation):
+                        raise error                             # Python 3
+                    elif str(error).lower() == "file not open for writing":
+                        raise io.UnsupportedOperation(error)    # Python 2
+                    else:
+                        raise error  # unrelated error
+                else:
+                    self.dump(self._file)
+                    self._file.flush()
             self._requires_flush = False
         else:
             logger.debug("Flushed collection (no changes).")

@@ -3,12 +3,11 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import unittest
-import warnings
 import uuid
 
 from signac.core.jsondict import JSONDict
 from signac.common import six
-from signac.warnings import SignacDeprecationWarning
+from signac.errors import InvalidKeyError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -124,6 +123,13 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(len(jsd), 0)
         with self.assertRaises(KeyError):
             jsd[key]
+        jsd[key] = d
+        self.assertEqual(len(jsd), 1)
+        self.assertEqual(jsd[key], d)
+        del jsd.delete
+        self.assertEqual(len(jsd), 0)
+        with self.assertRaises(KeyError):
+            jsd[key]
 
     def test_update(self):
         jsd = self.get_json_dict()
@@ -222,10 +228,8 @@ class JSONDictTest(BaseJSONDictTest):
 
     def test_keys_with_dots(self):
         jsd = self.get_json_dict()
-        with warnings.catch_warnings():
-            warnings.simplefilter('error')
-            with self.assertRaises(SignacDeprecationWarning):
-                jsd['a.b'] = None
+        with self.assertRaises(InvalidKeyError):
+            jsd['a.b'] = None
 
 
 class JSONDictWriteConcernTest(JSONDictTest):

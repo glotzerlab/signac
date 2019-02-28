@@ -21,12 +21,12 @@ from .contrib import Project
 from .contrib import TemporaryProject
 from .contrib import get_project
 from .contrib import init_project
+from .contrib import get_job
 from .contrib import fetch
 from .contrib import export_one
 from .contrib import export
 from .contrib import export_to_mirror
 from .contrib import export_pymongo
-from .contrib import fetch_one  # deprecated
 from .contrib import filesystems as fs
 from .contrib import Collection
 from .contrib import index_files
@@ -40,14 +40,17 @@ from .core.jsondict import in_buffered_mode as is_buffered
 from .core.jsondict import flush_all as flush
 from .core.jsondict import get_buffer_size
 from .core.jsondict import get_buffer_load
+from .core.jsondict import JSONDict
+from .core.h5store import H5Store
+from .core.h5store import H5StoreManager
 
 
-__version__ = '0.9.5'
+__version__ = '1.0.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
-           'Project', 'TemporaryProject', 'get_project', 'init_project',
-           'get_database', 'fetch', 'fetch_one',
+           'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
+           'get_database', 'fetch',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
            'export_pymongo', 'fs',
@@ -56,4 +59,6 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'MasterCrawler',
            'SignacProjectCrawler',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
+           'JSONDict',
+           'H5Store', 'H5StoreManager',
            ]

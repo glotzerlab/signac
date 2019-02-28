@@ -28,6 +28,13 @@ if six.PY2:
 else:
     from tempfile import TemporaryDirectory
 
+try:
+    import pandas  # noqa
+except ImportError:
+    PANDAS = False
+else:
+    PANDAS = True
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -122,6 +129,32 @@ class ProjectTest(BaseProjectTest):
         self.project.doc = {'a': {'b': 45}}
         self.assertEqual(self.project.doc, {'a': {'b': 45}})
 
+    def test_data(self):
+        with self.project.data:
+            self.assertFalse(self.project.data)
+            self.assertEqual(len(self.project.data), 0)
+            self.project.data['a'] = 42
+            self.assertEqual(len(self.project.data), 1)
+            self.assertTrue(self.project.data)
+        prj2 = type(self.project).get_project(root=self.project.root_directory())
+        with prj2.data:
+            self.assertTrue(prj2.data)
+            self.assertEqual(len(prj2.data), 1)
+        with self.project.data:
+            self.project.data.clear()
+            self.assertFalse(self.project.data)
+            self.assertEqual(len(self.project.data), 0)
+        with prj2.data:
+            self.assertFalse(prj2.data)
+            self.assertEqual(len(prj2.data), 0)
+        with self.project.data:
+            self.project.data.a = {'b': 43}
+            self.assertEqual(self.project.data, {'a': {'b': 43}})
+            self.project.data.a.b = 44
+            self.assertEqual(self.project.data, {'a': {'b': 44}})
+            self.project.data = {'a': {'b': 45}}
+            self.assertEqual(self.project.data, {'a': {'b': 45}})
+
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
         self.project.dump_statepoints(statepoints)
@@ -191,34 +224,6 @@ class ProjectTest(BaseProjectTest):
 
         self.assertFalse(os.path.isdir(self._tmp_wd))
         self.assertFalse(os.path.isdir(self.project.workspace()))
-
-    def test_find_statepoints(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).init()
-            self.assertEqual(
-                len(statepoints),
-                len(list(self.project.find_statepoints())))
-            self.assertEqual(
-                1, len(list(self.project.find_statepoints({'a': 0}))))
-
-    def test_find_statepoint_sequences(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': (i, i + 1)} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).init()
-            self.assertEqual(
-                len(statepoints),
-                len(list(self.project.find_statepoints())))
-            self.assertEqual(
-                1,
-                len(list(self.project.find_statepoints({'a': [0, 1]}))))
-            self.assertEqual(
-                1,
-                len(list(self.project.find_statepoints({'a': (0, 1)}))))
 
     def test_find_job_ids(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -361,41 +366,6 @@ class ProjectTest(BaseProjectTest):
                 self.project.open_job(id=job.get_id()[:aid_len - 1])
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
-
-    def test_find_job_documents(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).document['test'] = True
-            self.assertEqual(
-                len(list(self.project.find_job_documents({'a': 0}))), 1)
-            job_docs = list(self.project.find_job_documents())
-            self.assertEqual(len(statepoints), len(job_docs))
-            for job_doc in job_docs:
-                sp = job_doc['statepoint']
-                self.assertEqual(str(self.project.open_job(sp)), job_doc['_id'])
-
-    def test_find_job_documents_illegal_key(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            statepoints = [{'a': i} for i in range(5)]
-            for sp in statepoints:
-                self.project.open_job(sp).document['test'] = True
-            list(self.project.find_job_documents())
-            self.assertEqual(len(statepoints), len(
-                list(self.project.find_job_documents())))
-            list(self.project.find_job_documents({'a': 1}))
-            self.project.open_job({'a': 0}).document['_id'] = True
-            with self.assertRaises(KeyError):
-                list(self.project.find_job_documents())
-            del self.project.open_job({'a': 0}).document['_id']
-            list(self.project.find_job_documents())
-            self.project.open_job({'a': 1}).document['statepoint'] = True
-            with self.assertRaises(KeyError):
-                list(self.project.find_job_documents())
-            del self.project.open_job({'a': 1}).document['statepoint']
-            list(self.project.find_job_documents())
 
     def test_missing_statepoint_file(self):
         job = self.project.open_job(dict(a=0))
@@ -720,10 +690,13 @@ class ProjectTest(BaseProjectTest):
 
     def test_schema_eval(self):
         for i in range(10):
-            self.project.open_job(dict(a=i)).init()
+            for j in range(10):
+                self.project.open_job(dict(a=i, b=j)).init()
         s = self.project.detect_schema()
         self.assertEqual(s, s(self.project))
         self.assertEqual(s, s([job.sp for job in self.project]))
+        # Check that it works with iterables that can only be consumed once
+        self.assertEqual(s, s((job.sp for job in self.project)))
 
     def test_schema_difference(self):
         def get_sp(i):
@@ -1344,6 +1317,78 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertEqual(len(tmp_project), len(self.project))
 
 
+@unittest.skipIf(six.PY2, 'requires python 3')
+class ProjectRepresentationTest(BaseProjectTest):
+
+    valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
+
+    num_few_jobs = 10
+    num_many_jobs = 200
+
+    def call_repr_methods(self):
+
+        with self.subTest(of='project'):
+            with self.subTest(type='str'):
+                str(self.project)
+            with self.subTest(type='repr'):
+                repr(self.project)
+            with self.subTest(type='html'):
+                for use_pandas in (True, False):
+                    type(self.project)._use_pandas_for_html_repr = use_pandas
+                    with self.subTest(use_pandas=use_pandas):
+                        if use_pandas and not PANDAS:
+                            raise unittest.SkipTest('requires use_pandas')
+                        self.project._repr_html_()
+
+        with self.subTest(of='JobsCursor'):
+            for filter_ in (None, ):
+                with self.subTest(filter=filter_):
+                    with self.subTest(type='str'):
+                        str(self.project.find_jobs(filter_))
+                    with self.subTest(type='repr'):
+                        repr(self.project.find_jobs(filter_))
+                    with self.subTest(type='html'):
+                        for use_pandas in (True, False):
+                            type(self.project)._use_pandas_for_html_repr = use_pandas
+                            with self.subTest(use_pandas=use_pandas):
+                                if use_pandas and not PANDAS:
+                                    raise unittest.SkipTest('requires use_pandas')
+                                self.project.find_jobs(filter_)._repr_html_()
+
+    def test_repr_no_jobs(self):
+        self.call_repr_methods()
+
+    def test_repr_few_jobs_homogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_few_jobs):
+            self.project.open_job(
+                {'{}_{}'.format(i, j): v
+                 for j, v in enumerate(self.valid_sp_values)}).init()
+        self.call_repr_methods()
+
+    def test_repr_many_jobs_homogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_many_jobs):
+            self.project.open_job(
+                {'{}_{}'.format(i, j): v
+                 for j, v in enumerate(self.valid_sp_values)}).init()
+        self.call_repr_methods()
+
+    def test_repr_few_jobs_heterogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_few_jobs):
+            for v in self.valid_sp_values:
+                self.project.open_job(dict(a=v)).init()
+        self.call_repr_methods()
+
+    def test_repr_many_jobs_heterogeneous(self):
+        # Many jobs with many different state points
+        for i in range(self.num_many_jobs):
+            for v in self.valid_sp_values:
+                self.project.open_job(dict(a=v)).init()
+        self.call_repr_methods()
+
+
 class LinkedViewProjectTest(BaseProjectTest):
 
     def test_create_linked_view(self):
@@ -1739,6 +1784,20 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
 
+    def test_get_project_non_local(self):
+        root = self._tmp_dir.name
+        subdir = os.path.join(root, 'subdir')
+        os.mkdir(subdir)
+        project = signac.init_project(root=root, name='testproject')
+        self.assertEqual(project, project.get_project(root=root))
+        self.assertEqual(project, signac.get_project(root=root))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, project.get_project(root=subdir, search=False))
+        with self.assertRaises(LookupError):
+            self.assertEqual(project, signac.get_project(root=subdir, search=False))
+        self.assertEqual(project, project.get_project(root=subdir, search=True))
+        self.assertEqual(project, signac.get_project(root=subdir, search=True))
+
     def test_init(self):
         root = self._tmp_dir.name
         with self.assertRaises(LookupError):
@@ -1800,6 +1859,95 @@ class ProjectInitTest(unittest.TestCase):
             check_root()
         finally:
             os.chdir(cwd)
+
+    def test_get_job_valid_workspace(self):
+        # Test case: The root-path is the job workspace path.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            # The context manager enters the working directory of the job
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
+
+    def test_get_job_invalid_workspace(self):
+        # Test case: The root-path is not the job workspace path.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        # We shouldn't be able to find a job while in the workspace directory,
+        # since no signac_statepoint.json exists.
+        cwd = os.getcwd()
+        try:
+            os.chdir(project.workspace())
+            with self.assertRaises(LookupError):
+                project.get_job()
+            with self.assertRaises(LookupError):
+                signac.get_job()
+        finally:
+            os.chdir(cwd)
+
+    def test_get_job_nested_project(self):
+        # Test case: The job workspace dir is also a project root dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2}).init()
+            self.assertEqual(project.get_job(), job)
+            self.assertEqual(signac.get_job(), job)
+
+    def test_get_job_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir.
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
+
+    def test_get_job_nested_project_subdir(self):
+        # Test case: Get a job from a sub-directory of the job workspace dir
+        # when the job workspace is also a project root dir
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        job = project.open_job({'a': 1})
+        job.init()
+        with job:
+            nestedproject = signac.init_project('nestedproject')
+            nestedproject.open_job({'b': 2}).init()
+            os.mkdir('test_subdir')
+            self.assertEqual(project.get_job('test_subdir'), job)
+            self.assertEqual(signac.get_job('test_subdir'), job)
+        self.assertEqual(project.get_job(job.fn('test_subdir')), job)
+        self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
+
+    def test_get_job_symlink_other_project(self):
+        # Test case: Get a job from a symlink in another project workspace
+        root = self._tmp_dir.name
+        project_a_dir = os.path.join(root, 'project_a')
+        project_b_dir = os.path.join(root, 'project_b')
+        os.mkdir(project_a_dir)
+        os.mkdir(project_b_dir)
+        project_a = signac.init_project(name='project_a', root=project_a_dir)
+        project_b = signac.init_project(name='project_b', root=project_b_dir)
+        job_a = project_a.open_job({'a': 1})
+        job_a.init()
+        job_b = project_b.open_job({'b': 1})
+        job_b.init()
+        symlink_path = os.path.join(project_b.workspace(), job_a._id)
+        os.symlink(job_a.ws, symlink_path)
+        self.assertEqual(project_a.get_job(symlink_path), job_a)
+        self.assertEqual(project_b.get_job(symlink_path), job_a)
+        self.assertEqual(signac.get_job(symlink_path), job_a)
 
 
 class ProjectPicklingTest(BaseProjectTest):

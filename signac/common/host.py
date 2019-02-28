@@ -5,7 +5,7 @@ import logging
 import warnings
 import getpass
 
-from ..core.json import json
+from ..core import json
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector

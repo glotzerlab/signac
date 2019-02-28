@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 "Synchronized dictionary."
 import logging
-import warnings
 from contextlib import contextmanager
 from functools import wraps
 from copy import deepcopy
@@ -89,12 +88,11 @@ class _SyncedDict(MutableMapping):
     def _validate_key(key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
         if '.' in key:
-            from ..warnings import SignacDeprecationWarning
-            warnings.warn(
-                "\nThe use of '.' (dots) in keys is deprecated and may lead to "
-                "unexpected behavior!\nSee http://www.signac.io/document-wide-migration/ "
-                "for a recipe on how to replace dots in all keys.",
-                SignacDeprecationWarning)
+            from ..errors import InvalidKeyError
+            raise InvalidKeyError(
+                "\nThe use of '.' (dots) in keys is invalid.\n\n"
+                "See https://signac.io/document-wide-migration/ "
+                "for a recipe on how to replace dots in existing keys.")
         return key
 
     def _dfs_convert(self, root):

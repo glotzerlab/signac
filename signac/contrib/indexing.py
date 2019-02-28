@@ -11,7 +11,7 @@ import errno
 from time import sleep
 from collections import defaultdict
 
-from ..core.json import json
+from ..core import json
 from ..common import six
 from ..common import errors
 from .utility import walkdepth, is_string
@@ -599,11 +599,6 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
                     logger.debug(error)
             else:
                 raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
-
-
-def fetch_one(doc, *args, **kwargs):
-    raise DeprecationWarning(
-        "The fetch_one() function has been removed. Use fetch() instead.")
 
 
 def fetched(docs):

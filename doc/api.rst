@@ -38,14 +38,13 @@ The Project
     Project.create_access_module
     Project.create_linked_view
     Project.detect_schema
+    Project.data
     Project.doc
     Project.document
     Project.dump_statepoints
     Project.export_to
-    Project.find_job_documents
     Project.find_job_ids
     Project.find_jobs
-    Project.find_statepoints
     Project.fn
     Project.get_id
     Project.get_statepoint
@@ -88,6 +87,7 @@ The Job class
 
     Job.clear
     Job.close
+    Job.data
     Job.doc
     Job.document
     Job.fn
@@ -101,6 +101,7 @@ The Job class
     Job.reset_statepoint
     Job.sp
     Job.statepoint
+    Job.stores
     Job.sync
     Job.update_statepoint
     Job.workspace
@@ -112,13 +113,42 @@ The Job class
     :show-inheritance:
 
 
+.. currentmodule:: signac
+
 The Collection
 ==============
 
-.. currentmodule:: signac.contrib.collection
-
 .. autoclass:: Collection
    :members:
+
+
+The JSONDict
+============
+
+This class implements the interface for the job's :attr:`~signac.contrib.job.Job.statepoint` and :attr:`~signac.contrib.job.Job.document` attributes, but can also be used stand-alone:
+
+.. autoclass:: JSONDict
+   :members:
+
+
+The H5Store
+===========
+
+This class implements the interface to the job's :attr:`~signac.contrib.job.Job.data` attribute, but can also be used stand-alone:
+
+.. autoclass:: H5Store
+    :members:
+
+
+The H5StoreManager
+==================
+
+This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` aatribute, but can also be used stand-alone:
+
+.. autoclass:: H5StoreManager
+    :members:
+    :show-inheritance:
+
 
 Top-level functions
 ===================
@@ -126,7 +156,7 @@ Top-level functions
 .. automodule:: signac
     :members:
     :show-inheritance:
-    :exclude-members: Project,Collection,RegexFileCrawler,MasterCrawler,SignacProjectCrawler
+    :exclude-members: Project,Collection,RegexFileCrawler,MasterCrawler,SignacProjectCrawler,JSONDict,H5Store,H5StoreManager
 
 
 Submodules

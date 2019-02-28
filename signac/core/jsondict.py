@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 "Dict implementation with backend JSON file."
@@ -12,7 +12,7 @@ from tempfile import mkstemp
 from contextlib import contextmanager
 
 from .errors import Error
-from .json import json
+from . import json
 from .attrdict import SyncedAttrDict
 from ..common import six
 
@@ -194,8 +194,50 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
 
 
 class JSONDict(SyncedAttrDict):
+    """A dict-like mapping interface to a persistent JSON file.
 
-    def __init__(self, parent=None, filename=None, write_concern=False):
+    The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
+    behaves similar to a :class:`dict`, but all data is stored persistently in
+    the associated JSON file on disk.
+
+    .. code-block:: python
+
+        doc = JSONDict('data.json', write_concern=True)
+        doc['foo'] = "bar"
+        assert doc.foo == doc['foo'] == "bar"
+        assert 'foo' in doc
+        del doc['foo']
+
+    This class allows access to values through key indexing or attributes
+    named by keys, including nested keys:
+
+    .. code-block:: python
+
+        >>> doc['foo'] = dict(bar=True)
+        >>> doc
+        {'foo': {'bar': True}}
+        >>> doc.foo.bar = False
+        {'foo': {'bar': False}}
+
+    .. warning::
+
+        While the JSONDict object behaves like a dictionary, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a JSONDict instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `_as_dict` method to get a
+        dictionary representation, and if necessary construct a new JSONDict
+        instance: `new_dict = JSONDict(old_dict._as_dict())`.
+
+    :param filename:
+        The filename of the associated JSON file on disk.
+    :param write_concern:
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file. Default is False.
+    :param parent:
+        A parent instance of JSONDict or None.
+    """
+    def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "

@@ -2,6 +2,8 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import hashlib
+# we need to use the standard module here to ensure
+# exact consistent formatting
 import json
 
 

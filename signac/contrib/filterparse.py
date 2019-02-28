@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import sys
-import json
+from ..core import json
 
 
 def _print_err(msg=None):
