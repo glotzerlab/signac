@@ -11,7 +11,7 @@ Highlights
 ----------
 
  - Native integration of HDF5 files with the ``H5Store`` and ``H5StoreManager``, which are exposed as the ``job.data``, ``job.stores``, ``project.data``, and ``project.stores`` properties respectively.
- - The newly added ``signac.get_job()`` function makes it easier to obtain instances of `Job` by calling the function from within a job's workspace directory or by directly providing the path to the job's workspace directory. This is especially useful for interactive work or when accessing jobs which are outside of the current project.
+ - The newly added ``signac.get_job()`` function makes it easier to obtain instances of ``Job`` by calling the function from within a job's workspace directory or by directly providing the path to the job's workspace directory. This is especially useful for interactive work or when accessing jobs which are outside of the current project.
  - Simplified export of project and job data to pandas dataframes *via* the ``to_dataframe()`` function.
  - Projects and job search results are displayed nicely in Jupyter Notebooks.
  - Support for compressed Collection files.
@@ -29,11 +29,10 @@ Added
  - The ``job.stores`` and ``project.stores`` properties, which present an instance of ``H5StoreManager`` to manage multiple instances of ``H5Store`` to store numerical array-like data within the project workspace and project root directory.
  - The ``signac.get_job()`` and the ``signac.Project.get_job()`` functions that allow users to get a job handle by switching into or providing the job's workspace directory.
  - The ``job`` variable is automatically set when opening a ``signac shell`` from within a job's workspace directory.
- - Add the `signac shell -c` option which allows the direct specification of Python commands to be executed within the shell.
+ - Add the ``signac shell -c`` option which allows the direct specification of Python commands to be executed within the shell.
  - Automatic cast of ``numpy`` arrays to lists when storing them within a ``JSONDict``, e.g., a ``job.statepoint`` or ``job.document``.
  - Enable ``Collection`` class to manage collections stored in compressed files (gzip, zip, etc.).
  - Enable deleting of ``JSONDict`` keys through the attribute interface, e.g., ``del job.doc.foo``.
- - The ``Job.init()`` method returns the job to allow one-line job creation and initialization.
  - Pretty HTML representation of instances of ``Project`` and ``JobsCursor`` targeted at Jupyter Notebooks (requires pandas, automatically enabled when installed).
  - The ``to_dataframe()`` function to export the job state point and document data of a ``Project`` or a ``JobsCursor``, e.g., the result of ``Project.find_jobs()``, as a ``pandas.Dataframe`` (requires pandas).
 
@@ -41,15 +40,16 @@ Changed
 +++++++
 
  - Dots (`.`) in keys are no longer allowed for ``JSONDict`` and ``Collection`` keys (previously deprecated).
- - The ``JSONDict`` module is exposed in the root namespace, which is useful for storing text-serializable data  with a JSON-backend similar to the `job.statepoint` or `job.document`, etc.
- - The ``search`` argument was added to the `signac.get_project()` function, which when True (the default), will cause signac to search for a project within *and above* a specified root directory, not only within the root directory. The behavior without any arguments remains unchanged.
+ - The ``JSONDict`` module is exposed in the root namespace, which is useful for storing text-serializable data  with a JSON-backend similar to the ``job.statepoint`` or ``job.document``, etc.
+ - The ``Job.init()`` method returns the job to allow one-line job creation and initialization.
+ - The ``search`` argument was added to the ``signac.get_project()`` function, which when True (the default), will cause signac to search for a project within *and above* a specified root directory, not only within the root directory. The behavior without any arguments remains unchanged.
 
 Fixed
 +++++
 
  - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
- - Fix issue where the `Job.move()` would trigger a confusing ``DestinationExists`` exception when trying to move jobs across devices / file systems.
- - Fix issue that caused failures when the `python-rapidjson` package is installed.
+ - Fix issue where the ``Job.move()`` would trigger a confusing ``DestinationExists`` exception when trying to move jobs across devices / file systems.
+ - Fix issue that caused failures when the ``python-rapidjson`` package is installed. The ``python-rapidjson`` package is used as the primary JSON-backend when installed.
 
 Removed
 +++++++
