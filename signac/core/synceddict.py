@@ -283,6 +283,15 @@ class _SyncedDict(MutableMapping):
     def __str__(self):
         return str(self())
 
+    def __copy__(self, memo):
+        # Create a new version of the object not linked to the original parent
+        return type(self)(initialdata=self._convert_to_dict(self._data.copy()),
+                          parent=self._parent)
+
+    def __deepcopy__(self, memo):
+        # Create a new version of the object not linked to the original parent
+        return type(self)(initialdata=self._convert_to_dict(self._data.copy()))
+
     def _as_dict(self):
         with self._suspend_sync():
             return self._convert_to_dict(self._data.copy())
