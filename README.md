@@ -1,6 +1,5 @@
 # <img src="https://raw.githubusercontent.com/glotzerlab/signac/master/doc/images/logo.png" width="75" height="75"> signac - simple data management
 
-[![DOI](https://zenodo.org/badge/72946496.svg)](https://zenodo.org/badge/latestdoi/72946496)
 [![PyPI](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
 [![conda-forge](https://img.shields.io/conda/vn/conda-forge/signac.svg?style=flat)](https://anaconda.org/conda-forge/signac)
 ![CircleCI](https://img.shields.io/circleci/project/github/glotzerlab/signac/master.svg)
