@@ -690,10 +690,13 @@ class ProjectTest(BaseProjectTest):
 
     def test_schema_eval(self):
         for i in range(10):
-            self.project.open_job(dict(a=i)).init()
+            for j in range(10):
+                self.project.open_job(dict(a=i, b=j)).init()
         s = self.project.detect_schema()
         self.assertEqual(s, s(self.project))
         self.assertEqual(s, s([job.sp for job in self.project]))
+        # Check that it works with iterables that can only be consumed once
+        self.assertEqual(s, s((job.sp for job in self.project)))
 
     def test_schema_difference(self):
         def get_sp(i):

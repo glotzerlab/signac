@@ -50,6 +50,7 @@ Fixed
  - Fix ``Collection.update()`` behavior such that existing documents with identical primary key are updated. Previously, a ``KeyError`` would be raised.
  - Fix issue where the ``Job.move()`` would trigger a confusing ``DestinationExists`` exception when trying to move jobs across devices / file systems.
  - Fix issue that caused failures when the ``python-rapidjson`` package is installed. The ``python-rapidjson`` package is used as the primary JSON-backend when installed.
+ - Fix issue where schema with multiple keys would subset incorrectly if the list of jobs or statepoints was provided as an iterator rather than a sequence.
 
 Removed
 +++++++
