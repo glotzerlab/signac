@@ -229,8 +229,8 @@ class Job(object):
         .. warning::
 
             As with :attr:`Job.statepoint`, use `job.sp()` instead of
-            `job.sp` if you need to deep copy that will not modify the
-            underlying persisted JSON file.
+            `job.sp` if you need a deep copy that will not modify the
+            underlying persistent JSON file.
         """
         return self.statepoint
 
@@ -257,8 +257,8 @@ class Job(object):
 
         .. warning::
 
-            If you need to deep copy that will not modify the underlying
-            persisted JSON file, use `job.document()` instead of `job.doc`.
+            If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
 
@@ -282,8 +282,8 @@ class Job(object):
 
         .. warning::
 
-            If you need to deep copy that will not modify the underlying
-            persisted JSON file, use `job.document()` instead of `job.doc`.
+            If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
         """
