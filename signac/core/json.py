@@ -41,7 +41,7 @@ class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
         if NUMPY:
             if isinstance(o, numpy.number):
-                return numpy.asscalar(o)
+                return numpy.ndarray.item(o)
             elif isinstance(o, numpy.ndarray):
                 return o.tolist()
         try:
