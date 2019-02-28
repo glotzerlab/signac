@@ -35,6 +35,12 @@ except ImportError:
 else:
     PANDAS = True
 
+try:
+    import h5py    # noqa
+    H5PY = True
+except ImportError:
+    H5PY = False
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -129,6 +135,7 @@ class ProjectTest(BaseProjectTest):
         self.project.doc = {'a': {'b': 45}}
         self.assertEqual(self.project.doc, {'a': {'b': 45}})
 
+    @unittest.skipIf(not H5PY, 'test requires the h5py package')
     def test_data(self):
         with self.project.data:
             self.assertFalse(self.project.data)
