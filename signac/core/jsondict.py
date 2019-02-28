@@ -219,6 +219,16 @@ class JSONDict(SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
+    .. warning::
+
+        While the JSONDict object behaves like a dictionary, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a JSONDict instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `_as_dict` method to get a
+        dictionary representation, and if necessary construct a new JSONDict
+        instance: `new_dict = JSONDict(old_dict._as_dict())`.
+
     :param filename:
         The filename of the associated JSON file on disk.
     :param write_concern:
