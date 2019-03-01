@@ -1,0 +1,50 @@
+# YAML 1.2
+---
+cff-version: "1.0.3"
+title: signac
+version: 1.0.0
+abstract: |
+    "The signac framework helps users manage and scale file-based workflows, facilitating data reuse, sharing, and reproducibility.
+
+    It provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata. This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible."
+doi: 10.5281/zenodo.2581327
+authors: 
+  -
+    affiliation: "University of Michigan"
+    family-names: Adorf
+    given-names: "Carl Simon"
+    orcid: "https://orcid.org/0000-0003-4962-2495"
+  -
+    affiliation: "University of Michigan"
+    family-names: Ramasubramani
+    given-names: Vyas
+    orcid: "https://orcid.org/0000-0001-5181-9532"
+  -
+    affiliation: "University of Michigan"
+    family-names: Dice
+    given-names: "Bradley D."
+    orcid: "https://orcid.org/0000-0002-9983-0770"
+  -
+    affiliation: "Boise State University"
+    family-names: Henry
+    given-names: Mike
+  -
+    affiliation: "University of Michigan"
+    family-names: Dodd
+    given-names: "Paul M."
+  -
+    affiliation: "University of Michigan"
+    family-names: Glotzer
+    given-names: "Sharon C."
+    orcid: "https://orcid.org/0000-0002-7197-0085"
+keywords:
+  - python
+  - "data management"
+  - reproducibility
+  - sharability
+  - workflow
+  - "scientific computing"
+license: "http://www.opensource.org/licenses/BSD-3-Clause"
+message: "Development and deployment supported by MICCoM, as part of the Computational Materials Sciences Pro- gram funded by the U.S. Department of Energy, Office of Science, Basic Energy Sciences, Materials Sciences and Engineering Division, under Subcontract No. 6F-30844. Project conceptualization and implementation supported by the National Science Foundation, Award # DMR 1409620."
+repository-code: https://github.com/glotzerlab/signac
+...
