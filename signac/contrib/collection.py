@@ -18,6 +18,9 @@ import re
 import logging
 import argparse
 import operator
+
+from numbers import Number
+
 from itertools import islice
 
 from ..core import json
@@ -619,8 +622,25 @@ class Collection(object):
             else:
                 raise KeyError("Unknown expression-operator '{}'.".format(op))
         else:
+
             index = self.index(key, build=True)
-            return index.get(value, set())
+
+            if isinstance(value, Number):
+                is_integer = hash(round(value)) == hash(value)
+            else:
+                is_integer = False
+
+            if is_integer:
+
+                result_float = index.get(_float(value), set())
+                result_int = index.get(round(value), set())
+                result = result_int.union(result_float)
+
+            else:
+
+                result = index.get(value, set())
+
+            return result
 
     def _find_result(self, expr):
         if not len(expr):
