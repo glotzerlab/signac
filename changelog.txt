@@ -4,6 +4,11 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
+next
+----
+
+Added functionality to initialize multiple replicas of a given statepoint
+
 Version 1.0
 ===========
 
