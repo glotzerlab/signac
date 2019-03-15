@@ -423,8 +423,6 @@ class Job(object):
             index is added to the statepoint.
         :type n:
             int
-        :type force:
-            bool
 
         :return:
             The job handle.
