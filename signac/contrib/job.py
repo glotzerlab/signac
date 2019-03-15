@@ -405,7 +405,7 @@ class Job(object):
         except (AssertionError, ValueError):
             raise JobsCorruptedError([self._id])
 
-    def init(self, force=False):
+    def init(self, force=False, n=None):
         """Initialize the job's workspace directory.
 
         This function will do nothing if the directory and
@@ -418,18 +418,34 @@ class Job(object):
             files, e.g., to repair them when they got corrupted.
         :type force:
             bool
+        :param n:
+            Number of replicas to initialize. If None, no replica
+            index is added to the statepoint.
+        :type n:
+            int
+        :type force:
+            bool
+
         :return:
             The job handle.
         :rtype:
             :class:`~.Job`
         """
-        try:
-            self._init(force=force)
-        except Exception:
-            logger.error(
-                "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
-            raise
-        return self
+        if n is None:
+            try:
+                self._init(force=force)
+            except Exception:
+                logger.error(
+                    "State point manifest file of job '{}' appears to be \
+                    corrupted.".format(self._id))
+                raise
+            return self
+        else:
+            for i in range(n):
+                dummy_sp = self.sp()
+                dummy_sp['replica_index'] = i
+                rep_job = Job(project=self._project, statepoint=dummy_sp)
+                rep_job._init(force=force)
 
     def clear(self):
         """Remove all job data, but not the job itself.
