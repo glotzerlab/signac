@@ -1,0 +1,47 @@
+# YAML 1.2
+---
+contributors:
+  -
+    family-names: Adorf
+    given-names: "Carl Simon"
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0003-4962-2495"
+  -
+    family-names: Dodd
+    given-names: "Paul M."
+    affiliation: "University of Michigan"
+  -
+    family-names: Ramasubramani
+    given-names: Vyas
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-5181-9532"
+  -
+    family-names: Swerdlow
+    given-names: Benjamin
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-6240-1430"
+  -
+    family-names: Glaser
+    given-names: Jens
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0003-1852-3849"
+  -
+    family-names: Dice
+    given-names: "Bradley D."
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0002-9983-0770"
+  -
+    family-names: Moore
+    given-names: Timothy
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0002-5709-7259"
+  -
+    family-names: Zhou
+    given-names: Yuan
+    affiliation: "University of Michigan"
+  -
+    family-names: Harper
+    given-names: Eric
+    affiliation: "Air Force Science and Technology Fellowship Program"
+    orcid: "https://orcid.org/0000-0002-7058-1686"
+...
