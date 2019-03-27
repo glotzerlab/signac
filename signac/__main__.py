@@ -16,7 +16,6 @@ from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
-import warnings
 
 try:
     import readline
@@ -342,19 +341,11 @@ def main_index(args):
 def main_find(args):
     project = get_project()
 
-    if args.show:
-        if args.sp:
-            warnings.warn(
-                "Specifying --show and --sp results in --sp being ignored")
-        if args.doc:
-            warnings.warn(
-                "Specifying --show and --doc results in --doc being ignored")
-        args.sp = args.show
-        args.doc = args.show
-
     len_id = max(6, project.min_len_unique_id())
 
-    def format_lines(cat, _id, s, depth):
+    depth = args.show if args.show else 3
+
+    def format_lines(cat, _id, s):
         if args.one_line:
             if isinstance(s, dict):
                 s = json.dumps(s, sort_keys=True)
@@ -366,10 +357,20 @@ def main_find(args):
         for job_id in find_with_filter(args):
             print(job_id)
             job = project.open_job(id=job_id)
+
             if args.sp:
-                print(format_lines('sp ', job_id, job.statepoint(), args.sp))
+                sp = job.statepoint()
+                sp = {key: sp[key] for key in args.sp}
+                print(format_lines('sp ', job_id, sp))
+            elif args.show:
+                print(format_lines('sp ', job_id, job.statepoint()))
+
             if args.doc:
-                print(format_lines('doc', job_id, job.document(), args.doc))
+                doc = job.document()
+                doc = {key: doc[key] for key in args.doc}
+                print(format_lines('sp ', job_id, doc))
+            elif args.show:
+                print(format_lines('sp ', job_id, job.document()))
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -1236,17 +1237,15 @@ def main():
     parser_find.add_argument(
         '--sp',
         type=int,
-        nargs='?',
-        const=3,
-        help="Show the state point of each job. The parameter is the level of "
-        "nesting to display.")
+        nargs='*',
+        help="Show the state point of each job. Can be passed the list of "
+        "state point keys to print.")
     parser_find.add_argument(
         '--doc',
         type=int,
-        nargs='?',
-        const=3,
-        help="Show the document of each job. The parameter is the level of "
-        "nesting to display.")
+        nargs='*',
+        help="Show the document of each job. Can be passed the list of "
+        "document keys to print.")
     parser_find.add_argument(
         '-1', '--one-line',
         action='store_true',
