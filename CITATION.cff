@@ -10,34 +10,35 @@ abstract: |
     operate on large data spaces, streamlines post-processing and analysis and makes data
     collectively accessible.
 doi: 10.5281/zenodo.2581327
-authors: 
+authors:
   -
-    affiliation: "University of Michigan"
     family-names: Adorf
     given-names: "Carl Simon"
+    affiliation: "University of Michigan"
     orcid: "https://orcid.org/0000-0003-4962-2495"
   -
-    affiliation: "University of Michigan"
     family-names: Ramasubramani
     given-names: Vyas
+    affiliation: "University of Michigan"
     orcid: "https://orcid.org/0000-0001-5181-9532"
   -
-    affiliation: "University of Michigan"
     family-names: Dice
     given-names: "Bradley D."
+    affiliation: "University of Michigan"
     orcid: "https://orcid.org/0000-0002-9983-0770"
   -
-    affiliation: "Boise State University"
     family-names: Henry
     given-names: Mike
+    affiliation: "Boise State University"
+    orcid: "https://orcid.org/0000-0002-3870-9993"
   -
-    affiliation: "University of Michigan"
     family-names: Dodd
     given-names: "Paul M."
-  -
     affiliation: "University of Michigan"
+  -
     family-names: Glotzer
     given-names: "Sharon C."
+    affiliation: "University of Michigan"
     orcid: "https://orcid.org/0000-0002-7197-0085"
 keywords:
   - python
