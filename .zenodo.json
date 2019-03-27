@@ -1,65 +1,60 @@
 {
+    "contributors": [
+        {
+            "affiliation": "University of Michigan",
+            "name": "Benjamin Swerdlow",
+            "orcid": "0000-0001-6240-1430"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Jens Glaser",
+            "orcid": "0000-0003-1852-3849"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Timothy Moore",
+            "orcid": "0000-0002-5709-7259"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Yuan Zhou"
+        },
+        {
+            "affiliation": "Air Force Science and Technology Fellowship Program",
+            "name": "Eric Harper",
+            "orcid": "0000-0002-7058-1686"
+        }
+    ],
     "creators": [
         {
             "affiliation": "University of Michigan",
-            "name": "Adorf, Carl Simon",
+            "name": "Carl Simon Adorf",
             "orcid": "0000-0003-4962-2495"
         },
         {
             "affiliation": "University of Michigan",
-            "name": "Ramasubramani, Vyas",
+            "name": "Vyas Ramasubramani",
             "orcid": "0000-0001-5181-9532"
         },
         {
             "affiliation": "University of Michigan",
-            "name": "Dice, Bradley D.",
+            "name": "Bradley D. Dice",
             "orcid": "0000-0002-9983-0770"
         },
         {
             "affiliation": "Boise State University",
-            "name": "Henry, Mike"
+            "name": "Mike Henry",
+            "orcid": "0000-0002-3870-9993"
         },
         {
             "affiliation": "University of Michigan",
-            "name": "Dodd, Paul M."
+            "name": "Paul M. Dodd"
         },
         {
             "affiliation": "University of Michigan",
-            "name": "Glotzer, Sharon C.",
+            "name": "Sharon C. Glotzer",
             "orcid": "0000-0002-7197-0085"
         }
-    ],
-    "contributors": [
-      {
-        "affiliation": "University of Michigan",
-        "name": "Benjamin Swerdlow",
-        "orcid": "0000-0001-6240-1430",
-        "type": "Other"
-      },
-      {
-        "affiliation": "University of Michigan",
-        "name": "Jens Glaser",
-        "orcid": "0000-0003-1852-3849",
-        "type": "Other"
-      },
-      {
-        "affiliation": "University of Michigan",
-        "name": "Timothy Moore",
-        "orcid": "0000-0002-5709-7259",
-        "type": "Other"
-      },
-      {
-        "affiliation": "University of Michigan",
-        "name": "Pengji Zhou",
-        "orcid": "0000-0002-1409-9633",
-        "type": "Other"
-      },
-      {
-        "affiliation": "Air Force Science and Technology Fellowship Program",
-        "name": "Eric Harper",
-        "orcid": "0000-0002-7058-1686",
-        "type": "Other"
-      }
     ],
     "description": "The signac framework helps users manage and scale file-based workflows, facilitating data reuse, sharing, and reproducibility.\n\nIt provides a simple and robust data model to create a well-defined indexable storage layout for data and metadata. This makes it easier to operate on large data spaces, streamlines post-processing and analysis and makes data collectively accessible.",
     "doi": "10.5281/zenodo.2581327",
