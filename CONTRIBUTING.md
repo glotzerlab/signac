@@ -13,9 +13,9 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement.
 
 ### General guidelines
 
-  * Use the [git flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) model of development:
-    - Bug fixes should be based on `master` if they affect a current release of the package.
-    - New features should be developed in a feature branch based on `develop`.
+  * Use the [OneFlow](https://www.endoflineblog.com/oneflow-a-git-branching-model-and-workflow) model of development:
+    - Both new features and bug fixes should be developed in branches based on `master`.
+    - Hotfixes (critical bugs that need to be released *fast*) should be developed in a branch based on the latest tagged release.
   * Write code that is compatible with all supported versions of Python (listed in [setup.py](https://github.com/glotzerlab/signac/blob/master/setup.py)).
   * Avoid introducing dependencies -- especially those that might be harder to install in high-performance computing environments.
   * Create [unit tests](https://en.wikipedia.org/wiki/Unit_testing) and [integration tests](https://en.wikipedia.org/wiki/Integration_testing) that cover the common cases and the corner cases of the code.
