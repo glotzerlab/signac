@@ -13,7 +13,7 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='0.9.5',
+    version='1.0.0',
     packages=find_packages(),
     zip_safe=True,
 

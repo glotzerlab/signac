@@ -20,7 +20,7 @@ import argparse
 import operator
 from itertools import islice
 
-from ..core.json import json
+from ..core import json
 from ..common import six
 from .filterparse import parse_filter_arg
 
@@ -202,9 +202,10 @@ def _build_index(docs, key, primary_key):
             else:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
-                    "\nThe use of '.' (dots) in keys is invalid.\n\n"
-                    "See http://www.signac.io/document-wide-migration/ "
-                    "for a recipe on how to replace dots in all keys.")
+                    "\nThe document contains invalid keys. "
+                    "Specifically keys with dots ('.').\n\n"
+                    "See https://signac.io/document-wide-migration/ "
+                    "for a recipe on how to replace dots in existing keys.")
                 # inlined for performance
                 if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
@@ -285,6 +286,10 @@ class _CollectionSearchResults(object):
         return len(self._ids)
 
     count = __len__
+
+
+class JSONParseError(ValueError):
+    pass
 
 
 class Collection(object):
@@ -493,6 +498,24 @@ class Collection(object):
             self._assert_open()
             raise
 
+    @staticmethod
+    def _validate_key(key):
+        "Emit a warning or raise an exception if key is invalid. Returns key."
+        if '.' in key:
+            from ..errors import InvalidKeyError
+            raise InvalidKeyError("Keys may not contain dots ('.').")
+        return key
+
+    @classmethod
+    def _validate_doc(cls, doc):
+        "Emit a warning or raise an exception if the document is invalid. Returns doc."
+        try:
+            for key in doc.keys():
+                cls._validate_doc(doc[cls._validate_key(key)])
+        except AttributeError:
+            return
+        return doc
+
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
         if not isinstance(_id, six.string_types):
@@ -503,7 +526,12 @@ class Collection(object):
         if _trust:
             self._docs[_id] = doc
         else:
-            self._docs[_id] = json.loads(json.dumps(doc))
+            try:
+                doc_ = json.loads(json.dumps(doc))
+            except TypeError as error:
+                raise TypeError(
+                    "Serialization of document '{}' failed with error: {}".format(doc, error))
+            self._docs[_id] = self._validate_doc(doc_)
         self._dirty.add(_id)
         self._requires_flush = True
 
@@ -917,6 +945,13 @@ class Collection(object):
                 collection = cls()
             else:
                 raise error
+        except ValueError as error:
+            if hasattr(file, 'name'):
+                raise JSONParseError(
+                    "Error while trying to parse file '{}': {}.".format(file.name, error))
+            else:
+                raise JSONParseError(
+                    "Error while trying to parse '{}': {}.".format(file, error))
         except AttributeError as e:
             # This error occurs in python27 and has been evaluated as being
             # fine to accept in this manner

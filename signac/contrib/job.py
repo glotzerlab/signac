@@ -8,7 +8,7 @@ import shutil
 import uuid
 
 from ..common import six
-from ..core.json import json, CustomJSONEncoder
+from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
@@ -60,7 +60,7 @@ class Job(object):
 
         # Ensure that the job id is configured
         if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint, cls=CustomJSONEncoder))
+            self._statepoint = json.loads(json.dumps(statepoint))
             self._id = calc_id(self._statepoint)
         else:
             self._statepoint = dict(statepoint)
@@ -203,6 +203,16 @@ class Job(object):
     @property
     def statepoint(self):
         """Access the job's state point as attribute dictionary.
+
+        .. warning::
+
+            The statepoint object behaves like a dictionary in most cases,
+            but because it persists changes to the filesystem, making a copy
+            requires explicitly converting it to a dict. If you need a
+            modifiable copy that will not modify the underlying JSON file,
+            you can access a dict copy of the statepoint by calling it, e.g.
+            `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
+            For more information, see :class:`~signac.JSONDict`.
         """
         if self._sp is None:
             self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
@@ -215,6 +225,12 @@ class Job(object):
     @property
     def sp(self):
         """ Alias for :attr:`Job.statepoint`.
+
+        .. warning::
+
+            As with :attr:`Job.statepoint`, use `job.sp()` instead of
+            `job.sp` if you need a deep copy that will not modify the
+            underlying persistent JSON file.
         """
         return self.statepoint
 
@@ -229,7 +245,7 @@ class Job(object):
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc, cls=CustomJSONEncoder).encode())
+            tmpfile.write(json.dumps(new_doc).encode())
         if six.PY2:
             os.rename(fn_tmp, self._fn_doc)
         else:
@@ -239,8 +255,18 @@ class Job(object):
     def document(self):
         """The document associated with this job.
 
-        :return: The job document handle.
-        :rtype: :class:`~.JSONDict`"""
+        .. warning::
+
+            If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
+
+        :return:
+            The job document handle.
+        :rtype:
+            :class:`~signac.JSONDict`
+        """
         if self._document is None:
             self.init()
             self._document = JSONDict(filename=self._fn_doc, write_concern=True)
@@ -253,6 +279,13 @@ class Job(object):
     @property
     def doc(self):
         """Alias for :attr:`Job.document`.
+
+        .. warning::
+
+            If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
         """
         return self.document
 
@@ -262,40 +295,51 @@ class Job(object):
 
     @property
     def stores(self):
-        """Access HDF5-stores associated wit this job.
+        """Access HDF5-stores associated with this job.
 
-        Use this property to access an HDF5-file within the job's workspace
-        directory using the H5Store dict-like interface.
+        Use this property to access an HDF5 file within the job's workspace
+        directory using the :class:`~signac.H5Store` dict-like interface.
 
-        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        This is an example for accessing an HDF5 file called 'my_data.h5' within
         the job's workspace:
+
+        .. code-block:: python
 
             job.stores['my_data']['array'] = np.random((32, 4))
 
         This is equivalent to:
+
+        .. code-block:: python
 
             H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
 
         Both the `job.stores` and the `H5Store` itself support attribute
         access. The above example could therefore also be expressed as
 
+        .. code-block:: python
+
             job.stores.my_data.array = np.random((32, 4))
 
-        :return: The HDF5-Store manager for this job.
-        :rtype: :class:`~..core.h5store.H5StoreManager
+        :return:
+            The HDF5-Store manager for this job.
+        :rtype:
+            :class:`~signac.H5StoreManager`
         """
         return self.init()._stores
 
     @property
     def data(self):
-        """The data associated with this job.
+        """The data store associated with this job.
 
         Equivalent to:
 
-            return job.stores['signac_data']
+        .. code-block:: python
+
+                return job.stores['signac_data']
 
         :return: An HDF5-backed datastore.
-        :rtype: :class:`~..core.h5store.H5Store`"""
+        :rtype: :class:`~signac.H5Store`
+        """
         return self.stores[self.KEY_DATA]
 
     @data.setter
@@ -315,7 +359,7 @@ class Job(object):
 
         try:
             # Ensure to create the binary to write before file creation
-            blob = json.dumps(self._statepoint, indent=2, cls=CustomJSONEncoder)
+            blob = json.dumps(self._statepoint, indent=2)
 
             try:
                 # Open the file for writing only if it does not exist yet.
@@ -441,16 +485,33 @@ class Job(object):
         This function will attempt to move this instance of job from
         its original project to a different project.
 
-        :param project: The project to move this job to.
-        :type project: :py:class:`~.project.Project`
-        :raises DestinationExistsError: If the job is already initialized in project.
+        :param project:
+            The project to move this job to.
+        :type project:
+            :py:class:`~.project.Project`
+        :raises DestinationExistsError:
+            If the job is already initialized in project.
+        :raises RuntimeError:
+            If the job is not initialized or the destination is on a different
+            device.
+        :raises OSError:
+            When the move failed due unexpected file system issues.
         """
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
         try:
             os.rename(self.workspace(), dst.workspace())
-        except OSError:
-            raise DestinationExistsError(dst)
+        except OSError as error:
+            if error.errno == errno.ENOENT:
+                raise RuntimeError(
+                    "Cannot move job '{}', because it is not initialized!".format(self))
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+                raise DestinationExistsError(dst)
+            elif error.errno == errno.EXDEV:
+                raise RuntimeError(
+                    "Cannot move jobs across different devices (file systems).")
+            else:
+                raise error
         self.__dict__.update(dst.__dict__)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):

@@ -16,7 +16,7 @@ from itertools import groupby
 from multiprocessing.pool import ThreadPool
 
 from .. import syncutil
-from ..core.json import json
+from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
@@ -305,10 +305,10 @@ class Project(object):
     def stores(self):
         """Access HDF5-stores associated wit this project.
 
-        Use this property to access an HDF5-file within the project's root
+        Use this property to access an HDF5 file within the project's root
         directory using the H5Store dict-like interface.
 
-        This is an example for accessing an HDF5-file called 'my_data.h5' within
+        This is an example for accessing an HDF5 file called 'my_data.h5' within
         the project's root directory:
 
             project.stores['my_data']['array'] = np.random((32, 4))
@@ -1005,8 +1005,8 @@ class Project(object):
 
         :param target:
             A path to a directory to export to. The target can not already exist.
-            Besides directories, possible targets are tar-files (`.tar`), gzipped tar-files
-            (`.tar.gz`), zip-files (`.zip`), bzip2-compressed files (`.bz2`),
+            Besides directories, possible targets are tar files (`.tar`), gzipped tar files
+            (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
         :param path:
             The path (function) used to structure the exported data space.
@@ -1053,7 +1053,7 @@ class Project(object):
 
         :param origin:
             The path to the data space origin, which is to be imported. This may be a path to
-            a directory, a zip-file, or a tarball archive.
+            a directory, a zip file, or a tarball archive.
         :param schema:
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
@@ -1429,7 +1429,7 @@ class Project(object):
 
         It is safe to call this function multiple times with
         the same arguments.
-        However, a RuntimeError is raised in case where an
+        However, a :class:`RuntimeError` is raised in case where an
         existing project configuration would conflict with
         the provided initialization parameters.
 
@@ -1835,7 +1835,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
     It is safe to call this function multiple times with
     the same arguments.
-    However, a RuntimeError is raised in case where an
+    However, a :class:`RuntimeError` is raised in case where an
     existing project configuration would conflict with
     the provided initialization parameters.
 
@@ -1867,7 +1867,7 @@ def get_project(root=None, search=True):
     :param search:
         If True, search for project configurations inside and above
         the specified root directory, otherwise only return projects
-        with a root directory identical to the specified root arugment.
+        with a root directory identical to the specified root argument.
     :type search: bool
     :returns: The project handle.
     :rtype: :py:class:`~.Project`

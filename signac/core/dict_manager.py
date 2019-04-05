@@ -11,6 +11,11 @@ from ..common import six
 
 
 class DictManager(object):
+    """Helper class to manage multiple instances of dict-like classes.
+
+    This class is designed to manage multiple dict-like interface classes to files
+    with a shared prefix (directory).
+    """
 
     cls = None
     suffix = None
