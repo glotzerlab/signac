@@ -343,7 +343,13 @@ def main_find(args):
 
     len_id = max(6, project.min_len_unique_id())
 
-    depth = args.show if args.show else 3
+    # --show = --sp --doc --pretty 3
+    # if --sp or --doc are also specified, those subsets of keys will be used
+    if args.show:
+        if args.sp is None:
+            args.sp = []
+        if args.doc is None:
+            args.doc = []
 
     def format_lines(cat, _id, s):
         if args.one_line:
@@ -351,26 +357,24 @@ def main_find(args):
                 s = json.dumps(s, sort_keys=True)
             return _id[:len_id] + ' ' + cat + '\t' + s
         else:
-            return pformat(s, depth=depth)
+            return pformat(s, depth=args.pretty)
 
     try:
         for job_id in find_with_filter(args):
             print(job_id)
             job = project.open_job(id=job_id)
 
-            if args.sp:
+            if args.sp is not None:
                 sp = job.statepoint()
-                sp = {key: sp[key] for key in args.sp}
+                if len(args.sp) != 0:
+                    sp = {key: sp[key] for key in args.sp}
                 print(format_lines('sp ', job_id, sp))
-            elif args.show:
-                print(format_lines('sp ', job_id, job.statepoint()))
 
-            if args.doc:
+            if args.doc is not None:
                 doc = job.document()
-                doc = {key: doc[key] for key in args.doc}
+                if len(args.doc) != 0:
+                    doc = {key: doc[key] for key in args.doc}
                 print(format_lines('sp ', job_id, doc))
-            elif args.show:
-                print(format_lines('sp ', job_id, job.document()))
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -1233,19 +1237,28 @@ def main():
         nargs='?',
         const=3,
         help="Show the state point and document of each job. Equivalent to "
-        "--sp NUM --doc NUM.")
+        "--sp --doc --pretty 3.")
     parser_find.add_argument(
         '--sp',
-        type=int,
+        type=str,
         nargs='*',
         help="Show the state point of each job. Can be passed the list of "
         "state point keys to print.")
     parser_find.add_argument(
         '--doc',
-        type=int,
+        type=str,
         nargs='*',
         help="Show the document of each job. Can be passed the list of "
         "document keys to print.")
+    parser_find.add_argument(
+        '-p',
+        '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        default=3,
+        help="Pretty print output when using --sp, --doc, or ---show. "
+        "Argument is the depth to which keys are printed.")
     parser_find.add_argument(
         '-1', '--one-line',
         action='store_true',
