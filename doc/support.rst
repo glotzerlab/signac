@@ -61,8 +61,8 @@ Finally, we recommend to setup a `Flake8 <http://flake8.pycqa.org/en/latest/>`_ 
 With the *flake8* hook, your code will be checked for syntax and style before you make a commit.
 The continuous integration pipeline for the package will perform these checks as well, so running these tests before committing / pushing will prevent the pipeline from failing due to style-related issues.
 
-The git-flow development workflow
----------------------------------
+The development workflow
+------------------------
 
 Prior to working on a patch, it is advisable to create an `issue <https://github.com/glotzerlab/signac/issues>`_ that describes the problem or proposed feature.
 This means that the code maintainers and other users get a chance to provide some input on the scope and possible limitations of the proposed changes, as well as advise on the actual implementation.
@@ -73,8 +73,8 @@ Unrelated changes, such as minor fixes to unrelated bugs encountered during impl
 Branches should be named after the following pattern: ``<prefix>/issue-<#>-optional-short-description``.
 Choose from one of the following prefixes depending on the type of change:
 
-  * ``fix/``: Any changes that fix a bug in the code or an error in the documentation; should be based on the *master* branch.
-  * ``feature/``: Any changes that introduce a new feature; should be based on the *develop* branch.
+  * ``fix/``: Any changes that fix the code and documentation.
+  * ``feature/``: Any changes that introduce a new feature.
   * ``release/``: Reserved for release branches.
 
 If your change does not seem to fall into any of the above mentioned categories, use ``misc/``.

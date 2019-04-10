@@ -32,11 +32,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v3-{{ arch }}
-            - python-env-v3
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v4-{{ arch }}
+            - python-env-v4
 
       - run:
           name: install dependencies
@@ -47,9 +47,9 @@ jobs:
             virtualenv ./venv
             . venv/bin/activate
             if [[ "$CIRCLE_JOB" == *"pypy"* ]]; then
-              apt update -qq && apt install -qq libhdf5-dev
+              apt update -qq && apt install -y -qq libhdf5-dev
             else
-              sudo apt update -qq && sudo apt install -qq libhdf5-dev
+              sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
             fi
             pip install -U pip==18
             pip install -U codecov
