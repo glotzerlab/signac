@@ -367,13 +367,13 @@ def main_find(args):
             if args.sp is not None:
                 sp = job.statepoint()
                 if len(args.sp) != 0:
-                    sp = {key: sp[key] for key in args.sp}
+                    sp = {key: sp[key] for key in args.sp if key in sp}
                 print(format_lines('sp ', job_id, sp))
 
             if args.doc is not None:
                 doc = job.document()
                 if len(args.doc) != 0:
-                    doc = {key: doc[key] for key in args.doc}
+                    doc = {key: doc[key] for key in args.doc if key in doc}
                 print(format_lines('sp ', job_id, doc))
     except IOError as error:
         if error.errno == errno.EPIPE:
@@ -1243,13 +1243,13 @@ def main():
         type=str,
         nargs='*',
         help="Show the state point of each job. Can be passed the list of "
-        "state point keys to print.")
+        "state point keys to print (if they exist for a given job).")
     parser_find.add_argument(
         '--doc',
         type=str,
         nargs='*',
         help="Show the document of each job. Can be passed the list of "
-        "document keys to print.")
+        "document keys to print (if they exist for a given job).")
     parser_find.add_argument(
         '-p',
         '--pretty',
