@@ -12,16 +12,14 @@
 # on files on the local file system instead of a MongoDB database.
 #
 # [1]: https://github.com/mongodb/mongo-python-driver
-import sys
-import io
-import re
-import logging
 import argparse
+import io
+import logging
 import operator
-
-from numbers import Number
-
+import re
+import sys
 from itertools import islice
+from numbers import Number
 
 from ..core import json
 from ..common import six
@@ -33,7 +31,6 @@ else:
     from collections.abc import Mapping
 
 if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
-
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
