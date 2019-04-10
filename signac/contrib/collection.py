@@ -620,11 +620,16 @@ class Collection(object):
                 raise KeyError("Unknown expression-operator '{}'.".format(op))
         else:
             index = self.index(key, build=True)
-            # Check to see if a number value is a floating point type but an
+            # Check to see if 'value' is a floating point type but an
             # integer value (e.g., 4.0), and search for both the int and float
             # values. This allows the user to find statepoints that have
             # integer-valued keys that are stored as floating point types.
-            if isinstance(value, Number) and round(value) == value:
+            # Note that this both cases: 1) user searches for an int and hopes
+            # to find values that are stored as integer-valued floats and 2) user
+            # searches for a integer-valued float and hopes to find ints.
+            # This way, both `signac find x 4.0` and `signac find x 4` would
+            # return jobs where `sp.x` is stored as either 4.0 or 4.
+            if isinstance(value, Number) and float(value).is_integer():
                 result_float = index.get(_float(value), set())
                 result_int = index.get(int(value), set())
                 result = result_int.union(result_float)
