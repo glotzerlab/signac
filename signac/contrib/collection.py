@@ -623,18 +623,16 @@ class Collection(object):
                 raise KeyError("Unknown expression-operator '{}'.".format(op))
         else:
             index = self.index(key, build=True)
-            if isinstance(value, Number):
-                is_integer = round(value) == value
-            else:
-                is_integer = False
-
-            if is_integer:
+            # Check to see if a number value is a floating point type but an
+            # integer value (e.g., 4.0), and search for both the int and float
+            # values. This allows the user to find statepoints that have
+            # integer-valued keys that are stored as floating point types.
+            if isinstance(value, Number) and round(value) == value:
                 result_float = index.get(_float(value), set())
                 result_int = index.get(int(value), set())
                 result = result_int.union(result_float)
             else:
                 result = index.get(value, set())
-
             return result
 
     def _find_result(self, expr):
