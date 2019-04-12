@@ -632,10 +632,9 @@ class Collection(object):
             if isinstance(value, Number) and float(value).is_integer():
                 result_float = index.get(_float(value), set())
                 result_int = index.get(int(value), set())
-                result = result_int.union(result_float)
+                return result_int.union(result_float)
             else:
-                result = index.get(value, set())
-            return result
+                return index.get(value, set())
 
     def _find_result(self, expr):
         if not len(expr):
