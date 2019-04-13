@@ -15,8 +15,8 @@
 - [ ] Breaking change<sup>1</sup>
 
 This pull request is based on
-- [ ] *master*, because it is a bug fix or an update to the documentation.
-- [ ] *develop*, because it introduces a new feature.
+- [ ] *master*, because it is a regular bug fix, new feature, or an update to the documentation.
+- [ ] The latest release tag, because it is a hot-fix that should be released **as soon as possible**.
 
 <sup>1</sup>The change breaks (or has the potential to break) existing functionality.
 
