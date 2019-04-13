@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 
 class JobSearchIndex(object):
-    """Search for sepcific jobs with filters.
+    """Search for specific jobs with filters.
 
     The JobSearchIndex allows to search for job_ids,
     that are part of an index, which match specific
@@ -303,7 +303,7 @@ class Project(object):
 
     @property
     def stores(self):
-        """Access HDF5-stores associated wit this project.
+        """Access HDF5-stores associated with this project.
 
         Use this property to access an HDF5 file within the project's root
         directory using the H5Store dict-like interface.
@@ -790,7 +790,7 @@ class Project(object):
 
         Similar to :meth:`~.export_to`, this function expands the data space for the selected
         jobs, but instead of copying data will create symbolic links to the individual job
-        workspace directories. This is primarily uselful for browsing through the data
+        workspace directories. This is primarily useful for browsing through the data
         space using a file-browser with human-interpretable directory paths.
 
         By default, the paths of the view will be based on variable state point keys as part
@@ -1015,7 +1015,7 @@ class Project(object):
             or `False`, which means that we just use the job-id as path.
             Defaults to the equivalent of ``{{auto}}``.
         :param copytree:
-            The function used for the actualy copying of directory tree
+            The function used for the actual copying of directory tree
             structures. Defaults to :func:`shutil.copytree`.
             Can only be used when the target is a directory.
         :returns:
