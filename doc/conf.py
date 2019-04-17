@@ -72,7 +72,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'signac'
 copyright = 'The Regents of the University of Michigan'
-author = u'Carl Simon Adorf, Vyas Ramasubramani, Bradley D. Dice, Michael M. Henry, Paul M. Dodd, Sharon C. Glotzer'
+author = u'Carl S. Adorf, Vyas Ramasubramani, Bradley D. Dice, Michael M. Henry, Paul M. Dodd, Sharon C. Glotzer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
