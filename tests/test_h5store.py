@@ -177,7 +177,11 @@ class H5StoreTest(BaseH5StoreTest):
         with self.open_h5store() as h5s:
             key = 'setgetexplicitnested'
             d = self.get_testdata()
-            h5s.setdefault('a', dict())
+            self.assertNotIn('a', h5s)
+            ret = h5s.setdefault('a', dict())
+            self.assertIn('a', h5s)
+            self.assertEqual(ret, h5s['a'])
+            self.assertTrue(hasattr(ret, '_store'))  # is an H5Group object
             child1 = h5s['a']
             child2 = h5s['a']
             self.assertEqual(child1, child2)
