@@ -527,6 +527,18 @@ class H5StoreTest(BaseH5StoreTest):
                 self.assertEqual(b, B)
                 self.assertEqual(h5s.a.b, A)
 
+    def test_attrs(self):
+        with self.get_h5store() as h5s:
+            self.assertNotIn('foo', h5s.attrs)
+            h5s.attrs['foo'] = 'bar'
+            self.assertIn('foo', h5s.attrs)
+            self.assertEqual(h5s.attrs['foo'], 'bar')
+            h5s.attrs.update(dict(foo='baz'))
+            self.assertIn('foo', h5s.attrs)
+            self.assertEqual(h5s.attrs['foo'], 'baz')
+            del h5s.attrs['foo']
+            self.assertNotIn('foo', h5s.attrs)
+
 
 class H5StoreNestedDataTest(H5StoreTest):
 
