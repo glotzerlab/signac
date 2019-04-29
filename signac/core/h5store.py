@@ -230,6 +230,10 @@ class H5Group(MutableMapping):
             else:
                 return super(H5Group, self).__eq__(other)
 
+    @property
+    def attrs(self):
+        return self._group.attrs
+
 
 class H5Store(MutableMapping):
     """An HDF5-backed container for storing array-like and dictionary-like data.
@@ -376,6 +380,10 @@ class H5Store(MutableMapping):
             raise H5StoreClosedError(self._filename)
         else:
             return self._file
+
+    @property
+    def attrs(self):
+        return self.file.attrs
 
     @property
     def mode(self):
