@@ -210,6 +210,10 @@ class H5Group(MutableMapping):
         else:
             self.__setitem__(key, value)
 
+    def setdefault(self, key, value):
+        super(H5Group, self).setdefault(key, value)
+        return self.__getitem__(key)
+
     def __iter__(self):
         # The generator below should be refactored to use 'yield from'
         # once we drop Python 2.7 support.
@@ -432,6 +436,10 @@ class H5Store(MutableMapping):
             super(H5Store, self).__delattr__(key)
         else:
             self.__delitem__(key)
+
+    def setdefault(self, key, value):
+        super(H5Store, self).setdefault(key, value)
+        return self.__getitem__(key)
 
     def __iter__(self):
         with _ensure_open(self):
