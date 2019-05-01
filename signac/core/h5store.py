@@ -180,6 +180,10 @@ class H5Group(MutableMapping):
         self._store = store
         self._path = path
 
+    def __repr__(self):
+        return '{}(store={}, path={})'.format(
+            type(self).__name__, repr(self._store), repr(self._path))
+
     @property
     def _group(self):
         return self._store.file[self._path]
