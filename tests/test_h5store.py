@@ -200,10 +200,9 @@ class H5StoreTest(BaseH5StoreTest):
     def test_repr(self):
         with self.open_h5store() as h5s:
             key = 'test_repr'
+            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
             h5s[key] = self.get_testdata()
-            repr(h5s[key])
-            repr(h5s)    # open
-        repr(h5s)   # closed
+        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
 
     def test_str(self):
         with self.open_h5store() as h5s:
@@ -537,6 +536,15 @@ class H5StoreNestedDataTest(H5StoreTest):
 
     def get_testdata(self, size=None):
         return dict(a=super(H5StoreNestedDataTest, self).get_testdata(size))
+
+    def test_repr(self):
+        from signac.core.h5store import H5Store, H5Group  # noqa:F401
+        with self.open_h5store() as h5s:
+            key = 'test_repr'
+            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+            h5s[key] = self.get_testdata()
+            self.assertEqual(repr(h5s[key]), repr(eval(repr(h5s[key]))))
+        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
 
 
 class H5StoreBytesDataTest(H5StoreTest):
