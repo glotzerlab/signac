@@ -201,6 +201,7 @@ class H5StoreTest(BaseH5StoreTest):
         with self.open_h5store() as h5s:
             key = 'test_repr'
             h5s[key] = self.get_testdata()
+            repr(h5s[key])
             repr(h5s)    # open
         repr(h5s)   # closed
 
