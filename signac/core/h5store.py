@@ -21,6 +21,12 @@ else:
     from collections.abc import MutableMapping
 
 
+__all__ = [
+    'H5Store', 'H5Group', 'H5StoreManager',
+    'H5StoreClosedError', 'H5StoreAlreadyOpenError',
+    ]
+
+
 def _group_is_pandas_type(group):
     return 'pandas_type' in group.attrs
 
@@ -179,6 +185,10 @@ class H5Group(MutableMapping):
     def __init__(self, store, path):
         self._store = store
         self._path = path
+
+    def __repr__(self):
+        return '{}(store={}, path={})'.format(
+            type(self).__name__, repr(self._store), repr(self._path))
 
     @property
     def _group(self):
