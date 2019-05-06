@@ -297,9 +297,6 @@ class JSONDict(SyncedAttrDict):
                 with open(self._filename, 'wb') as file:
                     file.write(blob)
 
-    def __repr__(self):
-        return repr(self())
-
     @contextmanager
     def buffered(self):
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)

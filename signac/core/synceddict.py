@@ -257,6 +257,9 @@ class _SyncedDict(MutableMapping):
         self._synced_load()
         return self._convert_to_dict(self._data).items()
 
+    def __repr__(self):
+        return repr(self())
+
     def __str__(self):
         return str(self())
 

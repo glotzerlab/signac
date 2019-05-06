@@ -23,6 +23,7 @@ next
  - Fix: Searches for whole numbers will match all numerically matching integers regardless of whether they are stored as decimals or whole numbers (#169).
  - Fix: Passing an instance of dict to `H5Store.setdefault()` will return an instance of `H5Group` instead of a dict (#180).
  - Improve the representation (return value of `repr()`) of instances of `H5Group`.
+ - Improve the representation (return value of `repr()`) of instances of `SyncedAttrDict`.
 
 
 [1.0.0] -- 2019-02-28
