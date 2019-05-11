@@ -960,6 +960,7 @@ class Collection(object):
             else:
                 raise error
         except ValueError as error:
+            file.close()
             if hasattr(file, 'name'):
                 raise JSONParseError(
                     "Error while trying to parse file '{}': {}.".format(file.name, error))
