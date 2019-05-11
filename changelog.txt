@@ -24,6 +24,7 @@ next
  - Fix: Passing an instance of dict to `H5Store.setdefault()` will return an instance of `H5Group` instead of a dict (#180).
  - Improve the representation (return value of `repr()`) of instances of `H5Group`.
  - Improve the representation (return value of `repr()`) of instances of `SyncedAttrDict`.
+ - Fix: NumPy arrays and scalar data types are converted upon assignment into a `_SyncedDict` (#184).
 
 
 [1.0.0] -- 2019-02-28
