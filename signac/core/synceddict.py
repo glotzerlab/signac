@@ -15,6 +15,11 @@ if six.PY2:
 else:
     from collections.abc import Mapping
     from collections.abc import MutableMapping
+try:
+    import numpy
+    NUMPY = True
+except ImportError:
+    NUMPY = False
 
 
 logger = logging.getLogger(__name__)
@@ -107,6 +112,11 @@ class _SyncedDict(MutableMapping):
             return ret
         elif type(root) is list:
             return _SyncedList(root, self)
+        elif NUMPY:
+            if isinstance(root, numpy.number):
+                return root.item()
+            elif isinstance(root, numpy.ndarray):
+                return _SyncedList(root.tolist(), self)
         return root
 
     @classmethod
