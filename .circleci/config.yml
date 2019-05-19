@@ -93,10 +93,6 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.5
-  test-3.4:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.4
   test-2.7:
     <<: *test-template
     docker:
@@ -159,9 +155,6 @@ workflows:
       - test-2.7:
           requires:
             - style-check
-      - test-3.4:
-          requires:
-            - style-check
       - test-3.5:
           requires:
             - style-check
@@ -187,7 +180,6 @@ workflows:
               only: /release\/.*/
           requires:
             - test-2.7
-            - test-3.4
             - test-3.5
             - test-3.6
             - test-3.7
