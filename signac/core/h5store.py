@@ -366,7 +366,11 @@ class H5Store(MutableMapping):
             locked = False
         finally:
             if locked:
-                self._thread_lock.release()
+                try:
+                    self._thread_lock.release()
+                except RuntimeError as error:
+                    if 'cannot release un-acquired lock' not in str(error):
+                        raise
 
     @property
     def file(self):
