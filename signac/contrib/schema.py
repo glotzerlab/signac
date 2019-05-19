@@ -33,12 +33,12 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     collection = Collection(index, _trust=True)
     for doc in collection.find():
         for key, _ in _traverse_filter(doc):
-            if key == '_id' or key.split('.')[0] != 'statepoint':
+            if key == '_id' or key.split('.')[0] != 'sp':
                 continue
             collection.index(key, build=True)
     tmp = collection._indexes
 
-    def strip_prefix(key): return k[len('statepoint.'):]
+    def strip_prefix(key): return k[len('sp.'):]
 
     def remove_dict_placeholder(x):
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}

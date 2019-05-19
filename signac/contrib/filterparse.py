@@ -4,6 +4,7 @@
 from __future__ import print_function
 import sys
 from ..core import json
+from ..common import six
 
 
 def _print_err(msg=None):
@@ -71,17 +72,17 @@ def _cast(x):
 
 def _parse_simple(key, value=None):
     if value is None or value == '!':
-        return {key: {'$exists': True}}
+        return key, {'$exists': True}
     elif _is_json(value):
-        return {key: _parse_json(value)}
+        return key, _parse_json(value)
     elif _is_regex(value):
-        return {key: {'$regex': value[1:-1]}}
+        return key, {'$regex': value[1:-1]}
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "
             "Using as JSON expression as key is not allowed: '{}'.".format(key))
     else:
-        return {key: _cast(value)}
+        return key, _cast(value)
 
 
 def parse_filter_arg(args, file=sys.stderr):
@@ -91,14 +92,50 @@ def parse_filter_arg(args, file=sys.stderr):
         if _is_json(args[0]):
             return _parse_json(args[0])
         else:
-            return _with_message(_parse_simple(args[0]), file)
+            key, value = _parse_simple(args[0])
+            return _with_message({key: value}, file)
     else:
-        q = dict()
-        for i in range(0, len(args), 2):
-            key = args[i]
-            if i+1 < len(args):
-                value = args[i+1]
-            else:
-                value = None
-            q.update(_parse_simple(key, value))
+        q = dict(parse_simple(args))
+
         return _with_message(q, file)
+
+
+def parse_simple(tokens):
+    for i in range(0, len(tokens), 2):
+        key = tokens[i]
+        if i+1 < len(tokens):
+            value = tokens[i+1]
+        else:
+            value = None
+        yield _parse_simple(key, value)
+
+
+def _add_prefix(filter, prefix):
+    for key, value in filter:
+        if key in ('$and', '$or'):
+            if isinstance(value, list) or isinstance(value, tuple):
+                yield key, [dict(_add_prefix(item.items(), prefix)) for item in value]
+            else:
+                raise ValueError(
+                    "The argument to a logical operator must be a sequence (e.g. a list)!")
+        elif '.' in key and key.split('.', 1)[0] in ('sp', 'doc'):
+            yield key, value
+        else:
+            yield prefix + '.' + key, value
+
+
+def _parse_filter(filter):
+    if isinstance(filter, six.string_types):
+        # yield from parse_simple(filter.split())  # TODO: After dropping Py27.
+        for key, value in parse_simple(filter.split()):
+            yield key, value
+    elif filter:
+        # yield from filter.items()   # TODO: After dropping Py27.
+        for key, value in filter.items():
+            yield key, value
+
+
+def parse_filter(filter, prefix='sp'):
+    # yield from _add_prefix(_parse_filter(filter), prefix)  # TODO: After dropping Py27.
+    for key, value in _add_prefix(_parse_filter(filter), prefix):
+        yield key, value
