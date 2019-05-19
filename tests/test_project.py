@@ -1832,6 +1832,7 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
             self._project.update_cache()
+        return self
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
