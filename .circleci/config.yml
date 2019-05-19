@@ -56,7 +56,7 @@ jobs:
             pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
