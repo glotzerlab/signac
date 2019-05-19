@@ -16,8 +16,9 @@ Highlights
  - Projects and job search results are displayed nicely in Jupyter Notebooks.
  - Support for compressed Collection files.
 
-next
-----
+
+[1.1.0] -- 2019-05-19
+---------------------
 
  - Add command line options ``--sp`` and ``--doc`` for ``signac find`` that allow users to display key-value pairs of the state point and document in combination with the job id (#97, #146).
  - Fix: Searches for whole numbers will match all numerically matching integers regardless of whether they are stored as decimals or whole numbers (#169).
