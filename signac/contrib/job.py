@@ -101,6 +101,9 @@ class Job(object):
             self.__class__.__module__ + '.' + self.__class__.__name__,
             repr(self._project), self._statepoint)
 
+    def to_uri(self):
+        return '{}/api/v1/job/{}'.format(self._project.to_uri(), self.get_id())
+
     def __eq__(self, other):
         return hash(self) == hash(other)
 
