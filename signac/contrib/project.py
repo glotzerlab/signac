@@ -14,6 +14,7 @@ import time
 from contextlib import contextmanager
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
+from urllib.parse import urlparse
 
 from .. import syncutil
 from ..core import json
@@ -34,6 +35,8 @@ from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 from .filterparse import parse_filter, _root_keys
+from .filterparse import urlencode_filter
+from .filterparse import _parse_filter_query
 if six.PY2:
     from collections import Mapping, Iterable
 else:
@@ -152,6 +155,9 @@ class Project(object):
 
     def _repr_html_(self):
         return repr(self) + self.find_jobs()._repr_html_jobs()
+
+    def to_uri(self):
+        return 'signac://localhost{}'.format(self.root_directory())
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -328,6 +334,21 @@ class Project(object):
     @data.setter
     def data(self, new_data):
         self.stores[self.KEY_DATA] = new_data
+
+    def open(self, url, version='1'):
+        if version == '1':
+            o = urlparse(url)
+            if not o.path:
+                return self
+            elif o.path.startswith('job'):
+                return self.open_job(id=os.path.split(o.path)[1])
+            elif o.path.startswith('find'):
+                filter = dict(_parse_filter_query(o.query))
+                return self.find_jobs(filter)
+            else:
+                raise ValueError("Unknown path '{}'.".format(o.path))
+        else:
+            raise NotImplementedError("API version '{}' not supported.".format(version))
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
@@ -1818,6 +1839,9 @@ class JobsCursor(object):
     def _repr_html_(self):
         """Returns an HTML representation of JobsCursor."""
         return repr(self) + self._repr_html_jobs()
+
+    def to_uri(self):
+        return '{}/api/v1/find?{}'.format(self._project.to_uri(), urlencode_filter(self._filter))
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):

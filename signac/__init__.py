@@ -43,6 +43,7 @@ from .core.jsondict import get_buffer_load
 from .core.jsondict import JSONDict
 from .core.h5store import H5Store
 from .core.h5store import H5StoreManager
+from .uri import open
 
 
 __version__ = '1.1.0'
@@ -61,4 +62,5 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
            'JSONDict',
            'H5Store', 'H5StoreManager',
+           'open',
            ]

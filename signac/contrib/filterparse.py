@@ -3,8 +3,14 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import sys
+from urllib.parse import urlencode
+
 from ..core import json
 from ..common import six
+if six.PY2:
+    from collections import Mapping, Iterable
+else:
+    from collections.abc import Mapping, Iterable
 
 
 def _print_err(msg=None):
@@ -154,3 +160,29 @@ def parse_filter(filter, prefix='sp'):
     # yield from _add_prefix(_parse_filter(filter), prefix)  # TODO: After dropping Py27.
     for key, value in _add_prefix(_parse_filter(filter), prefix):
         yield key, value
+
+
+def _parse_filter_query(query):
+    for token in query.split('&'):
+        if '=' in token:
+            key, value = token.split('=')
+            yield key, _cast(value)
+        elif token:
+            yield token, {'$exists': True}
+
+
+def _urlencode_filter(filter):
+    for key, value in filter.items():
+        if isinstance(value, Mapping):
+            for k, v in _urlencode_filter(value):
+                yield key + '.' + k, v
+        elif isinstance(value, six.string_types):
+            yield key, value
+        elif isinstance(value, Iterable):
+            yield key, ','.join([_urlencode_filter(i) for i in value])
+        else:
+            yield key, value
+
+
+def urlencode_filter(filter):
+    return urlencode(list(_urlencode_filter(filter)))
