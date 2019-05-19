@@ -33,7 +33,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-from .filterparse import parse_filter
+from .filterparse import parse_filter, _root_keys
 if six.PY2:
     from collections import Mapping, Iterable
 else:
@@ -525,7 +525,7 @@ class Project(object):
             if doc_filter:
                 filter.update(parse_filter(doc_filter, 'doc'))
                 index = self.index(include_job_document=True)
-            elif any(key.startswith('doc.') for key in filter):
+            elif 'doc' in _root_keys(filter):
                 index = self.index(include_job_document=True)
             else:
                 index = self._sp_index()
