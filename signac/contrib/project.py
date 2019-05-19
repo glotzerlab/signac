@@ -14,7 +14,6 @@ import time
 from contextlib import contextmanager
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
-from urllib.parse import urlparse
 
 from .. import syncutil
 from ..core import json
@@ -37,6 +36,7 @@ from .errors import JobsCorruptedError
 from .filterparse import parse_filter, _root_keys
 from .filterparse import urlencode_filter
 from .filterparse import _parse_filter_query
+from six.moves.urllib.parse import urlparse
 if six.PY2:
     from collections import Mapping, Iterable
 else:
