@@ -1495,7 +1495,8 @@ class Project(object):
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if 'project' not in config or (not search and config['project_dir'] != root):
+        if 'project' not in config or \
+                (not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)):
             raise LookupError(
                 "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
         return cls(config=config)
