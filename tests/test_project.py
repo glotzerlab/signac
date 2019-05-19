@@ -1798,6 +1798,10 @@ class ProjectInitTest(unittest.TestCase):
         project = signac.init_project(root=root, name='testproject')
         self.assertEqual(project, project.get_project(root=root))
         self.assertEqual(project, signac.get_project(root=root))
+        self.assertEqual(project, project.get_project(root=root, search=False))
+        self.assertEqual(project, signac.get_project(root=root, search=False))
+        self.assertEqual(project, project.get_project(root=os.path.relpath(root), search=False))
+        self.assertEqual(project, signac.get_project(root=os.path.relpath(root), search=False))
         with self.assertRaises(LookupError):
             self.assertEqual(project, project.get_project(root=subdir, search=False))
         with self.assertRaises(LookupError):

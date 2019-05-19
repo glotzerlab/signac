@@ -32,6 +32,7 @@ Fixed
  - Fix: Passing an instance of dict to `H5Store.setdefault()` will return an instance of `H5Group` instead of a dict (#180).
  - Fix error with storing numpy arrays and scalars in a synced dictionary (e.g. `job.statepoint`, `job.document`) (#184).
  - Fix issue with ``ResourceWarning`` originating from unclosed instance of ``Collection`` (#186).
+ - Fix issue with using the ``get_project()`` function with a relative path and ``search=False``.
 
 
 [1.0.0] -- 2019-02-28
