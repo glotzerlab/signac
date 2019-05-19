@@ -33,9 +33,8 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-from .filterparse import parse_filter, _root_keys
-from .filterparse import urlencode_filter
-from .filterparse import _parse_filter_query
+from .filterparse import urlencode_filter, parse_filter
+from .filterparse import _parse_filter_query, _root_keys, _flatten
 from six.moves.urllib.parse import urlparse
 if six.PY2:
     from collections import Mapping, Iterable
@@ -575,7 +574,7 @@ class Project(object):
         filter = dict(parse_filter(filter, 'sp'))
         if doc_filter:
             filter.update(parse_filter(doc_filter, 'doc'))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, dict(_flatten(filter)))
 
     def __iter__(self):
         return iter(self.find_jobs())

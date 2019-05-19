@@ -267,6 +267,44 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(1, len(list(self.project.find_jobs({'sp.a': 0}))))
         self.assertEqual(0, len(list(self.project.find_jobs({'sp.a': 5}))))
 
+    def test_find_jobs_uri(self):
+        for i in range(5):
+            self.project.open_job(dict(a=i)).init()
+            self.project.open_job(dict(a=str(i))).init()
+        for value in (True, False, None):
+            self.project.open_job(dict(a=value)).init()
+
+        for value, n in (
+                (0, 1), ('0', 1), ({'$exists': True}, 13),
+                ({'$type': 'int'}, 5), ({'$type': 'str'}, 5),
+                ({'$regex': r'\d'}, 5), ({'$regex': r'\w+'}, 5),
+                (True, 1), (False, 1), (None, 1),
+                ('true', 0), ('false', 0), ('null', 0),
+                ('', 0), ('"', 0), (r'\"', 0), ('""', 0)):
+
+            q = self.project.find_jobs(dict(a=value))
+            self.assertEqual(q, signac.open(q.to_uri()))
+            self.assertEqual(len(q), len(signac.open(q.to_uri())), n)
+
+    def test_find_jobs_uri_nested(self):
+        for i in range(5):
+            self.project.open_job(dict(b=dict(a=i))).init()
+            self.project.open_job(dict(b=dict(a=str(i)))).init()
+        for value in (True, False, None):
+            self.project.open_job(dict(b=dict(a=value))).init()
+
+        for value, n in (
+                (0, 1), ('0', 1), ({'$exists': True}, 13),
+                ({'$type': 'int'}, 5), ({'$type': 'str'}, 5),
+                ({'$regex': r'\d'}, 5), ({'$regex': r'\w+'}, 5),
+                (True, 1), (False, 1), (None, 1),
+                ('true', 0), ('false', 0), ('null', 0),
+                ('', 0), ('"', 0), (r'\"', 0), ('""', 0)):
+
+            q = self.project.find_jobs(dict(b=dict(a=value)))
+            self.assertEqual(q, signac.open(q.to_uri()))
+            self.assertEqual(len(q), len(signac.open(q.to_uri())), n)
+
     def test_find_jobs_next(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
