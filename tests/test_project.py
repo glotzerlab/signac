@@ -35,6 +35,12 @@ except ImportError:
 else:
     PANDAS = True
 
+try:
+    import h5py    # noqa
+    H5PY = True
+except ImportError:
+    H5PY = False
+
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -129,6 +135,7 @@ class ProjectTest(BaseProjectTest):
         self.project.doc = {'a': {'b': 45}}
         self.assertEqual(self.project.doc, {'a': {'b': 45}})
 
+    @unittest.skipIf(not H5PY, 'test requires the h5py package')
     def test_data(self):
         with self.project.data:
             self.assertFalse(self.project.data)
@@ -1791,6 +1798,10 @@ class ProjectInitTest(unittest.TestCase):
         project = signac.init_project(root=root, name='testproject')
         self.assertEqual(project, project.get_project(root=root))
         self.assertEqual(project, signac.get_project(root=root))
+        self.assertEqual(project, project.get_project(root=root, search=False))
+        self.assertEqual(project, signac.get_project(root=root, search=False))
+        self.assertEqual(project, project.get_project(root=os.path.relpath(root), search=False))
+        self.assertEqual(project, signac.get_project(root=os.path.relpath(root), search=False))
         with self.assertRaises(LookupError):
             self.assertEqual(project, project.get_project(root=subdir, search=False))
         with self.assertRaises(LookupError):

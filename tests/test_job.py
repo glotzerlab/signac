@@ -25,6 +25,11 @@ if six.PY2:
 else:
     from tempfile import TemporaryDirectory
 
+try:
+    import h5py    # noqa
+    H5PY = True
+except ImportError:
+    H5PY = False
 
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
@@ -826,6 +831,7 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual('{job.document.a.b}'.format(job=job), str(job.doc.a.b))
         self.assertEqual('{job.document[a][b]}'.format(job=job), str(job.doc.a.b))
 
+    @unittest.skipIf(not H5PY, 'test requires the h5py package')
     def test_reset_statepoint_job(self):
         key = 'move_job'
         d = testdata()
@@ -853,6 +859,7 @@ class JobDocumentTest(BaseJobTest):
         with self.assertRaises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
+    @unittest.skipIf(not H5PY, 'test requires the h5py package')
     def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
@@ -880,6 +887,7 @@ class JobDocumentTest(BaseJobTest):
         with self.assertRaises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
 
+    @unittest.skipIf(not H5PY, 'test requires the h5py package')
     def test_update_statepoint(self):
         key = 'move_job'
         d = testdata()
@@ -922,6 +930,7 @@ class JobDocumentTest(BaseJobTest):
         self.assertEqual(len(dst2_job.data), 1)
 
 
+@unittest.skipIf(not H5PY, 'test requires the h5py package')
 class JobOpenDataTest(BaseJobTest):
 
     @staticmethod
@@ -1383,6 +1392,7 @@ class JobOpenDataTest(BaseJobTest):
             self.assertEqual(len(dst2_job.data), 1)
 
 
+@unittest.skipIf(not H5PY, 'test requires the h5py package')
 class JobClosedDataTest(JobOpenDataTest):
 
     @staticmethod
@@ -1404,6 +1414,7 @@ class JobClosedDataTest(JobOpenDataTest):
         self.assertEqual(list(job.stores), ['test'])
 
 
+@unittest.skipIf(not H5PY, 'test requires the h5py package')
 class JobOpenCustomDataTest(BaseJobTest):
 
     @staticmethod

@@ -13,7 +13,7 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='1.0.0',
+    version='1.1.0',
     packages=find_packages(),
     zip_safe=True,
 
@@ -32,7 +32,6 @@ setup(
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
@@ -45,6 +44,7 @@ setup(
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
+        'h5': ['h5py']
     },
 
     entry_points={
