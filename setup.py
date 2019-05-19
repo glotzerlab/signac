@@ -45,6 +45,7 @@ setup(
     extras_require={
         'db': ['pymongo>=3.0'],
         'mpi': ['mpi4py'],
+        'h5': ['h5py']
     },
 
     entry_points={
