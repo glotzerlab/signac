@@ -14,10 +14,6 @@
 - [ ] New feature
 - [ ] Breaking change<sup>1</sup>
 
-This pull request is based on
-- [ ] *master*, because it is a bug fix or an update to the documentation.
-- [ ] *develop*, because it introduces a new feature.
-
 <sup>1</sup>The change breaks (or has the potential to break) existing functionality.
 
 ## Checklist:

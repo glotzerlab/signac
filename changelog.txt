@@ -16,6 +16,16 @@ Highlights
  - Projects and job search results are displayed nicely in Jupyter Notebooks.
  - Support for compressed Collection files.
 
+next
+----
+
+ - Add command line options ``--sp`` and ``--doc`` for ``signac find`` that allow users to display key-value pairs of the state point and document in combination with the job id (#97, #146).
+ - Fix: Searches for whole numbers will match all numerically matching integers regardless of whether they are stored as decimals or whole numbers (#169).
+ - Fix: Passing an instance of dict to `H5Store.setdefault()` will return an instance of `H5Group` instead of a dict (#180).
+ - Improve the representation (return value of `repr()`) of instances of `H5Group`.
+ - Improve the representation (return value of `repr()`) of instances of `SyncedAttrDict`.
+ - Fix error with storing numpy arrays and scalars in a synced dictionary (e.g. `job.statepoint`, `job.document`) (#184).
+
 
 [1.0.0] -- 2019-02-28
 ---------------------

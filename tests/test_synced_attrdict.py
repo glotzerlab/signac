@@ -90,7 +90,11 @@ class SyncedAttrDictTest(unittest.TestCase):
 
     def test_repr(self):
         sad = self.get_sad()
-        repr(sad)
+        self.assertEqual(repr(sad), repr(dict(sad())))
+        sad['a'] = 0
+        self.assertEqual(repr(sad), repr(dict(sad())))
+        sad['a'] = {'b': 0}
+        self.assertEqual(repr(sad), repr(dict(sad())))
 
     def test_call(self):
         sad = self.get_sad()
