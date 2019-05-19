@@ -3,10 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import sys
-from urllib.parse import urlencode
 
 from ..core import json
 from ..common import six
+from ..common.six.moves.urllib.parse import urlencode
 if six.PY2:
     from collections import Mapping, Iterable
 else:

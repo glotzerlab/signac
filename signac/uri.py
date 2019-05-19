@@ -3,9 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import re
-from urllib.parse import urlparse, urlunparse
 
 from .contrib.project import Project
+from .common.six.moves.urllib.parse import urlparse, urlunparse
 
 
 _PATH_SCHEMA = r'(?P<root>.*?)(\/api\/v(?P<api_version>\d+)(?P<path>.*))'
