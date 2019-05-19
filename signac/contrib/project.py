@@ -551,7 +551,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        return JobsCursor(self, filter, doc_filter)
+        filter = dict(parse_filter(filter, 'sp'))
+        if doc_filter:
+            filter.update(parse_filter(doc_filter, 'doc'))
+        return JobsCursor(self, filter)
 
     def __iter__(self):
         return iter(self.find_jobs())
@@ -1584,21 +1587,23 @@ class JobsCursor(object):
     """
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, project, filter, doc_filter):
+    def __init__(self, project, filter):
         self._project = project
         self._filter = filter
-        self._doc_filter = doc_filter
 
         # This private attribute allows us to implement the deprecated
         # next() method for this class.
         self._next_iter = None
 
+    def __eq__(self, other):
+        return self._project == other._project and self._filter == other._filter
+
     def __len__(self):
         # Highly performance critical code path!!
-        if self._filter or self._doc_filter:
+        if self._filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project.find_job_ids(self._filter, self._doc_filter))
+            return len(self._project.find_job_ids(self._filter))
         else:
             # Without filter we can simply return the length of the whole project.
             return self._project.__len__()
@@ -1607,7 +1612,7 @@ class JobsCursor(object):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
             self._project,
-            self._project.find_job_ids(self._filter, self._doc_filter),
+            self._project.find_job_ids(self._filter)
             )
 
     def next(self):
@@ -1785,12 +1790,10 @@ class JobsCursor(object):
             orient='index').infer_objects()
 
     def __repr__(self):
-        return "{type}({{'project': '{project}', 'filter': '{filter}',"\
-               " 'docfilter': '{doc_filter}'}})".format(
+        return "{type}({{'project': '{project}', 'filter': '{filter}'}})".format(
                    type=self.__class__.__module__ + '.' + self.__class__.__name__,
                    project=self._project,
-                   filter=self._filter,
-                   doc_filter=self._doc_filter)
+                   filter=self._filter)
 
     def _repr_html_jobs(self):
         html = ''
