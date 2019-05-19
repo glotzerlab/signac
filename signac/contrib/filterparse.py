@@ -120,8 +120,23 @@ def _add_prefix(filter, prefix):
                     "The argument to a logical operator must be a sequence (e.g. a list)!")
         elif '.' in key and key.split('.', 1)[0] in ('sp', 'doc'):
             yield key, value
+        elif key in ('sp', 'doc'):
+            yield key, value
         else:
             yield prefix + '.' + key, value
+
+
+def _root_keys(filter):
+    for key, value in filter.items():
+        if key in ('$and', '$or'):
+            assert isinstance(value, (list, tuple))
+            for item in value:
+                for key in _root_keys(item):
+                    yield key
+        elif '.' in key:
+            yield key.split('.', 1)[0]
+        else:
+            yield key
 
 
 def _parse_filter(filter):
