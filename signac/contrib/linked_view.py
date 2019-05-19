@@ -20,10 +20,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
     if index is None:
         if job_ids is None:
-            index = [{'_id': job._id, 'statepoint': job.sp()} for job in project]
+            index = [{'_id': job._id, 'sp': job.sp()} for job in project]
             jobs = list(project)
         else:
-            index = [{'_id': job_id, 'statepoint': project.open_job(id=job_id).sp()}
+            index = [{'_id': job_id, 'sp': project.open_job(id=job_id).sp()}
                      for job_id in job_ids]
             jobs = list(project.open_job(id=job_id) for job_id in job_ids)
     elif job_ids is not None:

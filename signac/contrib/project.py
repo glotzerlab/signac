@@ -33,6 +33,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
+from .filterparse import parse_filter
 if six.PY2:
     from collections import Mapping, Iterable
 else:
@@ -77,17 +78,7 @@ class JobSearchIndex(object):
     def __len__(self):
         return len(self._collection)
 
-    def _resolve_statepoint_filter(self, q):
-        for k, v in q.items():
-            if k in ('$and', '$or'):
-                if not isinstance(v, list) or isinstance(v, tuple):
-                    raise ValueError(
-                        "The argument to a logical operator must be a sequence (e.g. a list)!")
-                yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
-            else:
-                yield 'statepoint.{}'.format(k), v
-
-    def find_job_ids(self, filter=None, doc_filter=None):
+    def find_job_ids(self, filter=None):
         """Find the job_ids of all jobs matching the filters.
 
         The optional filter arguments must be a Mapping of key-value
@@ -104,12 +95,6 @@ class JobSearchIndex(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        if filter:
-            filter = dict(self._resolve_statepoint_filter(filter))
-            if doc_filter:
-                filter.update(doc_filter)
-        elif doc_filter:
-            filter = doc_filter
         return self._collection._find(filter)
 
 
@@ -482,7 +467,7 @@ class Project(object):
         """
         from .schema import _build_job_statepoint_index
         if index is None:
-            index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
+            index = [{'_id': job._id, 'sp': job.sp()} for job in self]
         for x in _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index):
             yield x
 
@@ -536,14 +521,15 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            if doc_filter is None:
-                index = self._sp_index()
-            else:
+            filter = dict(parse_filter(filter, 'sp'))
+            if doc_filter:
+                filter.update(parse_filter(doc_filter, 'doc'))
                 index = self.index(include_job_document=True)
-            search_index = JobSearchIndex(index, _trust=True)
-        else:
-            search_index = JobSearchIndex(index)
-        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
+            elif any(key.startswith('doc.') for key in filter):
+                index = self.index(include_job_document=True)
+            else:
+                index = self._sp_index()
+        return Collection(index, _trust=True)._find(filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
@@ -1133,7 +1119,7 @@ class Project(object):
                 raise
         if index is not None:
             for doc in index:
-                self._sp_cache[doc['signac_id']] = doc['statepoint']
+                self._sp_cache[doc['signac_id']] = doc['sp']
 
         corrupted = []
         for job_id in job_ids:
@@ -1188,21 +1174,21 @@ class Project(object):
         for _id in to_remove:
             del self._index_cache[_id]
         for _id in to_add:
-            self._index_cache[_id] = dict(statepoint=self.get_statepoint(_id), _id=_id)
+            self._index_cache[_id] = dict(sp=self.get_statepoint(_id), _id=_id)
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
         "Return a basic state point index."
         wd = self.workspace() if self.Job is Job else None
         for _id in self.find_job_ids():
-            doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
+            doc = dict(_id=_id, sp=self.get_statepoint(_id))
             if include_job_document:
                 if wd is None:
-                    doc.update(self.open_job(id=_id).document)
+                    doc['doc'] = self.open_job(id=_id).document
                 else:   # use optimized path
                     try:
                         with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
-                            doc.update(json.loads(file.read().decode()))
+                            doc['doc'] = json.loads(file.read().decode())
                     except IOError as error:
                         if error.errno != errno.ENOENT:
                             raise
@@ -1306,7 +1292,7 @@ class Project(object):
             return cache
 
     def index(self, formats=None, depth=0,
-              skip_errors=False, include_job_document=True):
+              skip_errors=False, include_job_document=True, **kwargs):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's

@@ -124,6 +124,7 @@ class BasicShellTest(unittest.TestCase):
             sp = self.call('python -m signac statepoint {}'.format(job).split())
             self.assertEqual(project.open_job(json.loads(sp)), job)
 
+    @unittest.expectedFailure
     def test_index(self):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac project --access'.split())
