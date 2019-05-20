@@ -36,7 +36,6 @@ jobs:
             - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
             - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
             - python-env-v4-{{ arch }}
-            - python-env-v4
 
       - run:
           name: install dependencies
