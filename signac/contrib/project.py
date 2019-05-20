@@ -159,7 +159,8 @@ class Project(object):
         return 'signac://localhost{}'.format(self.root_directory())
 
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return self.root_directory() == other.root_directory() and \
+            self.workspace() == other.workspace()
 
     @property
     def config(self):
