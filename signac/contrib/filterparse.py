@@ -3,8 +3,14 @@
 # This software is licensed under the BSD 3-Clause License.
 from __future__ import print_function
 import sys
+
 from ..core import json
 from ..common import six
+from ..common.six.moves.urllib.parse import urlencode, parse_qsl, quote_plus, unquote
+if six.PY2:
+    from collections import Mapping, Iterable
+else:
+    from collections.abc import Mapping, Iterable
 
 
 def _print_err(msg=None):
@@ -61,13 +67,16 @@ def _cast(x):
             print("Did you mean {}?".format(CAST_MAPPING_WARNING[x], file=sys.stderr))
         return CAST_MAPPING[x]
     except KeyError:
-        try:
-            return int(x)
-        except ValueError:
+        if x.startswith('"') and x.endswith('"'):
+            return x[1:-1]
+        else:
             try:
-                return float(x)
+                return int(x)
             except ValueError:
-                return x
+                try:
+                    return float(x)
+                except ValueError:
+                    return x
 
 
 def _parse_simple(key, value=None):
@@ -154,3 +163,35 @@ def parse_filter(filter, prefix='sp'):
     # yield from _add_prefix(_parse_filter(filter), prefix)  # TODO: After dropping Py27.
     for key, value in _add_prefix(_parse_filter(filter), prefix):
         yield key, value
+
+
+def _parse_filter_query(query):
+    for key, value in dict(parse_qsl(query)).items():
+        yield key, _cast(unquote(value))
+
+
+def _flatten(filter):
+    for key, value in filter.items():
+        if isinstance(value, Mapping):
+            for k, v in _flatten(value):
+                yield key + '.' + k, v
+        else:
+            yield key, value
+
+
+def _urlencode_filter(filter):
+    for key, value in _flatten(filter):
+        if isinstance(value, six.string_types):
+            yield key, quote_plus('"' + value + '"')
+        elif isinstance(value, Iterable):
+            yield key, ','.join([_urlencode_filter(i) for i in value])
+        elif value is None:
+            yield key, 'null'
+        elif isinstance(value, bool):
+            yield key, {True: 'true', False: 'false'}[value]
+        else:
+            yield key, value
+
+
+def urlencode_filter(filter):
+    return urlencode(list(_urlencode_filter(filter)))

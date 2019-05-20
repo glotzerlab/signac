@@ -33,7 +33,9 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-from .filterparse import parse_filter, _root_keys
+from .filterparse import urlencode_filter, parse_filter
+from .filterparse import _parse_filter_query, _root_keys, _flatten
+from six.moves.urllib.parse import urlparse
 if six.PY2:
     from collections import Mapping, Iterable
 else:
@@ -153,8 +155,12 @@ class Project(object):
     def _repr_html_(self):
         return repr(self) + self.find_jobs()._repr_html_jobs()
 
+    def to_uri(self):
+        return 'signac://localhost{}'.format(self.root_directory())
+
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return self.root_directory() == other.root_directory() and \
+            self.workspace() == other.workspace()
 
     @property
     def config(self):
@@ -328,6 +334,21 @@ class Project(object):
     @data.setter
     def data(self, new_data):
         self.stores[self.KEY_DATA] = new_data
+
+    def open(self, url, version='1'):
+        if version == '1':
+            o = urlparse(url)
+            if not o.path:
+                return self
+            elif o.path.startswith('job'):
+                return self.open_job(id=os.path.split(o.path)[1])
+            elif o.path.startswith('find'):
+                filter = dict(_parse_filter_query(o.query))
+                return self.find_jobs(filter)
+            else:
+                raise ValueError("Unknown path '{}'.".format(o.path))
+        else:
+            raise NotImplementedError("API version '{}' not supported.".format(version))
 
     def open_job(self, statepoint=None, id=None):
         """Get a job handle associated with a statepoint.
@@ -554,7 +575,7 @@ class Project(object):
         filter = dict(parse_filter(filter, 'sp'))
         if doc_filter:
             filter.update(parse_filter(doc_filter, 'doc'))
-        return JobsCursor(self, filter)
+        return JobsCursor(self, dict(_flatten(filter)))
 
     def __iter__(self):
         return iter(self.find_jobs())
@@ -1818,6 +1839,9 @@ class JobsCursor(object):
     def _repr_html_(self):
         """Returns an HTML representation of JobsCursor."""
         return repr(self) + self._repr_html_jobs()
+
+    def to_uri(self):
+        return '{}/api/v1/find?{}'.format(self._project.to_uri(), urlencode_filter(self._filter))
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
