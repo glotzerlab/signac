@@ -93,6 +93,10 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.5
+  test-3.8-rc:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.8-rc
   test-2.7:
     <<: *test-template
     docker:
@@ -164,6 +168,10 @@ workflows:
       - test-3.7:
           requires:
             - style-check
+      - test-3.8-rc:
+          requires:
+            - test-3.7
+            - style-check
       - test-pypy-2:
           requires:
             - test-2.7
@@ -183,6 +191,7 @@ workflows:
             - test-3.5
             - test-3.6
             - test-3.7
+            - test-3.8-rc
             - test-pypy-2
             - test-pypy-3
   deploy:
