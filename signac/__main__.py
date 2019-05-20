@@ -1005,7 +1005,7 @@ def main_shell(args):
                 try:
                     readline.read_history_file(fn_hist)
                     readline.set_history_length(1000)
-                except OSError as error:
+                except (IOError, OSError) as error:
                     if error.errno != errno.ENOENT:
                         raise
                 atexit.register(readline.write_history_file, fn_hist)
