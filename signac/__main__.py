@@ -10,8 +10,10 @@ import json
 import logging
 import getpass
 import difflib
+import atexit
 import code
 import importlib
+import platform
 from rlcompleter import Completer
 import re
 import errno
@@ -1000,6 +1002,16 @@ def main_shell(args):
                 interpreter.runsource(args.command, filename="<input>", symbol="exec")
         else:   # interactive
             if READLINE:
+                if 'PyPy' not in platform.python_implementation():
+                    fn_hist = project.fn('.signac_shell_history')
+                    try:
+                        readline.read_history_file(fn_hist)
+                        readline.set_history_length(1000)
+                    except (IOError, OSError) as error:
+                        if error.errno != errno.ENOENT:
+                            raise
+                    atexit.register(readline.write_history_file, fn_hist)
+
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
             code.interact(
