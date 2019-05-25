@@ -80,6 +80,19 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(child1[key], d)
         self.assertEqual(child2[key], d)
 
+    def test_set_get_explicit_nested_list(self):
+        jsd = self.get_json_dict()
+        key = 'setgetexplicitnestedlist'
+        d = self.get_testdata()
+        jsd.setdefault('a', list())
+        child = jsd['a']
+        self.assertFalse(child)
+        child.append(d)
+        self.assertTrue(child)
+        child[0][key] = 'altered_data'
+        self.assertIn(key, child[0])
+        self.assertEqual(child, jsd['a'])
+
     def test_copy_value(self):
         jsd = self.get_json_dict()
         key = 'copy_value'
