@@ -18,6 +18,13 @@ CONFIG_PATH = [HOME]
 FN_CONFIG = os.path.expanduser('~/.signacrc')
 
 
+_CONFIG_CACHE = dict()
+
+
+def clear_config_cache():
+    _CONFIG_CACHE.clear()
+
+
 class PermissionsError(ConfigError):
     pass
 
@@ -101,9 +108,14 @@ def _search_local(root):
             yield fn_
 
 
-def load_config(root=None, local=False):
+def load_config(root=None, local=False, cached=True):
     if root is None:
         root = os.getcwd()
+
+    # Try to load from config cache first.
+    if cached and (root, local) in _CONFIG_CACHE:
+        return _CONFIG_CACHE[(root, local)]
+
     config = Config(configspec=cfg.split('\n'))
     if local:
         for fn in _search_local(root):
@@ -121,6 +133,8 @@ def load_config(root=None, local=False):
             if 'project' in tmp:
                 config['project_dir'] = os.path.dirname(fn)
                 break
+
+    _CONFIG_CACHE[(root, local)] = config
     return config
 
 
@@ -145,4 +159,6 @@ class Config(ConfigObj):
         if outfile is not None:
             if self.has_password():
                 check_and_fix_permissions(outfile)
-        return super(Config, self).write(outfile=outfile, section=section)
+        ret = super(Config, self).write(outfile=outfile, section=section)
+        clear_config_cache()
+        return ret

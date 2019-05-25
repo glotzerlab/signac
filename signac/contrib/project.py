@@ -21,7 +21,7 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common import six
-from ..common.config import load_config
+from ..common.config import load_config, clear_config_cache
 from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
 from .job import Job
@@ -1460,6 +1460,7 @@ class Project(object):
                 config_file.write('project={}\n'.format(name))
                 if workspace is not None:
                     config_file.write('workspace_dir={}\n'.format(workspace))
+                clear_config_cache()
             project = cls.get_project(root=root)
             assert project.get_id() == str(name)
             return project
