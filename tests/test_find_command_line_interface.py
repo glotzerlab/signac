@@ -2,11 +2,13 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import sys
 import json
 import unittest
 from itertools import chain
 
 from signac.contrib.filterparse import parse_filter_arg
+from signac.core.json import JSONDecodeError
 
 FILTERS = [
     {'a': 0},
@@ -91,6 +93,18 @@ class FindCommandLineInterfaceTest(unittest.TestCase):
     def test_interpret_mixed_key_value(self):
         for expr in chain(ARITHMETIC_EXPRESSIONS, ARRAY_EXPRESSIONS):
             self.assertEqual(self._parse(['a', json.dumps(expr)]), {'a': expr})
+
+    def test_invalid_json(self):
+        # Hide error message by rerouting sys.stderr
+        _stderr = sys.stderr
+        devnull = open(os.devnull, 'w')
+        try:
+            sys.stderr = devnull
+            with self.assertRaises(JSONDecodeError):
+                parse_filter_arg(['{"x": True}'])
+        finally:
+            devnull.close()
+            sys.stderr = _stderr
 
 
 if __name__ == '__main__':
