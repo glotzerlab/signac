@@ -20,6 +20,7 @@ try:
         # Defined for rapidjson >= 0.7.1
         from rapidjson import JSONDecodeError
     except ImportError:
+        # rapidjson < 0.7.1 raises a ValueError
         JSONDecodeError = ValueError
 
     class JSONEncoder(Encoder):
@@ -29,7 +30,11 @@ try:
 except ImportError:
     import json
     from json import JSONEncoder
-    from json.decoder import JSONDecodeError
+    try:
+        from json.decoder import JSONDecodeError
+    except ImportError:
+        # JSONDecodeError doesn't exist for Python 2
+        JSONDecodeError = ValueError
 
     logger.debug(msg.format('json'))
 
