@@ -89,8 +89,11 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertFalse(child)
         child.append(d)
         self.assertTrue(child)
-        child[0][key] = 'altered_data'
-        self.assertIn(key, child[0])
+        self.assertIn(d, child)
+        child.append({key: 'some_data'})
+        self.assertEqual(child[-1], {key: 'some_data'})
+        child[-1][key] = 'altered_data'
+        self.assertEqual(child[-1], {key: 'altered_data'})
         self.assertEqual(child, jsd['a'])
 
     def test_copy_value(self):
