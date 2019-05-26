@@ -33,7 +33,7 @@ def _is_regex(q):
 def _parse_json(q):
     try:
         return json.loads(q)
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         _print_err("Failed to parse query argument. "
                    "Ensure that '{}' is valid JSON!".format(q))
         raise
