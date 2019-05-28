@@ -1,12 +1,15 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import io
 import os
 import sys
 import json
 import unittest
 from itertools import chain
+from contextlib import contextmanager
 
+from signac.common import six
 from signac.contrib.filterparse import parse_filter_arg
 from signac.core.json import JSONDecodeError
 
@@ -67,6 +70,29 @@ ARRAY_EXPRESSIONS = [
 ]
 
 
+class StringIO(io.StringIO):
+    "PY27 compatibility layer."
+
+    def write(self, s):
+        if six.PY2:
+            super(StringIO, self).write(unicode(s))  # noqa
+        else:
+            super(StringIO, self).write(s)
+
+
+@contextmanager
+def redirect_stderr(new_target=None):
+    "Temporarily redirect all output to stderr to new_target."
+    if new_target is None:
+        new_target = StringIO()
+    old_target = sys.stderr
+    try:
+        sys.stderr = new_target
+        yield
+    finally:
+        sys.stderr = old_target
+
+
 class FindCommandLineInterfaceTest(unittest.TestCase):
 
     @staticmethod
@@ -95,16 +121,9 @@ class FindCommandLineInterfaceTest(unittest.TestCase):
             self.assertEqual(self._parse(['a', json.dumps(expr)]), {'a': expr})
 
     def test_invalid_json(self):
-        # Hide error message by rerouting sys.stderr
-        _stderr = sys.stderr
-        devnull = open(os.devnull, 'w')
-        try:
-            sys.stderr = devnull
+        with redirect_stderr():
             with self.assertRaises(JSONDecodeError):
                 parse_filter_arg(['{"x": True}'])
-        finally:
-            devnull.close()
-            sys.stderr = _stderr
 
 
 if __name__ == '__main__':
