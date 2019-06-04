@@ -45,7 +45,7 @@ from .core.h5store import H5Store
 from .core.h5store import H5StoreManager
 
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',

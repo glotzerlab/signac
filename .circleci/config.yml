@@ -32,11 +32,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v3-{{ arch }}
-            - python-env-v3
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v4-{{ arch }}
+            - python-env-v4
 
       - run:
           name: install dependencies
@@ -47,16 +47,16 @@ jobs:
             virtualenv ./venv
             . venv/bin/activate
             if [[ "$CIRCLE_JOB" == *"pypy"* ]]; then
-              apt update -qq && apt install -qq libhdf5-dev
+              apt update -qq && apt install -y -qq libhdf5-dev
             else
-              sudo apt update -qq && sudo apt install -qq libhdf5-dev
+              sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
             fi
             pip install -U pip==18
             pip install -U codecov
             pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
@@ -93,10 +93,6 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.5
-  test-3.4:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.4
   test-2.7:
     <<: *test-template
     docker:
@@ -159,9 +155,6 @@ workflows:
       - test-2.7:
           requires:
             - style-check
-      - test-3.4:
-          requires:
-            - style-check
       - test-3.5:
           requires:
             - style-check
@@ -187,7 +180,6 @@ workflows:
               only: /release\/.*/
           requires:
             - test-2.7
-            - test-3.4
             - test-3.5
             - test-3.6
             - test-3.7

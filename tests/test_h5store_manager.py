@@ -12,7 +12,14 @@ if six.PY2:
 else:
     from tempfile import TemporaryDirectory
 
+try:
+    import h5py    # noqa
+    H5PY = True
+except ImportError:
+    H5PY = False
 
+
+@unittest.skipIf(not H5PY, 'test requires the h5py package')
 class TestH5StoreManager(unittest.TestCase):
 
     def setUp(self):

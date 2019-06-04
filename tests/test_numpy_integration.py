@@ -5,6 +5,7 @@ import unittest
 from test_project import BaseProjectTest
 try:
     import numpy    # noqa
+    import numpy.testing
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -19,6 +20,7 @@ class NumpyIntegrationTest(BaseProjectTest):
             b = numpy.float64(i) if i % 2 else numpy.float32(i)
             job = self.project.open_job(dict(a=a))
             job.doc.b = b
+            numpy.testing.assert_equal(job.doc.b, b)
         for i, job in enumerate(sorted(self.project, key=lambda job: job.sp.a)):
             self.assertEqual(job.sp.a, i)
             self.assertEqual(job.doc.b, i)
@@ -34,6 +36,7 @@ class NumpyIntegrationTest(BaseProjectTest):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
             job.doc.array = numpy.ones(3) * i
+            numpy.testing.assert_equal(job.doc.array, numpy.ones(3) * i)
         for i, job in enumerate(sorted(self.project, key=lambda job: job.sp.a)):
             self.assertEqual(i, job.sp.a)
             self.assertTrue(((numpy.array([i, i, i]) == job.doc.array).all()))

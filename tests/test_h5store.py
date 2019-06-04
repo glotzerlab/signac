@@ -177,7 +177,11 @@ class H5StoreTest(BaseH5StoreTest):
         with self.open_h5store() as h5s:
             key = 'setgetexplicitnested'
             d = self.get_testdata()
-            h5s.setdefault('a', dict())
+            self.assertNotIn('a', h5s)
+            ret = h5s.setdefault('a', dict())
+            self.assertIn('a', h5s)
+            self.assertEqual(ret, h5s['a'])
+            self.assertTrue(hasattr(ret, '_store'))  # is an H5Group object
             child1 = h5s['a']
             child2 = h5s['a']
             self.assertEqual(child1, child2)
@@ -196,9 +200,9 @@ class H5StoreTest(BaseH5StoreTest):
     def test_repr(self):
         with self.open_h5store() as h5s:
             key = 'test_repr'
+            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
             h5s[key] = self.get_testdata()
-            repr(h5s)    # open
-        repr(h5s)   # closed
+        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
 
     def test_str(self):
         with self.open_h5store() as h5s:
@@ -532,6 +536,15 @@ class H5StoreNestedDataTest(H5StoreTest):
 
     def get_testdata(self, size=None):
         return dict(a=super(H5StoreNestedDataTest, self).get_testdata(size))
+
+    def test_repr(self):
+        from signac.core.h5store import H5Store, H5Group  # noqa:F401
+        with self.open_h5store() as h5s:
+            key = 'test_repr'
+            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+            h5s[key] = self.get_testdata()
+            self.assertEqual(repr(h5s[key]), repr(eval(repr(h5s[key]))))
+        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
 
 
 class H5StoreBytesDataTest(H5StoreTest):
