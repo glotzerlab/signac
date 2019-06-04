@@ -10,8 +10,10 @@ import json
 import logging
 import getpass
 import difflib
+import atexit
 import code
 import importlib
+import platform
 from rlcompleter import Completer
 import re
 import errno
@@ -341,27 +343,40 @@ def main_index(args):
 def main_find(args):
     project = get_project()
 
-    if args.show:
-        len_id = max(6, project.min_len_unique_id())
+    len_id = max(6, project.min_len_unique_id())
 
-        def format_lines(cat, _id, s):
-            if args.one_line:
-                if isinstance(s, dict):
-                    s = json.dumps(s, sort_keys=True)
-                return _id[:len_id] + ' ' + cat + '\t' + s
-            else:
-                return pformat(s, depth=args.show)
+    # --show = --sp --doc --pretty 3
+    # if --sp or --doc are also specified, those subsets of keys will be used
+    if args.show:
+        if args.sp is None:
+            args.sp = []
+        if args.doc is None:
+            args.doc = []
+
+    def format_lines(cat, _id, s):
+        if args.one_line:
+            if isinstance(s, dict):
+                s = json.dumps(s, sort_keys=True)
+            return _id[:len_id] + ' ' + cat + '\t' + s
+        else:
+            return pformat(s, depth=args.pretty)
 
     try:
         for job_id in find_with_filter(args):
-            if args.show:
-                job = project.open_job(id=job_id)
-                jid = job.get_id()
-                print(jid)
-                print(format_lines('sp ', jid, job.statepoint()))
-                print(format_lines('doc', jid, job.document()))
-            else:
-                print(job_id)
+            print(job_id)
+            job = project.open_job(id=job_id)
+
+            if args.sp is not None:
+                sp = job.statepoint()
+                if len(args.sp) != 0:
+                    sp = {key: sp[key] for key in args.sp if key in sp}
+                print(format_lines('sp ', job_id, sp))
+
+            if args.doc is not None:
+                doc = job.document()
+                if len(args.doc) != 0:
+                    doc = {key: doc[key] for key in args.doc if key in doc}
+                print(format_lines('sp ', job_id, doc))
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -987,6 +1002,16 @@ def main_shell(args):
                 interpreter.runsource(args.command, filename="<input>", symbol="exec")
         else:   # interactive
             if READLINE:
+                if 'PyPy' not in platform.python_implementation():
+                    fn_hist = project.fn('.signac_shell_history')
+                    try:
+                        readline.read_history_file(fn_hist)
+                        readline.set_history_length(1000)
+                    except (IOError, OSError) as error:
+                        if error.errno != errno.ENOENT:
+                            raise
+                    atexit.register(readline.write_history_file, fn_hist)
+
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
             code.interact(
@@ -1223,7 +1248,29 @@ def main():
         type=int,
         nargs='?',
         const=3,
-        help="Show the state point and document of each job.")
+        help="Show the state point and document of each job. Equivalent to "
+        "--sp --doc --pretty 3.")
+    parser_find.add_argument(
+        '--sp',
+        type=str,
+        nargs='*',
+        help="Show the state point of each job. Can be passed the list of "
+        "state point keys to print (if they exist for a given job).")
+    parser_find.add_argument(
+        '--doc',
+        type=str,
+        nargs='*',
+        help="Show the document of each job. Can be passed the list of "
+        "document keys to print (if they exist for a given job).")
+    parser_find.add_argument(
+        '-p',
+        '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        default=3,
+        help="Pretty print output when using --sp, --doc, or ---show. "
+        "Argument is the depth to which keys are printed.")
     parser_find.add_argument(
         '-1', '--one-line',
         action='store_true',

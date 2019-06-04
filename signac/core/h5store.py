@@ -21,6 +21,12 @@ else:
     from collections.abc import MutableMapping
 
 
+__all__ = [
+    'H5Store', 'H5Group', 'H5StoreManager',
+    'H5StoreClosedError', 'H5StoreAlreadyOpenError',
+    ]
+
+
 def _group_is_pandas_type(group):
     return 'pandas_type' in group.attrs
 
@@ -180,6 +186,10 @@ class H5Group(MutableMapping):
         self._store = store
         self._path = path
 
+    def __repr__(self):
+        return '{}(store={}, path={})'.format(
+            type(self).__name__, repr(self._store), repr(self._path))
+
     @property
     def _group(self):
         return self._store.file[self._path]
@@ -209,6 +219,10 @@ class H5Group(MutableMapping):
             super(H5Group, self).__setattr__(key, value)
         else:
             self.__setitem__(key, value)
+
+    def setdefault(self, key, value):
+        super(H5Group, self).setdefault(key, value)
+        return self.__getitem__(key)
 
     def __iter__(self):
         # The generator below should be refactored to use 'yield from'
@@ -352,7 +366,11 @@ class H5Store(MutableMapping):
             locked = False
         finally:
             if locked:
-                self._thread_lock.release()
+                try:
+                    self._thread_lock.release()
+                except RuntimeError as error:
+                    if 'cannot release un-acquired lock' not in str(error):
+                        raise
 
     @property
     def file(self):
@@ -432,6 +450,10 @@ class H5Store(MutableMapping):
             super(H5Store, self).__delattr__(key)
         else:
             self.__delitem__(key)
+
+    def setdefault(self, key, value):
+        super(H5Store, self).setdefault(key, value)
+        return self.__getitem__(key)
 
     def __iter__(self):
         with _ensure_open(self):

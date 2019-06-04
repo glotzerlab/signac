@@ -12,13 +12,14 @@
 # on files on the local file system instead of a MongoDB database.
 #
 # [1]: https://github.com/mongodb/mongo-python-driver
-import sys
-import io
-import re
-import logging
 import argparse
+import io
+import logging
 import operator
+import re
+import sys
 from itertools import islice
+from numbers import Number
 
 from ..core import json
 from ..common import six
@@ -30,7 +31,6 @@ else:
     from collections.abc import Mapping
 
 if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
-
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
@@ -618,7 +618,21 @@ class Collection(object):
                 raise KeyError("Unknown expression-operator '{}'.".format(op))
         else:
             index = self.index(key, build=True)
-            return index.get(value, set())
+            # Check to see if 'value' is a floating point type but an
+            # integer value (e.g., 4.0), and search for both the int and float
+            # values. This allows the user to find statepoints that have
+            # integer-valued keys that are stored as floating point types.
+            # Note that this both cases: 1) user searches for an int and hopes
+            # to find values that are stored as integer-valued floats and 2) user
+            # searches for a integer-valued float and hopes to find ints.
+            # This way, both `signac find x 4.0` and `signac find x 4` would
+            # return jobs where `sp.x` is stored as either 4.0 or 4.
+            if isinstance(value, Number) and float(value).is_integer():
+                result_float = index.get(_float(value), set())
+                result_int = index.get(int(value), set())
+                return result_int.union(result_float)
+            else:
+                return index.get(value, set())
 
     def _find_result(self, expr):
         if not len(expr):
@@ -964,6 +978,7 @@ class Collection(object):
             else:
                 raise error
         except ValueError as error:
+            file.close()
             if hasattr(file, 'name'):
                 raise JSONParseError(
                     "Error while trying to parse file '{}': {}.".format(file.name, error))
