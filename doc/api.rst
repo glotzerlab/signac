@@ -143,7 +143,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 The H5StoreManager
 ==================
 
-This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` aatribute, but can also be used stand-alone:
+This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` attribute, but can also be used stand-alone:
 
 .. autoclass:: H5StoreManager
     :members:
