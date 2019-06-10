@@ -628,7 +628,7 @@ class CollectionTestToFromJson(unittest.TestCase):
     def test_write_and_read(self):
         with Collection.open(self._fn_collection) as c:
             c.to_json(self._fn_json)
-            self.assertGreater(os.path.getsize(self._fn_json), 0)
+        self.assertGreater(os.path.getsize(self._fn_json), 0)
 
         c = Collection.read_json(self._fn_json)
         self.assertEqual(len(list(c)), 3)

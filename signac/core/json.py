@@ -67,4 +67,4 @@ def dumps(o, sort_keys=False, indent=None):
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 
-__all__ = ['loads', 'dumps']
+__all__ = ['loads', 'load', 'dumps']
