@@ -32,11 +32,13 @@ else:
 
 if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
-        return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
     from math import isclose
 
+
 logger = logging.getLogger(__name__)
+
 
 _INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
                     '$in', '$nin', '$regex', '$type', '$where',
@@ -46,10 +48,11 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': basestring if six.PY2 else str,  # noqa
+    'str': basestring if six.PY2 else str,   # noqa
     'list': tuple,
     'null': type(None),
 }
+
 
 MAX_DEFAULT_ID = int('F' * 32, 16)
 
@@ -186,7 +189,7 @@ def _build_index(docs, key, primary_key):
             # inlined for performance
             if type(v) is dict:
                 continue
-            elif type(v) is list:  # performance
+            elif type(v) is list:   # performance
                 index[_to_tuples(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
@@ -204,7 +207,7 @@ def _build_index(docs, key, primary_key):
                     "See https://signac.io/document-wide-migration/ "
                     "for a recipe on how to replace dots in existing keys.")
                 # inlined for performance
-                if type(v) is list:  # performance
+                if type(v) is list:     # performance
                     index[_to_tuples(v)].add(doc[primary_key])
                 else:
                     index[v].add(doc[primary_key])
@@ -345,7 +348,6 @@ class Collection(object):
         implies compression and is used by the underlying gzip implementation.
         Default value is 0 (no compression).
     """
-
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
         if isinstance(docs, six.string_types):
             raise ValueError(
@@ -378,7 +380,7 @@ class Collection(object):
     def _next_default_id(self):
         if self._next_default_id_ is None:
             self._next_default_id_ = len(self)
-        for i in range(len(self) + 1):
+        for i in range(len(self)+1):
             assert self._next_default_id_ < MAX_DEFAULT_ID
             _id = str(hex(self._next_default_id_))[2:].rjust(32, '0')
             self._next_default_id_ += 1
@@ -390,7 +392,7 @@ class Collection(object):
         for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
-                if _id in group:  # faster than exception handling (performance)
+                if _id in group:    # faster than exception handling (performance)
                     group.remove(_id)
                 if not len(group):
                     remove_keys.add(key)
@@ -636,7 +638,7 @@ class Collection(object):
 
     def _find_result(self, expr):
         if not len(expr):
-            return set(self.ids)  # Empty expression yields all ids...
+            return set(self.ids)    # Empty expression yields all ids...
 
         class result:
             "Mutable local result context class."
@@ -649,7 +651,7 @@ class Collection(object):
             def reduce(cls, match):
                 if result.ids is None:  # First match
                     result.ids = match
-                else:  # Update previous match
+                else:               # Update previous match
                     result.ids = result.ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
@@ -666,7 +668,7 @@ class Collection(object):
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
             result.reduce(self._find_expression(key, value))
-            if not result.ids:  # No match, no need to continue...
+            if not result.ids:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
@@ -1040,7 +1042,7 @@ class Collection(object):
         if filename == ':memory:':
             if mode is not None:
                 raise RuntimeError("File open-mode must be None for in-memory collection.")
-            return cls(compresslevel=compresslevel)  # That's the default open mode.
+            return cls(compresslevel=compresslevel)    # That's the default open mode.
         else:
             # Set default mode
             if mode is None:
@@ -1080,9 +1082,9 @@ class Collection(object):
                     self._file.truncate(0)
                 except ValueError as error:
                     if isinstance(error, io.UnsupportedOperation):
-                        raise error  # Python 3
+                        raise error                             # Python 3
                     elif str(error).lower() == "file not open for writing":
-                        raise io.UnsupportedOperation(error)  # Python 2
+                        raise io.UnsupportedOperation(error)    # Python 2
                     else:
                         raise error  # unrelated error
                 else:

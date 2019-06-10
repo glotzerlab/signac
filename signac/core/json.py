@@ -9,7 +9,6 @@ msg = "Using '{}' package for JSON encoding/decoding."
 
 try:
     import numpy
-
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -28,6 +27,7 @@ except ImportError:
 
     logger.debug(msg.format('json'))
 
+
 _has_default = hasattr(JSONEncoder, 'default')
 
 
@@ -38,7 +38,6 @@ class CustomJSONEncoder(JSONEncoder):
     an object that is otherwise not serializable, by calling the object's
     `_as_dict()` method.
     """
-
     def default(self, o):
         if NUMPY:
             if isinstance(o, numpy.number):
