@@ -939,7 +939,7 @@ class Collection(object):
             self._dump(file)
 
     def to_json(self, file=None):
-        json_string = json.dumps([i for i in self.find()])
+        json_string = json.dumps(list(self.find()))
         if file is None:
             return json_string
         if isinstance(file, six.string_types):
