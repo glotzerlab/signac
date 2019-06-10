@@ -618,21 +618,19 @@ class CollectionTestToFromJson(unittest.TestCase):
 
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
-        self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         self._fn_json = os.path.join(self._tmp_dir.name, 'test.json')
         self.addCleanup(self._tmp_dir.cleanup)
-        with open(self._fn_collection, 'w') as file:
-            for i in range(3):
-                file.write('{"a": 0}\n')
+        self.c = Collection.open(filename=':memory:')
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
 
     def test_write_and_read(self):
-        with Collection.open(self._fn_collection) as c:
-            c.to_json(self._fn_json)
+        self.c.to_json(self._fn_json)
         self.assertGreater(os.path.getsize(self._fn_json), 0)
-
         c = Collection.read_json(self._fn_json)
-        self.assertEqual(len(list(c)), 3)
-        self.assertEqual(len(c.find()), 3)
+        self.assertEqual(len(list(c)), 10)
+        self.assertEqual(len(c.find()), 10)
         c.close()
 
 
