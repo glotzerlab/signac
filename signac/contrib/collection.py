@@ -939,6 +939,10 @@ class Collection(object):
             self._dump(file)
 
     def to_json(self, file=None):
+        """Dump the collection as a JSON file.
+
+        :param file: The file to write the JSON string to
+        """
         json_string = json.dumps(list(self.find()))
         if file is None:
             return json_string
@@ -950,6 +954,11 @@ class Collection(object):
 
     @classmethod
     def read_json(cls, file=None):
+        """Read a JSON file and store as a Collection
+
+        :param file: The json file to read
+        :return: A Collection containing the JSON file information
+        """
         if isinstance(file, six.string_types):
             with open(file, 'r') as json_file:
                 json_data = json.load(json_file)
