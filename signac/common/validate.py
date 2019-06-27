@@ -50,12 +50,12 @@ def get_validator():
 
 
 cfg = """
-workspace_dir = string(default='workspace')
 project = string()
+workspace_dir = string(default='workspace')
 signac_version = version(default='0,1,0')
 
 [General]
-default_host = string()
+default_host = string(default=None)
 
 [hosts]
 [[__many__]]
