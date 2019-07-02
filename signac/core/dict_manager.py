@@ -108,7 +108,7 @@ class DictManager(object):
 
     def __iter__(self):
         for fn in os.listdir(self.prefix):
-            m = re.fullmatch('(.*){}'.format(self.suffix), fn)
+            m = re.match('^(.*){}$'.format(self.suffix), fn)
             if m:
                 yield m.groups()[0]
 
