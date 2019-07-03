@@ -16,6 +16,12 @@ except ImportError:
 try:
     import rapidjson as json
     from rapidjson import Encoder
+    try:
+        # Defined for rapidjson >= 0.7.1
+        from rapidjson import JSONDecodeError
+    except ImportError:
+        # rapidjson < 0.7.1 raises a ValueError
+        JSONDecodeError = ValueError
 
     class JSONEncoder(Encoder):
         encode = Encoder.__call__
@@ -24,6 +30,11 @@ try:
 except ImportError:
     import json
     from json import JSONEncoder
+    try:
+        from json.decoder import JSONDecodeError
+    except ImportError:
+        # JSONDecodeError doesn't exist for Python 2
+        JSONDecodeError = ValueError
 
     logger.debug(msg.format('json'))
 
@@ -63,4 +74,4 @@ def dumps(o, sort_keys=False, indent=None):
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 
-__all__ = ['loads', 'dumps']
+__all__ = ['loads', 'dumps', 'JSONDecodeError']
