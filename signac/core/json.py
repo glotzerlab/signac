@@ -70,8 +70,12 @@ def loads(s):
     return json.loads(s)
 
 
+def load(s):
+    return json.load(s)
+
+
 def dumps(o, sort_keys=False, indent=None):
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 
-__all__ = ['loads', 'dumps', 'JSONDecodeError']
+__all__ = ['loads', 'load', 'dumps', 'JSONDecodeError']
