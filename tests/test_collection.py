@@ -614,6 +614,26 @@ class FileCollectionTestBadJson(unittest.TestCase):
                 pass
 
 
+class CollectionTestToFromJson(unittest.TestCase):
+
+    def setUp(self):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        self._fn_json = os.path.join(self._tmp_dir.name, 'test.json')
+        self.addCleanup(self._tmp_dir.cleanup)
+        self.c = Collection.open(filename=':memory:')
+        docs = [dict(_id=str(i)) for i in range(10)]
+        self.c.update(docs)
+        self.c.flush()
+
+    def test_write_and_read(self):
+        self.c.to_json(self._fn_json)
+        self.assertGreater(os.path.getsize(self._fn_json), 0)
+        c = Collection.read_json(self._fn_json)
+        self.assertEqual(len(list(c)), 10)
+        self.assertEqual(len(c.find()), 10)
+        c.close()
+
+
 class FileCollectionTestReadOnly(unittest.TestCase):
 
     def setUp(self):
