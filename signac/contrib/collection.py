@@ -940,13 +940,17 @@ class Collection(object):
 
     def to_json(self, file=None):
         """Dump the collection as a JSON file.
+        
+        This function returns the JSON-string directly if the
+        file argument is None.
 
-        :param file: The file to write the JSON string to
+        :param file:
+            The file to write the JSON string to.
         """
         json_string = json.dumps(list(self.find()))
         if file is None:
             return json_string
-        if isinstance(file, six.string_types):
+        elif isinstance(file, six.string_types):
             with open(file, 'w') as json_file:
                 json_file.write(json_string)
         else:
@@ -954,10 +958,13 @@ class Collection(object):
 
     @classmethod
     def read_json(cls, file=None):
-        """Read a JSON file and store as a Collection
+        """Construct an instance of Collection from a JSON file.
 
-        :param file: The json file to read
-        :return: A Collection containing the JSON file information
+        :param file:
+            The json file to read, provided as either a filename or a
+            file-like object.
+        :return:
+            A Collection containing the JSON file
         """
         if isinstance(file, six.string_types):
             with open(file, 'r') as json_file:
