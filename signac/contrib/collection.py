@@ -964,8 +964,7 @@ class Collection(object):
                 json_data = json.load(json_file)
         else:
             json_data = json.load(file)
-        collection = Collection(json_data)
-        return collection
+        return Collection(json_data)
 
     @classmethod
     def _open(cls, file, compresslevel=0):
