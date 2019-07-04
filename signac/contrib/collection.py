@@ -940,7 +940,7 @@ class Collection(object):
 
     def to_json(self, file=None):
         """Dump the collection as a JSON file.
-        
+
         This function returns the JSON-string directly if the
         file argument is None.
 
