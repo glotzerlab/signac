@@ -53,8 +53,8 @@ All code contributions should be reviewed by at least two contributors, where on
 
 The following items represent a general guideline for points that should be considered during the review process:
 
-* Breaking changes to the API must be avoided under all circumstances and require approval by a lead maintainer.
-* Performance degradations must be avoided unless the regression is necessary to fix a bug.
+* Breaking changes to the API should be avoided whenever possible and require approval by a lead maintainer.
+* Significant performance degradations must be avoided unless the regression is necessary to fix a bug.
 * Updates for non-trivial bug fixes should be accompanied by a unit test that catches the related issue to avoid future regression.
 * The code is easy to follow and sufficiently documented to be understandable even to developers who are not highly familiar with the code.
 * The pull request is on-topic and does not introduce multiple independent changes (e.g. unrelated style fixes etc.).
