@@ -47,7 +47,8 @@ We recommend to use [flake8](http://flake8.pycqa.org/en/latest/) and [autopep8](
 ## Reviewing Pull Requests
 
 Pull requests represent the standard way of contributing code to the code base.
-All code contributions should be reviewed by at least two contributors, where one of them should be a package maintainer.
+Each pull request is assigned to one of the maintainers, who is responsible for triaging it, finding at least two reviewers (one of them can be themselves), and to eventually merge or decline it.
+Pull requests should generally be approved by two reviewers prior to merge.
 
 ### Guideline for pull request reviewers
 
