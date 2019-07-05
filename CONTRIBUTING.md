@@ -57,6 +57,7 @@ The following items represent a general guideline for points that should be cons
 * Significant performance degradations must be avoided unless the regression is necessary to fix a bug.
 * Updates for non-trivial bug fixes should be accompanied by a unit test that catches the related issue to avoid future regression.
 * The code is easy to follow and sufficiently documented to be understandable even to developers who are not highly familiar with the code.
+* Code duplication should be avoided and existing classes and functions are effectively reused.
 * The pull request is on-topic and does not introduce multiple independent changes (e.g. unrelated style fixes etc.).
 * A potential increase in code complexity introduced with this update is well justified by the benefits of the added feature.
 * The API of a new feature is well-documented in the doc-strings and usage is documented as part of the [framework documentation](https://github.com/glotzerlab/signac-docs).
