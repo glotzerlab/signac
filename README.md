@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/glotzerlab/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 [![PyPI-downloads](https://img.shields.io/pypi/dm/signac.svg?style=flat)](https://pypistats.org/packages/signac)
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
-[![Affiliated with NumFOCUS](https://img.shields.io/badge/affiliated%20with-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/sponsored-projects/affiliated-projects)
+[![Affiliated with NumFOCUS](https://img.shields.io/badge/NumFOCUS-affiliated%20project-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/sponsored-projects/affiliated-projects)
 
 The [**signac** framework](https://signac.io) helps users manage and scale file-based workflows, facilitating data reuse, sharing, and reproducibility.
 
