@@ -21,6 +21,7 @@ next
 ----
 
  - Keep signac shell command history on a per-project basis.
+ - Reduce the logging verbosity about a missing default host key in the configuration (#201).
 
 [1.1.0] -- 2019-05-19
 ---------------------
