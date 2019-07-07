@@ -22,6 +22,8 @@ next
 
  - Keep signac shell command history on a per-project basis.
  - Reduce the logging verbosity about a missing default host key in the configuration (#201).
+ - Add ``read_json()`` and ``to_json()`` methods to Collection class (#104).
+ - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
 
 [1.1.0] -- 2019-05-19
 ---------------------
