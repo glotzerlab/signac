@@ -73,8 +73,4 @@ When using **signac** as part of your work towards a publication, we would reall
 We have prepared examples on how to do that [here](http://docs.signac.io/en/latest/acknowledge.html).
 **Thank you very much!**
 
-## NumFOCUS
-
-The signac framework is a NumFOCUS Affiliated Project.
-
-[![Affiliated with NumFOCUS](https://i0.wp.com/numfocus.org/wp-content/uploads/2019/06/AffiliatedProject.png)](https://numfocus.org/sponsored-projects/affiliated-projects)
+The signac framework is a [NumFOCUS Affiliated Project](https://numfocus.org/sponsored-projects/affiliated-projects).
