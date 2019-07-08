@@ -152,7 +152,7 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = SyncedAttrDict(dst._statepoint(), parent=_sp_save_hook(self))
+        self._statepoint = SyncedAttrDict(dst._statepoint._as_dict(), parent=_sp_save_hook(self))
         self._id = dst._id
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
