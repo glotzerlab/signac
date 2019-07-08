@@ -216,7 +216,14 @@ class Job(object):
     def statepoint(self, new_sp):
         self._reset_sp(new_sp)
 
-    sp = statepoint  # alias
+    @property
+    def sp(self):
+        "Alias for :attr:`Job.statepoint`."
+        return self.statepoint
+
+    @sp.setter
+    def sp(self, new_sp):
+        self.statepoint = new_sp
 
     def _reset_document(self, new_doc):
         if not isinstance(new_doc, Mapping):
