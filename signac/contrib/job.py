@@ -24,10 +24,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-class SPDict(SyncedAttrDict):
-    pass
-
-
 class _sp_save_hook(object):
 
     def __init__(self, job):
@@ -64,10 +60,10 @@ class Job(object):
 
         # Ensure that the job id is configured
         if _id is None:
-            self._statepoint = SPDict(statepoint, parent=_sp_save_hook(self))
+            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
             self._id = calc_id(self._statepoint())
         else:
-            self._statepoint = SPDict(statepoint, parent=_sp_save_hook(self))
+            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
             self._id = _id
 
         # Prepare job working directory
@@ -156,7 +152,7 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = SPDict(dst._statepoint(), parent=_sp_save_hook(self))
+        self._statepoint = SyncedAttrDict(dst._statepoint(), parent=_sp_save_hook(self))
         self._id = dst._id
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
