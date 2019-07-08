@@ -228,16 +228,18 @@ class Job(object):
         if not isinstance(new_doc, Mapping):
             raise ValueError("The document must be a mapping.")
         else:
-            tmp = SyncedAttrDict(new_doc)
-        dirname, filename = os.path.split(self._fn_doc)
-        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-            uid=uuid.uuid4(), fn=filename))
-        with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(tmp).encode())
-        if six.PY2:
-            os.rename(fn_tmp, self._fn_doc)
-        else:
-            os.replace(fn_tmp, self._fn_doc)
+            # Convert for key type check and implicit conversions:
+            new_doc = SyncedAttrDict(new_doc)
+
+            dirname, filename = os.path.split(self._fn_doc)
+            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+                uid=uuid.uuid4(), fn=filename))
+            with open(fn_tmp, 'wb') as tmpfile:
+                tmpfile.write(json.dumps(new_doc).encode())
+            if six.PY2:
+                os.rename(fn_tmp, self._fn_doc)
+            else:
+                os.replace(fn_tmp, self._fn_doc)
 
     @property
     def document(self):
