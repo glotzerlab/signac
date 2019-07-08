@@ -198,6 +198,11 @@ class JobSPInterfaceTest(BaseJobTest):
             self.assertEqual(getattr(job.sp, x), a)
             setattr(job.sp.g, x, a)
             self.assertEqual(getattr(job.sp.g, x), a)
+        t = (1, 2, 3)  # tuple
+        job.sp.t = t
+        self.assertEqual(job.sp.t, list(t))  # implicit conversion
+        job.sp.g.t = t
+        self.assertEqual(job.sp.g.t, list(t))
 
     def test_interface_job_identity_change(self):
         job = self.open_job({'a': 0})
