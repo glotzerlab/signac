@@ -216,13 +216,7 @@ class Job(object):
     def statepoint(self, new_sp):
         self._reset_sp(new_sp)
 
-    @property
-    def sp(self):
-        return self.statepoint
-
-    @sp.setter
-    def sp(self, value):
-        self.statepoint = value
+    sp = statepoint  # alias
 
     def _reset_document(self, new_doc):
         if not isinstance(new_doc, Mapping):
