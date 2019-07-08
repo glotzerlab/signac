@@ -24,6 +24,10 @@ else:
 logger = logging.getLogger(__name__)
 
 
+class SPDict(SyncedAttrDict):
+    pass
+
+
 class _sp_save_hook(object):
 
     def __init__(self, job):
@@ -60,14 +64,11 @@ class Job(object):
 
         # Ensure that the job id is configured
         if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint))
-            self._id = calc_id(self._statepoint)
+            self._statepoint = SPDict(statepoint, parent=_sp_save_hook(self))
+            self._id = calc_id(self._statepoint())
         else:
-            self._statepoint = dict(statepoint)
+            self._statepoint = SPDict(statepoint, parent=_sp_save_hook(self))
             self._id = _id
-
-        # Prepare job statepoint
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
 
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
@@ -155,9 +156,8 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = dst._statepoint
+        self._statepoint = SPDict(dst._statepoint(), parent=_sp_save_hook(self))
         self._id = dst._id
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
         self._document = None
@@ -214,9 +214,7 @@ class Job(object):
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
         """
-        if self._sp is None:
-            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
-        return self._sp
+        return self._statepoint
 
     @statepoint.setter
     def statepoint(self, new_sp):
@@ -224,28 +222,22 @@ class Job(object):
 
     @property
     def sp(self):
-        """ Alias for :attr:`Job.statepoint`.
-
-        .. warning::
-
-            As with :attr:`Job.statepoint`, use `job.sp()` instead of
-            `job.sp` if you need a deep copy that will not modify the
-            underlying persistent JSON file.
-        """
         return self.statepoint
 
     @sp.setter
-    def sp(self, new_sp):
-        self.statepoint = new_sp
+    def sp(self, value):
+        self.statepoint = value
 
     def _reset_document(self, new_doc):
         if not isinstance(new_doc, Mapping):
             raise ValueError("The document must be a mapping.")
+        else:
+            tmp = SyncedAttrDict(new_doc)
         dirname, filename = os.path.split(self._fn_doc)
         fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
             uid=uuid.uuid4(), fn=filename))
         with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc).encode())
+            tmpfile.write(json.dumps(tmp).encode())
         if six.PY2:
             os.rename(fn_tmp, self._fn_doc)
         else:

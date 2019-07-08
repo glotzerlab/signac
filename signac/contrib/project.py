@@ -372,7 +372,7 @@ class Project(object):
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
             if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = dict(job._statepoint)
+                self._sp_cache[job._id] = job._statepoint._as_dict()
             return job
         elif id in self._sp_cache:
             # optimal case
@@ -719,7 +719,7 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job._id] = dict(job._statepoint)
+        self._sp_cache[job._id] = job._statepoint._as_dict()
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
