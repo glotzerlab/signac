@@ -19,7 +19,7 @@ from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
 from signac.errors import InvalidKeyError
-from signac.errors import InvalidKeyTypeError
+from signac.errors import KeyTypeError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -342,9 +342,9 @@ class JobSPInterfaceTest(BaseJobTest):
         class A:
             pass
         for key in (0.0, A(), (1, 2, 3)):
-            with self.assertRaises(InvalidKeyTypeError):
+            with self.assertRaises(KeyTypeError):
                 job.sp[key] = 'test'
-            with self.assertRaises(InvalidKeyTypeError):
+            with self.assertRaises(KeyTypeError):
                 job.sp = {key: 'test'}
         for key in ([], {}, dict()):
             with self.assertRaises(TypeError):
@@ -367,9 +367,9 @@ class JobSPInterfaceTest(BaseJobTest):
         class A:
             pass
         for key in (0.0, A(), (1, 2, 3)):
-            with self.assertRaises(InvalidKeyTypeError):
+            with self.assertRaises(KeyTypeError):
                 job.doc[key] = 'test'
-            with self.assertRaises(InvalidKeyTypeError):
+            with self.assertRaises(KeyTypeError):
                 job.doc = {key: 'test'}
         for key in ([], {}, dict()):
             with self.assertRaises(TypeError):

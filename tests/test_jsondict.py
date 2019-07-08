@@ -8,7 +8,7 @@ import uuid
 from signac.core.jsondict import JSONDict
 from signac.common import six
 from signac.errors import InvalidKeyError
-from signac.errors import InvalidKeyTypeError
+from signac.errors import KeyTypeError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -248,7 +248,7 @@ class JSONDictTest(BaseJSONDictTest):
         class A:
             pass
         for key in (0.0, A(), (1, 2, 3)):
-            with self.assertRaises(InvalidKeyTypeError):
+            with self.assertRaises(KeyTypeError):
                 jsd[key] = self.get_testdata()
         for key in ([], {}, dict()):
             with self.assertRaises(TypeError):

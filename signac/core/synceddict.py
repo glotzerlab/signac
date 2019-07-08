@@ -98,16 +98,15 @@ class _SyncedDict(MutableMapping):
             if '.' in key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
-                    "Key '{}' contains dots ('.').\n\n"
-                    "See https://signac.io/document-wide-migration/ "
-                    "for a recipe on how to replace dots in existing keys.".format(key))
+                    "keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
         elif isinstance(key, cls.VALID_KEY_TYPES):
             return cls._validate_key(str(key))
         else:
-            from ..errors import InvalidKeyTypeError
-            raise InvalidKeyTypeError(key)
+            from ..errors import KeyTypeError
+            raise KeyTypeError(
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
 
     def _dfs_convert(self, root):
         if type(root) is type(self):

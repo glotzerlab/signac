@@ -56,7 +56,7 @@ class InvalidKeyError(ValueError):
     """Raised when a user uses a non-conforming key."""
 
 
-class InvalidKeyTypeError(TypeError):
+class KeyTypeError(TypeError):
     """Raised when a user uses a key of invalid type."""
 
 
