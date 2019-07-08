@@ -231,6 +231,25 @@ class JSONDictTest(BaseJSONDictTest):
         with self.assertRaises(InvalidKeyError):
             jsd['a.b'] = None
 
+    def test_keys_valid_type(self):
+        jsd = self.get_json_dict()
+
+        class MyStr(str):
+            pass
+        for key in ('key', MyStr('key'), 0, None, True):
+            d = jsd[key] = self.get_testdata()
+            self.assertIn(str(key), jsd)
+            self.assertEqual(jsd[str(key)], d)
+
+    def test_keys_invalid_type(self):
+        jsd = self.get_json_dict()
+
+        class A:
+            pass
+        for key in (0.0, A(), [], {}, dict()):
+            with self.assertRaises(TypeError):
+                jsd[key] = self.get_testdata()
+
 
 class JSONDictWriteConcernTest(JSONDictTest):
 
