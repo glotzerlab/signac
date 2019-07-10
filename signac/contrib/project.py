@@ -372,7 +372,7 @@ class Project(object):
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
             if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = job._statepoint._as_dict()
+                self._sp_cache[job._id] = job.statepoint._as_dict()
             return job
         elif id in self._sp_cache:
             # optimal case
