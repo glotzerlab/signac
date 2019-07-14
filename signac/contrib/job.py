@@ -5,7 +5,6 @@ import os
 import errno
 import logging
 import shutil
-import uuid
 
 from ..common import six
 from ..core import json
@@ -16,10 +15,7 @@ from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
+
 
 logger = logging.getLogger(__name__)
 
@@ -225,23 +221,6 @@ class Job(object):
     def sp(self, new_sp):
         self.statepoint = new_sp
 
-    def _reset_document(self, new_doc):
-        if not isinstance(new_doc, Mapping):
-            raise ValueError("The document must be a mapping.")
-        else:
-            # Convert for key type check and implicit conversions:
-            new_doc = SyncedAttrDict(new_doc)
-
-            dirname, filename = os.path.split(self._fn_doc)
-            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                uid=uuid.uuid4(), fn=filename))
-            with open(fn_tmp, 'wb') as tmpfile:
-                tmpfile.write(json.dumps(new_doc).encode())
-            if six.PY2:
-                os.rename(fn_tmp, self._fn_doc)
-            else:
-                os.replace(fn_tmp, self._fn_doc)
-
     @property
     def document(self):
         """The document associated with this job.
@@ -265,7 +244,7 @@ class Job(object):
 
     @document.setter
     def document(self, new_doc):
-        self._reset_document(new_doc)
+        self.document.reset(new_doc)
 
     @property
     def doc(self):
