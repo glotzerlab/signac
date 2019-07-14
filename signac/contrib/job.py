@@ -54,13 +54,9 @@ class Job(object):
     def __init__(self, project, statepoint, _id=None):
         self._project = project
 
-        # Ensure that the job id is configured
-        if _id is None:
-            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-            self._id = calc_id(self._statepoint())
-        else:
-            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-            self._id = _id
+        # Set statepoint and id
+        self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+        self._id = calc_id(self._statepoint()) if _id is None else _id
 
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
