@@ -1408,7 +1408,7 @@ class JobOpenDataTest(BaseJobTest):
         del sp_copy['b']
         self.assertIn('a', job.sp)
         self.assertNotIn('b', job.sp)
-        self.assertNotIn(job, self.project)
+        self.assertIn(job, self.project)
         self.assertNotEqual(job.get_id(), _id)
 
     def test_statepoint_deepcopy(self):
@@ -1418,7 +1418,7 @@ class JobOpenDataTest(BaseJobTest):
         del sp_copy['b']
         self.assertIn('a', job.sp)
         self.assertIn('b', job.sp)
-        self.assertIn(job, self.project)
+        self.assertNotIn(job, self.project)
         self.assertEqual(job.get_id(), _id)
 
 
