@@ -247,14 +247,14 @@ class JobSPInterfaceTest(BaseJobTest):
         self.assertEqual(job.sp.b, 0)
 
     def test_interface_copy(self):
-        import copy
-        job = self.open_job(dict(a=0))
-        job.init()
-        copy_job_sp = copy.deepcopy(job.sp)
-        copy_job_sp.a = 1
-        print(job.sp)
-        print(copy_job_sp)
+        job = self.open_job(dict(a=0)).init()
+        copy.copy(job.sp).a = 1
         self.assertTrue(job in self.project)
+
+    def test_interface_deepcopy(self):
+        job = self.open_job(dict(a=0)).init()
+        copy.deepcopy(job.sp).a = 1
+        self.assertFalse(job in self.project)
 
     def test_interface_add(self):
         job = self.open_job(dict(a=0))
