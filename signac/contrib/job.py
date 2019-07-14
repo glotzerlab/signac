@@ -5,6 +5,7 @@ import os
 import errno
 import logging
 import shutil
+from copy import deepcopy
 
 from ..common import six
 from ..core import json
@@ -584,3 +585,11 @@ class Job(object):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._statepoint._parent.jobs.append(self)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
