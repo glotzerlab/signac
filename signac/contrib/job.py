@@ -5,7 +5,6 @@ import os
 import errno
 import logging
 import shutil
-import uuid
 
 from ..common import six
 from ..core import json
@@ -16,10 +15,7 @@ from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
+
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +54,9 @@ class Job(object):
     def __init__(self, project, statepoint, _id=None):
         self._project = project
 
-        # Ensure that the job id is configured
-        if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint))
-            self._id = calc_id(self._statepoint)
-        else:
-            self._statepoint = dict(statepoint)
-            self._id = _id
-
-        # Prepare job statepoint
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
+        # Set statepoint and id
+        self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+        self._id = calc_id(self._statepoint()) if _id is None else _id
 
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
@@ -155,9 +144,8 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = dst._statepoint
+        self._statepoint = SyncedAttrDict(dst._statepoint._as_dict(), parent=_sp_save_hook(self))
         self._id = dst._id
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
         self._document = None
@@ -214,9 +202,7 @@ class Job(object):
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
         """
-        if self._sp is None:
-            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
-        return self._sp
+        return self._statepoint
 
     @statepoint.setter
     def statepoint(self, new_sp):
@@ -224,32 +210,12 @@ class Job(object):
 
     @property
     def sp(self):
-        """ Alias for :attr:`Job.statepoint`.
-
-        .. warning::
-
-            As with :attr:`Job.statepoint`, use `job.sp()` instead of
-            `job.sp` if you need a deep copy that will not modify the
-            underlying persistent JSON file.
-        """
+        "Alias for :attr:`Job.statepoint`."
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
         self.statepoint = new_sp
-
-    def _reset_document(self, new_doc):
-        if not isinstance(new_doc, Mapping):
-            raise ValueError("The document must be a mapping.")
-        dirname, filename = os.path.split(self._fn_doc)
-        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-            uid=uuid.uuid4(), fn=filename))
-        with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc).encode())
-        if six.PY2:
-            os.rename(fn_tmp, self._fn_doc)
-        else:
-            os.replace(fn_tmp, self._fn_doc)
 
     @property
     def document(self):
@@ -274,7 +240,7 @@ class Job(object):
 
     @document.setter
     def document(self, new_doc):
-        self._reset_document(new_doc)
+        self.document.reset(new_doc)
 
     @property
     def doc(self):

@@ -34,9 +34,9 @@ from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
 if six.PY2:
-    from collections import Mapping, Iterable
+    from collections import Iterable
 else:
-    from collections.abc import Mapping, Iterable
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -259,17 +259,7 @@ class Project(object):
         return os.path.isfile(self.fn(filename))
 
     def _reset_document(self, new_doc):
-        if not isinstance(new_doc, Mapping):
-            raise ValueError("The document must be a mapping.")
-        dirname, filename = os.path.split(self._fn_doc)
-        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-            uid=uuid.uuid4(), fn=filename))
-        with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc).encode())
-        if six.PY2:
-            os.rename(fn_tmp, self._fn_doc)
-        else:
-            os.replace(fn_tmp, self._fn_doc)
+        self.document.reset(new_doc)
 
     @property
     def document(self):
@@ -372,7 +362,7 @@ class Project(object):
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
             if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = dict(job._statepoint)
+                self._sp_cache[job._id] = job.statepoint._as_dict()
             return job
         elif id in self._sp_cache:
             # optimal case
@@ -719,7 +709,7 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job._id] = dict(job._statepoint)
+        self._sp_cache[job._id] = job._statepoint._as_dict()
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."

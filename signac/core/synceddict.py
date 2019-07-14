@@ -76,6 +76,8 @@ class _SyncedList(list):
 
 class _SyncedDict(MutableMapping):
 
+    VALID_KEY_TYPES = six.string_types + (int, bool, type(None))
+
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
@@ -89,16 +91,22 @@ class _SyncedDict(MutableMapping):
             }
         self._suspend_sync_ = 0
 
-    @staticmethod
-    def _validate_key(key):
+    @classmethod
+    def _validate_key(cls, key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
-        if '.' in key:
-            from ..errors import InvalidKeyError
-            raise InvalidKeyError(
-                "\nThe use of '.' (dots) in keys is invalid.\n\n"
-                "See https://signac.io/document-wide-migration/ "
-                "for a recipe on how to replace dots in existing keys.")
-        return key
+        if isinstance(key, six.string_types):
+            if '.' in key:
+                from ..errors import InvalidKeyError
+                raise InvalidKeyError(
+                    "keys may not contain dots ('.'): {}".format(key))
+            else:
+                return key
+        elif isinstance(key, cls.VALID_KEY_TYPES):
+            return cls._validate_key(str(key))
+        else:
+            from ..errors import KeyTypeError
+            raise KeyTypeError(
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
 
     def _dfs_convert(self, root):
         if type(root) is type(self):
@@ -110,6 +118,8 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = root[k]
             return ret
+        elif type(root) is tuple:
+            return _SyncedList(root, self)
         elif type(root) is list:
             return _SyncedList(root, self)
         elif NUMPY:
