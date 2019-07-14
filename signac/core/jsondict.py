@@ -10,6 +10,7 @@ import hashlib
 import logging
 from tempfile import mkstemp
 from contextlib import contextmanager
+from copy import copy
 
 from .errors import Error
 from . import json
@@ -304,7 +305,17 @@ class JSONDict(SyncedAttrDict):
     def reset(self, data):
         """Replace the document contents with data."""
         if isinstance(data, Mapping):
-            self._save(data=data)
+            with self._suspend_sync():
+                backup = copy(self._data)
+                try:
+                    self._data = {
+                        self._validate_key(k): self._dfs_convert(v)
+                        for k, v in data.items()
+                    }
+                    self._save()
+                except BaseException:  # rollback
+                    self._data = backup
+                    raise
         else:
             raise ValueError("The document must be a mapping.")
 
