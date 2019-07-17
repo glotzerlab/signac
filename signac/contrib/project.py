@@ -165,7 +165,13 @@ class Project(object):
                    root=self.root_directory())
 
     def _repr_html_(self):
-        return repr(self) + self.find_jobs()._repr_html_jobs()
+        return "<p>" + \
+            '<strong>Project:</strong> {}<br>'.format(self.get_id()) + \
+            "<strong>Root:</strong> {}<br>".format(self.root_directory()) + \
+            "<strong>Workspace:</strong> {}<br>".format(self.workspace()) + \
+            "<strong>Size:</strong> {}".format(len(self)) + \
+            "</p>" + \
+            self.find_jobs()._repr_html_jobs()
 
     def __eq__(self, other):
         return repr(self) == repr(other)
