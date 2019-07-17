@@ -93,7 +93,10 @@ class ProjectSchema(object):
                 return str(x)
 
         def _fmt_range(type_, values):
-            sorted_values = sorted(values)
+            try:
+                sorted_values = sorted(values)
+            except TypeError:
+                sorted_values = sorted(values, key=repr)
             if len(values) <= max_num_range:
                 values_string = ', '.join((_fmt_value(v) for v in sorted_values))
             else:
