@@ -21,6 +21,7 @@ from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
 from signac.errors import InvalidKeyError
+from signac.errors import KeyTypeError
 
 if six.PY2:
     from tempdir import TemporaryDirectory
@@ -194,13 +195,16 @@ class JobSPInterfaceTest(BaseJobTest):
             self.assertEqual(getattr(job.sp.g, x), sp['g'][x])
             self.assertEqual(job.sp[x], sp[x])
         a = [1, 1.0, '1.0', True, None]
-        b = list(a) + [a] + [tuple(a)]
-        for v in b:
-            for x in ('a', 'b', 'c', 'd', 'e'):
-                setattr(job.sp, x, v)
-                self.assertEqual(getattr(job.sp, x), v)
-                setattr(job.sp.g, x, v)
-                self.assertEqual(getattr(job.sp.g, x), v)
+        for x in ('a', 'b', 'c', 'd', 'e'):
+            setattr(job.sp, x, a)
+            self.assertEqual(getattr(job.sp, x), a)
+            setattr(job.sp.g, x, a)
+            self.assertEqual(getattr(job.sp.g, x), a)
+        t = (1, 2, 3)  # tuple
+        job.sp.t = t
+        self.assertEqual(job.sp.t, list(t))  # implicit conversion
+        job.sp.g.t = t
+        self.assertEqual(job.sp.g.t, list(t))
 
     def test_interface_job_identity_change(self):
         job = self.open_job({'a': 0})
@@ -329,6 +333,56 @@ class JobSPInterfaceTest(BaseJobTest):
             job2 = self.project.open_job(id=id0)
             self.assertEqual(job.sp, job2.sp)
             self.assertEqual(job.get_id(), job2.get_id())
+
+    def test_valid_sp_key_types(self):
+        job = self.open_job(dict(invalid_key=True)).init()
+
+        class A:
+            pass
+        for key in ('0', 0, True, False, None):
+            job.sp[key] = 'test'
+            self.assertIn(str(key), job.sp)
+
+    def test_invalid_sp_key_types(self):
+        job = self.open_job(dict(invalid_key=True)).init()
+
+        class A:
+            pass
+        for key in (0.0, A(), (1, 2, 3)):
+            with self.assertRaises(KeyTypeError):
+                job.sp[key] = 'test'
+            with self.assertRaises(KeyTypeError):
+                job.sp = {key: 'test'}
+        for key in ([], {}, dict()):
+            with self.assertRaises(TypeError):
+                job.sp[key] = 'test'
+            with self.assertRaises(TypeError):
+                job.sp = {key: 'test'}
+
+    def test_valid_doc_key_types(self):
+        job = self.open_job(dict(invalid_key=True)).init()
+
+        class A:
+            pass
+        for key in ('0', 0, True, False, None):
+            job.doc[key] = 'test'
+            self.assertIn(str(key), job.doc)
+
+    def test_invalid_doc_key_types(self):
+        job = self.open_job(dict(invalid_key=True)).init()
+
+        class A:
+            pass
+        for key in (0.0, A(), (1, 2, 3)):
+            with self.assertRaises(KeyTypeError):
+                job.doc[key] = 'test'
+            with self.assertRaises(KeyTypeError):
+                job.doc = {key: 'test'}
+        for key in ([], {}, dict()):
+            with self.assertRaises(TypeError):
+                job.doc[key] = 'test'
+            with self.assertRaises(TypeError):
+                job.doc = {key: 'test'}
 
 
 class ConfigTest(BaseJobTest):

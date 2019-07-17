@@ -10,11 +10,16 @@ import hashlib
 import logging
 from tempfile import mkstemp
 from contextlib import contextmanager
+from copy import copy
 
 from .errors import Error
 from . import json
 from .attrdict import SyncedAttrDict
 from ..common import six
+if six.PY2:
+    from collections import Mapping
+else:
+    from collections.abc import Mapping
 
 
 logger = logging.getLogger(__name__)
@@ -296,6 +301,23 @@ class JSONDict(SyncedAttrDict):
             else:
                 with open(self._filename, 'wb') as file:
                     file.write(blob)
+
+    def reset(self, data):
+        """Replace the document contents with data."""
+        if isinstance(data, Mapping):
+            with self._suspend_sync():
+                backup = copy(self._data)
+                try:
+                    self._data = {
+                        self._validate_key(k): self._dfs_convert(v)
+                        for k, v in data.items()
+                    }
+                    self._save()
+                except BaseException:  # rollback
+                    self._data = backup
+                    raise
+        else:
+            raise ValueError("The document must be a mapping.")
 
     @contextmanager
     def buffered(self):
