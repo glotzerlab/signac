@@ -659,7 +659,7 @@ class ProjectTest(BaseProjectTest):
                 'const2': {'const3': 0},
                 'a': i,
                 'b': {'b2': i},
-                'c': [i, 0, 0],
+                'c': [i if i % 2 else None, 0, 0],
                 'd': [[i, 0, 0]],
                 'e': {'e2': [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
                 'f': {'f2': [[i, 0, 0]]},
