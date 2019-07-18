@@ -26,6 +26,7 @@ next
  - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
  - Fix issue causing a failure of the automatic conversion of valid key types (#168, #205).
  - Improve the 'dots in keys' error message to make it easier to fix related issues (#170, #205).
+ - Update the ``__repr__`` and ``__repr_html__`` implementations of the ``Project`` and ``Job`` classes (#193).
 
 
 [1.1.0] -- 2019-05-19
