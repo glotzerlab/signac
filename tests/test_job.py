@@ -15,6 +15,8 @@ from contextlib import contextmanager
 
 import signac.contrib
 import signac.common.config
+from signac import Project
+from signac.contrib.job import Job
 from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError

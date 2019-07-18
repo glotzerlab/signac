@@ -89,7 +89,7 @@ class Job(object):
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__module__ + '.' + self.__class__.__name__,
+            self.__class__.__name__,
             repr(self._project), self._statepoint)
 
     def __eq__(self, other):
