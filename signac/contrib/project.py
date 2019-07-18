@@ -160,13 +160,18 @@ class Project(object):
         return str(self.get_id())
 
     def __repr__(self):
-        return "{type}({{'project': '{id}', 'project_dir': '{rd}',"\
-               " 'workspace_dir': '{wd}'}})".format(
-                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
-                   id=self.get_id(), rd=self.root_directory(), wd=self.workspace())
+        return "{type}.get_project('{root}')".format(
+                   type=self.__class__.__name__,
+                   root=self.root_directory())
 
     def _repr_html_(self):
-        return repr(self) + self.find_jobs()._repr_html_jobs()
+        return "<p>" + \
+            '<strong>Project:</strong> {}<br>'.format(self.get_id()) + \
+            "<strong>Root:</strong> {}<br>".format(self.root_directory()) + \
+            "<strong>Workspace:</strong> {}<br>".format(self.workspace()) + \
+            "<strong>Size:</strong> {}".format(len(self)) + \
+            "</p>" + \
+            self.find_jobs()._repr_html_jobs()
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -1597,6 +1602,10 @@ class JobsCursor(object):
         # next() method for this class.
         self._next_iter = None
 
+    def __eq__(self, other):
+        return self._project == other._project and self._filter == other._filter\
+            and self._doc_filter == other._doc_filter
+
     def __len__(self):
         # Highly performance critical code path!!
         if self._filter or self._doc_filter:
@@ -1789,12 +1798,11 @@ class JobsCursor(object):
             orient='index').infer_objects()
 
     def __repr__(self):
-        return "{type}({{'project': '{project}', 'filter': '{filter}',"\
-               " 'docfilter': '{doc_filter}'}})".format(
-                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
-                   project=self._project,
-                   filter=self._filter,
-                   doc_filter=self._doc_filter)
+        return '{type}(project={project}, filter={filter}, doc_filter={doc_filter})'.format(
+                   type=self.__class__.__name__,
+                   project=repr(self._project),
+                   filter=repr(self._filter),
+                   doc_filter=repr(self._doc_filter))
 
     def _repr_html_jobs(self):
         html = ''

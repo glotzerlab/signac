@@ -19,6 +19,7 @@ from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
+from signac.contrib.project import JobsCursor, Project
 
 from test_job import BaseJobTest
 
@@ -1338,7 +1339,7 @@ class ProjectRepresentationTest(BaseProjectTest):
             with self.subTest(type='str'):
                 str(self.project)
             with self.subTest(type='repr'):
-                repr(self.project)
+                self.assertEqual(eval(repr(self.project)), self.project)
             with self.subTest(type='html'):
                 for use_pandas in (True, False):
                     type(self.project)._use_pandas_for_html_repr = use_pandas
@@ -1353,7 +1354,8 @@ class ProjectRepresentationTest(BaseProjectTest):
                     with self.subTest(type='str'):
                         str(self.project.find_jobs(filter_))
                     with self.subTest(type='repr'):
-                        repr(self.project.find_jobs(filter_))
+                        q = self.project.find_jobs(filter_)
+                        self.assertEqual(eval(repr(q)), q)
                     with self.subTest(type='html'):
                         for use_pandas in (True, False):
                             type(self.project)._use_pandas_for_html_repr = use_pandas
