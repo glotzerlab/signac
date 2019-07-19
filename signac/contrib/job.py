@@ -5,6 +5,7 @@ import os
 import errno
 import logging
 import shutil
+from copy import deepcopy
 
 from ..common import six
 from ..core import json
@@ -22,14 +23,15 @@ logger = logging.getLogger(__name__)
 
 class _sp_save_hook(object):
 
-    def __init__(self, job):
-        self.job = job
+    def __init__(self, *jobs):
+        self.jobs = list(jobs)
 
     def load(self):
         pass
 
     def save(self):
-        self.job._reset_sp()
+        for job in self.jobs:
+            job._reset_sp()
 
 
 class Job(object):
@@ -144,7 +146,7 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = SyncedAttrDict(dst._statepoint._as_dict(), parent=_sp_save_hook(self))
+        self._statepoint._data = dst._statepoint._data
         self._id = dst._id
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
@@ -579,3 +581,15 @@ class Job(object):
     def __exit__(self, err_type, err_value, tb):
         self.close()
         return False
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._statepoint._parent.jobs.append(self)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result

@@ -153,6 +153,80 @@ class JobTest(BaseJobTest):
             file.write('hello')
         self.assertTrue(job.isfile(fn))
 
+    def test_copy(self):
+        job = self.project.open_job({'a': 0}).init()
+        self.assertIn(job, self.project)
+
+        # Modify copy
+        copied_job = copy.copy(job)
+        self.assertFalse(job is copied_job)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        copied_job.sp.a = 1
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+
+        # Modify original
+        copied_job = copy.copy(job)
+        self.assertFalse(job is copied_job)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        job.sp.a = 2
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+
+        # Delete original
+        del job
+        self.assertIn(copied_job, self.project)
+        copied_job.sp.a = 3
+        self.assertIn(copied_job, self.project)
+
+    def test_deepcopy(self):
+        job = self.project.open_job({'a': 0}).init()
+        self.assertIn(job, self.project)
+
+        # Modify copy
+        copied_job = copy.deepcopy(job)
+        self.assertFalse(job is copied_job)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        copied_job.sp.a = 1
+        self.assertNotIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        self.assertNotEqual(job, copied_job)
+        self.assertNotEqual(job.sp, copied_job.sp)
+
+        # Modify original
+        job = self.project.open_job({'a': 0}).init()
+        copied_job = copy.deepcopy(job)
+        self.assertFalse(job is copied_job)
+        self.assertEqual(job, copied_job)
+        self.assertEqual(job.sp, copied_job.sp)
+        self.assertIn(job, self.project)
+        self.assertIn(copied_job, self.project)
+        job.sp.a = 2
+        self.assertIn(job, self.project)
+        self.assertNotIn(copied_job, self.project)
+        self.assertNotEqual(job, copied_job)
+        self.assertNotEqual(job.sp, copied_job.sp)
+
+        # Delete original
+        copied_job = copy.deepcopy(job)
+        del job
+        self.assertIn(copied_job, self.project)
+        copied_job.sp.a = 3
+        self.assertIn(copied_job, self.project)
+
 
 class JobSPInterfaceTest(BaseJobTest):
 
@@ -251,6 +325,16 @@ class JobSPInterfaceTest(BaseJobTest):
         job.sp.b = job.sp.pop('a')
         self.assertNotIn('a', job.sp)
         self.assertEqual(job.sp.b, 0)
+
+    def test_interface_copy(self):
+        job = self.open_job(dict(a=0)).init()
+        copy.copy(job.sp).a = 1
+        self.assertTrue(job in self.project)
+
+    def test_interface_deepcopy(self):
+        job = self.open_job(dict(a=0)).init()
+        copy.deepcopy(job.sp).a = 1
+        self.assertFalse(job in self.project)
 
     def test_interface_add(self):
         job = self.open_job(dict(a=0))
@@ -1446,6 +1530,26 @@ class JobOpenDataTest(BaseJobTest):
         with self.open_data(dst2_job):
             self.assertIn(key, dst2_job.data)
             self.assertEqual(len(dst2_job.data), 1)
+
+    def test_statepoint_copy(self):
+        job = self.open_job(dict(a=test_token, b=test_token)).init()
+        _id = job.get_id()
+        sp_copy = copy.copy(job.sp)
+        del sp_copy['b']
+        self.assertIn('a', job.sp)
+        self.assertNotIn('b', job.sp)
+        self.assertIn(job, self.project)
+        self.assertNotEqual(job.get_id(), _id)
+
+    def test_statepoint_deepcopy(self):
+        job = self.open_job(dict(a=test_token, b=test_token)).init()
+        _id = job.get_id()
+        sp_copy = copy.deepcopy(job.sp)
+        del sp_copy['b']
+        self.assertIn('a', job.sp)
+        self.assertIn('b', job.sp)
+        self.assertNotIn(job, self.project)
+        self.assertEqual(job.get_id(), _id)
 
 
 @unittest.skipIf(not H5PY, 'test requires the h5py package')
