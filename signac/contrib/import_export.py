@@ -44,7 +44,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
     "Generate schema based paths as a function of the given jobs."
     from .schema import _build_job_statepoint_index
     if len(jobs) <= 1:
-        return lambda job: ''
+        # The lambda must (optionally) take a format spec argument to match the
+        # signature of the path function below.
+        return lambda job, sep=None: ''
 
     index = [{'_id': job._id, 'statepoint': job.sp()} for job in jobs]
     jsi = _build_job_statepoint_index(jobs=jobs, exclude_const=True, index=index)

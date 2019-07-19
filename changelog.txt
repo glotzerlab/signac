@@ -27,6 +27,7 @@ next
  - Fix issue causing a failure of the automatic conversion of valid key types (#168, #205).
  - Improve the 'dots in keys' error message to make it easier to fix related issues (#170, #205).
  - Update the ``__repr__`` and ``__repr_html__`` implementations of the ``Project`, ``Job``, and ``JobsCursor`` classes (#193).
+ - Fix issue with rendering views from the command line for single job project (#208).
  - Fix issue with heterogeneous types in state point values that are lists (#209).
 
 [1.1.0] -- 2019-05-19
