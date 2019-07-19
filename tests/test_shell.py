@@ -142,6 +142,21 @@ class BasicShellTest(unittest.TestCase):
         self.assertIn('b', doc)
         self.assertEqual(doc['b'], 0)
 
+    def test_view_single(self):
+        """Check whether command line views work for single job workspaces."""
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        sps = [{'a': i} for i in range(1)]
+        for sp in sps:
+            project.open_job(sp).init()
+        os.mkdir('view')
+        self.call('python -m signac view'.split())
+        for sp in sps:
+            self.assertTrue(os.path.isdir('view/job'))
+            self.assertEqual(
+                os.path.realpath('view/job'),
+                os.path.realpath(project.open_job(sp).workspace()))
+
     def test_view(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
