@@ -4,8 +4,8 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
-Version 1.0
-===========
+Version 1
+=========
 
 Highlights
 ----------
@@ -17,18 +17,27 @@ Highlights
  - Support for compressed Collection files.
 
 
-next
-----
+[1.2.0] -- 2019-07-22
+---------------------
 
- - Keep signac shell command history on a per-project basis.
- - Reduce the logging verbosity about a missing default host key in the configuration (#201).
- - Add ``read_json()`` and ``to_json()`` methods to Collection class (#104).
- - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
+Added
++++++
+
+ - Keep signac shell command history on a per-project basis (#134, #194).
+ - Add ``read_json()`` and ``to_json()`` methods to ``Collection`` class (#104, #200).
+
+Fixed
++++++
+
+ - Fix issue where shallow copies of instances of ``Job`` would behave incorrectly (#153, #207).
  - Fix issue causing a failure of the automatic conversion of valid key types (#168, #205).
  - Improve the 'dots in keys' error message to make it easier to fix related issues (#170, #205).
- - Update the ``__repr__`` and ``__repr_html__`` implementations of the ``Project`, ``Job``, and ``JobsCursor`` classes (#193).
- - Fix issue with rendering views from the command line for single job project (#208).
- - Fix issue with heterogeneous types in state point values that are lists (#209).
+ - Update the ``__repr__`` and ``__repr_html__`` implementations of the ``Project``, ``Job``, and ``JobsCursor`` classes (#193).
+ - Reduce the logging verbosity about a missing default host key in the configuration (#201).
+ - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
+ - Fix issue with generating views from the command line for projects with only one job (#208, #211).
+ - Fix issue with heterogeneous types in state point values that are lists (#209, #210).
+
 
 [1.1.0] -- 2019-05-19
 ---------------------
