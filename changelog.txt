@@ -17,6 +17,15 @@ Highlights
  - Support for compressed Collection files.
 
 
+Next
+----
+
+Added
++++++
+
+ - Add function to initialize a sample data space for testing purposes
+
+
 [1.2.0] -- 2019-07-22
 ---------------------
 
