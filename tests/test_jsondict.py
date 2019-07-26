@@ -5,6 +5,8 @@ import os
 import unittest
 import uuid
 
+from hypothesis import given, strategies as st
+from string import printable
 from signac.core.jsondict import JSONDict
 from signac.common import six
 from signac.errors import InvalidKeyError
@@ -15,6 +17,12 @@ else:
     from tempfile import TemporaryDirectory
 
 FN_DICT = 'jsondict.json'
+
+PRINTABLE_NO_DOTS = printable.replace('.', '')
+JSON_STRATEGY = st.recursive(
+    st.none() | st.booleans() | st.floats(allow_nan=False) | st.text(printable),
+    lambda children: st.lists(children, 1) | st.dictionaries(
+        st.text(PRINTABLE_NO_DOTS), children, min_size=1))
 
 
 def testdata():
@@ -31,8 +39,11 @@ class BaseJSONDictTest(unittest.TestCase):
 
 class JSONDictTest(BaseJSONDictTest):
 
-    def get_json_dict(self):
-        return JSONDict(filename=self._fn_dict)
+    def get_json_dict(self, clear=True):
+        jsd = JSONDict(filename=self._fn_dict)
+        if clear:
+            jsd.clear()
+        return jsd
 
     def get_testdata(self):
         return str(uuid.uuid4())
@@ -40,11 +51,10 @@ class JSONDictTest(BaseJSONDictTest):
     def test_init(self):
         self.get_json_dict()
 
-    def test_set_get(self):
+    @given(d=JSON_STRATEGY)
+    def test_set_get(self, d):
         jsd = self.get_json_dict()
         key = 'setget'
-        d = self.get_testdata()
-        jsd.clear()
         self.assertFalse(bool(jsd))
         self.assertEqual(len(jsd), 0)
         self.assertNotIn(key, jsd)
@@ -57,10 +67,10 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(jsd[key], d)
         self.assertEqual(jsd.get(key), d)
 
-    def test_set_get_explicit_nested(self):
+    @given(d=JSON_STRATEGY)
+    def test_set_get_explicit_nested(self, d):
         jsd = self.get_json_dict()
         key = 'setgetexplicitnested'
-        d = self.get_testdata()
         jsd.setdefault('a', dict())
         child1 = jsd['a']
         child2 = jsd['a']
@@ -80,11 +90,11 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertEqual(child1[key], d)
         self.assertEqual(child2[key], d)
 
-    def test_copy_value(self):
+    @given(d=JSON_STRATEGY)
+    def test_copy_value(self, d):
         jsd = self.get_json_dict()
         key = 'copy_value'
         key2 = 'copy_value2'
-        d = self.get_testdata()
         self.assertNotIn(key, jsd)
         self.assertNotIn(key2, jsd)
         jsd[key] = d
@@ -97,12 +107,11 @@ class JSONDictTest(BaseJSONDictTest):
         self.assertIn(key2, jsd)
         self.assertEqual(jsd[key2], d)
 
-    def test_iter(self):
+    @given(d1=JSON_STRATEGY, d2=JSON_STRATEGY)
+    def test_iter(self, d1, d2):
         jsd = self.get_json_dict()
         key1 = 'iter1'
         key2 = 'iter2'
-        d1 = self.get_testdata()
-        d2 = self.get_testdata()
         d = {key1: d1, key2: d2}
         jsd.update(d)
         self.assertIn(key1, jsd)
@@ -112,10 +121,10 @@ class JSONDictTest(BaseJSONDictTest):
             self.assertEqual(d[key], jsd[key])
         self.assertEqual(i, 1)
 
-    def test_delete(self):
+    @given(d=JSON_STRATEGY)
+    def test_delete(self, d):
         jsd = self.get_json_dict()
         key = 'delete'
-        d = self.get_testdata()
         jsd[key] = d
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d)
@@ -131,63 +140,64 @@ class JSONDictTest(BaseJSONDictTest):
         with self.assertRaises(KeyError):
             jsd[key]
 
-    def test_update(self):
+    @given(d=JSON_STRATEGY)
+    def test_update(self, d):
         jsd = self.get_json_dict()
         key = 'update'
-        d = {key: self.get_testdata()}
+        d = {key: d}
         jsd.update(d)
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d[key])
 
-    def test_clear(self):
+    @given(d=JSON_STRATEGY)
+    def test_clear(self, d):
         jsd = self.get_json_dict()
         key = 'clear'
-        d = self.get_testdata()
         jsd[key] = d
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d)
         jsd.clear()
         self.assertEqual(len(jsd), 0)
 
-    def test_reopen(self):
+    @given(d=JSON_STRATEGY)
+    def test_reopen(self, d):
         jsd = self.get_json_dict()
         key = 'reopen'
-        d = self.get_testdata()
         jsd[key] = d
         jsd.save()
         del jsd  # possibly unsafe
-        jsd2 = self.get_json_dict()
+        jsd2 = self.get_json_dict(clear=False)
         jsd2.load()
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
 
-    def test_copy_as_dict(self):
+    @given(d=JSON_STRATEGY)
+    def test_copy_as_dict(self, d):
         jsd = self.get_json_dict()
         key = 'copy'
-        d = self.get_testdata()
         jsd[key] = d
         copy = dict(jsd)
         del jsd
         self.assertTrue(key in copy)
         self.assertEqual(copy[key], d)
 
-    def test_reopen2(self):
+    @given(d=JSON_STRATEGY)
+    def test_reopen2(self, d):
         jsd = self.get_json_dict()
         key = 'reopen'
-        d = self.get_testdata()
         jsd[key] = d
         del jsd  # possibly unsafe
-        jsd2 = self.get_json_dict()
+        jsd2 = self.get_json_dict(clear=False)
         self.assertEqual(len(jsd2), 1)
         self.assertEqual(jsd2[key], d)
 
-    def test_write_invalid_type(self):
+    @given(d=JSON_STRATEGY)
+    def test_write_invalid_type(self, d):
         class Foo(object):
             pass
 
         jsd = self.get_json_dict()
         key = 'write_invalid_type'
-        d = self.get_testdata()
         jsd[key] = d
         self.assertEqual(len(jsd), 1)
         self.assertEqual(jsd[key], d)
