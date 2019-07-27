@@ -8,3 +8,4 @@ h5py==2.9; implementation_name=='cpython'
 tables==3.4.4
 click>=7.0
 ruamel.yaml>=0.15.89
+pytest
