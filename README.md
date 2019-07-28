@@ -61,11 +61,13 @@ and access the project handle:
 
 ## Testing
 
-You can test this package by executing:
+You can test this package by installing the `pytest` packge with `$ pip install pytest` and then executing:
 
 ```bash
-$ python -m unittest discover tests/
+$ pytest
 ```
+
+from within the package root directory.
 
 ## Acknowledgment
 

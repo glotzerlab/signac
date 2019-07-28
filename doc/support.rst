@@ -91,7 +91,7 @@ To run tests, execute:
 
 .. code-block:: bash
 
-    (signac-dev) signac $ python -m unittest discover tests/
+    (signac-dev) signac $ pytest
 
 
 Building documentation
