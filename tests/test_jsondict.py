@@ -22,7 +22,8 @@ PRINTABLE_NO_DOTS = printable.replace('.', '')
 JSON_STRATEGY = st.recursive(
     st.none() | st.booleans() | st.floats(allow_nan=False) | st.text(printable),
     lambda children: st.lists(children, 1) | st.dictionaries(
-        st.text(PRINTABLE_NO_DOTS), children, min_size=1))
+        st.text(PRINTABLE_NO_DOTS), children, min_size=1),
+    max_leaves=20)
 
 
 def testdata():
