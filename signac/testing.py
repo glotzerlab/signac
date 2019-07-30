@@ -1,7 +1,7 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
+"""Functions for initializing workspaces for testing purposes."""
 
 
 def init_jobs(project, nested=False, listed=False, heterogeneous=False):
@@ -26,3 +26,4 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
         vals += [[v, 0] if heterogeneous else [v] for v in vals]
     for v in vals:
         project.open_job(dict(a=v)).init()
+    return project
