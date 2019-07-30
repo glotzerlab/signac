@@ -244,8 +244,11 @@ class JSONDictTest(BaseJSONDictTest):
 
 class JSONDictWriteConcernTest(JSONDictTest):
 
-    def get_json_dict(self):
-        return JSONDict(filename=self._fn_dict, write_concern=True)
+    def get_json_dict(self, clear=True):
+        jsd = JSONDict(filename=self._fn_dict, write_concern=True)
+        if clear:
+            jsd.clear()
+        return jsd
 
 
 class JSONDictNestedDataTest(JSONDictTest):
