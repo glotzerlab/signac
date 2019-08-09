@@ -6,6 +6,7 @@ import os
 import uuid
 import warnings
 import logging
+import itertools
 import json
 import pickle
 from tarfile import TarFile
@@ -1980,6 +1981,20 @@ class ProjectPicklingTest(BaseProjectTest):
             self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
         for job in self.project:
             self.assertEqual(pickle.loads(pickle.dumps(job)), job)
+
+
+class TestTestingProjectInitialization(BaseProjectTest):
+
+    # Sanity check on all different combinations of inputs
+    def test_input_args(self):
+        for nested, listed, het in itertools.product([True, False], repeat=3):
+            with self.project.temporary_project() as tmp_project:
+                jobs = signac.testing.init_jobs(
+                    tmp_project, nested=nested, listed=listed, heterogeneous=het)
+                self.assertGreater(len(tmp_project), 0)
+                self.assertEqual(len(tmp_project), len(jobs))
+                # check that call does not fail:
+                tmp_project.detect_schema()
 
 
 if __name__ == '__main__':

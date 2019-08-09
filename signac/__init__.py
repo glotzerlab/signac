@@ -17,6 +17,7 @@ from . import cite
 from . import errors
 from . import warnings
 from . import sync
+from . import testing
 from .contrib import Project
 from .contrib import TemporaryProject
 from .contrib import get_project
@@ -61,4 +62,5 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
            'JSONDict',
            'H5Store', 'H5StoreManager',
+           'testing',
            ]
