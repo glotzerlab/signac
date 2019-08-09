@@ -1989,10 +1989,21 @@ class TestTestingProjectInitialization(unittest.TestCase):
     def test_input_args(self):
         for nested, listed, het in itertools.product([True, False], repeat=3):
             with TemporaryDirectory(prefix='signac_') as _tmp_dir:
+                print(nested, listed, het)
                 root = _tmp_dir
                 pr = signac.init_project(name='testproject', root=root)
+                s_sub = pr.detect_schema()
+                self.assertEqual(len(pr), 0)
+                pr_id_b4 = id(pr)
                 pr = signac.testing.init_jobs(pr, nested=nested, listed=listed,
                         heterogeneous=het)
+                self.assertGreater(len(pr), 0)
+                self.assertIsInstance(pr, signac.contrib.project.Project)
+                self.assertEqual(pr_id_b4, id(pr))
+                s = pr.detect_schema()
+                self.assertNotEqual(s_sub, s)
+
+
 
 
 if __name__ == '__main__':
