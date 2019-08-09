@@ -44,7 +44,7 @@ or alternatively with `venv <https://docs.python.org/3/library/venv.html>`_:
 .. code-block:: bash
 
     python -m venv ~/envs/signac-dev
-    source ~/envs/signac-flow-dev/bin/activate
+    source ~/envs/signac-dev/bin/activate
     pip install -r requirements-dev.txt
 
 3. Install the package into your environment with:
