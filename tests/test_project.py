@@ -20,7 +20,6 @@ from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
-from signac.contrib.project import JobsCursor, Project
 
 from test_job import BaseJobTest
 
@@ -1983,27 +1982,18 @@ class ProjectPicklingTest(BaseProjectTest):
             self.assertEqual(pickle.loads(pickle.dumps(job)), job)
 
 
-class TestTestingProjectInitialization(unittest.TestCase):
+class TestTestingProjectInitialization(BaseProjectTest):
 
     # Sanity check on all different combinations of inputs
     def test_input_args(self):
         for nested, listed, het in itertools.product([True, False], repeat=3):
-            with TemporaryDirectory(prefix='signac_') as _tmp_dir:
-                print(nested, listed, het)
-                root = _tmp_dir
-                pr = signac.init_project(name='testproject', root=root)
-                s_sub = pr.detect_schema()
-                self.assertEqual(len(pr), 0)
-                pr_id_b4 = id(pr)
-                pr = signac.testing.init_jobs(pr, nested=nested, listed=listed,
-                        heterogeneous=het)
-                self.assertGreater(len(pr), 0)
-                self.assertIsInstance(pr, signac.contrib.project.Project)
-                self.assertEqual(pr_id_b4, id(pr))
-                s = pr.detect_schema()
-                self.assertNotEqual(s_sub, s)
-
-
+            with self.project.temporary_project() as tmp_project:
+                jobs = signac.testing.init_jobs(
+                    tmp_project, nested=nested, listed=listed, heterogeneous=het)
+                self.assertGreater(len(tmp_project), 0)
+                self.assertEqual(len(tmp_project), len(jobs))
+                # check that call does not fail:
+                tmp_project.detect_schema()
 
 
 if __name__ == '__main__':
