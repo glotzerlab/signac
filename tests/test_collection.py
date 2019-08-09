@@ -289,6 +289,17 @@ class CollectionTest(unittest.TestCase):
         del self.c[docs[0]['_id']]
         self.assertEqual(len(self.c.find({'a': 0})), 0)
 
+    def test_find_list(self):
+        self.assertEqual(len(self.c.find()), 0)
+        self.assertEqual(list(self.c.find()), [])
+        self.assertEqual(len(self.c.find({'a': []})), 0)
+        self.c.insert_one({'a': []})
+        self.assertEqual(len(self.c.find()), 1)
+        self.assertEqual(len(self.c.find({'a': []})), 1)
+        for v in (None, 1, '1', {'b': 1}):
+            self.c.insert_one({'a': [v]})
+            self.assertEqual(len(self.c.find({'a': [v]})), 1)
+
     def test_find_int_float(self):
         id_float = self.c.insert_one({'a': float(1.0)})
         id_int = self.c.insert_one({'a': 1})

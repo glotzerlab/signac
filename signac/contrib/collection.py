@@ -66,9 +66,16 @@ def _flatten(container):
             yield i
 
 
-def _to_tuples(l):
+class _hashable_dict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+def _to_hashable(l):
     if type(l) is list:
-        return tuple(_to_tuples(_) for _ in l)
+        return tuple(_to_hashable(_) for _ in l)
+    elif type(l) is dict:
+        return _hashable_dict(l)
     else:
         return l
 
@@ -79,7 +86,7 @@ class _DictPlaceholder(object):
 
 def _encode_tree(x):
     if type(x) is list:
-        return _to_tuples(x)
+        return _to_hashable(x)
     else:
         return x
 
@@ -190,7 +197,7 @@ def _build_index(docs, key, primary_key):
             if type(v) is dict:
                 continue
             elif type(v) is list:   # performance
-                index[_to_tuples(v)].add(doc[primary_key])
+                index[_to_hashable(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
 
@@ -208,7 +215,7 @@ def _build_index(docs, key, primary_key):
                     "for a recipe on how to replace dots in existing keys.")
                 # inlined for performance
                 if type(v) is list:     # performance
-                    index[_to_tuples(v)].add(doc[primary_key])
+                    index[_to_hashable(v)].add(doc[primary_key])
                 else:
                     index[v].add(doc[primary_key])
     return index
