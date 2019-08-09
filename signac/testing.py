@@ -25,9 +25,9 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
     :type heterogeneous:
         bool
     :returns:
-        The project handle of the initialized project
+        A list containing the initialized jobs
     :rtype:
-        :py:class:`~.Project`
+        list of :py:class:`~.Job`
     """
     jobs_init = []
     vals = [1, 1.0, '1', False, True, None]
