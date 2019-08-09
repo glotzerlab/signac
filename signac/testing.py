@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Functions for initializing workspaces for testing purposes."""
+from itertools import cycle
 
 
 def init_jobs(project, nested=False, listed=False, heterogeneous=False):
@@ -28,11 +29,16 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
     :rtype:
         :py:class:`~.Project`
     """
-    vals = [1, 1.0, '1', True, None]
+    jobs_init = []
+    vals = [1, 1.0, '1', False, True, None]
     if nested:
         vals += [{'b': v, 'c': 0} if heterogeneous else {'b': v} for v in vals]
     if listed:
         vals += [[v, 0] if heterogeneous else [v] for v in vals]
-    for v in vals:
-        project.open_job(dict(a=v)).init()
-    return project
+    if heterogeneous:
+        for k, v in zip(cycle('ab'), vals):
+            jobs_init.append(project.open_job({k: v}).init())
+    else:
+        for v in vals:
+            jobs_init.append(project.open_job(dict(a=v)).init())
+    return jobs_init
