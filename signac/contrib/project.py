@@ -11,6 +11,7 @@ import errno
 import uuid
 import gzip
 import time
+from deprecation import deprecated
 from contextlib import contextmanager
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
@@ -424,6 +425,7 @@ class Project(object):
         """
         return job.get_id() in self.find_job_ids()
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
         """Build a job search index.
 
@@ -434,6 +436,8 @@ class Project(object):
         """
         return JobSearchIndex(index=index, _trust=_trust)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use the detect_schema function instead.")
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
 
@@ -506,6 +510,8 @@ class Project(object):
         statepoint_index = self.build_job_statepoint_index(exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use find_jobs().ids instead.")
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
@@ -730,6 +736,8 @@ class Project(object):
                 raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use open_job(jobid).statepoint() function instead.")
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
@@ -780,6 +788,7 @@ class Project(object):
         self._sp_cache[jobid] = sp
         return sp
 
+    # TODO: deprecate index argument
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
@@ -835,6 +844,8 @@ class Project(object):
         from .linked_view import create_linked_view
         return create_linked_view(self, prefix, job_ids, index, path)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.reset_statepoint() instead.")
     def reset_statepoint(self, job, new_statepoint):
         """Reset the state point of job.
 
@@ -855,6 +866,8 @@ class Project(object):
         """
         job.reset_statepoint(new_statepoint=new_statepoint)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.update_statepoint() instead.")
     def update_statepoint(self, job, update, overwrite=False):
         """Update the statepoint of this job.
 
@@ -1073,6 +1086,7 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
+    # TODO: jobs_ids isn't used right now
     def check(self, job_ids=None):
         """Check the project's workspace for corruption.
 
@@ -1177,6 +1191,7 @@ class Project(object):
             raise JobsCorruptedError(corrupted)
 
     def _sp_index(self):
+        "Update and return the statepoint index cache"
         job_ids = set(self._job_dirs())
         to_add = job_ids.difference(self._index_cache)
         to_remove = set(self._index_cache).difference(job_ids)
@@ -1187,7 +1202,7 @@ class Project(object):
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
-        "Return a basic state point index."
+        "Generate a basic state point index."
         wd = self.workspace() if self.Job is Job else None
         for _id in self.find_job_ids():
             doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
