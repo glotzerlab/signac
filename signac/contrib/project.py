@@ -22,6 +22,7 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common import six
+from .. import __version__
 from ..common.config import load_config
 from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
@@ -437,7 +438,7 @@ class Project(object):
         return JobSearchIndex(index=index, _trust=_trust)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use the detect_schema function instead.")
+                details="Use the detect_schema() function instead.")
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
 
@@ -737,7 +738,7 @@ class Project(object):
             raise KeyError(jobid)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use open_job(jobid).statepoint() function instead.")
+                details="Use open_job(id=jobid).statepoint() function instead.")
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
@@ -1191,7 +1192,10 @@ class Project(object):
             raise JobsCorruptedError(corrupted)
 
     def _sp_index(self):
-        "Update and return the statepoint index cache"
+        """
+        Update and return the statepoint index cache
+        """
+
         job_ids = set(self._job_dirs())
         to_add = job_ids.difference(self._index_cache)
         to_remove = set(self._index_cache).difference(job_ids)
@@ -1202,7 +1206,10 @@ class Project(object):
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
-        "Generate a basic state point index."
+        """
+        Generate a basic state point index.
+        """
+
         wd = self.workspace() if self.Job is Job else None
         for _id in self.find_job_ids():
             doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
