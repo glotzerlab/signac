@@ -61,8 +61,10 @@ if __name__ == '__main__':
         signac.export(signac.index(), index, update=True)
 """
 
-# this is here because of issues importing the same variable in signac/__init__.py from the top level namespace
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
 __version__ = '1.2.0'
+
 
 class JobSearchIndex(object):
     """Search for specific jobs with filters.
