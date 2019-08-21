@@ -22,7 +22,6 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common import six
-from .. import __version__
 from ..common.config import load_config
 from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
@@ -62,6 +61,8 @@ if __name__ == '__main__':
         signac.export(signac.index(), index, update=True)
 """
 
+# this is here because of issues importing the same variable in signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 class JobSearchIndex(object):
     """Search for specific jobs with filters.
