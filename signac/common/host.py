@@ -7,7 +7,7 @@ import getpass
 
 from ..core import json
 from .config import load_config
-from .errors import ConfigError, AuthenticationError
+from ..errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector
 from .crypt import get_crypt_context, SimpleKeyring, get_keyring
 from . import six

@@ -7,7 +7,7 @@ import signac.db
 
 try:
     signac.db.get_database('testing', hostname='testing')
-except signac.common.errors.ConfigError:
+except signac.errors.ConfigError:
     SKIP_REASON = "No 'testing' host configured."
 except ImportError:
     SKIP_REASON = "pymongo not available"

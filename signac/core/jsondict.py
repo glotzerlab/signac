@@ -12,7 +12,7 @@ from tempfile import mkstemp
 from contextlib import contextmanager
 from copy import copy
 
-from .errors import Error
+from ..errors import BufferException, BufferedFileError
 from . import json
 from .attrdict import SyncedAttrDict
 from ..common import six
@@ -34,25 +34,6 @@ _JSONDICT_HASHES = dict()
 _JSONDICT_META = dict()
 
 
-class BufferException(Error):
-    "An exception occured in buffered mode."
-    pass
-
-
-class BufferedFileError(BufferException):
-    """Raised when an error occured while flushing one or more buffered files.
-
-    .. attribute:: files
-
-        A dictionary of files that caused issues during the flush operation,
-        mapped to a possible reason for the issue or None in case that it
-        cannot be determined.
-    """
-    def __init__(self, files):
-        self.files = files
-
-    def __str__(self):
-        return "{}({})".format(type(self).__name__, self.files)
 
 
 def _hash(blob):

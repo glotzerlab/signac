@@ -13,7 +13,7 @@ from collections import defaultdict
 
 from ..core import json
 from ..common import six
-from ..common import errors
+from ..errors import FetchError, ExportError
 from .utility import walkdepth, is_string
 from .hashing import calc_id
 
@@ -76,7 +76,7 @@ class BaseCrawler(object):
 
         :returns: object associated with doc
         """
-        raise errors.FetchError("Unable to fetch object for '{}'.".format(doc))
+        raise FetchError("Unable to fetch object for '{}'.".format(doc))
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
@@ -236,10 +236,10 @@ class RegexFileCrawler(BaseCrawler):
                                 warnings.warn(msg)
                         return format_(open(ffn, mode=mode))
             else:
-                raise errors.FetchError("Unable to match file path of doc '{}' "
+                raise FetchError("Unable to match file path of doc '{}' "
                                         "to format definition.".format(doc))
         else:
-            raise errors.FetchError("Insufficient meta data in doc '{}'.".format(doc))
+            raise FetchError("Insufficient meta data in doc '{}'.".format(doc))
 
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
@@ -580,13 +580,13 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
             fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
             return open(fn, mode=mode)
         except KeyError:
-            raise errors.FetchError("Insufficient file meta data for fetch.", doc_or_id)
+            raise FetchError("Insufficient file meta data for fetch.", doc_or_id)
         except OSError as error:
             if error.errno == errno.ENOENT:
                 if file_id is None:
-                    raise errors.FetchError("Failed to fetch '{}'.".format(doc_or_id))
+                    raise FetchError("Failed to fetch '{}'.".format(doc_or_id))
     if mirrors is None:
-        raise errors.FetchError("No mirrors provided!")
+        raise FetchError("No mirrors provided!")
     else:
         for i in range(num_tries):
             for mirror in mirrors:
@@ -598,7 +598,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
                 except mirror.FileNotFoundError as error:
                     logger.debug(error)
             else:
-                raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
+                raise FetchError("Unable to fetch object for '{}'.".format(file_id))
 
 
 def fetched(docs):
@@ -628,7 +628,7 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     :returns: The file id after successful export.
     """
     if 'file_id' not in doc:
-        raise errors.ExportError("Doc '{}' does not have a file_id entry.".format(doc))
+        raise ExportError("Doc '{}' does not have a file_id entry.".format(doc))
     for i in range(num_tries):
         try:
             with fetch(doc, mode='rb') as file:
@@ -645,7 +645,7 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
                 "Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
             return doc['file_id']
     else:
-        raise errors.ExportError(doc)
+        raise ExportError(doc)
 
 
 def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
@@ -742,7 +742,7 @@ def export(docs, index, mirrors=None, update=False,
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
-            raise errors.ExportError(
+            raise ExportError(
                 "The exported docs sequence is empty! Unable to update!")
 
 
@@ -762,7 +762,7 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
             logger.warning(error)
             sleep(timeout)
     else:
-        raise errors.ExportError()
+        raise ExportError()
 
 
 def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100):
@@ -823,7 +823,7 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
-            raise errors.ExportError(
+            raise ExportError(
                 "The exported docs sequence is empty! Unable to update!")
 
 

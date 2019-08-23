@@ -14,7 +14,7 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .hashing import calc_id
 from .utility import _mkdir_p
-from .errors import DestinationExistsError, JobsCorruptedError
+from ..errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
 
 

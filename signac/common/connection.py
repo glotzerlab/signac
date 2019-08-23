@@ -7,7 +7,7 @@ from os.path import expanduser
 
 import pymongo
 
-from .errors import ConfigError
+from ..errors import ConfigError
 
 
 PYMONGO_2 = pymongo.version_tuple[0] == 2

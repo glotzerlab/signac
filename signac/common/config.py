@@ -7,7 +7,7 @@ import logging
 
 from .configobj import ConfigObj, ConfigObjError
 from .validate import get_validator, cfg
-from .errors import ConfigError
+from ..errors import ConfigError, PermissionsError
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +16,6 @@ CONFIG_FILENAMES = [DEFAULT_FILENAME, 'signac.rc']
 HOME = os.path.expanduser('~')
 CONFIG_PATH = [HOME]
 FN_CONFIG = os.path.expanduser('~/.signacrc')
-
-
-class PermissionsError(ConfigError):
-    pass
 
 
 def search_tree(root=None):

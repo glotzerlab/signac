@@ -30,9 +30,9 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, split_and_print_progress
 from .schema import ProjectSchema
-from .errors import WorkspaceError
-from .errors import DestinationExistsError
-from .errors import JobsCorruptedError
+from ..errors import WorkspaceError
+from ..errors import DestinationExistsError
+from ..errors import JobsCorruptedError
 if six.PY2:
     from collections import Iterable
 else:
