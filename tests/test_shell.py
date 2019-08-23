@@ -10,7 +10,7 @@ import signac
 from signac.common import six
 
 if six.PY2:
-    from ..signac.common.tempdir import TemporaryDirectory
+    from signac.common.tempdir import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
 
