@@ -2,16 +2,21 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import base64
+from deprecation import deprecated
 
 from . import six
 
 try:
     from passlib.context import CryptContext
 except ImportError:
+    @deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+                details='Database functionality is deprecated.')
     def get_crypt_context():
         "This function requires passlib!"
         return None
 else:
+    @deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+                details='Database functionality is deprecated.')
     def get_crypt_context():
         "Return the default signac crypto context."
         return CryptContext(schemes=('bcrypt', ))
@@ -19,10 +24,14 @@ else:
 try:
     import keyring
 except ImportError:
+    @deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+                details='Database functionality is deprecated.')
     def get_keyring():
         "This function requires keyring!"
         return None
 else:
+    @deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+                details='Database functionality is deprecated.')
     def get_keyring():
         "Return the system user keyring."
         return keyring.get_keyring()
@@ -31,6 +40,8 @@ else:
 class SimpleKeyring(object):
     """Simple in-memory keyring for caching."""
 
+    @deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+                details='Database functionality is deprecated.')
     def __init__(self):
         self._cache = dict()
 
@@ -65,6 +76,8 @@ class SimpleKeyring(object):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
+@deprecated(deprecated_in='1.3', removed_in='2.0', current_version='',
+            details='Database functionality is deprecated.')
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
     if get_crypt_context().identify(pwhash) == 'bcrypt':
