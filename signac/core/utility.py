@@ -3,8 +3,17 @@
 # This software is licensed under the BSD 3-Clause License.
 import re
 import subprocess
+from deprecation import deprecated
+
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="There is another exactly identical implementation of this function in "
+            "connection.py, and the other implementation is used instead of this one in other "
+            "places in the project.")
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(
