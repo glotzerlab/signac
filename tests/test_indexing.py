@@ -26,7 +26,7 @@ else:
 
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)
-    from tempdir import TemporaryDirectory
+    from ..signac.common.tempdir import TemporaryDirectory
     from mock import Mock
 else:
     from tempfile import TemporaryDirectory

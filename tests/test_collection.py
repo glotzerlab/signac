@@ -11,7 +11,7 @@ from signac.contrib.collection import JSONParseError
 from signac.common import six
 from signac.errors import InvalidKeyError
 if six.PY2:
-    from tempdir import TemporaryDirectory
+    from ..signac.common.tempdir import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
 
