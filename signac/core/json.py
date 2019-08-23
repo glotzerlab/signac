@@ -49,6 +49,7 @@ class CustomJSONEncoder(JSONEncoder):
     an object that is otherwise not serializable, by calling the object's
     `_as_dict()` method.
     """
+
     def default(self, o):
         if NUMPY:
             if isinstance(o, numpy.number):

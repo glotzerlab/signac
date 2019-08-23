@@ -34,8 +34,6 @@ _JSONDICT_HASHES = dict()
 _JSONDICT_META = dict()
 
 
-
-
 def _hash(blob):
     "Calculate and return the md5 hash value for the file data."
     if blob is not None:
@@ -223,6 +221,7 @@ class JSONDict(SyncedAttrDict):
     :param parent:
         A parent instance of JSONDict or None.
     """
+
     def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(

@@ -161,8 +161,8 @@ class Project(object):
 
     def __repr__(self):
         return "{type}.get_project('{root}')".format(
-                   type=self.__class__.__name__,
-                   root=self.root_directory())
+            type=self.__class__.__name__,
+            root=self.root_directory())
 
     def _repr_html_(self):
         return "<p>" + \
@@ -1621,7 +1621,7 @@ class JobsCursor(object):
         return _JobsCursorIterator(
             self._project,
             self._project.find_job_ids(self._filter, self._doc_filter),
-            )
+        )
 
     def next(self):
         """Return the next element.
@@ -1799,10 +1799,10 @@ class JobsCursor(object):
 
     def __repr__(self):
         return '{type}(project={project}, filter={filter}, doc_filter={doc_filter})'.format(
-                   type=self.__class__.__name__,
-                   project=repr(self._project),
-                   filter=repr(self._filter),
-                   doc_filter=repr(self._doc_filter))
+            type=self.__class__.__name__,
+            project=repr(self._project),
+            filter=repr(self._filter),
+            doc_filter=repr(self._doc_filter))
 
     def _repr_html_jobs(self):
         html = ''

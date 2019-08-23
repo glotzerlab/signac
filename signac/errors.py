@@ -29,6 +29,7 @@ class AuthenticationError(Error, RuntimeError):
 class ExportError(Error, RuntimeError):
     pass
 
+
 if six.PY2:
     class FileNotFoundError(Error, IOError):
         pass
@@ -39,6 +40,7 @@ else:
 
 class FetchError(FileNotFoundError):
     pass
+
 
 class BufferException(Error):
     "An exception occured in buffered mode."
@@ -54,6 +56,7 @@ class BufferedFileError(BufferException):
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.
     """
+
     def __init__(self, files):
         self.files = files
 
@@ -63,6 +66,7 @@ class BufferedFileError(BufferException):
 
 class WorkspaceError(Error, OSError):
     "Raised when there is an issue to create or access the workspace."
+
     def __init__(self, error):
         self.error = error
         "The underlying error causing this issue."
@@ -73,6 +77,7 @@ class WorkspaceError(Error, OSError):
 
 class DestinationExistsError(Error, RuntimeError):
     "The destination for a move or copy operation already exists."
+
     def __init__(self, destination):
         self.destination = destination
         "The destination object causing the error."
@@ -80,6 +85,7 @@ class DestinationExistsError(Error, RuntimeError):
 
 class JobsCorruptedError(Error, RuntimeError):
     "The state point manifest file of one or more jobs cannot be openend or is corrupted."
+
     def __init__(self, job_ids):
         self.job_ids = job_ids
         "The job id(s) of the corrupted job(s)."
@@ -97,6 +103,7 @@ class SyncConflict(Error, RuntimeError):
 
 class FileSyncConflict(SyncConflict):
     "Raised when a synchronization operation fails due to a file conflict."
+
     def __init__(self, filename):
         self.filename = filename
         "The filename of the file that caused the conflict."
@@ -107,6 +114,7 @@ class FileSyncConflict(SyncConflict):
 
 class DocumentSyncConflict(SyncConflict):
     "Raised when a synchronization operation fails due to a document conflict."
+
     def __init__(self, keys):
         self.keys = keys
         "The keys that caused the conflict."
@@ -117,6 +125,7 @@ class DocumentSyncConflict(SyncConflict):
 
 class SchemaSyncConflict(SyncConflict):
     "Raised when a synchronization operation fails due to schema differences."
+
     def __init__(self, schema_src, schema_dst):
         self.schema_src = schema_src
         self.schema_dst = schema_dst

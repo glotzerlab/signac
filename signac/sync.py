@@ -535,7 +535,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
                 doc_sync=doc_sync,
                 recursive=recursive,
                 dry_run=proxy,   # used as internal argument to forward the proxy
-                )
+            )
             logger.more("Synchonized job '{}'.".format(src_job))
             return 2
 

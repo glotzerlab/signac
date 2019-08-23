@@ -24,7 +24,7 @@ else:
 __all__ = [
     'H5Store', 'H5Group', 'H5StoreManager',
     'H5StoreClosedError', 'H5StoreAlreadyOpenError',
-    ]
+]
 
 
 def _group_is_pandas_type(group):

@@ -237,7 +237,7 @@ class RegexFileCrawler(BaseCrawler):
                         return format_(open(ffn, mode=mode))
             else:
                 raise FetchError("Unable to match file path of doc '{}' "
-                                        "to format definition.".format(doc))
+                                 "to format definition.".format(doc))
         else:
             raise FetchError("Insufficient meta data in doc '{}'.".format(doc))
 
