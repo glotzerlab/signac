@@ -34,13 +34,13 @@ __version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="No references to this function outside the module.")
+            details="No references to this function outside the module.")
 def _register_fs_class(fs):
     "Register a file system handler in the module's registry."
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="No references to this function outside the module.")
+            details="No references to this function outside the module.")
 class LocalFS(object):
     """A file system handler for the local file system.
 
@@ -204,7 +204,7 @@ if GRIDFS:
     _register_fs_class(GridFS)
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="No references to this function outside the module.")
+            details="No references to this function outside the module.")
 def filesystems_from_config(fs_config):
     """Generate file system handlers from a configuration.
 
@@ -248,7 +248,7 @@ def filesystems_from_config(fs_config):
             yield fs_class(args)
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="No references to this function outside the module.")
+            details="No references to this function outside the module.")
 def filesystems_from_configs(fs_configs):
     """Generate file system handlers.
 
