@@ -13,11 +13,16 @@ import tarfile
 from time import time
 from datetime import timedelta
 from contextlib import contextmanager
+from deprecation import deprecated
 
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
+
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 
 def query_yes_no(question, default="yes"):
@@ -77,6 +82,8 @@ def add_verbosity_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function.")
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
@@ -98,6 +105,9 @@ def add_verbosity_action_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function by things outside the module, "
+            "and the things that reference this also aren't used outside the module.")
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
@@ -111,6 +121,9 @@ def set_verbosity_level(verbosity, default=None, increment=10):
         level=default - increment * verbosity)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function by things outside the module, "
+            "and the things that reference this also aren't used outside the module.")
 class VerbosityAction(argparse.Action):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -123,6 +136,8 @@ class VerbosityAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function.")
 class VerbosityLoggingConfigAction(VerbosityAction):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -132,6 +147,8 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         set_verbosity_level(v_level)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function.")
 class EmptyIsTrue(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -140,6 +157,8 @@ class EmptyIsTrue(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function.")
 class SmartFormatter(argparse.HelpFormatter):
 
     def _split_lines(self, text, width):
