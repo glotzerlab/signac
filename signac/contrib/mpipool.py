@@ -25,11 +25,13 @@ This 3rd party module is copied from https://github.com/adrn/mpipool."""
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
+from deprection import deprecated
 
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function outside the module.")
 class MPIPool(object):
     """
     A pool that distributes tasks over a set of MPI processes using
@@ -271,19 +273,22 @@ class MPIPool(object):
     def __exit__(self, *args):
         self.close()
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function outside the module.")
 class _close_pool_message(object):
 
     def __repr__(self):
         return "<Close pool message>"
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function outside the module.")
 class _function_wrapper(object):
 
     def __init__(self, function):
         self.function = function
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="No references to this function outside the module.")
 def _error_function(task):
     raise RuntimeError("Pool was sent tasks before being told what "
                        "function to apply.")
