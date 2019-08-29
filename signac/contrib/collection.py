@@ -213,11 +213,6 @@ def _build_index(docs, key, primary_key):
                     "Specifically keys with dots ('.').\n\n"
                     "See https://signac.io/document-wide-migration/ "
                     "for a recipe on how to replace dots in existing keys.")
-                # inlined for performance
-                if type(v) is list:     # performance
-                    index[_to_hashable(v)].add(doc[primary_key])
-                else:
-                    index[v].add(doc[primary_key])
     return index
 
 
