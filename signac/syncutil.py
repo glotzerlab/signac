@@ -38,12 +38,10 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
             else:
                 copy_function(srcname, dstname)
         except OSError as why:
-            raise
             errors.append((srcname, dstname, str(why)))
         # catch the Error from the recursive copytree so that we can
         # continue with other files
         except shutil.Error as err:
-            raise
             errors.extend(err.args[0])
     if errors:
         raise shutil.Error(errors)
