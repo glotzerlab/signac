@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 """Functions to support citing this software."""
 import sys
-from signac.db import __version__
 
 
 ARXIV_BIBTEX = """@online{signac,
@@ -20,8 +19,6 @@ ARXIV_BIBTEX = """@online{signac,
 ARXIV_REFERENCE = "Carl S. Adorf, Paul M. Dodd, and Sharon C. Glotzer. signac - A Simple Data Management Framework. 2016. arXiv:1611.03543 [cs.DB]"
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def bibtex(file=None):
     """Generate bibtex entries for signac.
 
@@ -45,8 +42,6 @@ def bibtex(file=None):
     file.write(ARXIV_BIBTEX)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def reference(file=None):
     """Generate formatted reference entries for signac.
 

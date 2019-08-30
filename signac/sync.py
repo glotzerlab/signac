@@ -78,9 +78,7 @@ import re
 from collections import defaultdict as ddict
 from collections import namedtuple
 from multiprocessing.pool import ThreadPool
-from deprecation import deprecated
 
-from signac.db import __version__
 from .errors import DestinationExistsError
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
@@ -107,40 +105,28 @@ __all__ = [
 
 # Definition of default sync strategies
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 class FileSync(object):
     "Collection of file synchronization strategies."
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     @classmethod
     def keys(cls):
         return ('always', 'never', 'update', 'Ask')
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     @staticmethod
     def always(src, dst, fn):
         "Always overwrite files on conflict."
         return True
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     @staticmethod
     def never(src, dst, fn):
         "Never overwrite files on conflict."
         return False
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     @staticmethod
     def update(src, dst, fn):
         "Overwrite a file if the source file was modified last (based on timestamp)."
         return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     class Ask(object):
         "Ask whether a file should be overwritten interactively."
 
@@ -148,8 +134,6 @@ class FileSync(object):
             self.yes = set()
             self.no = set()
 
-        @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                    details="The database package is deprecated.")
         def __call__(self, src, dst, fn):
             if fn in self.yes:
                 return True
@@ -165,8 +149,6 @@ class FileSync(object):
                     return False
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 class DocSync(object):
     "Collection of document synchronization functions."
 
@@ -176,16 +158,12 @@ class DocSync(object):
     COPY = 'copy'
     "Copy (and potentially overwrite) documents like any other file."
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     @staticmethod
     def update(src, dst):
         "Perform a simple update."
         for key in src.keys():
             dst[key] = src[key]
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The database package is deprecated.")
     class ByKey(object):
         "Synchronize documents key by key."
 
@@ -200,13 +178,9 @@ class DocSync(object):
                 self.key_strategy = key_strategy
             self.skipped_keys = set()
 
-        @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                    details="The database package is deprecated.")
         def __str__(self):
             return "{}({})".format(type(self).__name__, self.key_strategy)
 
-        @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                    details="The database package is deprecated.")
         def __call__(self, src, dst, root=''):
             if src == dst:
                 return
@@ -277,8 +251,6 @@ def _identical_path(a, b):
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=False,
               follow_symlinks=True,
               preserve_permissions=False, preserve_times=False,
@@ -412,8 +384,6 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
 FileTransferStats = namedtuple('_FileTransferStats', ['num_files', 'volume'])
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
                   selection=None, check_schema=True, recursive=False,
                   follow_symlinks=True,

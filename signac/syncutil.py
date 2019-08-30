@@ -3,12 +3,9 @@ import shutil
 import filecmp
 import logging
 
-from deprecation import deprecated
 from copy import deepcopy
 from contextlib import contextmanager
 from filecmp import dircmp
-
-from signac.db import __version__
 
 LEVEL_MORE = logging.INFO - 5
 
@@ -17,8 +14,6 @@ logging.addLevelName(LEVEL_MORE, 'MORE')
 logging.MORE = LEVEL_MORE
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def log_more(msg, *args, **kwargs):
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
@@ -26,8 +21,6 @@ def log_more(msg, *args, **kwargs):
 logger.more = log_more
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
     "Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example'."
     os.makedirs(dst)
@@ -56,8 +49,6 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
         raise shutil.Error(errors)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The database package is deprecated.")
 class dircmp_deep(dircmp):
 
     def phase3(self):  # Find out differences between common files
