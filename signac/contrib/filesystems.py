@@ -11,6 +11,7 @@ import warnings
 
 from ..common import six
 from ..db import get_database
+from signac.contrib import __version__
 from deprecation import deprecated
 
 try:
@@ -27,10 +28,6 @@ else:
 
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = int(1e9)  # 1GB
 FILESYSTEM_REGISTRY = dict()
-
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

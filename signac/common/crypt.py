@@ -4,6 +4,7 @@
 import base64
 
 from . import six
+from signac.common import __version__
 from deprecation import deprecated
 
 try:
@@ -27,10 +28,6 @@ else:
     def get_keyring():
         "Return the system user keyring."
         return keyring.get_keyring()
-
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

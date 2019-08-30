@@ -25,6 +25,9 @@ from .collection import Collection
 
 logger = logging.getLogger(__name__)
 
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 __all__ = [
     'indexing',

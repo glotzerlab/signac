@@ -12,6 +12,7 @@ from time import sleep
 from collections import defaultdict
 from deprecations import deprecated
 
+from signac.contrib import __version__
 from ..core import json
 from ..common import six
 from ..common import errors
@@ -23,9 +24,6 @@ if six.PY2:
 else:
     import importlib.machinery
 
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
 
 logger = logging.getLogger(__name__)
 

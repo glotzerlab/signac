@@ -5,9 +5,7 @@ import re
 import subprocess
 from deprecation import deprecated
 
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
+from signac.core import __version__
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
