@@ -10,9 +10,8 @@ import warnings
 import errno
 from time import sleep
 from collections import defaultdict
-from deprecations import deprecated
+from deprecation import deprecated
 
-from signac.contrib import __version__
 from ..core import json
 from ..common import six
 from ..common import errors
@@ -32,6 +31,10 @@ KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
 
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
+
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The indexing module is deprecated.")
@@ -48,8 +51,7 @@ def _is_blank_module(module):
         return not bool(file.read().strip())
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+# this class is deprecated
 class BaseCrawler(object):
     """Crawl through `root` and index all files.
 
@@ -138,8 +140,7 @@ class BaseCrawler(object):
         return doc
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+# this class is deprecated
 class RegexFileCrawler(BaseCrawler):
     r"""Generate documents from filenames and associate each file with a data type.
 
@@ -312,8 +313,7 @@ class RegexFileCrawler(BaseCrawler):
             return
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+# this class is deprecated
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_regex = r'.*\.json'
@@ -379,8 +379,7 @@ def _index_signac_project_workspace(root,
         logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+# this class is deprecated
 class SignacProjectCrawler(RegexFileCrawler):
     """Index a signac project workspace.
 
@@ -452,8 +451,7 @@ class SignacProjectCrawler(RegexFileCrawler):
             yield doc
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+# this class is deprecated
 class MasterCrawler(BaseCrawler):
     r"""Compiles a master index from indexes defined in access modules.
 

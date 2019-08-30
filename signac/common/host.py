@@ -6,7 +6,6 @@ import warnings
 import getpass
 
 from deprecation import deprecated
-from signac.common import __version__
 from ..core import json
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
@@ -19,6 +18,10 @@ logger = logging.getLogger(__name__)
 
 SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
 SESSION_USERNAME_CACHE = dict()
+
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

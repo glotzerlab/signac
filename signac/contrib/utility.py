@@ -15,11 +15,14 @@ from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
 
-from signac.contrib import __version__
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
+
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 
 def query_yes_no(question, default="yes"):
@@ -132,10 +135,11 @@ class VerbosityAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This class is obsolete.")
+# this class is deprecated
 class VerbosityLoggingConfigAction(VerbosityAction):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The VerbosityLoggingConfigAction class is obsolete.")
     def __call__(self, parser, args, values, option_string=None):
         super(VerbosityLoggingConfigAction, self).__call__(
             parser, args, values, option_string)
@@ -143,20 +147,22 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         set_verbosity_level(v_level)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This class is obsolete.")
+# this class is deprecated
 class EmptyIsTrue(argparse.Action):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The EmptyIsTrue class is obsolete.")
     def __call__(self, parser, namespace, values, option_string=None):
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This class is obsolete.")
+# this class is deprecated
 class SmartFormatter(argparse.HelpFormatter):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The SmartFormatter class is obsolete.")
     def _split_lines(self, text, width):
         if text.startswith('R|'):
             return text[2:].splitlines()

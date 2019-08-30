@@ -2,8 +2,11 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from ..common import host
-from signac.db import __version__
 from deprecation import deprecated
+
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
