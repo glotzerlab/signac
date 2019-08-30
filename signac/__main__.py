@@ -18,6 +18,7 @@ from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
+from deprecation import deprecated
 
 try:
     import readline
@@ -209,6 +210,8 @@ def find_with_filter_or_none(args):
         return find_with_filter(args)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def find_with_filter(args):
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
@@ -227,6 +230,8 @@ def find_with_filter(args):
     return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_project(args):
     project = get_project()
     if args.access:
@@ -243,6 +248,8 @@ def main_project(args):
         print(project)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_job(args):
     project = get_project()
     if args.statepoint == '-':
@@ -263,6 +270,8 @@ def main_job(args):
         print(job)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_statepoint(args):
     project = get_project()
     if args.job_id:
@@ -276,6 +285,8 @@ def main_statepoint(args):
             print(json.dumps(job.statepoint(), indent=args.indent, sort_keys=args.sort))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_document(args):
     project = get_project()
     for job_id in find_with_filter(args):
@@ -286,6 +297,8 @@ def main_document(args):
             print(json.dumps(job.document(), indent=args.indent, sort_keys=args.sort))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_remove(args):
     project = get_project()
     for job_id in args.job_id:
@@ -303,6 +316,8 @@ def main_remove(args):
             print(job_id)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_move(args):
     project = get_project()
     dst_project = get_project(root=args.project)
@@ -317,6 +332,8 @@ def main_move(args):
             _print_err("Moved '{}' to '{}'.".format(job, dst_project))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_clone(args):
     project = get_project()
     dst_project = get_project(root=args.project)
@@ -330,6 +347,8 @@ def main_clone(args):
             _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_index(args):
     _print_err("Compiling master index for path '{}'...".format(
         os.path.realpath(args.root)))
@@ -340,6 +359,8 @@ def main_index(args):
         print(json.dumps(doc))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_find(args):
     project = get_project()
 
@@ -384,6 +405,8 @@ def main_find(args):
             raise
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_view(args):
     project = get_project()
     project.create_linked_view(
@@ -393,6 +416,8 @@ def main_view(args):
         index=_read_index(args.index))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_init(args):
     project = init_project(
         name=args.project_id,
@@ -401,6 +426,8 @@ def main_init(args):
     _print_err("Initialized project '{}'.".format(project))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_schema(args):
     project = get_project()
     print(project.detect_schema(
@@ -411,6 +438,8 @@ def main_schema(args):
             max_num_range=args.max_num_range))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_sync(args):
     #
     # Valid provided argument combinations
@@ -611,6 +640,8 @@ def _main_import_non_interactive(project, origin, args):
         return paths
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_import(args):
     if args.move and os.path.isfile(args.origin):
         raise ValueError(
@@ -633,6 +664,8 @@ def main_import(args):
         _print_err("Nothing to import.")
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_export(args):
     if args.move and os.path.splitext(args.target)[1] != '':
         raise RuntimeError(
@@ -662,6 +695,8 @@ def main_export(args):
         _print_err("No jobs to export.")
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_update_cache(args):
     project = get_project()
     _print_err("Updating cache...")
@@ -672,6 +707,8 @@ def main_update_cache(args):
         _print_err("Updated cache (size={}).".format(n))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def verify_config(cfg, preserve_errors=True):
     verification = cfg.verify(
         preserve_errors=preserve_errors, skip_missing=True)
@@ -693,6 +730,8 @@ def verify_config(cfg, preserve_errors=True):
             _print_err(' '.join((section_string, ':', error)))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_config_show(args):
     cfg = None
     if args.local and args.globalcfg:
@@ -732,6 +771,8 @@ def main_config_show(args):
             print(_hide_password(line))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_config_verify(args):
     cfg = None
     if args.local and args.globalcfg:
@@ -764,6 +805,8 @@ def main_config_verify(args):
     verify_config(cfg)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_config_set(args):
     if not (args.local or args.globalcfg):
         args.local = True
@@ -808,6 +851,8 @@ def main_config_set(args):
     cfg.write()
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_config_host(args):
     if args.update_pw is True:
         args.update_pw = DEFAULT_PW_ENCRYPTION_SCHEME
@@ -955,6 +1000,8 @@ def main_config_host(args):
         print(_hide_password(line))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main_shell(args):
     if args.file and args.command:
         raise ValueError(
@@ -1026,6 +1073,8 @@ def main_shell(args):
                     size=len(project)))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def main():
     parser = argparse.ArgumentParser(
         description="signac aids in the management, access and analysis of "

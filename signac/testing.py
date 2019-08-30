@@ -3,8 +3,13 @@
 # This software is licensed under the BSD 3-Clause License.
 """Functions for initializing workspaces for testing purposes."""
 from itertools import cycle
+from deprecation import deprecated
+
+from signac.db import __version__
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def init_jobs(project, nested=False, listed=False, heterogeneous=False):
     """Initialize a dataspace for testing purposes
 
