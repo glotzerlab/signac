@@ -25,7 +25,7 @@ SESSION_USERNAME_CACHE = dict()
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_default_host(config=None):
     if config is None:
         config = load_config()
@@ -46,7 +46,7 @@ def _get_host_config(hostname, config):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_host_config(hostname=None, config=None):
     if config is None:
         config = load_config()
@@ -60,7 +60,7 @@ def _host_id(hostcfg):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def make_uri(hostcfg):
     ret = hostcfg['url']
     if ret.startswith('mongodb://'):
@@ -128,7 +128,7 @@ def _get_credentials(hostcfg):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_credentials(hostcfg, ask=True):
     if ask:
         return _get_credentials(hostcfg)
@@ -149,7 +149,7 @@ def _input(prompt, default=''):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def check_credentials(hostcfg):
     from pymongo.uri_parser import parse_uri
     auth_m = hostcfg.get('auth_mechanism', 'none')
@@ -172,13 +172,13 @@ def check_credentials(hostcfg):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_connector(hostcfg, **kwargs):
     return DBClientConnector(hostcfg, **kwargs)
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_client(hostcfg, **kwargs):
     connector = get_connector(hostcfg, **kwargs)
     connector.connect()
@@ -187,7 +187,7 @@ def get_client(hostcfg, **kwargs):
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The host module is deprecated.")
 def get_database(name, hostname=None, config=None, **kwargs):
     if hostname is None:
         hostname = get_default_host(config)
