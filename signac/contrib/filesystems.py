@@ -34,13 +34,13 @@ __version__ = '1.2.0'
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The filesystems module is deprecated.")
 def _register_fs_class(fs):
     "Register a file system handler in the module's registry."
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The filesystems module is deprecated.")
 class LocalFS(object):
     """A file system handler for the local file system.
 
@@ -64,10 +64,14 @@ class LocalFS(object):
     def __init__(self, root):
         self.root = root
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The filesystems module is deprecated.")
     def config(self):
         "Return the file system configuration for this handler."
         return {'root': self.root}
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The filesystems module is deprecated.")
     def __repr__(self):
         return '{}({})'.format(
             type(self),
@@ -79,6 +83,8 @@ class LocalFS(object):
             * [_id[i:i + n] for i in range(0, len(_id), n)]) + suffix
         return fn
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The filesystems module is deprecated.")
     def new_file(self, _id, mode=None):
         """Create a new file for _id.
 
@@ -98,6 +104,8 @@ class LocalFS(object):
                 raise
         return open(fn, mode=mode)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The filesystems module is deprecated.")
     def get(self, _id, mode='r'):
         """Open the file with the specified id.
 
@@ -116,7 +124,7 @@ _register_fs_class(LocalFS)
 if GRIDFS:
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="No references to this function outside the module.")
+                details="The filesystems module is deprecated.")
     class GridFS(object):
         """A file system handler for the MongoDB `GridFS`_ file system.
 
@@ -204,7 +212,7 @@ if GRIDFS:
     _register_fs_class(GridFS)
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The filesystems module is deprecated.")
 def filesystems_from_config(fs_config):
     """Generate file system handlers from a configuration.
 
@@ -248,7 +256,7 @@ def filesystems_from_config(fs_config):
             yield fs_class(args)
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The filesystems module is deprecated.")
 def filesystems_from_configs(fs_configs):
     """Generate file system handlers.
 
