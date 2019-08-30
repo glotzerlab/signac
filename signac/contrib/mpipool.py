@@ -31,7 +31,7 @@ __all__ = ["MPIPool"]
 __version__ = "0.0.1"
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The mpipool module is deprecated.")
 class MPIPool(object):
     """
     A pool that distributes tasks over a set of MPI processes using
@@ -76,6 +76,8 @@ class MPIPool(object):
                              "was only one MPI process available. "
                              "Need at least two.")
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def is_master(self):
         """
         Is the current process the master?
@@ -83,6 +85,8 @@ class MPIPool(object):
         """
         return self.rank == 0
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def wait(self):
         """
         If this isn't the master process, wait for instructions.
@@ -130,6 +134,8 @@ class MPIPool(object):
                       .format(self.rank, result, status.tag))
             self.comm.isend(result, dest=0, tag=status.tag)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def map(self, function, tasks, ntask=None, callback=None):
         """
         Like the built-in :func:`map` function, apply a function to all
@@ -251,12 +257,16 @@ class MPIPool(object):
 
             return results
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def bcast(self, *args, **kwargs):
         """
         Equivalent to mpi4py :func:`bcast` collective operation.
         """
         return self.comm.bcast(*args, **kwargs)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def close(self):
         """
         Just send a message off to all the pool members which contains
@@ -267,28 +277,32 @@ class MPIPool(object):
             for i in range(self.size):
                 self.comm.isend(_close_pool_message(), dest=i + 1)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def __enter__(self):
         return self
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The mpipool module is deprecated.")
     def __exit__(self, *args):
         self.close()
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The mpipool module is deprecated.")
 class _close_pool_message(object):
 
     def __repr__(self):
         return "<Close pool message>"
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The mpipool module is deprecated.")
 class _function_wrapper(object):
 
     def __init__(self, function):
         self.function = function
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function outside the module.")
+            details="The mpipool module is deprecated.")
 def _error_function(task):
     raise RuntimeError("Pool was sent tasks before being told what "
                        "function to apply.")
