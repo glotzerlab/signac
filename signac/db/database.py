@@ -2,8 +2,12 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from ..common import host
+from signac.db import __version__
+from deprecation import deprecated
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The database package is deprecated.")
 def get_database(name, hostname=None, config=None):
     """Get a database handle.
 

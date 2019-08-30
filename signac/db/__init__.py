@@ -22,5 +22,8 @@ else:
             "supported by signac. Consider updating.".format(pymongo.version))
     from .database import get_database
 
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
 __all__ = ['get_database']
