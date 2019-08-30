@@ -40,14 +40,14 @@ def get_subject_from_certificate(fn_certificate):  # pragma no cover
         return lines[0][len('subject='):].strip()
 
 
-@deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The connection module is deprecated.")
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
 
 
-@deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The connection module is deprecated.")
 class DBClientConnector(object):
 
@@ -56,7 +56,7 @@ class DBClientConnector(object):
         self._client = None
         self._kwargs = kwargs
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     @property
     def client(self):
@@ -65,24 +65,24 @@ class DBClientConnector(object):
         else:
             return self._client
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     @property
     def host(self):
         return self._config['url']
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     @property
     def config(self):
         return dict(self._config)
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def _config_get(self, key, default=None):
         return self._config.get(key, default)
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def _config_get_required(self, key):
         try:
@@ -90,7 +90,7 @@ class DBClientConnector(object):
         except KeyError as e:
             raise ConfigError("Missing required key '{}'.".format(e))
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
@@ -114,7 +114,7 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def connect(self, host=None):
         if host is None:
@@ -127,7 +127,7 @@ class DBClientConnector(object):
         else:
             self._connect_pymongo3(host)
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
@@ -153,7 +153,7 @@ class DBClientConnector(object):
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
 
-    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
     def logout(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
