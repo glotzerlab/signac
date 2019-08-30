@@ -19,7 +19,12 @@ AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
 AUTH_SSL = 'SSL'
 AUTH_SSL_x509 = 'SSL-x509'
 
+# this is here because of issues importing the same variable in
+# signac/__init__.py from the top level namespace
+__version__ = '1.2.0'
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="Obsolete.")
 def get_subject_from_certificate(fn_certificate):  # pragma no cover
     try:
         cert_txt = subprocess.check_output(
@@ -34,11 +39,14 @@ def get_subject_from_certificate(fn_certificate):  # pragma no cover
         return lines[0][len('subject='):].strip()
 
 
+@deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+            details="Obsolete.")
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
 
 
+# this class is deprecated
 class DBClientConnector(object):
 
     def __init__(self, host_config, **kwargs):
@@ -53,10 +61,14 @@ class DBClientConnector(object):
         else:
             return self._client
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="Obsolete.")
     @property
     def host(self):
         return self._config['url']
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="Obsolete.")
     @property
     def config(self):
         return dict(self._config)
@@ -92,6 +104,8 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+            details="Obsolete.")
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
@@ -103,6 +117,8 @@ class DBClientConnector(object):
         else:
             self._connect_pymongo3(host)
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="Obsolete.")
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
@@ -127,6 +143,8 @@ class DBClientConnector(object):
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="Obsolete.")
     def logout(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism == AUTH_SCRAM_SHA_1:
