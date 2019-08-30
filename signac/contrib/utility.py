@@ -83,7 +83,7 @@ def add_verbosity_argument(parser, default=0):
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function.")
+            details="This function is obsolete.")
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
@@ -106,8 +106,7 @@ def add_verbosity_action_argument(parser, default=0):
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details=("No references to this function by things outside the module, "
-                     "and the things that reference this also aren't used outside the module."))
+            details="This function is obsolete.")
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
@@ -125,8 +124,7 @@ def set_verbosity_level(verbosity, default=None, increment=10):
 class VerbosityAction(argparse.Action):
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details=("No references to this function by things outside the module, "
-                         "and the things that reference this also aren't used outside the module."))
+                details="This class is obsolete")
     def __call__(self, parser, args, values, option_string=None):
         if values is None:
             values = '1'
@@ -138,7 +136,7 @@ class VerbosityAction(argparse.Action):
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function.")
+            details="This class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -149,7 +147,7 @@ class VerbosityLoggingConfigAction(VerbosityAction):
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function.")
+            details="This class is obsolete.")
 class EmptyIsTrue(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -159,7 +157,7 @@ class EmptyIsTrue(argparse.Action):
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="No references to this function.")
+            details="This class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
 
     def _split_lines(self, text, width):

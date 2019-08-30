@@ -792,7 +792,6 @@ class Project(object):
         self._sp_cache[jobid] = sp
         return sp
 
-    # TODO: deprecate index argument
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
@@ -845,6 +844,11 @@ class Project(object):
             A dict that maps the source directory paths, to the linked
             directory paths.
         """
+
+        if index is not None:
+            warnings.warn(("The `index` argument is deprecated as of version 1.3 and will be "
+                           "removed in version 2.0."), DeprecationWarning)
+
         from .linked_view import create_linked_view
         return create_linked_view(self, prefix, job_ids, index, path)
 
@@ -1198,7 +1202,6 @@ class Project(object):
         """
         Update and return the statepoint index cache
         """
-
         job_ids = set(self._job_dirs())
         to_add = job_ids.difference(self._index_cache)
         to_remove = set(self._index_cache).difference(job_ids)
@@ -1212,7 +1215,6 @@ class Project(object):
         """
         Generate a basic state point index.
         """
-
         wd = self.workspace() if self.Job is Job else None
         for _id in self.find_job_ids():
             doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
