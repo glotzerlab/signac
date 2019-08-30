@@ -25,7 +25,7 @@ AUTH_SSL_x509 = 'SSL-x509'
 __version__ = '1.2.0'
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The connection module is deprecated.")
 def get_subject_from_certificate(fn_certificate):  # pragma no cover
     try:
         cert_txt = subprocess.check_output(
@@ -41,13 +41,14 @@ def get_subject_from_certificate(fn_certificate):  # pragma no cover
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The connection module is deprecated.")
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
 
 
-# this class is deprecated
+@deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+            details="The connection module is deprecated.")
 class DBClientConnector(object):
 
     def __init__(self, host_config, **kwargs):
@@ -55,6 +56,8 @@ class DBClientConnector(object):
         self._client = None
         self._kwargs = kwargs
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="The connection module is deprecated.")
     @property
     def client(self):
         if self._client is None:
@@ -63,26 +66,32 @@ class DBClientConnector(object):
             return self._client
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The connection module is deprecated.")
     @property
     def host(self):
         return self._config['url']
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The connection module is deprecated.")
     @property
     def config(self):
         return dict(self._config)
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="The connection module is deprecated.")
     def _config_get(self, key, default=None):
         return self._config.get(key, default)
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="The connection module is deprecated.")
     def _config_get_required(self, key):
         try:
             return self._config[key]
         except KeyError as e:
             raise ConfigError("Missing required key '{}'.".format(e))
 
+    @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+                details="The connection module is deprecated.")
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
         forwarded_parameters = (
@@ -106,7 +115,7 @@ class DBClientConnector(object):
         self._client = client
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The connection module is deprecated.")
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
@@ -119,7 +128,7 @@ class DBClientConnector(object):
             self._connect_pymongo3(host)
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The connection module is deprecated.")
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
@@ -145,7 +154,7 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The connection module is deprecated.")
     def logout(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism == AUTH_SCRAM_SHA_1:
