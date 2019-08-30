@@ -33,7 +33,8 @@ else:
 __version__ = '1.2.0'
 
 
-# this class is deprecated
+@deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 class SimpleKeyring(object):
     """Simple in-memory keyring for caching."""
 
@@ -59,28 +60,28 @@ class SimpleKeyring(object):
             return base64.b64decode(msg).decode()
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The crypt module is deprecated.")
     def __contains__(self, key):
         return key in self._cache
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The crypt module is deprecated.")
     def __set__(self, key, value):
         self._cache[key] = self._encode(self._secret, value)
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The crypt module is deprecated.")
     def __getitem__(self, key):
         return self._decode(self._cache.__getitem__(key))
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-                details="Obsolete.")
+                details="The crypt module is deprecated.")
     def setdefault(self, key, value):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
 @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+            details="The crypt module is deprecated.")
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
     if get_crypt_context().identify(pwhash) == 'bcrypt':
