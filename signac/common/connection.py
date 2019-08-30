@@ -4,6 +4,7 @@
 import subprocess
 import logging
 from os.path import expanduser
+from deprecation import deprecated
 
 import pymongo
 
@@ -105,7 +106,7 @@ class DBClientConnector(object):
         self._client = client
 
     @deprecated(deprecated_ino="1.3", removed_in="2.0", current_version=__version__,
-            details="Obsolete.")
+                details="Obsolete.")
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
