@@ -15,14 +15,11 @@ from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
 
+from ..version import __version__
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
-
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
 
 
 def query_yes_no(question, default="yes"):

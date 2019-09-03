@@ -43,6 +43,7 @@ import git
 import psutil
 import pandas as pd
 from tqdm import tqdm
+from version import __version__
 if six.PY2:
     from backports.tempfile import TemporaryDirectory
 else:
@@ -271,7 +272,7 @@ def main_run(args):
     default_doc = create_doc(args)
     default_doc['meta']['versions'] = {
         'python': '.'.join(map(str, sys.version_info)),
-        'signac': signac.__version__,
+        'signac': __version__,
         'git': {
             'sha1': str(repo.head.commit),
             'dirty': repo.is_dirty(),

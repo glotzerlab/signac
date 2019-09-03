@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 
+from ..version import __version__
 from .. import syncutil
 from ..core import json
 from ..core.jsondict import JSONDict
@@ -60,10 +61,6 @@ if __name__ == '__main__':
     with signac.Collection.open('index.txt') as index:
         signac.export(signac.index(), index, update=True)
 """
-
-# this is here because of issues importing the same variable in
-# signac/__init__.py from the top level namespace
-__version__ = '1.2.0'
 
 
 class JobSearchIndex(object):

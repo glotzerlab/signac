@@ -44,9 +44,8 @@ from .core.jsondict import get_buffer_load
 from .core.jsondict import JSONDict
 from .core.h5store import H5Store
 from .core.h5store import H5StoreManager
+from .version import __version__
 
-
-__version__ = '1.2.0'
 
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
