@@ -43,6 +43,7 @@ def md5(file):
     return m.hexdigest()
 
 
+# deprecated
 def _is_blank_module(module):
     with open(module.__file__) as file:
         return not bool(file.read().strip())
@@ -56,6 +57,8 @@ class BaseCrawler(object):
     to a database for easier access."""
     tags = None
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
 
@@ -64,8 +67,6 @@ class BaseCrawler(object):
         self.root = os.path.expanduser(root)
         self.tags = set() if self.tags is None else set(self.tags)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def docs_from_file(self, dirpath, fn):
         """Implement this method to generate documents from files.
 
@@ -78,8 +79,6 @@ class BaseCrawler(object):
         raise NotImplementedError()
         yield
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def fetch(self, doc, mode='r'):
         """Implement this generator method to associate data with a document.
 
@@ -96,8 +95,6 @@ class BaseCrawler(object):
         m.update(blob.encode('utf-8'))
         return m.hexdigest()
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def crawl(self, depth=0):
         """Crawl through the `root` directory.
 
@@ -121,8 +118,6 @@ class BaseCrawler(object):
                     yield doc
         logger.info("Crawl of '{}' done.".format(self.root))
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def process(self, doc, dirpath, fn):
         """Implement this method for additional processing of generated docs.
 
@@ -329,7 +324,7 @@ class JSONCrawler(BaseCrawler):
                 for d in self.docs_from_json(doc):
                     yield d
 
-
+# deprecated
 def _index_signac_project_workspace(root,
                                     include_job_document=True,
                                     fn_statepoint='signac_statepoint.json',
@@ -394,6 +389,8 @@ class SignacProjectCrawler(RegexFileCrawler):
     fn_job_document = 'signac_job_document.json'
     signac_id_alias = '_id'
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root):
         from .project import get_project
         root = get_project(root=root).workspace()
@@ -413,14 +410,10 @@ class SignacProjectCrawler(RegexFileCrawler):
         assert calc_id(sp) == job_id
         return sp
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def get_statepoint(self, dirpath):
         job_id = self._get_job_id(dirpath)
         return job_id, self._get_statepoint(self, job_id)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def process(self, doc, dirpath, fn):
         if dirpath is not None:
             job_id = self._get_job_id(dirpath)
@@ -432,8 +425,6 @@ class SignacProjectCrawler(RegexFileCrawler):
                 doc.update(statepoint)
         return super(SignacProjectCrawler, self).process(doc, dirpath, fn)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def crawl(self, depth=0):
         for doc in _index_signac_project_workspace(
                 root=self.root,
@@ -510,6 +501,8 @@ class MasterCrawler(BaseCrawler):
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root, raise_on_error=False):
         self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
@@ -559,8 +552,6 @@ class MasterCrawler(BaseCrawler):
                             KEY_PROJECT, os.path.relpath(dirpath, self.root))
                         yield doc
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def docs_from_file(self, dirpath, fn):
         """Compile master index from file in case it is an access module.
 
@@ -652,6 +643,7 @@ def fetched(docs):
             yield doc, fetch(doc)
 
 
+# deprecated
 def _export_to_mirror(file, file_id, mirror):
     "Export a file-like object with file_id to mirror."
     with mirror.new_file(_id=file_id) as dst:
@@ -796,6 +788,7 @@ def export(docs, index, mirrors=None, update=False,
                 "The exported docs sequence is empty! Unable to update!")
 
 
+# deprecated
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     """Export docs via operations to index and files to mirrors."""
     import pymongo
