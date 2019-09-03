@@ -36,6 +36,7 @@ def _register_fs_class(fs):
     "Register a file system handler in the module's registry."
     FILESYSTEM_REGISTRY[fs.name] = fs
 
+
 class LocalFS(object):
     """A file system handler for the local file system.
 
