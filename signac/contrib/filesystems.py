@@ -30,13 +30,13 @@ GRIDFS_LARGE_FILE_WARNING_THRSHLD = int(1e9)  # 1GB
 FILESYSTEM_REGISTRY = dict()
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The filesystems module is deprecated.")
+# deprecated
 def _register_fs_class(fs):
     "Register a file system handler in the module's registry."
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 
+# this class is deprecated
 class LocalFS(object):
     """A file system handler for the local file system.
 
@@ -57,17 +57,15 @@ class LocalFS(object):
     class AutoRetry(RuntimeError):
         pass
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The filesystems module is deprecated.")
     def __init__(self, root):
         self.root = root
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The filesystems module is deprecated.")
     def config(self):
         "Return the file system configuration for this handler."
         return {'root': self.root}
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The filesystems module is deprecated.")
     def __repr__(self):
         return '{}({})'.format(
             type(self),
@@ -79,8 +77,6 @@ class LocalFS(object):
             * [_id[i:i + n] for i in range(0, len(_id), n)]) + suffix
         return fn
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The filesystems module is deprecated.")
     def new_file(self, _id, mode=None):
         """Create a new file for _id.
 
@@ -100,8 +96,6 @@ class LocalFS(object):
                 raise
         return open(fn, mode=mode)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The filesystems module is deprecated.")
     def get(self, _id, mode='r'):
         """Open the file with the specified id.
 

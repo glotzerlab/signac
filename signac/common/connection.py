@@ -48,14 +48,14 @@ def raise_unsupported_auth_mechanism(mechanism):
 # this class is deprecated
 class DBClientConnector(object):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The connection module is deprecated.")
     def __init__(self, host_config, **kwargs):
         self._config = host_config
         self._client = None
         self._kwargs = kwargs
 
     @property
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def client(self):
         if self._client is None:
             raise RuntimeError("Client not connected.")
@@ -63,32 +63,22 @@ class DBClientConnector(object):
             return self._client
 
     @property
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def host(self):
         return self._config['url']
 
     @property
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def config(self):
         return dict(self._config)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def _config_get(self, key, default=None):
         return self._config.get(key, default)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def _config_get_required(self, key):
         try:
             return self._config[key]
         except KeyError as e:
             raise ConfigError("Missing required key '{}'.".format(e))
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
         forwarded_parameters = (
@@ -111,8 +101,6 @@ class DBClientConnector(object):
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
@@ -124,8 +112,6 @@ class DBClientConnector(object):
         else:
             self._connect_pymongo3(host)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
@@ -150,8 +136,6 @@ class DBClientConnector(object):
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def logout(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
         if auth_mechanism == AUTH_SCRAM_SHA_1:

@@ -324,6 +324,7 @@ class JSONCrawler(BaseCrawler):
                 for d in self.docs_from_json(doc):
                     yield d
 
+
 # deprecated
 def _index_signac_project_workspace(root,
                                     include_job_document=True,
@@ -572,11 +573,13 @@ class MasterCrawler(BaseCrawler):
                 logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
 
 
+# deprecated
 def _load_crawler(name):
     if six.PY2:
         return imp.load_source(os.path.splitext(name)[0], name)
     else:
         return importlib.machinery.SourceFileLoader(name, name).load_module()
+
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The indexing module is deprecated.")

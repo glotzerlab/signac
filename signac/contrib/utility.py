@@ -117,7 +117,7 @@ def set_verbosity_level(verbosity, default=None, increment=10):
         level=default - increment * verbosity)
 
 
-# THIS CLASS IS DEPRECATED
+# this class is deprecated
 class VerbosityAction(argparse.Action):
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
