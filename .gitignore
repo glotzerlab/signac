@@ -45,6 +45,3 @@ _*
 *.log
 
 .DS_Store
-
-# sublime project files
-signac.sublime-*
