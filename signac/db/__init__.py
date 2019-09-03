@@ -22,4 +22,5 @@ else:
             "supported by signac. Consider updating.".format(pymongo.version))
     from .database import get_database
 
+
 __all__ = ['get_database']

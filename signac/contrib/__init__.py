@@ -25,7 +25,6 @@ from .collection import Collection
 
 logger = logging.getLogger(__name__)
 
-
 __all__ = [
     'indexing',
     'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',

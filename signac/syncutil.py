@@ -2,11 +2,10 @@ import os
 import shutil
 import filecmp
 import logging
-
-
 from copy import deepcopy
 from contextlib import contextmanager
 from filecmp import dircmp
+
 
 LEVEL_MORE = logging.INFO - 5
 
