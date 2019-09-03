@@ -171,9 +171,9 @@ class RegexFileCrawler(BaseCrawler):
     "Mapping of compiled regex objects and associated formats."
     definitions = dict()
 
+    @classmethod
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The indexing module is deprecated.")
-    @classmethod
     def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
@@ -193,9 +193,9 @@ class RegexFileCrawler(BaseCrawler):
         definitions[regex] = format_
         cls.definitions = definitions
 
+    @classmethod
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The indexing module is deprecated.")
-    @classmethod
     def compute_file_id(cls, doc, file):
         """Compute the file id for a given doc and the associated file.
 

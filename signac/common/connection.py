@@ -56,24 +56,24 @@ class DBClientConnector(object):
         self._client = None
         self._kwargs = kwargs
 
+    @property
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
-    @property
     def client(self):
         if self._client is None:
             raise RuntimeError("Client not connected.")
         else:
             return self._client
 
+    @property
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
-    @property
     def host(self):
         return self._config['url']
 
+    @property
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="The connection module is deprecated.")
-    @property
     def config(self):
         return dict(self._config)
 
