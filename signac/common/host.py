@@ -1,11 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
-"""
-THIS MODULE IS DEPRECATED!
-"""
-
 import logging
 import warnings
 import getpass
@@ -24,6 +19,10 @@ logger = logging.getLogger(__name__)
 
 SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
 SESSION_USERNAME_CACHE = dict()
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

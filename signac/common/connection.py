@@ -1,11 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
-"""
-THIS MODULE IS DEPRECATED!
-"""
-
 import subprocess
 import logging
 from os.path import expanduser
@@ -25,6 +20,10 @@ AUTH_NONE = 'none'
 AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
 AUTH_SSL = 'SSL'
 AUTH_SSL_x509 = 'SSL-x509'
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

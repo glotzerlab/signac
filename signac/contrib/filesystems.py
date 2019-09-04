@@ -4,11 +4,6 @@
 """The file system handlers defined in this module
 encapsulate the I/O operations required to store
 and fetch data from different file systems."""
-
-"""
-THIS MODULE IS DEPRECATED!
-"""
-
 import os
 import errno
 import io
@@ -33,6 +28,10 @@ else:
 
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = int(1e9)  # 1GB
 FILESYSTEM_REGISTRY = dict()
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 def _register_fs_class(fs):

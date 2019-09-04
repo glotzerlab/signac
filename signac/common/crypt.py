@@ -1,11 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
-"""
-THIS MODULE IS DEPRECATED!
-"""
-
 import base64
 
 from . import six
@@ -33,6 +28,10 @@ else:
     def get_keyring():
         "Return the system user keyring."
         return keyring.get_keyring()
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

@@ -22,11 +22,6 @@
 """MPIPool for MPI-based multiprocessing-like process pools.
 
 This 3rd party module is copied from https://github.com/adrn/mpipool."""
-
-"""
-THIS MODULE IS DEPRECATED!
-"""
-
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
@@ -34,6 +29,10 @@ from deprection import deprecated
 
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
