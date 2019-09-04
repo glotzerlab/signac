@@ -1091,12 +1091,9 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
-    # TODO: jobs_ids isn't used right now
-    def check(self, job_ids=None):
+    def check(self):
         """Check the project's workspace for corruption.
 
-        :param job_ids:
-            The ids of jobs to check, defaults to all jobs.
         :raises JobsCorruptedError:
             When one or more jobs are identified as corrupted.
         """
