@@ -1,6 +1,11 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 from ..common import host
 from deprecation import deprecated
 from ..version import __version__

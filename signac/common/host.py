@@ -1,6 +1,11 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 import logging
 import warnings
 import getpass
@@ -35,7 +40,6 @@ def get_default_host(config=None):
             raise ConfigError("No hosts specified.")
 
 
-# deprecated
 def _get_host_config(hostname, config):
     try:
         return config['hosts'][hostname]
@@ -53,7 +57,6 @@ def get_host_config(hostname=None, config=None):
     return _get_host_config(hostname, config)
 
 
-# deprecated
 def _host_id(hostcfg):
     return json.dumps(hostcfg, sort_keys=True)
 
@@ -70,7 +73,6 @@ def make_uri(hostcfg):
     return 'mongodb://' + ret
 
 
-# deprecated
 def _request_credentials(hostcfg):
     pwcfg = hostcfg.get('password_config')
     pw = getpass.getpass("Enter password for {}: ".format(make_uri(hostcfg)))
@@ -81,12 +83,10 @@ def _request_credentials(hostcfg):
         return pw
 
 
-# deprecated
 def _get_config_credentials(hostcfg):
     return hostcfg.get('password')
 
 
-# deprecated
 def _get_keyring_credentials(hostcfg):
     pwcfg = hostcfg.get('password_config')
     kr = get_keyring()
@@ -100,7 +100,6 @@ def _get_keyring_credentials(hostcfg):
         return kr.get_password('signac', make_uri(hostcfg))
 
 
-# deprecated
 def _get_cached_credentials(hostcfg, default):
     hostcfg_id = json.dumps(hostcfg, sort_keys=True)
     if hostcfg_id in SESSION_PASSWORD_HASH_CACHE:
@@ -110,7 +109,6 @@ def _get_cached_credentials(hostcfg, default):
         return SESSION_PASSWORD_HASH_CACHE.setdefault(hostcfg_id, default())
 
 
-# deprecated
 def _get_stored_credentials(hostcfg):
     def default():
         pw = _get_keyring_credentials(hostcfg)
@@ -120,7 +118,6 @@ def _get_stored_credentials(hostcfg):
     return _get_cached_credentials(hostcfg, default)
 
 
-# deprecated
 def _get_credentials(hostcfg):
     def default():
         pw = _get_config_credentials(hostcfg)
@@ -141,7 +138,6 @@ def get_credentials(hostcfg, ask=True):
         return _get_stored_credentials(hostcfg)
 
 
-# deprecated
 def _input(prompt, default=''):
     input_ = raw_input if six.PY2 else input  # noqa
     try:

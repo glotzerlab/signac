@@ -132,11 +132,10 @@ class VerbosityAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The VerbosityLoggingConfigAction class is obsolete.")
     def __call__(self, parser, args, values, option_string=None):
         super(VerbosityLoggingConfigAction, self).__call__(
             parser, args, values, option_string)
@@ -144,22 +143,20 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         set_verbosity_level(v_level)
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The EmptyIsTrue class is obsolete.")
 class EmptyIsTrue(argparse.Action):
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The EmptyIsTrue class is obsolete.")
     def __call__(self, parser, namespace, values, option_string=None):
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The SmartFormatter class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The SmartFormatter class is obsolete.")
     def _split_lines(self, text, width):
         if text.startswith('R|'):
             return text[2:].splitlines()

@@ -1,6 +1,11 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 import os
 import re
 import math
@@ -43,7 +48,6 @@ def md5(file):
     return m.hexdigest()
 
 
-# deprecated
 def _is_blank_module(module):
     with open(module.__file__) as file:
         return not bool(file.read().strip())
@@ -305,18 +309,15 @@ class RegexFileCrawler(BaseCrawler):
             return
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_regex = r'.*\.json'
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def docs_from_json(self, doc):
         yield doc
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
     def docs_from_file(self, dirpath, fn):
         if re.match(self.fn_regex, os.path.join(dirpath, fn)):
             with open(os.path.join(dirpath, fn), 'rb') as file:
@@ -325,7 +326,6 @@ class JSONCrawler(BaseCrawler):
                     yield d
 
 
-# deprecated
 def _index_signac_project_workspace(root,
                                     include_job_document=True,
                                     fn_statepoint='signac_statepoint.json',
@@ -573,7 +573,6 @@ class MasterCrawler(BaseCrawler):
                 logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
 
 
-# deprecated
 def _load_crawler(name):
     if six.PY2:
         return imp.load_source(os.path.splitext(name)[0], name)
@@ -646,7 +645,6 @@ def fetched(docs):
             yield doc, fetch(doc)
 
 
-# deprecated
 def _export_to_mirror(file, file_id, mirror):
     "Export a file-like object with file_id to mirror."
     with mirror.new_file(_id=file_id) as dst:
@@ -791,7 +789,6 @@ def export(docs, index, mirrors=None, update=False,
                 "The exported docs sequence is empty! Unable to update!")
 
 
-# deprecated
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     """Export docs via operations to index and files to mirrors."""
     import pymongo

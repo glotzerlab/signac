@@ -22,6 +22,11 @@
 """MPIPool for MPI-based multiprocessing-like process pools.
 
 This 3rd party module is copied from https://github.com/adrn/mpipool."""
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
@@ -31,7 +36,8 @@ __all__ = ["MPIPool"]
 __version__ = "0.0.1"
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The mpipool module is deprecated.")
 class MPIPool(object):
     """
     A pool that distributes tasks over a set of MPI processes using
@@ -57,8 +63,6 @@ class MPIPool(object):
         as the cpus get done.
     """
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The mpipool module is deprecated.")
     def __init__(self, comm=None, debug=False, loadbalance=False):
         if comm is None:
             # Late import of the MPI constant is necessary, to avoid
@@ -276,21 +280,18 @@ class MPIPool(object):
         self.close()
 
 
-# this class is deprecated
 class _close_pool_message(object):
 
     def __repr__(self):
         return "<Close pool message>"
 
 
-# this class is deprecated
 class _function_wrapper(object):
 
     def __init__(self, function):
         self.function = function
 
 
-# deprecated
 def _error_function(task):
     raise RuntimeError("Pool was sent tasks before being told what "
                        "function to apply.")

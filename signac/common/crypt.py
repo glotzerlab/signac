@@ -1,6 +1,11 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 import base64
 
 from . import six
@@ -30,12 +35,11 @@ else:
         return keyring.get_keyring()
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 class SimpleKeyring(object):
     """Simple in-memory keyring for caching."""
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The crypt module is deprecated.")
     def __init__(self):
         self._cache = dict()
 

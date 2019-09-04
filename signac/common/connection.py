@@ -1,6 +1,11 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 import subprocess
 import logging
 from os.path import expanduser
@@ -45,11 +50,10 @@ def raise_unsupported_auth_mechanism(mechanism):
     raise ValueError(msg.format(mechanism))
 
 
-# this class is deprecated
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The connection module is deprecated.")
 class DBClientConnector(object):
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The connection module is deprecated.")
     def __init__(self, host_config, **kwargs):
         self._config = host_config
         self._client = None
