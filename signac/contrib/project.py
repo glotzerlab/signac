@@ -1194,7 +1194,7 @@ class Project(object):
 
     def _sp_index(self):
         """
-        Update and return the statepoint index cache
+        Update and return the statepoint index cache.
         """
         job_ids = set(self._job_dirs())
         to_add = job_ids.difference(self._index_cache)
