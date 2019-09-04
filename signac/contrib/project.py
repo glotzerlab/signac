@@ -89,6 +89,16 @@ class JobSearchIndex(object):
             else:
                 yield 'statepoint.{}'.format(k), v
 
+    def _find_job_ids(self, filter, doc_filter=None):
+        if filter:
+            filter = dict(self._resolve_statepoint_filter(filter))
+            if doc_filter:
+                filter.update(doc_filter)
+        elif doc_filter:
+            filter = doc_filter
+        return self._collection._find(filter)
+
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
@@ -106,13 +116,7 @@ class JobSearchIndex(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        if filter:
-            filter = dict(self._resolve_statepoint_filter(filter))
-            if doc_filter:
-                filter.update(doc_filter)
-        elif doc_filter:
-            filter = doc_filter
-        return self._collection._find(filter)
+        return self._find_job_ids(filter, doc_filter)
 
 
 class Project(object):
