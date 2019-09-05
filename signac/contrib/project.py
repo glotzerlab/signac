@@ -89,7 +89,7 @@ class JobSearchIndex(object):
             else:
                 yield 'statepoint.{}'.format(k), v
 
-    def _find_job_ids(self, filter, doc_filter=None):
+    def _find_job_ids(self, filter=None, doc_filter=None):
         if filter:
             filter = dict(self._resolve_statepoint_filter(filter))
             if doc_filter:
@@ -236,7 +236,7 @@ class Project(object):
 
     def min_len_unique_id(self):
         "Determine the minimum length required for an id to be unique."
-        job_ids = list(self.find_job_ids())
+        job_ids = list(self._find_job_ids())
         tmp = set()
         for i in range(32):
             tmp.clear()
@@ -381,7 +381,7 @@ class Project(object):
         else:
             # worst case (no statepoint and cache miss)
             if len(id) < 32:
-                job_ids = self.find_job_ids()
+                job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
@@ -428,7 +428,7 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return job.get_id() in self.find_job_ids()
+        return job.get_id() in self._find_job_ids()
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
@@ -539,6 +539,10 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
+        return self._find_job_ids(filter, doc_filter, index)
+
+    def _find_job_ids(self, filter=None, doc_filter=None, index=None):
+
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
@@ -549,7 +553,7 @@ class Project(object):
             search_index = JobSearchIndex(index, _trust=True)
         else:
             search_index = JobSearchIndex(index)
-        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
+        return search_index._find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
@@ -1103,7 +1107,7 @@ class Project(object):
         """
         corrupted = []
         logger.info("Checking workspace for corruption...")
-        for job_id in self.find_job_ids():
+        for job_id in self._find_job_ids():
             try:
                 sp = self.get_statepoint(job_id)
                 if calc_id(sp) != job_id:
@@ -1137,7 +1141,7 @@ class Project(object):
             When one or more corrupted job could not be repaired.
         """
         if job_ids is None:
-            job_ids = self.find_job_ids()
+            job_ids = self._find_job_ids()
 
         # Load internal cache from all available external sources.
         self._read_cache()
@@ -1214,7 +1218,7 @@ class Project(object):
         Generate a basic state point index.
         """
         wd = self.workspace() if self.Job is Job else None
-        for _id in self.find_job_ids():
+        for _id in self._find_job_ids():
             doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
             if include_job_document:
                 if wd is None:
@@ -1636,7 +1640,7 @@ class JobsCursor(object):
         if self._filter or self._doc_filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project.find_job_ids(self._filter, self._doc_filter))
+            return len(self._project._find_job_ids(self._filter, self._doc_filter))
         else:
             # Without filter we can simply return the length of the whole project.
             return self._project.__len__()
@@ -1645,7 +1649,7 @@ class JobsCursor(object):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
             self._project,
-            self._project.find_job_ids(self._filter, self._doc_filter),
+            self._project._find_job_ids(self._filter, self._doc_filter),
             )
 
     def next(self):
