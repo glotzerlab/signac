@@ -8,9 +8,7 @@ from ..version import __version__
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="There is another exactly identical implementation of this function in "
-            "connection.py, and the other implementation is used instead of this one in other "
-            "places in the project.")
+            details="This function is obsolete, use equivalent function in connection module.")
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(
