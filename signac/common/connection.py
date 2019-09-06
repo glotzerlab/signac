@@ -4,10 +4,12 @@
 import subprocess
 import logging
 from os.path import expanduser
+from deprecation import deprecated
 
 import pymongo
 
 from .errors import ConfigError
+from ..version import __version__
 
 
 PYMONGO_2 = pymongo.version_tuple[0] == 2
@@ -19,7 +21,13 @@ AUTH_SCRAM_SHA_1 = 'SCRAM-SHA-1'
 AUTH_SSL = 'SSL'
 AUTH_SSL_x509 = 'SSL-x509'
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The connection module is deprecated.")
 def get_subject_from_certificate(fn_certificate):  # pragma no cover
     try:
         cert_txt = subprocess.check_output(
@@ -34,11 +42,15 @@ def get_subject_from_certificate(fn_certificate):  # pragma no cover
         return lines[0][len('subject='):].strip()
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The connection module is deprecated.")
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The connection module is deprecated.")
 class DBClientConnector(object):
 
     def __init__(self, host_config, **kwargs):

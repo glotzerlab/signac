@@ -13,7 +13,9 @@ import tarfile
 from time import time
 from datetime import timedelta
 from contextlib import contextmanager
+from deprecation import deprecated
 
+from ..version import __version__
 from ..common import six
 from ..common.tempdir import TemporaryDirectory
 
@@ -77,6 +79,8 @@ def add_verbosity_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="This function is obsolete.")
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
@@ -98,6 +102,8 @@ def add_verbosity_action_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="This function is obsolete.")
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
@@ -111,8 +117,11 @@ def set_verbosity_level(verbosity, default=None, increment=10):
         level=default - increment * verbosity)
 
 
+# this class is deprecated
 class VerbosityAction(argparse.Action):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="This class is obsolete")
     def __call__(self, parser, args, values, option_string=None):
         if values is None:
             values = '1'
@@ -123,6 +132,8 @@ class VerbosityAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -132,6 +143,8 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         set_verbosity_level(v_level)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The EmptyIsTrue class is obsolete.")
 class EmptyIsTrue(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -140,6 +153,8 @@ class EmptyIsTrue(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The SmartFormatter class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
 
     def _split_lines(self, text, width):

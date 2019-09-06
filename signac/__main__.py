@@ -27,7 +27,7 @@ else:
     READLINE = True
 
 from . import Project, get_project, init_project, index
-from . import __version__
+from .version import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring

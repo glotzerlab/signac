@@ -26,7 +26,7 @@ from test_job import BaseJobTest
 
 if six.PY2:
     logging.basicConfig(level=logging.WARNING)
-    from tempdir import TemporaryDirectory
+    from signac.common.tempdir import TemporaryDirectory
 else:
     from tempfile import TemporaryDirectory
 
@@ -1439,8 +1439,9 @@ class LinkedViewProjectTest(BaseProjectTest):
         subset = list(self.project.find_job_ids({'b': 0}))
         job_subset = [self.project.open_job(id=id) for id in subset]
         bad_index = [dict(_id=i) for i in range(3)]
-        with self.assertRaises(ValueError):
-            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+        if six.PY3:
+            with self.assertRaises(ValueError):
+                self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
         self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
         all_links = list(_find_all_links(view_prefix))
         self.assertEqual(len(all_links), len(subset))

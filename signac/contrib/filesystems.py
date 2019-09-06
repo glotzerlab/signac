@@ -11,6 +11,8 @@ import warnings
 
 from ..common import six
 from ..db import get_database
+from ..version import __version__
+from deprecation import deprecated
 
 try:
     import pymongo
@@ -27,12 +29,18 @@ else:
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = int(1e9)  # 1GB
 FILESYSTEM_REGISTRY = dict()
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
+
 
 def _register_fs_class(fs):
     "Register a file system handler in the module's registry."
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 class LocalFS(object):
     """A file system handler for the local file system.
 
@@ -193,7 +201,8 @@ if GRIDFS:
                 raise ValueError(mode)
     _register_fs_class(GridFS)
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 def filesystems_from_config(fs_config):
     """Generate file system handlers from a configuration.
 
@@ -236,7 +245,8 @@ def filesystems_from_config(fs_config):
         else:
             yield fs_class(args)
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 def filesystems_from_configs(fs_configs):
     """Generate file system handlers.
 

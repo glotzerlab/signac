@@ -3,8 +3,12 @@
 # This software is licensed under the BSD 3-Clause License.
 import re
 import subprocess
+from deprecation import deprecated
+from ..version import __version__
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="All database related functions have been deprecated.")
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(

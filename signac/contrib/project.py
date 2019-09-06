@@ -11,10 +11,12 @@ import errno
 import uuid
 import gzip
 import time
+from deprecation import deprecated
 from contextlib import contextmanager
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 
+from ..version import __version__
 from .. import syncutil
 from ..core import json
 from ..core.jsondict import JSONDict
@@ -88,22 +90,6 @@ class JobSearchIndex(object):
                 yield 'statepoint.{}'.format(k), v
 
     def find_job_ids(self, filter=None, doc_filter=None):
-        """Find the job_ids of all jobs matching the filters.
-
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        :param filter: A mapping of key-value pairs that all
-            indexed job statepoints are compared against.
-        :type filter: Mapping
-        :param doc_filter: A mapping of key-value pairs that all
-            indexed job documents are compared against.
-        :yields: The ids of all indexed jobs matching both filters.
-        :raise TypeError: If the filters are not JSON serializable.
-        :raises ValueError: If the filters are invalid.
-        :raises RuntimeError: If the filters are not supported
-            by the index.
-        """
         if filter:
             filter = dict(self._resolve_statepoint_filter(filter))
             if doc_filter:
@@ -230,7 +216,7 @@ class Project(object):
 
     def min_len_unique_id(self):
         "Determine the minimum length required for an id to be unique."
-        job_ids = list(self.find_job_ids())
+        job_ids = list(self._find_job_ids())
         tmp = set()
         for i in range(32):
             tmp.clear()
@@ -375,7 +361,7 @@ class Project(object):
         else:
             # worst case (no statepoint and cache miss)
             if len(id) < 32:
-                job_ids = self.find_job_ids()
+                job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
@@ -422,8 +408,9 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return job.get_id() in self.find_job_ids()
+        return job.get_id() in self._find_job_ids()
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
         """Build a job search index.
 
@@ -434,6 +421,8 @@ class Project(object):
         """
         return JobSearchIndex(index=index, _trust=_trust)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use the detect_schema() function instead.")
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
 
@@ -506,6 +495,8 @@ class Project(object):
         statepoint_index = self.build_job_statepoint_index(exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use find_jobs().ids instead.")
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
@@ -528,6 +519,9 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
+        return self._find_job_ids(filter, doc_filter, index)
+
+    def _find_job_ids(self, filter=None, doc_filter=None, index=None):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
@@ -730,6 +724,8 @@ class Project(object):
                 raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use open_job(id=jobid).statepoint() function instead.")
     def get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
@@ -832,9 +828,15 @@ class Project(object):
             A dict that maps the source directory paths, to the linked
             directory paths.
         """
+        if index is not None:
+            warnings.warn(("The `index` argument is deprecated as of version 1.3 and will be "
+                           "removed in version 2.0."), DeprecationWarning)
+
         from .linked_view import create_linked_view
         return create_linked_view(self, prefix, job_ids, index, path)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.reset_statepoint() instead.")
     def reset_statepoint(self, job, new_statepoint):
         """Reset the state point of job.
 
@@ -855,6 +857,8 @@ class Project(object):
         """
         job.reset_statepoint(new_statepoint=new_statepoint)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.update_statepoint() instead.")
     def update_statepoint(self, job, update, overwrite=False):
         """Update the statepoint of this job.
 
@@ -1073,17 +1077,15 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
-    def check(self, job_ids=None):
+    def check(self):
         """Check the project's workspace for corruption.
 
-        :param job_ids:
-            The ids of jobs to check, defaults to all jobs.
         :raises JobsCorruptedError:
             When one or more jobs are identified as corrupted.
         """
         corrupted = []
         logger.info("Checking workspace for corruption...")
-        for job_id in self.find_job_ids():
+        for job_id in self._find_job_ids():
             try:
                 sp = self.get_statepoint(job_id)
                 if calc_id(sp) != job_id:
@@ -1117,7 +1119,7 @@ class Project(object):
             When one or more corrupted job could not be repaired.
         """
         if job_ids is None:
-            job_ids = self.find_job_ids()
+            job_ids = self._find_job_ids()
 
         # Load internal cache from all available external sources.
         self._read_cache()
@@ -1177,6 +1179,9 @@ class Project(object):
             raise JobsCorruptedError(corrupted)
 
     def _sp_index(self):
+        """
+        Update and return the statepoint index cache.
+        """
         job_ids = set(self._job_dirs())
         to_add = job_ids.difference(self._index_cache)
         to_remove = set(self._index_cache).difference(job_ids)
@@ -1187,9 +1192,11 @@ class Project(object):
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
-        "Return a basic state point index."
+        """
+        Generate a basic state point index.
+        """
         wd = self.workspace() if self.Job is Job else None
-        for _id in self.find_job_ids():
+        for _id in self._find_job_ids():
             doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
             if include_job_document:
                 if wd is None:
@@ -1611,7 +1618,7 @@ class JobsCursor(object):
         if self._filter or self._doc_filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project.find_job_ids(self._filter, self._doc_filter))
+            return len(self._project._find_job_ids(self._filter, self._doc_filter))
         else:
             # Without filter we can simply return the length of the whole project.
             return self._project.__len__()
@@ -1620,7 +1627,7 @@ class JobsCursor(object):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
             self._project,
-            self._project.find_job_ids(self._filter, self._doc_filter),
+            self._project._find_job_ids(self._filter, self._doc_filter),
             )
 
     def next(self):

@@ -4,6 +4,8 @@
 import base64
 
 from . import six
+from deprecation import deprecated
+from ..version import __version__
 
 try:
     from passlib.context import CryptContext
@@ -27,7 +29,13 @@ else:
         "Return the system user keyring."
         return keyring.get_keyring()
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 class SimpleKeyring(object):
     """Simple in-memory keyring for caching."""
 
@@ -65,6 +73,8 @@ class SimpleKeyring(object):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
     if get_crypt_context().identify(pwhash) == 'bcrypt':
