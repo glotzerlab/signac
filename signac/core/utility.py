@@ -8,7 +8,7 @@ from ..version import __version__
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This function is obsolete, use equivalent function in connection module.")
+            details="All database related functions have been deprecated.")
 def get_subject_from_certificate(fn_certificate):
     try:
         cert_txt = subprocess.check_output(
