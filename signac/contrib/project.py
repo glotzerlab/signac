@@ -542,7 +542,6 @@ class Project(object):
         return self._find_job_ids(filter, doc_filter, index)
 
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
-
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
