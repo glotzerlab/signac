@@ -256,7 +256,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
               preserve_permissions=False, preserve_times=False,
               preserve_owner=False, preserve_group=False,
               deep=False, dry_run=False):
-    """Synchronize the src job with the dst job.
+    """Synchronize the dst job with the src job.
 
         By default, this method will synchronize all files and document data
         of dst job with the src job until a synchronization conflict occurs.
