@@ -848,7 +848,6 @@ class Project(object):
             A dict that maps the source directory paths, to the linked
             directory paths.
         """
-
         if index is not None:
             warnings.warn(("The `index` argument is deprecated as of version 1.3 and will be "
                            "removed in version 2.0."), DeprecationWarning)
