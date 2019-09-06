@@ -89,7 +89,7 @@ class JobSearchIndex(object):
             else:
                 yield 'statepoint.{}'.format(k), v
 
-    def _find_job_ids(self, filter=None, doc_filter=None):
+    def find_job_ids(self, filter=None, doc_filter=None):
         if filter:
             filter = dict(self._resolve_statepoint_filter(filter))
             if doc_filter:
@@ -97,26 +97,6 @@ class JobSearchIndex(object):
         elif doc_filter:
             filter = doc_filter
         return self._collection._find(filter)
-
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
-    def find_job_ids(self, filter=None, doc_filter=None):
-        """Find the job_ids of all jobs matching the filters.
-
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
-
-        :param filter: A mapping of key-value pairs that all
-            indexed job statepoints are compared against.
-        :type filter: Mapping
-        :param doc_filter: A mapping of key-value pairs that all
-            indexed job documents are compared against.
-        :yields: The ids of all indexed jobs matching both filters.
-        :raise TypeError: If the filters are not JSON serializable.
-        :raises ValueError: If the filters are invalid.
-        :raises RuntimeError: If the filters are not supported
-            by the index.
-        """
-        return self._find_job_ids(filter, doc_filter)
 
 
 class Project(object):
@@ -552,7 +532,7 @@ class Project(object):
             search_index = JobSearchIndex(index, _trust=True)
         else:
             search_index = JobSearchIndex(index)
-        return search_index._find_job_ids(filter=filter, doc_filter=doc_filter)
+        return search_index.find_job_ids(filter=filter, doc_filter=doc_filter)
 
     def find_jobs(self, filter=None, doc_filter=None):
         """Find all jobs in the project's workspace.
