@@ -2,3 +2,4 @@ nbconvert
 nbsphinx>=0.3
 IPython
 jupyter_client
+deprecation>=2
