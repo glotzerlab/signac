@@ -25,7 +25,7 @@ This 3rd party module is copied from https://github.com/adrn/mpipool."""
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-from deprection import deprecated
+from deprecation import deprecated
 
 __all__ = ["MPIPool"]
 __version__ = "0.0.1"
