@@ -408,7 +408,7 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return job.get_id() in self._find_job_ids()
+        return os.path.exists(os.path.join(self._wd, job.get_id()))
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
