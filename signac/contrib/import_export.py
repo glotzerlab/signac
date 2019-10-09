@@ -546,7 +546,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
-                if sys.version_info.minor < (3, 6):
+                if sys.version_info < (3, 6):
                     return json.loads(file.read().decode())
                 else:
                     return json.loads(file.read())
