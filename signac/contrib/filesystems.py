@@ -230,10 +230,9 @@ def filesystems_from_config(fs_config):
     """
     for key, args in fs_config.items():
         fs_class = FILESYSTEM_REGISTRY[key]
-        is_str = isinstance(args, str)
         if isinstance(args, Mapping):
             yield fs_class(** args)
-        elif isinstance(args, Iterable) and not is_str:
+        elif isinstance(args, Iterable) and not isinstance(args, str):
             yield fs_class(* args)
         else:
             yield fs_class(args)
