@@ -4,12 +4,13 @@
 
 """A config file reader/writer that supports nested sections in config files."""
 
-# Copyright (C) 2005-2014:
+# Copyright (C) 2005-2019:
 # (name) : (email)
 # Michael Foord: fuzzyman AT voidspace DOT org DOT uk
 # Nicola Larosa: nico AT tekNico DOT net
 # Rob Dennis: rdennis AT gmail DOT com
 # Eli Courtwright: eli AT courtwright DOT org
+# The Regents of the University of Michigan
 
 # This software is licensed under the terms of the BSD license.
 # http://opensource.org/licenses/BSD-3-Clause
