@@ -55,7 +55,7 @@ Fixed
 Deprecated
 ++++++++++
 
- - Support for Python 2.7 will be removed. See the `Python 3 Statement <https://python3statement.org/>`_.
+ - Support for Python 2.7 is deprecated with this version and will be removed in the next minor release. See the `Python 3 Statement <https://python3statement.org/>`_.
 
 
 [1.1.0] -- 2019-05-19
