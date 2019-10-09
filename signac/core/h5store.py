@@ -219,11 +219,8 @@ class H5Group(MutableMapping):
         return self.__getitem__(key)
 
     def __iter__(self):
-        # The generator below should be refactored to use 'yield from'
-        # once we drop Python 2.7 support.
         with _ensure_open(self._store):
-            for key in self._group.keys():
-                yield key
+            yield from self._group.keys()
 
     def __len__(self):
         with _ensure_open(self._store):
@@ -451,10 +448,7 @@ class H5Store(MutableMapping):
 
     def __iter__(self):
         with _ensure_open(self):
-            # The generator below should be refactored to use 'yield from'
-            # once we drop Python 2.7 support.
-            for key in self._file.keys():
-                yield key
+            yield from self._file.keys()
 
     def __len__(self):
         try:

@@ -43,8 +43,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        # Compatible with python 2.7 and 3.x
-        choice = raw_input().lower() if sys.hexversion < 0x03000000 else input().lower()  # NOQA
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:

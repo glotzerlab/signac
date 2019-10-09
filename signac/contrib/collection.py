@@ -638,25 +638,20 @@ class Collection(object):
         if not len(expr):
             return set(self.ids)    # Empty expression yields all ids...
 
-        class result:
-            "Mutable local result context class."
-            # Once we drop Python 2.7 support we can replace `result.ids`
-            # simply with `result_ids`, remove the `result` class, and use
-            # a local function and `nonlocal result_ids`.
-            ids = None
+        result_ids = None
 
-            @classmethod
-            def reduce(cls, match):
-                if result.ids is None:  # First match
-                    result.ids = match
-                else:               # Update previous match
-                    result.ids = result.ids.intersection(match)
+        def reduce_results(match):
+            nonlocal result_ids
+            if result_ids is None:  # First match
+                result_ids = match
+            else:               # Update previous match
+                result_ids = result_ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
-            result.reduce({_id})
+            reduce_results({_id})
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
@@ -665,29 +660,29 @@ class Collection(object):
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
-            result.reduce(self._find_expression(key, value))
-            if not result.ids:          # No match, no need to continue...
+            reduce_results(self._find_expression(key, value))
+            if not result_ids:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            result.reduce(set(self.ids).difference(not_match))
+            reduce_results(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                result.reduce(self._find_result(expr_))
+                reduce_results(self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
-            result.reduce(or_results)
+            reduce_results(or_results)
 
-        assert result.ids is not None
-        return result.ids
+        assert result_ids is not None
+        return result_ids
 
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.

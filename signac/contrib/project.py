@@ -1572,8 +1572,6 @@ class _JobsCursorIterator(object):
     def __next__(self):
         return self._project.open_job(id=next(self._ids_iterator))
 
-    next = __next__  # Python 2.7 compatibility
-
     def __iter__(self):
         return type(self)(self._project, self._ids)
 

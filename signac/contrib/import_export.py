@@ -247,27 +247,20 @@ def export_jobs(jobs, target, path=None, copytree=None):
                 "The copytree argument can only be used in combination "
                 "with directories as targets.")
 
-    # All of the generator delegations below should be refactored to use 'yield from'
-    # once we drop Python 2.7 support.
-
     if isinstance(target, str):
         ext = os.path.splitext(target)[1]
         if ext == '':  # target is directory
-            for src_dst in export_to_directory(
-                    jobs=jobs, target=target, path=path, copytree=copytree):
-                yield src_dst
+            yield from export_to_directory(
+                jobs=jobs, target=target, path=path, copytree=copytree)
         elif ext == '.zip':     # target is zipfile
             with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as zipfile:
-                for src_dst in export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path):
-                    yield src_dst
+                yield from export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path)
         elif ext == '.tar':     # target is uncompressed tarball
             with tarfile.open(name=target, mode='a') as file:
-                for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
-                    yield src_dst
+                yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         elif ext in ('.gz', '.bz2', '.xz'):    # target is compressed tarball
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
-                for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
-                    yield src_dst
+                yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         else:
             raise TypeError("Unknown extension '{}'.".format(ext))
     elif isinstance(target, ZipFile):
