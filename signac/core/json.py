@@ -30,11 +30,7 @@ try:
 except ImportError:
     import json
     from json import JSONEncoder
-    try:
-        from json.decoder import JSONDecodeError
-    except ImportError:
-        # JSONDecodeError doesn't exist for Python 2
-        JSONDecodeError = ValueError
+    from json.decoder import JSONDecodeError
 
     logger.debug(msg.format('json'))
 

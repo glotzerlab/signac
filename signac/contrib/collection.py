@@ -1085,12 +1085,7 @@ class Collection(object):
                 try:
                     self._file.truncate(0)
                 except ValueError as error:
-                    if isinstance(error, io.UnsupportedOperation):
-                        raise error                             # Python 3
-                    elif str(error).lower() == "file not open for writing":
-                        raise io.UnsupportedOperation(error)    # Python 2
-                    else:
-                        raise error  # unrelated error
+                    raise error
                 else:
                     self.dump(self._file)
                     self._file.flush()
