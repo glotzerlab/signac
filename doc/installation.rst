@@ -5,8 +5,8 @@ Installation
 ============
 
 The recommended installation method for **signac** is via conda_ or pip_.
-The software is tested for Python versions 3.5+ and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
-However, some extra features, such as the database integration require additional packages.
+The software is tested for Python versions 3.5+ and has minimal dependencies.
+However, some extra features such as the HDF5 integration require additional packages.
 
 .. _conda: https://conda.io/
 .. _conda-forge: https://conda-forge.org/
@@ -83,3 +83,6 @@ Extra features with dependencies:
       required: ``pymongo``
 
       recommended: ``passlib``, ``bcrypt``
+
+    HDF5 integration
+      required: ``h5py``
