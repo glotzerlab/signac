@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import base64
 
-from . import six
 from deprecation import deprecated
 from ..version import __version__
 
@@ -46,19 +45,13 @@ class SimpleKeyring(object):
     def _encode(cls, msg):
         if msg is None:
             return
-        if six.PY2:
-            return base64.b64encode(msg)
-        else:
-            return base64.b64encode(msg.encode())
+        return base64.b64encode(msg.encode())
 
     @classmethod
     def _decode(cls, msg):
         if msg is None:
             return
-        if six.PY2:
-            return base64.b64decode(msg)
-        else:
-            return base64.b64decode(msg).decode()
+        return base64.b64decode(msg).decode()
 
     def __contains__(self, key):
         return key in self._cache

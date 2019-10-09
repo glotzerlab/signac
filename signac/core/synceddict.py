@@ -6,15 +6,9 @@ import logging
 from contextlib import contextmanager
 from functools import wraps
 from copy import deepcopy
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 
-from ..common import six
-
-if six.PY2:
-    from collections import Mapping
-    from collections import MutableMapping
-else:
-    from collections.abc import Mapping
-    from collections.abc import MutableMapping
 try:
     import numpy
     NUMPY = True
@@ -76,7 +70,7 @@ class _SyncedList(list):
 
 class _SyncedDict(MutableMapping):
 
-    VALID_KEY_TYPES = six.string_types + (int, bool, type(None))
+    VALID_KEY_TYPES = (str, int, bool, type(None))
 
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
@@ -94,7 +88,7 @@ class _SyncedDict(MutableMapping):
     @classmethod
     def _validate_key(cls, key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
-        if isinstance(key, six.string_types):
+        if isinstance(key, str):
             if '.' in key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(

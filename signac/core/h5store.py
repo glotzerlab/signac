@@ -8,17 +8,11 @@ import errno
 import warnings
 import array
 from threading import RLock
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 
-from ..common import six
 from ..errors import InvalidKeyError
 from .dict_manager import DictManager
-
-if six.PY2:
-    from collections import Mapping
-    from collections import MutableMapping
-else:
-    from collections.abc import Mapping
-    from collections.abc import MutableMapping
 
 
 __all__ = [
@@ -296,7 +290,7 @@ class H5Store(MutableMapping):
     _thread_lock = RLock()
 
     def __init__(self, filename, **kwargs):
-        if not (isinstance(filename, six.string_types) and len(filename) > 0):
+        if not (isinstance(filename, str) and len(filename) > 0):
             raise ValueError('H5Store filename must be a non-empty string.')
         self._filename = os.path.realpath(filename)
         self._file = None

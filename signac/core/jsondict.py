@@ -11,15 +11,11 @@ import logging
 from tempfile import mkstemp
 from contextlib import contextmanager
 from copy import copy
+from collections.abc import Mapping
 
 from .errors import Error
 from . import json
 from .attrdict import SyncedAttrDict
-from ..common import six
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
 
 
 logger = logging.getLogger(__name__)
@@ -112,10 +108,7 @@ def flush_all():
                     os.remove(fn_tmp)
                     raise
                 else:
-                    if six.PY2:
-                        os.rename(fn_tmp, filename)
-                    else:
-                        os.replace(fn_tmp, filename)
+                    os.replace(fn_tmp, filename)
             except OSError as error:
                 logger.error(str(error))
                 issues[filename] = error
@@ -165,7 +158,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     assert _BUFFERED_MODE >= 0
 
     # Basic type check (to prevent common user error)
-    if not isinstance(buffer_size, six.integer_types) or \
+    if not isinstance(buffer_size, int) or \
             buffer_size is True or buffer_size is False:    # explicit check against boolean
         raise TypeError("The buffer size must be an integer!")
 
@@ -294,10 +287,7 @@ class JSONDict(SyncedAttrDict):
                     uid=uuid.uuid4(), fn=filename))
                 with open(fn_tmp, 'wb') as tmpfile:
                     tmpfile.write(blob)
-                if six.PY2:
-                    os.rename(fn_tmp, self._filename)
-                else:
-                    os.replace(fn_tmp, self._filename)
+                os.replace(fn_tmp, self._filename)
             else:
                 with open(self._filename, 'wb') as file:
                     file.write(blob)

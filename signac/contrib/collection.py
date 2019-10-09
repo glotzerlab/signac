@@ -20,17 +20,13 @@ import re
 import sys
 from itertools import islice
 from numbers import Number
+from collections.abc import Mapping
 
 from ..core import json
-from ..common import six
 from .filterparse import parse_filter_arg
 
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
 
-if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
+if sys.version_info < (3, 5):
     def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 else:
@@ -48,7 +44,7 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': basestring if six.PY2 else str,   # noqa
+    'str': str,
     'list': tuple,
     'null': type(None),
 }
@@ -225,7 +221,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 return re.search(argument, value)
             else:
                 return False
@@ -351,7 +347,7 @@ class Collection(object):
         Default value is 0 (no compression).
     """
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
-        if isinstance(docs, six.string_types):
+        if isinstance(docs, str):
             raise ValueError(
                 "First argument cannot be of str type. "
                 "Did you mean to use {}.open()?".format(type(self).__name__))
@@ -520,7 +516,7 @@ class Collection(object):
 
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
-        if not isinstance(_id, six.string_types):
+        if not isinstance(_id, str):
             raise TypeError("The primary key must be of type str!")
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
@@ -906,12 +902,8 @@ class Collection(object):
 
     def _dump(self, text_buffer):
         "Dump collection content serialized to JSON to text-buffer."
-        if six.PY2:
-            for doc in self._docs.values():
-                text_buffer.write(unicode(json.dumps(doc) + '\n', 'utf-8'))  # noqa
-        else:
-            for doc in self._docs.values():
-                text_buffer.write((json.dumps(doc) + '\n'))
+        for doc in self._docs.values():
+            text_buffer.write((json.dumps(doc) + '\n'))
 
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
@@ -952,7 +944,7 @@ class Collection(object):
         json_string = json.dumps(list(self.find()))
         if file is None:
             return json_string
-        elif isinstance(file, six.string_types):
+        elif isinstance(file, str):
             with open(file, 'w') as json_file:
                 json_file.write(json_string)
         else:
@@ -968,7 +960,7 @@ class Collection(object):
         :return:
             A Collection containing the JSON file
         """
-        if isinstance(file, six.string_types):
+        if isinstance(file, str):
             with open(file, 'r') as json_file:
                 json_data = json.load(json_file)
         else:
@@ -981,7 +973,7 @@ class Collection(object):
             if compresslevel > 0:
                 import gzip
                 with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
-                    if six.PY2 or (sys.version_info.major == 3 and sys.version_info.minor < 6):
+                    if sys.version_info < (3, 6):
                         text = gzipfile.read().decode('utf-8')
                         docs = [json.loads(line) for line in text.splitlines()]
                         collection = cls(docs=docs)

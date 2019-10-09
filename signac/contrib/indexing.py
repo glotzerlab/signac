@@ -11,18 +11,13 @@ import errno
 from time import sleep
 from collections import defaultdict
 from deprecation import deprecated
+import importlib.machinery
 
 from ..version import __version__
 from ..core import json
-from ..common import six
 from ..common import errors
-from .utility import walkdepth, is_string
+from .utility import walkdepth
 from .hashing import calc_id
-
-if six.PY2:
-    import imp
-else:
-    import importlib.machinery
 
 
 logger = logging.getLogger(__name__)
@@ -178,12 +173,8 @@ class RegexFileCrawler(BaseCrawler):
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
         """
-        if six.PY2:
-            if isinstance(regex, basestring):  # noqa
-                regex = re.compile(regex)
-        else:
-            if isinstance(regex, str):
-                regex = re.compile(regex)
+        if isinstance(regex, str):
+            regex = re.compile(regex)
         definitions = dict(cls.definitions)
         definitions[regex] = format_
         cls.definitions = definitions
@@ -247,7 +238,7 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    if is_string(format_):
+                    if isinstance(format_, str):
                         return open(ffn, mode=mode)
                     else:
                         for meth in ('read', 'close'):
@@ -509,7 +500,7 @@ class MasterCrawler(BaseCrawler):
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
-        module = _load_crawler(name)
+        module = importlib.machinery.SourceFileLoader(name, name).load_module()
 
         logger.info("Crawling from module '{}'.".format(module.__file__))
 
@@ -570,13 +561,6 @@ class MasterCrawler(BaseCrawler):
                     raise
             else:
                 logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
-
-
-def _load_crawler(name):
-    if six.PY2:
-        return imp.load_source(os.path.splitext(name)[0], name)
-    else:
-        return importlib.machinery.SourceFileLoader(name, name).load_module()
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
@@ -931,12 +915,8 @@ def index_files(root='.', formats=None, depth=0):
     """
     if formats is None:
         formats = {'.*': 'File'}
-    if six.PY2:
-        if isinstance(formats, basestring):  # noqa
-            formats = {formats: 'File'}
-    else:
-        if isinstance(formats, str):
-            formats = {formats: 'File'}
+    if isinstance(formats, str):
+        formats = {formats: 'File'}
 
     class Crawler(RegexFileCrawler):
         pass

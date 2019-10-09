@@ -16,7 +16,6 @@ from contextlib import contextmanager
 from deprecation import deprecated
 
 from ..version import __version__
-from ..common import six
 from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
@@ -187,13 +186,6 @@ def _mkdir_p(path):
     except OSError as error:
         if not (error.errno == errno.EEXIST and os.path.isdir(path)):
             raise
-
-
-def is_string(s):
-    if six.PY2:
-        return isinstance(s, basestring)  # noqa
-    else:
-        return isinstance(s, str)
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):

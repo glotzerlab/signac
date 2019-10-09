@@ -13,7 +13,6 @@ from collections import OrderedDict
 from contextlib import contextmanager, closing
 from string import Formatter
 
-from ..common import six
 from ..common.tempdir import TemporaryDirectory
 from ..core import json
 from .errors import StatepointParsingError
@@ -107,7 +106,7 @@ def _make_path_function(jobs, path):
         def path_function(job):
             return str(job.get_id())
 
-    elif isinstance(path, six.string_types):
+    elif isinstance(path, str):
         # Detect keys that are already provided as part of the path specifier and
         # and should therefore be excluded from the 'auto'-part.
         exclude_keys = [x[1] for x in Formatter().parse(path)]
@@ -243,7 +242,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
         directory paths.
     """
     if copytree is not None:
-        if not (isinstance(target, six.string_types) and os.path.splitext(target)[1] == ''):
+        if not (isinstance(target, str) and os.path.splitext(target)[1] == ''):
             raise ValueError(
                 "The copytree argument can only be used in combination "
                 "with directories as targets.")
@@ -251,7 +250,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
     # All of the generator delegations below should be refactored to use 'yield from'
     # once we drop Python 2.7 support.
 
-    if isinstance(target, six.string_types):
+    if isinstance(target, str):
         ext = os.path.splitext(target)[1]
         if ext == '':  # target is directory
             for src_dst in export_to_directory(
@@ -440,7 +439,7 @@ def _analyze_directory_for_import(root, project, schema):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         if not schema.startswith(root):
             schema = os.path.normpath(os.path.join(root, schema))
         schema_function = _with_consistency_check(
@@ -493,7 +492,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         schema_function = _with_consistency_check(
             _make_path_based_schema_function(schema), read_sp_manifest_file)
     else:
@@ -547,7 +546,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
-                if six.PY3 and sys.version_info.minor < 6:
+                if sys.version_info.minor < (3, 6):
                     return json.loads(file.read().decode())
                 else:
                     return json.loads(file.read())
@@ -558,7 +557,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         schema_function = _with_consistency_check(
             _make_path_based_schema_function(schema), read_sp_manifest_file)
     else:
