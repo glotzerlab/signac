@@ -21,16 +21,10 @@ import sys
 from itertools import islice
 from numbers import Number
 from collections.abc import Mapping
+from math import isclose
 
 from ..core import json
 from .filterparse import parse_filter_arg
-
-
-if sys.version_info < (3, 5):
-    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
-        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-else:
-    from math import isclose
 
 
 logger = logging.getLogger(__name__)
