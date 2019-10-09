@@ -5,14 +5,10 @@ import unittest
 import uuid
 from copy import copy, deepcopy
 from itertools import chain
+from collections.abc import MutableMapping
 
 from signac.core.attrdict import SyncedAttrDict as SAD
 from signac.core.synceddict import _SyncedDict
-from signac.common import six
-if six.PY2:
-    from collections import MutableMapping
-else:
-    from collections.abc import MutableMapping
 
 
 class _SyncPoint(object):

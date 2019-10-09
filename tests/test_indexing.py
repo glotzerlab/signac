@@ -6,13 +6,11 @@ import os
 import io
 import re
 import json
-import logging
 
 import signac
 import signac.db
 from signac import Collection
 from signac.contrib import indexing
-from signac.common import six
 from signac.common import errors
 
 try:
@@ -24,13 +22,8 @@ except ImportError:
 else:
     SKIP_REASON = None
 
-if six.PY2:
-    logging.basicConfig(level=logging.WARNING)
-    from signac.common.tempdir import TemporaryDirectory
-    from mock import Mock
-else:
-    from tempfile import TemporaryDirectory
-    from unittest.mock import Mock
+from tempfile import TemporaryDirectory
+from unittest.mock import Mock
 
 
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os

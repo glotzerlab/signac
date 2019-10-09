@@ -5,15 +5,11 @@ import unittest
 import array
 from collections import OrderedDict
 from itertools import islice
+from tempfile import TemporaryDirectory
 
 from signac import Collection
 from signac.contrib.collection import JSONParseError
-from signac.common import six
 from signac.errors import InvalidKeyError
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 n = 42
 N = 100
