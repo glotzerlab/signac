@@ -52,6 +52,11 @@ Fixed
  - Fix issue with generating views from the command line for projects with only one job (#208, #211).
  - Fix issue with heterogeneous types in state point values that are lists (#209, #210).
 
+Deprecated
+++++++++++
+
+ - Support for Python 2.7 will be removed. See the `Python 3 Statement <https://python3statement.org/>`_.
+
 
 [1.1.0] -- 2019-05-19
 ---------------------
