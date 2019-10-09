@@ -20,6 +20,7 @@ from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
+from signac.contrib.project import JobsCursor, Project  # noqa: F401
 
 from test_job import BaseJobTest
 

@@ -1623,7 +1623,7 @@ class JobsCursor(object):
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:
-            return self._next_iter.next()
+            return next(self._next_iter)
         except StopIteration:
             self._next_iter = None
             raise

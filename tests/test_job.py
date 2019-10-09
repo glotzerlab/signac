@@ -16,6 +16,8 @@ from tempfile import TemporaryDirectory
 
 import signac.contrib
 import signac.common.config
+from signac import Project  # noqa: F401
+from signac.contrib.job import Job  # noqa: F401
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
 from signac.errors import InvalidKeyError
