@@ -17,6 +17,8 @@
 # ConfigObj 5 - main repository for documentation and issue tracking:
 # https://github.com/DiffSK/configobj
 
+# This file has been modified from its original form to remove its use of six.
+
 import os
 import re
 import sys
