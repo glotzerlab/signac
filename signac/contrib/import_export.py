@@ -12,8 +12,8 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
 from contextlib import contextmanager, closing
 from string import Formatter
+from tempfile import TemporaryDirectory
 
-from ..common.tempdir import TemporaryDirectory
 from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError

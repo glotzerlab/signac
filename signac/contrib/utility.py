@@ -14,9 +14,9 @@ from time import time
 from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
+from tempfile import TemporaryDirectory
 
 from ..version import __version__
-from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 

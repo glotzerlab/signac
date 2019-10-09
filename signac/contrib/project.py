@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
+from tempfile import TemporaryDirectory
 
 from ..version import __version__
 from .. import syncutil
@@ -24,7 +25,6 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common.config import load_config
-from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
