@@ -5,7 +5,7 @@ Installation
 ============
 
 The recommended installation method for **signac** is via conda_ or pip_.
-The software is tested for Python versions 2.7.x and 3.4+ and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
+The software is tested for Python versions 3.5+ and does not have any *hard* dependencies, i.e. there are no packages or libraries required to use the core **signac** functions.
 However, some extra features, such as the database integration require additional packages.
 
 .. _conda: https://conda.io/
