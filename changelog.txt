@@ -25,6 +25,11 @@ Added
 
  - Add function to initialize a sample data space for testing purposes
 
+Removed
++++++++
+
+ - Dropped support for Python 2.7.
+
 
 [1.2.0] -- 2019-07-22
 ---------------------
