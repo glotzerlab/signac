@@ -22,5 +22,9 @@ class ExportError(Error, RuntimeError):
     pass
 
 
+class FileNotFoundError(Error, FileNotFoundError):
+    pass
+
+
 class FetchError(FileNotFoundError):
     pass
