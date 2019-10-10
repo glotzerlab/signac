@@ -8,17 +8,11 @@ import errno
 import warnings
 import array
 from threading import RLock
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 
-from ..common import six
 from ..errors import InvalidKeyError
 from .dict_manager import DictManager
-
-if six.PY2:
-    from collections import Mapping
-    from collections import MutableMapping
-else:
-    from collections.abc import Mapping
-    from collections.abc import MutableMapping
 
 
 __all__ = [
@@ -225,11 +219,8 @@ class H5Group(MutableMapping):
         return self.__getitem__(key)
 
     def __iter__(self):
-        # The generator below should be refactored to use 'yield from'
-        # once we drop Python 2.7 support.
         with _ensure_open(self._store):
-            for key in self._group.keys():
-                yield key
+            yield from self._group.keys()
 
     def __len__(self):
         with _ensure_open(self._store):
@@ -296,7 +287,7 @@ class H5Store(MutableMapping):
     _thread_lock = RLock()
 
     def __init__(self, filename, **kwargs):
-        if not (isinstance(filename, six.string_types) and len(filename) > 0):
+        if not (isinstance(filename, str) and len(filename) > 0):
             raise ValueError('H5Store filename must be a non-empty string.')
         self._filename = os.path.realpath(filename)
         self._file = None
@@ -457,10 +448,7 @@ class H5Store(MutableMapping):
 
     def __iter__(self):
         with _ensure_open(self):
-            # The generator below should be refactored to use 'yield from'
-            # once we drop Python 2.7 support.
-            for key in self._file.keys():
-                yield key
+            yield from self._file.keys()
 
     def __len__(self):
         try:

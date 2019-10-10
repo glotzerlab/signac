@@ -5,12 +5,7 @@ from pprint import pformat
 from collections import defaultdict as ddict
 from numbers import Number
 import itertools
-
-from ..common import six
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
+from collections.abc import Mapping
 
 
 class _Vividict(dict):
@@ -140,12 +135,12 @@ class ProjectSchema(object):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
     def __contains__(self, key_or_keys):
-        if isinstance(key_or_keys, basestring if six.PY2 else str):  # noqa
+        if isinstance(key_or_keys, str):
             key_or_keys = key_or_keys.split('.')
         return tuple(key_or_keys) in self._schema
 
     def __getitem__(self, key_or_keys):
-        if isinstance(key_or_keys, basestring if six.PY2 else str):  # noqa
+        if isinstance(key_or_keys, str):
             key_or_keys = key_or_keys.split('.')
         return self._schema.__getitem__(tuple(key_or_keys))
 

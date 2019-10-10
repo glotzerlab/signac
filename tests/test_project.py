@@ -11,24 +11,19 @@ import json
 import pickle
 from tarfile import TarFile
 from zipfile import ZipFile
+from tempfile import TemporaryDirectory
 
 import signac
-from signac.common import six
 from signac.errors import DestinationExistsError
 from signac.contrib.linked_view import _find_all_links
 from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
-from signac.contrib.project import JobsCursor, Project
+from signac.contrib.project import JobsCursor, Project  # noqa: F401
 
 from test_job import BaseJobTest
 
-if six.PY2:
-    logging.basicConfig(level=logging.WARNING)
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 try:
     import pandas  # noqa
@@ -193,7 +188,6 @@ class ProjectTest(BaseProjectTest):
             self.project.workspace(),
             norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
 
-    @unittest.skipIf(not six.PY34, "Test requires Python version >= 3.4.")
     def test_no_workspace_warn_on_find(self):
         self.assertFalse(os.path.exists(self.project.workspace()))
         with self.assertLogs(level='INFO') as cm:
@@ -218,18 +212,12 @@ class ProjectTest(BaseProjectTest):
 
         self.assertTrue(issubclass(WorkspaceError, OSError))
 
-        if six.PY34:
-            with self.assertLogs(level='ERROR') as cm:
-                with self.assertRaises(WorkspaceError):
-                    list(self.project.find_jobs())
-                self.assertEqual(len(cm.output), 1)
-        else:
-            try:
-                logging.disable(logging.ERROR)
-                with self.assertRaises(WorkspaceError):
-                    list(self.project.find_jobs())
-            finally:
-                logging.disable(logging.NOTSET)
+        try:
+            logging.disable(logging.ERROR)
+            with self.assertRaises(WorkspaceError):
+                list(self.project.find_jobs())
+        finally:
+            logging.disable(logging.NOTSET)
 
         self.assertFalse(os.path.isdir(self._tmp_wd))
         self.assertFalse(os.path.isdir(self.project.workspace()))
@@ -1326,7 +1314,6 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertEqual(len(tmp_project), len(self.project))
 
 
-@unittest.skipIf(six.PY2, 'requires python 3')
 class ProjectRepresentationTest(BaseProjectTest):
 
     valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
@@ -1439,9 +1426,8 @@ class LinkedViewProjectTest(BaseProjectTest):
         subset = list(self.project.find_job_ids({'b': 0}))
         job_subset = [self.project.open_job(id=id) for id in subset]
         bad_index = [dict(_id=i) for i in range(3)]
-        if six.PY3:
-            with self.assertRaises(ValueError):
-                self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+        with self.assertRaises(ValueError):
+            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
         self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
         all_links = list(_find_all_links(view_prefix))
         self.assertEqual(len(all_links), len(subset))

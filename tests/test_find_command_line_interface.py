@@ -1,15 +1,14 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import io
 import os
 import sys
 import json
 import unittest
+from io import StringIO
 from itertools import chain
 from contextlib import contextmanager
 
-from signac.common import six
 from signac.contrib.filterparse import parse_filter_arg
 from signac.core.json import JSONDecodeError
 
@@ -68,16 +67,6 @@ ARRAY_EXPRESSIONS = [
     {'$nin': [0, 1, 2]},
     {'$nin': ['a', 'b', 'c']},
 ]
-
-
-class StringIO(io.StringIO):
-    "PY27 compatibility layer."
-
-    def write(self, s):
-        if six.PY2:
-            super(StringIO, self).write(unicode(s))  # noqa
-        else:
-            super(StringIO, self).write(s)
 
 
 @contextmanager

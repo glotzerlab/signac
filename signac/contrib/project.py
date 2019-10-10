@@ -11,10 +11,12 @@ import errno
 import uuid
 import gzip
 import time
-from deprecation import deprecated
+from collections.abc import Iterable
 from contextlib import contextmanager
+from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
+from tempfile import TemporaryDirectory
 
 from ..version import __version__
 from .. import syncutil
@@ -22,9 +24,7 @@ from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
-from ..common import six
 from ..common.config import load_config
-from ..common.tempdir import TemporaryDirectory
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -35,10 +35,6 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-if six.PY2:
-    from collections import Iterable
-else:
-    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -1231,14 +1227,9 @@ class Project(object):
                 write=logger.info,
                 desc="Read metadata: ")
 
-            if six.PY2:
-                pool = ThreadPool()
+            with ThreadPool() as pool:
                 for chunk in to_add_chunks:
                     pool.map(_add, chunk)
-            else:
-                with ThreadPool() as pool:
-                    for chunk in to_add_chunks:
-                        pool.map(_add, chunk)
 
             delta = time.time() - start
             logger.debug("Updated in-memory cache in {:.3f} seconds.".format(delta))
@@ -1280,10 +1271,7 @@ class Project(object):
                     pass
                 raise
             else:
-                if six.PY2:
-                    os.rename(fn_cache_tmp, fn_cache)
-                else:
-                    os.replace(fn_cache_tmp, fn_cache)
+                os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
             logger.info("Updated cache in {:.3f} seconds.".format(delta))
             return len(self._sp_cache)
@@ -1344,12 +1332,8 @@ class Project(object):
             docs = self._build_index(include_job_document=include_job_document)
             docs = map(_full_doc, docs)
         else:
-            if six.PY2:
-                if isinstance(formats, basestring):  # noqa
-                    formats = {formats: 'File'}
-            else:
-                if isinstance(formats, str):
-                    formats = {formats: 'File'}
+            if isinstance(formats, str):
+                formats = {formats: 'File'}
 
             class Crawler(SignacProjectCrawler):
                 pass
@@ -1382,7 +1366,7 @@ class Project(object):
             filename = os.path.join(
                 self.root_directory(),
                 MasterCrawler.FN_ACCESS_MODULE)
-        with open(filename, 'wx' if six.PY2 else 'x') as file:
+        with open(filename, 'x') as file:
             if master:
                 file.write(ACCESS_MODULE_MASTER)
             else:
@@ -1588,8 +1572,6 @@ class _JobsCursorIterator(object):
     def __next__(self):
         return self._project.open_job(id=next(self._ids_iterator))
 
-    next = __next__  # Python 2.7 compatibility
-
     def __iter__(self):
         return type(self)(self._project, self._ids)
 
@@ -1641,7 +1623,7 @@ class JobsCursor(object):
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:
-            return self._next_iter.next()
+            return next(self._next_iter)
         except StopIteration:
             self._next_iter = None
             raise
@@ -1681,7 +1663,7 @@ class JobsCursor(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
-        if isinstance(key, six.string_types):
+        if isinstance(key, str):
             if default is None:
                 def keyfunction(job):
                     return job.sp[key]
@@ -1740,7 +1722,7 @@ class JobsCursor(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
-        if isinstance(key, six.string_types):
+        if isinstance(key, str):
             if default is None:
                 def keyfunction(job):
                     return job.document[key]

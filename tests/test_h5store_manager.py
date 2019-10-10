@@ -4,13 +4,9 @@
 import os
 import unittest
 import pickle
+from tempfile import TemporaryDirectory
 
 from signac.core.h5store import H5StoreManager
-from signac.common import six
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 try:
     import h5py    # noqa

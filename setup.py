@@ -32,12 +32,11 @@ setup(
     url="https://signac.io",
 
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
@@ -47,7 +46,7 @@ setup(
 
     install_requires=requirements,
 
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4',
+    python_requires='>=3.5, <4',
 
     extras_require={
         'db': ['pymongo>=3.0'],

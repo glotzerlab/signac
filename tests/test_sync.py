@@ -5,10 +5,10 @@ import os
 import unittest
 import logging
 from time import sleep
+from tempfile import TemporaryDirectory
 
 import signac
 from signac import sync
-from signac.common import six
 from signac.core.jsondict import JSONDict
 from signac.syncutil import _DocProxy
 from signac.sync import _FileModifyProxy
@@ -20,35 +20,16 @@ from signac.contrib.utility import _mkdir_p
 from test_job import BaseJobTest
 
 
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
+def touch(fname, mode=0o666, dir_fd=None, **kwargs):
+    """Utility function for updating a file time stamp.
 
-
-if six.PY2:
-    def touch(fname, times=None):
-        """Utility function for updating a file time stamp.
-
-        Source:
-            https://stackoverflow.com/questions/1158076/implement-touch-using-python
-        """
-        fhandle = open(fname, 'a')
-        try:
-            os.utime(fname, times)
-        finally:
-            fhandle.close()
-else:
-    def touch(fname, mode=0o666, dir_fd=None, **kwargs):
-        """Utility function for updating a file time stamp.
-
-        Source:
-            https://stackoverflow.com/questions/1158076/implement-touch-using-python
-        """
-        flags = os.O_CREAT | os.O_APPEND
-        with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
-            os.utime(f.fileno() if os.utime in os.supports_fd else fname,
-                     dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+    Source:
+        https://stackoverflow.com/questions/1158076/implement-touch-using-python
+    """
+    flags = os.O_CREAT | os.O_APPEND
+    with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
+        os.utime(f.fileno() if os.utime in os.supports_fd else fname,
+                 dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 
 class DocProxyTest(unittest.TestCase):

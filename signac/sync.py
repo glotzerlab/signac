@@ -78,21 +78,17 @@ import re
 from collections import defaultdict as ddict
 from collections import namedtuple
 from multiprocessing.pool import ThreadPool
+from collections.abc import Mapping
 
 from .errors import DestinationExistsError
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
 from .contrib.utility import query_yes_no
-from .common import six
 from .syncutil import dircmp
 from .syncutil import dircmp_deep
 from .syncutil import _FileModifyProxy
 from .syncutil import logger
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
 
 
 __all__ = [

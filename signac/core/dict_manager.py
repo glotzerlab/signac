@@ -7,8 +7,6 @@ import re
 import errno
 import uuid
 
-from ..common import six
-
 
 class DictManager(object):
     """Helper class to manage multiple instances of dict-like classes.
@@ -56,10 +54,7 @@ class DictManager(object):
         tmp_key = str(uuid.uuid4())
         try:
             self[tmp_key].update(value)
-            if six.PY2:
-                os.rename(self[tmp_key].filename, self[key].filename)
-            else:
-                os.replace(self[tmp_key].filename, self[key].filename)
+            os.replace(self[tmp_key].filename, self[key].filename)
         except (IOError, OSError) as error:
             if error.errno == errno.ENOENT and not len(value):
                 raise ValueError("Cannot asssign empty value!")
