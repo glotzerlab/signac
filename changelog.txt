@@ -30,6 +30,11 @@ Changed
 
  - Implemented ``Project.__contains__`` check in constant time.
 
+Removed
++++++++
+
+ - Dropped support for Python 2.7.
+
 
 [1.2.0] -- 2019-07-22
 ---------------------
@@ -51,6 +56,11 @@ Fixed
  - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
  - Fix issue with generating views from the command line for projects with only one job (#208, #211).
  - Fix issue with heterogeneous types in state point values that are lists (#209, #210).
+
+Deprecated
+++++++++++
+
+ - Support for Python 2.7 is deprecated with this version and will be removed in the next minor release. See the `Python 3 Statement <https://python3statement.org/>`_.
 
 
 [1.1.0] -- 2019-05-19

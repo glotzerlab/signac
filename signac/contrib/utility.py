@@ -14,10 +14,9 @@ from time import time
 from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
+from tempfile import TemporaryDirectory
 
 from ..version import __version__
-from ..common import six
-from ..common.tempdir import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +43,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        # Compatible with python 2.7 and 3.x
-        choice = raw_input().lower() if sys.hexversion < 0x03000000 else input().lower()  # NOQA
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -187,13 +185,6 @@ def _mkdir_p(path):
     except OSError as error:
         if not (error.errno == errno.EEXIST and os.path.isdir(path)):
             raise
-
-
-def is_string(s):
-    if six.PY2:
-        return isinstance(s, basestring)  # noqa
-    else:
-        return isinstance(s, str)
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):

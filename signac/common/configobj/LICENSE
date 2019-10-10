@@ -1,8 +1,9 @@
-Copyright (c): 
+Copyright (c):
 2003-2010, Michael Foord
 2014, Eli Courtwright, Rob Dennis
+2019, The Regents of the University of Michigan
 All rights reserved.
-E-mails : 
+E-mails :
 fuzzyman AT voidspace DOT org DOT uk
 eli AT courtwright DOT org
 rdennis AT gmail DOT com
@@ -22,8 +23,8 @@ met:
       with the distribution.
 
     * Neither the names of Michael Foord, Eli Courtwright or Rob Dennis,
-      nor the name of Voidspace,  may be used to endorse or promote 
-      products derived from this software without specific prior written 
+      nor the name of Voidspace,  may be used to endorse or promote
+      products derived from this software without specific prior written
       permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS

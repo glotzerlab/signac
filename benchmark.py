@@ -19,14 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
-import six
 import sys
 import string
 import random
 import timeit
 import argparse
 import logging
-import warnings
 import base64
 import json
 import platform
@@ -36,6 +34,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from tempfile import gettempdir
+from tempfile import TemporaryDirectory
 from multiprocessing import Pool
 
 import signac
@@ -43,10 +42,6 @@ import git
 import psutil
 import pandas as pd
 from tqdm import tqdm
-if six.PY2:
-    from backports.tempfile import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 
 logger = logging.getLogger('signac-benchmark')
@@ -93,12 +88,7 @@ def get_partition(path):
 
 def create_doc(args):
     tmpdir = gettempdir() if args.root is None else args.root
-    if six.PY2:
-        platform_doc = dict((k, v) for k, v in
-                            zip(('system', 'node', 'release', 'version',
-                                 'machine', 'processor'), platform.uname()))
-    else:
-        platform_doc = platform.uname()._asdict()
+    platform_doc = platform.uname()._asdict()
     return {'meta': {
         'tool': 'signac',
         'num_keys': args.num_keys,
@@ -151,11 +141,6 @@ def _make_job(project, num_keys, num_doc_keys, data_size, data_std, i):
 def generate_random_data(project, N_sp, num_keys=1, num_doc_keys=0,
                          data_size=0, data_std=0, parallel=True):
     assert len(project) == 0
-
-    if six.PY2:
-        if parallel:
-            warnings.warn("Function 'generate_random_data()' not parallelized for Python 2.")
-            parallel = False
 
     if parallel:
         with Pool() as pool:

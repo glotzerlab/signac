@@ -7,7 +7,6 @@ import logging
 import shutil
 from copy import deepcopy
 
-from ..common import six
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
@@ -331,23 +330,8 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                if six.PY2:
-                    # Adapted from: http://stackoverflow.com/questions/10978869/
-                    if force:
-                        flags = os.O_CREAT | os.O_WRONLY
-                    else:
-                        flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
-                    try:
-                        fd = os.open(fn_manifest, flags)
-                    except OSError as error:
-                        if error.errno != errno.EEXIST:
-                            raise
-                    else:
-                        with os.fdopen(fd, 'w') as file:
-                            file.write(blob)
-                else:
-                    with open(fn_manifest, 'w' if force else 'x') as file:
-                        file.write(blob)
+                with open(fn_manifest, 'w' if force else 'x') as file:
+                    file.write(blob)
             except (IOError, OSError) as error:
                 if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise

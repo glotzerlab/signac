@@ -16,17 +16,12 @@ from functools import partial
 from platform import python_implementation
 from multiprocessing.pool import ThreadPool
 from contextlib import closing
+from tempfile import TemporaryDirectory
+from collections.abc import Mapping
 
 from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
-from signac.common import six
 from signac.errors import InvalidKeyError
 
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-    from collections import Mapping
-else:
-    from tempfile import TemporaryDirectory
-    from collections.abc import Mapping
 
 try:
     import h5py    # noqa
@@ -589,12 +584,7 @@ class H5StorePandasDataTest(H5StoreTest):
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
             assert isinstance(b, Mapping)
-            if six.PY2:
-                super(H5StorePandasDataTest, self).assertEqual(
-                    sorted(map(str, a.keys())),
-                    sorted(map(str, b.keys())))
-            else:
-                super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
+            super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
             for key in a:
                 self.assertEqual(a[key], b[key])
         else:
@@ -692,7 +682,6 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             print('\n', error.output.decode(), file=sys.stderr)
             raise
 
-    @unittest.skipIf(six.PY2, 'requires Python 3')
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
         read_cmd = "python -c 'from signac.core.h5store import H5Store; "
@@ -703,7 +692,6 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             with self.assertRaises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
-    @unittest.skipIf(six.PY2, 'requires Python 3')
     @unittest.skipUnless(python_implementation() == 'CPython', 'SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 

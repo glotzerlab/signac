@@ -20,21 +20,11 @@ import re
 import sys
 from itertools import islice
 from numbers import Number
+from collections.abc import Mapping
+from math import isclose
 
 from ..core import json
-from ..common import six
 from .filterparse import parse_filter_arg
-
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
-
-if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
-    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
-        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-else:
-    from math import isclose
 
 
 logger = logging.getLogger(__name__)
@@ -48,7 +38,7 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': basestring if six.PY2 else str,   # noqa
+    'str': str,
     'list': tuple,
     'null': type(None),
 }
@@ -225,7 +215,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 return re.search(argument, value)
             else:
                 return False
@@ -351,7 +341,7 @@ class Collection(object):
         Default value is 0 (no compression).
     """
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
-        if isinstance(docs, six.string_types):
+        if isinstance(docs, str):
             raise ValueError(
                 "First argument cannot be of str type. "
                 "Did you mean to use {}.open()?".format(type(self).__name__))
@@ -520,7 +510,7 @@ class Collection(object):
 
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
-        if not isinstance(_id, six.string_types):
+        if not isinstance(_id, str):
             raise TypeError("The primary key must be of type str!")
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
@@ -642,25 +632,20 @@ class Collection(object):
         if not len(expr):
             return set(self.ids)    # Empty expression yields all ids...
 
-        class result:
-            "Mutable local result context class."
-            # Once we drop Python 2.7 support we can replace `result.ids`
-            # simply with `result_ids`, remove the `result` class, and use
-            # a local function and `nonlocal result_ids`.
-            ids = None
+        result_ids = None
 
-            @classmethod
-            def reduce(cls, match):
-                if result.ids is None:  # First match
-                    result.ids = match
-                else:               # Update previous match
-                    result.ids = result.ids.intersection(match)
+        def reduce_results(match):
+            nonlocal result_ids
+            if result_ids is None:  # First match
+                result_ids = match
+            else:               # Update previous match
+                result_ids = result_ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
-            result.reduce({_id})
+            reduce_results({_id})
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
@@ -669,29 +654,29 @@ class Collection(object):
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _traverse_filter(expr):
-            result.reduce(self._find_expression(key, value))
-            if not result.ids:          # No match, no need to continue...
+            reduce_results(self._find_expression(key, value))
+            if not result_ids:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            result.reduce(set(self.ids).difference(not_match))
+            reduce_results(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                result.reduce(self._find_result(expr_))
+                reduce_results(self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
-            result.reduce(or_results)
+            reduce_results(or_results)
 
-        assert result.ids is not None
-        return result.ids
+        assert result_ids is not None
+        return result_ids
 
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.
@@ -906,12 +891,8 @@ class Collection(object):
 
     def _dump(self, text_buffer):
         "Dump collection content serialized to JSON to text-buffer."
-        if six.PY2:
-            for doc in self._docs.values():
-                text_buffer.write(unicode(json.dumps(doc) + '\n', 'utf-8'))  # noqa
-        else:
-            for doc in self._docs.values():
-                text_buffer.write((json.dumps(doc) + '\n'))
+        for doc in self._docs.values():
+            text_buffer.write((json.dumps(doc) + '\n'))
 
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
@@ -952,7 +933,7 @@ class Collection(object):
         json_string = json.dumps(list(self.find()))
         if file is None:
             return json_string
-        elif isinstance(file, six.string_types):
+        elif isinstance(file, str):
             with open(file, 'w') as json_file:
                 json_file.write(json_string)
         else:
@@ -968,7 +949,7 @@ class Collection(object):
         :return:
             A Collection containing the JSON file
         """
-        if isinstance(file, six.string_types):
+        if isinstance(file, str):
             with open(file, 'r') as json_file:
                 json_data = json.load(json_file)
         else:
@@ -981,7 +962,7 @@ class Collection(object):
             if compresslevel > 0:
                 import gzip
                 with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
-                    if six.PY2 or (sys.version_info.major == 3 and sys.version_info.minor < 6):
+                    if sys.version_info < (3, 6):
                         text = gzipfile.read().decode('utf-8')
                         docs = [json.loads(line) for line in text.splitlines()]
                         collection = cls(docs=docs)
@@ -1098,12 +1079,7 @@ class Collection(object):
                 try:
                     self._file.truncate(0)
                 except ValueError as error:
-                    if isinstance(error, io.UnsupportedOperation):
-                        raise error                             # Python 3
-                    elif str(error).lower() == "file not open for writing":
-                        raise io.UnsupportedOperation(error)    # Python 2
-                    else:
-                        raise error  # unrelated error
+                    raise error
                 else:
                     self.dump(self._file)
                     self._file.flush()

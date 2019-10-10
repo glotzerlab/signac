@@ -12,21 +12,17 @@ import copy
 import random
 import json
 from contextlib import contextmanager
+from tempfile import TemporaryDirectory
 
 import signac.contrib
 import signac.common.config
-from signac import Project
-from signac.contrib.job import Job
-from signac.common import six
+from signac import Project  # noqa: F401
+from signac.contrib.job import Job  # noqa: F401
 from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 try:
     import h5py    # noqa

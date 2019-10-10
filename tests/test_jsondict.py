@@ -4,16 +4,12 @@
 import os
 import unittest
 import uuid
+from tempfile import TemporaryDirectory
 
 from signac.core.jsondict import JSONDict
-from signac.common import six
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 FN_DICT = 'jsondict.json'
 

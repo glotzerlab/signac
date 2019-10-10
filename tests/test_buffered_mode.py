@@ -8,19 +8,14 @@ import logging
 import platform
 from time import sleep
 from stat import S_IREAD
+from tempfile import TemporaryDirectory
 
 import signac
 from signac.errors import Error
 from signac.errors import BufferException
 from signac.errors import BufferedFileError
-from signac.common import six
 
 from test_project import BaseProjectTest
-
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 
 PYPY = 'PyPy' in platform.python_implementation()

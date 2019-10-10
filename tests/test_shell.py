@@ -5,14 +5,9 @@ import os
 import json
 import unittest
 import subprocess
+from tempfile import TemporaryDirectory
 
 import signac
-from signac.common import six
-
-if six.PY2:
-    from signac.common.tempdir import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 
 class DummyFile(object):
@@ -59,14 +54,11 @@ class BasicShellTest(unittest.TestCase):
             command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
         if input:
-            p.stdin.write(input if six.PY2 else input.encode())
+            p.stdin.write(input.encode())
         out, err = p.communicate()
         if p.returncode != 0:
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
-        if six.PY2:
-            return str(out)
-        else:
-            return out.decode()
+        return out.decode()
 
     def test_init_project(self):
         self.call('python -m signac init my_project'.split())

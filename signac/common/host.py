@@ -12,7 +12,6 @@ from .config import load_config
 from .errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector
 from .crypt import get_crypt_context, SimpleKeyring, get_keyring
-from . import six
 
 logger = logging.getLogger(__name__)
 
@@ -138,9 +137,8 @@ def get_credentials(hostcfg, ask=True):
 
 
 def _input(prompt, default=''):
-    input_ = raw_input if six.PY2 else input  # noqa
     try:
-        value = input_(prompt)
+        value = input(prompt)
     except SyntaxError:
         return default
     if value:

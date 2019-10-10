@@ -6,8 +6,6 @@ import errno
 import logging
 from itertools import chain
 
-from ..common import six
-
 logger = logging.getLogger(__name__)
 
 
@@ -107,10 +105,7 @@ def _make_link(src, dst):
         if error.errno != errno.EEXIST:
             raise
     try:
-        if six.PY2:
-            os.symlink(src, dst)
-        else:
-            os.symlink(src, dst, target_is_directory=True)
+        os.symlink(src, dst, target_is_directory=True)
     except OSError as error:
         if error.errno == errno.EEXIST:
             if os.path.realpath(src) == os.path.realpath(dst):
