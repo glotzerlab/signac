@@ -32,6 +32,32 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         if not job_ids.issubset({doc['_id'] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
 
+    key_list = [
+            k for job in jobs for k in job.statepoint.keys()
+            ]
+    value_list = [
+            v for job in jobs for v in job.statepoint.values()
+            ]
+    item_list = key_list + value_list
+    contains_sep = [
+            os.sep in item for item in item_list
+            if isinstance(item, str)
+            ]
+
+    if any(contains_sep):
+        problem_items = [
+                item for item in item_list
+                if isinstance(item, str) and os.sep in item
+                ]
+
+        err_msg = " ".join([
+            "In order to use view, statepoints should not contain {0}:".format(
+                os.sep
+            ),
+            *problem_items
+        ])
+        raise NotImplementedError(err_msg)
+
     path_function = _make_path_function(jobs, path)
 
     links = dict()
