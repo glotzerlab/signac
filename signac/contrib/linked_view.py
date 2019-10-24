@@ -33,10 +33,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             raise ValueError("Insufficient index for selected data space.")
 
     key_list = [
-            k for job in jobs for k in job.statepoint.keys()
+            k for job in jobs for k in job.statepoint().keys()
             ]
     value_list = [
-            v for job in jobs for v in job.statepoint.values()
+            v for job in jobs for v in job.statepoint().values()
             ]
     item_list = key_list + value_list
     contains_sep = [
