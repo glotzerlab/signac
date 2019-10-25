@@ -4,6 +4,7 @@
 import os
 import errno
 import logging
+import sys
 from itertools import chain
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,12 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     """Create or update a persistent linked view of the selected data space."""
     from .import_export import _make_path_function
     from .import_export import _check_directory_structure_validity
+
+    # Windows does not support the creation of symbolic links.
+    if sys.platform == 'win32':
+        raise OSError("signac cannot create linked views on Windows, because "
+                      "symbolic links are not supported by the platform.")
+
     if prefix is None:
         prefix = 'view'
 
