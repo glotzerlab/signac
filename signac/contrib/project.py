@@ -308,6 +308,8 @@ class Project(object):
     def data(self):
         """The data associated with this project.
 
+        See :class:`~..core.h5store.H5Store` for usage examples.
+
         Equivalent to:
 
             return project.store['signac_data']

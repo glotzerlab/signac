@@ -298,6 +298,8 @@ class Job(object):
     def data(self):
         """The data store associated with this job.
 
+        See :class:`~..core.h5store.H5Store` for usage examples.
+
         Equivalent to:
 
         .. code-block:: python
