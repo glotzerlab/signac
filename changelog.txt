@@ -30,6 +30,11 @@ Changed
 
  - Implemented ``Project.__contains__`` check in constant time.
 
+Fixed
++++++
+
+ - Attempting to create a linked view for a Project on Windows now raises an informative error message.
+
 Removed
 +++++++
 
