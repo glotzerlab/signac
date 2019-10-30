@@ -1731,6 +1731,21 @@ class LinkedViewProjectTest(BaseProjectTest):
         with self.assertRaises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
+    def test_create_linked_view_with_slash_raises_error(self):
+        sp_badkey = [{'a/b': 0, 'b': 10} for i in range(5)]
+        sp_badkeyval = [{
+            'a/b': 'dir/file{}'.format(i), 'b': i % 3
+            } for i in range(5)]
+        sp_badval = [{
+            'a': i, 'b': 'dir/file{}'.format(i)
+            } for i in range(5)]
+        statepoints = sp_badkey + sp_badkeyval + sp_badval
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+            with self.assertRaises(NotImplementedError):
+                self.project.create_linked_view(prefix=view_prefix)
+
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
