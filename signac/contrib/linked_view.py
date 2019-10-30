@@ -58,7 +58,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
                 ]
 
         err_msg = " ".join([
-            "In order to use view, statepoints should not contain {0}:".format(
+            "In order to use view, statepoints should not contain {}:".format(
                 os.sep
             ),
             *problem_items
