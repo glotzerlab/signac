@@ -421,7 +421,6 @@ class Project(object):
         """
         return self._contains_job_id(job.get_id())
 
-
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
         """Build a job search index.
