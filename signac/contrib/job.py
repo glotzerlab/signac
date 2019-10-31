@@ -89,7 +89,7 @@ class Job(object):
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
             self.__class__.__name__,
-            repr(self._project), self._statepoint)
+            repr(self._project), self.statepoint)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -145,7 +145,7 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint._data = dst._statepoint._data
+        self.statepoint._data = dst.statepoint._data
         self._id = dst._id
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
@@ -326,7 +326,7 @@ class Job(object):
 
         try:
             # Ensure to create the binary to write before file creation
-            blob = json.dumps(self._statepoint, indent=2)
+            blob = json.dumps(self.statepoint, indent=2)
 
             try:
                 # Open the file for writing only if it does not exist yet.
@@ -568,7 +568,7 @@ class Job(object):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self._statepoint._parent.jobs.append(self)
+        self.statepoint._parent.jobs.append(self)
 
     def __deepcopy__(self, memo):
         cls = self.__class__

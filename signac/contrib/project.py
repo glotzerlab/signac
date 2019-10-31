@@ -704,7 +704,7 @@ class Project(object):
 
     def _register(self, job):
         "Register the job within the local index."
-        self._sp_cache[job._id] = job._statepoint._as_dict()
+        self._sp_cache[job._id] = job.statepoint()
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
