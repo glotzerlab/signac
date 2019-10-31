@@ -46,22 +46,18 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             v for job in jobs for v in job.statepoint().values()
             ]
     item_list = key_list + value_list
-    contains_sep = [
-            os.sep in item for item in item_list
-            if isinstance(item, str)
+    bad_chars = [os.sep, " ", "*"]
+    bad_items = [
+            item for item in item_list for char in bad_chars
+            if isinstance(item, str) and char in item
             ]
 
-    if any(contains_sep):
-        problem_items = [
-                item for item in item_list
-                if isinstance(item, str) and os.sep in item
-                ]
-
+    if any(bad_items):
         err_msg = " ".join([
             "In order to use view, statepoints should not contain {}:".format(
-                os.sep
+                bad_chars
             ),
-            *problem_items
+            *bad_items
         ])
         raise NotImplementedError(err_msg)
 
