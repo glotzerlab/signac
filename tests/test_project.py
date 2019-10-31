@@ -1732,14 +1732,16 @@ class LinkedViewProjectTest(BaseProjectTest):
             self.project.create_linked_view(view_prefix)
 
     def test_create_linked_view_with_slash_raises_error(self):
-        sp_badkey = [{'a/b': 0, 'b': 10} for i in range(5)]
+        sp_badkey = [{'a/b': 0 + i, 'b': 10 * i} for i in range(5)]
         sp_badkeyval = [{
             'a/b': 'dir/file{}'.format(i), 'b': i % 3
             } for i in range(5)]
         sp_badval = [{
             'a': i, 'b': 'dir/file{}'.format(i)
             } for i in range(5)]
-        statepoints = sp_badkey + sp_badkeyval + sp_badval
+        sp_space = {'bad a': 0, 'b': 'this is bad'}
+        sp_star = {'a*': 5, 'b': 'bad*'}
+        statepoints = sp_badkey + sp_badkeyval + sp_badval + sp_space + sp_star
         view_prefix = os.path.join(self._tmp_pr, 'view')
         for sp in statepoints:
             self.project.open_job(sp).init()
