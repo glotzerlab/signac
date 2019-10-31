@@ -392,7 +392,7 @@ class ProjectTest(BaseProjectTest):
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(JobsCorruptedError):
-                self.project.open_job(id=job.get_id())
+                self.project.open_job(id=job.get_id()).statepoint
         finally:
             logging.disable(logging.NOTSET)
 
@@ -467,7 +467,7 @@ class ProjectTest(BaseProjectTest):
             # Iterating through the jobs should now result in an error.
             with self.assertRaises(JobsCorruptedError):
                 for job in self.project:
-                    pass
+                    job.statepoint
 
             with self.assertRaises(JobsCorruptedError):
                 self.project.repair()

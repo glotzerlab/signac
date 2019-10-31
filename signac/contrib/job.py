@@ -52,12 +52,21 @@ class Job(object):
 
     KEY_DATA = 'signac_data'
 
-    def __init__(self, project, statepoint, _id=None):
+    def __init__(self, project, statepoint=None, _id=None):
         self._project = project
 
-        # Set statepoint and id
-        self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-        self._id = calc_id(self._statepoint()) if _id is None else _id
+        if statepoint is None and _id is None:
+            raise ValueError('Either statepoint or _id must be provided.')
+
+        # Set statepoint if provided
+        if statepoint is not None:
+            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+        else:
+            # Statepoint will be loaded lazily
+            self._statepoint = None
+
+        # Set id
+        self._id = calc_id(self.statepoint()) if _id is None else _id
 
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
@@ -203,6 +212,11 @@ class Job(object):
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
         """
+        if self._statepoint is None:
+            # Loads statepoint file lazily
+            statepoint = self._project.get_statepoint(self._id)
+            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+
         return self._statepoint
 
     @statepoint.setter

@@ -356,14 +356,19 @@ class Project(object):
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
             # worst case (no statepoint and cache miss)
+            job_ids = self._find_job_ids()
             if len(id) < 32:
-                job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            return self.Job(project=self, statepoint=self.get_statepoint(id), _id=id)
+                else:
+                    # By elimination, len(matches) == 0
+                    raise KeyError(id)
+            elif id not in job_ids:
+                raise KeyError(id)
+            return self.Job(project=self, statepoint=None, _id=id)
 
     def _job_dirs(self):
         try:
