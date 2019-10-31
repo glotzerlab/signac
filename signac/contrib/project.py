@@ -356,8 +356,8 @@ class Project(object):
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
             # worst case (no statepoint and cache miss)
-            job_ids = self._find_job_ids()
             if len(id) < 32:
+                job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
@@ -366,7 +366,7 @@ class Project(object):
                 else:
                     # By elimination, len(matches) == 0
                     raise KeyError(id)
-            elif id not in job_ids:
+            elif not self._contains_job_id(id):
                 raise KeyError(id)
             return self.Job(project=self, statepoint=None, _id=id)
 
@@ -401,6 +401,16 @@ class Project(object):
 
     __len__ = num_jobs
 
+    def _contains_job_id(self, id):
+        """Determine whether job id is in the project's data space.
+
+        :param id: The job id to test for initialization.
+        :type id: str
+        :returns: True when the job is initialized for this project.
+        :rtype: bool
+        """
+        return os.path.exists(os.path.join(self._wd, id))
+
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
 
@@ -409,7 +419,8 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return os.path.exists(os.path.join(self._wd, job.get_id()))
+        return self._contains_job_id(job.get_id())
+
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
