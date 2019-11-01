@@ -198,6 +198,20 @@ class Job(object):
         statepoint.update(update)
         self.reset_statepoint(statepoint)
 
+    def _read_manifest(self):
+        "Read and parse the manifest file, if it exists."
+        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
+        try:
+            with open(fn_manifest, 'rb') as file:
+                manifest = json.loads(file.read().decode())
+        except IOError as error:
+            if error.errno != errno.ENOENT:
+                raise error
+        except ValueError:
+            raise JobsCorruptedError([self._id])
+        else:
+            return manifest
+
     @property
     def statepoint(self):
         """Access the job's state point as attribute dictionary.
@@ -214,7 +228,7 @@ class Job(object):
         """
         if self._statepoint is None:
             # Loads statepoint file lazily
-            statepoint = self._project.get_statepoint(self._id)
+            statepoint = self._check_manifest()
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
 
         return self._statepoint
@@ -360,16 +374,14 @@ class Job(object):
             self._check_manifest()
 
     def _check_manifest(self):
-        "Check whether the manifest file, if it exists, is correct."
-        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
+        "Check whether the manifest file matches the job id, and return if valid."
         try:
-            with open(fn_manifest, 'rb') as file:
-                assert calc_id(json.loads(file.read().decode())) == self._id
-        except IOError as error:
-            if error.errno != errno.ENOENT:
-                raise error
-        except (AssertionError, ValueError):
+            manifest = self._read_manifest()
+            assert calc_id(manifest) == self._id
+        except AssertionError:
             raise JobsCorruptedError([self._id])
+        else:
+            return manifest
 
     def init(self, force=False):
         """Initialize the job's workspace directory.
