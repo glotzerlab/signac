@@ -4,7 +4,6 @@
 import os
 import errno
 import logging
-import string
 import sys
 from itertools import chain
 
@@ -47,17 +46,20 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             v for job in jobs for v in job.statepoint().values()
             ]
     item_list = key_list + value_list
-    allowed_chars = string.ascii_letters + string.digits + ".-_"
+    bad_chars = [os.sep, " ", "*"]
     bad_items = [
-            item for item in item_list
-            if isinstance(item, str) and item.strip(allowed_chars)
+            item for item in item_list for char in bad_chars
+            if isinstance(item, str) and char in item
             ]
 
     if any(bad_items):
-        raise NotImplementedError(
-                "In order to use view, statepoints should use only POSIX " +
-                "compliant characters."
-                )
+        err_msg = " ".join([
+            "In order to use view, statepoints should not contain {}:".format(
+                bad_chars
+            ),
+            *bad_items
+        ])
+        raise NotImplementedError(err_msg)
 
     path_function = _make_path_function(jobs, path)
 
