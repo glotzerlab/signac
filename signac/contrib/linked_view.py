@@ -59,7 +59,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             ),
             *bad_items
         ])
-        raise NotImplementedError(err_msg)
+        raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
 

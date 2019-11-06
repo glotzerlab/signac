@@ -1739,7 +1739,7 @@ class LinkedViewProjectTest(BaseProjectTest):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         for sp in statepoints:
             self.project.open_job(sp).init()
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(RuntimeError):
                 self.project.create_linked_view(prefix=view_prefix)
 
 
