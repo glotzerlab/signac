@@ -1731,6 +1731,17 @@ class LinkedViewProjectTest(BaseProjectTest):
         with self.assertRaises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
+    def test_create_linked_view_with_slash_raises_error(self):
+        bad_chars = [os.sep, " ", "*"]
+        statepoints = [{
+            'a{}b'.format(i): 0, 'b': 'bad{}val'.format(i)
+            } for i in bad_chars]
+        view_prefix = os.path.join(self._tmp_pr, 'view')
+        for sp in statepoints:
+            self.project.open_job(sp).init()
+            with self.assertRaises(RuntimeError):
+                self.project.create_linked_view(prefix=view_prefix)
+
 
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
