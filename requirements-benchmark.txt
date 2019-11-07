@@ -1,6 +1,7 @@
 numpy==1.15
 GitPython==2.1.11
-pandas==0.25
+pandas==0.25; implementation_name!='cpython' --no-binary pandas
+pandas==0.25; implementation_name=='cpython'
 psutil==5.5
 tqdm==4.30
 backports.tempfile==1.0
