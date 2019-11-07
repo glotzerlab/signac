@@ -33,10 +33,6 @@ jobs:
       - restore_cache:
           keys:
             - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v4-{{ arch }}
-            - python-env-v4
 
       - run:
           name: install dependencies
