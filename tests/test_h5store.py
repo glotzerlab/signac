@@ -129,14 +129,18 @@ class H5StoreTest(BaseH5StoreTest):
         'double_array': array('d', [-1.5, 0, 1.5]),
         'int_array': array('i', [-1, 0, 1]),
         'uint_array': array('I', [0, 1, 2]),
-        'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
-        'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
         'dict': {
             'a': 1,
             'b': None,
             'c': 'test',
         },
     }
+
+    if NUMPY:
+        valid_types.update({
+            'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
+            'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
+        })
 
     def test_init(self):
         self.get_h5store()
