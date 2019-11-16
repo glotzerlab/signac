@@ -747,7 +747,7 @@ class Collection(object):
         Arithmetic Operators
 
                 * *$eq*: equal
-                * *$neq*: not equal
+                * *$ne*: not equal
                 * *$gt*: greater than
                 * *$gte*: greater or equal than
                 * *$lt*: less than

@@ -61,4 +61,9 @@ contributors:
     family-names: Malek
     given-names: Ali
     affiliation: "University of Goettingen"
+  -
+    family-names: Fothergill
+    given-names: Jenny
+    affiliation: "Boise State University"
+    orcid: "https://orcid.org/0000-0001-9665-5420"
 ...
