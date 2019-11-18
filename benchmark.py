@@ -201,6 +201,8 @@ def benchmark_project(project, keys=None):
 
     run('iterate_single_pass', Timer("list(project)", setup), number=1)
 
+    run('iterate_load_sp', Timer("[job.sp() for job in project]", setup), 3, 10)
+
     run('search_lean_filter', Timer(
         stmt="len(project.find_jobs(f))",
         setup=setup +
