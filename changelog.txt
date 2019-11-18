@@ -29,6 +29,7 @@ Changed
 +++++++
 
  - Implemented ``Project.__contains__`` check in constant time.
+ - Statepoints are loaded lazily when ``Job`` is opened by id (#238, #239).
 
 Fixed
 +++++
