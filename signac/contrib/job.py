@@ -53,7 +53,6 @@ class Job(object):
     KEY_DATA = 'signac_data'
 
     def __init__(self, project, statepoint, _id=None):
-        from time import sleep; sleep(0.0001)
         self._project = project
 
         # Set statepoint and id

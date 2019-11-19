@@ -36,6 +36,7 @@ from tempfile import NamedTemporaryFile
 from tempfile import gettempdir
 from tempfile import TemporaryDirectory
 from multiprocessing import Pool
+from textwrap import fill
 
 import signac
 import git
@@ -368,39 +369,43 @@ def main_compare(args):
     average_speedup = speedup.mean().round(1)
 
     if average_speedup > 1:
-        average_change = click.style("{:0.1f}x".format(
-            average_speedup), fg='green') + " faster than"
+        average_change = click.style("{:0.1f}x faster".format(
+            average_speedup), fg='green') + " than"
     elif average_speedup < 1:
-        average_change = click.style("{:0.1f}x".format(slowdown.mean()), fg='red') + " slower than"
+        average_change = click.style("{:0.1f}x slower".format(
+            slowdown.mean()), fg='yellow') + " than"
     else:
-        average_change = "{} as fast".format('exactly' if average_speedup == 1 else 'about')
+        average_change = click.style("{} as fast as".format(
+            'exactly' if average_speedup == 1 else 'about'), fg='green')
 
     difference = doc_other.min() - doc_this.min()
     idx_max_speedup = speedup.idxmax()
     idx_max_slowdown = slowdown.idxmax()
 
     if round(difference[idx_max_speedup], 1) > 0:
-        s_speedup = "a maximal speedup of " + \
-            click.style("{:0.1f}x".format(speedup[idx_max_speedup]), fg='green')
+        s_speedup = click.style(
+            "a speedup of {:0.1f}x in the best category".format(
+                speedup[idx_max_speedup]), fg='green')
     else:
-        s_speedup = "a maximal speedup of <10%"
+        s_speedup = click.style("insignificant speedup (<10%) in the best category", fg='blue')
 
     if round(difference[idx_max_slowdown], 1) < 0:
         max_slowdown = slowdown[idx_max_slowdown]
-        s_slowdown = "a maximal slowdown of " + \
-            click.style("{:0.1f}x".format(slowdown[idx_max_slowdown]), fg='red')
+        s_slowdown = click.style("a slowdown of {:0.1f}x in the worst category".format(
+            slowdown[idx_max_slowdown]), fg='yellow')
     else:
         max_slowdown = 0
-        s_slowdown = "a maximal slowdown of <10%"
+        s_slowdown = click.style("insignificant slowdown (<10%) in the worst category", fg='blue')
 
-    print("Revision '{this}' is {average_change} '{other}' on average "
-          "with {speedup} and {slowdown}.".format(
-              this=args.rev_this, other=args.rev_other,
-              average_change=average_change, speedup=s_speedup, slowdown=s_slowdown))
+    click.echo(fill(
+        "Revision '{this}' is {average_change} '{other}' on average "
+        "with {speedup} and {slowdown}.".format(
+            this=args.rev_this, other=args.rev_other,
+            average_change=average_change, speedup=s_speedup, slowdown=s_slowdown)) + '\n')
 
     if args.fail_above and max_slowdown > args.fail_above:
-        print("FAIL: Runtime difference for the worst category ({:0.1f}) "
-              "is above threshold ({})!".format(max_slowdown, args.fail_above))
+        click.secho("FAIL: Runtime difference for the worst category ({:0.1f}x) "
+                    "is above threshold ({}x)!".format(max_slowdown, args.fail_above), fg='red')
         sys.exit(1)
 
 
