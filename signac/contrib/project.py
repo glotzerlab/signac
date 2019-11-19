@@ -131,7 +131,7 @@ class Project(object):
 
         # Internal caches
         self._index_cache = dict()
-        self._sp_cache = dict()
+        self._sp_cache = {_id: None for _id in self._job_dirs()}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
@@ -346,16 +346,14 @@ class Project(object):
             raise ValueError(
                 "You need to either provide the statepoint or the id.")
         if id is None:
-            # second best case
-            job = self.Job(project=self, statepoint=statepoint)
-            if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = job.statepoint._as_dict()
-            return job
-        elif id in self._sp_cache:
+            # second best case (Job will update self._sp_cache on init)
+            return self.Job(project=self, statepoint=statepoint)
+        elif self._sp_cache.get(id, None) is not None:
             # optimal case
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
-            # worst case (no statepoint and cache miss)
+            # worst case (no statepoint and cache miss, Job will register
+            # itself in self._sp_cache on statepoint access)
             if len(id) < 32:
                 job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
@@ -409,7 +407,7 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return os.path.exists(os.path.join(self._wd, id))
+        return id in self._sp_cache or os.path.exists(os.path.join(self._wd, id))
 
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
@@ -762,10 +760,12 @@ class Project(object):
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
         """
-        if not self._sp_cache:
+        if not any(self._sp_cache.values()):
+            # Triggers if no statepoints have been added to the cache, and all
+            # the values are None
             self._read_cache()
         try:
-            if jobid in self._sp_cache:
+            if self._sp_cache.get(jobid, None) is not None:
                 return self._sp_cache[jobid]
             else:
                 self._sp_cache_misses += 1
@@ -1226,7 +1226,7 @@ class Project(object):
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
-        cached_ids = set(self._sp_cache)
+        cached_ids = {k for k, v in self._sp_cache.items() if v is not None}
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
@@ -1272,13 +1272,15 @@ class Project(object):
         logger.info('Update cache...')
         start = time.time()
         cache = self._read_cache()
+        cached_ids = {k for k, v in self._sp_cache.items() if v is not None}
         self._update_in_memory_cache()
-        if cache is None or set(cache) != set(self._sp_cache):
+        if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + '~'
             try:
                 with gzip.open(fn_cache_tmp, 'wb') as cachefile:
-                    cachefile.write(json.dumps(self._sp_cache).encode())
+                    cachefile.write(json.dumps(
+                        {k: v for k, v in self._sp_cache.items() if v is not None}).encode())
             except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
@@ -1289,7 +1291,8 @@ class Project(object):
                 os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
             logger.info("Updated cache in {:.3f} seconds.".format(delta))
-            return len(self._sp_cache)
+            cached_ids = {k for k, v in self._sp_cache.items() if v is not None}
+            return len(cached_ids)
         else:
             logger.info("Cache is up to date.")
 

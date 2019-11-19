@@ -231,6 +231,9 @@ class Job(object):
             statepoint = self._check_manifest()
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
 
+            # Update the project's statepoint cache
+            self._project._register(self)
+
         return self._statepoint
 
     @statepoint.setter
