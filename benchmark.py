@@ -383,7 +383,7 @@ def main_compare(args):
         s_speedup = "a maximal speedup of " + \
             click.style("{:0.1f}x".format(speedup[idx_max_speedup]), fg='green')
     else:
-        s_speedup = "no speedup"
+        s_speedup = "a maximal speedup of <10%"
 
     if round(difference[idx_max_slowdown], 1) < 0:
         max_slowdown = slowdown[idx_max_slowdown]
@@ -391,7 +391,7 @@ def main_compare(args):
             click.style("{:0.1f}x".format(slowdown[idx_max_slowdown]), fg='red')
     else:
         max_slowdown = 0
-        s_slowdown = "no slowdown"
+        s_slowdown = "a maximal slowdown of <10%"
 
     print("Revision '{this}' is {average_change} '{other}' on average "
           "with {speedup} and {slowdown}.".format(
