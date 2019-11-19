@@ -68,9 +68,6 @@ class Job(object):
         # Set id
         self._id = calc_id(self.statepoint()) if _id is None else _id
 
-        # Register with the project if the statepoint is known
-        self._project._register(self)
-
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
 
@@ -379,6 +376,9 @@ class Job(object):
         else:
             self._check_manifest()
 
+            # Update the project's statepoint cache
+            self._project._register(self)
+
     def _check_manifest(self):
         "Check whether the manifest file matches the job id, and return if valid."
         try:
@@ -497,7 +497,10 @@ class Job(object):
                     "Cannot move jobs across different devices (file systems).")
             else:
                 raise error
+        # Update the projects' statepoint caches
+        self._project._deregister(self)
         self.__dict__.update(dst.__dict__)
+        project._register(self)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
         """Perform a one-way synchronization of this job with the other job.
