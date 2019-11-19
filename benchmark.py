@@ -39,6 +39,7 @@ from multiprocessing import Pool
 
 import signac
 import git
+import click
 import psutil
 import pandas as pd
 from tqdm import tqdm
@@ -361,32 +362,45 @@ def main_compare(args):
     print(doc_this.min() / doc_other.min())
     print()
 
-    slow_down = (doc_this.min() / doc_other.min()).mean()
-    speed_up = (doc_other.min() / doc_this.min()).mean()
-    if round(speed_up, 1) > 1:
-        average_change = "{:0.1f}x faster than".format(speed_up)
-    elif round(speed_up, 1) < 1:
-        average_change = "{:0.1f}x slower than".format(slow_down)
-    else:
-        average_change = "{} as fast as".format('exactly' if speed_up == 1 else 'about')
+    speedup = doc_other.min() / doc_this.min()
+    slowdown = doc_this.min() / doc_other.min()
 
-    slow_down = (doc_this.min() / doc_other.min()).max()
-    speed_up = (doc_other.min() / doc_this.min()).max()
-    if round(slow_down, 1) > round(speed_up, 1):
-        maximal_change = "{:0.1f}x slower".format(slow_down)
-    elif round(speed_up, 1) > round(slow_down, 1):
-        maximal_change = "{:0.1f}x faster".format(speed_up)
-    else:
-        maximal_change = "{} as fast".format('exactly' if speed_up == 1 else 'about')
+    average_speedup = speedup.mean().round(1)
 
-    print("Revision '{this}' is {average_change} '{other}' on average and {maximal_change} for "
-          "the category with the biggest difference.".format(
+    if average_speedup > 1:
+        average_change = click.style("{:0.1f}x".format(
+            average_speedup), fg='green') + " faster than"
+    elif average_speedup < 1:
+        average_change = click.style("{:0.1f}x".format(slowdown.mean()), fg='red') + " slower than"
+    else:
+        average_change = "{} as fast".format('exactly' if average_speedup == 1 else 'about')
+
+    difference = doc_other.min() - doc_this.min()
+    idx_max_speedup = speedup.idxmax()
+    idx_max_slowdown = slowdown.idxmax()
+
+    if round(difference[idx_max_speedup], 1) > 0:
+        s_speedup = "a maximal speedup of " + \
+            click.style("{:0.1f}x".format(speedup[idx_max_speedup]), fg='green')
+    else:
+        s_speedup = "no speedup"
+
+    if round(difference[idx_max_slowdown], 1) < 0:
+        max_slowdown = slowdown[idx_max_slowdown]
+        s_slowdown = "a maximal slowdown of " + \
+            click.style("{:0.1f}x".format(slowdown[idx_max_slowdown]), fg='red')
+    else:
+        max_slowdown = 0
+        s_slowdown = "no slowdown"
+
+    print("Revision '{this}' is {average_change} '{other}' on average "
+          "with {speedup} and {slowdown}.".format(
               this=args.rev_this, other=args.rev_other,
-              average_change=average_change, maximal_change=maximal_change))
+              average_change=average_change, speedup=s_speedup, slowdown=s_slowdown))
 
-    if args.fail_above and slow_down > args.fail_above:
+    if args.fail_above and max_slowdown > args.fail_above:
         print("FAIL: Runtime difference for the worst category ({:0.1f}) "
-              "is above threshold ({})!".format(slow_down, args.fail_above))
+              "is above threshold ({})!".format(max_slowdown, args.fail_above))
         sys.exit(1)
 
 
