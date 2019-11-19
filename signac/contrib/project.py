@@ -719,6 +719,10 @@ class Project(object):
         "Register the job within the local index."
         self._sp_cache[job._id] = job.statepoint()
 
+    def _deregister(self, job):
+        "Remove the job from the local index."
+        del self._sp_cache[job._id]
+
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
         fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)

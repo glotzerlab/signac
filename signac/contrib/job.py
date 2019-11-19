@@ -68,6 +68,9 @@ class Job(object):
         # Set id
         self._id = calc_id(self.statepoint()) if _id is None else _id
 
+        # Register with the project if the statepoint is known
+        self._project._register(self)
+
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
 
@@ -459,6 +462,7 @@ class Job(object):
                         raise error
                 self._document = None
             self._data = None
+            self._project._deregister(self)
 
     def move(self, project):
         """Move this job to project.
