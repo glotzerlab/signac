@@ -1425,9 +1425,15 @@ class LinkedViewProjectTest(BaseProjectTest):
         # update with subset
         subset = list(self.project.find_job_ids({'b': 0}))
         job_subset = [self.project.open_job(id=id) for id in subset]
-        bad_index = [dict(_id=i) for i in range(3)]
-        with self.assertRaises(ValueError):
-            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+
+        # Catch deprecation warning for use of index.
+        with warnings.catch_warnings(record=True) as w:
+            bad_index = [dict(_id=i) for i in range(3)]
+            with self.assertRaises(ValueError):
+                self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0].category, DeprecationWarning)
+
         self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
         all_links = list(_find_all_links(view_prefix))
         self.assertEqual(len(all_links), len(subset))
