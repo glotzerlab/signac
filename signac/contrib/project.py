@@ -95,6 +95,28 @@ class JobSearchIndex(object):
         return self._collection._find(filter)
 
 
+class ProjectWorkspace(object):
+    """Lightweight class for operating on project workspaces."""
+    # This class is primarily defined for backwards compatibility because
+    # `workspace` is a method rather than a property of the Project class. Use
+    # of this class ensures that calling it like a method gives the expected
+    # behavior. It should be removed in version 2.0 when we make the workspace
+    # a property instead of a method.
+    def __init__(self, project):
+        self._project = project
+
+    def __repr__(self):
+        return self()
+
+    def __call__(self):
+        wd = os.path.expandvars(
+            self._project._config.get('workspace_dir', 'workspace'))
+        if os.path.isabs(wd):
+            return wd
+        else:
+            return os.path.join(self._project._rd, wd)
+
+
 class Project(object):
     """The handle on a signac project.
 
@@ -168,18 +190,11 @@ class Project(object):
         "The project root directory."
         return self._config['project_dir']
 
-    @property
-    def _wd(self):
-        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
-        if os.path.isabs(wd):
-            return wd
-        else:
-            return os.path.join(self._rd, wd)
-
     def root_directory(self):
         "Returns the project's root directory."
         return self._rd
 
+    @property
     def workspace(self):
         """Returns the project's workspace directory.
 
@@ -193,7 +208,11 @@ class Project(object):
         .. note::
             The configuration will respect environment variables,
             such as $HOME."""
-        return self._wd
+        return ProjectWorkspace(self)
+
+    @workspace.setter
+    def workspace(self, new_workspace):
+        self.config['workspace_dir'] = new_workspace
 
     def get_id(self):
         """Get the project identifier.
@@ -366,23 +385,24 @@ class Project(object):
             return self.Job(project=self, statepoint=self.get_statepoint(id), _id=id)
 
     def _job_dirs(self):
+        ws = self.workspace()
         try:
-            for d in os.listdir(self._wd):
+            for d in os.listdir(ws):
                 if JOB_ID_REGEX.match(d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
-                if os.path.islink(self._wd):
+                if os.path.islink(ws):
                     raise WorkspaceError(
-                        "The link '{}' pointing to the workspace is broken.".format(self._wd))
-                elif not os.path.isdir(os.path.dirname(self._wd)):
+                        "The link '{}' pointing to the workspace is broken.".format(ws))
+                elif not os.path.isdir(os.path.dirname(ws)):
                     logger.warning(
                         "The path to the workspace directory "
-                        "('{}') does not exist.".format(os.path.dirname(self._wd)))
+                        "('{}') does not exist.".format(os.path.dirname(ws)))
                 else:
-                    logger.info("The workspace directory '{}' does not exist!".format(self._wd))
+                    logger.info("The workspace directory '{}' does not exist!".format(ws))
             else:
-                logger.error("Unable to access the workspace directory '{}'.".format(self._wd))
+                logger.error("Unable to access the workspace directory '{}'.".format(ws))
                 raise WorkspaceError(error)
 
     def num_jobs(self):
@@ -404,7 +424,7 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return os.path.exists(os.path.join(self._wd, job.get_id()))
+        return os.path.exists(os.path.join(self.workspace(), job.get_id()))
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
@@ -708,12 +728,12 @@ class Project(object):
 
     def _get_statepoint_from_workspace(self, jobid):
         "Attempt to read the statepoint from the workspace."
-        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), jobid, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as manifest:
                 return json.loads(manifest.read().decode())
         except (IOError, ValueError) as error:
-            if os.path.isdir(os.path.join(self._wd, jobid)):
+            if os.path.isdir(os.path.join(self.workspace(), jobid)):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(jobid, error))
