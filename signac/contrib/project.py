@@ -24,7 +24,7 @@ from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
-from ..common.config import load_config
+from ..common.config import load_config, Config
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -95,6 +95,15 @@ class JobSearchIndex(object):
         return self._collection._find(filter)
 
 
+class ProjectConfig(Config):
+    """Extends the project config to make it immutable."""
+    def __setitem__(self, key, value):
+        warnings.warn("Modifying the project configuration is deprecated "
+                      "behavior and will be removed in version 2.0.",
+                      DeprecationWarning)
+        return super(ProjectConfig, self).__setitem__(key, value)
+
+
 class Project(object):
     """The handle on a signac project.
 
@@ -120,7 +129,7 @@ class Project(object):
     def __init__(self, config=None):
         if config is None:
             config = load_config()
-        self._config = config
+        self._config = ProjectConfig(config)
 
         # Ensure that the project id is configured.
         self.get_id()
