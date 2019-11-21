@@ -42,9 +42,6 @@ except ImportError:
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
 
-warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
-
 
 class BaseProjectTest(BaseJobTest):
     pass
@@ -251,17 +248,15 @@ class ProjectTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         jobs = self.project.find_jobs()
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            for i in range(2):  # run this twice
-                jobs_ = set()
-                for i in range(len(self.project)):
-                    job = jobs.next()
-                    self.assertIn(job, self.project)
-                    jobs_.add(job)
-                with self.assertRaises(StopIteration):
-                    job = jobs.next()
-                self.assertEqual(jobs_, set(self.project))
+        for i in range(2):  # run this twice
+            jobs_ = set()
+            for i in range(len(self.project)):
+                job = jobs.next()
+                self.assertIn(job, self.project)
+                jobs_.add(job)
+            with self.assertRaises(StopIteration):
+                job = jobs.next()
+            self.assertEqual(jobs_, set(self.project))
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -1426,13 +1421,9 @@ class LinkedViewProjectTest(BaseProjectTest):
         subset = list(self.project.find_job_ids({'b': 0}))
         job_subset = [self.project.open_job(id=id) for id in subset]
 
-        # Catch deprecation warning for use of index.
-        with warnings.catch_warnings(record=True) as w:
-            bad_index = [dict(_id=i) for i in range(3)]
-            with self.assertRaises(ValueError):
-                self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
-            self.assertEqual(len(w), 1)
-            self.assertEqual(w[0].category, DeprecationWarning)
+        bad_index = [dict(_id=i) for i in range(3)]
+        with self.assertRaises(ValueError):
+            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
 
         self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
         all_links = list(_find_all_links(view_prefix))
@@ -1753,9 +1744,7 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
     def init(self, *args, **kwargs):
         super(UpdateCacheAfterInitJob, self).init(*args, **kwargs)
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
-            self._project.update_cache()
+        self._project.update_cache()
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
