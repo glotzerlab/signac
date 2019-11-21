@@ -35,6 +35,11 @@ Fixed
 
  - Attempting to create a linked view for a Project on Windows now raises an informative error message.
 
+Deprecated
+++++++++++
+
+ - Modifying the project config, to be removed in 2.0 (#246).
+
 Removed
 +++++++
 
