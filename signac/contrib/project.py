@@ -100,11 +100,13 @@ class ProjectConfig(Config):
     def __init__(self, *args, **kwargs):
         self._mutable = True
         super(ProjectConfig, self).__init__(*args, **kwargs)
+        self._mutable = False
 
     def __setitem__(self, key, value):
         if not self._mutable:
-            warnings.warn("Modifying the project configuration is deprecated "
-                          "behavior and will be removed in version 2.0.",
+            warnings.warn("Modifying the project configuration after project "
+                          "initialization is deprecated as of version 1.3 and "
+                          "will be removed in version 2.0.",
                           DeprecationWarning)
         return super(ProjectConfig, self).__setitem__(key, value)
 
@@ -135,7 +137,6 @@ class Project(object):
         if config is None:
             config = load_config()
         self._config = ProjectConfig(config)
-        self._config._mutable = False
 
         # Ensure that the project id is configured.
         self.get_id()
