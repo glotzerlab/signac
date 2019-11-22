@@ -33,10 +33,16 @@ class BaseDiffTest(unittest.TestCase):
 class DiffTest(BaseDiffTest):
 
     def test_repr(self):
-        job = self.project.open_job({'a': 0, 'b':1})
+        job1 = self.project.open_job({'a': 0, 'b':1})
         job2 = self.project.open_job({'a': 0})
-        result = signac.diff_jobs(job, job2)
-        print(result)
+        result = signac.diff_jobs(job1, job2)
+        self.assertTrue(result == {str(job1.get_id()): {('b', 1)}})
+
+    def test_nested(self):
+        job1 = self.project.open_job({'a': 0, 'b':{'c':True, 'd':11}})
+        job2 = self.project.open_job({'a': 0, 'b':{'c':True, 'd':4}})
+        result = signac.diff_jobs(job1, job2)
+        self.assertTrue(result == {str(job1.get_id()): {('b.d', 11)}, str(job2.get_id()): {('b.d', 4)}})
 
 if __name__ == '__main__':
     unittest.main()
