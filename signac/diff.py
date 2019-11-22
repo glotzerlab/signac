@@ -4,7 +4,7 @@
 import signac
 
 def diff_jobs(*jobs):
-    """Find the difference between two or more jobs
+    """Find the difference between two or more jobs, or an entire project.
 
         :param jobs:
 
@@ -21,9 +21,9 @@ def diff_jobs(*jobs):
     diffs = {}
     for job in jobs:
         unique_sps = sps[job]-intersection
-        if unique_sps == set():
-            pass
-        else:
-          diffs[job.get_id()] = unique_sps
+        if len(unique_sps) == 0:
+            unique_sps = {}
+
+        diffs[job.get_id()] = unique_sps
 
     return(diffs)

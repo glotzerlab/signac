@@ -42,6 +42,7 @@ from .errors import SyncConflict
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
+from .diff import diff_jobs
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -377,11 +378,32 @@ def main_find(args):
                 if len(args.doc) != 0:
                     doc = {key: doc[key] for key in args.doc if key in doc}
                 print(format_lines('sp ', job_id, doc))
+
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
         else:
             raise
+
+
+def main_diff(args):
+    project = get_project()
+
+    if args.filter:
+        jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+    elif args.job_id:
+        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
+    else:
+        jobs = project
+
+    jobs = list(jobs)
+    diff = diff_jobs(*jobs)
+
+    for job in jobs:
+        if args.pretty:
+            pprint(str(job.get_id()) + ' ' + str(diff[job.get_id()]), depth=args.pretty)
+        else:
+            print(json.dumps(str(diff[job.get_id()]),indent=args.indent, sort_keys=args.sort))
 
 
 def main_view(args):
@@ -1119,6 +1141,40 @@ def main():
         action='store_true',
         help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_diff = subparsers.add_parser(
+        'diff',
+        description="Find difference between two or more job state points.")
+    parser_diff.add_argument(
+        'job_id',
+        nargs='*',
+        type=str,
+        help="One or more job ids. The job corresponding to a job "
+             "id must be initialized.")
+    parser_diff.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print state point in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a state point is printed.")
+    parser_diff.add_argument(
+        '-i', '--indent',
+        type=int,
+        nargs='?',
+        const='2',
+        help="Specify the indentation of the JSON formatted state point.")
+    parser_diff.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the diff to jobs matching this state point filter.")
+    parser_diff.add_argument(
+        '-s', '--sort',
+        action='store_true',
+        help="Sort the state point keys for output.")
+    parser_diff.set_defaults(func=main_diff)
 
     parser_document = subparsers.add_parser(
         'document',
