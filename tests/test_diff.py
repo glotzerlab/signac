@@ -44,5 +44,10 @@ class DiffTest(BaseDiffTest):
         result = signac.diff_jobs(job1, job2)
         self.assertTrue(result == {str(job1.get_id()): {('b.d', 11)}, str(job2.get_id()): {('b.d', 4)}})
 
+    def test_single_job(self):
+        job1 = self.project.open_job({'a': 0, 'b':{'c':True, 'd':11}})
+        result = signac.diff_jobs(job1)
+        self.assertTrue(result == None)
+
 if __name__ == '__main__':
     unittest.main()
