@@ -4,6 +4,14 @@
 import signac
 
 def diff_jobs(*jobs):
+    """Find the difference between two or more jobs
+
+        :param jobs:
+
+    """
+    if len(jobs) < 2:
+        raise ValueError('Cannot compare fewer than two jobs!')
+
     sps = {}
     for job in jobs:
         sps[job] = set(signac.contrib.collection._traverse_filter(job.sp))
