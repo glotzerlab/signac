@@ -35,6 +35,7 @@ from .contrib import index
 from .contrib import RegexFileCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
+from .diff import diff_jobs
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
 from .core.jsondict import in_buffered_mode as is_buffered
@@ -50,6 +51,7 @@ from .version import __version__
 __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'cite',
            'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
+           'diff_jobs',
            'get_database', 'fetch',
            'export_one', 'export', 'export_to_mirror',
            'Collection',
