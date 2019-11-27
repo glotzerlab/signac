@@ -74,6 +74,12 @@ class ProjectTest(BaseProjectTest):
     def test_workspace_directory(self):
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
+    def test_config_modification(self):
+        with warnings.catch_warnings(record=True) as w:
+            self.project.config['foo'] = 'bar'
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0].category, DeprecationWarning)
+
     def test_workspace_directory_with_env_variable(self):
         os.environ['SIGNAC_ENV_DIR_TEST'] = self._tmp_wd
         self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'

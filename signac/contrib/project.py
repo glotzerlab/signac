@@ -108,6 +108,9 @@ class ProjectConfig(Config):
                           "initialization is deprecated as of version 1.3 and "
                           "will be removed in version 2.0.",
                           DeprecationWarning)
+
+            from packaging import version
+            assert version.parse(__version__) < version.parse("2.0")
         return super(ProjectConfig, self).__setitem__(key, value)
 
 
