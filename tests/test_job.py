@@ -33,11 +33,6 @@ except ImportError:
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
 
-warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
-warnings.filterwarnings(
-    'ignore', category=PendingDeprecationWarning, message=r'.*Cache API.*')
-
 BUILTINS = [
     ({'e': [1.0, '1.0', 1, True]}, '4d8058a305b940005be419b30e99bb53'),
     ({'d': True}, '33cf9999de25a715a56339c6c1b28b41'),
@@ -85,7 +80,8 @@ class BaseJobTest(unittest.TestCase):
             name='testing_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
-        self.project.config['default_host'] = 'testing'
+
+        warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
 
     def tearDown(self):
         pass
@@ -519,42 +515,34 @@ class JobOpenAndClosingTest(BaseJobTest):
         self.assertEqual(job, job2)
 
     def test_open_job_close(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            with self.open_job(test_token) as job:
-                pass
-            job.remove()
+        with self.open_job(test_token) as job:
+            pass
+        job.remove()
 
     def test_open_job_close_manual(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            job = self.open_job(test_token)
-            job.open()
-            job.close()
-            job.remove()
+        job = self.open_job(test_token)
+        job.open()
+        job.close()
+        job.remove()
 
     def test_open_job_close_with_error(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            job = self.open_job(test_token)
+        job = self.open_job(test_token)
 
-            class TestError(Exception):
-                pass
-            with self.assertRaises(TestError):
-                with job:
-                    raise TestError()
-            job.remove()
+        class TestError(Exception):
+            pass
+        with self.assertRaises(TestError):
+            with job:
+                raise TestError()
+        job.remove()
 
     def test_reopen_job(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            with self.open_job(test_token) as job:
-                job_id = job.get_id()
-                self.assertEqual(str(job_id), str(job))
+        with self.open_job(test_token) as job:
+            job_id = job.get_id()
+            self.assertEqual(str(job_id), str(job))
 
-            with self.open_job(test_token) as job:
-                self.assertEqual(job.get_id(), job_id)
-            job.remove()
+        with self.open_job(test_token) as job:
+            self.assertEqual(job.get_id(), job_id)
+        job.remove()
 
     def test_close_nonopen_job(self):
         job = self.open_job(test_token)
