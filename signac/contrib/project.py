@@ -95,11 +95,11 @@ class JobSearchIndex(object):
         return self._collection._find(filter)
 
 
-class ProjectConfig(Config):
+class _ProjectConfig(Config):
     """Extends the project config to make it immutable."""
     def __init__(self, *args, **kwargs):
         self._mutable = True
-        super(ProjectConfig, self).__init__(*args, **kwargs)
+        super(_ProjectConfig, self).__init__(*args, **kwargs)
         self._mutable = False
 
     def __setitem__(self, key, value):
@@ -111,7 +111,7 @@ class ProjectConfig(Config):
 
             from packaging import version
             assert version.parse(__version__) < version.parse("2.0")
-        return super(ProjectConfig, self).__setitem__(key, value)
+        return super(_ProjectConfig, self).__setitem__(key, value)
 
 
 class Project(object):
@@ -139,7 +139,7 @@ class Project(object):
     def __init__(self, config=None):
         if config is None:
             config = load_config()
-        self._config = ProjectConfig(config)
+        self._config = _ProjectConfig(config)
 
         # Ensure that the project id is configured.
         self.get_id()

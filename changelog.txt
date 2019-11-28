@@ -38,7 +38,7 @@ Fixed
 Deprecated
 ++++++++++
 
- - Modifying the project config, to be removed in 2.0 (#246).
+ - In-memory modification of the project configuration, to be removed in 2.0 (#246).
 
 Removed
 +++++++
