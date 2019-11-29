@@ -76,10 +76,7 @@ class ProjectTest(BaseProjectTest):
         # deprecated as of 1.3, and will be removed in version 2.0.
         # This unit test should reflect that change beginning 2.0,
         # and check that the project configuration is immutable.
-        with warnings.catch_warnings(record=True) as w:
-            self.project.config['foo'] = 'bar'
-            self.assertEqual(len(w), 1)
-            self.assertEqual(w[0].category, DeprecationWarning)
+        self.project.config['foo'] = 'bar'
 
     def test_workspace_directory_with_env_variable(self):
         os.environ['SIGNAC_ENV_DIR_TEST'] = self._tmp_wd
