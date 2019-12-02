@@ -121,6 +121,12 @@ class JobIDTest(BaseJobTest):
         self.assertEqual(str(job1), str(job2))
         self.assertEqual(job1.statepoint(), job2.statepoint())
 
+    def test_id_property(self):
+        for p, h in BUILTINS:
+            self.assertEqual(self.project.open_job(p).id, h)
+        self.assertEqual(
+            self.project.open_job(builtins_dict()).id, BUILTINS_HASH)
+
 
 class JobTest(BaseJobTest):
 

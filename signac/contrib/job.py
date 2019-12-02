@@ -79,6 +79,11 @@ class Job(object):
         :rtype: str"""
         return self._id
 
+    @property
+    def id(self):
+        """The unique identifier for the job's statepoint."""
+        return self.get_id()
+
     def __hash__(self):
         return hash(os.path.realpath(self._wd))
 
