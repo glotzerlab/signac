@@ -56,6 +56,10 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self.project.get_id(), 'testing_test_project')
         self.assertEqual(str(self.project), self.project.get_id())
 
+    def test_property_id(self):
+        self.assertEqual(self.project.id, 'testing_test_project')
+        self.assertEqual(str(self.project), self.project.id)
+
     def test_repr(self):
         repr(self.project)
         p = eval(repr(self.project))
