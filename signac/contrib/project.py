@@ -17,6 +17,7 @@ from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
+from deprecation import deprecated
 
 from ..version import __version__
 from .. import syncutil
@@ -35,6 +36,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
+from ..version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +221,8 @@ class Project(object):
             such as $HOME."""
         return self._wd
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use project.id instead.")
     def get_id(self):
         """Get the project identifier.
 
