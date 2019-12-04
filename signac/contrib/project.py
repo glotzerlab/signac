@@ -142,7 +142,12 @@ class Project(object):
         self._config = _ProjectConfig(config)
 
         # Ensure that the project id is configured.
-        self.get_id()
+        id_ = self.get_id()
+        if id_ is None:
+            raise LookupError(
+                "Unable to determine project id ."
+                "Are you sure '{}' is a signac project path?".format(
+                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
@@ -219,15 +224,16 @@ class Project(object):
 
         :return: The project id.
         :rtype: str
-        :raises LookupError: If no project id could be determined.
         """
         try:
             return str(self.config['project'])
         except KeyError:
-            raise LookupError(
-                "Unable to determine project id ."
-                "Are you sure '{}' is a signac project path?".format(
-                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
+            return None
+
+    @property
+    def id(self):
+        """Get the project identifier."""
+        return self.get_id()
 
     def min_len_unique_id(self):
         "Determine the minimum length required for an id to be unique."
