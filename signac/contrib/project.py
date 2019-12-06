@@ -24,7 +24,7 @@ from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
-from ..common.config import load_config, Config
+from ..common.config import get_config, load_config, Config
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -1461,10 +1461,11 @@ class Project(object):
             fn_config = os.path.join(root, 'signac.rc')
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            with open(fn_config, 'a') as config_file:
-                config_file.write('project={}\n'.format(name))
-                if workspace is not None:
-                    config_file.write('workspace_dir={}\n'.format(workspace))
+            config = get_config(fn_config)
+            config['project'] = name
+            if workspace is not None:
+                config['workspace_dir'] = workspace
+            config.write()
             project = cls.get_project(root=root)
             assert project.get_id() == str(name)
             return project
