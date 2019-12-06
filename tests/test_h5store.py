@@ -8,6 +8,7 @@ import unittest
 import random
 import string
 import subprocess
+import platform
 from itertools import chain
 from array import array
 from contextlib import contextmanager
@@ -22,6 +23,8 @@ from collections.abc import Mapping
 from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
 from signac.errors import InvalidKeyError
 
+
+PYPY = 'PyPy' in platform.python_implementation()
 
 try:
     import h5py    # noqa
@@ -46,6 +49,7 @@ FN_STORE = 'signac_test_h5store.h5'
 
 
 @unittest.skipIf(not H5PY, 'test requires the h5py package')
+@unittest.skipIf(PYPY, 'h5py not reliable on PyPy platform')
 class BaseH5StoreTest(unittest.TestCase):
 
     def setUp(self):
