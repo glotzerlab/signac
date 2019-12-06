@@ -4,7 +4,6 @@
 import unittest
 import os
 import uuid
-import warnings
 import logging
 import itertools
 import json
@@ -22,6 +21,8 @@ from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
+from signac.core.utility import parse_version
+from signac.common.config import get_config
 
 from test_job import BaseJobTest
 
@@ -1975,6 +1976,21 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project_a.get_job(symlink_path), job_a)
         self.assertEqual(project_b.get_job(symlink_path), job_a)
         self.assertEqual(signac.get_job(symlink_path), job_a)
+
+    def test_project_schema_versions(self):
+        root = self._tmp_dir.name
+        with self.assertRaises(LookupError):
+            signac.get_project(root=root)
+        project_name = 'testproject' + string.printable
+        project = signac.init_project(name=project_name, root=root)
+        impossibly_high_schema_version = '9999.0.0'
+        assert parse_version(project.config['signac_schema_version']) < parse_version(
+            impossibly_high_schema_version)
+        config = get_config(project.fn('signac.rc'))
+        config['signac_schema_version'] = impossibly_high_schema_version
+        config.write()
+        with self.assertRaises(RuntimeError):
+            signac.init_project(name=project_name, root=root)
 
 
 class ProjectPicklingTest(BaseProjectTest):
