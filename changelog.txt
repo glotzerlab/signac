@@ -25,6 +25,7 @@ Added
 
  - Add properties ``Project.id`` and ``Job.id`` (#250).
  - Add function to initialize a sample data space for testing purposes.
+ - Add schema version to ensure compatibility and enable migrations in future package versions (#165, #253).
 
 Changed
 +++++++
