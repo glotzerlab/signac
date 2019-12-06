@@ -121,12 +121,6 @@ class JobIDTest(BaseJobTest):
         self.assertEqual(str(job1), str(job2))
         self.assertEqual(job1.statepoint(), job2.statepoint())
 
-    def test_id_property(self):
-        for p, h in BUILTINS:
-            self.assertEqual(self.project.open_job(p).id, h)
-        self.assertEqual(
-            self.project.open_job(builtins_dict()).id, BUILTINS_HASH)
-
 
 class JobTest(BaseJobTest):
 
@@ -138,7 +132,7 @@ class JobTest(BaseJobTest):
 
     def test_str(self):
         job = self.project.open_job({'a': 0})
-        self.assertEqual(str(job), job.get_id())
+        self.assertEqual(str(job), job.id)
 
     def test_isfile(self):
         job = self.project.open_job({'a': 0})
@@ -280,9 +274,9 @@ class JobSPInterfaceTest(BaseJobTest):
 
     def test_interface_job_identity_change(self):
         job = self.open_job({'a': 0})
-        old_id = job.get_id()
+        old_id = job.id
         job.sp.a = 1
-        self.assertNotEqual(old_id, job.get_id())
+        self.assertNotEqual(old_id, job.id)
 
     def test_interface_nested_kws(self):
         with self.assertRaises(InvalidKeyError):
@@ -295,10 +289,10 @@ class JobSPInterfaceTest(BaseJobTest):
     def test_interface_lists(self):
         job = self.open_job({'a': [1, 2, 3]})
         self.assertEqual(job.sp.a, [1, 2, 3])
-        old_id = job.get_id()
+        old_id = job.id
         job.sp.a.append(4)
         self.assertEqual(job.sp.a, [1, 2, 3, 4])
-        self.assertNotEqual(old_id, job.get_id())
+        self.assertNotEqual(old_id, job.id)
 
     def test_interface_reserved_keywords(self):
         job = self.open_job({'with': 0, 'pop': 1})
@@ -364,11 +358,11 @@ class JobSPInterfaceTest(BaseJobTest):
         job_a = self.open_job(dict(a=0))
         job_b = self.open_job(dict(b=0))
         job_a.init()
-        id_a = job_a.get_id()
+        id_a = job_a.id
         job_a.sp = dict(b=0)
         self.assertEqual(job_a.statepoint(), dict(b=0))
         self.assertEqual(job_a, job_b)
-        self.assertNotEqual(job_a.get_id(), id_a)
+        self.assertNotEqual(job_a.id, id_a)
         job_a = self.open_job(dict(a=0))
         # Moving to existing job, no problem while empty:
         self.assertNotEqual(job_a, job_b)
@@ -394,27 +388,27 @@ class JobSPInterfaceTest(BaseJobTest):
 
         for job in self.project:
             obj_id = id(job)
-            id0 = job.get_id()
+            id0 = job.id
             sp0 = job.statepoint()
             self.assertEqual(id(job), obj_id)
             self.assertTrue(job.sp.a > 0)
-            self.assertEqual(job.get_id(), id0)
+            self.assertEqual(job.id, id0)
             self.assertEqual(job.sp, sp0)
 
             job.sp.a = - job.sp.a
             self.assertEqual(id(job), obj_id)
             self.assertTrue(job.sp.a < 0)
-            self.assertNotEqual(job.get_id(), id0)
+            self.assertNotEqual(job.id, id0)
             self.assertNotEqual(job.sp, sp0)
 
             job.sp.a = - job.sp.a
             self.assertEqual(id(job), obj_id)
             self.assertTrue(job.sp.a > 0)
-            self.assertEqual(job.get_id(), id0)
+            self.assertEqual(job.id, id0)
             self.assertEqual(job.sp, sp0)
             job2 = self.project.open_job(id=id0)
             self.assertEqual(job.sp, job2.sp)
-            self.assertEqual(job.get_id(), job2.get_id())
+            self.assertEqual(job.id, job2.id)
 
     def test_valid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
@@ -543,11 +537,11 @@ class JobOpenAndClosingTest(BaseJobTest):
 
     def test_reopen_job(self):
         with self.open_job(test_token) as job:
-            job_id = job.get_id()
+            job_id = job.id
             self.assertEqual(str(job_id), str(job))
 
         with self.open_job(test_token) as job:
-            self.assertEqual(job.get_id(), job_id)
+            self.assertEqual(job.id, job_id)
         job.remove()
 
     def test_close_nonopen_job(self):
@@ -1523,23 +1517,23 @@ class JobOpenDataTest(BaseJobTest):
 
     def test_statepoint_copy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.get_id()
+        _id = job.id
         sp_copy = copy.copy(job.sp)
         del sp_copy['b']
         self.assertIn('a', job.sp)
         self.assertNotIn('b', job.sp)
         self.assertIn(job, self.project)
-        self.assertNotEqual(job.get_id(), _id)
+        self.assertNotEqual(job.id, _id)
 
     def test_statepoint_deepcopy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
-        _id = job.get_id()
+        _id = job.id
         sp_copy = copy.deepcopy(job.sp)
         del sp_copy['b']
         self.assertIn('a', job.sp)
         self.assertIn('b', job.sp)
         self.assertNotIn(job, self.project)
-        self.assertEqual(job.get_id(), _id)
+        self.assertEqual(job.id, _id)
 
 
 @unittest.skipIf(not H5PY, 'test requires the h5py package')
