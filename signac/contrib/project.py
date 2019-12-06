@@ -17,7 +17,6 @@ from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
-from deprecation import deprecated
 
 from ..version import __version__
 from .. import syncutil
@@ -36,7 +35,6 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-from ..version import __version__
 
 logger = logging.getLogger(__name__)
 
