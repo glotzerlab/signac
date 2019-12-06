@@ -52,7 +52,7 @@ def get_validator():
 cfg = """
 project = string()
 workspace_dir = string(default='workspace')
-signac_version = version(default='0,1,0')
+signac_schema_version = version(default='1,0,0')
 
 [General]
 default_host = string(default=None)

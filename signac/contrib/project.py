@@ -18,7 +18,7 @@ from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
 
-from ..version import __version__
+from ..version import __version__, SIGNAC_SCHEMA_VERSION, SUPPORTED_MAJOR_SCHEMA_VERSIONS
 from .. import syncutil
 from ..core import json
 from ..core.jsondict import JSONDict
@@ -1476,6 +1476,7 @@ class Project(object):
             config['project'] = name
             if workspace is not None:
                 config['workspace_dir'] = workspace
+            config['signac_schema_version'] = SIGNAC_SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
             assert project.id == str(name)
@@ -1516,6 +1517,22 @@ class Project(object):
                 (not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)):
             raise LookupError(
                 "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
+        if config['signac_schema_version'][0] not in SUPPORTED_MAJOR_SCHEMA_VERSIONS:
+            # Project schema's major version is not supported by this version of signac
+            raise RuntimeError(
+                "The signac schema version used by this project is {}, but signac {} "
+                "only supports major schema versions {}. Try updating signac.".format(
+                    '.'.join(map(str, config['signac_schema_version'])),
+                    __version__,
+                    SUPPORTED_MAJOR_SCHEMA_VERSIONS))
+        if config['signac_schema_version'] > SIGNAC_SCHEMA_VERSION:
+            # Project schema's minor/patch version is not supported by this version of signac
+            warnings.warn(
+                "The signac schema version used by this project is {}, but signac {} "
+                "uses schema version {}. Try updating signac.".format(
+                    '.'.join(map(str, config['signac_schema_version'])),
+                    __version__,
+                    SIGNAC_SCHEMA_VERSION), RuntimeWarning)
         return cls(config=config)
 
     @classmethod
