@@ -9,6 +9,7 @@ import logging
 import itertools
 import json
 import pickle
+import string
 from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
@@ -1797,6 +1798,14 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.get_id(), 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
+
+    def test_get_project_all_printable_characters(self):
+        root = self._tmp_dir.name
+        with self.assertRaises(LookupError):
+            signac.get_project(root=root)
+        project_name = 'testproject' + string.printable
+        project = signac.init_project(name=project_name, root=root)
+        self.assertEqual(project.get_id(), project_name)
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
