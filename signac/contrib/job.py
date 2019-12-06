@@ -93,7 +93,7 @@ class Job(object):
 
     def __str__(self):
         "Returns the job's id."
-        return str(self.get_id())
+        return str(self.id)
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
