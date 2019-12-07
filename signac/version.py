@@ -4,11 +4,11 @@
 
 
 __version__ = "1.2.0"
-SIGNAC_SCHEMA_VERSION = "1.0.0"
-SUPPORTED_MAJOR_SCHEMA_VERSIONS = (1, )
+
+SCHEMA_VERSION = "1.0.0"
+
 
 __all__ = [
     '__version__',
-    SIGNAC_SCHEMA_VERSION,
-    SUPPORTED_MAJOR_SCHEMA_VERSIONS
+    'SCHEMA_VERSION',
 ]

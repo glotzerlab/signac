@@ -17,13 +17,13 @@ from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
+from packaging import version
 
-from ..version import __version__, SIGNAC_SCHEMA_VERSION, SUPPORTED_MAJOR_SCHEMA_VERSIONS
+from ..version import __version__, SCHEMA_VERSION
 from .. import syncutil
 from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
-from ..core.utility import parse_version
 from .collection import Collection
 from ..common.config import get_config, load_config, Config
 from ..sync import sync_projects
@@ -36,6 +36,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
+from .migrations import apply_migrations
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,6 @@ class _ProjectConfig(Config):
                           "will be removed in version 2.0.",
                           DeprecationWarning)
 
-            from packaging import version
             assert version.parse(__version__) < version.parse("2.0")
         return super(_ProjectConfig, self).__setitem__(key, value)
 
@@ -148,6 +148,9 @@ class Project(object):
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
                     os.path.abspath(self.config.get('project_dir', os.getcwd()))))
+
+        # Apply migrations if necessary
+        apply_migrations(self)
 
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
@@ -1477,7 +1480,7 @@ class Project(object):
             config['project'] = name
             if workspace is not None:
                 config['workspace_dir'] = workspace
-            config['signac_schema_version'] = SIGNAC_SCHEMA_VERSION
+            config['schema_version'] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
             assert project.id == str(name)
@@ -1518,23 +1521,7 @@ class Project(object):
                 (not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)):
             raise LookupError(
                 "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
-        config_schema_version = parse_version(config['signac_schema_version'])
-        if config_schema_version['major'] not in SUPPORTED_MAJOR_SCHEMA_VERSIONS:
-            # Project schema's major version is not supported by this version of signac
-            raise RuntimeError(
-                "The signac schema version used by this project is {}, but signac {} "
-                "only supports major schema versions {}. Try updating signac.".format(
-                    config_schema_version,
-                    __version__,
-                    SUPPORTED_MAJOR_SCHEMA_VERSIONS))
-        if config_schema_version > parse_version(SIGNAC_SCHEMA_VERSION):
-            # Project schema's minor/patch version is not supported by this version of signac
-            warnings.warn(
-                "The signac schema version used by this project is {}, but signac {} "
-                "uses schema version {}. Try updating signac.".format(
-                    config_schema_version,
-                    __version__,
-                    SIGNAC_SCHEMA_VERSION), RuntimeWarning)
+
         return cls(config=config)
 
     @classmethod

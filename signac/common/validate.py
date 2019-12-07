@@ -41,7 +41,7 @@ def get_validator():
 cfg = """
 project = string()
 workspace_dir = string(default='workspace')
-signac_schema_version = string(default='1.0.0')
+schema_version = string(default='0.0.0')
 
 [General]
 default_host = string(default=None)
