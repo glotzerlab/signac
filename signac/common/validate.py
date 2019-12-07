@@ -10,16 +10,6 @@ from .configobj.validate import VdtValueError
 logger = logging.getLogger(__name__)
 
 
-def version(value, *args, **kwargs):
-    try:
-        if isinstance(value, str):
-            return tuple((int(v) for v in value.split(',')))
-        else:
-            return tuple((int(v) for v in value))
-    except Exception:
-        raise VdtValueError(value)
-
-
 def mongodb_uri(value, *args, **kwargs):
     if isinstance(value, list):
         value = ','.join(value)
@@ -43,7 +33,6 @@ def password(value, *args, **kwargs):
 
 def get_validator():
     return Validator({
-        'version': version,
         'mongodb_uri': mongodb_uri,
         'password': password,
     })
@@ -52,7 +41,7 @@ def get_validator():
 cfg = """
 project = string()
 workspace_dir = string(default='workspace')
-signac_schema_version = version(default='1,0,0')
+signac_schema_version = string(default='1.0.0')
 
 [General]
 default_host = string(default=None)
