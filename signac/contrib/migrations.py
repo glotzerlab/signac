@@ -1,12 +1,9 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
 import sys
 from abc import abstractmethod
 from packaging import version
-
-from filelock import FileLock
 
 from ..common.config import get_config
 from ..version import __version__, SCHEMA_VERSION
@@ -40,6 +37,12 @@ MIGRATIONS = {
 }
 
 
+def _reload_project_config(project):
+    project_reloaded = project.get_project(
+        root=project._rd, search=False, _ignore_schema_version=True)
+    project._config = project_reloaded._config
+
+
 def _update_project_config(project, **kwargs):
     "Update the project configuration, for internal use only."
     for fn in ('signac.rc', '.signacrc'):
@@ -50,14 +53,11 @@ def _update_project_config(project, **kwargs):
         raise RuntimeError("Unable to determine project configuration file.")
     config.update(kwargs)
     config.write()
-    # Reload project configuration
-    p = project.get_project(root=project._rd, search=False)
-    project._config = p._config
+    _reload_project_config(project)
 
 
 def apply_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
-    lock = FileLock(FN_MIGRATION_LOCKFILE)
 
     def config_schema_version():
         return version.parse(project._config['schema_version'])
@@ -72,34 +72,29 @@ def apply_migrations(project):
     while config_schema_version() < schema_version:
         for (origin, destination), migration in MIGRATIONS.items():
             if version.parse(origin) == config_schema_version():
-                with lock:
-                    try:
-                        print("Applying migration for "
-                              "version {} to {}... ".format(origin, destination), end='',
-                              file=sys.stderr)
-                        migration.apply(project)
-                    except Exception as e:
-                        print("FAILED. Rolling back... ", end='', file=sys.stderr)
-                        migration.rollback(project)
-                        print("DONE", file=sys.stderr)
-                        raise RuntimeError(
-                            "Failed to apply migration {}.".format(destination)) from e
-                    else:
-                        _update_project_config(project, schema_version=destination)
-                        print("OK", file=sys.stderr)
-                        break
+                try:
+                    print("Applying migration for "
+                          "version {} to {}... ".format(origin, destination), end='',
+                          file=sys.stderr)
+                    migration.apply(project)
+                except Exception as e:
+                    print("FAILED. Rolling back... ", end='', file=sys.stderr)
+                    migration.rollback(project)
+                    print("DONE", file=sys.stderr)
+                    raise RuntimeError(
+                        "Failed to apply migration {}.".format(destination)) from e
+                else:
+                    _update_project_config(project, schema_version=destination)
+                    print("OK", file=sys.stderr)
+                    break
         else:
             raise RuntimeError(
                 "The signac schema version used by this project is {}, but signac {} "
                 "uses schema version {} and does not know how to migrate.".format(
                     config_schema_version(), __version__, schema_version))
 
-    try:
-        os.unlink(lock.lock_file)
-    except FileNotFoundError:
-        pass
-
 
 __all__ = [
-    'MIGRATIONS'
+    'MIGRATIONS',
+    'apply_migrations',
     ]

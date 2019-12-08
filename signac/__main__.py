@@ -19,6 +19,8 @@ import re
 import errno
 from pprint import pprint, pformat
 
+from packaging import version
+
 try:
     import readline
 except ImportError:
@@ -27,7 +29,7 @@ else:
     READLINE = True
 
 from . import Project, get_project, init_project, index
-from .version import __version__
+from .version import __version__, SCHEMA_VERSION
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
@@ -670,6 +672,36 @@ def main_update_cache(args):
         _print_err("Cache is up to date.")
     else:
         _print_err("Updated cache (size={}).".format(n))
+
+
+def main_migrate(args):
+    from .contrib.migrations import apply_migrations
+    from filelock import FileLock
+    project = get_project(_ignore_schema_version=True)
+
+    schema_version = version.parse(SCHEMA_VERSION)
+    config_schema_version = version.parse(project.config['schema_version'])
+
+    if config_schema_version > schema_version:
+        _print_err(
+            "The schema version of the project ({}) is newer than the schema "
+            "version supported by signac version {}: {}. Try updatign signac.".format(
+                config_schema_version, __version__, schema_version))
+    elif config_schema_version == schema_version:
+        _print_err(
+            "The schema version of the project ({}) is up to date. "
+            "Nothing to do.".format(config_schema_version))
+    elif args.yes or query_yes_no(
+        "Do you want to migrate this project's schema version from '{}' to '{}'? "
+        "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
+            config_schema_version, schema_version), 'no'):
+        lock = FileLock(project.fn('.SIGNAC_PROJECT_MIGRATION_LOCK'))
+        with lock:
+            apply_migrations(project)
+        try:
+            os.unlink(lock.lock_file)
+        except FileNotFoundError:
+            pass
 
 
 def verify_config(cfg, preserve_errors=True):
@@ -1715,6 +1747,12 @@ This feature is still experimental and may be removed in future versions.""")
 
     parser_verify = config_subparsers.add_parser('verify')
     parser_verify.set_defaults(func=main_config_verify)
+
+    parser_migrate = subparsers.add_parser(
+        'migrate',
+        description="Irreversibly migrate this project's schema version to the "
+                    "supported version.")
+    parser_migrate.set_defaults(func=main_migrate)
 
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
