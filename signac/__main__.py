@@ -1748,11 +1748,12 @@ This feature is still experimental and may be removed in future versions.""")
     parser_verify = config_subparsers.add_parser('verify')
     parser_verify.set_defaults(func=main_config_verify)
 
-    parser_migrate = subparsers.add_parser(
-        'migrate',
-        description="Irreversibly migrate this project's schema version to the "
-                    "supported version.")
-    parser_migrate.set_defaults(func=main_migrate)
+    # The 'migrate' sub-command is disabled until we introduce the first migration.
+    # parser_migrate = subparsers.add_parser(
+    #     'migrate',
+    #     description="Irreversibly migrate this project's schema version to the "
+    #                 "supported version.")
+    # parser_migrate.set_defaults(func=main_migrate)
 
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
