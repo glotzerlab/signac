@@ -8,19 +8,20 @@ def diff_jobs(*jobs):
 
         :param jobs:
     """
+    if len(jobs) == 0:
+        return {}
 
-    sps = {}
-    for job in jobs:
-        sps[job] = set(signac.contrib.collection._traverse_filter(job.sp))
+    else:
+        sps = {}
+        for job in jobs:
+            sps[job] = set(signac.contrib.collection._traverse_filter(job.sp))
 
-    intersection = set.intersection(*sps.values())
+        intersection = set.intersection(*sps.values())
 
-    diffs = {}
-    for job in jobs:
-        unique_sps = sps[job]-intersection
-        if len(unique_sps) == 0:
-            unique_sps = {}
+        diffs = {}
+        for job in jobs:
+            unique_sps = sps[job]-intersection
+            if len(unique_sps) != 0:
+                diffs[job.get_id()] = dict(unique_sps)
 
-        diffs[job.get_id()] = unique_sps
-
-    return(diffs)
+        return(diffs)
