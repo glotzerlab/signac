@@ -4,13 +4,10 @@
 import signac
 
 def diff_jobs(*jobs):
-    """Find the difference between two or more jobs, or an entire project.
+    """Find the difference between jobs or an entire project.
 
         :param jobs:
-
     """
-    if len(jobs) < 2:
-        raise ValueError('Cannot compare fewer than two jobs!')
 
     sps = {}
     for job in jobs:

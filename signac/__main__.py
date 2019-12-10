@@ -390,7 +390,7 @@ def main_diff(args):
     project = get_project()
 
     if args.filter:
-        jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
+        jobs = [project.open_job(id=job_id) for job_id in find_with_filter_or_none(args)]
     elif args.job_id:
         jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
     else:
@@ -400,10 +400,8 @@ def main_diff(args):
     diff = diff_jobs(*jobs)
 
     for job in jobs:
-        if args.pretty:
-            pprint(str(job.get_id()) + ' ' + str(diff[job.get_id()]), depth=args.pretty)
-        else:
-            print(json.dumps(str(diff[job.get_id()]),indent=args.indent, sort_keys=args.sort))
+        print(job.get_id())
+        pprint(job.statepoint())
 
 
 def main_view(args):
@@ -1170,6 +1168,11 @@ def main():
         type=str,
         nargs='+',
         help="Limit the diff to jobs matching this state point filter.")
+    parser_diff.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Show documents of job matching this document filter.")
     parser_diff.add_argument(
         '-s', '--sort',
         action='store_true',
