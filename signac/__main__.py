@@ -675,7 +675,7 @@ def main_update_cache(args):
 
 
 def main_migrate(args):
-    from .contrib.migrations import apply_migrations
+    from .contrib.migrations import apply_migrations, FN_MIGRATION_LOCKFILE
     from filelock import FileLock
     project = get_project(_ignore_schema_version=True)
 
@@ -695,7 +695,7 @@ def main_migrate(args):
         "Do you want to migrate this project's schema version from '{}' to '{}'? "
         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
             config_schema_version, schema_version), 'no'):
-        lock = FileLock(project.fn('.SIGNAC_PROJECT_MIGRATION_LOCK'))
+        lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
         try:
             with lock:
                 apply_migrations(project)
