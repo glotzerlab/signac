@@ -685,7 +685,7 @@ def main_migrate(args):
     if config_schema_version > schema_version:
         _print_err(
             "The schema version of the project ({}) is newer than the schema "
-            "version supported by signac version {}: {}. Try updatign signac.".format(
+            "version supported by signac version {}: {}. Try updating signac.".format(
                 config_schema_version, __version__, schema_version))
     elif config_schema_version == schema_version:
         _print_err(
