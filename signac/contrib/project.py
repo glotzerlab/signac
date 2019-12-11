@@ -249,7 +249,7 @@ class Project(object):
         """Checks whether this project's data schema is compatible with this version.
 
         :raises RuntimeError:
-            In case that the schema version is incomaptible.
+            If the schema version is incompatible.
         """
         schema_version = version.parse(SCHEMA_VERSION)
         config_schema_version = version.parse(self.config['schema_version'])
