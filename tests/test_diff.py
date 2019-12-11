@@ -1,9 +1,11 @@
+# Copyright (c) 2019 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 import os
-import json
 import unittest
-import subprocess
 import signac
 from tempfile import TemporaryDirectory
+
 
 class BaseDiffTest(unittest.TestCase):
 
@@ -33,10 +35,10 @@ class BaseDiffTest(unittest.TestCase):
 class DiffTest(BaseDiffTest):
 
     def test_two_jobs(self):
-        job1 = self.project.open_job({'a': 0, 'b':1})
+        job1 = self.project.open_job({'a': 0, 'b': 1})
         job2 = self.project.open_job({'a': 0})
         print(signac.diff_jobs(job1, job2))
-        self.assertEqual(signac.diff_jobs(job1, job2), {str(job1.get_id()):{'b':1}})
+        self.assertEqual(signac.diff_jobs(job1, job2), {str(job1.get_id()): {'b': 1}})
 
     def test_one_job(self):
         job1 = self.project.open_job({'a': 0})
@@ -47,13 +49,13 @@ class DiffTest(BaseDiffTest):
         self.assertTrue(signac.diff_jobs() == {})
 
     def test_nested(self):
-        job1 = self.project.open_job({'a': 0, 'b':{'c':True, 'd':11}})
-        job2 = self.project.open_job({'a': 0, 'b':{'c':True, 'd':4}})
+        job1 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 11}})
+        job2 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
         result = signac.diff_jobs(job1, job2)
         self.assertEqual(result, {str(job1.get_id()): {'b.d': 11}, str(job2.get_id()): {'b.d': 4}})
 
     def test_same_job(self):
-        job1 = self.project.open_job({'a': 0, 'b':1})
+        job1 = self.project.open_job({'a': 0, 'b': 1})
         print(signac.diff_jobs(job1, job1))
         self.assertTrue(signac.diff_jobs(job1, job1) == {})
 
