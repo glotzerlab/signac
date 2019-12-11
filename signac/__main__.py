@@ -696,12 +696,14 @@ def main_migrate(args):
         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
             config_schema_version, schema_version), 'no'):
         lock = FileLock(project.fn('.SIGNAC_PROJECT_MIGRATION_LOCK'))
-        with lock:
-            apply_migrations(project)
         try:
-            os.unlink(lock.lock_file)
-        except FileNotFoundError:
-            pass
+            with lock:
+                apply_migrations(project)
+        finally:
+            try:
+                os.unlink(lock.lock_file)
+            except FileNotFoundError:
+                pass
 
 
 def verify_config(cfg, preserve_errors=True):
