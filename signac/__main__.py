@@ -399,7 +399,7 @@ def main_diff(args):
     jobs = list(jobs)
     diff = diff_jobs(*jobs)
 
-    for job in jobs:
+    for job in diff:
         print(job.get_id())
         pprint(job.statepoint())
 

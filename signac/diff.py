@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import signac
 
+
 def diff_jobs(*jobs):
     """Find the difference between jobs or an entire project.
 
