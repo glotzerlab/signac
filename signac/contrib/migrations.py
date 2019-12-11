@@ -44,7 +44,7 @@ def _reload_project_config(project):
 
 
 def _update_project_config(project, **kwargs):
-    "Update the project configuration, for internal use only."
+    "Update the project configuration."
     for fn in ('signac.rc', '.signacrc'):
         config = get_config(project.fn(fn))
         if 'project' in config:
