@@ -230,7 +230,11 @@ class Project(object):
 
     @property
     def id(self):
-        """Get the project identifier."""
+        """Get the project identifier.
+
+        :return: The project id.
+        :rtype: str
+        """
         try:
             return str(self.config['project'])
         except KeyError:

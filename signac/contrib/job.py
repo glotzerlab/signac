@@ -77,7 +77,7 @@ class Job(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use job.id instead.")
     def get_id(self):
-        """The unique identifier for the job's statepoint.
+        """The job's statepoint's unique identifier.
 
         :return: The job id.
         :rtype: str"""
@@ -85,7 +85,10 @@ class Job(object):
 
     @property
     def id(self):
-        """The unique identifier for the job's statepoint."""
+        """The unique identifier for the job's statepoint.
+
+        :return: The job id.
+        :rtype: str"""
         return self._id
 
     def __hash__(self):
