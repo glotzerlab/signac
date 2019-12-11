@@ -34,5 +34,5 @@ class StatepointParsingError(Error, RuntimeError):
 
 
 class IncompatibleSchemaVersion(Error):
-    "The project's schema version is incompatible with this version."
+    "The project's schema version is incompatible with this version of signac."
     pass
