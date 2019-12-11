@@ -21,6 +21,7 @@ from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
+from signac.contrib.errors import IncompatibleSchemaVersion
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.common.config import get_config
 
@@ -1990,7 +1991,7 @@ class ProjectInitTest(unittest.TestCase):
         config = get_config(project.fn('signac.rc'))
         config['schema_version'] = impossibly_high_schema_version
         config.write()
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(IncompatibleSchemaVersion):
             signac.init_project(name=project_name, root=root)
 
 
