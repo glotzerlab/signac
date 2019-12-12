@@ -1984,32 +1984,26 @@ class ProjectInitTest(unittest.TestCase):
 class ProjectSchemaTest(BaseProjectTest):
 
     def test_project_schema_versions(self):
-        root = self._tmp_dir.name
-        with self.assertRaises(LookupError):
-            signac.get_project(root=root)
-        project_name = 'testproject' + string.printable
-        project = signac.init_project(name=project_name, root=root)
         impossibly_high_schema_version = '9999.0.0'
         self.assertLess(
-            version.parse(project.config['schema_version']),
+            version.parse(self.project.config['schema_version']),
             version.parse(impossibly_high_schema_version))
-        config = get_config(project.fn('signac.rc'))
+        config = get_config(self.project.fn('signac.rc'))
         config['schema_version'] = impossibly_high_schema_version
         config.write()
         with self.assertRaises(IncompatibleSchemaVersion):
-            signac.init_project(name=project_name, root=root)
+            signac.init_project(
+                name=str(self.project), root=self.project.root_directory())
 
     def test_project_schema_version_migration(self):
         from signac.contrib.migration import apply_migrations
-        root = self._tmp_dir.name
-        project = signac.init_project(name='testproject', root=root)
-        apply_migrations(project)
-        project._config['schema_version'] = '0'
-        self.assertEqual(project._config['schema_version'], '0')
+        apply_migrations(self.project)
+        self.project._config['schema_version'] = '0'
+        self.assertEqual(self.project._config['schema_version'], '0')
         err = io.StringIO()
         with redirect_stderr(err):
-            apply_migrations(project)
-        self.assertEqual(project._config['schema_version'], '1')
+            apply_migrations(self.project)
+        self.assertEqual(self.project._config['schema_version'], '1')
         self.assertIn('OK', err.getvalue())
         self.assertIn('0 to 1', err.getvalue())
 
@@ -2022,9 +2016,7 @@ class ProjectSchemaTest(BaseProjectTest):
         # 1. Ensure to enable the 'migrate' sub-command within the __main__ module.
         # 2. Either update or remove this unit test.
         from signac.contrib.migration import _collect_migrations
-        root = self._tmp_dir.name
-        project = signac.init_project(name='testproject', root=root)
-        migrations = list(_collect_migrations(project))
+        migrations = list(_collect_migrations(self.project))
         self.assertEqual(len(migrations), 0)
 
 
