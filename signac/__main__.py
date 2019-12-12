@@ -1117,7 +1117,7 @@ def main():
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The job corresponding to a job "
+        help="One or more job ids. The jobs must be initialized."
              "id must be initialized.")
     parser_statepoint.add_argument(
         '-p', '--pretty',
