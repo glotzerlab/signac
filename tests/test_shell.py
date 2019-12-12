@@ -251,5 +251,6 @@ class BasicShellTest(unittest.TestCase):
         job = list(project.find_jobs({'a': 0}))[0]
         self.assertEqual(out.strip(), '>>> {} {} 1'.format(project, job))
 
+
 if __name__ == '__main__':
     unittest.main()
