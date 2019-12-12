@@ -1,13 +1,13 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import signac
 
 
 def diff_jobs(*jobs):
-    """Find the difference between jobs or an entire project.
+    """Find differences among a list of jobs' state points.
 
-        :param jobs:
+        :param jobs: One or more jobs whose state points will be diffed.
     """
     if len(jobs) == 0:
         return {}

@@ -378,7 +378,6 @@ def main_find(args):
                 if len(args.doc) != 0:
                     doc = {key: doc[key] for key in args.doc if key in doc}
                 print(format_lines('sp ', job_id, doc))
-
     except IOError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -1172,7 +1171,7 @@ def main():
         '-d', '--doc-filter',
         type=str,
         nargs='+',
-        help="Show documents of job matching this document filter.")
+        help="Show documents of jobs matching this document filter.")
     parser_diff.add_argument(
         '-s', '--sort',
         action='store_true',
