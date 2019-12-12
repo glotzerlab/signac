@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import sys
-from abc import abstractmethod
 from packaging import version
 from contextlib import contextmanager
 
@@ -16,28 +15,12 @@ from ..version import __version__, SCHEMA_VERSION
 FN_MIGRATION_LOCKFILE = '.SIGNAC_PROJECT_MIGRATION_LOCK'
 
 
-class Migration:
-
-    @abstractmethod
-    def apply(self, project):
-        pass
-
-    @abstractmethod
-    def rollback(self, project):
-        pass
-
-
-class Migrate0To1(Migration):
-
-    def apply(self, project):
-        pass  # nothing to do
-
-    def rollback(self, project):
-        pass  # nothing to do
+def migrate_v0_to_v1(project):
+    pass  # nothing to do here, serves purely as example
 
 
 MIGRATIONS = {
-    ('0', '1'):    Migrate0To1(),
+    ('0', '1'):    migrate_v0_to_v1,
 }
 
 
@@ -80,11 +63,8 @@ def _apply_migrations(project):
                     print("Applying migration for "
                           "version {} to {}... ".format(origin, destination), end='',
                           file=sys.stderr)
-                    migration.apply(project)
+                    migration(project)
                 except Exception as e:
-                    print("FAILED. Rolling back... ", end='', file=sys.stderr)
-                    migration.rollback(project)
-                    print("DONE", file=sys.stderr)
                     raise RuntimeError(
                         "Failed to apply migration {}.".format(destination)) from e
                 else:
