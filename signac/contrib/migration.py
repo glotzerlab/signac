@@ -1,9 +1,13 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import os
 import sys
 from abc import abstractmethod
 from packaging import version
+from contextlib import contextmanager
+
+from filelock import FileLock
 
 from ..common.config import get_config
 from ..version import __version__, SCHEMA_VERSION
@@ -56,7 +60,7 @@ def _update_project_config(project, **kwargs):
     _reload_project_config(project)
 
 
-def apply_migrations(project):
+def _apply_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
 
     def config_schema_version():
@@ -92,6 +96,24 @@ def apply_migrations(project):
                 "The signac schema version used by this project is {}, but signac {} "
                 "uses schema version {} and does not know how to migrate.".format(
                     config_schema_version(), __version__, schema_version))
+
+
+@contextmanager
+def _lock_for_migration(project):
+    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
+    try:
+        with lock:
+            yield
+    finally:
+        try:
+            os.unlink(lock.lock_file)
+        except FileNotFoundError:
+            pass
+
+
+def apply_migrations(project):
+    with _lock_for_migration(project):
+        _apply_migrations(project)
 
 
 __all__ = [

@@ -675,8 +675,7 @@ def main_update_cache(args):
 
 
 def main_migrate(args):
-    from .contrib.migration import apply_migrations, FN_MIGRATION_LOCKFILE
-    from filelock import FileLock
+    from .contrib.migration import apply_migrations
     project = get_project(_ignore_schema_version=True)
 
     schema_version = version.parse(SCHEMA_VERSION)
@@ -695,15 +694,7 @@ def main_migrate(args):
         "Do you want to migrate this project's schema version from '{}' to '{}'? "
         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
             config_schema_version, schema_version), 'no'):
-        lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
-        try:
-            with lock:
-                apply_migrations(project)
-        finally:
-            try:
-                os.unlink(lock.lock_file)
-            except FileNotFoundError:
-                pass
+        apply_migrations(project)
 
 
 def verify_config(cfg, preserve_errors=True):
