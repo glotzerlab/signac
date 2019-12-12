@@ -5,6 +5,11 @@ import signac
 
 
 def _dotted_keys_to_nested_dicts(mapping):
+    """Converts dictionaries with dot-separated keys into nested dictionaries.
+
+    :param mapping: A mapping with dots in its keys, e.g. {'a.b': 'c'}
+    :returns: A mapping with nested keys, e.g. {'a': {'b': 'c'}}
+    """
     result = {}
 
     def make_nested_dict(d, keys):
