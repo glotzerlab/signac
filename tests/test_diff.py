@@ -22,7 +22,6 @@ class BaseDiffTest(unittest.TestCase):
             name='testing_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
-        self.project.config['default_host'] = 'testing'
 
     def tearDown(self):
         pass
@@ -37,13 +36,15 @@ class DiffTest(BaseDiffTest):
     def test_two_jobs(self):
         job1 = self.project.open_job({'a': 0, 'b': 1})
         job2 = self.project.open_job({'a': 0})
-        print(signac.diff_jobs(job1, job2))
-        self.assertEqual(signac.diff_jobs(job1, job2), {str(job1.get_id()): {'b': 1}})
+        expected = {str(job1.get_id()): {'b': 1}, str(job2.get_id()): {}}
+        result = signac.diff_jobs(job1, job2)
+        self.assertEqual(expected, result, f'{result} is not {expected}')
 
     def test_one_job(self):
         job1 = self.project.open_job({'a': 0})
-        print(signac.diff_jobs(job1))
-        self.assertEqual(signac.diff_jobs(job1), {})
+        expected = {str(job1.get_id()): {}}
+        result = signac.diff_jobs(job1)
+        self.assertEqual(expected, result, f'{result} is not {expected}')
 
     def test_no_jobs(self):
         self.assertTrue(signac.diff_jobs() == {})
@@ -51,13 +52,15 @@ class DiffTest(BaseDiffTest):
     def test_nested(self):
         job1 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 11}})
         job2 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
+        expected = {str(job1.get_id()): {'b.d': 11}, str(job2.get_id()): {'b.d': 4}}
         result = signac.diff_jobs(job1, job2)
-        self.assertEqual(result, {str(job1.get_id()): {'b.d': 11}, str(job2.get_id()): {'b.d': 4}})
+        self.assertEqual(expected, result, f'{result} is not {expected}')
 
     def test_same_job(self):
         job1 = self.project.open_job({'a': 0, 'b': 1})
-        print(signac.diff_jobs(job1, job1))
-        self.assertTrue(signac.diff_jobs(job1, job1) == {})
+        expected = {str(job1.get_id()): {}}
+        result = signac.diff_jobs(job1, job1)
+        self.assertEqual(expected, result, f'{result} is not {expected}')
 
 
 if __name__ == '__main__':

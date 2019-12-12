@@ -22,7 +22,5 @@ def diff_jobs(*jobs):
         diffs = {}
         for job in jobs:
             unique_sps = sps[job]-intersection
-            if len(unique_sps) != 0:
-                diffs[job.get_id()] = dict(unique_sps)
-
+            diffs[job.get_id()] = dict(unique_sps)
         return(diffs)
