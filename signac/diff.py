@@ -38,7 +38,7 @@ def diff_jobs(*jobs):
     else:
         sps = {}
         for job in jobs:
-            sps[job] = set(_traverse_filter(job.sp))
+            sps[job] = set(_traverse_filter(job.sp()))
 
         intersection = set.intersection(*sps.values())
 
