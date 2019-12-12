@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
+import io
 import uuid
 import logging
 import itertools
@@ -13,6 +14,7 @@ from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
 from packaging import version
+from contextlib import redirect_stderr
 
 import signac
 from signac.errors import DestinationExistsError
@@ -1978,6 +1980,9 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project_b.get_job(symlink_path), job_a)
         self.assertEqual(signac.get_job(symlink_path), job_a)
 
+
+class ProjectSchemaTest(BaseProjectTest):
+
     def test_project_schema_versions(self):
         root = self._tmp_dir.name
         with self.assertRaises(LookupError):
@@ -1993,6 +1998,20 @@ class ProjectInitTest(unittest.TestCase):
         config.write()
         with self.assertRaises(IncompatibleSchemaVersion):
             signac.init_project(name=project_name, root=root)
+
+    def test_project_schema_version_migration(self):
+        from signac.contrib.migration import apply_migrations
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        apply_migrations(project)
+        project._config['schema_version'] = '0'
+        self.assertEqual(project._config['schema_version'], '0')
+        err = io.StringIO()
+        with redirect_stderr(err):
+            apply_migrations(project)
+        self.assertEqual(project._config['schema_version'], '1')
+        self.assertIn('OK', err.getvalue())
+        self.assertIn('0 to 1', err.getvalue())
 
 
 class ProjectPicklingTest(BaseProjectTest):
