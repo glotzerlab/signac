@@ -24,7 +24,7 @@ from ..core import json
 from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
-from ..common.config import load_config, Config
+from ..common.config import get_config, load_config, Config
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -142,7 +142,11 @@ class Project(object):
         self._config = _ProjectConfig(config)
 
         # Ensure that the project id is configured.
-        self.get_id()
+        if self.id is None:
+            raise LookupError(
+                "Unable to determine project id. "
+                "Please verify that '{}' is a signac project path.".format(
+                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
 
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
@@ -158,7 +162,7 @@ class Project(object):
 
     def __str__(self):
         "Returns the project's id."
-        return str(self.get_id())
+        return str(self.id)
 
     def __repr__(self):
         return "{type}.get_project('{root}')".format(
@@ -167,7 +171,7 @@ class Project(object):
 
     def _repr_html_(self):
         return "<p>" + \
-            '<strong>Project:</strong> {}<br>'.format(self.get_id()) + \
+            '<strong>Project:</strong> {}<br>'.format(self.id) + \
             "<strong>Root:</strong> {}<br>".format(self.root_directory()) + \
             "<strong>Workspace:</strong> {}<br>".format(self.workspace()) + \
             "<strong>Size:</strong> {}".format(len(self)) + \
@@ -214,20 +218,27 @@ class Project(object):
             such as $HOME."""
         return self._wd
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use project.id instead.")
     def get_id(self):
         """Get the project identifier.
 
         :return: The project id.
         :rtype: str
-        :raises LookupError: If no project id could be determined.
+        """
+        return self.id
+
+    @property
+    def id(self):
+        """Get the project identifier.
+
+        :return: The project id.
+        :rtype: str
         """
         try:
             return str(self.config['project'])
         except KeyError:
-            raise LookupError(
-                "Unable to determine project id ."
-                "Are you sure '{}' is a signac project path?".format(
-                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
+            return None
 
     def min_len_unique_id(self):
         "Determine the minimum length required for an id to be unique."
@@ -423,7 +434,7 @@ class Project(object):
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return os.path.exists(os.path.join(self._wd, job.get_id()))
+        return os.path.exists(os.path.join(self._wd, job.id))
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
@@ -675,7 +686,7 @@ class Project(object):
 
         .. code-block:: python
 
-            {project.open_job(sp).get_id(): sp for sp in statepoints}
+            {project.open_job(sp).id: sp for sp in statepoints}
 
         :param statepoints: A list of statepoints.
         :type statepoints: iterable
@@ -1421,7 +1432,7 @@ class Project(object):
             An instance of :class:`.Project`.
         """
         if name is None:
-            name = os.path.join(self.get_id(), str(uuid.uuid4()))
+            name = os.path.join(self.id, str(uuid.uuid4()))
         if dir is None:
             dir = self.workspace()
         _mkdir_p(self.workspace())  # ensure workspace exists
@@ -1461,16 +1472,17 @@ class Project(object):
             fn_config = os.path.join(root, 'signac.rc')
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
-            with open(fn_config, 'a') as config_file:
-                config_file.write('project={}\n'.format(name))
-                if workspace is not None:
-                    config_file.write('workspace_dir={}\n'.format(workspace))
+            config = get_config(fn_config)
+            config['project'] = name
+            if workspace is not None:
+                config['workspace_dir'] = workspace
+            config.write()
             project = cls.get_project(root=root)
-            assert project.get_id() == str(name)
+            assert project.id == str(name)
             return project
         else:
             try:
-                assert project.get_id() == str(name)
+                assert project.id == str(name)
                 if workspace is not None:
                     assert os.path.realpath(workspace) \
                         == os.path.realpath(project.workspace())

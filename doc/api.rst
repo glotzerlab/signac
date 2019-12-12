@@ -51,6 +51,7 @@ The Project
     Project.groupby
     Project.groupbydoc
     Project.import_from
+    Project.id
     Project.index
     Project.isfile
     Project.min_len_unique_id
@@ -92,6 +93,7 @@ The Job class
     Job.document
     Job.fn
     Job.get_id
+    Job.id
     Job.init
     Job.isfile
     Job.move
