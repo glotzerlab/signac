@@ -1141,13 +1141,13 @@ def main():
 
     parser_diff = subparsers.add_parser(
         'diff',
-        description="Find difference between two or more job state points.")
+        description="Find the difference among job state points.")
     parser_diff.add_argument(
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The job corresponding to a job "
-             "id must be initialized.")
+        help="One or more job ids. The job corresponding to a "
+             "job id must be initialized.")
     parser_diff.add_argument(
         '-p', '--pretty',
         type=int,
