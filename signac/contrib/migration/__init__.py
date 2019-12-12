@@ -42,7 +42,20 @@ def _update_project_config(project, **kwargs):
     _reload_project_config(project)
 
 
-def _apply_migrations(project):
+@contextmanager
+def _lock_for_migration(project):
+    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
+    try:
+        with lock:
+            yield
+    finally:
+        try:
+            os.unlink(lock.lock_file)
+        except FileNotFoundError:
+            pass
+
+
+def _collect_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
 
     def config_schema_version():
@@ -58,18 +71,8 @@ def _apply_migrations(project):
     while config_schema_version() < schema_version:
         for (origin, destination), migration in MIGRATIONS.items():
             if version.parse(origin) == config_schema_version():
-                try:
-                    print("Applying migration for "
-                          "version {} to {}... ".format(origin, destination), end='',
-                          file=sys.stderr)
-                    migration(project)
-                except Exception as e:
-                    raise RuntimeError(
-                        "Failed to apply migration {}.".format(destination)) from e
-                else:
-                    _update_project_config(project, schema_version=destination)
-                    print("OK", file=sys.stderr)
-                    break
+                yield (origin, destination), migration
+                break
         else:
             raise RuntimeError(
                 "The signac schema version used by this project is {}, but signac {} "
@@ -77,22 +80,20 @@ def _apply_migrations(project):
                     config_schema_version(), __version__, schema_version))
 
 
-@contextmanager
-def _lock_for_migration(project):
-    lock = FileLock(project.fn(FN_MIGRATION_LOCKFILE))
-    try:
-        with lock:
-            yield
-    finally:
-        try:
-            os.unlink(lock.lock_file)
-        except FileNotFoundError:
-            pass
-
-
 def apply_migrations(project):
     with _lock_for_migration(project):
-        _apply_migrations(project)
+        for (origin, destination), migration in _collect_migrations(project):
+            try:
+                print("Applying migration for "
+                      "version {} to {}... ".format(origin, destination), end='',
+                      file=sys.stderr)
+                migration(project)
+            except Exception as e:
+                raise RuntimeError(
+                    "Failed to apply migration {}.".format(destination)) from e
+            else:
+                _update_project_config(project, schema_version=destination)
+                print("OK", file=sys.stderr)
 
 
 __all__ = [
