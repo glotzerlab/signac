@@ -19,29 +19,25 @@ class BaseDiffTest(unittest.TestCase):
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
-            name='testing_test_project',
+            name='diff_test_project',
             root=self._tmp_pr,
             workspace=self._tmp_wd)
 
     def tearDown(self):
         pass
 
-    def open_job(self, *args, **kwargs):
-        project = self.project
-        return project.open_job(*args, **kwargs)
-
 
 class DiffTest(BaseDiffTest):
 
     def test_two_jobs(self):
-        job1 = self.project.open_job({'a': 0, 'b': 1})
-        job2 = self.project.open_job({'a': 0})
+        job1 = self.open_job({'a': 0, 'b': 1})
+        job2 = self.open_job({'a': 0})
         expected = {str(job1.get_id()): {'b': 1}, str(job2.get_id()): {}}
         result = signac.diff_jobs(job1, job2)
         self.assertEqual(expected, result, f'{result} is not {expected}')
 
     def test_one_job(self):
-        job1 = self.project.open_job({'a': 0})
+        job1 = self.open_job({'a': 0})
         expected = {str(job1.get_id()): {}}
         result = signac.diff_jobs(job1)
         self.assertEqual(expected, result, f'{result} is not {expected}')
@@ -50,14 +46,14 @@ class DiffTest(BaseDiffTest):
         self.assertTrue(signac.diff_jobs() == {})
 
     def test_nested(self):
-        job1 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 11}})
-        job2 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
+        job1 = self.open_job({'a': 0, 'b': {'c': True, 'd': 11}})
+        job2 = self.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
         expected = {str(job1.get_id()): {'b.d': 11}, str(job2.get_id()): {'b.d': 4}}
         result = signac.diff_jobs(job1, job2)
         self.assertEqual(expected, result, f'{result} is not {expected}')
 
     def test_same_job(self):
-        job1 = self.project.open_job({'a': 0, 'b': 1})
+        job1 = self.open_job({'a': 0, 'b': 1})
         expected = {str(job1.get_id()): {}}
         result = signac.diff_jobs(job1, job1)
         self.assertEqual(expected, result, f'{result} is not {expected}')
