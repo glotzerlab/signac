@@ -6,6 +6,7 @@ import errno
 import logging
 import shutil
 from copy import deepcopy
+from deprecation import deprecated
 
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
@@ -15,6 +16,7 @@ from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
+from ..version import __version__
 
 
 logger = logging.getLogger(__name__)
@@ -72,7 +74,17 @@ class Job(object):
         # Prepare current working directory for context management
         self._cwd = list()
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.id instead.")
     def get_id(self):
+        """The job's statepoint's unique identifier.
+
+        :return: The job id.
+        :rtype: str"""
+        return self._id
+
+    @property
+    def id(self):
         """The unique identifier for the job's statepoint.
 
         :return: The job id.
@@ -84,7 +96,7 @@ class Job(object):
 
     def __str__(self):
         "Returns the job's id."
-        return str(self.get_id())
+        return str(self.id)
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
