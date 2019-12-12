@@ -675,7 +675,7 @@ def main_update_cache(args):
 
 
 def main_migrate(args):
-    from .contrib.migrations import apply_migrations, FN_MIGRATION_LOCKFILE
+    from .contrib.migration import apply_migrations, FN_MIGRATION_LOCKFILE
     from filelock import FileLock
     project = get_project(_ignore_schema_version=True)
 
