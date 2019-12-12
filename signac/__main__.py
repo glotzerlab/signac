@@ -19,8 +19,6 @@ import re
 import errno
 from pprint import pprint, pformat
 
-from packaging import version
-
 try:
     import readline
 except ImportError:
@@ -29,7 +27,7 @@ else:
     READLINE = True
 
 from . import Project, get_project, init_project, index
-from .version import __version__, SCHEMA_VERSION
+from .version import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
@@ -674,29 +672,31 @@ def main_update_cache(args):
         _print_err("Updated cache (size={}).".format(n))
 
 
-def main_migrate(args):
-    from .contrib.migration import apply_migrations
-    project = get_project(_ignore_schema_version=True)
-
-    schema_version = version.parse(SCHEMA_VERSION)
-    config_schema_version = version.parse(project.config['schema_version'])
-
-    if config_schema_version > schema_version:
-        _print_err(
-            "The schema version of the project ({}) is newer than the schema "
-            "version supported by signac version {}: {}. Try updating signac.".format(
-                config_schema_version, __version__, schema_version))
-    elif config_schema_version == schema_version:
-        _print_err(
-            "The schema version of the project ({}) is up to date. "
-            "Nothing to do.".format(config_schema_version))
-    elif args.yes or query_yes_no(
-        "Do you want to migrate this project's schema version from '{}' to '{}'? "
-        "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
-            config_schema_version, schema_version), 'no'):
-        apply_migrations(project)
-
-
+# UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
+# def main_migrate(args):
+#     "Migrate the project's schema to the current schema version."
+#     from .contrib.migration import apply_migrations
+#     project = get_project(_ignore_schema_version=True)
+#
+#     schema_version = version.parse(SCHEMA_VERSION)
+#     config_schema_version = version.parse(project.config['schema_version'])
+#
+#     if config_schema_version > schema_version:
+#         _print_err(
+#             "The schema version of the project ({}) is newer than the schema "
+#             "version supported by signac version {}: {}. Try updating signac.".format(
+#                 config_schema_version, __version__, schema_version))
+#     elif config_schema_version == schema_version:
+#         _print_err(
+#             "The schema version of the project ({}) is up to date. "
+#             "Nothing to do.".format(config_schema_version))
+#     elif args.yes or query_yes_no(
+#         "Do you want to migrate this project's schema version from '{}' to '{}'? "
+#         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
+#             config_schema_version, schema_version), 'no'):
+#         apply_migrations(project)
+#
+#
 def verify_config(cfg, preserve_errors=True):
     verification = cfg.verify(
         preserve_errors=preserve_errors, skip_missing=True)
@@ -1741,13 +1741,13 @@ This feature is still experimental and may be removed in future versions.""")
     parser_verify = config_subparsers.add_parser('verify')
     parser_verify.set_defaults(func=main_config_verify)
 
-    # The 'migrate' sub-command is disabled until we introduce the first migration.
-    # parser_migrate = subparsers.add_parser(
-    #     'migrate',
-    #     description="Irreversibly migrate this project's schema version to the "
-    #                 "supported version.")
-    # parser_migrate.set_defaults(func=main_migrate)
-
+# UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
+#     parser_migrate = subparsers.add_parser(
+#         'migrate',
+#         description="Irreversibly migrate this project's schema version to the "
+#                     "supported version.")
+#     parser_migrate.set_defaults(func=main_migrate)
+#
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
     # of the other required arguments.

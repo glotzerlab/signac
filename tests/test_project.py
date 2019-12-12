@@ -2013,6 +2013,20 @@ class ProjectSchemaTest(BaseProjectTest):
         self.assertIn('OK', err.getvalue())
         self.assertIn('0 to 1', err.getvalue())
 
+    def test_no_migration(self):
+        # This unit test should fail as long as there are no schema migrations
+        # implemented within the signac.contrib.migration package.
+        #
+        # Once migrations are implemented:
+        #
+        # 1. Ensure to enable the 'migrate' sub-command within the __main__ module.
+        # 2. Either update or remove this unit test.
+        from signac.contrib.migration import _collect_migrations
+        root = self._tmp_dir.name
+        project = signac.init_project(name='testproject', root=root)
+        migrations = list(_collect_migrations(project))
+        self.assertEqual(len(migrations), 0)
+
 
 class ProjectPicklingTest(BaseProjectTest):
 
