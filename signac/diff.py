@@ -4,6 +4,24 @@
 import signac
 
 
+def _dotted_keys_to_nested_dicts(mapping):
+    result = {}
+
+    def make_nested_dict(d, keys):
+        item = d
+        for key in keys[:-1]:
+            if key not in item:
+                item[key] = {}
+            item = item[key]
+        return item
+
+    for dotted_key, value in mapping.items():
+        keys = dotted_key.split('.')
+        make_nested_dict(result, keys)[keys[-1]] = value
+
+    return result
+
+
 def diff_jobs(*jobs):
     """Find differences among a list of jobs' state points.
 
