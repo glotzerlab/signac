@@ -8,15 +8,14 @@ from contextlib import contextmanager
 
 from filelock import FileLock
 
-from ..common.config import get_config
-from ..version import __version__, SCHEMA_VERSION
+from ...common.config import get_config
+from ...version import __version__, SCHEMA_VERSION
+
+
+from .v0_to_v1 import migrate_v0_to_v1
 
 
 FN_MIGRATION_LOCKFILE = '.SIGNAC_PROJECT_MIGRATION_LOCK'
-
-
-def migrate_v0_to_v1(project):
-    pass  # nothing to do here, serves purely as example
 
 
 MIGRATIONS = {
