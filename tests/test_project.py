@@ -2002,7 +2002,11 @@ class ProjectSchemaTest(BaseProjectTest):
         self.assertEqual(self.project._config['schema_version'], '0')
         err = io.StringIO()
         with redirect_stderr(err):
-            apply_migrations(self.project)
+            for origin, destination in apply_migrations(self.project):
+                self.assertEqual(
+                    self.project._config['schema_version'], destination)
+                project = signac.get_project(root=self.project.root_directory())
+                self.assertEqual(project._config['schema_version'], destination)
         self.assertEqual(self.project._config['schema_version'], '1')
         self.assertIn('OK', err.getvalue())
         self.assertIn('0 to 1', err.getvalue())

@@ -82,18 +82,19 @@ def _collect_migrations(project):
 
 def apply_migrations(project):
     with _lock_for_migration(project):
-        for (origin, destination), migration in _collect_migrations(project):
+        for (origin, destination), migrate in _collect_migrations(project):
             try:
                 print("Applying migration for "
                       "version {} to {}... ".format(origin, destination), end='',
                       file=sys.stderr)
-                migration(project)
+                migrate(project)
             except Exception as e:
                 raise RuntimeError(
                     "Failed to apply migration {}.".format(destination)) from e
             else:
                 _update_project_config(project, schema_version=destination)
                 print("OK", file=sys.stderr)
+                yield origin, destination
 
 
 __all__ = [
