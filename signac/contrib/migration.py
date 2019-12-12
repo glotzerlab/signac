@@ -117,6 +117,5 @@ def apply_migrations(project):
 
 
 __all__ = [
-    'MIGRATIONS',
     'apply_migrations',
     ]
