@@ -45,6 +45,7 @@ def diff_jobs(*jobs):
         diffs = {}
         for job in jobs:
             unique_sps = sps[job]-intersection
-            diffs[job.get_id()] = dict(unique_sps)
+
+            diffs[job.id] = _dotted_keys_to_nested_dicts(dict(unique_sps))
 
         return(diffs)
