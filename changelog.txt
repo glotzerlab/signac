@@ -23,7 +23,7 @@ Next
 Added
 +++++
 
- - Add function to initialize a sample data space for testing purposes
+ - Add function to initialize a sample data space for testing purposes.
 
 Changed
 +++++++
