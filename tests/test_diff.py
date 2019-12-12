@@ -48,7 +48,7 @@ class DiffTest(BaseDiffTest):
     def test_nested(self):
         job1 = self.open_job({'a': 0, 'b': {'c': True, 'd': 11}})
         job2 = self.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
-        expected = {str(job1.get_id()): {'b.d': 11}, str(job2.get_id()): {'b.d': 4}}
+        expected = {str(job1.get_id()): {'b': {'d': 11}}, str(job2.get_id()): {'b': {'d': 4}}}
         result = signac.diff_jobs(job1, job2)
         self.assertEqual(expected, result, f'{result} is not {expected}')
 

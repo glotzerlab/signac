@@ -23,4 +23,5 @@ def diff_jobs(*jobs):
         for job in jobs:
             unique_sps = sps[job]-intersection
             diffs[job.get_id()] = dict(unique_sps)
+
         return(diffs)
