@@ -40,7 +40,7 @@ Fixed
 Deprecated
 ++++++++++
 
- - Deprecate the ``get_id`` method in ``Project`` and ``Job`` classes in favor of the ``id`` property, to be removed in 2.0 (#250)
+ - Deprecate the ``get_id`` method in ``Project`` and ``Job`` classes in favor of the ``id`` property, to be removed in 2.0 (#250).
  - In-memory modification of the project configuration, to be removed in 2.0 (#246).
 
 Removed
