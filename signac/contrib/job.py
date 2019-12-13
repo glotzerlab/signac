@@ -308,9 +308,8 @@ class Job(object):
 
     @property
     def data(self):
-        """
-        Use to read and write data associated with a `job`. 
-        It should be used for large array-like data, which can't be stored 
+        """The data associated with this job.
+        This property should be used for large array-like data, which can't be stored 
         efficiently in the job document. For examples and usage, see 
         Topic Guides > Jobs > Job Data Storage.
 
