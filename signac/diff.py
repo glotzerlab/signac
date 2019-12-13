@@ -9,6 +9,7 @@ def _dotted_keys_to_nested_dicts(mapping):
 
     :param mapping: A mapping with dots in its keys, e.g. {'a.b': 'c'}
     :returns: A mapping with nested keys, e.g. {'a': {'b': 'c'}}
+    :rtype: dict
     """
     result = {}
 
@@ -61,6 +62,7 @@ def diff_jobs(*jobs):
     :type \*jobs: :py:class:`~.Job`
     :returns: A dictionary where the keys are job ids and values are the unique
         parts of that job's state point.
+    :rtype: dict
     """
     if len(jobs) == 0:
         return {}
