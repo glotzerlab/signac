@@ -1169,10 +1169,6 @@ def main():
         type=str,
         nargs='+',
         help="Show documents of jobs matching this document filter.")
-    parser_diff.add_argument(
-        '-s', '--sort',
-        action='store_true',
-        help="Sort the state point keys for output.")
     parser_diff.set_defaults(func=main_diff)
 
     parser_document = subparsers.add_parser(
