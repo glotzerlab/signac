@@ -35,11 +35,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v4-{{ arch }}
-            - python-env-v4
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v5-{{ arch }}
+            - python-env-v5
 
       - run:
           name: install dependencies
