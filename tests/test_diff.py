@@ -15,16 +15,10 @@ class BaseDiffTest(unittest.TestCase):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
-        self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)
-        self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
             name='diff_test_project',
-            root=self._tmp_pr,
-            workspace=self._tmp_wd)
-
-    def tearDown(self):
-        pass
+            root=self._tmp_pr)
 
 
 class DiffTest(BaseDiffTest):
