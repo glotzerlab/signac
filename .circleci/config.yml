@@ -67,10 +67,15 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m coverage run -m unittest discover tests/ -v
-            ${PYTHON} -m pip install python-rapidjson==0.7.1 && coverage run -m unittest discover tests/ -v
-            ${PYTHON} -m coverage report -i
-            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then codecov; fi
+            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then
+              ${PYTHON} -m coverage run -m unittest discover tests/ -v
+              ${PYTHON} -m pip install python-rapidjson==0.9.1 && coverage run -m unittest discover tests/ -v
+              ${PYTHON} -m coverage report -i
+              codecov
+            else
+              ${PYTHON} -m unittest discover tests/ -v
+              ${PYTHON} -m pip install python-rapidjson==0.9.1 && ${PYTHON} -m unittest discover tests/ -v
+            fi
 
       - store_artifacts:
           path: test-reports
