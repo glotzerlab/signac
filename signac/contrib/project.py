@@ -336,8 +336,8 @@ class Project(object):
 
     @property
     def data(self):
-        """Use to read and write data associated with a `job`. It 
-        should be used for large array-like data, which can't be stored efficiently 
+        """The data associated with this project.
+        This property should be used for large array-like data, which can't be stored efficiently 
         in the job document. For examples and usage, see Topic Guides > Projects > Centralized Project Data.
 
 
