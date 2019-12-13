@@ -7,7 +7,7 @@ version: 2
 jobs:
   style-check:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
 
     working_directory: ~/repo
 
@@ -20,9 +20,9 @@ jobs:
             python -m flake8 --show-source signac/
 
 
-  test-3.7: &test-template
+  test-3.8: &test-template
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
 
     environment:
       PYTHON: python
@@ -88,6 +88,10 @@ jobs:
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             ${PYTHON} benchmark.py run -N 100 1000 --force
             ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7
   test-3.6:
     <<: *test-template
     docker:
@@ -106,7 +110,7 @@ jobs:
 
   check-metadata:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -122,7 +126,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -134,7 +138,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -159,6 +163,9 @@ workflows:
       - test-3.7:
           requires:
             - style-check
+      - test-3.8:
+          requires:
+            - style-check
       - test-pypy-3:
           requires:
             - test-3.6
@@ -174,6 +181,7 @@ workflows:
             - test-3.5
             - test-3.6
             - test-3.7
+            - test-3.8
             - test-pypy-3
   deploy:
     jobs:
