@@ -330,7 +330,7 @@ class Project(object):
             project.stores.my_data.array = np.random((32, 4))
 
         :return: The HDF5-Store manager for this project.
-        :rtype: :class:`~..core.h5store.H5StoreManager
+        :rtype: :class:`~..core.h5store.H5StoreManager`
         """
         return H5StoreManager(self._rd)
 
