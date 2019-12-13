@@ -1,7 +1,6 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
 import unittest
 import signac
 from tempfile import TemporaryDirectory
@@ -14,11 +13,9 @@ class BaseDiffTest(unittest.TestCase):
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.addCleanup(self._tmp_dir.cleanup)
-        self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
-        os.mkdir(self._tmp_pr)
         self.project = self.project_class.init_project(
             name='diff_test_project',
-            root=self._tmp_pr)
+            root=self._tmp_dir.name)
 
 
 class DiffTest(BaseDiffTest):
