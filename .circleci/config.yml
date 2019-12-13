@@ -59,7 +59,7 @@ jobs:
             ${PYTHON} -m pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
@@ -70,7 +70,7 @@ jobs:
             ${PYTHON} -m coverage run -m unittest discover tests/ -v
             ${PYTHON} -m pip install python-rapidjson==0.7.1 && coverage run -m unittest discover tests/ -v
             ${PYTHON} -m coverage report -i
-            codecov
+            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then codecov; fi
 
       - store_artifacts:
           path: test-reports
