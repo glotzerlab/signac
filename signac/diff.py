@@ -37,26 +37,26 @@ def diff_jobs(*jobs):
     of keys and values.
 
     Example:
-
-    >>> import signac
-    >>> project = signac.init_project('project_name')
-    >>> job1 = project.open_job({'constant': 42, 'diff1': 0, 'diff2': 1}).init()
-    >>> job2 = project.open_job({'constant': 42, 'diff1': 1, 'diff2': 1}).init()
-    >>> job3 = project.open_job({'constant': 42, 'diff1': 2, 'diff2': 2}).init()
-    >>> print(job1)
-    c4af2b26f1fd256d70799ad3ce3bdad0
-    >>> print(job2)
-    b96b21fada698f8934d58359c72755c0
-    >>> print(job3)
-    e4289419d2b0e57e4852d44a09f167c0
-    >>> signac.diff_jobs(job1, job2, job3)
-    {'c4af2b26f1fd256d70799ad3ce3bdad0': {'diff2': 1, 'diff1': 0},
-     'b96b21fada698f8934d58359c72755c0': {'diff2': 1, 'diff1': 1},
-     'e4289419d2b0e57e4852d44a09f167c0': {'diff2': 2, 'diff1': 2}}
-    >>> signac.diff_jobs(*project)
-    {'c4af2b26f1fd256d70799ad3ce3bdad0': {'diff2': 1, 'diff1': 0},
-     'b96b21fada698f8934d58359c72755c0': {'diff2': 1, 'diff1': 1},
-     'e4289419d2b0e57e4852d44a09f167c0': {'diff2': 2, 'diff1': 2}}
+    .. code-block:: python
+        >>> import signac
+        >>> project = signac.init_project('project_name')
+        >>> job1 = project.open_job({'constant': 42, 'diff1': 0, 'diff2': 1}).init()
+        >>> job2 = project.open_job({'constant': 42, 'diff1': 1, 'diff2': 1}).init()
+        >>> job3 = project.open_job({'constant': 42, 'diff1': 2, 'diff2': 2}).init()
+        >>> print(job1)
+        c4af2b26f1fd256d70799ad3ce3bdad0
+        >>> print(job2)
+        b96b21fada698f8934d58359c72755c0
+        >>> print(job3)
+        e4289419d2b0e57e4852d44a09f167c0
+        >>> signac.diff_jobs(job1, job2, job3)
+        {'c4af2b26f1fd256d70799ad3ce3bdad0': {'diff2': 1, 'diff1': 0},
+        'b96b21fada698f8934d58359c72755c0': {'diff2': 1, 'diff1': 1},
+        'e4289419d2b0e57e4852d44a09f167c0': {'diff2': 2, 'diff1': 2}}
+        >>> signac.diff_jobs(*project)
+        {'c4af2b26f1fd256d70799ad3ce3bdad0': {'diff2': 1, 'diff1': 0},
+        'b96b21fada698f8934d58359c72755c0': {'diff2': 1, 'diff1': 1},
+        'e4289419d2b0e57e4852d44a09f167c0': {'diff2': 2, 'diff1': 2}}
 
     :param \*jobs: The jobs whose state points will be diffed.
     :type \*jobs: :py:class:`~.Job`

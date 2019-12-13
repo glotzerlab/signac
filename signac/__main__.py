@@ -388,12 +388,8 @@ def main_find(args):
 def main_diff(args):
     project = get_project()
 
-    if args.filter:
-        jobs = [project.open_job(id=job_id) for job_id in find_with_filter_or_none(args)]
-    elif args.job_id:
-        jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
-    else:
-        jobs = project
+    jobs = find_with_filter_or_none(args)
+    jobs = (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
 
     diff = diff_jobs(*jobs)
 
