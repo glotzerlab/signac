@@ -24,7 +24,7 @@ Added
 +++++
 
  - Add function to initialize a sample data space for testing purposes.
- - ``signac.diff_jobs`` function to compare two or more state points.
+ - Add ``signac.diff_jobs`` function to compare two or more state points.
 
 Changed
 +++++++

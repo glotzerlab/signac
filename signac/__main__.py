@@ -395,7 +395,6 @@ def main_diff(args):
     else:
         jobs = project
 
-    jobs = list(jobs)
     diff = diff_jobs(*jobs)
 
     for jobid, sp in diff.items():
