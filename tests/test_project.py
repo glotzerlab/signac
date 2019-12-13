@@ -9,6 +9,7 @@ import logging
 import itertools
 import json
 import pickle
+import string
 from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
@@ -42,9 +43,6 @@ except ImportError:
 # Make sure the jobs created for this test are unique.
 test_token = {'test_token': str(uuid.uuid4())}
 
-warnings.simplefilter('default')
-warnings.filterwarnings('error', category=DeprecationWarning, module='signac')
-
 
 class BaseProjectTest(BaseJobTest):
     pass
@@ -59,6 +57,10 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self.project.get_id(), 'testing_test_project')
         self.assertEqual(str(self.project), self.project.get_id())
 
+    def test_property_id(self):
+        self.assertEqual(self.project.id, 'testing_test_project')
+        self.assertEqual(str(self.project), self.project.id)
+
     def test_repr(self):
         repr(self.project)
         p = eval(repr(self.project))
@@ -66,13 +68,20 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(p, self.project)
 
     def test_str(self):
-        str(self.project) == self.project.get_id()
+        str(self.project) == self.project.id
 
     def test_root_directory(self):
         self.assertEqual(self._tmp_pr, self.project.root_directory())
 
     def test_workspace_directory(self):
         self.assertEqual(self._tmp_wd, self.project.workspace())
+
+    def test_config_modification(self):
+        # In-memory modification of the project configuration is
+        # deprecated as of 1.3, and will be removed in version 2.0.
+        # This unit test should reflect that change beginning 2.0,
+        # and check that the project configuration is immutable.
+        self.project.config['foo'] = 'bar'
 
     def test_workspace_directory_with_env_variable(self):
         os.environ['SIGNAC_ENV_DIR_TEST'] = self._tmp_wd
@@ -232,10 +241,10 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(1, len(list(self.project.find_job_ids(doc_filter={'b': 0}))))
         self.assertEqual(0, len(list(self.project.find_job_ids(doc_filter={'b': 5}))))
         for job_id in self.project.find_job_ids():
-            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+            self.assertEqual(self.project.open_job(id=job_id).id, job_id)
         index = list(self.project.index())
         for job_id in self.project.find_job_ids(index=index):
-            self.assertEqual(self.project.open_job(id=job_id).get_id(), job_id)
+            self.assertEqual(self.project.open_job(id=job_id).id, job_id)
 
     def test_find_jobs(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -251,17 +260,15 @@ class ProjectTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         jobs = self.project.find_jobs()
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
-            for i in range(2):  # run this twice
-                jobs_ = set()
-                for i in range(len(self.project)):
-                    job = jobs.next()
-                    self.assertIn(job, self.project)
-                    jobs_.add(job)
-                with self.assertRaises(StopIteration):
-                    job = jobs.next()
-                self.assertEqual(jobs_, set(self.project))
+        for i in range(2):  # run this twice
+            jobs_ = set()
+            for i in range(len(self.project)):
+                job = jobs.next()
+                self.assertIn(job, self.project)
+                jobs_.add(job)
+            with self.assertRaises(StopIteration):
+                job = jobs.next()
+            self.assertEqual(jobs_, set(self.project))
 
     def test_find_jobs_arithmetic_operators(self):
         for i in range(10):
@@ -356,11 +363,11 @@ class ProjectTest(BaseProjectTest):
         [self.project.open_job(sp).init() for sp in statepoints]
         aid_len = self.project.min_len_unique_id()
         for job in self.project.find_jobs():
-            aid = job.get_id()[:aid_len]
+            aid = job.id[:aid_len]
             self.assertEqual(self.project.open_job(id=aid), job)
         with self.assertRaises(LookupError):
             for job in self.project.find_jobs():
-                self.project.open_job(id=job.get_id()[:aid_len - 1])
+                self.project.open_job(id=job.id[:aid_len - 1])
         with self.assertRaises(KeyError):
             self.project.open_job(id='abc')
 
@@ -375,7 +382,7 @@ class ProjectTest(BaseProjectTest):
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(JobsCorruptedError):
-                self.project.open_job(id=job.get_id()).init()
+                self.project.open_job(id=job.id).init()
         finally:
             logging.disable(logging.NOTSET)
 
@@ -392,7 +399,7 @@ class ProjectTest(BaseProjectTest):
         try:
             logging.disable(logging.CRITICAL)
             with self.assertRaises(JobsCorruptedError):
-                self.project.open_job(id=job.get_id())
+                self.project.open_job(id=job.id)
         finally:
             logging.disable(logging.NOTSET)
 
@@ -490,7 +497,7 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        job_ids = set((job.get_id() for job in self.project.find_jobs()))
+        job_ids = set((job.id for job in self.project.find_jobs()))
         docs = list(self.project.index())
         job_ids_cmp = set((doc['_id'] for doc in docs))
         self.assertEqual(job_ids, job_ids_cmp)
@@ -507,7 +514,7 @@ class ProjectTest(BaseProjectTest):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        job_ids = set((job.get_id() for job in self.project.find_jobs()))
+        job_ids = set((job.id for job in self.project.find_jobs()))
         index = dict()
         for doc in self.project.index():
             index[doc['_id']] = doc
@@ -1425,9 +1432,11 @@ class LinkedViewProjectTest(BaseProjectTest):
         # update with subset
         subset = list(self.project.find_job_ids({'b': 0}))
         job_subset = [self.project.open_job(id=id) for id in subset]
+
         bad_index = [dict(_id=i) for i in range(3)]
         with self.assertRaises(ValueError):
             self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+
         self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
         all_links = list(_find_all_links(view_prefix))
         self.assertEqual(len(all_links), len(subset))
@@ -1747,9 +1756,7 @@ class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
     def init(self, *args, **kwargs):
         super(UpdateCacheAfterInitJob, self).init(*args, **kwargs)
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=FutureWarning, module='signac')
-            self._project.update_cache()
+        self._project.update_cache()
 
 
 class UpdateCacheAfterInitJobProject(signac.Project):
@@ -1776,21 +1783,29 @@ class ProjectInitTest(unittest.TestCase):
         with self.assertRaises(LookupError):
             signac.get_project(root=root)
         project = signac.init_project(name='testproject', root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         project = signac.Project.init_project(name='testproject', root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         project = signac.get_project(root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         project = signac.Project.get_project(root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
+
+    def test_get_project_all_printable_characters(self):
+        root = self._tmp_dir.name
+        with self.assertRaises(LookupError):
+            signac.get_project(root=root)
+        project_name = 'testproject' + string.printable
+        project = signac.init_project(name=project_name, root=root)
+        self.assertEqual(project.get_id(), project_name)
 
     def test_get_project_non_local(self):
         root = self._tmp_dir.name
@@ -1815,17 +1830,17 @@ class ProjectInitTest(unittest.TestCase):
         with self.assertRaises(LookupError):
             signac.get_project(root=root)
         project = signac.init_project(name='testproject', root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         # Second initialization should not make any difference.
         project = signac.init_project(name='testproject', root=root)
         project = signac.get_project(root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         project = signac.Project.get_project(root=root)
-        self.assertEqual(project.get_id(), 'testproject')
+        self.assertEqual(project.id, 'testproject')
         self.assertEqual(project.workspace(), os.path.join(root, 'workspace'))
         self.assertEqual(project.root_directory(), root)
         # Deviating initialization parameters should result in errors.
@@ -1853,21 +1868,21 @@ class ProjectInitTest(unittest.TestCase):
         root_a = os.path.join(root, 'project_a')
         root_b = os.path.join(root_a, 'project_b')
         signac.init_project('testprojectA', root_a)
-        self.assertEqual(signac.get_project(root=root_a).get_id(), 'testprojectA')
+        self.assertEqual(signac.get_project(root=root_a).id, 'testprojectA')
         check_root(root_a)
         signac.init_project('testprojectB', root_b)
-        self.assertEqual(signac.get_project(root=root_b).get_id(), 'testprojectB')
+        self.assertEqual(signac.get_project(root=root_b).id, 'testprojectB')
         check_root(root_b)
         cwd = os.getcwd()
         try:
             os.chdir(root_a)
             check_root()
-            self.assertEqual(signac.get_project().get_id(), 'testprojectA')
+            self.assertEqual(signac.get_project().id, 'testprojectA')
         finally:
             os.chdir(cwd)
         try:
             os.chdir(root_b)
-            self.assertEqual(signac.get_project().get_id(), 'testprojectB')
+            self.assertEqual(signac.get_project().id, 'testprojectB')
             check_root()
         finally:
             os.chdir(cwd)
