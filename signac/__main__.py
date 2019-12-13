@@ -1116,7 +1116,7 @@ def main():
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The jobs must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_statepoint.add_argument(
         '-p', '--pretty',
         type=int,
@@ -1144,7 +1144,7 @@ def main():
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The jobs must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_diff.add_argument(
         '-p', '--pretty',
         type=int,
@@ -1249,7 +1249,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids. The jobs must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_move.set_defaults(func=main_move)
 
     parser_clone = subparsers.add_parser('clone')
@@ -1261,7 +1261,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids. The jobs must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
