@@ -1984,7 +1984,7 @@ class ProjectInitTest(unittest.TestCase):
 class ProjectSchemaTest(BaseProjectTest):
 
     def test_project_schema_versions(self):
-        impossibly_high_schema_version = '9999.0.0'
+        impossibly_high_schema_version = '9999'
         self.assertLess(
             version.parse(self.project.config['schema_version']),
             version.parse(impossibly_high_schema_version))
