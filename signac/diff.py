@@ -58,6 +58,7 @@ def diff_jobs(*jobs):
      'e4289419d2b0e57e4852d44a09f167c0': {'diff2': 2, 'diff1': 2}}
 
     :param \*jobs: The jobs whose state points will be diffed.
+    :type \*jobs: signac.contrib.job.Job
     :returns: A dictionary where the keys are job ids and values are the unique
         parts of that job's state point.
     """
