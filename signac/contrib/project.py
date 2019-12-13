@@ -336,7 +336,10 @@ class Project(object):
 
     @property
     def data(self):
-        """The data associated with this project.
+        """Use to read and write data associated with a `job`. It 
+        should be used for large array-like data, which can't be stored efficiently 
+        in the job document. For examples and usage, see [link for topic guide].
+
 
         See :class:`~..core.h5store.H5Store` for usage examples.
 
