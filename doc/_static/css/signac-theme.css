@@ -1,0 +1,10 @@
+/* Sidebar header (and topbar for mobile) */
+.wy-side-nav-search, .wy-nav-top {
+  background: #2c2c30;
+  border-bottom: 1px solid #e8a022;
+}
+
+/* Sidebar */
+.wy-nav-side {
+  background: #4e4e56;
+}
