@@ -205,7 +205,11 @@ class ProjectTest(BaseProjectTest):
         self.assertFalse(os.path.exists(self.project.workspace()))
         with self.assertLogs(level='INFO') as cm:
             list(self.project.find_jobs())
-            self.assertEqual(len(cm.output), 2)
+            # Python < 3.8 will return 2 messages.
+            # Python >= 3.8 will return 3 messages, because it determines the
+            # length of the project one additional time during the list
+            # constructor: https://bugs.python.org/issue33234
+            self.assertIn(len(cm.output), (2, 3))
 
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
