@@ -31,3 +31,8 @@ class JobsCorruptedError(Error, RuntimeError):
 class StatepointParsingError(Error, RuntimeError):
     "Indicates an error that occurred while trying to identify a state point."
     pass
+
+
+class IncompatibleSchemaVersion(Error):
+    "The project's schema version is incompatible with this version of signac."
+    pass

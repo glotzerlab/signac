@@ -5,6 +5,10 @@ from setuptools import setup, find_packages
 requirements = [
     # Deprecation management
     'deprecation>=2',
+    # Platform-independent file locking
+    'filelock~=3.0',
+    # Used for version parsing and comparison
+    'packaging>=15.0',
 ]
 
 description = "Simple file data management database."

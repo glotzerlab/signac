@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
+import io
 import uuid
-import warnings
 import logging
 import itertools
 import json
@@ -13,6 +13,8 @@ import string
 from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
+from packaging import version
+from contextlib import redirect_stderr
 
 import signac
 from signac.errors import DestinationExistsError
@@ -21,7 +23,9 @@ from signac.contrib.schema import ProjectSchema
 from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.errors import WorkspaceError
 from signac.contrib.errors import StatepointParsingError
+from signac.contrib.errors import IncompatibleSchemaVersion
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
+from signac.common.config import get_config
 
 from test_job import BaseJobTest
 
@@ -1979,6 +1983,49 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project_a.get_job(symlink_path), job_a)
         self.assertEqual(project_b.get_job(symlink_path), job_a)
         self.assertEqual(signac.get_job(symlink_path), job_a)
+
+
+class ProjectSchemaTest(BaseProjectTest):
+
+    def test_project_schema_versions(self):
+        impossibly_high_schema_version = '9999'
+        self.assertLess(
+            version.parse(self.project.config['schema_version']),
+            version.parse(impossibly_high_schema_version))
+        config = get_config(self.project.fn('signac.rc'))
+        config['schema_version'] = impossibly_high_schema_version
+        config.write()
+        with self.assertRaises(IncompatibleSchemaVersion):
+            signac.init_project(
+                name=str(self.project), root=self.project.root_directory())
+
+    def test_project_schema_version_migration(self):
+        from signac.contrib.migration import apply_migrations
+        apply_migrations(self.project)
+        self.project._config['schema_version'] = '0'
+        self.assertEqual(self.project._config['schema_version'], '0')
+        err = io.StringIO()
+        with redirect_stderr(err):
+            for origin, destination in apply_migrations(self.project):
+                self.assertEqual(
+                    self.project._config['schema_version'], destination)
+                project = signac.get_project(root=self.project.root_directory())
+                self.assertEqual(project._config['schema_version'], destination)
+        self.assertEqual(self.project._config['schema_version'], '1')
+        self.assertIn('OK', err.getvalue())
+        self.assertIn('0 to 1', err.getvalue())
+
+    def test_no_migration(self):
+        # This unit test should fail as long as there are no schema migrations
+        # implemented within the signac.contrib.migration package.
+        #
+        # Once migrations are implemented:
+        #
+        # 1. Ensure to enable the 'migrate' sub-command within the __main__ module.
+        # 2. Either update or remove this unit test.
+        from signac.contrib.migration import _collect_migrations
+        migrations = list(_collect_migrations(self.project))
+        self.assertEqual(len(migrations), 0)
 
 
 class ProjectPicklingTest(BaseProjectTest):
