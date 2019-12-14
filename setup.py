@@ -5,6 +5,10 @@ from setuptools import setup, find_packages
 requirements = [
     # Deprecation management
     'deprecation>=2',
+    # Platform-independent file locking
+    'filelock~=3.0',
+    # Used for version parsing and comparison
+    'packaging>=15.0',
 ]
 
 description = "Simple file data management database."
@@ -40,6 +44,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
