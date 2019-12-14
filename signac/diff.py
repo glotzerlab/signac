@@ -37,7 +37,9 @@ def diff_jobs(*jobs):
     of keys and values.
 
     Example:
+
     .. code-block:: python
+
         >>> import signac
         >>> project = signac.init_project('project_name')
         >>> job1 = project.open_job({'constant': 42, 'diff1': 0, 'diff2': 1}).init()
@@ -79,4 +81,4 @@ def diff_jobs(*jobs):
             unique_sps = sps[job]-intersection
             diffs[job.id] = _dotted_keys_to_nested_dicts(dict(unique_sps))
 
-        return(diffs)
+        return diffs
