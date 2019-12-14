@@ -42,6 +42,7 @@ from .errors import SyncConflict
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
+from .diff import diff_jobs
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -382,6 +383,19 @@ def main_find(args):
             sys.stderr.close()
         else:
             raise
+
+
+def main_diff(args):
+    project = get_project()
+
+    jobs = find_with_filter_or_none(args)
+    jobs = (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
+
+    diff = diff_jobs(*jobs)
+
+    for jobid, sp in diff.items():
+        print(jobid)
+        pprint(sp)
 
 
 def main_view(args):
@@ -1123,8 +1137,7 @@ def main():
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The job corresponding to a job "
-             "id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_statepoint.add_argument(
         '-p', '--pretty',
         type=int,
@@ -1144,6 +1157,40 @@ def main():
         action='store_true',
         help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_diff = subparsers.add_parser(
+        'diff',
+        description="Find the difference among job state points.")
+    parser_diff.add_argument(
+        'job_id',
+        nargs='*',
+        type=str,
+        help="One or more job ids. The corresponding jobs must be initialized.")
+    parser_diff.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print state point in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a state point is printed.")
+    parser_diff.add_argument(
+        '-i', '--indent',
+        type=int,
+        nargs='?',
+        const='2',
+        help="Specify the indentation of the JSON formatted state point.")
+    parser_diff.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the diff to jobs matching this state point filter.")
+    parser_diff.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Show documents of jobs matching this document filter.")
+    parser_diff.set_defaults(func=main_diff)
 
     parser_document = subparsers.add_parser(
         'document',
@@ -1219,8 +1266,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids of jobs to move. The job corresponding to a "
-             "job id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_move.set_defaults(func=main_move)
 
     parser_clone = subparsers.add_parser('clone')
@@ -1232,8 +1278,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids of jobs to clone. The job corresponding to a "
-             "job id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
