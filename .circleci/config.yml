@@ -7,7 +7,7 @@ version: 2
 jobs:
   style-check:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
 
     working_directory: ~/repo
 
@@ -20,9 +20,9 @@ jobs:
             python -m flake8 --show-source signac/
 
 
-  test-3.7: &test-template
+  test-3.8: &test-template
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
 
     environment:
       PYTHON: python
@@ -35,11 +35,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v4-{{ arch }}
-            - python-env-v4
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v5-{{ arch }}
+            - python-env-v5
 
       - run:
           name: install dependencies
@@ -59,7 +59,7 @@ jobs:
             ${PYTHON} -m pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v4-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
@@ -67,10 +67,15 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m coverage run -m unittest discover tests/ -v
-            ${PYTHON} -m pip install python-rapidjson==0.7.1 && coverage run -m unittest discover tests/ -v
-            ${PYTHON} -m coverage report -i
-            codecov
+            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then
+              ${PYTHON} -m coverage run -m unittest discover tests/ -v
+              ${PYTHON} -m pip install python-rapidjson==0.9.1 && coverage run -m unittest discover tests/ -v
+              ${PYTHON} -m coverage report -i
+              codecov
+            else
+              ${PYTHON} -m unittest discover tests/ -v
+              ${PYTHON} -m pip install python-rapidjson==0.9.1 && ${PYTHON} -m unittest discover tests/ -v
+            fi
 
       - store_artifacts:
           path: test-reports
@@ -88,6 +93,10 @@ jobs:
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             ${PYTHON} benchmark.py run -N 100 1000 --force
             ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+  test-3.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7
   test-3.6:
     <<: *test-template
     docker:
@@ -106,7 +115,7 @@ jobs:
 
   check-metadata:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -122,7 +131,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -134,7 +143,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     working_directory: ~/repo
     steps:
       - checkout
@@ -159,6 +168,9 @@ workflows:
       - test-3.7:
           requires:
             - style-check
+      - test-3.8:
+          requires:
+            - style-check
       - test-pypy-3:
           requires:
             - test-3.6
@@ -174,6 +186,7 @@ workflows:
             - test-3.5
             - test-3.6
             - test-3.7
+            - test-3.8
             - test-pypy-3
   deploy:
     jobs:
