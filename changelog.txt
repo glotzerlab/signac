@@ -23,18 +23,21 @@ Next
 Added
 +++++
 
+ - Official support for Python 3.8 (#258).
  - Add properties ``Project.id`` and ``Job.id`` (#250).
- - Add function to initialize a sample data space for testing purposes.
+ - Add ``signac.diff_jobs`` function to compare two or more state points (#248, #247).
+ - Add function to initialize a sample data space for testing purposes (#215).
+ - Add schema version to ensure compatibility and enable migrations in future package versions (#165, #253).
 
 Changed
 +++++++
 
- - Implemented ``Project.__contains__`` check in constant time.
+ - Implemented ``Project.__contains__`` check in constant time (#231).
 
 Fixed
 +++++
 
- - Attempting to create a linked view for a Project on Windows now raises an informative error message.
+ - Attempting to create a linked view for a Project on Windows now raises an informative error message (#214, #236).
  - Project configuration is initialized using ConfigObj, allowing the configuration to include commas and special characters (#251, #252).
 
 Deprecated
@@ -46,7 +49,7 @@ Deprecated
 Removed
 +++++++
 
- - Dropped support for Python 2.7.
+ - Dropped support for Python 2.7 (#232).
 
 
 [1.2.0] -- 2019-07-22

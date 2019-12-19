@@ -17,8 +17,9 @@ from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
+from packaging import version
 
-from ..version import __version__
+from ..version import __version__, SCHEMA_VERSION
 from .. import syncutil
 from ..core import json
 from ..core.jsondict import JSONDict
@@ -35,6 +36,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
+from .errors import IncompatibleSchemaVersion
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,6 @@ class _ProjectConfig(Config):
                           "will be removed in version 2.0.",
                           DeprecationWarning)
 
-            from packaging import version
             assert version.parse(__version__) < version.parse("2.0")
         return super(_ProjectConfig, self).__setitem__(key, value)
 
@@ -136,7 +137,7 @@ class Project(object):
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, _ignore_schema_version=False):
         if config is None:
             config = load_config()
         self._config = _ProjectConfig(config)
@@ -147,6 +148,10 @@ class Project(object):
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
                     os.path.abspath(self.config.get('project_dir', os.getcwd()))))
+
+        # Ensure that the project's data schema is supported.
+        if not _ignore_schema_version:
+            self._check_schema_compatibility()
 
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
@@ -239,6 +244,32 @@ class Project(object):
             return str(self.config['project'])
         except KeyError:
             return None
+
+    def _check_schema_compatibility(self):
+        """Checks whether this project's data schema is compatible with this version.
+
+        :raises RuntimeError:
+            If the schema version is incompatible.
+        """
+        schema_version = version.parse(SCHEMA_VERSION)
+        config_schema_version = version.parse(self.config['schema_version'])
+        if config_schema_version > schema_version:
+            # Project config schema version is newer and therefore not supported.
+            raise IncompatibleSchemaVersion(
+                "The signac schema version used by this project is '{}', but signac {} "
+                "only supports up to schema version '{}'. Try updating signac.".format(
+                    config_schema_version, __version__, schema_version))
+        elif config_schema_version < schema_version:
+            raise IncompatibleSchemaVersion(
+                "The signac schema version used by this project is '{}', but signac {} "
+                "requires schema version '{}'. Please use '$ signac migrate' to "
+                "irreversibly migrate this project's schema to the supported "
+                "version.".format(
+                    config_schema_version, __version__, schema_version))
+        else:   # identical and therefore compatible
+            logger.debug(
+                "The project's schema version {} is supported.".format(
+                    config_schema_version))
 
     def min_len_unique_id(self):
         "Determine the minimum length required for an id to be unique."
@@ -1481,6 +1512,7 @@ class Project(object):
             config['project'] = name
             if workspace is not None:
                 config['workspace_dir'] = workspace
+            config['schema_version'] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
             assert project.id == str(name)
@@ -1499,7 +1531,7 @@ class Project(object):
                         name, os.path.abspath(root)))
 
     @classmethod
-    def get_project(cls, root=None, search=True):
+    def get_project(cls, root=None, search=True, **kwargs):
         """Find a project configuration and return the associated project.
 
         :param root:
@@ -1521,7 +1553,8 @@ class Project(object):
                 (not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)):
             raise LookupError(
                 "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
-        return cls(config=config)
+
+        return cls(config=config, **kwargs)
 
     @classmethod
     def get_job(cls, root=None):
@@ -1881,7 +1914,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
 
 
-def get_project(root=None, search=True):
+def get_project(root=None, search=True, **kwargs):
     """Find a project configuration and return the associated project.
 
     :param root:
@@ -1897,7 +1930,7 @@ def get_project(root=None, search=True):
     :rtype: :py:class:`~.Project`
     :raises LookupError: If no project configuration can be found.
     """
-    return Project.get_project(root=root, search=search)
+    return Project.get_project(root=root, search=search, **kwargs)
 
 
 def get_job(root=None):
