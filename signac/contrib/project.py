@@ -346,17 +346,23 @@ class Project(object):
         Use this property to access an HDF5 file within the project's root
         directory using the H5Store dict-like interface.
 
-        This is an example for accessing an HDF5 file called 'my_data.h5' within
-        the project's root directory:
+        This is an example for accessing an HDF5 file called ``'my_data.h5'``
+        within the project's root directory:
+
+        .. code-block:: python
 
             project.stores['my_data']['array'] = np.random((32, 4))
 
         This is equivalent to:
 
+        .. code-block:: python
+
             H5Store(project.fn('my_data.h5'))['array'] = np.random((32, 4))
 
         Both the `project.stores` and the `H5Store` itself support attribute
-        access. The above example could therefore also be expressed as
+        access. The above example could therefore also be expressed as:
+
+        .. code-block:: python
 
             project.stores.my_data.array = np.random((32, 4))
 
@@ -369,9 +375,18 @@ class Project(object):
     def data(self):
         """The data associated with this project.
 
+        This property should be used for large array-like data, which can't be
+        stored efficiently in the project document. For examples and usage, see
+        `Centralized Project Data
+        <https://docs.signac.io/en/latest/projects.html#centralized-project-data>`_.
+
+        See :class:`~..core.h5store.H5Store` for usage examples.
+
         Equivalent to:
 
-            return project.store['signac_data']
+        .. code-block:: python
+
+            return project.stores['signac_data']
 
         :return: An HDF5-backed datastore.
         :rtype: :class:`~..core.h5store.H5Store`

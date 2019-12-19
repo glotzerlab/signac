@@ -293,7 +293,7 @@ class Job(object):
             H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
 
         Both the `job.stores` and the `H5Store` itself support attribute
-        access. The above example could therefore also be expressed as
+        access. The above example could therefore also be expressed as:
 
         .. code-block:: python
 
@@ -308,7 +308,11 @@ class Job(object):
 
     @property
     def data(self):
-        """The data store associated with this job.
+        """The data associated with this job.
+
+        This property should be used for large array-like data, which can't be
+        stored efficiently in the job document. For examples and usage, see
+        `Job Data Storage <https://docs.signac.io/en/latest/jobs.html#job-data-storage>`_.
 
         Equivalent to:
 

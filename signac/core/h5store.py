@@ -262,10 +262,10 @@ class H5Store(MutableMapping):
             assert h5s.foo == 'bar'
             assert h5s['foo'] == 'bar'
 
-    The H5Store can be used as a context manager to ensure that the underlying file
-    is opened, however most built-in types can be read and stored without the need
-    to _explicitly_ open the file. However, to access arrays (reading or writing),
-    the file must always be opened!
+    The H5Store can be used as a context manager to ensure that the underlying
+    file is opened, however most built-in types (excluding arrays) can be read
+    and stored without the need to _explicitly_ open the file. **To
+    access arrays (reading or writing), the file must always be opened!**
 
     To open a file in read-only mode, use the :py:meth:`.open` method with ``mode=r``:
 

@@ -61,6 +61,7 @@ The Project
     Project.repair
     Project.reset_statepoint
     Project.root_directory
+    Project.stores
     Project.sync
     Project.update_cache
     Project.update_statepoint
