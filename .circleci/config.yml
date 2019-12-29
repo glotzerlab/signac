@@ -23,7 +23,7 @@ jobs:
             python -m flake8 --show-source signac/
 
 
-  test-3.8: &test-template
+  test-38: &test-template
     docker:
       - image: circleci/python:3.8
 
@@ -96,15 +96,15 @@ jobs:
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             ${PYTHON} benchmark.py run -N 100 1000 --force
             ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
-  test-3.7:
+  test-37:
     <<: *test-template
     docker:
       - image: circleci/python:3.7
-  test-3.6:
+  test-36:
     <<: *test-template
     docker:
       - image: circleci/python:3.6
-  test-3.5:
+  test-35:
     <<: *test-template
     docker:
       - image: circleci/python:3.5
@@ -115,7 +115,7 @@ jobs:
     environment:
       PYTHON: pypy3
 
-  test-windows-3.8:
+  test-windows-38:
     executor: win/default
     steps:
       - checkout
@@ -172,21 +172,22 @@ workflows:
   test:
     jobs:
       - style-check
-      - test-3.5:
+      - test-35:
           requires:
             - style-check
-      - test-3.6:
+      - test-36:
           requires:
             - style-check
-      - test-3.7:
+      - test-37:
           requires:
             - style-check
-      - test-3.8:
+      - test-38:
           requires:
             - style-check
       - test-pypy-3:
           requires:
-            - test-3.6
+            - test-36
+      - test-windows-38
       - check-metadata:
           filters:
             branches:
@@ -196,10 +197,10 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - test-3.5
-            - test-3.6
-            - test-3.7
-            - test-3.8
+            - test-35
+            - test-36
+            - test-37
+            - test-38
             - test-pypy-3
   deploy:
     jobs:
