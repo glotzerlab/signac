@@ -1,6 +1,6 @@
 coverage==4
 mock==2
-numpy==1.15
+numpy==1.18
 pandas==0.25; implementation_name!='cpython' --no-binary pandas
 pandas==0.25; implementation_name=='cpython'
 h5py==2.9; implementation_name!='cpython' --no-binary h5py
