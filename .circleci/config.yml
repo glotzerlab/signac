@@ -131,6 +131,7 @@ jobs:
           name: install dependencies
           command: |
             python --version
+            python -m pip install certifi
             python -m pip install -U -e . -r requirements-dev.txt
       - run:
           name: run tests
