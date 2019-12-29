@@ -127,10 +127,10 @@ jobs:
           name: install python
           command: |
             choco install python --version 3.8.1 --limit-output --no-progress
-            python --version
       - run:
           name: install dependencies
           command: |
+            python --version
             python -m pip install -U -e . -r requirements-dev.txt
       - run:
           name: run tests
