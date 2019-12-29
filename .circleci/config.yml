@@ -1,8 +1,11 @@
-# Python CircleCI 2.0 configuration file
+# CircleCI configuration file
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2
+version: 2.1
+
+orbs:
+  win: circleci/windows@2.2.0  # Enables Windows executors
 
 jobs:
   style-check:
@@ -111,6 +114,16 @@ jobs:
       - image: pypy:3
     environment:
       PYTHON: pypy3
+
+  test-windows-3.8:
+    executor: win/default
+    steps:
+      - checkout
+      - run:
+          name: install
+          command: |
+            choco install python --version 3.8.1
+            python --version
 
 
   check-metadata:
