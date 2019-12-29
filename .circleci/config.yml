@@ -96,18 +96,22 @@ jobs:
             git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
             ${PYTHON} benchmark.py run -N 100 1000 --force
             ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+
   test-37:
     <<: *test-template
     docker:
       - image: circleci/python:3.7
+
   test-36:
     <<: *test-template
     docker:
       - image: circleci/python:3.6
+
   test-35:
     <<: *test-template
     docker:
       - image: circleci/python:3.5
+
   test-pypy-3:
     <<: *test-template
     docker:
@@ -120,11 +124,18 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install
+          name: install python
           command: |
-            choco install python --version 3.8.1
+            choco install python --version 3.8.1 --limit-output --no-progress
             python --version
-
+      - run:
+          name: install dependencies
+          command: |
+            python -m pip install -U -e . -r requirements-dev.txt
+      - run:
+          name: run tests
+          command: |
+            python -m unittest discover tests/ -v
 
   check-metadata:
     docker:
