@@ -385,7 +385,8 @@ class H5StoreTest(BaseH5StoreTest):
                     self.assertEqual(h5s[k], v)
                     try:
                         other_h5s[k] = h5s[k]
-                    except RuntimeError as error:
+                    except (OSError, RuntimeError) as error:
+                        # Type of error may depend on platform or software versions
                         self.assertEqual(
                             str(error),
                             "Unable to create link (interfile hard links are not allowed)")
