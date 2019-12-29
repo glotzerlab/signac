@@ -320,12 +320,13 @@ class H5Store(MutableMapping):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
-        # We use the default file parameters, which can optionally be overriden
+        # We use the default file parameters, which can optionally be overridden
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
         parameters = dict(self._kwargs)
         parameters.update(kwargs)
-        parameters.setdefault('mode', 'a')
+        if parameters.get('mode', None) is None:
+            parameters['mode'] = 'a'
 
         self._thread_lock.acquire()
         try:
