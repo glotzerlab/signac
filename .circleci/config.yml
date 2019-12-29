@@ -38,11 +38,11 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
-            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v5-{{ arch }}
-            - python-env-v5
+            - python-env-v6-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v6-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
+            - python-env-v6-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
+            - python-env-v6-{{ arch }}
+            - python-env-v6
 
       - run:
           name: install dependencies
@@ -62,7 +62,7 @@ jobs:
             ${PYTHON} -m pip install -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v5-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v6-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - "venv"
 
