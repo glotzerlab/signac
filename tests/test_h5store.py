@@ -733,7 +733,7 @@ class H5StorePerformanceTest(BaseH5StoreTest):
         times = numpy.zeros(200)
         for i in range(len(times)):
             start = time()
-            with h5py.File(self._fn_store) as h5file:
+            with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_baseline']
                 h5file.create_dataset('_baseline', data=value, shape=None)
@@ -791,7 +791,7 @@ class H5StorePerformanceNestedDataTest(H5StorePerformanceTest):
         times = numpy.zeros(200)
         for i in range(len(times)):
             start = time()
-            with h5py.File(self._fn_store) as h5file:
+            with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_basegroup']
                 h5file.create_group('_basegroup').create_dataset(
