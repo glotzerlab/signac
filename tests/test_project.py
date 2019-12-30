@@ -220,6 +220,7 @@ class ProjectTest(BaseProjectTest):
             # constructor: https://bugs.python.org/issue33234
             self.assertIn(len(cm.output), (2, 3))
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
         os.symlink(wd + '~', self.project.fn('workspace-link'))
