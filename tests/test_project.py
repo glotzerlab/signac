@@ -3,6 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
+import sys
 import io
 import uuid
 import logging
@@ -42,6 +43,10 @@ try:
     H5PY = True
 except ImportError:
     H5PY = False
+
+
+# Skip linked view tests on Windows
+WINDOWS = sys.platform.startswith('win')
 
 
 # Make sure the jobs created for this test are unique.
@@ -1403,6 +1408,7 @@ class ProjectRepresentationTest(BaseProjectTest):
 
 class LinkedViewProjectTest(BaseProjectTest):
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view(self):
 
         def clean(filter=None):
@@ -1466,6 +1472,7 @@ class LinkedViewProjectTest(BaseProjectTest):
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         self.assertEqual(src, dst)
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1485,6 +1492,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', str(
                         sp['c']), 'b', str(sp['b']), 'a', str(sp['a']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1504,6 +1512,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
                         sp['a']), 'c', str(sp['c']), 'b', str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1523,6 +1532,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
                         sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1543,6 +1553,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                         view_prefix, 'a_%s/c_%s_b_%s' % (str(sp['a']), str(sp['c']), str(sp['b'])),
                         'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1568,6 +1579,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                    'd', str(sp['d']), 'b',
                                                                    str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1590,6 +1602,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                'd.c', str(sp['d']['c']), 'd.b',
                                                                str(sp['d']['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1612,6 +1625,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                'd.c', str(sp['d']['c']), 'd.b',
                                                                str(sp['d']['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1637,6 +1651,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                 self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
                                                            str(sp['a']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1661,6 +1676,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                 self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']), 'd.c',
                                                            sp['d']['c'], 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1689,6 +1705,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                    str(sp['a']), 'b', str(sp['b']),
                                                                    'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1713,6 +1730,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
                                                                'b', str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1741,6 +1759,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                str(sp['a']), 'b', str(sp['b']),
                                                                'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_problematic(self):
         self.project.open_job(dict(a=1)).init()
         self.project.open_job(dict(a=1, b=1)).init()
@@ -1748,6 +1767,7 @@ class LinkedViewProjectTest(BaseProjectTest):
         with self.assertRaises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_with_slash_raises_error(self):
         bad_chars = [os.sep, " ", "*"]
         statepoints = [{
