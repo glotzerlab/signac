@@ -1190,8 +1190,8 @@ class ProjectExportImportTest(BaseProjectTest):
     def test_export_import_schema_callable(self):
 
         def my_schema(path):
-            import re
-            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            re_sep = re.escape(os.path.sep)
+            m = re.match(r'.*' + re_sep + 'a' + re_sep + r'(?P<a>\d+)$', path)
             if m:
                 return dict(a=int(m.groupdict()['a']))
 
@@ -1206,8 +1206,8 @@ class ProjectExportImportTest(BaseProjectTest):
     def test_export_import_schema_callable_non_unique(self):
 
         def my_schema_non_unique(path):
-            import re
-            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            re_sep = re.escape(os.path.sep)
+            m = re.match(r'.*' + re_sep + 'a' + re_sep + r'(?P<a>\d+)$', path)
             if m:
                 return dict(a=0)
 
