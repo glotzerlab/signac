@@ -115,7 +115,7 @@ def _h5set(store, grp, key, value, path=None):
         if _is_pandas_type(value):
             _requires_tables()
             store.close()
-            with _pandas.HDFStore(store._filename) as store_:
+            with _pandas.HDFStore(store._filename, mode='a') as store_:
                 store_[path] = value
             store.open()
         else:
