@@ -134,8 +134,16 @@ def _h5get(store, grp, key, path=None):
         _load_pandas()
         _requires_tables()
         grp.file.flush()
-        with _pandas.HDFStore(grp.file.filename) as store:
-            return store[path]
+        # The store must be closed for pandas to open it safely, but first we
+        # copy the filename since it is not accessible after closing the file.
+        # The pandas data is returned by copy, so the HDFStore can be closed.
+        # Then we re-open the store.
+        filename = grp.file.filename
+        store.close()
+        with _pandas.HDFStore(filename, mode='r') as store_:
+            data = store_[path]
+        store.open()
+        return data
     try:
         shape = result.shape
         if shape is None:
