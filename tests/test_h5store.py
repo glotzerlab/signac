@@ -676,9 +676,9 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
     def test_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store():
             pass    # create file
@@ -692,9 +692,9 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store():   # single writer
             with self.assertRaises(subprocess.CalledProcessError):
@@ -703,9 +703,9 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
     @unittest.skipUnless(python_implementation() == 'CPython', 'SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r", swmr=True); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store(libver='latest') as writer:
             with self.assertRaises(subprocess.CalledProcessError):
