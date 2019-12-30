@@ -216,7 +216,6 @@ class BasicShellTest(unittest.TestCase):
         project = signac.Project()
         out = self.call(
             'python -m signac shell',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
 
@@ -228,7 +227,6 @@ class BasicShellTest(unittest.TestCase):
         assert len(project)
         out = self.call(
             'python -m signac shell',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
 
@@ -238,9 +236,9 @@ class BasicShellTest(unittest.TestCase):
         for i in range(3):
             project.open_job(dict(a=i)).init()
         assert len(project)
+        python_command = 'python -m signac shell -f a.{}gt 0'.format('$' if WINDOWS else r'\$')
         out = self.call(
-            r'python -m signac shell -f a.\$gt 0',
-            'from __future__ import print_function;'
+            python_command,
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, n))
@@ -253,7 +251,6 @@ class BasicShellTest(unittest.TestCase):
         assert len(project)
         out = self.call(
             'python -m signac shell -f a 0',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
         self.assertEqual(out.strip(), '>>> {} {} 1'.format(project, job))
