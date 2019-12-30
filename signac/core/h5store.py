@@ -237,7 +237,7 @@ class H5Group(MutableMapping):
 
 
 class H5Store(MutableMapping):
-    """An HDF5-backed container for storing array-like and dictionary-like data.
+    r"""An HDF5-backed container for storing array-like and dictionary-like data.
 
     The H5Store is a :class:`~collections.abc.MutableMapping` and therefore
     behaves similar to a :class:`dict`, but all data is stored persistently in
@@ -247,7 +247,7 @@ class H5Store(MutableMapping):
 
       * built-in types (int, float, str, bool, NoneType, array)
       * numpy arrays
-      * pandas data frames (requires pandas and pytables),
+      * pandas data frames (requires pandas and pytables)
 
     as well as mappings of values of these types. Values can be accessed as
     attributes (``h5s.foo``) or via key index (``h5s['foo']``).
@@ -267,16 +267,16 @@ class H5Store(MutableMapping):
     and stored without the need to _explicitly_ open the file. **To
     access arrays (reading or writing), the file must always be opened!**
 
-    To open a file in read-only mode, use the :py:meth:`.open` method with ``mode=r``:
+    To open a file in read-only mode, use the :py:meth:`.open` method with ``mode='r'``:
 
     .. code-block:: python
 
-        with H5Store('fileh5').open(mode='r') as h5s:
+        with H5Store('file.h5').open(mode='r') as h5s:
             pass
 
     :param filename:
         The filename of the underlying HDF5 file.
-    :param kwargs:
+    :param \*\*kwargs:
         Additional keyword arguments to be forwarded to the ``h5py.File`` constructor.
         See the documentation for the
         `h5py.File constructor <http://docs.h5py.org/en/latest/high/file.html#File>`_
