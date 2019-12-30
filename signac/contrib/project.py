@@ -1109,7 +1109,7 @@ class Project(object):
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
         for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
-        ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+        ``foo/`` will be imported and their names will be interpreted as the value for ``foo`` within
         the state point.
 
         .. tip::
@@ -1128,12 +1128,15 @@ class Project(object):
         :param schema:
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
+        :param sync:
+            If ``True``, the project will be synchronized with the imported data space. If a
+            dict of keyword arguments is provided, the arguments will be used for :meth:`~.sync`.
+            Defaults to None.
         :param copytree:
             Specify which exact function to use for the actual copytree operation.
             Defaults to :func:`shutil.copytree`.
         :returns:
-            A dict that maps the source directory paths, to the target
-            directory paths.
+            A dict that maps the source directory paths to the target directory paths.
         """
         from .import_export import import_into_project
         if sync:
