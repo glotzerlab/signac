@@ -5,6 +5,7 @@ import unittest
 import os
 import sys
 import io
+import re
 import uuid
 import logging
 import itertools
@@ -524,7 +525,7 @@ class ProjectTest(BaseProjectTest):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index({'.*/test.txt': 'TextFile'}))
+        docs = list(self.project.index({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
@@ -549,7 +550,7 @@ class ProjectTest(BaseProjectTest):
         for job in self.project.find_jobs():
             with open(job.fn('test.txt'), 'w') as file:
                 file.write('test\n')
-        formats = {r'.*/test\.txt': 'TextFile'}
+        formats = {r'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}
         index = dict()
         for doc in self.project.index(formats):
             index[doc['_id']] = doc
@@ -1094,7 +1095,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             with self.project.open_job(dict(a=i)) as job:
                 os.makedirs(job.fn('sub-dir'))
-                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                with open(job.fn(os.path.join('sub-dir', 'signac_statepoint.json')), 'w') as file:
                     file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
@@ -1109,14 +1110,14 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
         for job in self.project:
-            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+            self.assertTrue(job.isfile(os.path.join('sub-dir', 'signac_statepoint.json')))
 
     def test_export_import_zipfile(self):
         target = os.path.join(self._tmp_dir.name, 'data.zip')
         for i in range(10):
             with self.project.open_job(dict(a=i)) as job:
                 os.makedirs(job.fn('sub-dir'))
-                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                with open(job.fn(os.path.join('sub-dir', 'signac_statepoint.json')), 'w') as file:
                     file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
@@ -1131,7 +1132,7 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
         for job in self.project:
-            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+            self.assertTrue(job.isfile(os.path.join('sub-dir', 'signac_statepoint.json')))
 
     def test_export_import(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
