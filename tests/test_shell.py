@@ -171,7 +171,7 @@ class BasicShellTest(unittest.TestCase):
         for sp in sps:
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
-        job_ids = out.split('\n')[:-1]
+        job_ids = out.split(os.linesep)[:-1]
         self.assertEqual(set(job_ids), set(project.find_job_ids()))
         self.assertEqual(
             self.call('python -m signac find'.split() + ['{"a": 0}']).strip(),
