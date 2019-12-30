@@ -622,7 +622,7 @@ def import_into_project(origin, project, schema=None, copytree=None):
 
     .. tip::
 
-        Use ``copytree=os.renames`` or ``copytree=shutil.move`` to move dataspaces on import
+        Use ``copytree=os.replace`` or ``copytree=shutil.move`` to move dataspaces on import
         instead of copying them.
 
         Warning: Imports can fail due to conflicts. Moving data instead of copying may

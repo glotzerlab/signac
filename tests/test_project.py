@@ -417,7 +417,7 @@ class ProjectTest(BaseProjectTest):
         # First, we move the job to the wrong directory.
         wd = job.workspace()
         wd_invalid = os.path.join(self.project.workspace(), '0' * 32)
-        os.rename(wd, wd_invalid)  # Move to incorrect id.
+        os.replace(wd, wd_invalid)  # Move to incorrect id.
         self.assertFalse(os.path.exists(job.workspace()))
 
         try:
@@ -432,7 +432,7 @@ class ProjectTest(BaseProjectTest):
             self.project.check()
 
             # We corrupt it again, but this time ...
-            os.rename(wd, wd_invalid)
+            os.replace(wd, wd_invalid)
             with self.assertRaises(JobsCorruptedError):
                 self.project.check()
             #  ... we reinitalize the initial job, ...
@@ -1029,7 +1029,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1048,12 +1048,12 @@ class ProjectExportImportTest(BaseProjectTest):
             self.project.export_to(
                 target=prefix_data,
                 path=lambda job: 'non_unique',
-                copytree=os.rename)
+                copytree=os.replace)
 
         self.project.export_to(
             target=prefix_data,
             path=lambda job: os.path.join('my_a', str(job.sp.a)),
-            copytree=os.rename)
+            copytree=os.replace)
 
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
@@ -1073,7 +1073,7 @@ class ProjectExportImportTest(BaseProjectTest):
         with TarFile(name=target) as tarfile:
             for i in range(10):
                 self.assertIn('a/{}'.format(i), tarfile.getnames())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
@@ -1093,7 +1093,7 @@ class ProjectExportImportTest(BaseProjectTest):
             for i in range(10):
                 self.assertIn('a/{}'.format(i), tarfile.getnames())
                 self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), tarfile.getnames())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
@@ -1115,7 +1115,7 @@ class ProjectExportImportTest(BaseProjectTest):
             for i in range(10):
                 self.assertIn('a/{}/signac_statepoint.json'.format(i), zipfile.namelist())
                 self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), zipfile.namelist())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
@@ -1128,7 +1128,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project.import_from(prefix_data)), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
@@ -1168,7 +1168,7 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertEqual(len(self.project.import_from(prefix_data)), 10)
 
         selection = list(self.project.find_jobs(dict(a=0)))
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(self.project.import_from(prefix_data,
                                                       sync=dict(selection=selection))), 10)
@@ -1188,7 +1188,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project.import_from(prefix_data, schema=my_schema)), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
@@ -1203,7 +1203,7 @@ class ProjectExportImportTest(BaseProjectTest):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         with self.assertRaises(RuntimeError):
             self.project.import_from(prefix_data, schema=my_schema_non_unique)
 
@@ -1212,7 +1212,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1229,7 +1229,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=dict(b=dict(c=i)))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a.b.c'))), 10)
@@ -1247,7 +1247,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1267,7 +1267,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.project.import_from(prefix_data)
         self.assertEqual(len(self.project), len(statepoints))
@@ -1278,7 +1278,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1293,7 +1293,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1311,7 +1311,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=prefix_data, schema='b.c/{b.c:int}/a/{a:int}')
         self.assertEqual(len(self.project), len(statepoints))

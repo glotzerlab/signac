@@ -1114,7 +1114,7 @@ class Project(object):
 
         .. tip::
 
-            Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+            Use ``copytree=os.replace`` or ``copytree=shutil.move`` to move dataspaces on import
             instead of copying them.
 
             Warning: Imports can fail due to conflicts. Moving data instead of copying may
@@ -1218,7 +1218,7 @@ class Project(object):
                     invalid_wd = os.path.join(self.workspace(), job_id)
                     correct_wd = os.path.join(self.workspace(), correct_id)
                     try:
-                        os.rename(invalid_wd, correct_wd)
+                        os.replace(invalid_wd, correct_wd)
                     except OSError as error:
                         logger.critical(
                             "Unable to fix location of job with "
