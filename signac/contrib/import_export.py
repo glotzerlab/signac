@@ -481,7 +481,8 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     names = zipfile.namelist()
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = path + '/' + project.Job.FN_MANIFEST
         if fn_manifest in names:
             return json.loads(zipfile.read(fn_manifest).decode())
 
@@ -540,7 +541,8 @@ class _CopyFromTarFileExecutor(object):
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = path + '/' + project.Job.FN_MANIFEST
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
                 if sys.version_info < (3, 6):
