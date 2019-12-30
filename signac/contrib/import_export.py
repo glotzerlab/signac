@@ -623,7 +623,7 @@ def import_into_project(origin, project, schema=None, copytree=None):
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
     for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
-    ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+    ``foo/`` will be imported and their names will be interpreted as the value for ``foo`` within
     the state point.
 
     .. tip::
