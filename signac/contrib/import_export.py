@@ -291,6 +291,10 @@ def _convert_schema_path_to_regex(schema_path):
 
     When no type is specified, we default to str.
     """
+    # First, replace path separators with regex-escaped path separators.
+    # This is needed for compatibility with Windows, which uses backslashes.
+    schema_path = re.sub(re.escape(os.path.sep), re.escape(re.escape(os.path.sep)), schema_path)
+
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
     re_key_type_field = r'\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}'
