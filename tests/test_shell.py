@@ -2,12 +2,17 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import sys
 import json
 import unittest
 import subprocess
 from tempfile import TemporaryDirectory
 
 import signac
+
+
+# Skip linked view tests on Windows
+WINDOWS = (sys.platform == 'win32')
 
 
 class DummyFile(object):
@@ -134,6 +139,7 @@ class BasicShellTest(unittest.TestCase):
         self.assertIn('b', doc)
         self.assertEqual(doc['b'], 0)
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
         self.call('python -m signac init my_project'.split())
@@ -149,6 +155,7 @@ class BasicShellTest(unittest.TestCase):
                 os.path.realpath('view/job'),
                 os.path.realpath(project.open_job(sp).workspace()))
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_view(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()

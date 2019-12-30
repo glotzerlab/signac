@@ -47,7 +47,7 @@ except ImportError:
 
 
 # Skip linked view tests on Windows
-WINDOWS = sys.platform.startswith('win')
+WINDOWS = (sys.platform == 'win32')
 
 
 # Make sure the jobs created for this test are unique.
