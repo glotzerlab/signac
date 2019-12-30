@@ -194,13 +194,17 @@ class ProjectTest(BaseProjectTest):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
 
+        def root_path():
+            # Returns 'C:\\' on Windows, '/' on other platforms
+            return os.path.abspath(os.sep)
+
         self.assertEqual(self.project.workspace(), norm_path(self._tmp_wd))
 
-        abs_path = '/path/to/workspace'
+        abs_path = os.path.join(root_path(), 'path', 'to', 'workspace')
         self.project.config['workspace_dir'] = abs_path
         self.assertEqual(self.project.workspace(), norm_path(abs_path))
 
-        rel_path = 'path/to/workspace'
+        rel_path = norm_path(os.path.join('path', 'to', 'workspace'))
         self.project.config['workspace_dir'] = rel_path
         self.assertEqual(
             self.project.workspace(),
