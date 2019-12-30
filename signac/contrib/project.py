@@ -170,9 +170,9 @@ class Project(object):
         return str(self.id)
 
     def __repr__(self):
-        return "{type}.get_project('{root}')".format(
+        return "{type}.get_project({root})".format(
                    type=self.__class__.__name__,
-                   root=self.root_directory())
+                   root=repr(self.root_directory()))
 
     def _repr_html_(self):
         return "<p>" + \
