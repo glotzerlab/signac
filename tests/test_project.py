@@ -1991,6 +1991,7 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.get_job(job.fn('test_subdir')), job)
         self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
         root = self._tmp_dir.name
