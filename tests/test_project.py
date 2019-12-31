@@ -175,8 +175,10 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(self.project.data, {'a': {'b': 43}})
             self.project.data.a.b = 44
             self.assertEqual(self.project.data, {'a': {'b': 44}})
-            self.project.data = {'a': {'b': 45}}
-            self.assertEqual(self.project.data, {'a': {'b': 45}})
+        # This setter will overwrite the file. We leave the context manager so
+        # that the file is closed before overwriting it.
+        self.project.data = {'a': {'b': 45}}
+        self.assertEqual(self.project.data, {'a': {'b': 45}})
 
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
