@@ -57,7 +57,7 @@ class DictManager(object):
             os.replace(self[tmp_key].filename, self[key].filename)
         except (IOError, OSError) as error:
             if error.errno == errno.ENOENT and not len(value):
-                raise ValueError("Cannot asssign empty value!")
+                raise ValueError("Cannot assign empty value!")
             else:
                 raise error
         except Exception as error:
