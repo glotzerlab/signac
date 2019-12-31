@@ -1246,9 +1246,9 @@ class JobOpenDataTest(BaseJobTest):
             self.assertEqual(dict(job.data), {key: d0})
             with self.assertRaises(ValueError):
                 job.data = d1
-            job.data = {key: d1}
-            self.assertEqual(len(job.data), 1)
-            self.assertEqual(dict(job.data), {key: d1})
+        job.data = {key: d1}
+        self.assertEqual(len(job.data), 1)
+        self.assertEqual(dict(job.data), {key: d1})
 
     def test_copy_data(self):
         key = 'get_set'
