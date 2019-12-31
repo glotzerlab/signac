@@ -473,7 +473,7 @@ class Job(object):
             if error.errno == errno.ENOENT:
                 raise RuntimeError(
                     "Cannot move job '{}', because it is not initialized!".format(self))
-            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
                 raise RuntimeError(
