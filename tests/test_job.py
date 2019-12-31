@@ -1230,9 +1230,9 @@ class JobOpenDataTest(BaseJobTest):
             self.assertEqual(dict(job.data), {key: d0})
             with self.assertRaises(ValueError):
                 job.data = d1
-            job.data = {key: d1}
-            self.assertEqual(len(job.data), 1)
-            self.assertEqual(dict(job.data), {key: d1})
+        job.data = {key: d1}
+        self.assertEqual(len(job.data), 1)
+        self.assertEqual(dict(job.data), {key: d1})
 
     def test_assign_data(self):
         key = 'assign'
@@ -1734,9 +1734,9 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertEqual(dict(job.stores.test), {key: d0})
             with self.assertRaises(ValueError):
                 job.stores.test = d1
-            job.stores.test = {key: d1}
-            self.assertEqual(len(job.stores.test), 1)
-            self.assertEqual(dict(job.stores.test), {key: d1})
+        job.stores.test = {key: d1}
+        self.assertEqual(len(job.stores.test), 1)
+        self.assertEqual(dict(job.stores.test), {key: d1})
 
     def test_assign_data(self):
         key = 'assign'
@@ -1750,9 +1750,9 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertEqual(dict(job.stores.test), {key: d0})
             with self.assertRaises(ValueError):
                 job.stores.test = d1
-            job.stores.test = {key: d1}
-            self.assertEqual(len(job.stores.test), 1)
-            self.assertEqual(dict(job.stores.test), {key: d1})
+        job.stores.test = {key: d1}
+        self.assertEqual(len(job.stores.test), 1)
+        self.assertEqual(dict(job.stores.test), {key: d1})
 
     def test_copy_data(self):
         key = 'get_set'
