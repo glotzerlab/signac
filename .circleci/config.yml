@@ -23,7 +23,7 @@ jobs:
             python -m flake8 --show-source signac/
 
 
-  test-38: &test-template
+  linux-python-38: &linux-template
     docker:
       - image: circleci/python:3.8
 
@@ -97,29 +97,29 @@ jobs:
             ${PYTHON} benchmark.py run -N 100 1000 --force
             ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
 
-  test-37:
-    <<: *test-template
+  linux-python-37:
+    <<: *linux-template
     docker:
       - image: circleci/python:3.7
 
-  test-36:
-    <<: *test-template
+  linux-python-36:
+    <<: *linux-template
     docker:
       - image: circleci/python:3.6
 
-  test-35:
-    <<: *test-template
+  linux-python-35:
+    <<: *linux-template
     docker:
       - image: circleci/python:3.5
 
-  test-pypy-3:
-    <<: *test-template
+  linux-pypy-3:
+    <<: *linux-template
     docker:
       - image: pypy:3
     environment:
       PYTHON: pypy3
 
-  test-windows-38:
+  windows-python-38:
     executor: win/default
     steps:
       - checkout
@@ -184,22 +184,22 @@ workflows:
   test:
     jobs:
       - style-check
-      - test-35:
+      - linux-python-38:
           requires:
             - style-check
-      - test-36:
+      - linux-python-37:
           requires:
             - style-check
-      - test-37:
+      - linux-python-36:
           requires:
             - style-check
-      - test-38:
+      - linux-python-35:
           requires:
             - style-check
-      - test-pypy-3:
+      - linux-pypy-3:
           requires:
-            - test-36
-      - test-windows-38:
+            - linux-python-36
+      - windows-python-38:
           requires:
             - style-check
       - check-metadata:
@@ -211,12 +211,12 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - test-35
-            - test-36
-            - test-37
-            - test-38
-            - test-pypy-3
-            - test-windows-38
+            - linux-python-35
+            - linux-python-36
+            - linux-python-37
+            - linux-python-38
+            - linux-pypy-3
+            - windows-python-38
   deploy:
     jobs:
       - deploy-pypi:
