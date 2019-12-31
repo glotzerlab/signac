@@ -291,9 +291,9 @@ def _convert_schema_path_to_regex(schema_path):
 
     When no type is specified, we default to str.
     """
-    # First, replace path separators with regex-escaped path separators.
+    # First, replace escaped backslashes with double-escaped backslashes.
     # This is needed for compatibility with Windows, which uses backslashes.
-    schema_path = re.sub(re.escape(os.path.sep), re.escape(re.escape(os.path.sep)), schema_path)
+    schema_path = re.sub(r'\\', r'\\\\', schema_path)
 
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
