@@ -2,8 +2,7 @@ coverage==5.0.1
 numpy==1.18
 pandas==0.25.3; implementation_name!='cpython' --no-binary pandas
 pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
-h5py==2.10; implementation_name!='cpython' --no-binary h5py
-h5py==2.10; implementation_name=='cpython' --no-binary :none:
+h5py==2.10; implementation_name=='cpython'
 tables==3.6.1
 click>=7.0
 ruamel.yaml>=0.15.89
