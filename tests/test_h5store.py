@@ -669,7 +669,7 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
         from multiprocessing import Process
 
         def read():
-            p = Process(target=_read_from_h5store, args=(self._fn_store,), kwargs=(dict(mode=None)))
+            p = Process(target=_read_from_h5store, args=(self._fn_store,), kwargs=(dict(mode='r')))
             p.start()
             p.join()
             # Ensure the process succeeded
