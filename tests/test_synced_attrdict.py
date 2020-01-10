@@ -508,6 +508,18 @@ class SyncedAttrDictTest(unittest.TestCase):
         self.assertEqual(len(sad), 1)
         self.assert_only_read()
 
+    def test_nested_types_dict_conversion(self):
+        """Ensure that calling methods like items and values does not
+        change the type of nested dictionaries."""
+        sad = self.get_sad({'a': {'b': 1}})
+        assert type(sad['a']) is SAD
+        sad.items()
+        assert type(sad['a']) is SAD
+        sad.values()
+        assert type(sad['a']) is SAD
+        sad._as_dict()
+        assert type(sad['a']) is SAD
+
 
 if __name__ == '__main__':
     unittest.main()
