@@ -140,12 +140,12 @@ class Job(object):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
-            os.rename(fn_manifest, fn_manifest_backup)
+            os.replace(fn_manifest, fn_manifest_backup)
             try:
-                os.rename(self.workspace(), dst.workspace())
+                os.replace(self.workspace(), dst.workspace())
             except OSError as error:
-                os.rename(fn_manifest_backup, fn_manifest)  # rollback
-                if error.errno == errno.ENOTEMPTY:
+                os.replace(fn_manifest_backup, fn_manifest)  # rollback
+                if error.errno in (errno.ENOTEMPTY, errno.EACCES):
                     raise DestinationExistsError(dst)
                 else:
                     raise
@@ -468,12 +468,12 @@ class Job(object):
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
         try:
-            os.rename(self.workspace(), dst.workspace())
+            os.replace(self.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.ENOENT:
                 raise RuntimeError(
                     "Cannot move job '{}', because it is not initialized!".format(self))
-            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
                 raise RuntimeError(

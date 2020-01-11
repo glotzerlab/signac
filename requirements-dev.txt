@@ -1,10 +1,8 @@
-coverage==4
-mock==2
-numpy==1.15
-pandas==0.25; implementation_name!='cpython' --no-binary pandas
-pandas==0.25; implementation_name=='cpython'
-h5py==2.9; implementation_name!='cpython' --no-binary h5py
-h5py==2.9; implementation_name=='cpython'
-tables==3.4.4
+coverage==5.0.1
+numpy==1.18
+pandas==0.25.3; implementation_name!='cpython' --no-binary pandas
+pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
+h5py==2.10; implementation_name=='cpython'
+tables==3.6.1; implementation_name=='cpython'
 click>=7.0
 ruamel.yaml>=0.15.89

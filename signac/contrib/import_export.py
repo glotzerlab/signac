@@ -291,6 +291,10 @@ def _convert_schema_path_to_regex(schema_path):
 
     When no type is specified, we default to str.
     """
+    # First, replace escaped backslashes with double-escaped backslashes.
+    # This is needed for compatibility with Windows, which uses backslashes.
+    schema_path = re.sub(r'\\', r'\\\\', schema_path)
+
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
     re_key_type_field = r'\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}'
@@ -477,7 +481,8 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     names = zipfile.namelist()
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = path + '/' + project.Job.FN_MANIFEST
         if fn_manifest in names:
             return json.loads(zipfile.read(fn_manifest).decode())
 
@@ -536,7 +541,8 @@ class _CopyFromTarFileExecutor(object):
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = path + '/' + project.Job.FN_MANIFEST
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
                 if sys.version_info < (3, 6):
@@ -617,12 +623,12 @@ def import_into_project(origin, project, schema=None, copytree=None):
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
     for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
-    ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+    ``foo/`` will be imported and their names will be interpreted as the value for ``foo`` within
     the state point.
 
     .. tip::
 
-        Use ``copytree=os.renames`` or ``copytree=shutil.move`` to move dataspaces on import
+        Use ``copytree=os.replace`` or ``copytree=shutil.move`` to move dataspaces on import
         instead of copying them.
 
         Warning: Imports can fail due to conflicts. Moving data instead of copying may

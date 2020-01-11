@@ -1,7 +1,6 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import absolute_import
 import unittest
 import os
 import io
@@ -1231,9 +1230,9 @@ class JobOpenDataTest(BaseJobTest):
             self.assertEqual(dict(job.data), {key: d0})
             with self.assertRaises(ValueError):
                 job.data = d1
-            job.data = {key: d1}
-            self.assertEqual(len(job.data), 1)
-            self.assertEqual(dict(job.data), {key: d1})
+        job.data = {key: d1}
+        self.assertEqual(len(job.data), 1)
+        self.assertEqual(dict(job.data), {key: d1})
 
     def test_assign_data(self):
         key = 'assign'
@@ -1247,9 +1246,9 @@ class JobOpenDataTest(BaseJobTest):
             self.assertEqual(dict(job.data), {key: d0})
             with self.assertRaises(ValueError):
                 job.data = d1
-            job.data = {key: d1}
-            self.assertEqual(len(job.data), 1)
-            self.assertEqual(dict(job.data), {key: d1})
+        job.data = {key: d1}
+        self.assertEqual(len(job.data), 1)
+        self.assertEqual(dict(job.data), {key: d1})
 
     def test_copy_data(self):
         key = 'get_set'
@@ -1735,9 +1734,9 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertEqual(dict(job.stores.test), {key: d0})
             with self.assertRaises(ValueError):
                 job.stores.test = d1
-            job.stores.test = {key: d1}
-            self.assertEqual(len(job.stores.test), 1)
-            self.assertEqual(dict(job.stores.test), {key: d1})
+        job.stores.test = {key: d1}
+        self.assertEqual(len(job.stores.test), 1)
+        self.assertEqual(dict(job.stores.test), {key: d1})
 
     def test_assign_data(self):
         key = 'assign'
@@ -1751,9 +1750,9 @@ class JobOpenCustomDataTest(BaseJobTest):
             self.assertEqual(dict(job.stores.test), {key: d0})
             with self.assertRaises(ValueError):
                 job.stores.test = d1
-            job.stores.test = {key: d1}
-            self.assertEqual(len(job.stores.test), 1)
-            self.assertEqual(dict(job.stores.test), {key: d1})
+        job.stores.test = {key: d1}
+        self.assertEqual(len(job.stores.test), 1)
+        self.assertEqual(dict(job.stores.test), {key: d1})
 
     def test_copy_data(self):
         key = 'get_set'

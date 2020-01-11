@@ -3,7 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 import unittest
 import os
+import sys
 import io
+import re
 import uuid
 import logging
 import itertools
@@ -42,6 +44,10 @@ try:
     H5PY = True
 except ImportError:
     H5PY = False
+
+
+# Skip linked view tests on Windows
+WINDOWS = (sys.platform == 'win32')
 
 
 # Make sure the jobs created for this test are unique.
@@ -169,8 +175,10 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(self.project.data, {'a': {'b': 43}})
             self.project.data.a.b = 44
             self.assertEqual(self.project.data, {'a': {'b': 44}})
-            self.project.data = {'a': {'b': 45}}
-            self.assertEqual(self.project.data, {'a': {'b': 45}})
+        # This setter will overwrite the file. We leave the context manager so
+        # that the file is closed before overwriting it.
+        self.project.data = {'a': {'b': 45}}
+        self.assertEqual(self.project.data, {'a': {'b': 45}})
 
     def test_write_read_statepoint(self):
         statepoints = [{'a': i} for i in range(5)]
@@ -189,13 +197,17 @@ class ProjectTest(BaseProjectTest):
         def norm_path(p):
             return os.path.abspath(os.path.expandvars(p))
 
+        def root_path():
+            # Returns 'C:\\' on Windows, '/' on other platforms
+            return os.path.abspath(os.sep)
+
         self.assertEqual(self.project.workspace(), norm_path(self._tmp_wd))
 
-        abs_path = '/path/to/workspace'
+        abs_path = os.path.join(root_path(), 'path', 'to', 'workspace')
         self.project.config['workspace_dir'] = abs_path
         self.assertEqual(self.project.workspace(), norm_path(abs_path))
 
-        rel_path = 'path/to/workspace'
+        rel_path = norm_path(os.path.join('path', 'to', 'workspace'))
         self.project.config['workspace_dir'] = rel_path
         self.assertEqual(
             self.project.workspace(),
@@ -211,6 +223,7 @@ class ProjectTest(BaseProjectTest):
             # constructor: https://bugs.python.org/issue33234
             self.assertIn(len(cm.output), (2, 3))
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_workspace_broken_link_error_on_find(self):
         wd = self.project.workspace()
         os.symlink(wd + '~', self.project.fn('workspace-link'))
@@ -417,7 +430,7 @@ class ProjectTest(BaseProjectTest):
         # First, we move the job to the wrong directory.
         wd = job.workspace()
         wd_invalid = os.path.join(self.project.workspace(), '0' * 32)
-        os.rename(wd, wd_invalid)  # Move to incorrect id.
+        os.replace(wd, wd_invalid)  # Move to incorrect id.
         self.assertFalse(os.path.exists(job.workspace()))
 
         try:
@@ -432,7 +445,7 @@ class ProjectTest(BaseProjectTest):
             self.project.check()
 
             # We corrupt it again, but this time ...
-            os.rename(wd, wd_invalid)
+            os.replace(wd, wd_invalid)
             with self.assertRaises(JobsCorruptedError):
                 self.project.check()
             #  ... we reinitalize the initial job, ...
@@ -514,7 +527,7 @@ class ProjectTest(BaseProjectTest):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index({'.*/test.txt': 'TextFile'}))
+        docs = list(self.project.index({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
         self.assertEqual(len(docs), 2 * len(statepoints))
         self.assertEqual(len(set((doc['_id'] for doc in docs))), len(docs))
 
@@ -539,7 +552,7 @@ class ProjectTest(BaseProjectTest):
         for job in self.project.find_jobs():
             with open(job.fn('test.txt'), 'w') as file:
                 file.write('test\n')
-        formats = {r'.*/test\.txt': 'TextFile'}
+        formats = {r'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}
         index = dict()
         for doc in self.project.index(formats):
             index[doc['_id']] = doc
@@ -1029,7 +1042,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1048,12 +1061,12 @@ class ProjectExportImportTest(BaseProjectTest):
             self.project.export_to(
                 target=prefix_data,
                 path=lambda job: 'non_unique',
-                copytree=os.rename)
+                copytree=os.replace)
 
         self.project.export_to(
             target=prefix_data,
             path=lambda job: os.path.join('my_a', str(job.sp.a)),
-            copytree=os.rename)
+            copytree=os.replace)
 
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
@@ -1073,7 +1086,7 @@ class ProjectExportImportTest(BaseProjectTest):
         with TarFile(name=target) as tarfile:
             for i in range(10):
                 self.assertIn('a/{}'.format(i), tarfile.getnames())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
@@ -1084,7 +1097,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             with self.project.open_job(dict(a=i)) as job:
                 os.makedirs(job.fn('sub-dir'))
-                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                with open(job.fn(os.path.join('sub-dir', 'signac_statepoint.json')), 'w') as file:
                     file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
@@ -1093,20 +1106,20 @@ class ProjectExportImportTest(BaseProjectTest):
             for i in range(10):
                 self.assertIn('a/{}'.format(i), tarfile.getnames())
                 self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), tarfile.getnames())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
         for job in self.project:
-            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+            self.assertTrue(job.isfile(os.path.join('sub-dir', 'signac_statepoint.json')))
 
     def test_export_import_zipfile(self):
         target = os.path.join(self._tmp_dir.name, 'data.zip')
         for i in range(10):
             with self.project.open_job(dict(a=i)) as job:
                 os.makedirs(job.fn('sub-dir'))
-                with open(job.fn('sub-dir/signac_statepoint.json'), 'w') as file:
+                with open(job.fn(os.path.join('sub-dir', 'signac_statepoint.json')), 'w') as file:
                     file.write(json.dumps({"foo": 0}))
         ids_before_export = list(sorted(self.project.find_job_ids()))
         self.project.export_to(target=target)
@@ -1115,20 +1128,20 @@ class ProjectExportImportTest(BaseProjectTest):
             for i in range(10):
                 self.assertIn('a/{}/signac_statepoint.json'.format(i), zipfile.namelist())
                 self.assertIn('a/{}/sub-dir/signac_statepoint.json'.format(i), zipfile.namelist())
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=target)
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
         for job in self.project:
-            self.assertTrue(job.isfile('sub-dir/signac_statepoint.json'))
+            self.assertTrue(job.isfile(os.path.join('sub-dir', 'signac_statepoint.json')))
 
     def test_export_import(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project.import_from(prefix_data)), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
@@ -1168,7 +1181,7 @@ class ProjectExportImportTest(BaseProjectTest):
             self.assertEqual(len(self.project.import_from(prefix_data)), 10)
 
         selection = list(self.project.find_jobs(dict(a=0)))
-        os.rename(self.project.workspace(), self.project.workspace() + '~')
+        os.replace(self.project.workspace(), self.project.workspace() + '~')
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(self.project.import_from(prefix_data,
                                                       sync=dict(selection=selection))), 10)
@@ -1179,8 +1192,8 @@ class ProjectExportImportTest(BaseProjectTest):
     def test_export_import_schema_callable(self):
 
         def my_schema(path):
-            import re
-            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            re_sep = re.escape(os.path.sep)
+            m = re.match(r'.*' + re_sep + 'a' + re_sep + r'(?P<a>\d+)$', path)
             if m:
                 return dict(a=int(m.groupdict()['a']))
 
@@ -1188,22 +1201,22 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project.import_from(prefix_data, schema=my_schema)), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
     def test_export_import_schema_callable_non_unique(self):
 
         def my_schema_non_unique(path):
-            import re
-            m = re.match(r'.*\/a/(?P<a>\d+)$', path)
+            re_sep = re.escape(os.path.sep)
+            m = re.match(r'.*' + re_sep + 'a' + re_sep + r'(?P<a>\d+)$', path)
             if m:
                 return dict(a=0)
 
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         with self.assertRaises(RuntimeError):
             self.project.import_from(prefix_data, schema=my_schema_non_unique)
 
@@ -1212,7 +1225,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1229,7 +1242,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=dict(b=dict(c=i)))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a.b.c'))), 10)
@@ -1247,7 +1260,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1267,7 +1280,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.project.import_from(prefix_data)
         self.assertEqual(len(self.project), len(statepoints))
@@ -1278,7 +1291,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1293,7 +1306,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.assertEqual(len(os.listdir(prefix_data)), 1)
         self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
@@ -1311,7 +1324,7 @@ class ProjectExportImportTest(BaseProjectTest):
         for sp in statepoints:
             self.project.open_job(sp).init()
         ids_before_export = list(sorted(self.project.find_job_ids()))
-        self.project.export_to(target=prefix_data, copytree=os.rename)
+        self.project.export_to(target=prefix_data, copytree=os.replace)
         self.assertEqual(len(self.project), 0)
         self.project.import_from(origin=prefix_data, schema='b.c/{b.c:int}/a/{a:int}')
         self.assertEqual(len(self.project), len(statepoints))
@@ -1403,6 +1416,7 @@ class ProjectRepresentationTest(BaseProjectTest):
 
 class LinkedViewProjectTest(BaseProjectTest):
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view(self):
 
         def clean(filter=None):
@@ -1466,6 +1480,7 @@ class LinkedViewProjectTest(BaseProjectTest):
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         self.assertEqual(src, dst)
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1485,6 +1500,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', str(
                         sp['c']), 'b', str(sp['b']), 'a', str(sp['a']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1504,6 +1520,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
                         sp['a']), 'c', str(sp['c']), 'b', str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_tree_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1523,6 +1540,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(
                         sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1543,6 +1561,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                         view_prefix, 'a_%s/c_%s_b_%s' % (str(sp['a']), str(sp['c']), str(sp['b'])),
                         'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_tree(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1568,6 +1587,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                    'd', str(sp['d']), 'b',
                                                                    str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1590,6 +1610,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                'd.c', str(sp['d']['c']), 'd.b',
                                                                str(sp['d']['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1612,6 +1633,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                'd.c', str(sp['d']['c']), 'd.b',
                                                                str(sp['d']['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1637,6 +1659,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                 self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
                                                            str(sp['a']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1661,6 +1684,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                 self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']), 'd.c',
                                                            sp['d']['c'], 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1689,6 +1713,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                    str(sp['a']), 'b', str(sp['b']),
                                                                    'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1713,6 +1738,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                     self.assertTrue(os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
                                                                'b', str(sp['b']), 'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1741,6 +1767,7 @@ class LinkedViewProjectTest(BaseProjectTest):
                                                                str(sp['a']), 'b', str(sp['b']),
                                                                'job')))
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_problematic(self):
         self.project.open_job(dict(a=1)).init()
         self.project.open_job(dict(a=1, b=1)).init()
@@ -1748,6 +1775,7 @@ class LinkedViewProjectTest(BaseProjectTest):
         with self.assertRaises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
+    @unittest.skipIf(WINDOWS, 'Linked views unsupported on Windows.')
     def test_create_linked_view_with_slash_raises_error(self):
         bad_chars = [os.sep, " ", "*"]
         statepoints = [{
@@ -1965,6 +1993,7 @@ class ProjectInitTest(unittest.TestCase):
         self.assertEqual(project.get_job(job.fn('test_subdir')), job)
         self.assertEqual(signac.get_job(job.fn('test_subdir')), job)
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_get_job_symlink_other_project(self):
         # Test case: Get a job from a symlink in another project workspace
         root = self._tmp_dir.name

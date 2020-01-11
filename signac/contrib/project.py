@@ -1,7 +1,6 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
 import os
 import stat
 import re
@@ -170,9 +169,9 @@ class Project(object):
         return str(self.id)
 
     def __repr__(self):
-        return "{type}.get_project('{root}')".format(
+        return "{type}.get_project({root})".format(
                    type=self.__class__.__name__,
-                   root=self.root_directory())
+                   root=repr(self.root_directory()))
 
     def _repr_html_(self):
         return "<p>" + \
@@ -1109,12 +1108,12 @@ class Project(object):
 
         Alternatively the schema argument may be a string, that is converted into a schema function,
         for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
-        ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
-        the state point.
+        ``foo/`` will be imported and their names will be interpreted as the value for ``foo``
+        within the state point.
 
         .. tip::
 
-            Use ``copytree=os.rename`` or ``copytree=shutil.move`` to move dataspaces on import
+            Use ``copytree=os.replace`` or ``copytree=shutil.move`` to move dataspaces on import
             instead of copying them.
 
             Warning: Imports can fail due to conflicts. Moving data instead of copying may
@@ -1128,12 +1127,15 @@ class Project(object):
         :param schema:
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
+        :param sync:
+            If ``True``, the project will be synchronized with the imported data space. If a
+            dict of keyword arguments is provided, the arguments will be used for :meth:`~.sync`.
+            Defaults to None.
         :param copytree:
             Specify which exact function to use for the actual copytree operation.
             Defaults to :func:`shutil.copytree`.
         :returns:
-            A dict that maps the source directory paths, to the target
-            directory paths.
+            A dict that maps the source directory paths to the target directory paths.
         """
         from .import_export import import_into_project
         if sync:
@@ -1218,7 +1220,7 @@ class Project(object):
                     invalid_wd = os.path.join(self.workspace(), job_id)
                     correct_wd = os.path.join(self.workspace(), correct_id)
                     try:
-                        os.rename(invalid_wd, correct_wd)
+                        os.replace(invalid_wd, correct_wd)
                     except OSError as error:
                         logger.critical(
                             "Unable to fix location of job with "

@@ -115,7 +115,7 @@ def _h5set(store, grp, key, value, path=None):
         if _is_pandas_type(value):
             _requires_tables()
             store.close()
-            with _pandas.HDFStore(store._filename) as store_:
+            with _pandas.HDFStore(store._filename, mode='a') as store_:
                 store_[path] = value
             store.open()
         else:
@@ -134,8 +134,16 @@ def _h5get(store, grp, key, path=None):
         _load_pandas()
         _requires_tables()
         grp.file.flush()
-        with _pandas.HDFStore(grp.file.filename) as store:
-            return store[path]
+        # The store must be closed for pandas to open it safely, but first we
+        # copy the filename since it is not accessible after closing the file.
+        # The pandas data is returned by copy, so the HDFStore can be closed.
+        # Then we re-open the store.
+        filename = grp.file.filename
+        store.close()
+        with _pandas.HDFStore(filename, mode='r') as store_:
+            data = store_[path]
+        store.open()
+        return data
     try:
         shape = result.shape
         if shape is None:
@@ -237,7 +245,7 @@ class H5Group(MutableMapping):
 
 
 class H5Store(MutableMapping):
-    """An HDF5-backed container for storing array-like and dictionary-like data.
+    r"""An HDF5-backed container for storing array-like and dictionary-like data.
 
     The H5Store is a :class:`~collections.abc.MutableMapping` and therefore
     behaves similar to a :class:`dict`, but all data is stored persistently in
@@ -247,7 +255,7 @@ class H5Store(MutableMapping):
 
       * built-in types (int, float, str, bool, NoneType, array)
       * numpy arrays
-      * pandas data frames (requires pandas and pytables),
+      * pandas data frames (requires pandas and pytables)
 
     as well as mappings of values of these types. Values can be accessed as
     attributes (``h5s.foo``) or via key index (``h5s['foo']``).
@@ -267,16 +275,16 @@ class H5Store(MutableMapping):
     and stored without the need to _explicitly_ open the file. **To
     access arrays (reading or writing), the file must always be opened!**
 
-    To open a file in read-only mode, use the :py:meth:`.open` method with ``mode=r``:
+    To open a file in read-only mode, use the :py:meth:`.open` method with ``mode='r'``:
 
     .. code-block:: python
 
-        with H5Store('fileh5').open(mode='r') as h5s:
+        with H5Store('file.h5').open(mode='r') as h5s:
             pass
 
     :param filename:
         The filename of the underlying HDF5 file.
-    :param kwargs:
+    :param \*\*kwargs:
         Additional keyword arguments to be forwarded to the ``h5py.File`` constructor.
         See the documentation for the
         `h5py.File constructor <http://docs.h5py.org/en/latest/high/file.html#File>`_
@@ -298,10 +306,10 @@ class H5Store(MutableMapping):
         return self._filename
 
     def __repr__(self):
-        return "{}(filename='{}')".format(type(self).__name__, os.path.relpath(self._filename))
+        return "{}(filename={})".format(type(self).__name__, repr(os.path.relpath(self._filename)))
 
     def __str__(self):
-        return "{}(filename='{}')".format(type(self).__name__, os.path.basename(self._filename))
+        return "{}(filename={})".format(type(self).__name__, repr(os.path.basename(self._filename)))
 
     def __del__(self):
         self.close()
@@ -320,12 +328,13 @@ class H5Store(MutableMapping):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
-        # We use the default file parameters, which can optionally be overriden
+        # We use the default file parameters, which can optionally be overridden
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
         parameters = dict(self._kwargs)
         parameters.update(kwargs)
-        parameters.setdefault('mode', 'a')
+        if parameters.get('mode', None) is None:
+            parameters['mode'] = 'a'
 
         self._thread_lock.acquire()
         try:
