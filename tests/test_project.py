@@ -1092,6 +1092,20 @@ class ProjectExportImportTest(BaseProjectTest):
         self.assertEqual(len(self.project), 10)
         self.assertEqual(ids_before_export, list(sorted(self.project.find_job_ids())))
 
+    def test_export_import_tarfile_zipped_longname(self):
+        """Test the behavior of tarfile export when the path is >100 chars."""
+        target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
+        val_length = 100
+        self.project.open_job(dict(a='1'*val_length, b='1'*val_length)).init()
+        self.project.open_job(dict(a='2'*val_length, b='2'*val_length)).init()
+        self.project.export_to(target=target)
+        # Jobs are always copied, not moved, when writing to a tarfile, so we
+        # must remove them manually to ensure that they're regenerated.
+        for job in self.project:
+            job.remove()
+        self.project.import_from(origin=target)
+        self.assertEqual(len(self.project), 2)
+
     def test_export_import_tarfile_zipped(self):
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
         for i in range(10):
