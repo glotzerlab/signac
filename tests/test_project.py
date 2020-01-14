@@ -1096,8 +1096,8 @@ class ProjectExportImportTest(BaseProjectTest):
         """Test the behavior of tarfile export when the path is >100 chars."""
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
         val_length = 100
-        self.project.open_job(dict(a='1'*val_length, b='1'*val_length)).init()
-        self.project.open_job(dict(a='2'*val_length, b='2'*val_length)).init()
+        self.project.open_job(dict(a='1'*val_length)).init()
+        self.project.open_job(dict(a='2'*val_length)).init()
         self.project.export_to(target=target)
         # Jobs are always copied, not moved, when writing to a tarfile, so we
         # must remove them manually to ensure that they're regenerated.
