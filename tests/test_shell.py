@@ -2,12 +2,17 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import sys
 import json
 import unittest
 import subprocess
 from tempfile import TemporaryDirectory
 
 import signac
+
+
+# Skip linked view tests on Windows
+WINDOWS = (sys.platform == 'win32')
 
 
 class DummyFile(object):
@@ -134,6 +139,7 @@ class BasicShellTest(unittest.TestCase):
         self.assertIn('b', doc)
         self.assertEqual(doc['b'], 0)
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
         self.call('python -m signac init my_project'.split())
@@ -149,6 +155,7 @@ class BasicShellTest(unittest.TestCase):
                 os.path.realpath('view/job'),
                 os.path.realpath(project.open_job(sp).workspace()))
 
+    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
     def test_view(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -171,7 +178,7 @@ class BasicShellTest(unittest.TestCase):
         for sp in sps:
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
-        job_ids = out.split('\n')[:-1]
+        job_ids = out.split(os.linesep)[:-1]
         self.assertEqual(set(job_ids), set(project.find_job_ids()))
         self.assertEqual(
             self.call('python -m signac find'.split() + ['{"a": 0}']).strip(),
@@ -209,7 +216,6 @@ class BasicShellTest(unittest.TestCase):
         project = signac.Project()
         out = self.call(
             'python -m signac shell',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
 
@@ -221,7 +227,6 @@ class BasicShellTest(unittest.TestCase):
         assert len(project)
         out = self.call(
             'python -m signac shell',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
 
@@ -231,9 +236,9 @@ class BasicShellTest(unittest.TestCase):
         for i in range(3):
             project.open_job(dict(a=i)).init()
         assert len(project)
+        python_command = 'python -m signac shell -f a.{}gt 0'.format('$' if WINDOWS else r'\$')
         out = self.call(
-            r'python -m signac shell -f a.\$gt 0',
-            'from __future__ import print_function;'
+            python_command,
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))
         self.assertEqual(out.strip(), '>>> {} None {}'.format(project, n))
@@ -246,7 +251,6 @@ class BasicShellTest(unittest.TestCase):
         assert len(project)
         out = self.call(
             'python -m signac shell -f a 0',
-            'from __future__ import print_function;'
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
         self.assertEqual(out.strip(), '>>> {} {} 1'.format(project, job))

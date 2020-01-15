@@ -35,7 +35,7 @@ class DictManager(object):
             self.suffix == other.suffix
 
     def __repr__(self):
-        return "{}(prefix='{}')".format(type(self).__name__, os.path.relpath(self.prefix))
+        return "{}(prefix={})".format(type(self).__name__, repr(os.path.relpath(self.prefix)))
 
     __str__ = __repr__
 
@@ -57,7 +57,7 @@ class DictManager(object):
             os.replace(self[tmp_key].filename, self[key].filename)
         except (IOError, OSError) as error:
             if error.errno == errno.ENOENT and not len(value):
-                raise ValueError("Cannot asssign empty value!")
+                raise ValueError("Cannot assign empty value!")
             else:
                 raise error
         except Exception as error:

@@ -10,7 +10,6 @@ This makes it easier to operate on large data spaces,
 streamlines post-processing and analysis and makes data
 collectively accessible."""
 
-from __future__ import absolute_import
 from . import contrib
 from . import db
 from . import cite
