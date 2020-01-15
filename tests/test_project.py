@@ -214,7 +214,8 @@ class ProjectTest(BaseProjectTest):
             norm_path(os.path.join(self.project.root_directory(), self.project.workspace())))
 
     def test_no_workspace_warn_on_find(self):
-        self.assertFalse(os.path.exists(self.project.workspace()))
+        if os.path.exists(self.project.workspace()):
+            os.rmdir(self.project.workspace())
         with self.assertLogs(level='INFO') as cm:
             list(self.project.find_jobs())
             # Python < 3.8 will return 2 messages.
@@ -234,6 +235,8 @@ class ProjectTest(BaseProjectTest):
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
         # of the workspace directory.
+        if os.path.exists(self.project.workspace()):
+            os.rmdir(self.project.workspace())
         with open(os.path.join(self.project.workspace()), 'w'):
             pass
 

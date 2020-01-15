@@ -162,7 +162,7 @@ class Project(object):
                 _mkdir_p(self._wd)
             except OSError:
                 logger.error(
-                    "Error occured while trying to create "
+                    "Error occurred while trying to create "
                     "workspace directory for project {}".format(self.id))
 
         # Internal caches
