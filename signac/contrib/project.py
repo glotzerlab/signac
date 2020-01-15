@@ -155,14 +155,15 @@ class Project(object):
         # Prepare project document
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
-        
-        # Prepare Workspace Directory 
+
+        # Prepare Workspace Directory
         if not os.path.isdir(self._wd):
             try:
                 _mkdir_p(self._wd)
             except OSError:
-                logger.error("Error occured while trying to create "
-                         "workspace directory for project {}".format(self.id))
+                logger.error(
+                    "Error occured while trying to create "
+                    "workspace directory for project {}".format(self.id))
 
         # Internal caches
         self._index_cache = dict()
