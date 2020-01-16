@@ -20,6 +20,11 @@ Fixed
 
  - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
 
+Changed
++++++++
+
+ - Workspace directory is created with ``Project`` instance (#231267 #271).
+
 
 [1.3.0] -- 2019-12-20
 ---------------------
@@ -36,7 +41,7 @@ Added
 Changed
 +++++++
 
- - Implemented ``Project.__contains__`` check in constant time (#231).
+ - Implemented ``Project.__contains__`` check in constant time (#267, #271).
 
 Fixed
 +++++
