@@ -14,12 +14,18 @@ Added
 +++++
 
  - Added Windows to platforms tested with continuous integration (#264, #266).
+ 
+Changed
++++++++
+
+ - Workspace directory is created when ``Project`` is initialized (#267, #271).
+
 
 Fixed
 +++++
 
  - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
- - Workspace directory is created when ``Project`` is initialized (#267, #271).
+
 
 
 [1.3.0] -- 2019-12-20
