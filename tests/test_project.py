@@ -99,9 +99,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self._tmp_wd, self.project.workspace())
 
     def test_workspace_directory_exists(self):
-        root = self._tmp_dir.name
-        project_ = Project.init_project('Project_w', os.path.join(root, 'w'))
-        self.assertTrue(os.path.exists(project_.workspace()))
+        self.assertTrue(os.path.exists(self.project.workspace()))
 
     def test_fn(self):
         self.assertEqual(

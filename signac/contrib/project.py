@@ -164,6 +164,7 @@ class Project(object):
                 logger.error(
                     "Error occurred while trying to create "
                     "workspace directory for project {}".format(self.id))
+                raise 
 
         # Internal caches
         self._index_cache = dict()
