@@ -156,6 +156,9 @@ class Project(object):
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
 
+        # Prepare project h5-stores
+        self._stores = H5StoreManager(self._rd)
+
         # Internal caches
         self._index_cache = dict()
         self._sp_cache = dict()
@@ -368,7 +371,7 @@ class Project(object):
         :return: The HDF5-Store manager for this project.
         :rtype: :class:`~..core.h5store.H5StoreManager`
         """
-        return H5StoreManager(self._rd)
+        return self._stores
 
     @property
     def data(self):
