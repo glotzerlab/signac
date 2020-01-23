@@ -31,7 +31,7 @@ from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.common.config import get_config
 
 from test_job import BaseJobTest
-from test_h5store import H5StoreTest
+import test_h5store
 
 
 try:
@@ -2113,7 +2113,7 @@ class TestTestingProjectInitialization(BaseProjectTest):
                 tmp_project.detect_schema()
 
 
-class ProjectDataTest(H5StoreTest):
+class BaseProjectStoreTest(test_h5store.BaseH5StoreTest):
 
     project_class = signac.Project
 
@@ -2136,6 +2136,22 @@ class ProjectDataTest(H5StoreTest):
 
     def get_other_h5store(self):
         return self.project.stores['other']
+
+
+class ProjectStoreTest(BaseProjectStoreTest, test_h5store.H5StoreTest):
+    pass
+
+
+class ProjectStoreNestedTest(BaseProjectStoreTest, test_h5store.H5StoreNestedDataTest):
+    pass
+
+
+class ProjectStoreNestedClosedTest(BaseProjectStoreTest, test_h5store.H5StoreNestedDataClosedTest):
+    pass
+
+
+class ProjectStorePandasTest(BaseProjectStoreTest, test_h5store.H5StorePandasDataTest):
+    pass
 
 
 if __name__ == '__main__':
