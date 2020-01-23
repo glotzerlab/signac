@@ -39,7 +39,7 @@ class ExitCodeError(RuntimeError):
 class TestBasicShell():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         pythonpath = os.environ.get('PYTHONPATH')
         if pythonpath is None:
             pythonpath = [os.getcwd()]
@@ -49,9 +49,8 @@ class TestBasicShell():
         self.tmpdir = TemporaryDirectory(prefix='signac_')
         self.cwd = os.getcwd()
         os.chdir(self.tmpdir.name)
-        def cleanup():
-            self.tmpdir.cleanup()
-            self.return_to_cwd()
+        request.addfinalizer(self.tmpdir.cleanup)
+        request.addfinalizer(self.return_to_cwd)
 
     def return_to_cwd(self):
         os.chdir(self.cwd)

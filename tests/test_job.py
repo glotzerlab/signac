@@ -69,9 +69,9 @@ class TestBaseJob():
 
     project_class = signac.Project
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        # self.addCleanup(self._tmp_dir.cleanup)
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
         os.mkdir(self._tmp_pr)

@@ -19,9 +19,9 @@ except ImportError:
 class TestH5StoreManager():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='h5store_')
-        # self.addCleanup(self._tmp_dir.cleanup)
+        request.addfinalizer(self._tmp_dir.cleanup)
         self.store = H5StoreManager(prefix=self._tmp_dir.name)
         with open(os.path.join(self._tmp_dir.name, 'other_file.txt'), 'w') as file:
             file.write(r'blank\n')

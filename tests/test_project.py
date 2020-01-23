@@ -1348,39 +1348,39 @@ class TestProjectRepresentation(TestBaseProject):
 
     def call_repr_methods(self,subtests):
 
-        with subtests(of='project'):
-            with subtests(type='str'):
+        with subtests.test(of='project'):
+            with subtests.test(type='str'):
                 str(self.project)
-            with subtests(type='repr'):
+            with subtests.test(type='repr'):
                 assert eval(repr(self.project)) == self.project
-            with subtests(type='html'):
+            with subtests.test(type='html'):
                 for use_pandas in (True, False):
                     type(self.project)._use_pandas_for_html_repr = use_pandas
-                    with subtests(use_pandas=use_pandas):
+                    with subtests.test(use_pandas=use_pandas):
                         if use_pandas and not PANDAS:
                             raise pytest.skip('requires use_pandas')
                         self.project._repr_html_()
 
-        with subtests(of='JobsCursor'):
+        with subtests.test(of='JobsCursor'):
             for filter_ in (None, ):
-                with subtests(filter=filter_):
-                    with subtests(type='str'):
+                with subtests.test(filter=filter_):
+                    with subtests.test(type='str'):
                         str(self.project.find_jobs(filter_))
-                    with subtests(type='repr'):
+                    with subtests.test(type='repr'):
                         q = self.project.find_jobs(filter_)
                         assert eval(repr(q)) == q
-                    with subtests(type='html'):
+                    with subtests.test(type='html'):
                         for use_pandas in (True, False):
                             type(self.project)._use_pandas_for_html_repr = use_pandas
-                            with subtests(use_pandas=use_pandas):
+                            with subtests.test(use_pandas=use_pandas):
                                 if use_pandas and not PANDAS:
                                     raise pytest.skip('requires use_pandas')
                                 self.project.find_jobs(filter_)._repr_html_()
 
-    def test_repr_no_jobs(self,setUp,subtests):
+    def test_repr_no_jobs(self,subtests,setUp):
         self.call_repr_methods(subtests)
 
-    def test_repr_few_jobs_homogeneous(self,setUp,subtests):
+    def test_repr_few_jobs_homogeneous(self,subtests,setUp):
         # Many jobs with many different state points
         for i in range(self.num_few_jobs):
             self.project.open_job(
@@ -1388,7 +1388,7 @@ class TestProjectRepresentation(TestBaseProject):
                  for j, v in enumerate(self.valid_sp_values)}).init()
         self.call_repr_methods(subtests)
 
-    def test_repr_many_jobs_homogeneous(self,setUp,subtests):
+    def test_repr_many_jobs_homogeneous(self,subtests,setUp):
         # Many jobs with many different state points
         for i in range(self.num_many_jobs):
             self.project.open_job(
@@ -1396,14 +1396,14 @@ class TestProjectRepresentation(TestBaseProject):
                  for j, v in enumerate(self.valid_sp_values)}).init()
         self.call_repr_methods(subtests)
 
-    def test_repr_few_jobs_heterogeneous(self,setUp,subtests):
+    def test_repr_few_jobs_heterogeneous(self,subtests,setUp):
         # Many jobs with many different state points
         for i in range(self.num_few_jobs):
             for v in self.valid_sp_values:
                 self.project.open_job(dict(a=v)).init()
         self.call_repr_methods(subtests)
 
-    def test_repr_many_jobs_heterogeneous(self,setUp,subtests):
+    def test_repr_many_jobs_heterogeneous(self,subtests,setUp):
         # Many jobs with many different state points
         for i in range(self.num_many_jobs):
             for v in self.valid_sp_values:
@@ -1808,10 +1808,9 @@ class TestCachedProject(TestProject):
 class TestProjectInit():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        def cleanup():
-            self.temp_dir.cleanup()
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def test_get_project(self,setUp):
         root = self._tmp_dir.name

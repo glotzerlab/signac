@@ -22,11 +22,10 @@ def testdata():
 class TestBaseJSONDict():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
-        def cleanup():
-            self._temp_dir.cleanup()
+        request.addfinalizer(self._tmp_dir.cleanup)
 
 class TestJSONDict(TestBaseJSONDict):
 

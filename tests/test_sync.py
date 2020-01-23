@@ -246,12 +246,11 @@ class TestFileModifyProxyDocBackup():
 class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.doc = JSONDict(
             filename=os.path.join(self._tmp_dir.name, 'doc.json'))
-        def cleanup():
-            self._tmp_dir.cleanup()
+        request.addfinalizer( self._tmp_dir.cleanup)
 
 
 class TestJobSync(TestBaseJob):
@@ -539,7 +538,7 @@ class TestJobSync(TestBaseJob):
 class ProjectSyncTest():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self._tmp_pr_a = os.path.join(self._tmp_dir.name, 'pr_a')
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, 'pr_b')
@@ -549,9 +548,7 @@ class ProjectSyncTest():
             name='test-project-a', root=self._tmp_pr_a)
         self.project_b = signac.Project.init_project(
             name='test-project-b', root=self._tmp_pr_b)
-        def cleanup():
-            self._tmp_dir.cleanup()
-            print("--CleanUp")
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def _init_job(self, job, data='data'):
         with job:

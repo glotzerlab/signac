@@ -598,14 +598,14 @@ class TestCompressedCollection(TestCollection):
 class TestFileCollectionBadJson():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with open(self._fn_collection, 'w') as file:
             for i in range(3):
                 file.write('{"a": 0}\n')
-        def cleanup():
-            self._tmp_dir.cleanup()
+        request.addfinalizer(self._tmp_dir.cleanup)
+        
 
     def test_read(self,setUp):
         with Collection.open(self._fn_collection, mode='r') as c:
@@ -620,15 +620,14 @@ class TestFileCollectionBadJson():
 class TestCollectionToFromJson():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_json = os.path.join(self._tmp_dir.name, 'test.json')
         self.c = Collection.open(filename=':memory:')
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
-        def cleanup():
-            self._tmp_dir.cleanup()
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def test_write_and_read(self,setUp):
         self.c.to_json(self._fn_json)
@@ -642,13 +641,12 @@ class TestCollectionToFromJson():
 class TestFileCollectionReadOnly():
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with Collection.open(self._fn_collection, 'w') as c:
             c.update([dict(_id=str(i)) for i in range(10)])
-        def cleanup():
-            self._tmp_dir.cleanup()
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def test_read(self,setUp):
         c = Collection.open(self._fn_collection, mode='r')
@@ -675,14 +673,12 @@ class TestFileCollection(TestCollection):
     filename = 'test.txt'
 
     @pytest.fixture
-    def setUp(self):
+    def setUp(self,request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, self.filename)
         self.c = Collection.open(self._fn_collection, mode=self.mode)
-
-        def cleanup():
-            self._tmp_dir.cleanup()
-            self.c.close()
+        request.addfinalizer(self._tmp_dir.cleanup)
+        request.addfinalizer(self.c.close)
 
     def test_write_and_flush(self,setUp):
         docs = [dict(_id=str(i)) for i in range(10)]
