@@ -12,6 +12,7 @@ import itertools
 import json
 import pickle
 import string
+import warnings
 from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
@@ -30,6 +31,7 @@ from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.common.config import get_config
 
 from test_job import BaseJobTest
+from test_h5store import BaseH5StoreTest
 
 
 try:
@@ -45,6 +47,11 @@ try:
 except ImportError:
     H5PY = False
 
+try:
+    import numpy    # noqa
+    NUMPY = True
+except ImportError:
+    NUMPY = False
 
 # Skip linked view tests on Windows
 WINDOWS = (sys.platform == 'win32')
@@ -152,6 +159,7 @@ class ProjectTest(BaseProjectTest):
         self.assertEqual(self.project.doc, {'a': {'b': 45}})
 
     @unittest.skipIf(not H5PY, 'test requires the h5py package')
+    @unittest.skipIf(not NUMPY, 'test requires the numpy package')
     def test_data(self):
         with self.project.data:
             self.assertFalse(self.project.data)
@@ -175,6 +183,8 @@ class ProjectTest(BaseProjectTest):
             self.assertEqual(self.project.data, {'a': {'b': 43}})
             self.project.data.a.b = 44
             self.assertEqual(self.project.data, {'a': {'b': 44}})
+            self.project.data['c'] = numpy.zeros(10)
+            self.assertEqual(self.project.data, {'a': {'b': 44}, 'c': numpy.zeros(10)})
         # This setter will overwrite the file. We leave the context manager so
         # that the file is closed before overwriting it.
         self.project.data = {'a': {'b': 45}}
@@ -2102,6 +2112,32 @@ class TestTestingProjectInitialization(BaseProjectTest):
                 self.assertEqual(len(tmp_project), len(jobs))
                 # check that call does not fail:
                 tmp_project.detect_schema()
+
+
+# class TestProjectData(BaseH5StoreTest):
+#
+#     project_class = signac.Project
+#
+#     def setUp(self):
+#         self._tmp_dir = TemporaryDirectory(prefix='signac_')
+#         self.addCleanup(self._tmp_dir.cleanup)
+#         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
+#         self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
+#         os.mkdir(self._tmp_pr)
+#         self.config = signac.common.config.load_config()
+#         self.project = self.project_class.init_project(
+#             name='testing_test_project',
+#             root=self._tmp_pr,
+#             workspace=self._tmp_wd)
+#
+#         warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+#
+#     def get_h5store(self, **kwargs):
+#
+#     def tearDown(self):
+#         pass
+#
+
 
 
 if __name__ == '__main__':
