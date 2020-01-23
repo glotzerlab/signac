@@ -4,15 +4,15 @@
 import os
 import sys
 import json
-import unittest
 import subprocess
 from tempfile import TemporaryDirectory
 
 import signac
+import pytest
 
 
 # Skip linked view tests on Windows
-WINDOWS = (sys.platform == 'win32')
+WINDOWS = (sys.platform == 'win32') 
 
 
 class DummyFile(object):
@@ -36,8 +36,9 @@ class ExitCodeError(RuntimeError):
     pass
 
 
-class BasicShellTest(unittest.TestCase):
+class TestBasicShell():
 
+    @pytest.fixture
     def setUp(self):
         pythonpath = os.environ.get('PYTHONPATH')
         if pythonpath is None:
@@ -46,10 +47,11 @@ class BasicShellTest(unittest.TestCase):
             pythonpath = [os.getcwd()] + pythonpath.split(':')
         os.environ['PYTHONPATH'] = ':'.join(pythonpath)
         self.tmpdir = TemporaryDirectory(prefix='signac_')
-        self.addCleanup(self.tmpdir.cleanup)
         self.cwd = os.getcwd()
-        self.addCleanup(self.return_to_cwd)
         os.chdir(self.tmpdir.name)
+        def cleanup():
+            self.tmpdir.cleanup()
+            self.return_to_cwd()
 
     def return_to_cwd(self):
         os.chdir(self.cwd)
@@ -65,83 +67,76 @@ class BasicShellTest(unittest.TestCase):
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
         return out.decode()
 
-    def test_init_project(self):
+    def test_init_project(self,setUp):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
 
-    def test_init_project_in_project_root(self):
+    def test_init_project_in_project_root(self,setUp):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
-        with self.assertRaises(ExitCodeError):
+        with pytest.raises(ExitCodeError):
             self.call('python -m signac init second_project'.split())
 
-    def test_project_id(self):
+    def test_project_id(self,setUp):
         self.call('python -m signac init my_project'.split())
-        self.assertEqual(str(signac.get_project()), 'my_project')
-        self.assertEqual(
-            self.call('python -m signac project'.split()).strip(),
-            'my_project')
+        assert str(signac.get_project()) == 'my_project'
+        assert self.call('python -m signac project'.split()).strip() == 'my_project'
 
-    def test_project_workspace(self):
+    def test_project_workspace(self,setUp):
         self.call('python -m signac init my_project'.split())
-        self.assertEqual(str(signac.get_project()), 'my_project')
-        self.assertEqual(
-            os.path.realpath(
-                self.call('python -m signac project --workspace'.split()).strip()),
-            os.path.realpath(os.path.join(self.tmpdir.name, 'workspace')))
+        assert str(signac.get_project()) == 'my_project'
+        assert os.path.realpath(
+                self.call('python -m signac project --workspace'.split()).strip()) == os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
 
-    def test_job_with_argument(self):
+    def test_job_with_argument(self,setUp):
         self.call('python -m signac init my_project'.split())
-        self.assertEqual(
-            self.call(['python', '-m', 'signac', 'job', '{"a": 0}']).strip(),
-            '9bfd29df07674bc4aa960cf661b5acd2')
+        assert self.call(['python', '-m', 'signac', 'job', '{"a": 0}']).strip() == '9bfd29df07674bc4aa960cf661b5acd2'
 
-    def test_job_with_argument_workspace(self):
+    def test_job_with_argument_workspace(self,setUp):
         self.call('python -m signac init my_project'.split())
         wd_path = os.path.join(self.tmpdir.name, 'workspace',
                                '9bfd29df07674bc4aa960cf661b5acd2')
-        self.assertEqual(
-            os.path.realpath(
-                self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()),
-            os.path.realpath(wd_path))
+        assert os.path.realpath(
+                self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()) == os.path.realpath(wd_path)
 
-    def test_job_with_argument_create_workspace(self):
+    def test_job_with_argument_create_workspace(self,setUp):
         self.call('python -m signac init my_project'.split())
         wd_path = os.path.join(self.tmpdir.name, 'workspace',
                                '9bfd29df07674bc4aa960cf661b5acd2')
-        self.assertFalse(os.path.isdir(wd_path))
+        assert not os.path.isdir(wd_path)
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
-        self.assertTrue(os.path.isdir(wd_path))
+        assert os.path.isdir(wd_path)
 
-    def test_statepoint(self):
+    def test_statepoint(self,setUp):
         self.call('python -m signac init my_project'.split())
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         project = signac.Project()
         for job in project:
             sp = self.call('python -m signac statepoint {}'.format(job).split())
-            self.assertEqual(project.open_job(json.loads(sp)), job)
+            assert project.open_job(json.loads(sp)) == job
 
-    def test_index(self):
+    def test_index(self,setUp):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac project --access'.split())
         project = signac.Project()
         project.open_job({'a': 0}).init()
-        self.assertEqual(len(project), 1)
-        self.assertEqual(len(list(project.index())), 1)
-        self.assertEqual(len(list(signac.index())), 1)
+        assert len(project) == 1
+        assert len(list(project.index())) == 1
+        assert len(list(signac.index())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
-        self.assertIn('statepoint', doc)
-        self.assertEqual(doc['statepoint'], {'a': 0})
+        assert 'statepoint' in doc
+        assert doc['statepoint'] == {'a': 0}
         project.open_job({'a': 0}).document['b'] = 0
         doc = json.loads(self.call('python -m signac index'.split()))
-        self.assertIn('statepoint', doc)
-        self.assertEqual(doc['statepoint'], {'a': 0})
-        self.assertIn('b', doc)
-        self.assertEqual(doc['b'], 0)
+        assert 'statepoint' in doc
+        assert doc['statepoint'] == {'a': 0}
+        assert 'b' in doc
+        assert doc['b'] == 0
 
-    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
-    def test_view_single(self):
+    @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
+    def test_view_single(self,setUp):
         """Check whether command line views work for single job workspaces."""
+        print("window" ,WINDOWS)
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(1)]
@@ -150,13 +145,11 @@ class BasicShellTest(unittest.TestCase):
         os.mkdir('view')
         self.call('python -m signac view'.split())
         for sp in sps:
-            self.assertTrue(os.path.isdir('view/job'))
-            self.assertEqual(
-                os.path.realpath('view/job'),
-                os.path.realpath(project.open_job(sp).workspace()))
+            assert os.path.isdir('view/job')
+            assert os.path.realpath('view/job') == os.path.realpath(project.open_job(sp).workspace())
 
-    @unittest.skipIf(WINDOWS, 'Symbolic links are unsupported on Windows.')
-    def test_view(self):
+    @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
+    def test_view(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(3)]
@@ -165,13 +158,11 @@ class BasicShellTest(unittest.TestCase):
         os.mkdir('view')
         self.call('python -m signac view'.split())
         for sp in sps:
-            self.assertTrue(os.path.isdir('view/a/{}'.format(sp['a'])))
-            self.assertTrue(os.path.isdir('view/a/{}/job'.format(sp['a'])))
-            self.assertEqual(
-                os.path.realpath('view/a/{}/job'.format(sp['a'])),
-                os.path.realpath(project.open_job(sp).workspace()))
+            assert os.path.isdir('view/a/{}'.format(sp['a']))
+            assert os.path.isdir('view/a/{}/job'.format(sp['a']))
+            assert os.path.realpath('view/a/{}/job'.format(sp['a'])) == os.path.realpath(project.open_job(sp).workspace())
 
-    def test_find(self):
+    def test_find(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(3)]
@@ -179,22 +170,18 @@ class BasicShellTest(unittest.TestCase):
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
-        self.assertEqual(set(job_ids), set(project.find_job_ids()))
-        self.assertEqual(
-            self.call('python -m signac find'.split() + ['{"a": 0}']).strip(),
-            list(project.find_job_ids({'a': 0}))[0])
+        assert set(job_ids) == set(project.find_job_ids())
+        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == list(project.find_job_ids({'a': 0}))[0]
 
         # Test the doc_filter
         for job in project.find_jobs():
             job.document['a'] = job.statepoint()['a']
 
         for i in range(3):
-            self.assertEqual(
-                self.call('python -m signac find --doc-filter'.split() +
-                          ['{"a": ' + str(i) + '}']).strip(),
-                list(project.find_job_ids(doc_filter={'a': i}))[0])
+            assert self.call('python -m signac find --doc-filter'.split() +
+                          ['{"a": ' + str(i) + '}']).strip() == list(project.find_job_ids(doc_filter={'a': i}))[0]
 
-    def test_remove(self):
+    def test_remove(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(3)]
@@ -202,24 +189,24 @@ class BasicShellTest(unittest.TestCase):
             project.open_job(sp).init()
         job_to_remove = project.open_job({'a': 1})
         job_to_remove.doc.a = 0
-        self.assertIn(job_to_remove, project)
-        self.assertEqual(job_to_remove.doc.a, 0)
-        self.assertEqual(len(job_to_remove.doc), 1)
+        assert job_to_remove in project
+        assert job_to_remove.doc.a == 0
+        assert len(job_to_remove.doc) == 1
         self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
-        self.assertIn(job_to_remove, project)
-        self.assertEqual(len(job_to_remove.doc), 0)
+        assert job_to_remove in project
+        assert len(job_to_remove.doc) == 0
         self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
-        self.assertNotIn(job_to_remove, project)
+        assert job_to_remove not in project
 
-    def test_shell(self):
+    def test_shell(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         out = self.call(
             'python -m signac shell',
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
-        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
+        assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
-    def test_shell_with_jobs(self):
+    def test_shell_with_jobs(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         for i in range(3):
@@ -228,9 +215,9 @@ class BasicShellTest(unittest.TestCase):
         out = self.call(
             'python -m signac shell',
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
-        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, len(project)))
+        assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
-    def test_shell_with_jobs_and_selection(self):
+    def test_shell_with_jobs_and_selection(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         for i in range(3):
@@ -241,9 +228,9 @@ class BasicShellTest(unittest.TestCase):
             python_command,
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))
-        self.assertEqual(out.strip(), '>>> {} None {}'.format(project, n))
+        assert out.strip() == '>>> {} None {}'.format(project, n)
 
-    def test_shell_with_jobs_and_selection_only_one_job(self):
+    def test_shell_with_jobs_and_selection_only_one_job(self,setUp):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         for i in range(3):
@@ -253,8 +240,7 @@ class BasicShellTest(unittest.TestCase):
             'python -m signac shell -f a 0',
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
-        self.assertEqual(out.strip(), '>>> {} {} 1'.format(project, job))
+        assert out.strip() == '>>> {} {} 1'.format(project, job)
 
 
-if __name__ == '__main__':
-    unittest.main()
+

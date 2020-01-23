@@ -1,9 +1,10 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import unittest
+
 
 from signac.core.utility import parse_version, Version
+import pytest
 
 # ordered by release time
 TEST_VERSIONS = [
@@ -19,30 +20,28 @@ TEST_VERSIONS = [
 ]
 
 
-class VersionNumberingTest(unittest.TestCase):
+class TestVersionNumbering():
 
     def test_init(self):
         Version()
 
     def test_parsing(self):
         for vs, v in TEST_VERSIONS:
-            self.assertEqual(v, parse_version(vs))
+            assert v == parse_version(vs)
 
     def test_equal(self):
         for vs, v in TEST_VERSIONS:
             p = parse_version(vs)
-            self.assertEqual(p, p)
+            assert p == p
 
     def test_comparison(self):
         for i in range(0, len(TEST_VERSIONS) - 1):
             v0 = TEST_VERSIONS[i][0]
             v1 = TEST_VERSIONS[i + 1][0]
-            self.assertLess(parse_version(v0), parse_version(v1))
+            assert parse_version(v0) < parse_version(v1)
 
     def test_illegal_prelease_tag(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Version(prerelease='final1')
 
 
-if __name__ == '__main__':
-    unittest.main()

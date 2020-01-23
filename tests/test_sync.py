@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
-import unittest
+
 import logging
 from time import sleep
 from tempfile import TemporaryDirectory
@@ -17,7 +17,8 @@ from signac.errors import DocumentSyncConflict
 from signac.errors import SchemaSyncConflict
 from signac.contrib.utility import _mkdir_p
 
-from test_job import BaseJobTest
+from test_job import TestBaseJob
+import pytest
 
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
@@ -32,53 +33,53 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
                  dir_fd=None if os.supports_fd else dir_fd, **kwargs)
 
 
-class DocProxyTest(unittest.TestCase):
+class TestDocProxy():
 
     def test_basic(self):
         doc = dict(a=0)
         proxy = _DocProxy(doc)
-        self.assertEqual(proxy, proxy)
-        self.assertEqual(proxy, doc)
+        assert proxy == proxy
+        assert proxy == doc
         str(proxy)
         repr(proxy)
-        self.assertEqual(len(proxy), len(doc))
-        self.assertEqual(proxy['a'], doc['a'])
-        self.assertIn('a', proxy)
+        assert len(proxy) == len(doc)
+        assert proxy['a'] == doc['a']
+        assert 'a' in proxy
         for key in proxy:
-            self.assertEqual(key, 'a')
+            assert key == 'a'
         for key in proxy.keys():
-            self.assertEqual(key, 'a')
+            assert key == 'a'
         proxy['a'] = 1
-        self.assertEqual(proxy['a'], doc['a'])
-        self.assertEqual(proxy, proxy)
-        self.assertEqual(proxy, doc)
+        assert proxy['a'] == doc['a']
+        assert proxy == proxy
+        assert proxy == doc
         doc['a'] = 2
         proxy.update(doc)
-        self.assertEqual(proxy['a'], doc['a'])
-        self.assertEqual(proxy, proxy)
-        self.assertEqual(proxy, doc)
+        assert proxy['a'] == doc['a']
+        assert proxy == proxy
+        assert proxy == doc
 
     def test_dry_run(self):
         doc = dict(a=0)
         proxy = _DocProxy(doc, dry_run=True)
-        self.assertEqual(proxy, proxy)
-        self.assertEqual(proxy, doc)
+        assert proxy == proxy
+        assert proxy == doc
         str(proxy)
         repr(proxy)
-        self.assertEqual(len(proxy), len(doc))
-        self.assertEqual(proxy['a'], doc['a'])
-        self.assertIn('a', proxy)
+        assert len(proxy) == len(doc)
+        assert proxy['a'] == doc['a']
+        assert 'a' in proxy
         for key in proxy:
-            self.assertEqual(key, 'a')
+            assert key == 'a'
         for key in proxy.keys():
-            self.assertEqual(key, 'a')
+            assert key == 'a'
         proxy['a'] = 1
-        self.assertEqual(proxy['a'], 0)
-        self.assertEqual(proxy, proxy)
-        self.assertEqual(proxy, doc)
+        assert proxy['a'] == 0
+        assert proxy == proxy
+        assert proxy == doc
 
 
-class FileModifyProxyTest(unittest.TestCase):
+class TestFileModifyProxy():
 
     def test_copy(self):
         proxy = _FileModifyProxy()
@@ -86,11 +87,11 @@ class FileModifyProxyTest(unittest.TestCase):
             fn_src = os.path.join(tmp, 'src.txt')
             fn_dst = os.path.join(tmp, 'dst.txt')
             touch(fn_src)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
             proxy.copy(fn_src, fn_dst)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertTrue(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert os.path.isfile(fn_dst)
 
     def test_copy_dry_run(self):
         proxy = _FileModifyProxy(dry_run=True)
@@ -99,11 +100,11 @@ class FileModifyProxyTest(unittest.TestCase):
             fn_dst = os.path.join(tmp, 'dst.txt')
             with open(fn_src, 'w') as file:
                 file.write('test')
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
             proxy.copy(fn_src, fn_dst)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
 
     def test_copytree(self):
         proxy = _FileModifyProxy()
@@ -114,11 +115,11 @@ class FileModifyProxyTest(unittest.TestCase):
             fn_src = os.path.join(src, 'test.txt')
             fn_dst = os.path.join(dst, 'test.txt')
             touch(fn_src)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
             proxy.copytree(src, dst)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertTrue(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert os.path.isfile(fn_dst)
 
     def test_copytree_dryrun(self):
         proxy = _FileModifyProxy(dry_run=True)
@@ -129,81 +130,82 @@ class FileModifyProxyTest(unittest.TestCase):
             fn_src = os.path.join(src, 'test.txt')
             fn_dst = os.path.join(dst, 'test.txt')
             touch(fn_src)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
             proxy.copytree(src, dst)
-            self.assertTrue(os.path.isfile(fn_src))
-            self.assertFalse(os.path.isfile(fn_dst))
+            assert os.path.isfile(fn_src)
+            assert not os.path.isfile(fn_dst)
 
     def test_remove(self):
         proxy = _FileModifyProxy()
         with TemporaryDirectory(prefix='signac_') as tmp:
             fn = os.path.join(tmp, 'test.txt')
-            self.assertFalse(os.path.isfile(fn))
+            assert not os.path.isfile(fn)
             touch(fn)
-            self.assertTrue(os.path.isfile(fn))
+            assert os.path.isfile(fn)
             proxy.remove(fn)
-            self.assertFalse(os.path.isfile(fn))
+            assert not os.path.isfile(fn)
 
     def test_remove_dryrun(self):
         proxy = _FileModifyProxy(dry_run=True)
         with TemporaryDirectory(prefix='signac_') as tmp:
             fn = os.path.join(tmp, 'test.txt')
-            self.assertFalse(os.path.isfile(fn))
+            assert not os.path.isfile(fn)
             touch(fn)
-            self.assertTrue(os.path.isfile(fn))
+            assert os.path.isfile(fn)
             proxy.remove(fn)
-            self.assertTrue(os.path.isfile(fn))
+            assert os.path.isfile(fn)
 
     def test_create_backup(self):
         proxy = _FileModifyProxy()
         with TemporaryDirectory(prefix='signac_') as tmp:
             fn = os.path.join(tmp, 'test.txt')
-            self.assertFalse(os.path.isfile(fn))
+            assert not os.path.isfile(fn)
             with open(fn, 'w') as file:
                 file.write('a')
-            self.assertTrue(os.path.isfile(fn))
+            assert os.path.isfile(fn)
             with proxy.create_backup(fn) as fn_backup:
-                self.assertTrue(os.path.isfile(fn_backup))
-            self.assertTrue(os.path.isfile(fn))
-            self.assertFalse(os.path.isfile(fn_backup))
-            with self.assertRaises(RuntimeError):
+                assert os.path.isfile(fn_backup)
+            assert os.path.isfile(fn)
+            assert not os.path.isfile(fn_backup)
+            with pytest.raises(RuntimeError):
                 with proxy.create_backup(fn) as fn_backup:
-                    self.assertTrue(os.path.isfile(fn_backup))
+                    assert os.path.isfile(fn_backup)
                     with open(fn, 'w') as file:
                         file.write('b')
                     raise RuntimeError()
-            self.assertTrue(os.path.isfile(fn))
-            self.assertFalse(os.path.isfile(fn_backup))
+            assert os.path.isfile(fn)
+            assert not os.path.isfile(fn_backup)
             with open(fn) as file:
-                self.assertEqual(file.read(), 'a')
+                assert file.read() == 'a'
 
     def test_create_backup_dryrun(self):
         proxy = _FileModifyProxy(dry_run=True)
         with TemporaryDirectory(prefix='signac_') as tmp:
             fn = os.path.join(tmp, 'test.txt')
-            self.assertFalse(os.path.isfile(fn))
+            assert not os.path.isfile(fn)
             with open(fn, 'w') as file:
                 file.write('a')
-            self.assertTrue(os.path.isfile(fn))
+            assert os.path.isfile(fn)
             with proxy.create_backup(fn) as fn_backup:
-                self.assertFalse(os.path.isfile(fn_backup))
-            self.assertTrue(os.path.isfile(fn))
-            self.assertFalse(os.path.isfile(fn_backup))
-            with self.assertRaises(RuntimeError):
+                assert not os.path.isfile(fn_backup)
+            assert os.path.isfile(fn)
+            assert not os.path.isfile(fn_backup)
+            with pytest.raises(RuntimeError):
                 with proxy.create_backup(fn) as fn_backup:
-                    self.assertFalse(os.path.isfile(fn_backup))
+                    assert not os.path.isfile(fn_backup)
                     with open(fn, 'w') as file:
                         file.write('b')
                     raise RuntimeError()
-            self.assertTrue(os.path.isfile(fn))
-            self.assertFalse(os.path.isfile(fn_backup))
+            assert os.path.isfile(fn)
+            assert not os.path.isfile(fn_backup)
             with open(fn) as file:
-                self.assertEqual(file.read(), 'b')
+                assert file.read() == 'b'
 
 
-class FileModifyProxyDocBackupTest(unittest.TestCase):
+class TestFileModifyProxyDocBackup():
 
+    @pytest.fixture
     def setUp(self):
         self.doc = dict()
 
@@ -213,8 +215,8 @@ class FileModifyProxyDocBackupTest(unittest.TestCase):
             pass
         with proxy.create_doc_backup(self.doc) as p:
             p['a'] = 0
-        self.assertEqual(len(self.doc), 1)
-        self.assertEqual(self.doc['a'], 0)
+        assert len(self.doc) == 1
+        assert self.doc['a'] == 0
 
     def test_create_doc_dict_dryrun(self):
         proxy = _FileModifyProxy(dry_run=True)
@@ -222,50 +224,52 @@ class FileModifyProxyDocBackupTest(unittest.TestCase):
             pass
         with proxy.create_doc_backup(self.doc) as p:
             p['a'] = 0
-        self.assertEqual(len(self.doc), 0)
+        assert len(self.doc) == 0
 
     def test_create_doc_dict_with_error(self):
         proxy = _FileModifyProxy()
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with proxy.create_doc_backup(self.doc) as p:
                 p['a'] = 0
                 raise RuntimeError()
-        self.assertEqual(len(self.doc), 0)
+        assert len(self.doc) == 0
 
     def test_create_doc_dict_with_error_dryrun(self):
         proxy = _FileModifyProxy(dry_run=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with proxy.create_doc_backup(self.doc) as p:
                 p['a'] = 0
                 raise RuntimeError()
-        self.assertEqual(len(self.doc), 0)
+        assert len(self.doc) == 0
 
 
-class FileModifyProxyJSONDocBackupTest(FileModifyProxyDocBackupTest):
+class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
 
+    @pytest.fixture
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        self.addCleanup(self._tmp_dir.cleanup)
         self.doc = JSONDict(
             filename=os.path.join(self._tmp_dir.name, 'doc.json'))
+        def cleanup():
+            self._tmp_dir.cleanup()
 
 
-class JobSyncTest(BaseJobTest):
+class TestJobSync(TestBaseJob):
 
-    def test_sync_no_implicit_init(self):
+    def test_sync_no_implicit_init(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
-        self.assertNotIn(job_dst, self.project)
-        self.assertNotIn(job_src, self.project)
+        assert job_dst not in self.project
+        assert job_src not in self.project
         job_dst.sync(job_src)
-        self.assertNotIn(job_dst, self.project)
-        self.assertNotIn(job_src, self.project)
+        assert job_dst not in self.project
+        assert job_src not in self.project
         job_src.init()
-        self.assertIn(job_src, self.project)
+        assert job_src in self.project
         job_dst.sync(job_src)
-        self.assertIn(job_dst, self.project)
+        assert job_dst in self.project
 
-    def test_file_sync(self):
+    def test_file_sync(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -274,19 +278,19 @@ class JobSyncTest(BaseJobTest):
             os.makedirs('subdir')
             with open('subdir/test2', 'w') as file:
                 file.write('test2')
-        self.assertTrue(job_src.isfile('test'))
+        assert job_src.isfile('test')
         try:
             logging.disable(logging.WARNING)
             job_dst.sync(job_src)
         finally:
             logging.disable(logging.NOTSET)
-        self.assertIn(job_dst, self.project)
-        self.assertTrue(job_dst.isfile('test'))
-        self.assertFalse(job_dst.isfile('subdir/test2'))
+        assert job_dst in self.project
+        assert job_dst.isfile('test')
+        assert not job_dst.isfile('subdir/test2')
         with open(job_dst.fn('test')) as file:
-            self.assertEqual(file.read(), 'test')
+            assert file.read() == 'test'
 
-    def test_file_sync_recursive(self):
+    def test_file_sync_recursive(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -295,17 +299,17 @@ class JobSyncTest(BaseJobTest):
             os.makedirs('subdir')
             with open('subdir/test2', 'w') as file:
                 file.write('test2')
-        self.assertTrue(job_src.isfile('test'))
+        assert job_src.isfile('test')
         job_dst.sync(job_src, recursive=True)
-        self.assertIn(job_dst, self.project)
-        self.assertTrue(job_dst.isfile('test'))
-        self.assertTrue(job_dst.isfile('subdir/test2'))
+        assert job_dst in self.project
+        assert job_dst.isfile('test')
+        assert job_dst.isfile('subdir/test2')
         with open(job_dst.fn('test')) as file:
-            self.assertEqual(file.read(), 'test')
+            assert file.read() == 'test'
         with open(job_dst.fn('subdir/test2')) as file:
-            self.assertEqual(file.read(), 'test2')
+            assert file.read() == 'test2'
 
-    def test_file_sync_deep(self):
+    def test_file_sync_deep(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -314,15 +318,15 @@ class JobSyncTest(BaseJobTest):
             os.makedirs('subdir')
             with open('subdir/test2', 'w') as file:
                 file.write('test2')
-        self.assertTrue(job_src.isfile('test'))
+        assert job_src.isfile('test')
         job_dst.sync(job_src, deep=True, recursive=True)
-        self.assertIn(job_dst, self.project)
-        self.assertTrue(job_dst.isfile('test'))
-        self.assertTrue(job_dst.isfile('subdir/test2'))
+        assert job_dst in self.project
+        assert job_dst.isfile('test')
+        assert job_dst.isfile('subdir/test2')
         with open(job_dst.fn('test')) as file:
-            self.assertEqual(file.read(), 'test')
+            assert file.read() == 'test'
         with open(job_dst.fn('subdir/test2')) as file:
-            self.assertEqual(file.read(), 'test2')
+            assert file.read() == 'test2'
 
     def _reset_differing_jobs(self, jobs):
         for i, job in enumerate(jobs):
@@ -342,35 +346,35 @@ class JobSyncTest(BaseJobTest):
 
         return differs
 
-    def test_file_sync_with_conflict(self):
+    def test_file_sync_with_conflict(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         differs = self._reset_differing_jobs((job_dst, job_src))
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
-        with self.assertRaises(FileSyncConflict):
+        assert differs('test')
+        assert differs('subdir/test2')
+        with pytest.raises(FileSyncConflict):
             job_dst.sync(job_src, recursive=True)
         job_dst.sync(job_src, sync.FileSync.never, recursive=True)
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         job_dst.sync(job_src, sync.FileSync.always, exclude='test', recursive=True)
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         job_dst.sync(job_src, sync.FileSync.always,
                      exclude=['test', 'non-existent-key'], recursive=True)
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         sleep(1)
         touch(job_src.fn('test'))
         job_dst.sync(job_src, sync.FileSync.update, recursive=True)
-        self.assertFalse(differs('test'))
+        assert not differs('test')
         touch(job_src.fn('subdir/test2'))
         job_dst.sync(job_src, sync.FileSync.update, exclude='test2', recursive=True)
-        self.assertFalse(differs('test'))
+        assert not differs('test')
         job_dst.sync(job_src, sync.FileSync.update, recursive=True)
-        self.assertFalse(differs('subdir/test2'))
+        assert not differs('subdir/test2')
 
-    def test_file_sync_strategies(self):
+    def test_file_sync_strategies(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
 
@@ -378,98 +382,98 @@ class JobSyncTest(BaseJobTest):
             return self._reset_differing_jobs((job_dst, job_src))
 
         differs = reset()
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
-        with self.assertRaises(FileSyncConflict):
+        assert differs('test')
+        assert differs('subdir/test2')
+        with pytest.raises(FileSyncConflict):
             job_dst.sync(job_src, recursive=True)
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         job_dst.sync(job_src, sync.FileSync.never, recursive=True)
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         job_dst.sync(job_src, sync.FileSync.always, recursive=True)
-        self.assertFalse(differs('test'))
-        self.assertFalse(differs('subdir/test2'))
+        assert not differs('test')
+        assert not differs('subdir/test2')
         reset()
-        self.assertTrue(differs('test'))
-        self.assertTrue(differs('subdir/test2'))
+        assert differs('test')
+        assert differs('subdir/test2')
         sleep(1)
         touch(job_src.fn('test'))
         job_dst.sync(job_src, sync.FileSync.update, recursive=True)
-        self.assertFalse(differs('test'))
+        assert not differs('test')
         touch(job_src.fn('subdir/test2'))
         job_dst.sync(job_src, sync.FileSync.update, recursive=True)
-        self.assertFalse(differs('test'))
-        self.assertFalse(differs('subdir/test2'))
+        assert not differs('test')
+        assert not differs('subdir/test2')
 
     def _reset_document_sync(self):
         job_src = self.open_job({'a': 0})
         job_dst = self.open_job({'a': 1})
         job_src.document['a'] = 0
         job_src.document['nested'] = dict(a=1)
-        self.assertNotEqual(job_src.document, job_dst.document)
+        assert job_src.document != job_dst.document
         return job_dst, job_src
 
-    def test_document_sync(self):
+    def test_document_sync(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src)
-        self.assertEqual(len(job_dst.document), len(job_src.document))
-        self.assertEqual(job_src.document, job_dst.document)
-        self.assertEqual(job_src.document['a'], job_dst.document['a'])
-        self.assertEqual(job_src.document['nested']['a'], job_dst.document['nested']['a'])
+        assert len(job_dst.document) == len(job_src.document)
+        assert job_src.document == job_dst.document
+        assert job_src.document['a'] == job_dst.document['a']
+        assert job_src.document['nested']['a'] == job_dst.document['nested']['a']
         job_dst.sync(job_src)
-        self.assertEqual(job_src.document, job_dst.document)
+        assert job_src.document == job_dst.document
 
-    def test_document_sync_nested(self):
+    def test_document_sync_nested(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['nested'] = dict(a=0)
-        with self.assertRaises(DocumentSyncConflict):
+        with pytest.raises(DocumentSyncConflict):
             job_dst.sync(job_src)
-        self.assertNotEqual(job_src.document, job_dst.document)
+        assert job_src.document != job_dst.document
 
-    def test_document_sync_explicit_overwrit(self):
+    def test_document_sync_explicit_overwrit(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src, doc_sync=sync.DocSync.update)
-        self.assertEqual(job_src.document, job_dst.document)
+        assert job_src.document == job_dst.document
 
-    def test_document_sync_overwrite_specific(self):
+    def test_document_sync_overwrite_specific(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('nested.a'))
-        self.assertEqual(job_src.document, job_dst.document)
+        assert job_src.document == job_dst.document
 
-    def test_document_sync_partially_differing(self):
+    def test_document_sync_partially_differing(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['a'] = 0
         job_dst.sync(job_src)
-        self.assertEqual(job_src.document, job_dst.document)
+        assert job_src.document == job_dst.document
 
-    def test_document_sync_differing_keys(self):
+    def test_document_sync_differing_keys(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_src.document['b'] = 1
         job_src.document['nested']['b'] = 1
         job_dst.sync(job_src)
-        self.assertEqual(job_src.document, job_dst.document)
+        assert job_src.document == job_dst.document
 
-    def test_document_sync_no_sync(self):
+    def test_document_sync_no_sync(self,setUp):
         job_dst, job_src = self._reset_document_sync()
-        self.assertTrue(sync.DocSync.NO_SYNC is False)
+        assert sync.DocSync.NO_SYNC is False
         job_dst.sync(job_src, doc_sync=False)
-        self.assertNotEqual(job_src.document, job_dst.document)
-        self.assertEqual(len(job_dst.document), 0)
+        assert job_src.document != job_dst.document
+        assert len(job_dst.document) == 0
 
-    def test_document_sync_dst_has_extra_key(self):
+    def test_document_sync_dst_has_extra_key(self,setUp):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['b'] = 2
-        self.assertNotIn('b', job_src.document)
-        self.assertIn('b', job_dst.document)
+        assert 'b' not in job_src.document
+        assert 'b' in job_dst.document
         job_dst.sync(job_src)
-        self.assertNotIn('b', job_src.document)
-        self.assertIn('b', job_dst.document)
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
-        self.assertEqual(job_dst.document['a'], job_src.document['a'])
+        assert 'b' not in job_src.document
+        assert 'b' in job_dst.document
+        assert job_dst.document != job_src.document
+        assert job_dst.document['nested'] == job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
 
-    def test_document_sync_with_error(self):
+    def test_document_sync_with_error(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         job_dst.document['a'] = 0
@@ -478,10 +482,10 @@ class JobSyncTest(BaseJobTest):
         def raise_error(src, dst):
             raise RuntimeError()
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             job_dst.sync(job_src, doc_sync=raise_error)
 
-    def test_document_sync_with_conflict(self):
+    def test_document_sync_with_conflict(self,setUp):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
 
@@ -492,51 +496,51 @@ class JobSyncTest(BaseJobTest):
             job_dst.document['nested'] = dict(a=2)
 
         reset()
-        self.assertNotEqual(job_dst.document, job_src.document)
-        with self.assertRaises(DocumentSyncConflict):
+        assert job_dst.document != job_src.document
+        with pytest.raises(DocumentSyncConflict):
             job_dst.sync(job_src)
-        self.assertNotEqual(job_dst.document, job_src.document)
+        assert job_dst.document != job_src.document
         job_dst.sync(job_src, doc_sync=sync.DocSync.NO_SYNC)
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertNotEqual(job_dst.document['a'], job_src.document['a'])
-        self.assertNotEqual(job_dst.document['nested'], job_src.document['nested'])
+        assert job_dst.document != job_src.document
+        assert job_dst.document['a'] != job_src.document['a']
+        assert job_dst.document['nested'] != job_src.document['nested']
         reset()     # only sync a
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('a'))
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertNotEqual(job_dst.document['nested'], job_src.document['nested'])
-        self.assertEqual(job_dst.document['a'], job_src.document['a'])
+        assert job_dst.document != job_src.document
+        assert job_dst.document['nested'] != job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
         reset()     # only sync nested
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('nested'))
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertNotEqual(job_dst.document['a'], job_src.document['a'])
-        self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
+        assert job_dst.document != job_src.document
+        assert job_dst.document['a'] != job_src.document['a']
+        assert job_dst.document['nested'] == job_src.document['nested']
         reset()
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey(r'(nested\.)?a'))
-        self.assertEqual(job_dst.document, job_src.document)
-        self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
-        self.assertEqual(job_dst.document['a'], job_src.document['a'])
+        assert job_dst.document == job_src.document
+        assert job_dst.document['nested'] == job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
         reset()
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey(lambda key: key.startswith('a')))
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertNotEqual(job_dst.document['nested'], job_src.document['nested'])
-        self.assertEqual(job_dst.document['a'], job_src.document['a'])
+        assert job_dst.document != job_src.document
+        assert job_dst.document['nested'] != job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
         reset()
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey(lambda key: key.startswith('nested')))
-        self.assertNotEqual(job_dst.document, job_src.document)
-        self.assertNotEqual(job_dst.document['a'], job_src.document['a'])
-        self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
+        assert job_dst.document != job_src.document
+        assert job_dst.document['a'] != job_src.document['a']
+        assert job_dst.document['nested'] == job_src.document['nested']
         reset()
         job_dst.sync(job_src, doc_sync=sync.DocSync.update)
-        self.assertEqual(job_dst.document, job_src.document)
-        self.assertEqual(job_dst.document['nested'], job_src.document['nested'])
-        self.assertEqual(job_dst.document['a'], job_src.document['a'])
+        assert job_dst.document == job_src.document
+        assert job_dst.document['nested'] == job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
 
 
-class ProjectSyncTest(unittest.TestCase):
+class ProjectSyncTest():
 
+    @pytest.fixture
     def setUp(self):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        self.addCleanup(self._tmp_dir.cleanup)
         self._tmp_pr_a = os.path.join(self._tmp_dir.name, 'pr_a')
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, 'pr_b')
         os.mkdir(self._tmp_pr_a)
@@ -545,45 +549,48 @@ class ProjectSyncTest(unittest.TestCase):
             name='test-project-a', root=self._tmp_pr_a)
         self.project_b = signac.Project.init_project(
             name='test-project-b', root=self._tmp_pr_b)
+        def cleanup():
+            self._tmp_dir.cleanup()
+            print("--CleanUp")
 
     def _init_job(self, job, data='data'):
         with job:
             with open('test.txt', 'w') as file:
                 file.write(str(data))
 
-    def test_src_and_dst_identical(self):
-        with self.assertRaises(ValueError):
+    def test_src_and_dst_identical(self,setUp):
+        with pytest.raises(ValueError):
             self.project_a.sync(self.project_a)
 
-    def test_src_and_dst_empty(self):
+    def test_src_and_dst_empty(self,setUp):
         self.project_a.sync(self.project_b)
-        self.assertEqual(len(self.project_a), len(self.project_b))
+        assert len(self.project_a) == len(self.project_b)
 
-    def test_src_empty(self):
+    def test_src_empty(self,setUp):
         for i in range(4):
             self._init_job(self.project_b.open_job({'a': i}))
         self.project_a.sync(self.project_b)
-        self.assertEqual(len(self.project_a), len(self.project_b))
+        assert len(self.project_a) == len(self.project_b)
 
-    def test_dst_empty(self):
+    def test_dst_empty(self,setUp):
         for i in range(4):
             self._init_job(self.project_a.open_job({'a': i}))
         self.project_a.sync(self.project_b)
-        self.assertEqual(len(self.project_a), 4)
-        self.assertEqual(len(self.project_b), 0)
+        assert len(self.project_a) == 4
+        assert len(self.project_b) == 0
 
-    def test_doc_sync(self):
+    def test_doc_sync(self,setUp):
         self.project_a.document['a'] = 0
-        self.assertIn('a', self.project_a.document)
-        self.assertNotIn('a', self.project_b.document)
+        assert 'a' in self.project_a.document
+        assert 'a' not in self.project_b.document
         self.project_a.sync(self.project_b)
-        self.assertIn('a', self.project_a.document)
-        self.assertNotIn('a', self.project_b.document)
+        assert 'a' in self.project_a.document
+        assert 'a' not in self.project_b.document
         self.project_b.document['b'] = 1
         self.project_a.sync(self.project_b)
-        self.assertIn('b', self.project_a.document)
+        assert 'b' in self.project_a.document
         self.project_a.document['b'] = 2
-        with self.assertRaises(DocumentSyncConflict):
+        with pytest.raises(DocumentSyncConflict):
             self.project_a.sync(self.project_b)
         self.project_a.sync(self.project_b, doc_sync=sync.DocSync.ByKey('b'))
 
@@ -594,59 +601,59 @@ class ProjectSyncTest(unittest.TestCase):
             if i % 3 == 0:
                 self._init_job(self.project_b.open_job({'a': i}))
 
-    def test_mixed(self):
+    def test_mixed(self,setUp):
         self._setup_mixed()
-        with self.assertRaises(SchemaSyncConflict):
+        with pytest.raises(SchemaSyncConflict):
             self.project_a.sync(self.project_b)
-        self.assertEqual(len(self.project_a), 2)
-        self.assertEqual(len(self.project_b), 2)
+        assert len(self.project_a) == 2
+        assert len(self.project_b) == 2
         self.project_a.sync(self.project_b, check_schema=False)
-        self.assertEqual(len(self.project_a), 3)
+        assert len(self.project_a) == 3
 
     def _setup_jobs(self):
         for i in range(4):
             self._init_job(self.project_a.open_job({'a': i}))
             self._init_job(self.project_b.open_job({'a': i}))
 
-    def test_with_conflict(self):
+    def test_with_conflict(self,setUp):
         self._setup_jobs()
-        self.assertEqual(len(self.project_a), len(self.project_b))
+        assert len(self.project_a) == len(self.project_b)
         job_a0 = self.project_a.open_job({'a': 0})
         with open(job_a0.fn('test.txt'), 'w') as file:
             file.write('newdata')
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b)
 
-    def test_with_conflict_never(self):
+    def test_with_conflict_never(self,setUp):
         self._setup_jobs()
         job_a0 = self.project_a.open_job({'a': 0})
         with open(job_a0.fn('text.txt'), 'w') as file:
             file.write('otherdata')
         self.project_a.sync(self.project_b, sync.FileSync.never)
         with open(job_a0.fn('text.txt')) as file:
-            self.assertEqual(file.read(), 'otherdata')
+            assert file.read() == 'otherdata'
 
-    def test_selection(self):
+    def test_selection(self,setUp):
         self._setup_jobs()
-        self.assertEqual(len(self.project_a), len(self.project_b))
+        assert len(self.project_a) == len(self.project_b)
         job_a0 = self.project_a.open_job({'a': 0})
         with open(job_a0.fn('test.txt'), 'w') as file:
             file.write('newdata')
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b)
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_a)
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_b)
-        self.assertEqual(len(self.project_a.find_jobs({'a': 0})), 1)
-        self.assertEqual(len(self.project_b.find_jobs({'a': 0})), 1)
-        with self.assertRaises(FileSyncConflict):
+        assert len(self.project_a.find_jobs({'a': 0})) == 1
+        assert len(self.project_b.find_jobs({'a': 0})) == 1
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_a.find_jobs({'a': 0}))
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_b.find_jobs({'a': 0}))
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_a.find_job_ids({'a': 0}))
-        with self.assertRaises(FileSyncConflict):
+        with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b, selection=self.project_b.find_job_ids({'a': 0}))
         f = {'a': {'$ne': 0}}
         self.project_a.sync(self.project_b, selection=self.project_a.find_jobs(f))
@@ -654,6 +661,3 @@ class ProjectSyncTest(unittest.TestCase):
         self.project_a.sync(self.project_b, selection=self.project_a.find_job_ids(f))
         self.project_a.sync(self.project_b, selection=self.project_b.find_job_ids(f))
 
-
-if __name__ == '__main__':
-    unittest.main()
