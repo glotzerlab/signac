@@ -1108,7 +1108,7 @@ class TestProjectExportImport(TestProjectBase):
         for job in self.project:
             job.remove()
         self.project.import_from(origin=target)
-        self.assertEqual(len(self.project), 2)
+        assert len(self.project) == 2
 
     def test_export_import_tarfile_zipped(self):
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
