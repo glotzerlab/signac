@@ -56,7 +56,7 @@ WINDOWS = (sys.platform == 'win32')
 class TestBaseH5Store():
 
     @pytest.fixture(autouse=True)
-    def setUp(self, request):
+    def setUp_base_h5Store(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
         self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
@@ -734,8 +734,7 @@ class TestH5StorePerformance(TestBaseH5Store):
     max_slowdown_vs_native_factor = 1.25
 
     @pytest.fixture(autouse=True)
-    def setUp(self):
-        super(TestH5StorePerformance, self).setUp()
+    def setUp_h5Store_performance(self,setUp_base_h5Store):
         value = self.get_testdata()
         times = numpy.zeros(200)
         for i in range(len(times)):
@@ -793,8 +792,7 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
         return dict(a=super(TestH5StorePerformanceNestedData, self).get_testdata(size))
 
     @pytest.fixture(autouse=True)
-    def setUp(self):
-        super(TestH5StorePerformance, self).setUp()
+    def setUp(self,setUp_h5Store_performance):
         value = TestH5StorePerformance.get_testdata(self)
         times = numpy.zeros(200)
         for i in range(len(times)):
