@@ -538,11 +538,23 @@ class _CopyFromTarFileExecutor(object):
         return _copy_to_job_workspace(self.src, self.job, shutil.copytree)
 
 
+def _tarfile_path_join(path, fn):
+    """Replacement for os.path.join that always uses forward slashes.
+
+    Due to this bug in Python tarfile https://bugs.python.org/issue21987 we may
+    or may not have a trailing backslash in the provided path. Rather than
+    checking the exact length, which could lead to backwards incompatibilities,
+    we simply strip trailing slashes and always add them back.
+    """
+    path = path.rstrip('/')
+    return path + '/' + fn
+
+
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     def read_sp_manifest_file(path):
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = path + '/' + project.Job.FN_MANIFEST
+        fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
                 if sys.version_info < (3, 6):

@@ -265,11 +265,11 @@ class _SyncedDict(MutableMapping):
 
     def values(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).values()
+        return self._convert_to_dict(self).values()
 
     def items(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).items()
+        return self._convert_to_dict(self).items()
 
     def __repr__(self):
         return repr(self())
@@ -279,7 +279,7 @@ class _SyncedDict(MutableMapping):
 
     def _as_dict(self):
         with self._suspend_sync():
-            return self._convert_to_dict(self._data.copy())
+            return self._convert_to_dict(self)
 
     def __call__(self):
         self._synced_load()

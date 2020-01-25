@@ -100,6 +100,9 @@ class TestProject(TestProjectBase):
         self.project.config['workspace_dir'] = '${SIGNAC_ENV_DIR_TEST}'
         assert self._tmp_wd == self.project.workspace()
 
+    def test_workspace_directory_exists(self):
+        assert os.path.exists(self.project.workspace())
+
     def test_fn(self):
         assert self.project.fn('test/abc') == os.path.join(self.project.root_directory(), 'test/abc')
 
@@ -212,8 +215,9 @@ class TestProject(TestProjectBase):
         assert self.project.workspace() == norm_path(os.path.join(self.project.root_directory(), self.project.workspace()))
 
     def test_no_workspace_warn_on_find(self,caplog):
-        assert not os.path.exists(self.project.workspace())
-        with caplog.at_level(logging.INFO) :
+        if os.path.exists(self.project.workspace()):
+            os.rmdir(self.project.workspace())
+        with caplog.at_level(logging.INFO):
             list(self.project.find_jobs())
             # Python < 3.8 will return 2 messages.
             # Python >= 3.8 will return 3 messages, because it determines the
@@ -232,6 +236,8 @@ class TestProject(TestProjectBase):
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
         # of the workspace directory.
+        if os.path.exists(self.project.workspace()):
+            os.rmdir(self.project.workspace())
         with open(os.path.join(self.project.workspace()), 'w'):
             pass
 
@@ -1089,6 +1095,20 @@ class TestProjectExportImport(TestProjectBase):
         self.project.import_from(origin=target)
         assert len(self.project) == 10
         assert ids_before_export == list(sorted(self.project.find_job_ids()))
+
+    def test_export_import_tarfile_zipped_longname(self):
+        """Test the behavior of tarfile export when the path is >100 chars."""
+        target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
+        val_length = 100
+        self.project.open_job(dict(a='1'*val_length)).init()
+        self.project.open_job(dict(a='2'*val_length)).init()
+        self.project.export_to(target=target)
+        # Jobs are always copied, not moved, when writing to a tarfile, so we
+        # must remove them manually to ensure that they're regenerated.
+        for job in self.project:
+            job.remove()
+        self.project.import_from(origin=target)
+        self.assertEqual(len(self.project), 2)
 
     def test_export_import_tarfile_zipped(self):
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
