@@ -244,7 +244,7 @@ class TestBufferedMode(TestProjectBase):
                         file.write(json.dumps({'a': not x}).encode())
             print(cm.value)
             print(job.doc._filename)
-            assert job.doc._filename in cm.value
+            assert job.doc._filename in cm.value.keys()
 
             break    # only test for one job
 

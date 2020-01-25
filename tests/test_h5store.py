@@ -105,13 +105,13 @@ class TestH5StoreOpen(TestBaseH5Store):
 
         with self.open_h5store(mode='r') as h5s:
             assert 'foo' in h5s
-            self.assertEqual(h5s['foo'] , 'bar')
+            self.assertEqual(h5s['foo'],'bar')
 
     def test_open_write_only(self):
         with self.open_h5store(mode='w') as h5s:
             h5s['foo'] = 'bar'
             assert 'foo' in h5s
-            self.assertEqual(h5s['foo'], 'bar')
+            self.assertEqual(h5s['foo'],'bar')
 
     def test_open_write_and_read_only(self):
         with self.open_h5store(mode='w') as h5s_w:
@@ -121,7 +121,7 @@ class TestH5StoreOpen(TestBaseH5Store):
 
                 h5s_w['foo'] = 'bar'
                 assert 'foo' in h5s_r
-                self.assertEqual( h5s_r['foo'], 'bar')
+                self.assertEqual(h5s_r['foo'],'bar')
                 assert 'foo' in h5s_w
                 self.assertEqual(h5s_r['foo'],'bar')
 
@@ -172,12 +172,12 @@ class TestH5Store(TestBaseH5Store):
             with pytest.raises(KeyError):
                 h5s[key]
             d_ = h5s[key] = d
-            self.assertEqual( d_ , d)
+            self.assertEqual(d_, d)
             assert bool(h5s)
             assert len(h5s) == 1
             assert key in h5s
-            self.assertEqual( h5s[key] , d)
-            self.assertEqual( h5s.get(key), d)
+            self.assertEqual(h5s[key], d)
+            self.assertEqual(h5s.get(key), d)
             assert h5s.get('nonexistent', 'default') == 'default'
 
     def test_set_get_explicit_nested(self):
@@ -200,8 +200,8 @@ class TestH5Store(TestBaseH5Store):
             assert child2
             assert key in child1
             assert key in child2
-            self.assertEqual(child1 , child2)
-            self.assertEqual(child1[key] , d)
+            self.assertEqual(child1, child2)
+            self.assertEqual(child1[key], d)
             self.assertEqual(child2[key], d)
 
     def test_repr(self):
@@ -237,11 +237,11 @@ class TestH5Store(TestBaseH5Store):
             d = self.get_testdata()
             h5s[key] = d
             assert key in h5s
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
             assert key2 not in h5s
             h5s[key2] = h5s[key]
             assert key in h5s
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
             assert key2 in h5s
             self.assertEqual(h5s[key2], d)
 
@@ -257,7 +257,7 @@ class TestH5Store(TestBaseH5Store):
             assert key2 in h5s
             for i, key in enumerate(h5s):
                 assert key in d
-                self.assertEqual( d[key], h5s[key])
+                self.assertEqual(d[key], h5s[key])
             assert i == 1
 
     def test_delete(self):
@@ -266,7 +266,7 @@ class TestH5Store(TestBaseH5Store):
             d = self.get_testdata()
             h5s[key] = d
             assert len(h5s) == 1
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
             del h5s[key]
             assert len(h5s) == 0
             with pytest.raises(KeyError):
@@ -287,7 +287,7 @@ class TestH5Store(TestBaseH5Store):
             d = self.get_testdata()
             h5s[key] = d
             assert len(h5s) == 1
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
             h5s.clear()
             assert len(h5s) == 0
 
@@ -298,7 +298,7 @@ class TestH5Store(TestBaseH5Store):
             h5s[key] = d
         with self.open_h5store() as h5s:
             assert len(h5s) == 1
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
 
     def test_open_twice(self):
         h5s = self.get_h5store()
@@ -322,28 +322,28 @@ class TestH5Store(TestBaseH5Store):
         h5s.close()
         h5s.open()
         assert len(h5s) == 1
-        self.assertEqual( h5s[key] , d)
+        self.assertEqual(h5s[key], d)
         h5s.close()
 
     def test_write_valid_types(self):
         with self.open_h5store() as h5s:
             for k, v in self.valid_types.items():
                 h5s[k] = v
-                self.assertEqual( h5s[k] , v)
+                self.assertEqual(h5s[k], v)
 
     def test_assign_valid_types_within_identical_file(self):
         with self.open_h5store() as h5s:
             for k, v in self.valid_types.items():
                 h5s[k] = v
-                self.assertEqual( h5s[k] , v)
+                self.assertEqual(h5s[k], v)
                 h5s[k] = h5s[k]
-                self.assertEqual( h5s[k] , v)
+                self.assertEqual(h5s[k], v)
 
                 k_other = k + '-other'
                 h5s[k_other] = h5s[k]
-                self.assertEqual( h5s[k] , v)
+                self.assertEqual(h5s[k], v)
                 self.assertEqual(h5s[k_other], v)
-                self.assertEqual( h5s[k] , h5s[k_other])
+                self.assertEqual(h5s[k], h5s[k_other])
 
     def test_assign_valid_types_within_same_file(self):
         with self.open_h5store() as h5s:
@@ -351,14 +351,14 @@ class TestH5Store(TestBaseH5Store):
                 for k, v in self.valid_types.items():
                     # First, store v under k
                     h5s[k] = v
-                    self.assertEqual( h5s[k] , v)
+                    self.assertEqual(h5s[k], v)
 
                     # Assign the same value under the same key.
                     try:
                         same_h5s[k] = h5s[k]
                     except H5StoreClosedError:
                         pass
-                    self.assertEqual( h5s[k] , v)
+                    self.assertEqual(h5s[k], v)
                     self.assertEqual(same_h5s[k], v)
                     self.assertEqual(h5s[k], same_h5s[k])
 
@@ -368,7 +368,7 @@ class TestH5Store(TestBaseH5Store):
                         same_h5s[other_key] = h5s[k]
                     except H5StoreClosedError:
                         pass
-                    self.assertEqual( h5s[other_key], v)
+                    self.assertEqual(h5s[other_key], v)
                     self.assertEqual(same_h5s[other_key], v)
                     self.assertEqual(h5s[k], same_h5s[other_key])
 
@@ -377,16 +377,16 @@ class TestH5Store(TestBaseH5Store):
                     # whether it was copied by reference (hard-link) or copied by
                     # value (true copy).
                     del same_h5s[other_key]
-                    self.assertEqual( h5s[k] , v)
-                    self.assertEqual( same_h5s[k] , v)
-                    self.assertEqual( same_h5s[k] , h5s[k])
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(same_h5s[k], v)
+                    self.assertEqual(same_h5s[k], h5s[k])
 
     def test_assign_valid_types_between_files(self):
         with self.open_h5store() as h5s:
             with self.open_other_h5store() as other_h5s:
                 for k, v in self.valid_types.items():
                     h5s[k] = v
-                    self.assertEqual( h5s[k] , v)
+                    self.assertEqual(h5s[k], v)
                     try:
                         other_h5s[k] = h5s[k]
                     except (OSError, RuntimeError) as error:
@@ -394,9 +394,9 @@ class TestH5Store(TestBaseH5Store):
                         assert str(error) == "Unable to create link (interfile hard links are not allowed)"
                         assert isinstance(v, (array, numpy.ndarray))
                         other_h5s[k] = h5s[k][()]
-                    self.assertEqual( h5s[k] , v)
-                    self.assertEqual( other_h5s[k] , v)
-                    self.assertEqual( other_h5s[k] , h5s[k])
+                    self.assertEqual(h5s[k], v)
+                    self.assertEqual(other_h5s[k], v)
+                    self.assertEqual(other_h5s[k], h5s[k])
 
     def test_write_invalid_type(self):
         class Foo(object):
@@ -407,12 +407,12 @@ class TestH5Store(TestBaseH5Store):
             d = self.get_testdata()
             h5s[key] = d
             assert len(h5s) == 1
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
             d2 = Foo()
             with pytest.raises(TypeError):
                 h5s[key + '2'] = d2
             assert len(h5s) == 1
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
 
     def test_keys_with_dots(self):
         with pytest.raises(InvalidKeyError):
@@ -420,7 +420,7 @@ class TestH5Store(TestBaseH5Store):
                 key = 'a.b'
                 d = self.get_testdata()
                 h5s[key] = d
-                self.assertEqual( h5s[key] , d)
+                self.assertEqual(h5s[key], d)
 
     def test_keys_with_slashes(self):
         # HDF5 uses slashes for nested keys internally
@@ -428,15 +428,15 @@ class TestH5Store(TestBaseH5Store):
             key = 'a/b'
             d = self.get_testdata()
             h5s[key] = d
-            self.assertEqual( h5s[key] , d)
-            self.assertEqual( h5s['a']['b'] , d)
+            self.assertEqual(h5s[key], d)
+            self.assertEqual(h5s['a']['b'], d)
 
     def test_value_none(self):
         with self.get_h5store() as h5s:
             key = 'a'
             d = None
             h5s[key] = d
-            self.assertEqual( h5s[key] , d)
+            self.assertEqual(h5s[key], d)
 
     def test_set_get_attr_sync(self):
         with self.get_h5store() as h5s:
@@ -448,21 +448,21 @@ class TestH5Store(TestBaseH5Store):
             h5s.a = a
             assert len(h5s) == 1
             assert 'a' in h5s
-            self.assertEqual(h5s.a , a)
+            self.assertEqual(h5s.a, a)
             self.assertEqual(h5s['a'], a)
             a = 1
             h5s.a = a
             assert len(h5s) == 1
             assert 'a' in h5s
-            self.assertEqual(h5s.a , a)
-            self.assertEqual(h5s['a'],  a)
+            self.assertEqual(h5s.a, a)
+            self.assertEqual(h5s['a'], a)
 
             def check_nested(a, b):
                 assert len(h5s) == 1
                 assert len(h5s.a) == 1
                 assert 'a' in h5s
                 assert 'b' in h5s.a
-                self.assertEqual(h5s.a , a)
+                self.assertEqual(h5s.a, a)
                 self.assertEqual(h5s['a']['b'], b)
                 self.assertEqual(h5s.a.b, b)
                 self.assertEqual(h5s['a'], a)
@@ -503,21 +503,21 @@ class TestH5Store(TestBaseH5Store):
             for A, B in chain(pairs, dict_pairs):
                 h5s.a = A
                 a = h5s.a
-                self.assertEqual( a , A)
-                self.assertEqual( h5s.a, A)
+                self.assertEqual(a, A)
+                self.assertEqual(h5s.a, A)
                 a = B
                 self.assertEqual(a, B)
                 self.assertEqual(h5s.a, A)
                 a = h5s['a']
-                self.assertEqual(a ,A)
-                self.assertEqual(h5s.a , A)
+                self.assertEqual(a, A)
+                self.assertEqual(h5s.a, A)
                 a = B
                 self.assertEqual(a, B)
-                self.assertEqual( h5s.a , A)
+                self.assertEqual(h5s.a, A)
 
                 # with nested values
                 h5s['a'] = dict(b=A)
-                self.assertEqual(h5s.a.b , A)
+                self.assertEqual(h5s.a.b, A)
                 b = h5s.a.b
                 self.assertEqual(b, A)
                 self.assertEqual(h5s.a.b, A)
@@ -597,7 +597,7 @@ class TestH5StorePandasData(TestH5Store):
             assert isinstance(b, Mapping)
             super(TestH5StorePandasData, self).assertEqual(a.keys(), b.keys())
             for key in a:
-                self.assertEqual(a[key] , b[key])
+                self.assertEqual(a[key], b[key])
         else:
             try:
                 return (a == b).all()
