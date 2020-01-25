@@ -242,6 +242,8 @@ class TestBufferedMode(TestProjectBase):
                     sleep(1.0)
                     with open(job.doc._filename, 'wb') as file:
                         file.write(json.dumps({'a': not x}).encode())
+            print(cm.value)
+            print(job.doc._filename)
             assert job.doc._filename in cm.value
 
             break    # only test for one job
