@@ -733,8 +733,8 @@ class TestH5StoreMultiProcessing(TestBaseH5Store):
 class TestH5StorePerformance(TestBaseH5Store):
     max_slowdown_vs_native_factor = 1.25
 
-    @pytest.fixture(autouse=True)
-    def setUp_h5Store_performance(self,setUp_base_h5Store):
+    @pytest.fixture
+    def setUp(self,setUp_base_h5Store):
         value = self.get_testdata()
         times = numpy.zeros(200)
         for i in range(len(times)):
@@ -742,6 +742,8 @@ class TestH5StorePerformance(TestBaseH5Store):
             with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_baseline']
+                # print(value)
+                # print (value['a'])
                 h5file.create_dataset('_baseline', data=value, shape=None)
             times[i] = time() - start
         self.baseline_time = times
@@ -760,7 +762,7 @@ class TestH5StorePerformance(TestBaseH5Store):
         assert numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75) < self.max_slowdown_vs_native_factor, msg
 
     @pytest.mark.skipif(WINDOWS,reason= 'This test fails for an unknown reason on Windows.')
-    def test_speed_get(self):
+    def test_speed_get(self,setUp):
         times = numpy.zeros(200)
         key = 'test_speed_get'
         value = self.get_testdata()
@@ -773,7 +775,7 @@ class TestH5StorePerformance(TestBaseH5Store):
         self.assertSpeed(times)
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
-    def test_speed_set(self):
+    def test_speed_set(self,setUp):
         times = numpy.zeros(200)
         key = 'test_speed_set'
         value = self.get_testdata()
@@ -791,8 +793,8 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
     def get_testdata(self, size=None):
         return dict(a=super(TestH5StorePerformanceNestedData, self).get_testdata(size))
 
-    @pytest.fixture(autouse=True)
-    def setUp(self,setUp_h5Store_performance):
+    @pytest.fixture
+    def setUp(self,setUp_base_h5Store):
         value = TestH5StorePerformance.get_testdata(self)
         times = numpy.zeros(200)
         for i in range(len(times)):
