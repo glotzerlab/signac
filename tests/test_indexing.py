@@ -124,10 +124,10 @@ class TestIndexingBase():
 
     access_module = SIGNAC_ACCESS_MODULE
 
-    @pytest.fixture
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        # self.addCleanup(self._tmp_dir.cleanup)
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def setup_project(self):
         def fn(name):
@@ -147,7 +147,7 @@ class TestIndexingBase():
         c = Collection()
         return Mock(spec=c, wraps=c)
 
-    def test_base_crawler(self,setUp):
+    def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
         assert len(list(crawler.crawl())) == 0
         doc = dict(a=0)
@@ -158,7 +158,7 @@ class TestIndexingBase():
             for doc in crawler.docs_from_file(None, None):
                 pass
 
-    def test_regex_file_crawler_pre_compiled(self,setUp):
+    def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
         class Crawler(indexing.RegexFileCrawler):
@@ -179,7 +179,7 @@ class TestIndexingBase():
                 assert doc2['a'] == doc['a']
         assert not no_find
 
-    def test_regex_file_crawler(self,setUp):
+    def test_regex_file_crawler(self):
         self.setup_project()
 
         class Crawler(indexing.RegexFileCrawler):
@@ -211,7 +211,7 @@ class TestIndexingBase():
         with pytest.raises(errors.FetchError):
             crawler.fetch({'filename': 'shouldnotmatch'})
 
-    def test_regex_file_crawler_inheritance(self,setUp):
+    def test_regex_file_crawler_inheritance(self):
         self.setup_project()
 
         class CrawlerA(indexing.RegexFileCrawler):
@@ -236,7 +236,7 @@ class TestIndexingBase():
         assert len(CrawlerB.definitions) == 1
         assert len(CrawlerC.definitions) == 2
 
-    def test_index_files(self,setUp):
+    def test_index_files(self):
         self.setup_project()
 
         # First test without pattern
@@ -261,7 +261,7 @@ class TestIndexingBase():
                 assert doc2['a'] == doc['a']
         assert not no_find
 
-    def test_json_crawler(self,setUp):
+    def test_json_crawler(self):
         self.setup_project()
         crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
         docs = list(sorted(crawler.crawl(), key=lambda d: d['a']))
@@ -272,7 +272,7 @@ class TestIndexingBase():
         ids = set(doc['_id'] for doc in docs)
         assert len(ids) == len(docs)
 
-    def test_master_crawler(self,setUp):
+    def test_master_crawler(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
@@ -288,7 +288,7 @@ class TestIndexingBase():
                 pass
         assert not no_find
 
-    def test_index(self,setUp):
+    def test_index(self):
         self.setup_project()
         root = self._tmp_dir.name
         assert len(list(signac.index(root=root))) == 0
@@ -305,7 +305,7 @@ class TestIndexingBase():
                 pass
         assert not no_find
 
-    def test_fetch(self,setUp):
+    def test_fetch(self):
         with pytest.raises(ValueError):
             signac.fetch(None)
         with pytest.raises(errors.FetchError):
@@ -323,7 +323,7 @@ class TestIndexingBase():
             assert doc['a'] == doc2['a']
             file.close()
 
-    def test_export_one(self,setUp):
+    def test_export_one(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
@@ -334,7 +334,7 @@ class TestIndexingBase():
         for doc in crawler.crawl():
             assert index.find_one({'_id': doc['_id']}) is not None
 
-    def test_export(self,setUp):
+    def test_export(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
@@ -344,7 +344,7 @@ class TestIndexingBase():
         for doc in crawler.crawl():
             assert index.find_one({'_id': doc['_id']}) is not None
 
-    def test_export_with_update(self,setUp):
+    def test_export_with_update(self):
         self.setup_project()
         index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
         collection = self.get_index_collection()
@@ -375,7 +375,7 @@ class TestIndexingBase():
                 with pytest.raises(errors.ExportError):
                     signac.export(index, collection, update=True)
 
-    def test_export_to_mirror(self,setUp):
+    def test_export_to_mirror(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
@@ -397,7 +397,7 @@ class TestIndexingBase():
             with mirror.get(doc['file_id']):
                 pass
 
-    def test_master_crawler_tags(self,setUp):
+    def test_master_crawler_tags(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         assert 0 == len(list(crawler.crawl()))

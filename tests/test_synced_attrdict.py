@@ -42,7 +42,7 @@ class _SyncPoint(object):
 
 class TestSyncedAttrDict():
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def setUp(self):
         self.sync_point = _SyncPoint()
 
@@ -68,17 +68,17 @@ class TestSyncedAttrDict():
         assert self.sync_point.loaded == num_read
         assert self.sync_point.saved == num_write
 
-    def test_init(self,setUp):
+    def test_init(self):
         SAD()
         SAD(dict(a=0))
         self.get_sad()
 
-    def test_is_object_and_mapping(self,setUp):
+    def test_is_object_and_mapping(self):
         assert isinstance(_SyncedDict(), object)
         assert isinstance(_SyncedDict(), MutableMapping)
         assert isinstance(self.get_sad(), _SyncedDict)
 
-    def test_str(self,setUp):
+    def test_str(self):
         sad = self.get_sad()
         assert str(sad) == str(dict(sad()))
         sad['a'] = 0
@@ -86,7 +86,7 @@ class TestSyncedAttrDict():
         sad['a'] = {'b': 0}
         assert str(sad) == str(dict(sad()))
 
-    def test_repr(self,setUp):
+    def test_repr(self):
         sad = self.get_sad()
         assert repr(sad) == repr(dict(sad()))
         sad['a'] = 0
@@ -94,13 +94,13 @@ class TestSyncedAttrDict():
         sad['a'] = {'b': 0}
         assert repr(sad) == repr(dict(sad()))
 
-    def test_call(self,setUp):
+    def test_call(self):
         sad = self.get_sad()
         sad['a'] = 0
         assert sad == dict(a=0)
         assert sad() == dict(a=0)
 
-    def test_set_get(self,setUp):
+    def test_set_get(self):
         sad = self.get_sad()
         key = 'setget'
         d = self.get_testdata()
@@ -116,7 +116,7 @@ class TestSyncedAttrDict():
         assert sad[key] == d
         assert sad.get(key) == d
 
-    def test_set_get_explicit_nested(self,setUp):
+    def test_set_get_explicit_nested(self):
         sad = self.get_sad()
         key = 'setgetexplicitnested'
         d = self.get_testdata()
@@ -138,7 +138,7 @@ class TestSyncedAttrDict():
         assert child1[key] == d
         assert child2[key] == d
 
-    def test_copy_value(self,setUp):
+    def test_copy_value(self):
         sad = self.get_sad()
         key = 'copy_value'
         key2 = 'copy_value2'
@@ -155,7 +155,7 @@ class TestSyncedAttrDict():
         assert key2 in sad
         assert sad[key2] == d
 
-    def test_copy_as_dict_sync(self,setUp):
+    def test_copy_as_dict_sync(self):
         sad = self.get_sad()
         self.assert_no_read_write()
         sad['a'] = {'b': 0, 'c': [0]}
@@ -188,7 +188,7 @@ class TestSyncedAttrDict():
         assert sad4['a']['c'][0] == 0
         self.assert_only_read(0)
 
-    def test_iter(self,setUp):
+    def test_iter(self):
         sad = self.get_sad()
         key1 = 'iter1'
         key2 = 'iter2'
@@ -203,7 +203,7 @@ class TestSyncedAttrDict():
             assert d[key] == sad[key]
         assert i == 1
 
-    def test_delete(self,setUp):
+    def test_delete(self):
         sad = self.get_sad()
         key = 'delete'
         d = self.get_testdata()
@@ -215,7 +215,7 @@ class TestSyncedAttrDict():
         with pytest.raises(KeyError):
             sad[key]
 
-    def test_update(self,setUp):
+    def test_update(self):
         sad = self.get_sad()
         key = 'update'
         d = {key: self.get_testdata()}
@@ -223,7 +223,7 @@ class TestSyncedAttrDict():
         assert len(sad) == 1
         assert sad[key] == d[key]
 
-    def test_clear(self,setUp):
+    def test_clear(self):
         sad = self.get_sad()
         key = 'clear'
         d = self.get_testdata()
@@ -233,7 +233,7 @@ class TestSyncedAttrDict():
         sad.clear()
         assert len(sad) == 0
 
-    def test_copy_as_dict(self,setUp):
+    def test_copy_as_dict(self):
         sad = self.get_sad()
         key = 'copy'
         d = self.get_testdata()
@@ -245,7 +245,7 @@ class TestSyncedAttrDict():
         assert key in copy
         assert copy[key] == d
 
-    def test_set_get_sync(self,setUp):
+    def test_set_get_sync(self):
         sad = self.get_sad()
         self.assert_no_read_write()
         key = 'setget'
@@ -261,7 +261,7 @@ class TestSyncedAttrDict():
         sad[key] = d
         self.assert_read_write()
 
-    def test_iter_sync(self,setUp):
+    def test_iter_sync(self):
         sad = self.get_sad()
         self.assert_no_read_write()
         key1 = 'iter1'
@@ -281,7 +281,7 @@ class TestSyncedAttrDict():
         assert i == 1
         self.assert_only_read(3)
 
-    def test_delete_sync(self,setUp):
+    def test_delete_sync(self):
         sad = self.get_sad()
         key = 'delete'
         d = self.get_testdata()
@@ -299,7 +299,7 @@ class TestSyncedAttrDict():
             sad[key]
             self.assert_only_read()
 
-    def test_update_sync(self,setUp):
+    def test_update_sync(self):
         sad = self.get_sad()
         key = 'update'
         d = {key: self.get_testdata()}
@@ -310,7 +310,7 @@ class TestSyncedAttrDict():
         assert sad[key] == d[key]
         self.assert_only_read()
 
-    def test_clear_sync(self,setUp):
+    def test_clear_sync(self):
         sad = self.get_sad()
         key = 'clear'
         d = self.get_testdata()
@@ -321,7 +321,7 @@ class TestSyncedAttrDict():
         assert len(sad) == 0
         self.assert_only_read()
 
-    def test_copy(self,setUp):
+    def test_copy(self):
         sad = self.get_sad()
         key = 'copy'
         d = self.get_testdata()
@@ -337,7 +337,7 @@ class TestSyncedAttrDict():
         assert key in copy
         assert copy[key] == d
 
-    def test_set_get_attr_sync(self,setUp):
+    def test_set_get_attr_sync(self):
         sad = self.get_sad()
         assert len(sad) == 0
         self.assert_only_read()
@@ -412,7 +412,7 @@ class TestSyncedAttrDict():
         self.assert_read_write(2, 1)
         check_nested({'b': 3}, 3)
 
-    def test_attr_reference_modification(self,setUp):
+    def test_attr_reference_modification(self):
         sad = self.get_sad()
         assert len(sad) == 0
         assert 'a' not in sad
@@ -457,7 +457,7 @@ class TestSyncedAttrDict():
             assert b == B
             assert sad.a.b == A
 
-    def test_list_modification(self,setUp):
+    def test_list_modification(self):
         sad = self.get_sad()
         sad['a'] = [1, 2, 3]
         self.assert_read_write()
@@ -492,7 +492,7 @@ class TestSyncedAttrDict():
         assert len(sad.a) == 3
         self.assert_only_read()
 
-    def test_suspend_sync(self,setUp):
+    def test_suspend_sync(self):
         sad = self.get_sad()
         assert len(sad) == 0
         self.assert_only_read()

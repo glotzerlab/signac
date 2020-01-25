@@ -65,11 +65,11 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class TestBaseJob():
+class TestJobBase():
 
     project_class = signac.Project
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
@@ -97,41 +97,41 @@ class TestBaseJob():
         return d
 
 
-class TestJobID(TestBaseJob):
+class TestJobID(TestJobBase):
 
-    def test_builtins(self,setUp):
+    def test_builtins(self):
         for p, h in BUILTINS:
             assert str(self.project.open_job(p)) == h
         assert str(self.project.open_job(builtins_dict())) == BUILTINS_HASH
 
-    def test_shuffle(self,setUp):
+    def test_shuffle(self):
         for i in range(10):
             assert str(self.project.open_job(builtins_dict())) == BUILTINS_HASH
 
-    def test_nested(self,setUp):
+    def test_nested(self):
         for i in range(10):
             assert str(self.project.open_job(self.nested_dict())) == NESTED_HASH
 
-    def test_sequences_identity(self,setUp):
+    def test_sequences_identity(self):
         job1 = self.project.open_job({'a': [1.0, '1.0', 1, True]})
         job2 = self.project.open_job({'a': (1.0, '1.0', 1, True)})
         assert str(job1) == str(job2)
         assert job1.statepoint() == job2.statepoint()
 
 
-class TestJob(TestBaseJob):
+class TestJob(TestJobBase):
 
-    def test_repr(self,setUp):
+    def test_repr(self):
         job = self.project.open_job({'a': 0})
         job2 = self.project.open_job({'a': 0})
         assert repr(job) == repr(job2)
         assert job == job2
 
-    def test_str(self,setUp):
+    def test_str(self):
         job = self.project.open_job({'a': 0})
         assert str(job) == job.id
 
-    def test_isfile(self,setUp):
+    def test_isfile(self):
         job = self.project.open_job({'a': 0})
         fn = 'test.txt'
         fn_ = os.path.join(job.workspace(), fn)
@@ -142,7 +142,7 @@ class TestJob(TestBaseJob):
             file.write('hello')
         assert job.isfile(fn)
 
-    def test_copy(self,setUp):
+    def test_copy(self):
         job = self.project.open_job({'a': 0}).init()
         assert job in self.project
 
@@ -178,7 +178,7 @@ class TestJob(TestBaseJob):
         copied_job.sp.a = 3
         assert copied_job in self.project
 
-    def test_deepcopy(self,setUp):
+    def test_deepcopy(self):
         job = self.project.open_job({'a': 0}).init()
         assert job in self.project
 
@@ -217,9 +217,9 @@ class TestJob(TestBaseJob):
         assert copied_job in self.project
 
 
-class TestJobSPInterface(TestBaseJob):
+class TestJobSPInterface(TestJobBase):
 
-    def test_interface_read_only(self,setUp):
+    def test_interface_read_only(self):
         sp = self.nested_dict()
         job = self.open_job(sp)
         assert job.statepoint() == json.loads(json.dumps(sp))
@@ -240,14 +240,14 @@ class TestJobSPInterface(TestBaseJob):
         assert job.sp.get('not_in_sp', 23) == 23
         assert job.sp.g.get('not_in_sp', 23) == 23
 
-    def test_interface_contains(self,setUp):
+    def test_interface_contains(self):
         sp = self.nested_dict()
         job = self.open_job(sp)
         for x in ('a', 'b', 'c', 'd', 'e'):
             assert x in job.sp
             assert x in job.sp.g
 
-    def test_interface_read_write(self,setUp):
+    def test_interface_read_write(self):
         sp = self.nested_dict()
         job = self.open_job(sp)
         job.init()
@@ -269,13 +269,13 @@ class TestJobSPInterface(TestBaseJob):
         job.sp.g.t = t
         assert job.sp.g.t == list(t)
 
-    def test_interface_job_identity_change(self,setUp):
+    def test_interface_job_identity_change(self):
         job = self.open_job({'a': 0})
         old_id = job.id
         job.sp.a = 1
         assert old_id != job.id
 
-    def test_interface_nested_kws(self,setUp):
+    def test_interface_nested_kws(self):
         with pytest.raises(InvalidKeyError):
             job = self.open_job({'a.b.c': 0})
 
@@ -283,7 +283,7 @@ class TestJobSPInterface(TestBaseJob):
         assert job.sp.a.b.c == 2
         assert job.sp['a']['b']['c'] == 2
 
-    def test_interface_lists(self,setUp):
+    def test_interface_lists(self):
         job = self.open_job({'a': [1, 2, 3]})
         assert job.sp.a == [1, 2, 3]
         old_id = job.id
@@ -291,14 +291,14 @@ class TestJobSPInterface(TestBaseJob):
         assert job.sp.a == [1, 2, 3, 4]
         assert old_id != job.id
 
-    def test_interface_reserved_keywords(self,setUp):
+    def test_interface_reserved_keywords(self):
         job = self.open_job({'with': 0, 'pop': 1})
         assert job.sp['with'] == 0
         assert job.sp['pop'] == 1
         assert job.sp.pop('with') == 0
         assert 'with' not in job.sp
 
-    def test_interface_illegal_type(self,setUp):
+    def test_interface_illegal_type(self):
         job = self.open_job(dict(a=0))
         assert job.sp.a == 0
 
@@ -307,7 +307,7 @@ class TestJobSPInterface(TestBaseJob):
         with pytest.raises(TypeError):
             job.sp.a = Foo()
 
-    def test_interface_rename(self,setUp):
+    def test_interface_rename(self):
         job = self.open_job(dict(a=0))
         job.init()
         assert job.sp.a == 0
@@ -315,17 +315,17 @@ class TestJobSPInterface(TestBaseJob):
         assert 'a' not in job.sp
         assert job.sp.b == 0
 
-    def test_interface_copy(self,setUp):
+    def test_interface_copy(self):
         job = self.open_job(dict(a=0)).init()
         copy.copy(job.sp).a = 1
         assert job in self.project
 
-    def test_interface_deepcopy(self,setUp):
+    def test_interface_deepcopy(self):
         job = self.open_job(dict(a=0)).init()
         copy.deepcopy(job.sp).a = 1
         assert not (job in self.project)
 
-    def test_interface_add(self,setUp):
+    def test_interface_add(self):
         job = self.open_job(dict(a=0))
         job.init()
         with pytest.raises(AttributeError):
@@ -334,7 +334,7 @@ class TestJobSPInterface(TestBaseJob):
         assert 'b' in job.sp
         assert job.sp.b == 1
 
-    def test_interface_delete(self,setUp):
+    def test_interface_delete(self):
         job = self.open_job(dict(a=0, b=0))
         job.init()
         assert 'b' in job.sp
@@ -351,7 +351,7 @@ class TestJobSPInterface(TestBaseJob):
         with pytest.raises(AttributeError):
             job.sp.b
 
-    def test_interface_destination_conflict(self,setUp):
+    def test_interface_destination_conflict(self):
         job_a = self.open_job(dict(a=0))
         job_b = self.open_job(dict(b=0))
         job_a.init()
@@ -376,7 +376,7 @@ class TestJobSPInterface(TestBaseJob):
         with pytest.raises(DestinationExistsError):
             job_a.sp = dict(b=0)
 
-    def test_interface_multiple_changes(self,setUp):
+    def test_interface_multiple_changes(self):
         for i in range(1, 4):
             job = self.project.open_job(dict(a=i))
             job.init()
@@ -407,7 +407,7 @@ class TestJobSPInterface(TestBaseJob):
             assert job.sp == job2.sp
             assert job.id == job2.id
 
-    def test_valid_sp_key_types(self,setUp):
+    def test_valid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
         class A:
@@ -416,7 +416,7 @@ class TestJobSPInterface(TestBaseJob):
             job.sp[key] = 'test'
             assert str(key) in job.sp
 
-    def test_invalid_sp_key_types(self,setUp):
+    def test_invalid_sp_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
         class A:
@@ -432,7 +432,7 @@ class TestJobSPInterface(TestBaseJob):
             with pytest.raises(TypeError):
                 job.sp = {key: 'test'}
 
-    def test_valid_doc_key_types(self,setUp):
+    def test_valid_doc_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
         class A:
@@ -441,7 +441,7 @@ class TestJobSPInterface(TestBaseJob):
             job.doc[key] = 'test'
             assert str(key) in job.doc
 
-    def test_invalid_doc_key_types(self,setUp):
+    def test_invalid_doc_key_types(self):
         job = self.open_job(dict(invalid_key=True)).init()
 
         class A:
@@ -458,9 +458,9 @@ class TestJobSPInterface(TestBaseJob):
                 job.doc = {key: 'test'}
 
 
-class TestConfig(TestBaseJob):
+class TestConfig(TestJobBase):
 
-    def test_set_get_delete(self,setUp):
+    def test_set_get_delete(self):
         key, value = list(test_token.items())[0]
         key, value = 'author_name', list(test_token.values())[0]
         config = copy.deepcopy(self.project.config)
@@ -470,25 +470,25 @@ class TestConfig(TestBaseJob):
         del config[key]
         assert key not in config
 
-    def test_update(self,setUp):
+    def test_update(self):
         key, value = 'author_name', list(test_token.values())[0]
         config = copy.deepcopy(self.project.config)
         config.update({key: value})
         assert config[key] == value
         assert key in config
 
-    def test_set_and_retrieve_version(self,setUp):
+    def test_set_and_retrieve_version(self):
         fake_version = 0, 0, 0
         self.project.config['signac_version'] = fake_version
         assert self.project.config['signac_version'] == fake_version
 
-    def test_str(self,setUp):
+    def test_str(self):
         str(self.project.config)
 
 
-class TestJobOpenAndClosing(TestBaseJob):
+class TestJobOpenAndClosing(TestJobBase):
 
-    def test_init(self,setUp):
+    def test_init(self):
         job = self.open_job(test_token)
         assert not os.path.isdir(job.workspace())
         job.init()
@@ -497,7 +497,7 @@ class TestJobOpenAndClosing(TestBaseJob):
         assert os.path.isdir(job.ws)
         assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
 
-    def test_chained_init(self,setUp):
+    def test_chained_init(self):
         job = self.open_job(test_token)
         assert not os.path.isdir(job.workspace())
         job = self.open_job(test_token).init()
@@ -506,23 +506,23 @@ class TestJobOpenAndClosing(TestBaseJob):
         assert os.path.isdir(job.ws)
         assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
 
-    def test_construction(self,setUp):
+    def test_construction(self):
         job = self.open_job(test_token)
         job2 = eval(repr(job))
         assert job == job2
 
-    def test_open_job_close(self,setUp):
+    def test_open_job_close(self):
         with self.open_job(test_token) as job:
             pass
         job.remove()
 
-    def test_open_job_close_manual(self,setUp):
+    def test_open_job_close_manual(self):
         job = self.open_job(test_token)
         job.open()
         job.close()
         job.remove()
 
-    def test_open_job_close_with_error(self,setUp):
+    def test_open_job_close_with_error(self):
         job = self.open_job(test_token)
 
         class TestError(Exception):
@@ -532,7 +532,7 @@ class TestJobOpenAndClosing(TestBaseJob):
                 raise TestError()
         job.remove()
 
-    def test_reopen_job(self,setUp):
+    def test_reopen_job(self):
         with self.open_job(test_token) as job:
             job_id = job.id
             assert str(job_id) == str(job)
@@ -541,13 +541,13 @@ class TestJobOpenAndClosing(TestBaseJob):
             assert job.id == job_id
         job.remove()
 
-    def test_close_nonopen_job(self,setUp):
+    def test_close_nonopen_job(self):
         job = self.open_job(test_token)
         job.close()
         with job:
             pass
 
-    def test_close_job_while_open(self,setUp):
+    def test_close_job_while_open(self):
         rp = os.path.realpath
         cwd = rp(os.getcwd())
         job = self.open_job(test_token)
@@ -555,7 +555,7 @@ class TestJobOpenAndClosing(TestBaseJob):
             job.close()
             assert cwd == rp(os.getcwd())
 
-    def test_open_job_recursive(self,setUp):
+    def test_open_job_recursive(self):
         rp = os.path.realpath
         cwd = rp(os.getcwd())
         job = self.open_job(test_token)
@@ -587,7 +587,7 @@ class TestJobOpenAndClosing(TestBaseJob):
             assert cwd == rp(os.getcwd())
         assert cwd == rp(os.getcwd())
 
-    def test_corrupt_workspace(self,setUp):
+    def test_corrupt_workspace(self):
         job = self.open_job(test_token)
         job.init()
         fn_manifest = os.path.join(job.workspace(), job.FN_MANIFEST)
@@ -604,9 +604,9 @@ class TestJobOpenAndClosing(TestBaseJob):
         job2.init()
 
 
-class TestJobDocument(TestBaseJob):
+class TestJobDocument(TestJobBase):
 
-    def test_get_set(self,setUp):
+    def test_get_set(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -621,7 +621,7 @@ class TestJobDocument(TestBaseJob):
         assert job.document.get(key) == d
         assert job.document.get('non-existent-key', d) == d
 
-    def test_del(self,setUp):
+    def test_del(self):
         key = 'del0'
         key1 = 'del1'
         d = testdata()
@@ -643,7 +643,7 @@ class TestJobDocument(TestBaseJob):
         assert key1 in job.document
         assert key not in job.document
 
-    def test_get_set_doc(self,setUp):
+    def test_get_set_doc(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -658,7 +658,7 @@ class TestJobDocument(TestBaseJob):
         assert job.doc.get(key) == d
         assert job.doc.get('non-existent-key', d) == d
 
-    def test_set_set_doc(self,setUp):
+    def test_set_set_doc(self):
         key0, key1 = 'set_set0', 'set_set1'
         d0, d1 = testdata(), testdata()
         job = self.open_job(test_token)
@@ -684,7 +684,7 @@ class TestJobDocument(TestBaseJob):
         assert job.doc[key0] == d0
         assert job.doc[key1] == d1
 
-    def test_get_set_nested(self,setUp):
+    def test_get_set_nested(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -719,7 +719,7 @@ class TestJobDocument(TestBaseJob):
         assert job.document.key0 == {'key1': d2}
         assert job.document.key0.key1 == d2
 
-    def test_get_set_nested_doc(self,setUp):
+    def test_get_set_nested_doc(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -754,7 +754,7 @@ class TestJobDocument(TestBaseJob):
         assert job.doc.key0 == {'key1': d2}
         assert job.doc.key0.key1 == d2
 
-    def test_assign(self,setUp):
+    def test_assign(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -769,7 +769,7 @@ class TestJobDocument(TestBaseJob):
         assert len(job.document) == 1
         assert job.document() == {key: d1}
 
-    def test_assign_doc(self,setUp):
+    def test_assign_doc(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -784,7 +784,7 @@ class TestJobDocument(TestBaseJob):
         assert len(job.doc) == 1
         assert job.doc() == {key: d1}
 
-    def test_copy_document(self,setUp):
+    def test_copy_document(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -803,14 +803,14 @@ class TestJobDocument(TestBaseJob):
         assert copy.get(key) == d
         assert copy.get('non-existent-key', d) == d
 
-    def test_update(self,setUp):
+    def test_update(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
         job.document.update({key: d})
         assert key in job.document
 
-    def test_clear_document(self,setUp):
+    def test_clear_document(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -821,7 +821,7 @@ class TestJobDocument(TestBaseJob):
         assert key not in job.document
         assert len(job.document) == 0
 
-    def test_reopen(self,setUp):
+    def test_reopen(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -832,7 +832,7 @@ class TestJobDocument(TestBaseJob):
         assert key in job2.document
         assert len(job2.document) == 1
 
-    def test_concurrency(self,setUp):
+    def test_concurrency(self):
         key = 'concurrent'
         d = testdata()
         job = self.open_job(test_token)
@@ -843,7 +843,7 @@ class TestJobDocument(TestBaseJob):
         assert key in job.document
         assert key in job2.document
 
-    def test_remove(self,setUp):
+    def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
         job.remove()
@@ -859,7 +859,7 @@ class TestJobDocument(TestBaseJob):
         assert key not in job.document
         assert not os.path.isfile(fn_test)
 
-    def test_clear_job(self,setUp):
+    def test_clear_job(self):
         key = 'clear'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -889,7 +889,7 @@ class TestJobDocument(TestBaseJob):
         assert not job.isfile('test')
         assert len(job.document) == 0
 
-    def test_reset(self,setUp):
+    def test_reset(self):
         key = 'reset'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -902,7 +902,7 @@ class TestJobDocument(TestBaseJob):
         assert job in self.project
         assert len(job.document) == 0
 
-    def test_doc(self,setUp):
+    def test_doc(self):
         key = 'test_doc'
         job = self.open_job(test_token)
 
@@ -927,7 +927,7 @@ class TestJobDocument(TestBaseJob):
         setattr(job.doc, key, d4)
         check_content(key, d4)
 
-    def test_sp_formatting(self,setUp):
+    def test_sp_formatting(self):
         job = self.open_job({'a': 0})
         assert '{job.statepoint.a}'.format(job=job) == str(job.sp.a)
         assert '{job.sp.a}'.format(job=job) == str(job.sp.a)
@@ -939,7 +939,7 @@ class TestJobDocument(TestBaseJob):
         assert '{job.statepoint[a][b]}'.format(job=job) == str(job.sp.a.b)
         assert '{job.sp[a][b]}'.format(job=job) == str(job.sp.a.b)
 
-    def test_doc_formatting(self,setUp):
+    def test_doc_formatting(self):
         job = self.open_job(test_token)
         job.doc.a = 0
         assert '{job.doc.a}'.format(job=job) == str(job.doc.a)
@@ -953,7 +953,7 @@ class TestJobDocument(TestBaseJob):
         assert '{job.document[a][b]}'.format(job=job) == str(job.doc.a.b)
 
     @pytest.mark.skipif(not H5PY,reason= 'test requires the h5py package')
-    def test_reset_statepoint_job(self,setUp):
+    def test_reset_statepoint_job(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -981,7 +981,7 @@ class TestJobDocument(TestBaseJob):
             src_job.reset_statepoint(dst)
 
     @pytest.mark.skipif(not H5PY,reason= 'test requires the h5py package')
-    def test_reset_statepoint_project(self,setUp):
+    def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -1009,7 +1009,7 @@ class TestJobDocument(TestBaseJob):
             self.project.reset_statepoint(src_job, dst)
 
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
-    def test_update_statepoint(self,setUp):
+    def test_update_statepoint(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -1052,7 +1052,7 @@ class TestJobDocument(TestBaseJob):
 
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
-class TestJobOpenData(TestBaseJob):
+class TestJobOpenData(TestJobBase):
 
     @staticmethod
     @contextmanager
@@ -1060,7 +1060,7 @@ class TestJobOpenData(TestBaseJob):
         with job.data:
             yield
 
-    def test_get_set(self,setUp):
+    def test_get_set(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1076,7 +1076,7 @@ class TestJobOpenData(TestBaseJob):
             assert job.data.get(key) == d
             assert job.data.get('non-existent-key', d) == d
 
-    def test_del(self,setUp):
+    def test_del(self):
         key = 'del0'
         key1 = 'del1'
         d = testdata()
@@ -1099,7 +1099,7 @@ class TestJobOpenData(TestBaseJob):
             assert key1 in job.data
             assert key not in job.data
 
-    def test_get_set_data(self,setUp):
+    def test_get_set_data(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1115,7 +1115,7 @@ class TestJobOpenData(TestBaseJob):
             assert job.data.get(key) == d
             assert job.data.get('non-existent-key', d) == d
 
-    def test_set_set_data(self,setUp):
+    def test_set_set_data(self):
         key0, key1 = 'set_set0', 'set_set1'
         d0, d1 = testdata(), testdata()
         job = self.open_job(test_token)
@@ -1144,7 +1144,7 @@ class TestJobOpenData(TestBaseJob):
             assert job.data[key0] == d0
             assert job.data[key1] == d1
 
-    def test_get_set_nested(self,setUp):
+    def test_get_set_nested(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -1180,7 +1180,7 @@ class TestJobOpenData(TestBaseJob):
             assert job.data.key0 == {'key1': d2}
             assert job.data.key0.key1 == d2
 
-    def test_get_set_nested_data(self,setUp):
+    def test_get_set_nested_data(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -1216,7 +1216,7 @@ class TestJobOpenData(TestBaseJob):
             assert job.data.key0 == {'key1': d2}
             assert job.data.key0.key1 == d2
 
-    def test_assign(self,setUp):
+    def test_assign(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -1232,7 +1232,7 @@ class TestJobOpenData(TestBaseJob):
         assert len(job.data) == 1
         assert dict(job.data) == {key: d1}
 
-    def test_assign_data(self,setUp):
+    def test_assign_data(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -1248,7 +1248,7 @@ class TestJobOpenData(TestBaseJob):
         assert len(job.data) == 1
         assert dict(job.data) == {key: d1}
 
-    def test_copy_data(self,setUp):
+    def test_copy_data(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1268,7 +1268,7 @@ class TestJobOpenData(TestBaseJob):
             assert copy.get(key) == d
             assert copy.get('non-existent-key', d) == d
 
-    def test_update(self,setUp):
+    def test_update(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1276,7 +1276,7 @@ class TestJobOpenData(TestBaseJob):
             job.data.update({key: d})
             assert key in job.data
 
-    def test_clear_data(self,setUp):
+    def test_clear_data(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -1288,7 +1288,7 @@ class TestJobOpenData(TestBaseJob):
             assert key not in job.data
             assert len(job.data) == 0
 
-    def test_reopen(self,setUp):
+    def test_reopen(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -1301,7 +1301,7 @@ class TestJobOpenData(TestBaseJob):
             assert key in job2.data
             assert len(job2.data) == 1
 
-    def test_concurrency(self,setUp):
+    def test_concurrency(self):
         key = 'concurrent'
         d = testdata()
         job = self.open_job(test_token)
@@ -1314,16 +1314,16 @@ class TestJobOpenData(TestBaseJob):
                 assert key in job.data
                 assert key in job2.data
 
-    def test_move_not_initialized(self,setUp):
+    def test_move_not_initialized(self):
         job = self.open_job(test_token)
         with pytest.raises(RuntimeError):
             job.move(job._project)
 
-    def test_move_intra_project(self,setUp):
+    def test_move_intra_project(self):
         job = self.open_job(test_token).init()
         job.move(self.project)  # no-op
 
-    def test_move_inter_project(self,setUp):
+    def test_move_inter_project(self):
         job = self.open_job(test_token).init()
         project_a = self.project
         project_b = self.project_class.init_project(
@@ -1335,7 +1335,7 @@ class TestJobOpenData(TestBaseJob):
         with pytest.raises(DestinationExistsError):
             job.move(project_b)
 
-    def test_remove(self,setUp):
+    def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
         job.remove()
@@ -1353,7 +1353,7 @@ class TestJobOpenData(TestBaseJob):
             assert key not in job.data
         assert not os.path.isfile(fn_test)
 
-    def test_clear_job(self,setUp):
+    def test_clear_job(self):
         key = 'clear'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -1386,7 +1386,7 @@ class TestJobOpenData(TestBaseJob):
         with self.open_data(job):
             assert len(job.data) == 0
 
-    def test_reset(self,setUp):
+    def test_reset(self):
         key = 'reset'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -1401,7 +1401,7 @@ class TestJobOpenData(TestBaseJob):
         with self.open_data(job):
             assert len(job.data) == 0
 
-    def test_data(self,setUp):
+    def test_data(self):
         key = 'test_data'
         job = self.open_job(test_token)
 
@@ -1427,7 +1427,7 @@ class TestJobOpenData(TestBaseJob):
             setattr(job.data, key, d4)
             check_content(key, d4)
 
-    def test_reset_statepoint_job(self,setUp):
+    def test_reset_statepoint_job(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -1451,7 +1451,7 @@ class TestJobOpenData(TestBaseJob):
         with pytest.raises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
-    def test_reset_statepoint_project(self,setUp):
+    def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -1475,7 +1475,7 @@ class TestJobOpenData(TestBaseJob):
         with pytest.raises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
 
-    def test_update_statepoint(self,setUp):
+    def test_update_statepoint(self):
         key = 'move_job'
         d = testdata()
         src = test_token
@@ -1512,7 +1512,7 @@ class TestJobOpenData(TestBaseJob):
             assert key in dst2_job.data
             assert len(dst2_job.data) == 1
 
-    def test_statepoint_copy(self,setUp):
+    def test_statepoint_copy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
         _id = job.id
         sp_copy = copy.copy(job.sp)
@@ -1522,7 +1522,7 @@ class TestJobOpenData(TestBaseJob):
         assert job in self.project
         assert job.id != _id
 
-    def test_statepoint_deepcopy(self,setUp):
+    def test_statepoint_deepcopy(self):
         job = self.open_job(dict(a=test_token, b=test_token)).init()
         _id = job.id
         sp_copy = copy.deepcopy(job.sp)
@@ -1541,7 +1541,7 @@ class TestJobClosedDat(TestJobOpenData):
     def open_data(job):
         yield
 
-    def test_implicit_initialization(self,setUp):
+    def test_implicit_initialization(self):
         job = self.open_job(test_token)
         assert 'test' not in job.stores
         assert 'foo' not in job.stores.test
@@ -1556,7 +1556,7 @@ class TestJobClosedDat(TestJobOpenData):
 
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
-class TestJobOpenCustomData(TestBaseJob):
+class TestJobOpenCustomData(TestJobBase):
 
     @staticmethod
     @contextmanager
@@ -1564,7 +1564,7 @@ class TestJobOpenCustomData(TestBaseJob):
         with job.stores.test:
             yield
 
-    def test_get_set(self,setUp):
+    def test_get_set(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1580,7 +1580,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert job.stores.test.get(key) == d
             assert job.stores.test.get('non-existent-key', d) == d
 
-    def test_del(self,setUp):
+    def test_del(self):
         key = 'del0'
         key1 = 'del1'
         d = testdata()
@@ -1603,7 +1603,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert key1 in job.stores.test
             assert key not in job.stores.test
 
-    def test_get_set_data(self,setUp):
+    def test_get_set_data(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1619,7 +1619,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert job.stores.test.get(key) == d
             assert job.stores.test.get('non-existent-key', d) == d
 
-    def test_set_set_data(self,setUp):
+    def test_set_set_data(self):
         key0, key1 = 'set_set0', 'set_set1'
         d0, d1 = testdata(), testdata()
         job = self.open_job(test_token)
@@ -1648,7 +1648,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert job.stores.test[key0] == d0
             assert job.stores.test[key1] == d1
 
-    def test_get_set_nested(self,setUp):
+    def test_get_set_nested(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -1684,7 +1684,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert job.stores.test.key0 == {'key1': d2}
             assert job.stores.test.key0.key1 == d2
 
-    def test_get_set_nested_data(self,setUp):
+    def test_get_set_nested_data(self):
         d0 = testdata()
         d1 = testdata()
         d2 = testdata()
@@ -1720,7 +1720,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert job.stores.test.key0 == {'key1': d2}
             assert job.stores.test.key0.key1 == d2
 
-    def test_assign(self,setUp):
+    def test_assign(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -1736,7 +1736,7 @@ class TestJobOpenCustomData(TestBaseJob):
         assert len(job.stores.test) == 1
         assert dict(job.stores.test) == {key: d1}
 
-    def test_assign_data(self,setUp):
+    def test_assign_data(self):
         key = 'assign'
         d0 = testdata()
         d1 = testdata()
@@ -1752,7 +1752,7 @@ class TestJobOpenCustomData(TestBaseJob):
         assert len(job.stores.test) == 1
         assert dict(job.stores.test) == {key: d1}
 
-    def test_copy_data(self,setUp):
+    def test_copy_data(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1772,7 +1772,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert copy.get(key) == d
             assert copy.get('non-existent-key', d) == d
 
-    def test_update(self,setUp):
+    def test_update(self):
         key = 'get_set'
         d = testdata()
         job = self.open_job(test_token)
@@ -1780,7 +1780,7 @@ class TestJobOpenCustomData(TestBaseJob):
             job.stores.test.update({key: d})
             assert key in job.stores.test
 
-    def test_clear_data(self,setUp):
+    def test_clear_data(self):
         key = 'clear'
         d = testdata()
         job = self.open_job(test_token)
@@ -1792,7 +1792,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert key not in job.stores.test
             assert len(job.stores.test) == 0
 
-    def test_reopen(self,setUp):
+    def test_reopen(self):
         key = 'reopen'
         d = testdata()
         job = self.open_job(test_token)
@@ -1805,7 +1805,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert key in job2.stores.test
             assert len(job2.stores.test) == 1
 
-    def test_concurrency(self,setUp):
+    def test_concurrency(self):
         key = 'concurrent'
         d = testdata()
         job = self.open_job(test_token)
@@ -1818,7 +1818,7 @@ class TestJobOpenCustomData(TestBaseJob):
                 assert key in job.stores.test
                 assert key in job2.stores.test
 
-    def test_remove(self,setUp):
+    def test_remove(self):
         key = 'remove'
         job = self.open_job(test_token)
         job.remove()
@@ -1836,7 +1836,7 @@ class TestJobOpenCustomData(TestBaseJob):
             assert key not in job.stores.test
         assert not os.path.isfile(fn_test)
 
-    def test_clear_job(self,setUp):
+    def test_clear_job(self):
         key = 'clear'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -1869,7 +1869,7 @@ class TestJobOpenCustomData(TestBaseJob):
         with self.open_data(job):
             assert len(job.stores.test) == 0
 
-    def test_reset(self,setUp):
+    def test_reset(self):
         key = 'reset'
         job = self.open_job(test_token)
         assert job not in self.project
@@ -1884,7 +1884,7 @@ class TestJobOpenCustomData(TestBaseJob):
         with self.open_data(job):
             assert len(job.stores.test) == 0
 
-    def test_data(self,setUp):
+    def test_data(self):
         key = 'test_data'
         job = self.open_job(test_token)
 

@@ -18,21 +18,21 @@ except ImportError:
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 class TestH5StoreManager():
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='h5store_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self.store = H5StoreManager(prefix=self._tmp_dir.name)
         with open(os.path.join(self._tmp_dir.name, 'other_file.txt'), 'w') as file:
             file.write(r'blank\n')
 
-    def test_repr(self,setUp):
+    def test_repr(self):
         assert eval(repr(self.store)) == self.store
 
-    def test_str(self,setUp):
+    def test_str(self):
         assert eval(str(self.store)) == self.store
 
-    def test_set(self,setUp):
+    def test_set(self):
         assert len(self.store) == 0
         assert 'test' not in self.store
         for value in ('', [], {}):
@@ -50,14 +50,14 @@ class TestH5StoreManager():
         assert len(self.store) == 1
         assert 'test' in self.store
 
-    def test_set_iterable(self,setUp):
+    def test_set_iterable(self):
         assert len(self.store) == 0
         assert 'test' not in self.store
         self.store['test'] = list(dict(foo=True).items())
         assert len(self.store) == 1
         assert 'test' in self.store
 
-    def test_set_get(self,setUp):
+    def test_set_get(self):
         assert len(self.store) == 0
         assert 'test' not in self.store
         self.store['test']['foo'] = 'bar'
@@ -65,7 +65,7 @@ class TestH5StoreManager():
         assert len(self.store) == 1
         assert 'foo' in self.store['test']
 
-    def test_del(self,setUp):
+    def test_del(self):
         assert len(self.store) == 0
         assert 'test' not in self.store
         self.store['test']['foo'] = 'bar'
@@ -78,14 +78,14 @@ class TestH5StoreManager():
         assert len(self.store) == 0
         assert 'test' not in self.store
 
-    def test_iteration(self,setUp):
+    def test_iteration(self):
         keys = ['foo', 'bar', 'baz']
         for key in keys:
             self.store[key] = dict(test=True)
         assert list(sorted(keys)) == list(sorted(self.store))
         assert list(sorted(keys)) == list(sorted(self.store.keys()))
 
-    def test_contains(self,setUp):
+    def test_contains(self):
         keys = ['foo', 'bar', 'baz']
         for key in keys:
             assert key not in self.store
@@ -94,5 +94,5 @@ class TestH5StoreManager():
         for key in keys:
             assert key in self.store
 
-    def test_pickle(self,setUp):
+    def test_pickle(self):
         assert pickle.loads(pickle.dumps(self.store)) == self.store

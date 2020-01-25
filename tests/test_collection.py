@@ -53,42 +53,42 @@ LOGICAL_EXPRESSIONS = [
 
 class TestCollection():
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def setUp(self):
         self.c = Collection()
 
-    def test_init(self,setUp):
+    def test_init(self):
         assert len(self.c) == 0
 
-    def test_buffer_size(self,setUp):
+    def test_buffer_size(self):
         docs = [{'a': i, '_id': str(i)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c._file.getvalue()) == 0
         self.c.flush()
         assert len(self.c._file.getvalue()) > 0
 
-    def test_init_with_list_with_ids_sequential(self,setUp):
+    def test_init_with_list_with_ids_sequential(self):
         docs = [{'a': i, '_id': str(i)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
             assert doc['_id'] in self.c
 
-    def test_init_with_list_with_ids_non_sequential(self,setUp):
+    def test_init_with_list_with_ids_non_sequential(self):
         docs = [{'a': i, '_id': '{:032d}'.format(i**3)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
             assert doc['_id'] in self.c
 
-    def test_init_with_list_without_ids(self,setUp):
+    def test_init_with_list_without_ids(self):
         docs = [{'a': i} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
             assert doc['_id'] in self.c
 
-    def test_init_with_list_with_and_without_ids(self,setUp):
+    def test_init_with_list_with_and_without_ids(self):
         docs = [{'a': i} for i in range(10)]
         for i, doc in enumerate(islice(docs, 5)):
             doc.setdefault('_id', str(i))
@@ -97,12 +97,12 @@ class TestCollection():
         for doc in docs:
             assert doc['_id'] in self.c
 
-    def test_init_with_non_serializable(self,setUp):
+    def test_init_with_non_serializable(self):
         docs = [dict(a=array.array('f', [1, 2, 3])) for i in range(10)]
         with pytest.raises(TypeError):
             self.c = Collection(docs)
 
-    def test_insert(self,setUp):
+    def test_insert(self):
         doc = dict(a=0)
         self.c['0'] = doc
         assert len(self.c) == 1
@@ -115,12 +115,12 @@ class TestCollection():
         with pytest.raises(TypeError):
             self.c[1.0] = dict(a=0)
 
-    def test_insert_non_serializable(self,setUp):
+    def test_insert_non_serializable(self):
         doc = dict(a=array.array('f', [1, 2, 3]))
         with pytest.raises(TypeError):
             self.c['0'] = doc
 
-    def test_insert_multiple(self,setUp):
+    def test_insert_multiple(self):
         doc = dict(a=0)
         assert len(self.c) == 0
         self.c.insert_one(doc.copy())
@@ -128,7 +128,7 @@ class TestCollection():
         self.c.insert_one(doc.copy())
         assert len(self.c) == 2
 
-    def test_int_float_equality(self,setUp):
+    def test_int_float_equality(self):
         self.c.insert_one(dict(a=1))
         self.c.insert_one(dict(a=1.0))
         assert len(self.c.find(dict(a=1))) == 2
@@ -140,7 +140,7 @@ class TestCollection():
             self.assertEqual(type(doc['a']), float)
         """
 
-    def test_copy(self,setUp):
+    def test_copy(self):
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         c2 = Collection(self.c)
@@ -148,7 +148,7 @@ class TestCollection():
         for doc in c2:
             assert len(self.c.find(doc)) == 1
 
-    def test_insert_and_remove(self,setUp):
+    def test_insert_and_remove(self):
         doc = dict(a=0)
         self.c['0'] = doc
         assert len(self.c) == 1
@@ -159,7 +159,7 @@ class TestCollection():
         with pytest.raises(KeyError):
             assert self.c['0'] == doc
 
-    def test_contains(self,setUp):
+    def test_contains(self):
         assert not ('0' in self.c)
         _id = self.c.insert_one(dict())
         assert _id in self.c
@@ -172,12 +172,12 @@ class TestCollection():
         for doc in docs:
             assert doc['_id'] in self.c
 
-    def test_update(self,setUp):
+    def test_update(self):
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
         assert len(self.c) == len(docs)
 
-    def test_update_collision(self,setUp):
+    def test_update_collision(self):
         docs = [dict(_id=str(i), a=i) for i in range(10)]
         self.c.update(docs)
         # Update the first ten, insert the second ten
@@ -186,7 +186,7 @@ class TestCollection():
         assert len(self.c) == len(new_docs)
         assert self.c['0'] == new_docs[0]
 
-    def test_index(self,setUp):
+    def test_index(self):
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
         with pytest.raises(KeyError):
@@ -217,7 +217,7 @@ class TestCollection():
             for _id in _ids:
                 assert self.c[_id]['a'] == value
 
-    def test_reindex(self,setUp):
+    def test_reindex(self):
         assert len(self.c) == 0
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
@@ -227,14 +227,14 @@ class TestCollection():
         self.c.update(docs)
         assert len(self.c.find({'a': 0})) == 2
 
-    def test_clear(self,setUp):
+    def test_clear(self):
         assert len(self.c) == 0
         self.c['0'] = dict(a=0)
         assert len(self.c) == 1
         self.c.clear()
         assert len(self.c) == 0
 
-    def test_iteration(self,setUp):
+    def test_iteration(self):
         assert len(self.c) == 0
         assert len(self.c.find()) == 0
         docs = self.c['0'] = dict(a=0)
@@ -247,7 +247,7 @@ class TestCollection():
         assert len(self.c.find()) == len(docs)
         assert {doc['a'] for doc in docs} == {doc['a'] for doc in self.c.find()}
 
-    def test_find_integer(self,setUp):
+    def test_find_integer(self):
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({'a': 0})) == 0
@@ -265,7 +265,7 @@ class TestCollection():
         del self.c[docs[0]['_id']]
         assert len(self.c.find({'a': 0})) == 0
 
-    def test_find_float(self,setUp):
+    def test_find_float(self):
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({'a': 0})) == 0
@@ -283,7 +283,7 @@ class TestCollection():
         del self.c[docs[0]['_id']]
         assert len(self.c.find({'a': 0})) == 0
 
-    def test_find_list(self,setUp):
+    def test_find_list(self):
         assert len(self.c.find()) == 0
         assert list(self.c.find()) == []
         assert len(self.c.find({'a': []})) == 0
@@ -294,7 +294,7 @@ class TestCollection():
             self.c.insert_one({'a': [v]})
             assert len(self.c.find({'a': [v]})) == 1
 
-    def test_find_int_float(self,setUp):
+    def test_find_int_float(self):
         id_float = self.c.insert_one({'a': float(1.0)})
         id_int = self.c.insert_one({'a': 1})
         assert len(self.c.find({'a': {'$type': 'float'}})) == 1
@@ -311,7 +311,7 @@ class TestCollection():
         assert self.c.find_one({'a': {'$type': 'int'}})['_id'] == id_int
         assert self.c.find_one({'a': {'$type': 'float'}})['_id'] == id_float
 
-    def test_insert_docs_with_dots(self,setUp):
+    def test_insert_docs_with_dots(self):
         with pytest.raises(InvalidKeyError):
             self.c.__setitem__('0', {'a.b': 0})
         with pytest.raises(InvalidKeyError):
@@ -327,12 +327,12 @@ class TestCollection():
         with pytest.raises(InvalidKeyError):
             self.c.update([{'_id': '0', 'a': {'b.c': 0}}])
 
-    def test_replace_docs_with_dots(self,setUp):
+    def test_replace_docs_with_dots(self):
         self.c.insert_one({'a': 0})
         with pytest.raises(InvalidKeyError):
             self.c.replace_one({'a': 0}, {'a.b': 0})
 
-    def test_insert_docs_with_dots_force(self,setUp):
+    def test_insert_docs_with_dots_force(self):
         self.c.__setitem__('0', {'a.b': 0}, _trust=True)
 
         # These searches will not catch the error:
@@ -343,7 +343,7 @@ class TestCollection():
         with pytest.raises(InvalidKeyError):
             self.c.find({'a.b': 0})
 
-    def test_find_types(self,setUp):
+    def test_find_types(self):
         # Note: All of the iterables will be normalized to lists!
         t = [1, 1.0, '1', [1], tuple([1])]
         for i, t in enumerate(t):
@@ -351,13 +351,13 @@ class TestCollection():
             doc = self.c[str(i)] = dict(a=t)
             assert list(self.c.find(doc)) == [self.c[str(i)]]
 
-    def test_find_one(self,setUp):
+    def test_find_one(self):
         assert self.c.find_one() is None
         self.c.insert_one(dict())
         assert self.c.find_one() is not None
         assert len(self.c.find()) == 1
 
-    def test_find_nested(self,setUp):
+    def test_find_nested(self):
         docs = [dict(a=dict(b=i)) for i in range(10)]
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
@@ -368,14 +368,14 @@ class TestCollection():
         assert len(self.c.find({'a.b': 0})) == 0
         assert len(self.c.find({'a': {'b': 0}})) == 0
 
-    def test_nested_lists(self,setUp):
+    def test_nested_lists(self):
         docs = [dict(a=[[[i]]]) for i in range(10)]
         self.c.update(docs)
         assert len(self.c.find()) == len(docs)
         assert len(self.c.find({'a': [[[-1]]]})) == 0
         assert len(self.c.find({'a': [[[0]]]})) == 1
 
-    def test_replace_one_simple(self,setUp):
+    def test_replace_one_simple(self):
         assert len(self.c) == 0
         doc = {'_id': '0', 'a': 0}
         self.c.replace_one({'_id': '0'}, doc, upsert=False)
@@ -385,7 +385,7 @@ class TestCollection():
         self.c.replace_one({'_id': '0'}, doc, upsert=True)
         assert len(self.c) == 1
 
-    def test_replace_one(self,setUp):
+    def test_replace_one(self):
         docs = [dict(a=i) for i in range(10)]
         docs_ = [dict(a=-i) for i in range(10)]
         self.c.update(docs)
@@ -395,7 +395,7 @@ class TestCollection():
         assert len(self.c.find()) == len(docs_)
         assert set((doc['a'] for doc in docs_)) == set((doc['a'] for doc in self.c.find()))
 
-    def test_delete(self,setUp):
+    def test_delete(self):
         self.c.delete_many({})
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
@@ -405,7 +405,7 @@ class TestCollection():
         self.c.delete_many({})
         assert len(self.c) == 0
 
-    def test_delete_one(self,setUp):
+    def test_delete_one(self):
         self.c.delete_one({})
         docs = [dict(a=i) for i in range(10)]
         self.c.update(docs)
@@ -415,7 +415,7 @@ class TestCollection():
         self.c.delete_one({})
         assert len(self.c) == len(docs) - 2
 
-    def test_find_exists_operator(self,setUp):
+    def test_find_exists_operator(self):
         assert len(self.c) == 0
         data = OrderedDict((
             ('a', True),
@@ -466,7 +466,7 @@ class TestCollection():
         assert len(self.c.find({'f.a': {'$exists': True}})) == 1
         assert len(self.c.find({'f.a': {'$exists': False}})) == len(self.c) - 1
 
-    def test_find_arithmetic_operators(self,setUp):
+    def test_find_arithmetic_operators(self):
         assert len(self.c) == 0
         for expr, n in ARITHMETIC_EXPRESSIONS:
             assert len(self.c.find({'a': expr})) == 0
@@ -475,7 +475,7 @@ class TestCollection():
         for expr, n in ARITHMETIC_EXPRESSIONS:
             assert len(self.c.find({'a': expr})) == n
 
-    def test_find_near(self,setUp):
+    def test_find_near(self):
         assert len(self.c) == 0
         # find 0 items in empty collection
         assert self.c.find({'a': {'$near': [10]}}).count() == 0
@@ -509,7 +509,7 @@ class TestCollection():
         with pytest.raises(ValueError):
             self.c.find({'a': {'$near': (10, 0.5, 1, 1, 5)}})
 
-    def test_find_array_operators(self,setUp):
+    def test_find_array_operators(self):
         assert len(self.c) == 0
         for expr, n in ARRAY_EXPRESSIONS:
             assert len(self.c.find({'a': expr})) == 0
@@ -518,7 +518,7 @@ class TestCollection():
         for expr, n in ARRAY_EXPRESSIONS:
             assert len(self.c.find({'a': expr})) == n
 
-    def test_find_regular_expression(self,setUp):
+    def test_find_regular_expression(self):
         assert len(self.c) == 0
         assert len(self.c.find({'a': {'$regex': 'foo'}})) == 0
         assert len(self.c.find({'a': {'$regex': 'hello'}})) == 0
@@ -527,7 +527,7 @@ class TestCollection():
         assert len(self.c.find({'a': {'$regex': 'hello'}})) == 1
         assert len(self.c.find({'a': {'$regex': 'hello world'}})) == 1
 
-    def test_find_type_expression(self,setUp):
+    def test_find_type_expression(self):
         assert len(self.c) == 0
         types = [(1, 'int'), (1.0, 'float'), ('1.0', 'str'), (True, 'bool'), (None, 'null')]
         for (v, t) in types:
@@ -538,19 +538,19 @@ class TestCollection():
         for i, (v, t) in enumerate(types):
             assert len(self.c.find({str(i): {'$type': t}})) == 1
 
-    def test_find_type_integer_values_identical_keys(self,setUp):
+    def test_find_type_integer_values_identical_keys(self):
         self.c.insert_one({'a': 1})
         self.c.insert_one({'a': 1.0})
         assert len(self.c.find({'a': {'$type': 'int'}})) == 1
         assert len(self.c.find({'a': {'$type': 'float'}})) == 1
 
-    def test_find_where_expression(self,setUp):
+    def test_find_where_expression(self):
         assert len(self.c) == 0
         assert len(self.c.find({'a': {'$where': 'lambda x: x < 42'}})) == 0
         self.c.update(ARITHMETIC_DOCS)
         assert len(self.c.find({'a': {'$where': 'lambda x: x < 42'}})) == 42
 
-    def test_find_logical_operators(self,setUp):
+    def test_find_logical_operators(self):
         assert len(self.c) == 0
         for expr, expectation in LOGICAL_EXPRESSIONS:
             if not isinstance(expectation, int):
@@ -572,11 +572,11 @@ class TestCollection():
 
 class TestCompressedCollection(TestCollection):
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def setUp(self):
         self.c = Collection.open(filename=':memory:', compresslevel=9)
 
-    def test_compression(self,setUp):
+    def test_compression(self):
         # Fill with data
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
@@ -597,8 +597,8 @@ class TestCompressedCollection(TestCollection):
 
 class TestFileCollectionBadJson():
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with open(self._fn_collection, 'w') as file:
@@ -607,7 +607,7 @@ class TestFileCollectionBadJson():
         request.addfinalizer(self._tmp_dir.cleanup)
         
 
-    def test_read(self,setUp):
+    def test_read(self):
         with Collection.open(self._fn_collection, mode='r') as c:
             assert len(list(c)) == 3
         with open(self._fn_collection, 'a') as file:
@@ -619,8 +619,8 @@ class TestFileCollectionBadJson():
 
 class TestCollectionToFromJson():
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_json = os.path.join(self._tmp_dir.name, 'test.json')
         self.c = Collection.open(filename=':memory:')
@@ -629,7 +629,7 @@ class TestCollectionToFromJson():
         self.c.flush()
         request.addfinalizer(self._tmp_dir.cleanup)
 
-    def test_write_and_read(self,setUp):
+    def test_write_and_read(self):
         self.c.to_json(self._fn_json)
         assert os.path.getsize(self._fn_json) > 0
         c = Collection.read_json(self._fn_json)
@@ -640,22 +640,22 @@ class TestCollectionToFromJson():
 
 class TestFileCollectionReadOnly():
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with Collection.open(self._fn_collection, 'w') as c:
             c.update([dict(_id=str(i)) for i in range(10)])
         request.addfinalizer(self._tmp_dir.cleanup)
 
-    def test_read(self,setUp):
+    def test_read(self):
         c = Collection.open(self._fn_collection, mode='r')
         assert len(list(c)) == 10
         assert len(list(c)) == 10
         assert len(c.find()) == 10
         c.close()
 
-    def test_write_on_readonly(self,setUp):
+    def test_write_on_readonly(self):
         c = Collection.open(self._fn_collection, mode='r')
         assert len(list(c)) == 10
         c.insert_one(dict())
@@ -672,21 +672,21 @@ class TestFileCollection(TestCollection):
     mode = 'w'
     filename = 'test.txt'
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
         self._fn_collection = os.path.join(self._tmp_dir.name, self.filename)
         self.c = Collection.open(self._fn_collection, mode=self.mode)
         request.addfinalizer(self._tmp_dir.cleanup)
         request.addfinalizer(self.c.close)
 
-    def test_write_and_flush(self,setUp):
+    def test_write_and_flush(self):
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
         assert os.path.getsize(self._fn_collection) > 0
 
-    def test_write_flush_and_reopen(self,setUp):
+    def test_write_flush_and_reopen(self):
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
@@ -705,7 +705,7 @@ class TestBinaryFileCollection(TestCollection):
 class TestFileCollectionAppend(TestFileCollection):
     mode = 'a'
 
-    def test_file_size(self,setUp):
+    def test_file_size(self):
         docs = [dict(_id=str(i)) for i in range(10)]
 
         with open(self._fn_collection) as f:
@@ -740,7 +740,7 @@ class TestZippedFileCollection(TestFileCollection):
     filename = 'test.txt.gz'
     mode = 'wb'
 
-    def test_compression_level(self,setUp):
+    def test_compression_level(self):
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()

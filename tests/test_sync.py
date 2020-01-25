@@ -17,7 +17,7 @@ from signac.errors import DocumentSyncConflict
 from signac.errors import SchemaSyncConflict
 from signac.contrib.utility import _mkdir_p
 
-from test_job import TestBaseJob
+from test_job import TestJobBase
 import pytest
 
 
@@ -205,7 +205,7 @@ class TestFileModifyProxy():
 
 class TestFileModifyProxyDocBackup():
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def setUp(self):
         self.doc = dict()
 
@@ -245,17 +245,17 @@ class TestFileModifyProxyDocBackup():
 
 class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self.doc = JSONDict(
             filename=os.path.join(self._tmp_dir.name, 'doc.json'))
         request.addfinalizer( self._tmp_dir.cleanup)
 
 
-class TestJobSync(TestBaseJob):
+class TestJobSync(TestJobBase):
 
-    def test_sync_no_implicit_init(self,setUp):
+    def test_sync_no_implicit_init(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         assert job_dst not in self.project
@@ -268,7 +268,7 @@ class TestJobSync(TestBaseJob):
         job_dst.sync(job_src)
         assert job_dst in self.project
 
-    def test_file_sync(self,setUp):
+    def test_file_sync(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -289,7 +289,7 @@ class TestJobSync(TestBaseJob):
         with open(job_dst.fn('test')) as file:
             assert file.read() == 'test'
 
-    def test_file_sync_recursive(self,setUp):
+    def test_file_sync_recursive(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -308,7 +308,7 @@ class TestJobSync(TestBaseJob):
         with open(job_dst.fn('subdir/test2')) as file:
             assert file.read() == 'test2'
 
-    def test_file_sync_deep(self,setUp):
+    def test_file_sync_deep(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         with job_src:
@@ -345,7 +345,7 @@ class TestJobSync(TestBaseJob):
 
         return differs
 
-    def test_file_sync_with_conflict(self,setUp):
+    def test_file_sync_with_conflict(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         differs = self._reset_differing_jobs((job_dst, job_src))
@@ -373,7 +373,7 @@ class TestJobSync(TestBaseJob):
         job_dst.sync(job_src, sync.FileSync.update, recursive=True)
         assert not differs('subdir/test2')
 
-    def test_file_sync_strategies(self,setUp):
+    def test_file_sync_strategies(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
 
@@ -413,7 +413,7 @@ class TestJobSync(TestBaseJob):
         assert job_src.document != job_dst.document
         return job_dst, job_src
 
-    def test_document_sync(self,setUp):
+    def test_document_sync(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src)
         assert len(job_dst.document) == len(job_src.document)
@@ -423,44 +423,44 @@ class TestJobSync(TestBaseJob):
         job_dst.sync(job_src)
         assert job_src.document == job_dst.document
 
-    def test_document_sync_nested(self,setUp):
+    def test_document_sync_nested(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['nested'] = dict(a=0)
         with pytest.raises(DocumentSyncConflict):
             job_dst.sync(job_src)
         assert job_src.document != job_dst.document
 
-    def test_document_sync_explicit_overwrit(self,setUp):
+    def test_document_sync_explicit_overwrit(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src, doc_sync=sync.DocSync.update)
         assert job_src.document == job_dst.document
 
-    def test_document_sync_overwrite_specific(self,setUp):
+    def test_document_sync_overwrite_specific(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('nested.a'))
         assert job_src.document == job_dst.document
 
-    def test_document_sync_partially_differing(self,setUp):
+    def test_document_sync_partially_differing(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['a'] = 0
         job_dst.sync(job_src)
         assert job_src.document == job_dst.document
 
-    def test_document_sync_differing_keys(self,setUp):
+    def test_document_sync_differing_keys(self):
         job_dst, job_src = self._reset_document_sync()
         job_src.document['b'] = 1
         job_src.document['nested']['b'] = 1
         job_dst.sync(job_src)
         assert job_src.document == job_dst.document
 
-    def test_document_sync_no_sync(self,setUp):
+    def test_document_sync_no_sync(self):
         job_dst, job_src = self._reset_document_sync()
         assert sync.DocSync.NO_SYNC is False
         job_dst.sync(job_src, doc_sync=False)
         assert job_src.document != job_dst.document
         assert len(job_dst.document) == 0
 
-    def test_document_sync_dst_has_extra_key(self,setUp):
+    def test_document_sync_dst_has_extra_key(self):
         job_dst, job_src = self._reset_document_sync()
         job_dst.document['b'] = 2
         assert 'b' not in job_src.document
@@ -472,7 +472,7 @@ class TestJobSync(TestBaseJob):
         assert job_dst.document['nested'] == job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
 
-    def test_document_sync_with_error(self,setUp):
+    def test_document_sync_with_error(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
         job_dst.document['a'] = 0
@@ -484,7 +484,7 @@ class TestJobSync(TestBaseJob):
         with pytest.raises(RuntimeError):
             job_dst.sync(job_src, doc_sync=raise_error)
 
-    def test_document_sync_with_conflict(self,setUp):
+    def test_document_sync_with_conflict(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
 
@@ -537,8 +537,8 @@ class TestJobSync(TestBaseJob):
 
 class ProjectSyncTest():
 
-    @pytest.fixture
-    def setUp(self,request):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         self._tmp_pr_a = os.path.join(self._tmp_dir.name, 'pr_a')
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, 'pr_b')
@@ -555,28 +555,28 @@ class ProjectSyncTest():
             with open('test.txt', 'w') as file:
                 file.write(str(data))
 
-    def test_src_and_dst_identical(self,setUp):
+    def test_src_and_dst_identical(self):
         with pytest.raises(ValueError):
             self.project_a.sync(self.project_a)
 
-    def test_src_and_dst_empty(self,setUp):
+    def test_src_and_dst_empty(self):
         self.project_a.sync(self.project_b)
         assert len(self.project_a) == len(self.project_b)
 
-    def test_src_empty(self,setUp):
+    def test_src_empty(self):
         for i in range(4):
             self._init_job(self.project_b.open_job({'a': i}))
         self.project_a.sync(self.project_b)
         assert len(self.project_a) == len(self.project_b)
 
-    def test_dst_empty(self,setUp):
+    def test_dst_empty(self):
         for i in range(4):
             self._init_job(self.project_a.open_job({'a': i}))
         self.project_a.sync(self.project_b)
         assert len(self.project_a) == 4
         assert len(self.project_b) == 0
 
-    def test_doc_sync(self,setUp):
+    def test_doc_sync(self):
         self.project_a.document['a'] = 0
         assert 'a' in self.project_a.document
         assert 'a' not in self.project_b.document
@@ -598,7 +598,7 @@ class ProjectSyncTest():
             if i % 3 == 0:
                 self._init_job(self.project_b.open_job({'a': i}))
 
-    def test_mixed(self,setUp):
+    def test_mixed(self):
         self._setup_mixed()
         with pytest.raises(SchemaSyncConflict):
             self.project_a.sync(self.project_b)
@@ -612,7 +612,7 @@ class ProjectSyncTest():
             self._init_job(self.project_a.open_job({'a': i}))
             self._init_job(self.project_b.open_job({'a': i}))
 
-    def test_with_conflict(self,setUp):
+    def test_with_conflict(self):
         self._setup_jobs()
         assert len(self.project_a) == len(self.project_b)
         job_a0 = self.project_a.open_job({'a': 0})
@@ -621,7 +621,7 @@ class ProjectSyncTest():
         with pytest.raises(FileSyncConflict):
             self.project_a.sync(self.project_b)
 
-    def test_with_conflict_never(self,setUp):
+    def test_with_conflict_never(self):
         self._setup_jobs()
         job_a0 = self.project_a.open_job({'a': 0})
         with open(job_a0.fn('text.txt'), 'w') as file:
@@ -630,7 +630,7 @@ class ProjectSyncTest():
         with open(job_a0.fn('text.txt')) as file:
             assert file.read() == 'otherdata'
 
-    def test_selection(self,setUp):
+    def test_selection(self):
         self._setup_jobs()
         assert len(self.project_a) == len(self.project_b)
         job_a0 = self.project_a.open_job({'a': 0})

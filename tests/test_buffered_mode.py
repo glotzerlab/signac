@@ -14,7 +14,7 @@ from signac.errors import Error
 from signac.errors import BufferException
 from signac.errors import BufferedFileError
 
-from test_project import TestBaseProject
+from test_project import TestProjectBase
 import pytest
 
 
@@ -39,9 +39,9 @@ with TemporaryDirectory() as tmp_dir:
 
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
-class TestBufferedMode(TestBaseProject):
+class TestBufferedMode(TestProjectBase):
 
-    def test_enter_exit_buffered_mode(self,setUp):
+    def test_enter_exit_buffered_mode(self):
         assert not signac.is_buffered()
         with signac.buffered():
             assert signac.is_buffered()
@@ -55,7 +55,7 @@ class TestBufferedMode(TestBaseProject):
             assert signac.is_buffered()
         assert not signac.is_buffered()
 
-    def test_basic_and_nested(self,setUp):
+    def test_basic_and_nested(self):
         job = self.project.open_job(dict(a=0))
         job.init()
         assert 'a' not in job.doc
@@ -76,7 +76,7 @@ class TestBufferedMode(TestBaseProject):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
-    def test_buffered_mode_force_write(self,setUp):
+    def test_buffered_mode_force_write(self):
         with signac.buffered(force_write=False):
             with signac.buffered(force_write=False):
                 pass
@@ -92,7 +92,7 @@ class TestBufferedMode(TestBaseProject):
                     pass
         assert not signac.is_buffered()
 
-    def test_buffered_mode_force_write_with_file_modification(self,setUp):
+    def test_buffered_mode_force_write_with_file_modification(self):
         job = self.project.open_job(dict(a=0))
         job.init()
         job.doc.a = True
@@ -119,7 +119,7 @@ class TestBufferedMode(TestBaseProject):
         assert job.doc.a == (not x)
 
     @pytest.mark.skipif(not ABLE_TO_PREVENT_WRITE, reason='unable to trigger permission error')
-    def test_force_write_mode_with_permission_error(self,setUp):
+    def test_force_write_mode_with_permission_error(self):
         job = self.project.open_job(dict(a=0))
         job.init()
         job.doc.a = True
@@ -140,7 +140,7 @@ class TestBufferedMode(TestBaseProject):
             os.chmod(path, mode)
         assert job.doc.a == x
 
-    def test_buffered_mode_change_buffer_size(self,setUp):
+    def test_buffered_mode_change_buffer_size(self):
         assert not signac.is_buffered()
         with signac.buffered(buffer_size=12):
             assert signac.buffered()
@@ -167,7 +167,7 @@ class TestBufferedMode(TestBaseProject):
                 with signac.buffered(buffer_size=14):
                     pass
 
-    def test_integration(self,setUp):
+    def test_integration(self):
 
         def routine():
             for i in range(1, 4):
@@ -242,7 +242,7 @@ class TestBufferedMode(TestBaseProject):
                     sleep(1.0)
                     with open(job.doc._filename, 'wb') as file:
                         file.write(json.dumps({'a': not x}).encode())
-            assert job.doc._filename in cm.exception.files
+            assert job.doc._filename in cm.value
 
             break    # only test for one job
 

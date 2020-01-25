@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
-from test_project import TestBaseProject
+from test_project import TestProjectBase
 try:
     import pandas    # noqa
     PANDAS = True
@@ -11,9 +11,9 @@ except ImportError:
 
 
 @pytest.mark.skipif(not PANDAS,reason= 'test requires the pandas package')
-class TestPandasIntegration(TestBaseProject):
+class TestPandasIntegration(TestProjectBase):
 
-    def test_to_dataframe(self,setUp):
+    def test_to_dataframe(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
             job.doc.b = float(i)
@@ -22,7 +22,7 @@ class TestPandasIntegration(TestBaseProject):
         assert 'sp.a' in df.columns
         assert 'doc.b' in df.columns
 
-    def test_jobs_iterator_to_dataframe(self,setUp):
+    def test_jobs_iterator_to_dataframe(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
             job.doc.b = float(i)
