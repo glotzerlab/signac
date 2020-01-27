@@ -159,6 +159,16 @@ class Project(object):
         # Prepare project h5-stores
         self._stores = H5StoreManager(self._rd)
 
+        # Prepare Workspace Directory
+        if not os.path.isdir(self._wd):
+            try:
+                _mkdir_p(self._wd)
+            except OSError:
+                logger.error(
+                    "Error occurred while trying to create "
+                    "workspace directory for project {}.".format(self.id))
+                raise
+
         # Internal caches
         self._index_cache = dict()
         self._sp_cache = dict()
