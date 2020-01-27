@@ -2044,7 +2044,7 @@ class TestProjectSchema(TestProjectBase):
         with pytest.raises(IncompatibleSchemaVersion):
             signac.init_project(name=str(self.project), root=self.project.root_directory())
 
-    def test_project_schema_version_mration(self):
+    def test_project_schema_version_miration(self):
         from signac.contrib.migration import apply_migrations
         apply_migrations(self.project)
         self.project._config['schema_version'] = '0'
