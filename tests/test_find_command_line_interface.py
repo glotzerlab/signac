@@ -51,12 +51,12 @@ VALUES = {
 }
 
 ARITHMETIC_EXPRESSIONS = [
-   {'$eq': 0},
-   {'$ne': 0},
-   {'$lt': 0},
-   {'$gt': 0},
-   {'$lte': 0},
-   {'$gte': 0},
+    {'$eq': 0},
+    {'$ne': 0},
+    {'$lt': 0},
+    {'$gt': 0},
+    {'$lte': 0},
+    {'$gte': 0},
 ]
 
 
@@ -114,4 +114,3 @@ class TestFindCommandLineInterface():
         with redirect_stderr():
             with pytest.raises(JSONDecodeError):
                 parse_filter_arg(['{"x": True}'])
-

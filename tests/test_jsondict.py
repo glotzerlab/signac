@@ -11,7 +11,6 @@ from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
 
-
 FN_DICT = 'jsondict.json'
 
 
@@ -19,15 +18,17 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class TestBaseJSONDict():
+class TestJSONDictBase():
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
         request.addfinalizer(self._tmp_dir.cleanup)
+        self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
+        
 
-class TestJSONDict(TestBaseJSONDict):
+
+class TestJSONDict(TestJSONDictBase):
 
     def get_json_dict(self):
         return JSONDict(filename=self._fn_dict)
@@ -37,7 +38,6 @@ class TestJSONDict(TestBaseJSONDict):
 
     def test_init(self):
         self.get_json_dict()
-
 
     def test_set_get(self):
         jsd = self.get_json_dict()
@@ -64,7 +64,7 @@ class TestJSONDict(TestBaseJSONDict):
         child1 = jsd['a']
         child2 = jsd['a']
         assert child1 == child2
-        assert type(child1) == type(child2)
+        assert isinstance(child1, type(child2))
         assert child1._parent == child2._parent
         assert id(child1._parent) == id(child2._parent)
         assert id(child1) == id(child2)
@@ -268,4 +268,3 @@ class TestJSONDictNestedData(TestJSONDict):
 class TestJSONDictNestedDataWriteConcern(TestJSONDictNestedData, TestJSONDictWriteConcern):
 
     pass
-

@@ -16,7 +16,7 @@ else:
     import signac.common.host
 
 
-@pytest.mark.skipif(SKIP_REASON is not None,reason= SKIP_REASON)
+@pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
 class TestDB():
 
     def get_test_db(self):
@@ -51,4 +51,3 @@ class TestDB():
         c.client
         c.authenticate()
         c.logout()
-

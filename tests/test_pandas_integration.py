@@ -10,7 +10,7 @@ except ImportError:
     PANDAS = False
 
 
-@pytest.mark.skipif(not PANDAS,reason= 'test requires the pandas package')
+@pytest.mark.skipif(not PANDAS, reason='test requires the pandas package')
 class TestPandasIntegration(TestProjectBase):
 
     def test_to_dataframe(self):
@@ -35,4 +35,3 @@ class TestPandasIntegration(TestProjectBase):
         assert len(df) == len(jobs)
         assert 'sp.a' in df.columns
         assert 'doc.b' in df.columns
-

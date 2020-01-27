@@ -43,5 +43,3 @@ class TestVersionNumbering():
     def test_illegal_prelease_tag(self):
         with pytest.raises(ValueError):
             Version(prerelease='final1')
-
-

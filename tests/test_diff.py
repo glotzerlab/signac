@@ -11,9 +11,9 @@ class TestDiffBase():
     project_class = signac.Project
 
     @pytest.fixture(autouse=True)
-    def setUp(self):
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        # self.addCleanup(self._tmp_dir.cleanup)
+        request.addfinalizer(self._tmp_dir.cleanup)
         self.project = self.project_class.init_project(
             name='diff_test_project',
             root=self._tmp_dir.name)
@@ -49,4 +49,3 @@ class TestDiff(TestDiffBase):
         expected = {str(job1.id): {}}
         result = signac.diff_jobs(job1, job1)
         assert expected == result, '{} is not {}'.format(result, expected)
-

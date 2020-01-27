@@ -952,7 +952,7 @@ class TestJobDocument(TestJobBase):
         assert '{job.document.a.b}'.format(job=job) == str(job.doc.a.b)
         assert '{job.document[a][b]}'.format(job=job) == str(job.doc.a.b)
 
-    @pytest.mark.skipif(not H5PY,reason= 'test requires the h5py package')
+    @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
     def test_reset_statepoint_job(self):
         key = 'move_job'
         d = testdata()
@@ -980,7 +980,7 @@ class TestJobDocument(TestJobBase):
         with pytest.raises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
-    @pytest.mark.skipif(not H5PY,reason= 'test requires the h5py package')
+    @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
     def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
@@ -1533,8 +1533,8 @@ class TestJobOpenData(TestJobBase):
         assert job.id == _id
 
 
-@pytest.mark.skipif(not H5PY,reason= 'test requires the h5py package')
-class TestJobClosedDat(TestJobOpenData):
+@pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
+class TestJobClosedData(TestJobOpenData):
 
     @staticmethod
     @contextmanager
@@ -1917,4 +1917,3 @@ class TestJobClosedCustomData(TestJobOpenCustomData):
     @contextmanager
     def open_data(job):
         yield
-

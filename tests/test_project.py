@@ -33,7 +33,6 @@ from signac.common.config import get_config
 from test_job import TestJobBase
 
 
-
 try:
     import pandas  # noqa
 except ImportError:
@@ -104,7 +103,8 @@ class TestProject(TestProjectBase):
         assert os.path.exists(self.project.workspace())
 
     def test_fn(self):
-        assert self.project.fn('test/abc') == os.path.join(self.project.root_directory(), 'test/abc')
+        assert self.project.fn(
+            'test/abc') == os.path.join(self.project.root_directory(), 'test/abc')
 
     def test_isfile(self):
         assert not self.project.isfile('test')
@@ -212,9 +212,10 @@ class TestProject(TestProjectBase):
 
         rel_path = norm_path(os.path.join('path', 'to', 'workspace'))
         self.project.config['workspace_dir'] = rel_path
-        assert self.project.workspace() == norm_path(os.path.join(self.project.root_directory(), self.project.workspace()))
+        assert self.project.workspace() == norm_path(os.path.join(
+            self.project.root_directory(), self.project.workspace()))
 
-    def test_no_workspace_warn_on_find(self,caplog):
+    def test_no_workspace_warn_on_find(self, caplog):
         if os.path.exists(self.project.workspace()):
             os.rmdir(self.project.workspace())
         with caplog.at_level(logging.INFO):
@@ -232,7 +233,7 @@ class TestProject(TestProjectBase):
         self.project.config['workspace_dir'] = 'workspace-link'
         with pytest.raises(WorkspaceError):
             list(self.project.find_jobs())
-            
+
     def test_workspace_read_only_path(self):
         # Create file where workspace would be, thus preventing the creation
         # of the workspace directory.
@@ -941,8 +942,8 @@ class TestProjectExportImport(TestProjectBase):
                 for k in range(2):
                     for l in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'a',
-                                                                   str(i), 'b', str(j),
-                                                                   'c_%d_d_%d' % (k, l)))
+                                                          str(i), 'b', str(j),
+                                                          'c_%d_d_%d' % (k, l)))
         assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_tree_tree(self):
@@ -968,8 +969,8 @@ class TestProjectExportImport(TestProjectBase):
                 for k in range(2):
                     for l in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'c',
-                                                                   str(k), 'b', str(j), 'd',
-                                                                   str(l), 'a', str(i)))
+                                                          str(k), 'b', str(j), 'd',
+                                                          str(l), 'a', str(i)))
         assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_flat_flat(self):
@@ -1100,8 +1101,8 @@ class TestProjectExportImport(TestProjectBase):
         """Test the behavior of tarfile export when the path is >100 chars."""
         target = os.path.join(self._tmp_dir.name, 'data.tar.gz')
         val_length = 100
-        self.project.open_job(dict(a='1'*val_length)).init()
-        self.project.open_job(dict(a='2'*val_length)).init()
+        self.project.open_job(dict(a='1' * val_length)).init()
+        self.project.open_job(dict(a='2' * val_length)).init()
         self.project.export_to(target=target)
         # Jobs are always copied, not moved, when writing to a tarfile, so we
         # must remove them manually to ensure that they're regenerated.
@@ -1202,7 +1203,7 @@ class TestProjectExportImport(TestProjectBase):
         os.replace(self.project.workspace(), self.project.workspace() + '~')
         assert len(self.project) == 0
         assert len(self.project.import_from(prefix_data,
-                                                      sync=dict(selection=selection))) == 10
+                                            sync=dict(selection=selection))) == 10
         assert len(self.project) == 1
         assert len(self.project.find_jobs(dict(a=0))) == 1
         assert list(self.project.find_job_ids())[0] in ids_before_export
@@ -1557,7 +1558,7 @@ class TestLinkedViewProject(TestProjectBase):
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(
                         sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job'))
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(10)
@@ -1600,11 +1601,11 @@ class TestLinkedViewProject(TestProjectBase):
                     for d in d_vals:
                         sp = {'a': a, 'b': b, 'c': c, 'd': d}
                         assert os.path.isdir(os.path.join(view_prefix, 'a_%s' %
-                                                                   str(sp['a']), 'c', str(sp['c']),
-                                                                   'd', str(sp['d']), 'b',
-                                                                   str(sp['b']), 'job'))
+                                                          str(sp['a']), 'c', str(sp['c']),
+                                                          'd', str(sp['d']), 'b',
+                                                          str(sp['b']), 'job'))
 
-    @pytest.mark.skipif(WINDOWS,reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1624,10 +1625,10 @@ class TestLinkedViewProject(TestProjectBase):
                 for c in c_vals:
                     sp = {'a': a, 'd': {'b': b, 'c': c}}
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                               'd.c', str(sp['d']['c']), 'd.b',
-                                                               str(sp['d']['b']), 'job'))
+                                                      'd.c', str(sp['d']['c']), 'd.b',
+                                                      str(sp['d']['b']), 'job'))
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_nested_provide_partial_path(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(2)
@@ -1647,10 +1648,10 @@ class TestLinkedViewProject(TestProjectBase):
                 for c in c_vals:
                     sp = {'a': a, 'd': {'b': b, 'c': c}}
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                               'd.c', str(sp['d']['c']), 'd.b',
-                                                               str(sp['d']['b']), 'job'))
+                                                      'd.c', str(sp['d']['c']), 'd.b',
+                                                      str(sp['d']['b']), 'job'))
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1670,11 +1671,11 @@ class TestLinkedViewProject(TestProjectBase):
             for b in b_vals:
                 sp = {'a': a, 'b': b}
                 assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                           'b', str(sp['b']), 'job'))
+                                                  'b', str(sp['b']), 'job'))
             for c in c_vals:
                 sp = {'a': a, 'c': c}
                 assert os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
-                                                           str(sp['a']), 'job'))
+                                                  str(sp['a']), 'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_disjoint_schema_nested(self):
@@ -1695,13 +1696,13 @@ class TestLinkedViewProject(TestProjectBase):
             for b in b_vals:
                 sp = {'a': a, 'd': {'b': b}}
                 assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                           'd.b', str(sp['d']['b']), 'job'))
+                                                  'd.b', str(sp['d']['b']), 'job'))
             for c in c_vals:
                 sp = {'a': a, 'd': {'c': c}}
                 assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']), 'd.c',
-                                                           sp['d']['c'], 'job'))
+                                                  sp['d']['c'], 'job'))
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_fizz_schema_flat(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1723,14 +1724,14 @@ class TestLinkedViewProject(TestProjectBase):
                     if a % 3 == 0:
                         sp = {'a': a, 'b': b}
                         assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                                   'b', str(sp['b']), 'job'))
+                                                          'b', str(sp['b']), 'job'))
                     else:
                         sp = {'a': a, 'b': b, 'c': c}
                         assert os.path.isdir(os.path.join(view_prefix, 'c', sp['c'], 'a',
-                                                                   str(sp['a']), 'b', str(sp['b']),
-                                                                   'job'))
+                                                          str(sp['a']), 'b', str(sp['b']),
+                                                          'job'))
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested(self):
         view_prefix = os.path.join(self._tmp_pr, 'view')
         a_vals = range(5)
@@ -1749,11 +1750,11 @@ class TestLinkedViewProject(TestProjectBase):
                 if a % 3 == 0:
                     sp = {'a': a, 'b': {'c': b}}
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                               'b.c', str(sp['b']['c']), 'job'))
+                                                      'b.c', str(sp['b']['c']), 'job'))
                 else:
                     sp = {'a': a, 'b': b}
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(sp['a']),
-                                                               'b', str(sp['b']), 'job'))
+                                                      'b', str(sp['b']), 'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_nested_partial_homogenous_path_provide(self):
@@ -1776,13 +1777,13 @@ class TestLinkedViewProject(TestProjectBase):
                 if a % 3 == 0:
                     sp = {'a': a, 'b': {'c': b}, 'd': d}
                     assert os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
-                                                               str(sp['a']), 'b.c',
-                                                               str(sp['b']['c']), 'job'))
+                                                      str(sp['a']), 'b.c',
+                                                      str(sp['b']['c']), 'job'))
                 else:
                     sp = {'a': a, 'b': b, 'd': d}
                     assert os.path.isdir(os.path.join(view_prefix, 'd', sp['d'], 'a',
-                                                               str(sp['a']), 'b', str(sp['b']),
-                                                               'job'))
+                                                      str(sp['a']), 'b', str(sp['b']),
+                                                      'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_heterogeneous_schema_problematic(self):
@@ -1792,12 +1793,12 @@ class TestLinkedViewProject(TestProjectBase):
         with pytest.raises(RuntimeError):
             self.project.create_linked_view(view_prefix)
 
-    @pytest.mark.skipif(WINDOWS, reason= 'Linked views unsupported on Windows.')
+    @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_with_slash_raises_error(self):
         bad_chars = [os.sep, " ", "*"]
         statepoints = [{
             'a{}b'.format(i): 0, 'b': 'bad{}val'.format(i)
-            } for i in bad_chars]
+        } for i in bad_chars]
         view_prefix = os.path.join(self._tmp_pr, 'view')
         for sp in statepoints:
             self.project.open_job(sp).init()
@@ -1915,7 +1916,9 @@ class TestProjectInit():
         def check_root(root=None):
             if root is None:
                 root = os.getcwd()
-            assert os.path.realpath(signac.get_project(root=root).root_directory()) == os.path.realpath(root)
+            assert os.path.realpath(
+                signac.get_project(
+                    root=root).root_directory()) == os.path.realpath(root)
         root = self._tmp_dir.name
         root_a = os.path.join(root, 'project_a')
         root_b = os.path.join(root_a, 'project_b')
@@ -2034,7 +2037,8 @@ class TestProjectSchema(TestProjectBase):
 
     def test_project_schema_versions(self):
         impossibly_high_schema_version = '9999'
-        assert version.parse(self.project.config['schema_version']) < version.parse(impossibly_high_schema_version)
+        assert version.parse(self.project.config['schema_version']) < version.parse(
+            impossibly_high_schema_version)
         config = get_config(self.project.fn('signac.rc'))
         config['schema_version'] = impossibly_high_schema_version
         config.write()
@@ -2078,13 +2082,13 @@ class TestProjectPickling(TestProjectBase):
 
     def test_pickle_project_with_jobs(self):
         for i in range(3):
-            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i + 3)))).init()
         blob = pickle.dumps(self.project)
         assert pickle.loads(blob) == self.project
 
     def test_pickle_jobs_directly(self):
         for i in range(3):
-            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i+3)))).init()
+            self.project.open_job(dict(a=i, b=dict(c=i), d=list(range(i, i + 3)))).init()
         for job in self.project:
             assert pickle.loads(pickle.dumps(job)) == job
 
@@ -2101,4 +2105,3 @@ class TestTestingProjectInitialization(TestProjectBase):
                 assert len(tmp_project) == len(jobs)
                 # check that call does not fail:
                 tmp_project.detect_schema()
-

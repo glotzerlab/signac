@@ -12,7 +12,7 @@ import pytest
 
 
 # Skip linked view tests on Windows
-WINDOWS = (sys.platform == 'win32') 
+WINDOWS = (sys.platform == 'win32')
 
 
 class DummyFile(object):
@@ -47,9 +47,9 @@ class TestBasicShell():
             pythonpath = [os.getcwd()] + pythonpath.split(':')
         os.environ['PYTHONPATH'] = ':'.join(pythonpath)
         self.tmpdir = TemporaryDirectory(prefix='signac_')
+        request.addfinalizer(self.tmpdir.cleanup)
         self.cwd = os.getcwd()
         os.chdir(self.tmpdir.name)
-        request.addfinalizer(self.tmpdir.cleanup)
         request.addfinalizer(self.return_to_cwd)
 
     def return_to_cwd(self):
@@ -84,19 +84,20 @@ class TestBasicShell():
     def test_project_workspace(self):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
-        assert os.path.realpath(
-                self.call('python -m signac project --workspace'.split()).strip()) == os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
+        assert os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()
+                                ) == os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
 
     def test_job_with_argument(self):
         self.call('python -m signac init my_project'.split())
-        assert self.call(['python', '-m', 'signac', 'job', '{"a": 0}']).strip() == '9bfd29df07674bc4aa960cf661b5acd2'
+        assert self.call(['python', '-m', 'signac', 'job',
+                          '{"a": 0}']).strip() == '9bfd29df07674bc4aa960cf661b5acd2'
 
     def test_job_with_argument_workspace(self):
         self.call('python -m signac init my_project'.split())
         wd_path = os.path.join(self.tmpdir.name, 'workspace',
                                '9bfd29df07674bc4aa960cf661b5acd2')
-        assert os.path.realpath(
-                self.call(['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()) == os.path.realpath(wd_path)
+        assert os.path.realpath(self.call(
+            ['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()) == os.path.realpath(wd_path)
 
     def test_job_with_argument_create_workspace(self):
         self.call('python -m signac init my_project'.split())
@@ -135,7 +136,7 @@ class TestBasicShell():
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
-        print("window" ,WINDOWS)
+        print("window", WINDOWS)
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(1)]
@@ -145,7 +146,8 @@ class TestBasicShell():
         self.call('python -m signac view'.split())
         for sp in sps:
             assert os.path.isdir('view/job')
-            assert os.path.realpath('view/job') == os.path.realpath(project.open_job(sp).workspace())
+            assert os.path.realpath(
+                'view/job') == os.path.realpath(project.open_job(sp).workspace())
 
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view(self):
@@ -159,7 +161,8 @@ class TestBasicShell():
         for sp in sps:
             assert os.path.isdir('view/a/{}'.format(sp['a']))
             assert os.path.isdir('view/a/{}/job'.format(sp['a']))
-            assert os.path.realpath('view/a/{}/job'.format(sp['a'])) == os.path.realpath(project.open_job(sp).workspace())
+            assert os.path.realpath(
+                'view/a/{}/job'.format(sp['a'])) == os.path.realpath(project.open_job(sp).workspace())
 
     def test_find(self):
         self.call('python -m signac init my_project'.split())
@@ -170,7 +173,8 @@ class TestBasicShell():
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
         assert set(job_ids) == set(project.find_job_ids())
-        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == list(project.find_job_ids({'a': 0}))[0]
+        assert self.call('python -m signac find'.split() +
+                         ['{"a": 0}']).strip() == list(project.find_job_ids({'a': 0}))[0]
 
         # Test the doc_filter
         for job in project.find_jobs():
@@ -178,7 +182,9 @@ class TestBasicShell():
 
         for i in range(3):
             assert self.call('python -m signac find --doc-filter'.split() +
-                          ['{"a": ' + str(i) + '}']).strip() == list(project.find_job_ids(doc_filter={'a': i}))[0]
+                             ['{"a": ' +
+                              str(i) +
+                              '}']).strip() == list(project.find_job_ids(doc_filter={'a': i}))[0]
 
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
@@ -240,6 +246,3 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
         assert out.strip() == '>>> {} {} 1'.format(project, job)
-
-
-

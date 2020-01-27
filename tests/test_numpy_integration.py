@@ -11,7 +11,7 @@ except ImportError:
     NUMPY = False
 
 
-@pytest.mark.skipif(not NUMPY,reason= 'test requires the numpy package')
+@pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
 class TestNumpyIntegration(TestProjectBase):
 
     def test_store_number_in_sp_and_doc(self):
@@ -41,4 +41,3 @@ class TestNumpyIntegration(TestProjectBase):
             assert i == job.sp.a
             assert ((numpy.array([i, i, i]) == job.doc.array).all())
             assert [i] * 3 == job.doc.array
-

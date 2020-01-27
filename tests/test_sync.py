@@ -248,9 +248,10 @@ class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self.doc = JSONDict(
             filename=os.path.join(self._tmp_dir.name, 'doc.json'))
-        request.addfinalizer( self._tmp_dir.cleanup)
+        
 
 
 class TestJobSync(TestJobBase):
@@ -540,6 +541,7 @@ class ProjectSyncTest():
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr_a = os.path.join(self._tmp_dir.name, 'pr_a')
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, 'pr_b')
         os.mkdir(self._tmp_pr_a)
@@ -548,7 +550,7 @@ class ProjectSyncTest():
             name='test-project-a', root=self._tmp_pr_a)
         self.project_b = signac.Project.init_project(
             name='test-project-b', root=self._tmp_pr_b)
-        request.addfinalizer(self._tmp_dir.cleanup)
+        
 
     def _init_job(self, job, data='data'):
         with job:
@@ -657,4 +659,3 @@ class ProjectSyncTest():
         self.project_a.sync(self.project_b, selection=self.project_b.find_jobs(f))
         self.project_a.sync(self.project_b, selection=self.project_a.find_job_ids(f))
         self.project_a.sync(self.project_b, selection=self.project_b.find_job_ids(f))
-

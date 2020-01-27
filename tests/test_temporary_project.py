@@ -25,5 +25,3 @@ class TestTemporaryProject():
                     tmp_project.open_job(dict(a=i)).init()
                 assert len(tmp_project) == 10
             assert not os.path.isdir(tmp_project.root_directory())
-
-

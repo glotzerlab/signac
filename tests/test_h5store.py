@@ -53,14 +53,15 @@ WINDOWS = (sys.platform == 'win32')
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 @pytest.mark.skipif(PYPY, reason='h5py not reliable on PyPy platform')
-class TestBaseH5Store():
+class TestH5SttoreBase():
 
     @pytest.fixture(autouse=True)
     def setUp_base_h5Store(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
         self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
-        request.addfinalizer(self._tmp_dir.cleanup)
+        
 
     def get_h5store(self, **kwargs):
         return H5Store(filename=self._fn_store, **kwargs)
@@ -82,7 +83,7 @@ class TestBaseH5Store():
         if size is None:
             size = 1024
         return ''.join([random.choice(string.ascii_lowercase) for i in range(size)])
-    
+
     def assertEqual(self, a, b):
         if hasattr(a, 'shape'):
             if not NUMPY:
@@ -92,7 +93,7 @@ class TestBaseH5Store():
             assert a == b
 
 
-class TestH5StoreOpen(TestBaseH5Store):
+class TestH5StoreOpen(TestH5SttoreBase):
 
     def test_open(self):
         h5s = self.get_h5store()
@@ -105,13 +106,13 @@ class TestH5StoreOpen(TestBaseH5Store):
 
         with self.open_h5store(mode='r') as h5s:
             assert 'foo' in h5s
-            self.assertEqual(h5s['foo'],'bar')
+            self.assertEqual(h5s['foo'], 'bar')
 
     def test_open_write_only(self):
         with self.open_h5store(mode='w') as h5s:
             h5s['foo'] = 'bar'
             assert 'foo' in h5s
-            self.assertEqual(h5s['foo'],'bar')
+            self.assertEqual(h5s['foo'], 'bar')
 
     def test_open_write_and_read_only(self):
         with self.open_h5store(mode='w') as h5s_w:
@@ -121,12 +122,12 @@ class TestH5StoreOpen(TestBaseH5Store):
 
                 h5s_w['foo'] = 'bar'
                 assert 'foo' in h5s_r
-                self.assertEqual(h5s_r['foo'],'bar')
+                self.assertEqual(h5s_r['foo'], 'bar')
                 assert 'foo' in h5s_w
-                self.assertEqual(h5s_r['foo'],'bar')
+                self.assertEqual(h5s_r['foo'], 'bar')
 
 
-class TestH5Store(TestBaseH5Store):
+class TestH5Store(TestH5SttoreBase):
 
     valid_types = {
         'int': 123,
@@ -391,7 +392,8 @@ class TestH5Store(TestBaseH5Store):
                         other_h5s[k] = h5s[k]
                     except (OSError, RuntimeError) as error:
                         # Type of error may depend on platform or software versions
-                        assert str(error) == "Unable to create link (interfile hard links are not allowed)"
+                        assert str(
+                            error) == "Unable to create link (interfile hard links are not allowed)"
                         assert isinstance(v, (array, numpy.ndarray))
                         other_h5s[k] = h5s[k][()]
                     self.assertEqual(h5s[k], v)
@@ -608,7 +610,7 @@ class TestH5StorePandasData(TestH5Store):
 
 
 @pytest.mark.skipif(not PANDAS_AND_TABLES, reason='requires pandas and pytables')
-@pytest.mark.skipif(not NUMPY,reason= 'requires numpy package')
+@pytest.mark.skipif(not NUMPY, reason='requires numpy package')
 class TestH5StoreNestedPandasData(TestH5StorePandasData):
 
     def get_testdata(self, size=None):
@@ -618,7 +620,7 @@ class TestH5StoreNestedPandasData(TestH5StorePandasData):
             numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]))
 
 
-class TestH5StoreMultiThreading(TestBaseH5Store):
+class TestH5StoreMultiThreading(TestH5SttoreBase):
 
     def test_multithreading(self):
 
@@ -652,7 +654,7 @@ def _read_from_h5store(filename, **kwargs):
         list(h5s)
 
 
-class TestH5StoreMultiProcessing(TestBaseH5Store):
+class TestH5StoreMultiProcessing(TestH5SttoreBase):
 
     def test_single_writer_multiple_reader_same_process(self):
         with self.open_h5store() as writer:
@@ -660,9 +662,9 @@ class TestH5StoreMultiProcessing(TestBaseH5Store):
                 with self.open_h5store(mode='r') as reader1:
                     with self.open_h5store(mode='r') as reader2:
                         writer['test'] = True
-                        assert writer['test'] == True
-                        assert reader1['test'] == True
-                        assert reader2['test'] == True
+                        assert writer['test']
+                        assert reader1['test']
+                        assert reader2['test']
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
     def test_single_writer_multiple_reader_same_instance(self):
@@ -706,7 +708,7 @@ class TestH5StoreMultiProcessing(TestBaseH5Store):
             with pytest.raises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
-    @pytest.mark.skipif(python_implementation() != 'CPython',reason= 'SWMR mode not available.')
+    @pytest.mark.skipif(python_implementation() != 'CPython', reason='SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
         read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
@@ -728,13 +730,13 @@ class TestH5StoreMultiProcessing(TestBaseH5Store):
             raise
 
 
-@pytest.mark.skipif(not NUMPY,reason= 'requires numpy package')
-@pytest.mark.skipif(python_implementation() != 'CPython',reason= 'Optimized for CPython.')
-class TestH5StorePerformance(TestBaseH5Store):
+@pytest.mark.skipif(not NUMPY, reason='requires numpy package')
+@pytest.mark.skipif(python_implementation() != 'CPython', reason='Optimized for CPython.')
+class TestH5StorePerformance(TestH5SttoreBase):
     max_slowdown_vs_native_factor = 1.25
 
     @pytest.fixture
-    def setUp(self,setUp_base_h5Store):
+    def setUp(self, setUp_base_h5Store):
         value = self.get_testdata()
         times = numpy.zeros(200)
         for i in range(len(times)):
@@ -742,8 +744,6 @@ class TestH5StorePerformance(TestBaseH5Store):
             with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_baseline']
-                # print(value)
-                # print (value['a'])
                 h5file.create_dataset('_baseline', data=value, shape=None)
             times[i] = time() - start
         self.baseline_time = times
@@ -754,15 +754,16 @@ class TestH5StorePerformance(TestBaseH5Store):
         def format_row(text, reducer):
             return "{:<10}\t{:.2e}\t{:.2e}\t{:.3}\n".format(
                 text, reducer(times), reducer(self.baseline_time),
-                reducer(times)/reducer(self.baseline_time))
+                reducer(times) / reducer(self.baseline_time))
         msg += format_row('mean', numpy.mean)
         msg += format_row('median', numpy.median)
         msg += format_row('25 percentile', partial(numpy.percentile, q=25))
         msg += format_row('75 percentile', partial(numpy.percentile, q=75))
-        assert numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75) < self.max_slowdown_vs_native_factor, msg
+        assert numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75) < \
+            self.max_slowdown_vs_native_factor, msg
 
-    @pytest.mark.skipif(WINDOWS,reason= 'This test fails for an unknown reason on Windows.')
-    def test_speed_get(self,setUp):
+    @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
+    def test_speed_get(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_get'
         value = self.get_testdata()
@@ -775,7 +776,7 @@ class TestH5StorePerformance(TestBaseH5Store):
         self.assertSpeed(times)
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
-    def test_speed_set(self,setUp):
+    def test_speed_set(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_set'
         value = self.get_testdata()
@@ -794,7 +795,7 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
         return dict(a=super(TestH5StorePerformanceNestedData, self).get_testdata(size))
 
     @pytest.fixture
-    def setUp(self,setUp_base_h5Store):
+    def setUp(self, setUp_base_h5Store):
         value = TestH5StorePerformance.get_testdata(self)
         times = numpy.zeros(200)
         for i in range(len(times)):
@@ -806,4 +807,3 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
                     '_baseline', data=value, shape=None)
             times[i] = time() - start
         self.baseline_time = times
-

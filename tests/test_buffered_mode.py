@@ -247,4 +247,3 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc._filename in cm.value.files
 
             break    # only test for one job
-

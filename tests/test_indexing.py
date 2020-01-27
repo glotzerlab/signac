@@ -421,7 +421,7 @@ class TestIndexingBase():
         assert 2 == len(list(crawler.crawl()))
 
 
-@pytest.mark.skipif(SKIP_REASON is not None,reason= SKIP_REASON)
+@pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
 class TestIndexingPyMongo(TestIndexingBase):
 
     def get_index_collection(self):
@@ -436,4 +436,3 @@ class TestIndexingBaseGetCrawlers(TestIndexingBase):
 
 class TestIndexingBaseLegacy(TestIndexingBase):
     access_module = SIGNAC_ACCESS_MODULE_LEGACY
-

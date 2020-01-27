@@ -181,7 +181,7 @@ class TestCollection():
         docs = [dict(_id=str(i), a=i) for i in range(10)]
         self.c.update(docs)
         # Update the first ten, insert the second ten
-        new_docs = [dict(_id=str(i), a=i*2) for i in range(20)]
+        new_docs = [dict(_id=str(i), a=i * 2) for i in range(20)]
         self.c.update(new_docs)
         assert len(self.c) == len(new_docs)
         assert self.c['0'] == new_docs[0]
@@ -489,14 +489,17 @@ class TestCollection():
         # test known cases with lists and tuples
         assert self.c.find({'a': {'$near': [10]}}).count() == 1
         assert self.c.find({'a': {'$near': (10)}}).count() == 1
-        assert self.c.find({'a': {'$near': [10]}}).count() == self.c.find({'a': {'$near': (10)}}).count()
-        assert self.c.find({'a': {'$near': [10]}}).count() == self.c.find({'a': {'$near': 10}}).count()
+        assert self.c.find({'a': {'$near': [10]}}).count(
+        ) == self.c.find({'a': {'$near': (10)}}).count()
+        assert self.c.find({'a': {'$near': [10]}}).count(
+        ) == self.c.find({'a': {'$near': 10}}).count()
         assert self.c.find({'a': {'$near': [10, 0.5]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5)}}).count() == 16
         assert self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count() == 16
         # increasing abs_tol should increase # of jobs found
-        assert self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() > self.c.find({'a': {'$near': [10, 0.5]}}).count()
+        assert self.c.find({'a': {'$near': [10, 0.5, 11]}}).count(
+        ) > self.c.find({'a': {'$near': [10, 0.5]}}).count()
         assert self.c.find({'a': {'$near': [10.5, 0.005]}}).count() == 0
         assert self.c.find({'a': {'$near': (10.5, 0.005)}}).count() == 0
         # test with lists that are too long
@@ -600,11 +603,11 @@ class TestFileCollectionBadJson():
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with open(self._fn_collection, 'w') as file:
             for i in range(3):
                 file.write('{"a": 0}\n')
-        request.addfinalizer(self._tmp_dir.cleanup)
         
 
     def test_read(self):
@@ -622,12 +625,13 @@ class TestCollectionToFromJson():
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_json = os.path.join(self._tmp_dir.name, 'test.json')
         self.c = Collection.open(filename=':memory:')
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
-        request.addfinalizer(self._tmp_dir.cleanup)
+        
 
     def test_write_and_read(self):
         self.c.to_json(self._fn_json)
@@ -643,10 +647,11 @@ class TestFileCollectionReadOnly():
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with Collection.open(self._fn_collection, 'w') as c:
             c.update([dict(_id=str(i)) for i in range(10)])
-        request.addfinalizer(self._tmp_dir.cleanup)
+        
 
     def test_read(self):
         c = Collection.open(self._fn_collection, mode='r')
@@ -675,9 +680,10 @@ class TestFileCollection(TestCollection):
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_collection = os.path.join(self._tmp_dir.name, self.filename)
         self.c = Collection.open(self._fn_collection, mode=self.mode)
-        request.addfinalizer(self._tmp_dir.cleanup)
+        
         request.addfinalizer(self.c.close)
 
     def test_write_and_flush(self):
@@ -762,4 +768,3 @@ class TestZippedFileCollectionAppend(TestZippedFileCollection):
 
 class TestZippedFileCollectionAppendPlus(TestZippedFileCollectionAppend):
     mode = 'ab'
-
