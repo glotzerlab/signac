@@ -84,8 +84,8 @@ class TestBasicShell():
     def test_project_workspace(self):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
-        assert os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()
-                                ) == os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
+        assert os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()) == \
+            os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
 
     def test_job_with_argument(self):
         self.call('python -m signac init my_project'.split())
@@ -97,7 +97,8 @@ class TestBasicShell():
         wd_path = os.path.join(self.tmpdir.name, 'workspace',
                                '9bfd29df07674bc4aa960cf661b5acd2')
         assert os.path.realpath(self.call(
-            ['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()) == os.path.realpath(wd_path)
+            ['python', '-m', 'signac', 'job', '--workspace', '{"a": 0}']).strip()) == \
+            os.path.realpath(wd_path)
 
     def test_job_with_argument_create_workspace(self):
         self.call('python -m signac init my_project'.split())
@@ -146,8 +147,8 @@ class TestBasicShell():
         self.call('python -m signac view'.split())
         for sp in sps:
             assert os.path.isdir('view/job')
-            assert os.path.realpath(
-                'view/job') == os.path.realpath(project.open_job(sp).workspace())
+            assert os.path.realpath('view/job') == \
+                os.path.realpath(project.open_job(sp).workspace())
 
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view(self):
@@ -161,8 +162,8 @@ class TestBasicShell():
         for sp in sps:
             assert os.path.isdir('view/a/{}'.format(sp['a']))
             assert os.path.isdir('view/a/{}/job'.format(sp['a']))
-            assert os.path.realpath(
-                'view/a/{}/job'.format(sp['a'])) == os.path.realpath(project.open_job(sp).workspace())
+            assert os.path.realpath('view/a/{}/job'.format(sp['a'])) == \
+                os.path.realpath(project.open_job(sp).workspace())
 
     def test_find(self):
         self.call('python -m signac init my_project'.split())
@@ -173,8 +174,8 @@ class TestBasicShell():
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
         assert set(job_ids) == set(project.find_job_ids())
-        assert self.call('python -m signac find'.split() +
-                         ['{"a": 0}']).strip() == list(project.find_job_ids({'a': 0}))[0]
+        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
+            list(project.find_job_ids({'a': 0}))[0]
 
         # Test the doc_filter
         for job in project.find_jobs():
@@ -182,9 +183,8 @@ class TestBasicShell():
 
         for i in range(3):
             assert self.call('python -m signac find --doc-filter'.split() +
-                             ['{"a": ' +
-                              str(i) +
-                              '}']).strip() == list(project.find_job_ids(doc_filter={'a': i}))[0]
+                             ['{"a": ' + str(i) + '}']).strip() == \
+                list(project.find_job_ids(doc_filter={'a': i}))[0]
 
     def test_remove(self):
         self.call('python -m signac init my_project'.split())

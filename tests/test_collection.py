@@ -489,17 +489,17 @@ class TestCollection():
         # test known cases with lists and tuples
         assert self.c.find({'a': {'$near': [10]}}).count() == 1
         assert self.c.find({'a': {'$near': (10)}}).count() == 1
-        assert self.c.find({'a': {'$near': [10]}}).count(
-        ) == self.c.find({'a': {'$near': (10)}}).count()
-        assert self.c.find({'a': {'$near': [10]}}).count(
-        ) == self.c.find({'a': {'$near': 10}}).count()
+        assert self.c.find({'a': {'$near': [10]}}).count() == \
+            self.c.find({'a': {'$near': (10)}}).count()
+        assert self.c.find({'a': {'$near': [10]}}).count() == \
+            self.c.find({'a': {'$near': 10}}).count()
         assert self.c.find({'a': {'$near': [10, 0.5]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5)}}).count() == 16
         assert self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count() == 16
         # increasing abs_tol should increase # of jobs found
-        assert self.c.find({'a': {'$near': [10, 0.5, 11]}}).count(
-        ) > self.c.find({'a': {'$near': [10, 0.5]}}).count()
+        assert self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() > \
+            self.c.find({'a': {'$near': [10, 0.5]}}).count()
         assert self.c.find({'a': {'$near': [10.5, 0.005]}}).count() == 0
         assert self.c.find({'a': {'$near': (10.5, 0.005)}}).count() == 0
         # test with lists that are too long
@@ -608,7 +608,6 @@ class TestFileCollectionBadJson():
         with open(self._fn_collection, 'w') as file:
             for i in range(3):
                 file.write('{"a": 0}\n')
-        
 
     def test_read(self):
         with Collection.open(self._fn_collection, mode='r') as c:
@@ -631,7 +630,6 @@ class TestCollectionToFromJson():
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         self.c.flush()
-        
 
     def test_write_and_read(self):
         self.c.to_json(self._fn_json)
@@ -651,7 +649,6 @@ class TestFileCollectionReadOnly():
         self._fn_collection = os.path.join(self._tmp_dir.name, 'test.txt')
         with Collection.open(self._fn_collection, 'w') as c:
             c.update([dict(_id=str(i)) for i in range(10)])
-        
 
     def test_read(self):
         c = Collection.open(self._fn_collection, mode='r')
@@ -683,7 +680,6 @@ class TestFileCollection(TestCollection):
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_collection = os.path.join(self._tmp_dir.name, self.filename)
         self.c = Collection.open(self._fn_collection, mode=self.mode)
-        
         request.addfinalizer(self.c.close)
 
     def test_write_and_flush(self):

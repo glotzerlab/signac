@@ -732,7 +732,7 @@ class TestH5StoreMultiProcessing(TestH5SttoreBase):
 
 @pytest.mark.skipif(not NUMPY, reason='requires numpy package')
 @pytest.mark.skipif(python_implementation() != 'CPython', reason='Optimized for CPython.')
-class TestH5StorePerformance(TestH5SttoreBase):
+class TestH5StorePerformance(TestH5StoreBase):
     max_slowdown_vs_native_factor = 1.25
 
     @pytest.fixture

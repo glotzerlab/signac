@@ -514,10 +514,10 @@ class TestSyncedAttrDict():
         """Ensure that calling methods like items and values does not
         change the type of nested dictionaries."""
         sad = self.get_sad({'a': {'b': 1}})
-        assert isinstance(sad['a'], SAD)
+        assert type(sad['a']) is SAD
         sad.items()
-        assert isinstance(sad['a'], SAD)
+        assert type(sad['a']) is SAD
         sad.values()
-        assert isinstance(sad['a'], SAD)
+        assert type(sad['a']), SAD
         sad._as_dict()
-        assert isinstance(sad['a'], SAD)
+        assert type(sad['a']), SAD

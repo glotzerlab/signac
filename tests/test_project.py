@@ -1916,9 +1916,8 @@ class TestProjectInit():
         def check_root(root=None):
             if root is None:
                 root = os.getcwd()
-            assert os.path.realpath(
-                signac.get_project(
-                    root=root).root_directory()) == os.path.realpath(root)
+            assert os.path.realpath(signac.get_project(root=root).root_directory()) == \
+                os.path.realpath(root)
         root = self._tmp_dir.name
         root_a = os.path.join(root, 'project_a')
         root_b = os.path.join(root_a, 'project_b')
@@ -2037,16 +2036,15 @@ class TestProjectSchema(TestProjectBase):
 
     def test_project_schema_versions(self):
         impossibly_high_schema_version = '9999'
-        assert version.parse(self.project.config['schema_version']) < version.parse(
-            impossibly_high_schema_version)
+        assert version.parse(self.project.config['schema_version']) < \
+            version.parse(impossibly_high_schema_version)
         config = get_config(self.project.fn('signac.rc'))
         config['schema_version'] = impossibly_high_schema_version
         config.write()
         with pytest.raises(IncompatibleSchemaVersion):
-            signac.init_project(
-                name=str(self.project), root=self.project.root_directory())
+            signac.init_project(name=str(self.project), root=self.project.root_directory())
 
-    def test_project_schema_version_migration(self):
+    def test_project_schema_version_mration(self):
         from signac.contrib.migration import apply_migrations
         apply_migrations(self.project)
         self.project._config['schema_version'] = '0'
