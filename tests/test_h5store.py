@@ -53,7 +53,7 @@ WINDOWS = (sys.platform == 'win32')
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 @pytest.mark.skipif(PYPY, reason='h5py not reliable on PyPy platform')
-class TestH5SttoreBase():
+class TestH5StoreBase():
 
     @pytest.fixture(autouse=True)
     def setUp_base_h5Store(self, request):
@@ -93,7 +93,7 @@ class TestH5SttoreBase():
             assert a == b
 
 
-class TestH5StoreOpen(TestH5SttoreBase):
+class TestH5StoreOpen(TestH5StoreBase):
 
     def test_open(self):
         h5s = self.get_h5store()
@@ -127,7 +127,7 @@ class TestH5StoreOpen(TestH5SttoreBase):
                 self.assertEqual(h5s_r['foo'], 'bar')
 
 
-class TestH5Store(TestH5SttoreBase):
+class TestH5Store(TestH5StoreBase):
 
     valid_types = {
         'int': 123,
@@ -620,7 +620,7 @@ class TestH5StoreNestedPandasData(TestH5StorePandasData):
             numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]))
 
 
-class TestH5StoreMultiThreading(TestH5SttoreBase):
+class TestH5StoreMultiThreading(TestH5StoreBase):
 
     def test_multithreading(self):
 
@@ -654,7 +654,7 @@ def _read_from_h5store(filename, **kwargs):
         list(h5s)
 
 
-class TestH5StoreMultiProcessing(TestH5SttoreBase):
+class TestH5StoreMultiProcessing(TestH5StoreBase):
 
     def test_single_writer_multiple_reader_same_process(self):
         with self.open_h5store() as writer:
