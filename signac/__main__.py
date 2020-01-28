@@ -1042,13 +1042,20 @@ def main_shell(args):
             if READLINE:
                 if 'PyPy' not in platform.python_implementation():
                     fn_hist = project.fn('.signac_shell_history')
-                    try:
+                    write_access = os.access(fn_hist, os.W_OK)
+                    read_access  = os.access(fn_hist, os.R_OK)
+                    if not os.path.isfile (fn_hist):
+                        atexit.register(readline.write_history_file, fn_hist)
+                    elif not write_access and not read_access:
+                        print ("Warning: .signac_shell_history does not have read and write permission. The history of this shell will not be saved.")
+                    elif not write_access:
+                        print ("Warning: .signac_shell_history does not have write premission. The history of this shell will not be saved.")
+                    elif not read_access:
+                        print ("Warning: .signac_shell_history does not have read premission. The history of this shell will not be saved.")
+                    else:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
-                    except (IOError, OSError) as error:
-                        if error.errno != errno.ENOENT:
-                            raise
-                    atexit.register(readline.write_history_file, fn_hist)
+                        atexit.register(readline.write_history_file, fn_hist)
 
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
