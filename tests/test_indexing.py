@@ -1,7 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import unittest
+import pytest
 import os
 import io
 import re
@@ -24,6 +24,7 @@ else:
 
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
+
 
 
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
@@ -119,13 +120,14 @@ class TestFS(object):
             raise ValueError(mode)
 
 
-class IndexingBaseTest(unittest.TestCase):
+class TestIndexingBase():
 
     access_module = SIGNAC_ACCESS_MODULE
 
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
-        self.addCleanup(self._tmp_dir.cleanup)
+        request.addfinalizer(self._tmp_dir.cleanup)
 
     def setup_project(self):
         def fn(name):
@@ -147,12 +149,12 @@ class IndexingBaseTest(unittest.TestCase):
 
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
-        self.assertEqual(len(list(crawler.crawl())), 0)
+        assert len(list(crawler.crawl())) == 0
         doc = dict(a=0)
-        with self.assertRaises(errors.FetchError):
-            self.assertIsNone(crawler.fetch(doc))
-        self.assertEqual(doc, crawler.process(doc, None, None))
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(errors.FetchError):
+            assert crawler.fetch(doc) is None
+        assert doc == crawler.process(doc, None, None)
+        with pytest.raises(NotImplementedError):
             for doc in crawler.docs_from_file(None, None):
                 pass
 
@@ -170,12 +172,12 @@ class IndexingBaseTest(unittest.TestCase):
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
             m = regex.match(ffn)
-            self.assertIsNotNone(m)
-            self.assertTrue(os.path.isfile(ffn))
+            assert m is not None
+            assert os.path.isfile(ffn)
             with open(ffn) as file:
                 doc2 = json.load(file)
-                self.assertEqual(doc2['a'], doc['a'])
-        self.assertFalse(no_find)
+                assert doc2['a'] == doc['a']
+        assert not no_find
 
     def test_regex_file_crawler(self):
         self.setup_project()
@@ -185,7 +187,7 @@ class IndexingBaseTest(unittest.TestCase):
 
         # First test without pattern
         crawler = Crawler(root=self._tmp_dir.name)
-        self.assertEqual(len(list(crawler.crawl())), 0)
+        assert len(list(crawler.crawl())) == 0
 
         # Now with pattern(s)
         pattern = r".*a_(?P<a>\d)\.txt"
@@ -198,15 +200,15 @@ class IndexingBaseTest(unittest.TestCase):
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
             m = regex.match(ffn)
-            self.assertIsNotNone(m)
-            self.assertTrue(os.path.isfile(ffn))
+            assert m is not None
+            assert os.path.isfile(ffn)
             with open(ffn) as file:
                 doc2 = json.load(file)
-                self.assertEqual(doc2['a'], doc['a'])
-        self.assertFalse(no_find)
-        with self.assertRaises(errors.FetchError):
+                assert doc2['a'] == doc['a']
+        assert not no_find
+        with pytest.raises(errors.FetchError):
             crawler.fetch(dict())
-        with self.assertRaises(errors.FetchError):
+        with pytest.raises(errors.FetchError):
             crawler.fetch({'filename': 'shouldnotmatch'})
 
     def test_regex_file_crawler_inheritance(self):
@@ -220,55 +222,55 @@ class IndexingBaseTest(unittest.TestCase):
 
         CrawlerA.define('a', TestFormat)
         CrawlerB.define('b', TestFormat)
-        self.assertEqual(len(CrawlerA.definitions), 1)
-        self.assertEqual(len(CrawlerB.definitions), 1)
+        assert len(CrawlerA.definitions) == 1
+        assert len(CrawlerB.definitions) == 1
 
         class CrawlerC(CrawlerA):
             pass
 
-        self.assertEqual(len(CrawlerA.definitions), 1)
-        self.assertEqual(len(CrawlerC.definitions), 1)
-        self.assertEqual(len(CrawlerB.definitions), 1)
+        assert len(CrawlerA.definitions) == 1
+        assert len(CrawlerC.definitions) == 1
+        assert len(CrawlerB.definitions) == 1
         CrawlerC.define('c', TestFormat)
-        self.assertEqual(len(CrawlerA.definitions), 1)
-        self.assertEqual(len(CrawlerB.definitions), 1)
-        self.assertEqual(len(CrawlerC.definitions), 2)
+        assert len(CrawlerA.definitions) == 1
+        assert len(CrawlerB.definitions) == 1
+        assert len(CrawlerC.definitions) == 2
 
     def test_index_files(self):
         self.setup_project()
 
         # First test without pattern
         root = self._tmp_dir.name
-        self.assertEqual(len(list(signac.index_files(root))), 5)
+        assert len(list(signac.index_files(root))) == 5
 
         # Now with pattern(s)
         pattern_positive = r".*a_(?P<a>\d)\.txt"
         pattern_negative = "nomatch"
 
-        self.assertEqual(len(list(signac.index_files(root, pattern_positive))), 2)
-        self.assertEqual(len(list(signac.index_files(root, pattern_negative))), 0)
+        assert len(list(signac.index_files(root, pattern_positive))) == 2
+        assert len(list(signac.index_files(root, pattern_negative))) == 0
 
         no_find = True
         for doc in signac.index_files(root, pattern_positive):
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
-            self.assertIsNotNone(re.match(r".*a_(?P<a>\d)\.txt", ffn))
-            self.assertTrue(os.path.isfile(ffn))
+            assert re.match(r".*a_(?P<a>\d)\.txt", ffn) is not None
+            assert os.path.isfile(ffn)
             with open(ffn) as file:
                 doc2 = json.load(file)
-                self.assertEqual(doc2['a'], doc['a'])
-        self.assertFalse(no_find)
+                assert doc2['a'] == doc['a']
+        assert not no_find
 
     def test_json_crawler(self):
         self.setup_project()
         crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
         docs = list(sorted(crawler.crawl(), key=lambda d: d['a']))
-        self.assertEqual(len(docs), 2)
+        assert len(docs) == 2
         for i, doc in enumerate(docs):
-            self.assertEqual(doc['a'], i)
-            self.assertIsNone(doc['format'])
+            assert doc['a'] == i
+            assert doc['format'] is None
         ids = set(doc['_id'] for doc in docs)
-        self.assertEqual(len(ids), len(docs))
+        assert len(ids) == len(docs)
 
     def test_master_crawler(self):
         self.setup_project()
@@ -278,47 +280,47 @@ class IndexingBaseTest(unittest.TestCase):
         for doc in crawler.crawl():
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
-            self.assertTrue(os.path.isfile(ffn))
+            assert os.path.isfile(ffn)
             with open(ffn) as file:
                 doc2 = json.load(file)
-                self.assertEqual(doc2['a'], doc['a'])
+                assert doc2['a'] == doc['a']
             with signac.fetch(doc) as file:
                 pass
-        self.assertFalse(no_find)
+        assert not no_find
 
     def test_index(self):
         self.setup_project()
         root = self._tmp_dir.name
-        self.assertEqual(len(list(signac.index(root=root))), 0)
+        assert len(list(signac.index(root=root))) == 0
         index = signac.index(root=self._tmp_dir.name, tags={'test1'})
         no_find = True
         for doc in index:
             no_find = False
             ffn = os.path.join(doc['root'], doc['filename'])
-            self.assertTrue(os.path.isfile(ffn))
+            assert os.path.isfile(ffn)
             with open(ffn) as file:
                 doc2 = json.load(file)
-                self.assertEqual(doc2['a'], doc['a'])
+                assert doc2['a'] == doc['a']
             with signac.fetch(doc) as file:
                 pass
-        self.assertFalse(no_find)
+        assert not no_find
 
     def test_fetch(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             signac.fetch(None)
-        with self.assertRaises(errors.FetchError):
+        with pytest.raises(errors.FetchError):
             signac.fetch(dict())
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         docs = list(crawler.crawl())
-        self.assertEqual(len(docs), 2)
+        assert len(docs) == 2
         for doc in docs:
             with signac.fetch(doc) as file:
                 pass
         for doc, file in indexing.fetched(docs):
             doc2 = json.load(file)
-            self.assertEqual(doc['a'], doc2['a'])
+            assert doc['a'] == doc2['a']
             file.close()
 
     def test_export_one(self):
@@ -328,9 +330,9 @@ class IndexingBaseTest(unittest.TestCase):
         index = self.get_index_collection()
         for doc in crawler.crawl():
             signac.export_one(doc, index)
-        self.assertTrue(index.replace_one.called)
+        assert index.replace_one.called
         for doc in crawler.crawl():
-            self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
+            assert index.find_one({'_id': doc['_id']}) is not None
 
     def test_export(self):
         self.setup_project()
@@ -338,39 +340,39 @@ class IndexingBaseTest(unittest.TestCase):
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         signac.export(crawler.crawl(), index)
-        self.assertTrue(index.replace_one.called or index.bulk_write.called)
+        assert index.replace_one.called or index.bulk_write.called
         for doc in crawler.crawl():
-            self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
+            assert index.find_one({'_id': doc['_id']}) is not None
 
     def test_export_with_update(self):
         self.setup_project()
         index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
         collection = self.get_index_collection()
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
+        assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
-            self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
+            assert collection.find_one({'_id': doc['_id']}) is not None
         collection.reset_mock()
-        self.assertEqual(len(index), collection.find().count())
-        self.assertTrue(collection.find.called)
+        assert len(index) == collection.find().count()
+        assert collection.find.called
         signac.export(index, collection, update=True)
-        self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
+        assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
-            self.assertIsNotNone(collection.find_one({'_id': doc['_id']}))
-        self.assertEqual(len(index), collection.find().count())
+            assert collection.find_one({'_id': doc['_id']}) is not None
+        assert len(index) == collection.find().count()
         collection.reset_mock()
         for fn in ('a_0.txt', 'a_1.txt'):
             os.remove(os.path.join(self._tmp_dir.name, fn))
             N = len(index)
             index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
-            self.assertEqual(len(index), N - 1)
+            assert len(index) == (N - 1)
             collection.reset_mock()
             if index:
                 signac.export(index, collection, update=True)
-                self.assertTrue(collection.replace_one.called or collection.bulk_write.called)
-                self.assertEqual(len(index), collection.find().count())
+                assert collection.replace_one.called or collection.bulk_write.called
+                assert len(index) == collection.find().count()
             else:
-                with self.assertRaises(errors.ExportError):
+                with pytest.raises(errors.ExportError):
                     signac.export(index, collection, update=True)
 
     def test_export_to_mirror(self):
@@ -380,47 +382,47 @@ class IndexingBaseTest(unittest.TestCase):
         index = self.get_index_collection()
         mirror = TestFS()
         for doc in crawler.crawl():
-            self.assertIn('file_id', doc)
+            assert 'file_id' in doc
             doc.pop('file_id')
-            with self.assertRaises(errors.ExportError):
+            with pytest.raises(errors.ExportError):
                 signac.export_to_mirror(doc, mirror)
             break
         for doc in crawler.crawl():
-            self.assertIn('file_id', doc)
+            assert 'file_id' in doc
             signac.export_one(doc, index)
             signac.export_to_mirror(doc, mirror)
-        self.assertTrue(index.replace_one.called)
+        assert index.replace_one.called
         for doc in crawler.crawl():
-            self.assertIsNotNone(index.find_one({'_id': doc['_id']}))
+            assert index.find_one({'_id': doc['_id']}) is not None
             with mirror.get(doc['file_id']):
                 pass
 
     def test_master_crawler_tags(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
-        self.assertEqual(0, len(list(crawler.crawl())))
+        assert 0 == len(list(crawler.crawl()))
         crawler.tags = None
-        self.assertEqual(0, len(list(crawler.crawl())))
+        assert 0 == len(list(crawler.crawl()))
         crawler.tags = {}
-        self.assertEqual(0, len(list(crawler.crawl())))
+        assert 0 == len(list(crawler.crawl()))
         crawler.tags = {'nomatch'}
-        self.assertEqual(0, len(list(crawler.crawl())))
+        assert 0 == len(list(crawler.crawl()))
         crawler.tags = {'test1'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
         crawler.tags = {'test2'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
         crawler.tags = {'test1', 'test2'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
         crawler.tags = {'test1', 'non-existent-key'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
         crawler.tags = {'test2', 'non-existent-key'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
         crawler.tags = {'test1', 'test2', 'non-existent-key'}
-        self.assertEqual(2, len(list(crawler.crawl())))
+        assert 2 == len(list(crawler.crawl()))
 
 
-@unittest.skipIf(SKIP_REASON is not None, SKIP_REASON)
-class IndexingPyMongoTest(IndexingBaseTest):
+@pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
+class TestIndexingPyMongo(TestIndexingBase):
 
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
@@ -428,13 +430,9 @@ class IndexingPyMongoTest(IndexingBaseTest):
         return Mock(spec=db.test_index, wraps=db.test_index)
 
 
-class IndexingBaseGetCrawlersTest(IndexingBaseTest):
+class TestIndexingBaseGetCrawlers(TestIndexingBase):
     access_module = SIGNAC_ACCESS_MODULE_GET_CRAWLERS
 
 
-class IndexingBaseLegacyTest(IndexingBaseTest):
+class TestIndexingBaseLegacy(TestIndexingBase):
     access_module = SIGNAC_ACCESS_MODULE_LEGACY
-
-
-if __name__ == '__main__':
-    unittest.main()
