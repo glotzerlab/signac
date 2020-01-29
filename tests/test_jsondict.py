@@ -47,11 +47,9 @@ class TestJSONDict(TestJSONDictBase):
         assert not bool(jsd)
         assert len(jsd) == 0
         assert key not in jsd
-        assert not (key in jsd)
         jsd[key] = d
         assert bool(jsd)
         assert len(jsd) == 1
-        assert key in jsd
         assert key in jsd
         assert jsd[key] == d
         assert jsd.get(key) == d
