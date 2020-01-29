@@ -1050,8 +1050,8 @@ def main_shell(args):
                     except FileNotFoundError:
                         atexit.register(readline.write_history_file, fn_hist)
                     except PermissionError:
-                        print("Warning: .signac_shell_history does not have read/write permission.\
-                                The history of this shell will not be saved.")
+                        print("Warning: .signac_shell_history does not have read/write permission. "
+                              "The history of this shell will not be saved.")
 
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
