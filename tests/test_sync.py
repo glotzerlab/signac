@@ -587,26 +587,70 @@ class ProjectSyncTest(unittest.TestCase):
             self.project_a.sync(self.project_b)
         self.project_a.sync(self.project_b, doc_sync=sync.DocSync.ByKey('b'))
 
-    def _setup_mixed(self):
+        
+
+    def _setup_mixed_same_data_type(self):
         for i in range(4):
             if i % 2 == 0:
                 self._init_job(self.project_a.open_job({'a': i}))
             if i % 3 == 0:
                 self._init_job(self.project_b.open_job({'a': i}))
 
-    def test_mixed(self):
-        self._setup_mixed()
+    def test_mixed_same_data_type(self):
+        self._setup_mixed_same_data_type()
+        self.project_a.sync(self.project_b)
+        self.assertEqual(len(self.project_a), 3)
+
+    def _setup_mixed_diff_data_type(self):
+        for i in range(5,10):
+            self._init_job(self.project_a.open_job({'a': i}))
+            self._init_job(self.project_b.open_job({'a': i/100 }))
+
+    def test_mixed_diff_data_type(self):
+        self._setup_mixed_diff_data_type()
         with self.assertRaises(SchemaSyncConflict):
             self.project_a.sync(self.project_b)
-        self.assertEqual(len(self.project_a), 2)
-        self.assertEqual(len(self.project_b), 2)
+        with self.assertRaises(SchemaSyncConflict):
+            self.project_b.sync(self.project_a)
         self.project_a.sync(self.project_b, check_schema=False)
-        self.assertEqual(len(self.project_a), 3)
+        self.assertEqual(len(self.project_a), 6)
+
+    def test_mixed_multiple_data_type(self):
+        """
+        Project_a containing 'a' of int 
+        Project_b containing 'a' of int and float
+        sync project_a as destination should fail as adding an extra type may lead to errors.
+
+        """"
+        self._setup_mixed_same_data_type()
+        self._setup_mixed_diff_data_type()
+        with self.assertRaises(SchemaSyncConflict):
+            self.project_a.sync(self.project_b)
+        self.project_b.sync(self.project_a)
+        self.assertEqual(len(self.project_a,8))
+        self.project_a.sync(self.project_b, check_schema=False)
+        self.assertEqual(len(self.project_a,8))
+
+    def test_mixed_diff_key():
+        for i in range(4):
+            self._init_job(self.project_a.open_job({'a': i}))
+            self._init_job(self.project_b.open_job({'b': i}))
+            with self.assertRaises(SchemaSyncConflict):
+                self.project_a.sync(self.project_b)
+            self.project_a.sync(self.project_b, check_schema=False)
+            self.assertEqual(len(self.project_a), 8)
+
 
     def _setup_jobs(self):
         for i in range(4):
             self._init_job(self.project_a.open_job({'a': i}))
             self._init_job(self.project_b.open_job({'a': i}))
+
+    def test_same(self):
+        self._setup_jobs()
+        self.project_a.sync(self.project_b, check_schema=False)
+        self.assertEqual(len(self.project_a), 4)
+
 
     def test_with_conflict(self):
         self._setup_jobs()
