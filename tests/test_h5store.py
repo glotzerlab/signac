@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import sys
-import unittest
+import pytest
 import random
 import string
 import subprocess
@@ -21,7 +21,7 @@ from collections.abc import Mapping
 
 from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
 from signac.errors import InvalidKeyError
-import pytest
+
 
 
 PYPY = 'PyPy' in platform.python_implementation()

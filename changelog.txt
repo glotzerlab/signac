@@ -19,7 +19,7 @@ Changed
 +++++++
 
  - Workspace directory is created when ``Project`` is initialized (#267, #271).
- - Changed testing framework from ``unittest`` to ``pytest`` (#212, #275)
+ - Changed testing framework from ``unittest`` to ``pytest`` (#212, #275).
 
 
 Fixed

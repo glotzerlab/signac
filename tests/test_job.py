@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import unittest
+import pytest
 import os
 import io
 import warnings
@@ -21,7 +21,7 @@ from signac.errors import DestinationExistsError
 from signac.errors import JobsCorruptedError
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
-import pytest
+
 
 
 try:
@@ -68,6 +68,7 @@ def testdata():
 class TestJobBase():
 
     project_class = signac.Project
+
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
@@ -148,7 +149,7 @@ class TestJob(TestJobBase):
 
         # Modify copy
         copied_job = copy.copy(job)
-        assert not (job is copied_job)
+        assert job is not copied_job
         assert job == copied_job
         assert job.sp == copied_job.sp
         assert job in self.project
@@ -161,7 +162,7 @@ class TestJob(TestJobBase):
 
         # Modify original
         copied_job = copy.copy(job)
-        assert not (job is copied_job)
+        assert job is not copied_job
         assert job == copied_job
         assert job.sp == copied_job.sp
         assert job in self.project
@@ -184,7 +185,7 @@ class TestJob(TestJobBase):
 
         # Modify copy
         copied_job = copy.deepcopy(job)
-        assert not (job is copied_job)
+        assert job is not copied_job
         assert job == copied_job
         assert job.sp == copied_job.sp
         assert job in self.project
@@ -198,7 +199,7 @@ class TestJob(TestJobBase):
         # Modify original
         job = self.project.open_job({'a': 0}).init()
         copied_job = copy.deepcopy(job)
-        assert not (job is copied_job)
+        assert job is not copied_job
         assert job == copied_job
         assert job.sp == copied_job.sp
         assert job in self.project
@@ -323,7 +324,7 @@ class TestJobSPInterface(TestJobBase):
     def test_interface_deepcopy(self):
         job = self.open_job(dict(a=0)).init()
         copy.deepcopy(job.sp).a = 1
-        assert not (job in self.project)
+        assert job not in self.project
 
     def test_interface_add(self):
         job = self.open_job(dict(a=0))

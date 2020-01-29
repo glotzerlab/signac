@@ -1,7 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import unittest
+import pytest
 import os
 import io
 import re
@@ -24,7 +24,7 @@ else:
 
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
-import pytest
+
 
 
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
@@ -365,7 +365,7 @@ class TestIndexingBase():
             os.remove(os.path.join(self._tmp_dir.name, fn))
             N = len(index)
             index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
-            assert len(index) == N - 1
+            assert len(index) == (N - 1)
             collection.reset_mock()
             if index:
                 signac.export(index, collection, update=True)

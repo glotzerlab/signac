@@ -3,10 +3,11 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import pickle
+import pytest
 from tempfile import TemporaryDirectory
 
 from signac.core.h5store import H5StoreManager
-import pytest
+
 
 try:
     import h5py    # noqa

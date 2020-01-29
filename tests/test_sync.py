@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
-
+import pytest
 import logging
 from time import sleep
 from tempfile import TemporaryDirectory
@@ -18,7 +18,6 @@ from signac.errors import SchemaSyncConflict
 from signac.contrib.utility import _mkdir_p
 
 from test_job import TestJobBase
-import pytest
 
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):

@@ -1,7 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-
+import pytest
 import uuid
 from copy import copy, deepcopy
 from itertools import chain
@@ -9,7 +9,6 @@ from collections.abc import MutableMapping
 
 from signac.core.attrdict import SyncedAttrDict as SAD
 from signac.core.synceddict import _SyncedDict
-import pytest
 
 
 class _SyncPoint(object):
@@ -107,7 +106,7 @@ class TestSyncedAttrDict():
         assert not bool(sad)
         assert len(sad) == 0
         assert key not in sad
-        assert not (key in sad)
+        assert key not in sad
         sad[key] = d
         assert bool(sad)
         assert len(sad) == 1
@@ -123,7 +122,7 @@ class TestSyncedAttrDict():
         assert not bool(sad)
         assert len(sad) == 0
         assert key not in sad
-        assert not (key in sad)
+        assert key not in sad
         sad.setdefault('a', dict())
         child1 = sad['a']
         child2 = sad['a']
@@ -256,7 +255,7 @@ class TestSyncedAttrDict():
         self.assert_only_read()
         assert key not in sad
         self.assert_only_read()
-        assert not (key in sad)
+        assert key not in sad
         self.assert_only_read()
         sad[key] = d
         self.assert_read_write()
@@ -518,6 +517,6 @@ class TestSyncedAttrDict():
         sad.items()
         assert type(sad['a']) is SAD
         sad.values()
-        assert type(sad['a']), SAD
+        assert type(sad['a']) is SAD
         sad._as_dict()
-        assert type(sad['a']), SAD
+        assert type(sad['a']) is SAD

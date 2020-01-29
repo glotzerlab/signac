@@ -160,11 +160,11 @@ class TestCollection():
             assert self.c['0'] == doc
 
     def test_contains(self):
-        assert not ('0' in self.c)
+        assert '0' not in self.c
         _id = self.c.insert_one(dict())
         assert _id in self.c
         del self.c[_id]
-        assert not (_id in self.c)
+        assert _id not in self.c
         docs = [dict(_id=str(i)) for i in range(10)]
         self.c.update(docs)
         for _id in self.c.ids:

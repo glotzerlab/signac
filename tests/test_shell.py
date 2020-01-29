@@ -4,11 +4,11 @@
 import os
 import sys
 import json
+import pytest
 import subprocess
 from tempfile import TemporaryDirectory
 
 import signac
-import pytest
 
 
 # Skip linked view tests on Windows
@@ -137,7 +137,6 @@ class TestBasicShell():
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
-        print("window", WINDOWS)
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         sps = [{'a': i} for i in range(1)]
