@@ -1179,7 +1179,7 @@ class Project(object):
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                sp = self.get_statepoint(job_id)
+                sp = self._get_statepoint(job_id)
                 if calc_id(sp) != job_id:
                     corrupted.append(job_id)
                 else:
@@ -1228,7 +1228,7 @@ class Project(object):
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                sp = self.get_statepoint(job_id)
+                sp = self._get_statepoint(job_id)
                 # Check if state point and id correspond.
                 correct_id = calc_id(sp)
                 if correct_id != job_id:
@@ -1280,7 +1280,7 @@ class Project(object):
         for _id in to_remove:
             del self._index_cache[_id]
         for _id in to_add:
-            self._index_cache[_id] = dict(statepoint=self.get_statepoint(_id), _id=_id)
+            self._index_cache[_id] = dict(statepoint=self._get_statepoint(_id), _id=_id)
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
@@ -1289,7 +1289,7 @@ class Project(object):
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
-            doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
+            doc = dict(_id=_id, statepoint=self._get_statepoint(_id))
             if include_job_document:
                 if wd is None:
                     doc.update(self.open_job(id=_id).document)
