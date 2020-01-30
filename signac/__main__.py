@@ -1045,14 +1045,14 @@ def main_shell(args):
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
-                        with open(fn_hist, 'a') as f: pass
+                        with open(fn_hist, 'w') as f: pass
                         atexit.register(readline.write_history_file, fn_hist)
                     except FileNotFoundError:
                         atexit.register(readline.write_history_file, fn_hist)
                     except PermissionError:
-
-                        print (os.path.relpath(fn_hist)+" does not have read/write permission. "
+                        print("Warning: .signac_shell_history does not have read/write permission. "
                               "The history of this shell will not be saved.")
+
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
             code.interact(
