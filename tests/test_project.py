@@ -193,8 +193,6 @@ class ProjectTest(BaseProjectTest):
         self.project.write_statepoints(more_statepoints)
         read2 = list(self.project.read_statepoints())
         self.assertEqual(len(read2), len(statepoints) + len(more_statepoints))
-        for id_ in self.project.read_statepoints().keys():
-            self.project.get_statepoint(id_)
 
     def test_workspace_path_normalization(self):
         def norm_path(p):
