@@ -1183,7 +1183,7 @@ class Project(object):
             When one or more jobs are identified as corrupted.
         """
         corrupted = []
-        statepoints=self.read_statepoints(fn=fn_statepoints)
+        statepoints = self.read_statepoints(fn=fn_statepoints)
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
@@ -1236,7 +1236,7 @@ class Project(object):
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                if sp in self._sp_cache.keys():
+                if job_id in self._sp_cache.keys():
                     sp = self._sp_cache[job_id]
                 else :
                     sp = self.read_statepoints(fn=fn_statepoints)[job_id]
