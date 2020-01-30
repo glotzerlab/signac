@@ -1050,7 +1050,8 @@ def main_shell(args):
                     except FileNotFoundError:
                         atexit.register(readline.write_history_file, fn_hist)
                     except PermissionError:
-                        print("Warning: " +os.path.relpath(fn_hist) +" does not have read/write permission. "
+                        print(("Warning: {} does not have read/write permission. "
+                               "The history of this shell will not be saved.").format(os.path.relpath(fn_hist)))
                               "The history of this shell will not be saved.")
 
                 readline.set_completer(Completer(local_ns).complete)
