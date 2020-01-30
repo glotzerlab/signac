@@ -810,25 +810,6 @@ class Project(object):
 
         The state point is retrieved from the internal cache, from
         the workspace or from a state points file.
-
-        :param jobid:
-            A job id to get the statepoint for.
-        :type jobid:
-            str
-        :param fn:
-            The filename of the file containing the statepoints, defaults
-            to :const:`~signac.contrib.project.FN_STATEPOINTS`.
-        :type fn:
-            str
-        :return:
-            The state point corresponding to jobid.
-        :rtype:
-            dict
-        :raises KeyError:
-            If the state point associated with jobid could not be found.
-        :raises JobsCorruptedError:
-            If the state point manifest file corresponding to jobid is
-            inaccessible or corrupted.
         """
         if not self._sp_cache:
             self._read_cache()
@@ -854,6 +835,35 @@ class Project(object):
                     raise error
         self._sp_cache[jobid] = sp
         return sp
+
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use open_job(id=jobid).statepoint() function instead.")
+    def get_statepoint(self, jobid, fn=None):
+        """Get the statepoint associated with a job id.
+
+        The state point is retrieved from the internal cache, from
+        the workspace or from a state points file.
+
+        :param jobid:
+            A job id to get the statepoint for.
+        :type jobid:
+            str
+        :param fn:
+            The filename of the file containing the statepoints, defaults
+            to :const:`~signac.contrib.project.FN_STATEPOINTS`.
+        :type fn:
+            str
+        :return:
+            The state point corresponding to jobid.
+        :rtype:
+            dict
+        :raises KeyError:
+            If the state point associated with jobid could not be found.
+        :raises JobsCorruptedError:
+            If the state point manifest file corresponding to jobid is
+            inaccessible or corrupted.
+        """
+        return _get_statepoint(jobid=jobid, fn=fn)
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
@@ -1169,7 +1179,7 @@ class Project(object):
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                sp = self._get_statepoint(job_id)
+                sp = self.get_statepoint(job_id)
                 if calc_id(sp) != job_id:
                     corrupted.append(job_id)
                 else:
@@ -1218,7 +1228,7 @@ class Project(object):
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                sp = self._get_statepoint(job_id)
+                sp = self.get_statepoint(job_id)
                 # Check if state point and id correspond.
                 correct_id = calc_id(sp)
                 if correct_id != job_id:
@@ -1270,7 +1280,7 @@ class Project(object):
         for _id in to_remove:
             del self._index_cache[_id]
         for _id in to_add:
-            self._index_cache[_id] = dict(statepoint=self._get_statepoint(_id), _id=_id)
+            self._index_cache[_id] = dict(statepoint=self.get_statepoint(_id), _id=_id)
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
@@ -1279,7 +1289,7 @@ class Project(object):
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
-            doc = dict(_id=_id, statepoint=self._get_statepoint(_id))
+            doc = dict(_id=_id, statepoint=self.get_statepoint(_id))
             if include_job_document:
                 if wd is None:
                     doc.update(self.open_job(id=_id).document)
