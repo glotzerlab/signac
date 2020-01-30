@@ -863,7 +863,7 @@ class Project(object):
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
         """
-        return _get_statepoint(jobid=jobid, fn=fn)
+        return self._get_statepoint(jobid=jobid, fn=fn)
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
