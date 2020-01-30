@@ -448,7 +448,17 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            return self.Job(project=self, statepoint=self.open_job(id=id).sp, _id=id)
+            try:
+                sp = self._get_statepoint_from_workspace(id)
+            except KeyError as error:
+                try:
+                    sp = self.read_statepoints()[id]
+                except IOError as io_error:
+                    if io_error.errno != errno.ENOENT:
+                        raise io_error
+                    else:
+                        raise error
+            return self.Job(project=self, statepoint=sp, _id=id)
 
     def _job_dirs(self):
         try:
