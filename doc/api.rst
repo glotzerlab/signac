@@ -47,7 +47,6 @@ The Project
     Project.find_jobs
     Project.fn
     Project.get_id
-    Project.get_statepoint
     Project.groupby
     Project.groupbydoc
     Project.import_from

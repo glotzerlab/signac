@@ -448,17 +448,7 @@ class Project(object):
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            try:
-                sp = self._get_statepoint_from_workspace(id)
-            except KeyError as error:
-                try:
-                    sp = self.read_statepoints()[id]
-                except IOError as io_error:
-                    if io_error.errno != errno.ENOENT:
-                        raise io_error
-                    else:
-                        raise error
-            return self.Job(project=self, statepoint=sp, _id=id)
+            return self.Job(project=self, statepoint=self._get_statepoint(id), _id=id)
 
     def _job_dirs(self):
         try:
@@ -788,7 +778,7 @@ class Project(object):
             tmp = dict()
         if statepoints is None:
             job_ids = self._job_dirs()
-            _cache = {_id: self.open_job(id=_id).statepoint() for _id in job_ids}
+            _cache = {_id: self._get_statepoint(_id) for _id in job_ids}
         else:
             _cache = {calc_id(sp): sp for sp in statepoints}
 
@@ -815,9 +805,7 @@ class Project(object):
                 raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use open_job(id=jobid).statepoint() function instead.")
-    def get_statepoint(self, jobid, fn=None):
+    def _get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1171,23 +1159,17 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
-    def check(self, fn_statepoints=None):
+    def check(self):
         """Check the project's workspace for corruption.
 
-        :param fn_statepoints:
-            The filename of the file containing the statepoints, defaults
-            to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
-        :type fn_statepoints:
-            str
         :raises JobsCorruptedError:
             When one or more jobs are identified as corrupted.
         """
         corrupted = []
-        statepoints = self.read_statepoints(fn=fn_statepoints)
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                sp = statepoints[job_id]
+                sp = self._get_statepoint(job_id)
                 if calc_id(sp) != job_id:
                     corrupted.append(job_id)
                 else:
@@ -1236,10 +1218,7 @@ class Project(object):
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                if job_id in self._sp_cache.keys():
-                    sp = self._sp_cache[job_id]
-                else:
-                    sp = self.read_statepoints(fn=fn_statepoints)[job_id]
+                sp = self._get_statepoint(job_id)
                 # Check if state point and id correspond.
                 correct_id = calc_id(sp)
                 if correct_id != job_id:
@@ -1291,7 +1270,7 @@ class Project(object):
         for _id in to_remove:
             del self._index_cache[_id]
         for _id in to_add:
-            self._index_cache[_id] = dict(statepoint=self.open_job(id=_id).statepoint(), _id=_id)
+            self._index_cache[_id] = dict(statepoint=self._get_statepoint(_id), _id=_id)
         return self._index_cache.values()
 
     def _build_index(self, include_job_document=False):
@@ -1300,7 +1279,7 @@ class Project(object):
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
-            doc = dict(_id=_id, statepoint=self.open_job(id=_id).statepoint())
+            doc = dict(_id=_id, statepoint=self._get_statepoint(_id))
             if include_job_document:
                 if wd is None:
                     doc.update(self.open_job(id=_id).document)
