@@ -1173,7 +1173,7 @@ class Project(object):
 
     def check(self, fn_statepoints=None):
         """Check the project's workspace for corruption.
-        
+
         :param fn_statepoints:
             The filename of the file containing the statepoints, defaults
             to :const:`~signac.contrib.project.Project.FN_STATEPOINTS`.
@@ -1238,7 +1238,7 @@ class Project(object):
                 # First, check if we can look up the state point.
                 if job_id in self._sp_cache.keys():
                     sp = self._sp_cache[job_id]
-                else :
+                else:
                     sp = self.read_statepoints(fn=fn_statepoints)[job_id]
                 # Check if state point and id correspond.
                 correct_id = calc_id(sp)
