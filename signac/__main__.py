@@ -522,7 +522,7 @@ def main_sync(args):
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
-            check_schema=not args.force,
+            check_schema=not args.no_check_schema,
             dry_run=args.dry_run,
             parallel=args.parallel,
             deep=args.deep,
@@ -538,16 +538,22 @@ def main_sync(args):
     except SchemaSyncConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
-            "Use --force to ignore.")
-        only_in_src = error.schema_src.difference(error.schema_dst)
+            "Use --no-scema-check to skip the schema check.")
+        diff_src = error.schema_src.difference(error.schema_dst)
+        diff_dst = error.schema_dst.difference(error.schema_src)
+        only_in_dst = diff_dst.difference(diff_src)
+        only_in_src = diff_src.difference(diff_src)
+        diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
             keys_formatted = ('.'.join(k) for k in only_in_src)
             _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
-        only_in_dst = error.schema_dst.difference(error.schema_src)
         if only_in_dst:
             keys_formatted = ('.'.join(k) for k in only_in_dst)
             _print_err(
                 "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+        if diff_value:
+            keys_formatted = ('.'.join(k) for k in diff_value)
+            _print_err("Keys having differnt values in source and destination: {}".format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
         _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
@@ -1578,9 +1584,9 @@ job documents."
         help="Allow the specification of a workspace (instead of a project) directory "
              "as the destination path.")
     parser_sync.add_argument(
-        '--force',
+        '--no-check-schema',
         action='store_true',
-        help="Ignore all warnings, just synchronize.")
+        help="Ignore statepoint schema check.")
     parser_sync.add_argument(
         '--parallel',
         type=int,
