@@ -1045,7 +1045,7 @@ def main_shell(args):
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
-                        with open(fn_hist, 'w'):
+                        with open(fn_hist, 'a'):
                             pass
                         atexit.register(readline.write_history_file, fn_hist)
                     except FileNotFoundError:
