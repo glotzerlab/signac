@@ -2134,11 +2134,11 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
         warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
 
-    def get_h5store(self):
-        return self.project.data
+    def get_h5store(self, **kwargs):
+        return self.project.data.open(**kwargs)
 
-    def get_other_h5store(self):
-        return self.project.stores['other']
+    def get_other_h5store(self, **kwargs):
+        return self.project.stores['other'].open(**kwargs)
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
