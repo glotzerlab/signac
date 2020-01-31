@@ -553,7 +553,9 @@ def main_sync(args):
                 "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
         if diff_value:
             keys_formatted = ('.'.join(k) for k in diff_value)
-            _print_err("Keys having differnt values in source and destination: {}".format(', '.join(keys_formatted)))
+            _print_err(
+                "Keys having differnt values in source and destination: {}"
+                .format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
         _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
