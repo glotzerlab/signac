@@ -2156,23 +2156,26 @@ class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
     pass
 
 
-class TestProjectStoreNestedData(TestProjectStoreBase, test_h5store.TestH5StoreNestedData):
+class TestProjectStoreNestedData(TestProjectStore, test_h5store.TestH5StoreNestedData):
     pass
 
 
-class TestProjectStoreBytesData(TestProjectStoreBase, test_h5store.TestH5StoreBytesData):
+class TestProjectStoreBytes(TestProjectStore, test_h5store.TestH5StoreBytesData):
     pass
 
 
-class TestProjectStoreClosed(TestProjectStoreBase, test_h5store.TestH5StoreClosed):
+class TestProjectStoreClosed(TestProjectStore, test_h5store.TestH5StoreClosed):
     pass
 
 
-class TestProjectStoreNestedDataClosed(TestProjectStoreBase, test_h5store.TestH5StoreNestedDataClosed):
+class TestProjectStoreNestedDataClosed(TestProjectStoreNestedData, test_h5store.TestH5StoreNestedDataClosed):
     pass
 
 
-class TestProjectStorePandasData(TestProjectStoreBase, test_h5store.TestH5StorePandasData):
+class TestProjectStorePandasData(TestProjectStore, test_h5store.TestH5StorePandasData):
+    pass
+
+class TestProjectStoreNestedPandasData(TestProjectStorePandasData, test_h5store.TestH5StoreNestedPandasData):
     pass
 
 
@@ -2199,3 +2202,7 @@ class TestProjectStorePerformance(TestProjectStoreBase, test_h5store.TestH5Store
                     '_baseline', data=value, shape=None)
             times[i] = time() - start
         self.baseline_time = times
+
+
+class TestProjectStorePerformanceNestedData(TestProjectStorePerformance, test_h5store.TestH5StorePerformance):
+    pass
