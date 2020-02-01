@@ -17,7 +17,7 @@ from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
 from packaging import version
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, contextmanager
 from time import time
 
 
@@ -2138,8 +2138,18 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
     def get_h5store(self):
         return self.project.data
 
+    @contextmanager
+    def open_h5store(self, **kwargs):
+        with self.get_h5store().open(**kwargs) as h5s:
+            yield h5s
+
     def get_other_h5store(self):
         return self.project.stores['other']
+
+    @contextmanager
+    def open_other_h5store(self, **kwargs):
+        with self.get_other_h5store().open(**kwargs) as h5s:
+            yield h5s
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
