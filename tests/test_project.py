@@ -2140,7 +2140,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
     @contextmanager
     def open_h5store(self, **kwargs):
-        with self.get_h5store().open(**kwargs) as h5s:
+        with self.get_h5store(**kwargs) as h5s:
             yield h5s
 
     def get_other_h5store(self):
@@ -2148,7 +2148,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
     @contextmanager
     def open_other_h5store(self, **kwargs):
-        with self.get_other_h5store().open(**kwargs) as h5s:
+        with self.get_other_h5store(**kwargs) as h5s:
             yield h5s
 
 
