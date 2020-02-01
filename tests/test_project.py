@@ -2150,11 +2150,11 @@ class TestProjectStoreNestedData(TestProjectStoreBase, test_h5store.TestH5StoreN
     pass
 
 
-class TestProjectStoreBytesData(TestProjectBase, test_h5store.TestH5StoreBytesData):
+class TestProjectStoreBytesData(TestProjectStoreBase, test_h5store.TestH5StoreBytesData):
     pass
 
 
-class TestProjectStoreClosed(TestProjectBase, test_h5store.TestH5StoreClosed):
+class TestProjectStoreClosed(TestProjectStoreBase, test_h5store.TestH5StoreClosed):
     pass
 
 
@@ -2166,15 +2166,15 @@ class TestProjectStorePandasData(TestProjectStoreBase, test_h5store.TestH5StoreP
     pass
 
 
-class TestProjectStoreMultiThreading(TestProjectBase, test_h5store.TestH5StoreMultiThreading):
+class TestProjectStoreMultiThreading(TestProjectStoreBase, test_h5store.TestH5StoreMultiThreading):
     pass
 
 
-class TestProjectStoreMultiProcessing(TestProjectBase, test_h5store.TestH5StoreMultiProcessing):
+class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing):
     pass
 
 
-class TestProjectStorePerformance(TestProjectBase, test_h5store.TestH5StorePerformance):
+class TestProjectStorePerformance(TestProjectStoreBase, test_h5store.TestH5StorePerformance):
 
     @pytest.fixture
     def setUp(self, setUp_base_h5Store):
