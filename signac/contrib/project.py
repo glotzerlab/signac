@@ -136,7 +136,7 @@ class Project(object):
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
-    def __init__(self, config=None, _ignore_schema_version=False):
+    def __init__(self, config=None, _ignore_schema_version=False, **kwargs):
         if config is None:
             config = load_config()
         self._config = _ProjectConfig(config)
@@ -157,7 +157,7 @@ class Project(object):
         self._document = None
 
         # Prepare project h5-stores
-        self._stores = H5StoreManager(self._rd)
+        self._stores = H5StoreManager(self._rd, **kwargs)
 
         # Prepare Workspace Directory
         if not os.path.isdir(self._wd):
@@ -352,7 +352,7 @@ class Project(object):
         self.document = new_doc
 
     @property
-    def stores(self):
+    def stores(self, **kwargs):
         """Access HDF5-stores associated with this project.
 
         Use this property to access an HDF5 file within the project's root
