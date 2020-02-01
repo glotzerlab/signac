@@ -18,6 +18,7 @@ from zipfile import ZipFile
 from tempfile import TemporaryDirectory
 from packaging import version
 from contextlib import redirect_stderr
+from time import time
 
 
 import signac
@@ -2134,24 +2135,57 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
         warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
 
-    def get_h5store(self, **kwargs):
-        return self.project.data.open(**kwargs)
+    def get_h5store(self):
+        return self.project.data
 
-    def get_other_h5store(self, **kwargs):
-        return self.project.stores['other'].open(**kwargs)
+    def get_other_h5store(self):
+        return self.project.stores['other']
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
     pass
 
 
-class TestProjectStoreNested(TestProjectStoreBase, test_h5store.TestH5StoreNestedData):
+class TestProjectStoreNestedData(TestProjectStoreBase, test_h5store.TestH5StoreNestedData):
     pass
 
 
-class TestProjectStoreNestedClosed(TestProjectStoreBase, test_h5store.TestH5StoreNestedDataClosed):
+class TestProjectStoreBytesData(TestProjectBase, test_h5store.TestH5StoreBytesData):
     pass
 
 
-class TestProjectStorePandas(TestProjectStoreBase, test_h5store.TestH5StorePandasData):
+class TestProjectStoreClosed(TestProjectBase, test_h5store.TestH5StoreClosed):
     pass
+
+
+class TestProjectStoreNestedDataClosed(TestProjectStoreBase, test_h5store.TestH5StoreNestedDataClosed):
+    pass
+
+
+class TestProjectStorePandasData(TestProjectStoreBase, test_h5store.TestH5StorePandasData):
+    pass
+
+
+class TestProjectStoreMultiThreading(TestProjectBase, test_h5store.TestH5StoreMultiThreading):
+    pass
+
+
+class TestProjectStoreMultiProcessing(TestProjectBase, test_h5store.TestH5StoreMultiProcessing):
+    pass
+
+
+class TestProjectStorePerformance(TestProjectBase, test_h5store.TestH5StorePerformance):
+
+    @pytest.fixture
+    def setUp(self, setUp_base_h5Store):
+        value = TestProjectStorePerformance.get_testdata(self)
+        times = numpy.zeros(200)
+        for i in range(len(times)):
+            start = time()
+            with h5py.File(self._fn_store, mode='a') as h5file:
+                if i:
+                    del h5file['_basegroup']
+                h5file.create_group('_basegroup').create_dataset(
+                    '_baseline', data=value, shape=None)
+            times[i] = time() - start
+        self.baseline_time = times
