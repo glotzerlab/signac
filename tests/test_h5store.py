@@ -87,7 +87,7 @@ class TestH5StoreBase():
     def assertEqual(self, a, b):
         if hasattr(a, 'shape'):
             if not NUMPY:
-                raise unittest.SkipTest("This test requires the numpy package.")
+                raise pytest.skip("This test requires the numpy package.")
             numpy.testing.assert_array_equal(a, b)
         else:
             assert a == b
