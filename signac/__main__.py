@@ -522,7 +522,7 @@ def main_sync(args):
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
-            check_schema=not (args.no_check_schema or args.force),
+            check_schema=not (args.merge or args.force),
             dry_run=args.dry_run,
             parallel=args.parallel,
             deep=args.deep,
@@ -537,8 +537,7 @@ def main_sync(args):
                 print(MSG_SYNC_STATS.format(stats=stats))
     except SchemaSyncConflict as error:
         _print_err(
-            "WARNING: The detected schemas of the two projects differ! "
-            "Use --no-scema-check to skip the schema check."
+            "WARNING: Merging two projects with different schema requires the -m/--merge option. "
             "Use --force to ignore all warnings.")
         diff_src = error.schema_src.difference(error.schema_dst)
         diff_dst = error.schema_dst.difference(error.schema_src)
@@ -1591,9 +1590,9 @@ job documents."
         action='store_true',
         help="Ignore all warnings, just synchronize.")
     parser_sync.add_argument(
-        '--no-check-schema',
+        '-m', '--merge',
         action='store_true',
-        help="Ignore statepoint schema check.")
+        help="Clone all the jobs that are not present in destination from source.")
     parser_sync.add_argument(
         '--parallel',
         type=int,
