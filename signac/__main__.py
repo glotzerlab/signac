@@ -1587,7 +1587,7 @@ job documents."
         help="Allow the specification of a workspace (instead of a project) directory "
              "as the destination path.")
     parser_sync.add_argument(
-        '-f', '--force',
+        '--force',
         action='store_true',
         help="Ignore  all warnings, just synchronize.")
     parser_sync.add_argument(
