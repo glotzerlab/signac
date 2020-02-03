@@ -1589,7 +1589,7 @@ job documents."
     parser_sync.add_argument(
         '--force',
         action='store_true',
-        help="Ignore  all warnings, just synchronize.")
+        help="Ignore all warnings, just synchronize.")
     parser_sync.add_argument(
         '--no-check-schema',
         action='store_true',
