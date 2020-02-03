@@ -14,6 +14,7 @@ Added
 +++++
 
  - Added Windows to platforms tested with continuous integration (#264, #266).
+ - Add command line option ``--no-check-schema`` for ``signac sync`` to skip the schema check (#280, #230).  
  
 Changed
 +++++++

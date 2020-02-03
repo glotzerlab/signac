@@ -522,7 +522,7 @@ def main_sync(args):
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
-            check_schema=not args.no_check_schema,
+            check_schema=not (args.no_check_schema or args.force),
             dry_run=args.dry_run,
             parallel=args.parallel,
             deep=args.deep,
@@ -538,7 +538,8 @@ def main_sync(args):
     except SchemaSyncConflict as error:
         _print_err(
             "WARNING: The detected schemas of the two projects differ! "
-            "Use --no-scema-check to skip the schema check.")
+            "Use --no-scema-check to skip the schema check."
+            "Use --force to ignore all warnings.")
         diff_src = error.schema_src.difference(error.schema_dst)
         diff_dst = error.schema_dst.difference(error.schema_src)
         only_in_dst = diff_dst.difference(diff_src)
@@ -1585,6 +1586,10 @@ job documents."
         action='store_true',
         help="Allow the specification of a workspace (instead of a project) directory "
              "as the destination path.")
+    parser_sync.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help="Ignore  all warnings, just synchronize.")
     parser_sync.add_argument(
         '--no-check-schema',
         action='store_true',
