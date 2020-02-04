@@ -537,8 +537,7 @@ def main_sync(args):
                 print(MSG_SYNC_STATS.format(stats=stats))
     except SchemaSyncConflict as error:
         _print_err(
-            "WARNING: Merging two projects with different schema requires the -m/--merge option. "
-            "Use --force to ignore all warnings.")
+            "Synchronizing two projects with different schema requires the -m/--merge option.")
         diff_src = error.schema_src.difference(error.schema_dst)
         diff_dst = error.schema_dst.difference(error.schema_src)
         only_in_dst = diff_dst.difference(diff_src)
