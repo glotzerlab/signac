@@ -64,7 +64,7 @@ and access the project handle:
 You can test this package by executing:
 
 ```bash
-$ python -m unittest discover tests/
+$ python -m pytest tests/
 ```
 
 ## Acknowledgment
