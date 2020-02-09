@@ -2156,12 +2156,22 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
 
+    """
+    This test opens multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    Theses tests will (and should) fail using the project data interface.
+    """
     def test_assign_valid_types_within_same_file(self):
         pass
 
 
 class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
 
+    """
+    This test opens multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    Theses tests will (and should) fail using the project data interface.
+    """
     def test_open_write_and_read_only(self):
         pass
 
@@ -2196,15 +2206,10 @@ class TestProjectStoreMultiThreading(TestProjectStoreBase, test_h5store.TestH5St
 class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing):
 
     """
-    The following tests operate under the assumption that calling H5Store in the
-    context manager creates an empty file.
-    The H5StoreManager, which is called through the project.data interface, does
-    not create an empty file.
-    The H5StoreManager does not seem to initialize H5Store when called in the context
-    manager.
-    Instead, a file is not created unless one directly interacts with the keys.
+    These tests open multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    Theses tests will (and should) fail using the project data interface.
     """
-
     @contextmanager
     def open_h5store(self, **kwargs):
         with signac.H5Store(self.project.fn('signac_data.h5')) as h5:
