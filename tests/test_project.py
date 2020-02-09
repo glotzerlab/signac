@@ -2155,11 +2155,15 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
-    pass
+
+    def test_assign_valid_types_within_same_file(self):
+        pass
 
 
 class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
-    pass
+
+    def test_open_write_and_read_only(self):
+        pass
 
 
 class TestProjectStoreNestedData(TestProjectStore, test_h5store.TestH5StoreNestedData):
@@ -2209,8 +2213,8 @@ class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5S
     def test_single_writer_multiple_reader_same_instance(self):
         pass
 
-    # def test_multiple_reader_different_process_no_swmr(self):
-    #     pass
+    def test_multiple_reader_different_process_no_swmr(self):
+        pass
 
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
         pass
