@@ -2121,7 +2121,7 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
     project_class = signac.Project
 
     @pytest.fixture(autouse=True)
-    def setUp(self, request):
+    def setUp_base_h5Store(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
@@ -2134,13 +2134,15 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
             workspace=self._tmp_wd)
 
         warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+        self._fn_store = os.path.join(self._tmp_dir.name, 'signac_data.h5')
+        self._fn_store_other = os.path.join(self._tmp_dir.name, 'other.h5')
 
     def get_h5store(self):
         return self.project.data
 
     @contextmanager
     def open_h5store(self, **kwargs):
-        with self.get_h5store(**kwargs) as h5s:
+        with self.get_h5store().open(**kwargs) as h5s:
             yield h5s
 
     def get_other_h5store(self):
@@ -2148,11 +2150,15 @@ class TestProjectStoreBase(test_h5store.TestH5StoreBase):
 
     @contextmanager
     def open_other_h5store(self, **kwargs):
-        with self.get_other_h5store(**kwargs) as h5s:
+        with self.get_other_h5store().open(**kwargs) as h5s:
             yield h5s
 
 
 class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
+    pass
+
+
+class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
     pass
 
 
@@ -2184,7 +2190,33 @@ class TestProjectStoreMultiThreading(TestProjectStoreBase, test_h5store.TestH5St
 
 
 class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing):
-    pass
+
+    """
+    The following tests operate under the assumption that calling H5Store in the
+    context manager creates an empty file.
+    The H5StoreManager, which is called through the project.data interface, does
+    not create an empty file.
+    The H5StoreManager does not seem to initialize H5Store when called in the context
+    manager.
+    Instead, a file is not created unless one directly interacts with the keys.
+    """
+
+    @contextmanager
+    def open_h5store(self, **kwargs):
+        with signac.H5Store(self.project.fn('signac_data.h5')) as h5:
+            yield h5
+
+    def test_single_writer_multiple_reader_same_instance(self):
+        pass
+
+    # def test_multiple_reader_different_process_no_swmr(self):
+    #     pass
+
+    def test_single_writer_multiple_reader_different_process_no_swmr(self):
+        pass
+
+    def test_single_writer_multiple_reader_different_process_swmr(self):
+        pass
 
 
 class TestProjectStorePerformance(TestProjectStoreBase, test_h5store.TestH5StorePerformance):
