@@ -14,6 +14,7 @@ Added
 +++++
 
  - Added Windows to platforms tested with continuous integration (#264, #266).
+ - Add command line option ``-m/--merge`` for ``signac sync`` (#280, #230).  
  
 Changed
 +++++++
