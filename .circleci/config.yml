@@ -70,12 +70,10 @@ jobs:
             . venv/bin/activate
             if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then
               ${PYTHON} -m coverage run -m pytest tests/ -v
-              ${PYTHON} -m pip install --progress-bar off python-rapidjson==0.9.1 && coverage run -m pytest tests/ -v
               ${PYTHON} -m coverage report -i
               codecov
             else
               ${PYTHON} -m pytest tests/ -v
-              ${PYTHON} -m pip install --progress-bar off python-rapidjson==0.9.1 && ${PYTHON} -m pytest tests/ -v
             fi
 
       - store_artifacts:

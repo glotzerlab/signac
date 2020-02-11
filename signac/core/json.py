@@ -12,26 +12,11 @@ try:
 except ImportError:
     NUMPY = False
 
-try:
-    import rapidjson as json
-    from rapidjson import Encoder
-    try:
-        # Defined for rapidjson >= 0.7.1
-        from rapidjson import JSONDecodeError
-    except ImportError:
-        # rapidjson < 0.7.1 raises a ValueError
-        JSONDecodeError = ValueError
+import json
+from json import JSONEncoder
+from json.decoder import JSONDecodeError
 
-    class JSONEncoder(Encoder):
-        encode = Encoder.__call__
-
-    logger.debug(msg.format('rapidjson'))
-except ImportError:
-    import json
-    from json import JSONEncoder
-    from json.decoder import JSONDecodeError
-
-    logger.debug(msg.format('json'))
+logger.debug(msg.format('json'))
 
 
 _has_default = hasattr(JSONEncoder, 'default')
