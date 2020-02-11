@@ -2,6 +2,9 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import logging
+import json
+from json import JSONEncoder
+from json.decoder import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 msg = "Using '{}' package for JSON encoding/decoding."
@@ -11,10 +14,6 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
-
-import json
-from json import JSONEncoder
-from json.decoder import JSONDecodeError
 
 logger.debug(msg.format('json'))
 
