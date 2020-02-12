@@ -17,6 +17,7 @@ from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
+from tqdm import tqdm
 
 try:
     import readline
@@ -30,7 +31,6 @@ from .version import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .common.tqdm import tqdm
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
