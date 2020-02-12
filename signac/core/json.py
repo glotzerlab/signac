@@ -2,23 +2,16 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import logging
-import json
-from json import JSONEncoder
+from json import load, loads, JSONEncoder
 from json.decoder import JSONDecodeError
 
 logger = logging.getLogger(__name__)
-msg = "Using '{}' package for JSON encoding/decoding."
 
 try:
     import numpy
     NUMPY = True
 except ImportError:
     NUMPY = False
-
-logger.debug(msg.format('json'))
-
-
-_has_default = hasattr(JSONEncoder, 'default')
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -37,20 +30,8 @@ class CustomJSONEncoder(JSONEncoder):
         try:
             return o._as_dict()
         except AttributeError:
-            if _has_default:
-                # Call the super method, which probably raise a TypeError.
-                return super(CustomJSONEncoder, self).default(o)
-            else:
-                raise TypeError(
-                    "Unable to serialize object '{}'.".format(o))
-
-
-def loads(s):
-    return json.loads(s)
-
-
-def load(s):
-    return json.load(s)
+            # Call the super method, which probably raise a TypeError.
+            return super(CustomJSONEncoder, self).default(o)
 
 
 def dumps(o, sort_keys=False, indent=None):
