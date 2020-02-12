@@ -30,7 +30,8 @@ class CustomJSONEncoder(JSONEncoder):
         try:
             return o._as_dict()
         except AttributeError:
-            # Call the super method, which probably raise a TypeError.
+            # Call the super method, which raises a TypeError if it cannot
+            # encode the object.
             return super(CustomJSONEncoder, self).default(o)
 
 
