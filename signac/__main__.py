@@ -17,6 +17,7 @@ from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
+from tqdm import tqdm
 
 try:
     import readline
@@ -30,7 +31,6 @@ from .version import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .common.tqdm import tqdm
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
@@ -522,7 +522,7 @@ def main_sync(args):
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
-            check_schema=not args.force,
+            check_schema=not (args.merge or args.force),
             dry_run=args.dry_run,
             parallel=args.parallel,
             deep=args.deep,
@@ -537,17 +537,24 @@ def main_sync(args):
                 print(MSG_SYNC_STATS.format(stats=stats))
     except SchemaSyncConflict as error:
         _print_err(
-            "WARNING: The detected schemas of the two projects differ! "
-            "Use --force to ignore.")
-        only_in_src = error.schema_src.difference(error.schema_dst)
+            "Synchronizing two projects with different schema requires the -m/--merge option.")
+        diff_src = error.schema_src.difference(error.schema_dst)
+        diff_dst = error.schema_dst.difference(error.schema_src)
+        only_in_dst = diff_dst.difference(diff_src)
+        only_in_src = diff_src.difference(diff_src)
+        diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
             keys_formatted = ('.'.join(k) for k in only_in_src)
             _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
-        only_in_dst = error.schema_dst.difference(error.schema_src)
         if only_in_dst:
             keys_formatted = ('.'.join(k) for k in only_in_dst)
             _print_err(
                 "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+        if diff_value:
+            keys_formatted = ('.'.join(k) for k in diff_value)
+            _print_err(
+                "Keys having different values in source and destination: {}"
+                .format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
         _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
@@ -1581,6 +1588,10 @@ job documents."
         '--force',
         action='store_true',
         help="Ignore all warnings, just synchronize.")
+    parser_sync.add_argument(
+        '-m', '--merge',
+        action='store_true',
+        help="Clone all the jobs that are not present in destination from source.")
     parser_sync.add_argument(
         '--parallel',
         type=int,

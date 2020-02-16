@@ -9,6 +9,8 @@ requirements = [
     'filelock~=3.0',
     # Used for version parsing and comparison
     'packaging>=15.0',
+    # Progress bars
+    'tqdm>=4.10.0',
 ]
 
 description = "Simple file data management database."
