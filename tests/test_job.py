@@ -43,6 +43,13 @@ BUILTINS = [
 ]
 
 
+def deprecated_call(fun):
+    def new_fun(*argv, **kwargs):
+        with pytest.deprecated_call():
+            return fun(*argv, **kwargs)
+    return new_fun
+
+
 def builtins_dict():
     random.shuffle(BUILTINS)
     d = dict()
@@ -981,6 +988,7 @@ class TestJobDocument(TestJobBase):
         with pytest.raises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
+    @deprecated_call
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
     def test_reset_statepoint_project(self):
         key = 'move_job'
@@ -1009,6 +1017,7 @@ class TestJobDocument(TestJobBase):
         with pytest.raises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
 
+    @deprecated_call
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
     def test_update_statepoint(self):
         key = 'move_job'
@@ -1452,6 +1461,7 @@ class TestJobOpenData(TestJobBase):
         with pytest.raises(DestinationExistsError):
             src_job.reset_statepoint(dst)
 
+    @deprecated_call
     def test_reset_statepoint_project(self):
         key = 'move_job'
         d = testdata()
@@ -1476,6 +1486,7 @@ class TestJobOpenData(TestJobBase):
         with pytest.raises(DestinationExistsError):
             self.project.reset_statepoint(src_job, dst)
 
+    @deprecated_call
     def test_update_statepoint(self):
         key = 'move_job'
         d = testdata()

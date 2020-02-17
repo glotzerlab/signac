@@ -14,7 +14,8 @@ from signac.contrib import indexing
 from signac.common import errors
 
 try:
-    signac.db.get_database('testing', hostname='testing')
+    with pytest.deprecated_call():
+        signac.db.get_database('testing', hostname='testing')
 except signac.common.errors.ConfigError:
     SKIP_REASON = "No 'testing' host configured."
 except ImportError:
@@ -60,6 +61,13 @@ Crawler.define(r'.*_(?P<a>\d)\.txt')
 def get_crawlers(root):
     yield Crawler(root)
 """
+
+
+def deprecated_call(fun):
+    def modified_fun(*argv, **kwargs):
+        with pytest.deprecated_call():
+            return fun(*argv, **kwargs)
+    return modified_fun
 
 
 class TestFormat(object):
@@ -147,6 +155,7 @@ class TestIndexingBase():
         c = Collection()
         return Mock(spec=c, wraps=c)
 
+    @deprecated_call
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
         assert len(list(crawler.crawl())) == 0
@@ -158,6 +167,7 @@ class TestIndexingBase():
             for doc in crawler.docs_from_file(None, None):
                 pass
 
+    @deprecated_call
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
@@ -179,6 +189,7 @@ class TestIndexingBase():
                 assert doc2['a'] == doc['a']
         assert not no_find
 
+    @deprecated_call
     def test_regex_file_crawler(self):
         self.setup_project()
 
@@ -211,6 +222,7 @@ class TestIndexingBase():
         with pytest.raises(errors.FetchError):
             crawler.fetch({'filename': 'shouldnotmatch'})
 
+    @deprecated_call
     def test_regex_file_crawler_inheritance(self):
         self.setup_project()
 
@@ -236,6 +248,7 @@ class TestIndexingBase():
         assert len(CrawlerB.definitions) == 1
         assert len(CrawlerC.definitions) == 2
 
+    @deprecated_call
     def test_index_files(self):
         self.setup_project()
 
@@ -261,6 +274,7 @@ class TestIndexingBase():
                 assert doc2['a'] == doc['a']
         assert not no_find
 
+    @deprecated_call
     def test_json_crawler(self):
         self.setup_project()
         crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
@@ -272,6 +286,7 @@ class TestIndexingBase():
         ids = set(doc['_id'] for doc in docs)
         assert len(ids) == len(docs)
 
+    @deprecated_call
     def test_master_crawler(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
@@ -288,6 +303,7 @@ class TestIndexingBase():
                 pass
         assert not no_find
 
+    @deprecated_call
     def test_index(self):
         self.setup_project()
         root = self._tmp_dir.name
@@ -305,6 +321,7 @@ class TestIndexingBase():
                 pass
         assert not no_find
 
+    @deprecated_call
     def test_fetch(self):
         with pytest.raises(ValueError):
             signac.fetch(None)
@@ -323,6 +340,7 @@ class TestIndexingBase():
             assert doc['a'] == doc2['a']
             file.close()
 
+    @deprecated_call
     def test_export_one(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
@@ -334,6 +352,7 @@ class TestIndexingBase():
         for doc in crawler.crawl():
             assert index.find_one({'_id': doc['_id']}) is not None
 
+    @deprecated_call
     def test_export(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
@@ -344,6 +363,7 @@ class TestIndexingBase():
         for doc in crawler.crawl():
             assert index.find_one({'_id': doc['_id']}) is not None
 
+    @deprecated_call
     def test_export_with_update(self):
         self.setup_project()
         index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
@@ -375,6 +395,7 @@ class TestIndexingBase():
                 with pytest.raises(errors.ExportError):
                     signac.export(index, collection, update=True)
 
+    @deprecated_call
     def test_export_to_mirror(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
@@ -397,6 +418,7 @@ class TestIndexingBase():
             with mirror.get(doc['file_id']):
                 pass
 
+    @deprecated_call
     def test_master_crawler_tags(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
@@ -424,6 +446,7 @@ class TestIndexingBase():
 @pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
 class TestIndexingPyMongo(TestIndexingBase):
 
+    @deprecated_call
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         db.test_index.drop()

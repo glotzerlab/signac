@@ -15,6 +15,13 @@ import signac
 WINDOWS = (sys.platform == 'win32')
 
 
+def deprecated_call(fun):
+    def new_fun(*argv, **kwargs):
+        with pytest.deprecated_call():
+            return fun(*argv, **kwargs)
+    return new_fun
+
+
 class DummyFile(object):
     "We redirect sys stdout into this file during console tests."
 
@@ -116,6 +123,7 @@ class TestBasicShell():
             sp = self.call('python -m signac statepoint {}'.format(job).split())
             assert project.open_job(json.loads(sp)) == job
 
+    @deprecated_call
     def test_index(self):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac project --access'.split())
@@ -164,6 +172,7 @@ class TestBasicShell():
             assert os.path.realpath('view/a/{}/job'.format(sp['a'])) == \
                 os.path.realpath(project.open_job(sp).workspace())
 
+    @deprecated_call
     def test_find(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -185,6 +194,7 @@ class TestBasicShell():
                              ['{"a": ' + str(i) + '}']).strip() == \
                 list(project.find_job_ids(doc_filter={'a': i}))[0]
 
+    @deprecated_call
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -221,6 +231,7 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
+    @deprecated_call
     def test_shell_with_jobs_and_selection(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -234,6 +245,7 @@ class TestBasicShell():
         n = len(project.find_jobs({'a': {'$gt': 0}}))
         assert out.strip() == '>>> {} None {}'.format(project, n)
 
+    @deprecated_call
     def test_shell_with_jobs_and_selection_only_one_job(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()

@@ -38,6 +38,13 @@ with TemporaryDirectory() as tmp_dir:
         os.chmod(path, mode)
 
 
+def deprecated_call(fun):
+    def new_fun(*argv, **kwargs):
+        with pytest.deprecated_call():
+            return fun(*argv, **kwargs)
+    return new_fun
+
+
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestBufferedMode(TestProjectBase):
 
@@ -168,7 +175,7 @@ class TestBufferedMode(TestProjectBase):
                     pass
 
     def test_integration(self):
-
+        @deprecated_call
         def routine():
             for i in range(1, 4):
                 job = self.project.open_job(dict(a=i))
@@ -203,7 +210,8 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a == x
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
-                job2 = self.project.open_job(id=job.get_id())
+                with pytest.deprecated_call():
+                    job2 = self.project.open_job(id=job.get_id())
                 assert job2.doc.a == (not x)
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
