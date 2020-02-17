@@ -19,7 +19,7 @@ jobs:
       - run:
           name: style-check
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.1
+            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2
             python -m flake8 --show-source signac/
             pydocstyle
 
