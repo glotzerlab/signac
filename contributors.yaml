@@ -84,4 +84,9 @@ contributors:
     family-names: Chandra
     given-names: Abhavya
     affiliation: "India Institute of Technology, Gandhinagar"    
+  -
+    family-names: Henry
+    given-names: "Michael M."
+    affiliation: "Boise State University"
+    orcid: "https://orcid.org/0000-0002-3870-9993"
 ...
