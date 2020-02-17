@@ -21,6 +21,7 @@ jobs:
           command: |
             pip install --progress-bar off --user -U flake8==3.7.1
             python -m flake8 --show-source signac/
+            pydocstyle
 
 
   linux-python-38: &linux-template
