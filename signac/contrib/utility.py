@@ -227,3 +227,38 @@ def _extract(filename):
                 yield tmpdir
         else:
             raise RuntimeError("Unknown file type: '{}'.".format(filename))
+
+def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
+    """Convert dotted keys in the state point dict to a nested dict."""
+    ret = dict()
+    for key, value in sp.items():
+        tokens = key.split(delimiter_nested)
+        if len(tokens) > 1:
+            tmp = ret.setdefault(tokens[0], dict())
+            for token in tokens[1:-1]:
+                tmp = tmp.setdefault(token, dict())
+            tmp[tokens[-1]] = value
+        else:
+            ret[tokens[0]] = value
+    return ret
+
+def _nested_dicts_to_dotted_keys(t, encode=None, key=None):
+    """Convert nested dict to dotted keys."""
+    if encode is not None:
+        t = encode(t)
+    if isinstance(t, Mapping):
+        if t:
+            for k in t:
+                k_ = k if key is None else '.'.join((key, k))
+                for k__, v in _nested_dicts_to_dotted_keys(t[k], key=k_, encode=encode):
+                    yield k__, v
+        elif key is not None:
+            yield key, t
+    else:
+        yield key, t
+
+
+def _nested_dicts_to_dotted_keys_filter(t):
+    for key, value in _nested_dicts_to_dotted_keys(t, encode=_encode_tree):
+        yield key, value
+
