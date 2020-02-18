@@ -14,12 +14,14 @@ Added
 +++++
 
  - Added Windows to platforms tested with continuous integration (#264, #266).
- 
+ - Add command line option ``-m/--merge`` for ``signac sync`` (#280, #230).
+
 Changed
 +++++++
 
  - Workspace directory is created when ``Project`` is initialized (#267, #271).
-
+ - Changed testing framework from ``unittest`` to ``pytest`` (#212, #275).
+ - Refactored internal use of deprecated ``get_statepoint`` function (#227, #282).
 
 Fixed
 +++++
@@ -27,6 +29,11 @@ Fixed
  - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
  - Calling ``items`` or ``values`` on _SyncedDict objects does not mutate nested dictionaries (#234, #269).
 
+Removed
++++++++
+
+ - Removed vendored ``tqdm`` module and replaced it with a requirement (#289).
+ - Removed support for ``rapidjson`` as an alternative JSON library (#285, #287).
 
 
 [1.3.0] -- 2019-12-20
