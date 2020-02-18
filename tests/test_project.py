@@ -2170,7 +2170,7 @@ class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
     """
     This test opens multiple instances of H5Store, but
     the project data interface opens one instance of H5Store.
-    Theses tests will (and should) fail using the project data interface.
+    This test will (and should) fail using the project data interface.
     """
     def test_open_write_and_read_only(self):
         pass
