@@ -1,5 +1,6 @@
 click>=7.0
 numpy==1.18
+gitdb2==2.0.6
 GitPython==2.1.11
 pandas==0.25.3; implementation_name!='cpython' --no-binary pandas
 pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
