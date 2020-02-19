@@ -20,11 +20,11 @@ import re
 import sys
 from itertools import islice
 from numbers import Number
-from collections.abc import Mapping
 from math import isclose
 
 from ..core import json
 from .utility import _nested_dicts_to_dotted_keys_filter
+from .utility import _to_hashable
 from .filterparse import parse_filter_arg
 
 
@@ -57,29 +57,8 @@ def _flatten(container):
             yield i
 
 
-class _hashable_dict(dict):
-    def __hash__(self):
-        return hash(tuple(sorted(self.items())))
-
-
-def _to_hashable(l):
-    if type(l) is list:
-        return tuple(_to_hashable(_) for _ in l)
-    elif type(l) is dict:
-        return _hashable_dict(l)
-    else:
-        return l
-
-
 class _DictPlaceholder(object):
     pass
-
-
-def _encode_tree(x):
-    if type(x) is list:
-        return _to_hashable(x)
-    else:
-        return x
 
 
 def _valid_filter(f, top=True):

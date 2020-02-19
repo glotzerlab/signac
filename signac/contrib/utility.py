@@ -14,6 +14,7 @@ from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
 from tempfile import TemporaryDirectory
+from collections.abc import Mapping
 
 from ..version import __version__
 
@@ -241,6 +242,27 @@ def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
         else:
             ret[tokens[0]] = value
     return ret
+
+class _hashable_dict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+def _to_hashable(l):
+    if type(l) is list:
+        return tuple(_to_hashable(_) for _ in l)
+    elif type(l) is dict:
+        return _hashable_dict(l)
+    else:
+        return l
+
+
+def _encode_tree(x):
+    if type(x) is list:
+        return _to_hashable(x)
+    else:
+        return x
+
 
 def _nested_dicts_to_dotted_keys(t, encode=None, key=None):
     """Convert nested dict to dotted keys."""

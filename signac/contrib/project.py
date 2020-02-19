@@ -32,6 +32,7 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, split_and_print_progress
 from .schema import ProjectSchema
+from .schema import _build_job_statepoint_index
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
@@ -573,7 +574,7 @@ class Project(object):
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc['_id'] in subset]
-        statepoint_index = self._build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index)
+        statepoint_index = _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

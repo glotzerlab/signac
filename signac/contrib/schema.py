@@ -110,9 +110,10 @@ class ProjectSchema(object):
             schema_dict = _Vividict()
             for key, values in self._schema.items():
                 keys = key.split('.')
-                if len(key) > 1:
-                    for k in keys[:-1]:
-                        x = schema_dict[k]
+                if len(keys) > 1:
+                    x = schema_dict[keys[0]]
+                    for k in keys[1:-1]:
+                        x = x[k]
                     x[keys[-1]] = _fmt_values(values)
                 else:
                     schema_dict[keys[0]] = _fmt_values(values)
@@ -136,12 +137,12 @@ class ProjectSchema(object):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
     def __contains__(self, key_or_keys):
-        if isinstance(key_or_keys, tuple):
+        if isinstance(key_or_keys, tuple) or isinstance(key_or_keys, list):
             key_or_keys = '.'.join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
-        if isinstance(key_or_keys, tuple):
+        if isinstance(key_or_keys, tuple) or isinstance(key_or_keys, list):
             key_or_keys = '.'.join(key_or_keys)
         return self._schema.__getitem__(key_or_keys)
 
