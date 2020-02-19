@@ -32,7 +32,6 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, split_and_print_progress
 from .schema import ProjectSchema
-from .schema import _build_job_statepoint_index
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
@@ -570,6 +569,7 @@ class Project(object):
         :rtype:
             `signac.contrib.schema.ProjectSchema`
         """
+        from .schema import _build_job_statepoint_index
         if index is None:
             index = self.index(include_job_document=False)
         if subset is not None:

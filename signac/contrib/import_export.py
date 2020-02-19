@@ -17,7 +17,8 @@ from tempfile import TemporaryDirectory
 from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError
-from .utility import _mkdir_p, _dotted_keys_to_nested_dicts
+from .utility import _mkdir_p
+from .utility import _dotted_keys_to_nested_dicts
 
 import logging
 
