@@ -53,6 +53,7 @@ class Job(object):
     "The job's document filename."
 
     KEY_DATA = 'signac_data'
+    "The job's datastore key."
 
     def __init__(self, project, statepoint, _id=None):
         self._project = project
