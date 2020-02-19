@@ -1052,11 +1052,19 @@ def main_shell(args):
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
-                    except (IOError, OSError) as error:
-                        if error.errno != errno.ENOENT:
-                            raise
-                    atexit.register(readline.write_history_file, fn_hist)
+                    except FileNotFoundError:
+                        pass
+                    except PermissionError:
+                        print("Warning: Shell history could not be read from "
+                              "{}.".format(os.path.relpath(fn_hist)))
 
+                    def write_history_file():
+                        try:
+                            readline.write_history_file(fn_hist)
+                        except PermissionError:
+                            print("Warning: Shell history could not be written to "
+                                  "{}.".format(os.path.relpath(fn_hist)))
+                    atexit.register(write_history_file)
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
             code.interact(
