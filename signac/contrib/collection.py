@@ -300,6 +300,7 @@ class Collection(object):
         implies compression and is used by the underlying gzip implementation.
         Default value is 0 (no compression).
     """
+
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
         if isinstance(docs, str):
             raise ValueError(

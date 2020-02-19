@@ -340,8 +340,6 @@ def _make_path_based_schema_function(schema_path):
     return parse_path
 
 
-
-
 def _with_consistency_check(schema_function, read_sp_manifest_file):
     "Check whether the state point detected from the schema function matches the manifest file."
 

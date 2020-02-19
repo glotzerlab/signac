@@ -229,6 +229,7 @@ def _extract(filename):
         else:
             raise RuntimeError("Unknown file type: '{}'.".format(filename))
 
+
 def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict."""
     ret = dict()
@@ -242,6 +243,7 @@ def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
         else:
             ret[tokens[0]] = value
     return ret
+
 
 class _hashable_dict(dict):
     def __hash__(self):
@@ -283,4 +285,3 @@ def _nested_dicts_to_dotted_keys(t, encode=None, key=None):
 def _nested_dicts_to_dotted_keys_filter(t):
     for key, value in _nested_dicts_to_dotted_keys(t, encode=_encode_tree):
         yield key, value
-
