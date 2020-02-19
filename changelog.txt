@@ -28,6 +28,7 @@ Fixed
 
  - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
  - Calling ``items`` or ``values`` on _SyncedDict objects does not mutate nested dictionaries (#234, #269).
+ - Fixed error when launching signac shell if permission are denied for .signac_shell_history.
 
 Removed
 +++++++
