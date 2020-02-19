@@ -61,7 +61,6 @@ class TestH5StoreBase():
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
         self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
-        
 
     def get_h5store(self, **kwargs):
         return H5Store(filename=self._fn_store, **kwargs)
@@ -87,7 +86,7 @@ class TestH5StoreBase():
     def assertEqual(self, a, b):
         if hasattr(a, 'shape'):
             if not NUMPY:
-                raise unittest.SkipTest("This test requires the numpy package.")
+                raise pytest.skip("This test requires the numpy package.")
             numpy.testing.assert_array_equal(a, b)
         else:
             assert a == b
