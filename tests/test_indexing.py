@@ -63,13 +63,6 @@ def get_crawlers(root):
 """
 
 
-def deprecated_call(fun):
-    def modified_fun(*argv, **kwargs):
-        with pytest.deprecated_call():
-            return fun(*argv, **kwargs)
-    return modified_fun
-
-
 class TestFormat(object):
 
     def read(self):
@@ -155,7 +148,6 @@ class TestIndexingBase():
         c = Collection()
         return Mock(spec=c, wraps=c)
 
-    @deprecated_call
     def test_base_crawler(self):
         crawler = indexing.BaseCrawler(root=self._tmp_dir.name)
         assert len(list(crawler.crawl())) == 0
@@ -167,7 +159,6 @@ class TestIndexingBase():
             for doc in crawler.docs_from_file(None, None):
                 pass
 
-    @deprecated_call
     def test_regex_file_crawler_pre_compiled(self):
         self.setup_project()
 
@@ -175,21 +166,22 @@ class TestIndexingBase():
             pass
 
         regex = re.compile(r".*a_(?P<a>\d)\.txt")
-        Crawler.define(regex, TestFormat)
+        with pytest.deprecated_call():
+            Crawler.define(regex, TestFormat)
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
-        for doc in crawler.crawl():
-            no_find = False
-            ffn = os.path.join(doc['root'], doc['filename'])
-            m = regex.match(ffn)
-            assert m is not None
-            assert os.path.isfile(ffn)
-            with open(ffn) as file:
-                doc2 = json.load(file)
-                assert doc2['a'] == doc['a']
+        with pytest.deprecated_call():
+            for doc in crawler.crawl():
+                no_find = False
+                ffn = os.path.join(doc['root'], doc['filename'])
+                m = regex.match(ffn)
+                assert m is not None
+                assert os.path.isfile(ffn)
+                with open(ffn) as file:
+                    doc2 = json.load(file)
+                    assert doc2['a'] == doc['a']
         assert not no_find
 
-    @deprecated_call
     def test_regex_file_crawler(self):
         self.setup_project()
 
@@ -198,31 +190,33 @@ class TestIndexingBase():
 
         # First test without pattern
         crawler = Crawler(root=self._tmp_dir.name)
-        assert len(list(crawler.crawl())) == 0
+        with pytest.deprecated_call():
+            assert len(list(crawler.crawl())) == 0
 
         # Now with pattern(s)
         pattern = r".*a_(?P<a>\d)\.txt"
         regex = re.compile(pattern)
-        Crawler.define(pattern, TestFormat)
-        Crawler.define("negativematch", "negativeformat")
+        with pytest.deprecated_call():
+            Crawler.define(pattern, TestFormat)
+            Crawler.define("negativematch", "negativeformat")
         crawler = Crawler(root=self._tmp_dir.name)
         no_find = True
-        for doc in crawler.crawl():
-            no_find = False
-            ffn = os.path.join(doc['root'], doc['filename'])
-            m = regex.match(ffn)
-            assert m is not None
-            assert os.path.isfile(ffn)
-            with open(ffn) as file:
-                doc2 = json.load(file)
-                assert doc2['a'] == doc['a']
-        assert not no_find
-        with pytest.raises(errors.FetchError):
-            crawler.fetch(dict())
-        with pytest.raises(errors.FetchError):
-            crawler.fetch({'filename': 'shouldnotmatch'})
+        with pytest.deprecated_call():
+            for doc in crawler.crawl():
+                no_find = False
+                ffn = os.path.join(doc['root'], doc['filename'])
+                m = regex.match(ffn)
+                assert m is not None
+                assert os.path.isfile(ffn)
+                with open(ffn) as file:
+                    doc2 = json.load(file)
+                    assert doc2['a'] == doc['a']
+            assert not no_find
+            with pytest.raises(errors.FetchError):
+                crawler.fetch(dict())
+            with pytest.raises(errors.FetchError):
+                crawler.fetch({'filename': 'shouldnotmatch'})
 
-    @deprecated_call
     def test_regex_file_crawler_inheritance(self):
         self.setup_project()
 
@@ -232,8 +226,9 @@ class TestIndexingBase():
         class CrawlerB(indexing.RegexFileCrawler):
             pass
 
-        CrawlerA.define('a', TestFormat)
-        CrawlerB.define('b', TestFormat)
+        with pytest.deprecated_call():
+            CrawlerA.define('a', TestFormat)
+            CrawlerB.define('b', TestFormat)
         assert len(CrawlerA.definitions) == 1
         assert len(CrawlerB.definitions) == 1
 
@@ -243,41 +238,44 @@ class TestIndexingBase():
         assert len(CrawlerA.definitions) == 1
         assert len(CrawlerC.definitions) == 1
         assert len(CrawlerB.definitions) == 1
-        CrawlerC.define('c', TestFormat)
+        with pytest.deprecated_call():
+            CrawlerC.define('c', TestFormat)
         assert len(CrawlerA.definitions) == 1
         assert len(CrawlerB.definitions) == 1
         assert len(CrawlerC.definitions) == 2
 
-    @deprecated_call
     def test_index_files(self):
         self.setup_project()
 
         # First test without pattern
         root = self._tmp_dir.name
-        assert len(list(signac.index_files(root))) == 5
+        with pytest.deprecated_call():
+            assert len(list(signac.index_files(root))) == 5
 
         # Now with pattern(s)
         pattern_positive = r".*a_(?P<a>\d)\.txt"
         pattern_negative = "nomatch"
 
-        assert len(list(signac.index_files(root, pattern_positive))) == 2
-        assert len(list(signac.index_files(root, pattern_negative))) == 0
+        with pytest.deprecated_call():
+            assert len(list(signac.index_files(root, pattern_positive))) == 2
+            assert len(list(signac.index_files(root, pattern_negative))) == 0
 
-        no_find = True
-        for doc in signac.index_files(root, pattern_positive):
-            no_find = False
-            ffn = os.path.join(doc['root'], doc['filename'])
-            assert re.match(r".*a_(?P<a>\d)\.txt", ffn) is not None
-            assert os.path.isfile(ffn)
-            with open(ffn) as file:
-                doc2 = json.load(file)
-                assert doc2['a'] == doc['a']
+            no_find = True
+            for doc in signac.index_files(root, pattern_positive):
+                no_find = False
+                ffn = os.path.join(doc['root'], doc['filename'])
+                assert re.match(r".*a_(?P<a>\d)\.txt", ffn) is not None
+                assert os.path.isfile(ffn)
+                with open(ffn) as file:
+                    doc2 = json.load(file)
+                    assert doc2['a'] == doc['a']
         assert not no_find
 
-    @deprecated_call
     def test_json_crawler(self):
         self.setup_project()
-        crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
+        with pytest.deprecated_call():
+            crawler = indexing.JSONCrawler(root=self._tmp_dir.name)
+        # with pytest.deprecated_call():
         docs = list(sorted(crawler.crawl(), key=lambda d: d['a']))
         assert len(docs) == 2
         for i, doc in enumerate(docs):
@@ -286,29 +284,29 @@ class TestIndexingBase():
         ids = set(doc['_id'] for doc in docs)
         assert len(ids) == len(docs)
 
-    @deprecated_call
     def test_master_crawler(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         no_find = True
-        for doc in crawler.crawl():
-            no_find = False
-            ffn = os.path.join(doc['root'], doc['filename'])
-            assert os.path.isfile(ffn)
-            with open(ffn) as file:
-                doc2 = json.load(file)
-                assert doc2['a'] == doc['a']
-            with signac.fetch(doc) as file:
-                pass
+        with pytest.deprecated_call():
+            for doc in crawler.crawl():
+                no_find = False
+                ffn = os.path.join(doc['root'], doc['filename'])
+                assert os.path.isfile(ffn)
+                with open(ffn) as file:
+                    doc2 = json.load(file)
+                    assert doc2['a'] == doc['a']
+                with signac.fetch(doc) as file:
+                    pass
         assert not no_find
 
-    @deprecated_call
     def test_index(self):
         self.setup_project()
         root = self._tmp_dir.name
-        assert len(list(signac.index(root=root))) == 0
-        index = signac.index(root=self._tmp_dir.name, tags={'test1'})
+        with pytest.deprecated_call():
+            assert len(list(signac.index(root=root))) == 0
+            index = signac.index(root=self._tmp_dir.name, tags={'test1'})
         no_find = True
         for doc in index:
             no_find = False
@@ -317,65 +315,71 @@ class TestIndexingBase():
             with open(ffn) as file:
                 doc2 = json.load(file)
                 assert doc2['a'] == doc['a']
-            with signac.fetch(doc) as file:
-                pass
+            with pytest.deprecated_call():
+                with signac.fetch(doc) as file:
+                    pass
         assert not no_find
 
-    @deprecated_call
     def test_fetch(self):
-        with pytest.raises(ValueError):
-            signac.fetch(None)
-        with pytest.raises(errors.FetchError):
-            signac.fetch(dict())
+        with pytest.deprecated_call():
+            with pytest.raises(ValueError):
+                signac.fetch(None)
+            with pytest.raises(errors.FetchError):
+                signac.fetch(dict())
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
-        docs = list(crawler.crawl())
+        with pytest.deprecated_call():
+            docs = list(crawler.crawl())
         assert len(docs) == 2
         for doc in docs:
-            with signac.fetch(doc) as file:
-                pass
-        for doc, file in indexing.fetched(docs):
-            doc2 = json.load(file)
-            assert doc['a'] == doc2['a']
-            file.close()
+            with pytest.deprecated_call():
+                with signac.fetch(doc) as file:
+                    pass
+        with pytest.deprecated_call():
+            for doc, file in indexing.fetched(docs):
+                doc2 = json.load(file)
+                assert doc['a'] == doc2['a']
+                file.close()
 
-    @deprecated_call
     def test_export_one(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
-        for doc in crawler.crawl():
-            signac.export_one(doc, index)
-        assert index.replace_one.called
-        for doc in crawler.crawl():
-            assert index.find_one({'_id': doc['_id']}) is not None
+        with pytest.deprecated_call():
+            for doc in crawler.crawl():
+                signac.export_one(doc, index)
+            assert index.replace_one.called
+            for doc in crawler.crawl():
+                assert index.find_one({'_id': doc['_id']}) is not None
 
-    @deprecated_call
     def test_export(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
-        signac.export(crawler.crawl(), index)
-        assert index.replace_one.called or index.bulk_write.called
-        for doc in crawler.crawl():
-            assert index.find_one({'_id': doc['_id']}) is not None
+        with pytest.deprecated_call():
+            signac.export(crawler.crawl(), index)
+            assert index.replace_one.called or index.bulk_write.called
+            for doc in crawler.crawl():
+                assert index.find_one({'_id': doc['_id']}) is not None
 
-    @deprecated_call
     def test_export_with_update(self):
         self.setup_project()
-        index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
+        with pytest.deprecated_call():
+            index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
         collection = self.get_index_collection()
-        signac.export(index, collection, update=True)
+        with pytest.deprecated_call():
+            signac.export(index, collection, update=True)
         assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
             assert collection.find_one({'_id': doc['_id']}) is not None
         collection.reset_mock()
         assert len(index) == collection.find().count()
         assert collection.find.called
-        signac.export(index, collection, update=True)
+        with pytest.deprecated_call():
+            signac.export(index, collection, update=True)
         assert collection.replace_one.called or collection.bulk_write.called
         for doc in index:
             assert collection.find_one({'_id': doc['_id']}) is not None
@@ -384,69 +388,71 @@ class TestIndexingBase():
         for fn in ('a_0.txt', 'a_1.txt'):
             os.remove(os.path.join(self._tmp_dir.name, fn))
             N = len(index)
-            index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
+            with pytest.deprecated_call():
+                index = list(signac.index(root=self._tmp_dir.name, tags={'test1'}))
             assert len(index) == (N - 1)
             collection.reset_mock()
             if index:
-                signac.export(index, collection, update=True)
+                with pytest.deprecated_call():
+                    signac.export(index, collection, update=True)
                 assert collection.replace_one.called or collection.bulk_write.called
                 assert len(index) == collection.find().count()
             else:
                 with pytest.raises(errors.ExportError):
-                    signac.export(index, collection, update=True)
+                    with pytest.deprecated_call():
+                        signac.export(index, collection, update=True)
 
-    @deprecated_call
     def test_export_to_mirror(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         mirror = TestFS()
-        for doc in crawler.crawl():
-            assert 'file_id' in doc
-            doc.pop('file_id')
-            with pytest.raises(errors.ExportError):
+        with pytest.deprecated_call():
+            for doc in crawler.crawl():
+                assert 'file_id' in doc
+                doc.pop('file_id')
+                with pytest.raises(errors.ExportError):
+                    signac.export_to_mirror(doc, mirror)
+                break
+            for doc in crawler.crawl():
+                assert 'file_id' in doc
+                signac.export_one(doc, index)
                 signac.export_to_mirror(doc, mirror)
-            break
-        for doc in crawler.crawl():
-            assert 'file_id' in doc
-            signac.export_one(doc, index)
-            signac.export_to_mirror(doc, mirror)
-        assert index.replace_one.called
-        for doc in crawler.crawl():
-            assert index.find_one({'_id': doc['_id']}) is not None
-            with mirror.get(doc['file_id']):
-                pass
+            assert index.replace_one.called
+            for doc in crawler.crawl():
+                assert index.find_one({'_id': doc['_id']}) is not None
+                with mirror.get(doc['file_id']):
+                    pass
 
-    @deprecated_call
     def test_master_crawler_tags(self):
         self.setup_project()
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
-        assert 0 == len(list(crawler.crawl()))
-        crawler.tags = None
-        assert 0 == len(list(crawler.crawl()))
-        crawler.tags = {}
-        assert 0 == len(list(crawler.crawl()))
-        crawler.tags = {'nomatch'}
-        assert 0 == len(list(crawler.crawl()))
-        crawler.tags = {'test1'}
-        assert 2 == len(list(crawler.crawl()))
-        crawler.tags = {'test2'}
-        assert 2 == len(list(crawler.crawl()))
-        crawler.tags = {'test1', 'test2'}
-        assert 2 == len(list(crawler.crawl()))
-        crawler.tags = {'test1', 'non-existent-key'}
-        assert 2 == len(list(crawler.crawl()))
-        crawler.tags = {'test2', 'non-existent-key'}
-        assert 2 == len(list(crawler.crawl()))
-        crawler.tags = {'test1', 'test2', 'non-existent-key'}
-        assert 2 == len(list(crawler.crawl()))
+        with pytest.deprecated_call():
+            assert 0 == len(list(crawler.crawl()))
+            crawler.tags = None
+            assert 0 == len(list(crawler.crawl()))
+            crawler.tags = {}
+            assert 0 == len(list(crawler.crawl()))
+            crawler.tags = {'nomatch'}
+            assert 0 == len(list(crawler.crawl()))
+            crawler.tags = {'test1'}
+            assert 2 == len(list(crawler.crawl()))
+            crawler.tags = {'test2'}
+            assert 2 == len(list(crawler.crawl()))
+            crawler.tags = {'test1', 'test2'}
+            assert 2 == len(list(crawler.crawl()))
+            crawler.tags = {'test1', 'non-existent-key'}
+            assert 2 == len(list(crawler.crawl()))
+            crawler.tags = {'test2', 'non-existent-key'}
+            assert 2 == len(list(crawler.crawl()))
+            crawler.tags = {'test1', 'test2', 'non-existent-key'}
+            assert 2 == len(list(crawler.crawl()))
 
 
 @pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
 class TestIndexingPyMongo(TestIndexingBase):
 
-    @deprecated_call
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         db.test_index.drop()

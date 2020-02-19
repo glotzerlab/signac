@@ -15,13 +15,6 @@ import signac
 WINDOWS = (sys.platform == 'win32')
 
 
-def deprecated_call(fun):
-    def new_fun(*argv, **kwargs):
-        with pytest.deprecated_call():
-            return fun(*argv, **kwargs)
-    return new_fun
-
-
 class DummyFile(object):
     "We redirect sys stdout into this file during console tests."
 
@@ -123,15 +116,15 @@ class TestBasicShell():
             sp = self.call('python -m signac statepoint {}'.format(job).split())
             assert project.open_job(json.loads(sp)) == job
 
-    @deprecated_call
     def test_index(self):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac project --access'.split())
         project = signac.Project()
         project.open_job({'a': 0}).init()
         assert len(project) == 1
-        assert len(list(project.index())) == 1
-        assert len(list(signac.index())) == 1
+        with pytest.deprecated_call():
+            assert len(list(project.index())) == 1
+            assert len(list(signac.index())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
         assert 'statepoint' in doc
         assert doc['statepoint'] == {'a': 0}
@@ -172,7 +165,6 @@ class TestBasicShell():
             assert os.path.realpath('view/a/{}/job'.format(sp['a'])) == \
                 os.path.realpath(project.open_job(sp).workspace())
 
-    @deprecated_call
     def test_find(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -181,20 +173,20 @@ class TestBasicShell():
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
-        assert set(job_ids) == set(project.find_job_ids())
-        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-            list(project.find_job_ids({'a': 0}))[0]
+        with pytest.deprecated_call():
+            assert set(job_ids) == set(project.find_job_ids())
+            assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
+                list(project.find_job_ids({'a': 0}))[0]
 
         # Test the doc_filter
         for job in project.find_jobs():
             job.document['a'] = job.statepoint()['a']
+        with pytest.deprecated_call():
+            for i in range(3):
+                assert self.call('python -m signac find --doc-filter'.split() +
+                                 ['{"a": ' + str(i) + '}']).strip() == \
+                    list(project.find_job_ids(doc_filter={'a': i}))[0]
 
-        for i in range(3):
-            assert self.call('python -m signac find --doc-filter'.split() +
-                             ['{"a": ' + str(i) + '}']).strip() == \
-                list(project.find_job_ids(doc_filter={'a': i}))[0]
-
-    @deprecated_call
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -206,10 +198,12 @@ class TestBasicShell():
         assert job_to_remove in project
         assert job_to_remove.doc.a == 0
         assert len(job_to_remove.doc) == 1
-        self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
+        with pytest.deprecated_call():
+            self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove in project
         assert len(job_to_remove.doc) == 0
-        self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
+        with pytest.deprecated_call():
+            self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove not in project
 
     def test_shell(self):
@@ -231,7 +225,6 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
-    @deprecated_call
     def test_shell_with_jobs_and_selection(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -245,7 +238,6 @@ class TestBasicShell():
         n = len(project.find_jobs({'a': {'$gt': 0}}))
         assert out.strip() == '>>> {} None {}'.format(project, n)
 
-    @deprecated_call
     def test_shell_with_jobs_and_selection_only_one_job(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
