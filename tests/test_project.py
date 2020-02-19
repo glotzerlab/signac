@@ -11,12 +11,14 @@ import itertools
 import json
 import pickle
 import string
+import warnings
 import pytest
 from tarfile import TarFile
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
 from packaging import version
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, contextmanager
+from time import time
 
 
 import signac
@@ -31,6 +33,7 @@ from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.common.config import get_config
 
 from test_job import TestJobBase
+import test_h5store
 
 
 try:
@@ -46,6 +49,11 @@ try:
 except ImportError:
     H5PY = False
 
+try:
+    import numpy    # noqa
+    NUMPY = True
+except ImportError:
+    NUMPY = False
 
 # Skip linked view tests on Windows
 WINDOWS = (sys.platform == 'win32')
@@ -171,6 +179,7 @@ class TestProject(TestProjectBase):
         assert self.project.doc == {'a': {'b': 45}}
 
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
+    @pytest.mark.skipIf(not NUMPY, reason='test requires the numpy package')
     def test_data(self):
         with self.project.data:
             assert not self.project.data
@@ -194,6 +203,8 @@ class TestProject(TestProjectBase):
             assert self.project.data == {'a': {'b': 43}}
             self.project.data.a.b = 44
             assert self.project.data == {'a': {'b': 44}}
+            self.project.data['c'] = numpy.zeros(10)
+            numpy.testing.assert_array_equal(self.project.data['c'], numpy.zeros(10))
         # This setter will overwrite the file. We leave the context manager so
         # that the file is closed before overwriting it.
         self.project.data = {'a': {'b': 45}}
@@ -2135,3 +2146,136 @@ class TestTestingProjectInitialization(TestProjectBase):
                 assert len(tmp_project) == len(jobs)
                 # check that call does not fail:
                 tmp_project.detect_schema()
+
+
+class TestProjectStoreBase(test_h5store.TestH5StoreBase):
+
+    project_class = signac.Project
+
+    @pytest.fixture(autouse=True)
+    def setUp_base_h5Store(self, request):
+        self._tmp_dir = TemporaryDirectory(prefix='signac_')
+        request.addfinalizer(self._tmp_dir.cleanup)
+        self._tmp_pr = os.path.join(self._tmp_dir.name, 'pr')
+        self._tmp_wd = os.path.join(self._tmp_dir.name, 'wd')
+        os.mkdir(self._tmp_pr)
+        self.config = signac.common.config.load_config()
+        self.project = self.project_class.init_project(
+            name='testing_test_project',
+            root=self._tmp_pr,
+            workspace=self._tmp_wd)
+
+        warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
+        self._fn_store = os.path.join(self._tmp_dir.name, 'signac_data.h5')
+        self._fn_store_other = os.path.join(self._tmp_dir.name, 'other.h5')
+
+    def get_h5store(self):
+        return self.project.data
+
+    @contextmanager
+    def open_h5store(self, **kwargs):
+        with self.get_h5store().open(**kwargs) as h5s:
+            yield h5s
+
+    def get_other_h5store(self):
+        return self.project.stores['other']
+
+    @contextmanager
+    def open_other_h5store(self, **kwargs):
+        with self.get_other_h5store().open(**kwargs) as h5s:
+            yield h5s
+
+
+class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
+
+    """
+    This test opens multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    This test will (and should) fail using the project data interface.
+    """
+    def test_assign_valid_types_within_same_file(self):
+        pass
+
+
+class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
+
+    """
+    This test opens multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    This test will (and should) fail using the project data interface.
+    """
+    def test_open_write_and_read_only(self):
+        pass
+
+
+class TestProjectStoreNestedData(TestProjectStore, test_h5store.TestH5StoreNestedData):
+    pass
+
+
+class TestProjectStoreBytes(TestProjectStore, test_h5store.TestH5StoreBytesData):
+    pass
+
+
+class TestProjectStoreClosed(TestProjectStore, test_h5store.TestH5StoreClosed):
+    pass
+
+
+class TestProjectStoreNestedDataClosed(TestProjectStoreNestedData, test_h5store.TestH5StoreNestedDataClosed):
+    pass
+
+
+class TestProjectStorePandasData(TestProjectStore, test_h5store.TestH5StorePandasData):
+    pass
+
+class TestProjectStoreNestedPandasData(TestProjectStorePandasData, test_h5store.TestH5StoreNestedPandasData):
+    pass
+
+
+class TestProjectStoreMultiThreading(TestProjectStoreBase, test_h5store.TestH5StoreMultiThreading):
+    pass
+
+
+class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing):
+
+    """
+    These tests open multiple instances of H5Store, but
+    the project data interface opens one instance of H5Store.
+    Theses tests will (and should) fail using the project data interface.
+    """
+    @contextmanager
+    def open_h5store(self, **kwargs):
+        with signac.H5Store(self.project.fn('signac_data.h5')) as h5:
+            yield h5
+
+    def test_single_writer_multiple_reader_same_instance(self):
+        pass
+
+    def test_multiple_reader_different_process_no_swmr(self):
+        pass
+
+    def test_single_writer_multiple_reader_different_process_no_swmr(self):
+        pass
+
+    def test_single_writer_multiple_reader_different_process_swmr(self):
+        pass
+
+
+class TestProjectStorePerformance(TestProjectStoreBase, test_h5store.TestH5StorePerformance):
+
+    @pytest.fixture
+    def setUp(self, setUp_base_h5Store):
+        value = TestProjectStorePerformance.get_testdata(self)
+        times = numpy.zeros(200)
+        for i in range(len(times)):
+            start = time()
+            with h5py.File(self._fn_store, mode='a') as h5file:
+                if i:
+                    del h5file['_basegroup']
+                h5file.create_group('_basegroup').create_dataset(
+                    '_baseline', data=value, shape=None)
+            times[i] = time() - start
+        self.baseline_time = times
+
+
+class TestProjectStorePerformanceNestedData(TestProjectStorePerformance, test_h5store.TestH5StorePerformance):
+    pass
