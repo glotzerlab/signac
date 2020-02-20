@@ -72,7 +72,7 @@ class TestFormat(object):
         assert 0
 
 
-class TestFS(object):
+class _TestFS(object):
     name = 'inmemorytestgrid'
     files = dict()
 
@@ -88,9 +88,9 @@ class TestFS(object):
 
         def close(self):
             self.cache[self.file_id] = self.getvalue()
-            super(TestFS._Writer, self).close()
+            super(_TestFS._Writer, self).close()
 
-    def __init__(self, _id='testfs'):
+    def __init__(self, _id='_testFS'):
         self._id = _id
 
     def config(self):
@@ -98,7 +98,7 @@ class TestFS(object):
 
     @classmethod
     def from_config(cls, config):
-        return TestFS(_id=config['id'])
+        return _TestFS(_id=config['id'])
 
     def new_file(self, mode='xb', **kwargs):
         _id = kwargs['_id']
@@ -407,7 +407,7 @@ class TestIndexingBase():
         crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
-        mirror = TestFS()
+        mirror = _TestFS()
         with pytest.deprecated_call():
             for doc in crawler.crawl():
                 assert 'file_id' in doc
@@ -418,6 +418,7 @@ class TestIndexingBase():
             for doc in crawler.crawl():
                 assert 'file_id' in doc
                 signac.export_one(doc, index)
+
                 signac.export_to_mirror(doc, mirror)
             assert index.replace_one.called
             for doc in crawler.crawl():
