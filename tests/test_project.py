@@ -164,7 +164,7 @@ class TestProject(TestProjectBase):
         assert self.project.doc == {'a': {'b': 45}}
 
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
-    @pytest.mark.skipIf(not NUMPY, reason='test requires the numpy package')
+    @pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
     def test_data(self):
         with self.project.data:
             assert not self.project.data
