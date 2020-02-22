@@ -232,7 +232,7 @@ def _extract(filename):
 
 def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict.
-    
+
     :param sp: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
     :params delimiter_nested: A string to represent delimiter between keys.
     :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
@@ -274,7 +274,7 @@ def _encode_tree(x):
 def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     """Convert dict of dict representation of nested dict to string 
     with dotted keys.
-    
+
     :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
     :param encode: None to skip encoding.
     :returns: A mapping with dots in its keys, e.g. {'a.b': 'c'}.
