@@ -272,7 +272,7 @@ def _encode_tree(x):
 
 
 def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
-    """Convert dict of dict representation of nested dict to string 
+    """Convert dict of dict representation of nested dict to string
     with dotted keys.
 
     :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
