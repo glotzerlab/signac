@@ -2,7 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from .contrib.utility import _dotted_keys_to_nested_dicts
-from .contrib.utility import _nested_dicts_to_dotted_keys_filter
+from .contrib.utility import _nested_dicts_to_dotted_keys
 
 
 def diff_jobs(*jobs):
@@ -49,7 +49,7 @@ def diff_jobs(*jobs):
     else:
         sps = {}
         for job in jobs:
-            sps[job] = set(_nested_dicts_to_dotted_keys_filter(job.sp()))
+            sps[job] = set(_nested_dicts_to_dotted_keys(job.sp()))
 
         intersection = set.intersection(*sps.values())
 

@@ -231,7 +231,12 @@ def _extract(filename):
 
 
 def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
-    """Convert dotted keys in the state point dict to a nested dict."""
+    """Convert dotted keys in the state point dict to a nested dict.
+    
+    :param sp: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
+    :params delimiter_nested: A string to represent delimiter between keys.
+    :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    """
     ret = dict()
     for key, value in sp.items():
         tokens = key.split(delimiter_nested)
@@ -266,8 +271,14 @@ def _encode_tree(x):
         return x
 
 
-def _nested_dicts_to_dotted_keys(t, encode=None, key=None):
-    """Convert nested dict to dotted keys."""
+def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
+    """Convert dict of dict representation of nested dict to string 
+    with dotted keys.
+    
+    :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    :param encode: None to skip encoding.
+    :returns: A mapping with dots in its keys, e.g. {'a.b': 'c'}.
+    """
     if encode is not None:
         t = encode(t)
     if isinstance(t, Mapping):
@@ -280,8 +291,3 @@ def _nested_dicts_to_dotted_keys(t, encode=None, key=None):
             yield key, t
     else:
         yield key, t
-
-
-def _nested_dicts_to_dotted_keys_filter(t):
-    for key, value in _nested_dicts_to_dotted_keys(t, encode=_encode_tree):
-        yield key, value

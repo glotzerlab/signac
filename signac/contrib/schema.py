@@ -24,10 +24,10 @@ def _collect_by_type(values):
 def _build_job_statepoint_index(jobs, exclude_const, index):
     from .collection import Collection
     from .collection import _DictPlaceholder
-    from .utility import _nested_dicts_to_dotted_keys_filter
+    from .utility import _nested_dicts_to_dotted_keys
     collection = Collection(index, _trust=True)
     for doc in collection.find():
-        for key, _ in _nested_dicts_to_dotted_keys_filter(doc):
+        for key, _ in _nested_dicts_to_dotted_keys(doc):
             if key == '_id' or key.split('.')[0] != 'statepoint':
                 continue
             collection.index(key, build=True)

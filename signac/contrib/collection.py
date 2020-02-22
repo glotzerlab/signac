@@ -23,7 +23,7 @@ from numbers import Number
 from math import isclose
 
 from ..core import json
-from .utility import _nested_dicts_to_dotted_keys_filter
+from .utility import _nested_dicts_to_dotted_keys
 from .utility import _to_hashable
 from .filterparse import parse_filter_arg
 
@@ -613,7 +613,7 @@ class Collection(object):
         not_expression = expr.pop('$not', None)
 
         # Reduce the result based on the remaining non-logical expression:
-        for key, value in _nested_dicts_to_dotted_keys_filter(expr):
+        for key, value in _nested_dicts_to_dotted_keys(expr):
             reduce_results(self._find_expression(key, value))
             if not result_ids:          # No match, no need to continue...
                 return set()
