@@ -63,6 +63,22 @@ WINDOWS = (sys.platform == 'win32')
 test_token = {'test_token': str(uuid.uuid4())}
 
 
+S_FORMAT1 = \
+'''{
+ 'a': 'int([0, 1, 2, ..., 8, 9], 10)',
+ 'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
+ 'c.c2.c3.c4.c5': 'tuple([((0, 0, 0),), ((1, 0, 0),), ((2, 0, 0),), ..., ((8, 0, 0),), ((9, 0, 0),)], 10)',
+ 'const': 'int([0], 1)',
+}'''
+
+
+S_FORMAT2 = \
+'''{'a': 'int([0, 1, 2, ..., 8, 9], 10)',
+ 'b': {'b2': 'int([0, 1, 2, ..., 8, 9], 10)'},
+ 'c': {'c2': {...}},
+ 'const': 'int([0], 1)'}'''
+
+
 class TestProjectBase(TestJobBase):
     pass
 
@@ -785,6 +801,22 @@ class TestProject(TestProjectBase):
         assert s.difference(s_) == s3.difference(s3_)
         assert len(s.difference(s_, ignore_values=True)) == 0
         assert len(s3.difference(s3_, ignore_values=True)) == 0
+
+    def test_schema_format(self):
+        for i in range(10):
+            self.project.open_job({
+                'const': 0,
+                'a': i,
+                'b': {'b2': i},
+                'c': {'c2': {'c3': {'c4': {'c5': [[i, 0, 0]]}}}}
+            }).init()
+
+        s = self.project.detect_schema()
+        s_format1 = s.format()
+        s_format2 = s.format(depth=2)
+
+        assert S_FORMAT1 == s_format1
+        assert S_FORMAT2 == s_format2   
 
     def test_jobs_groupby(self):
         def get_sp(i):

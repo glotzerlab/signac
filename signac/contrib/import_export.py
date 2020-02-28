@@ -18,6 +18,7 @@ from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError
 from .utility import _mkdir_p
+from .utility import _dotted_dict_to_nested_dicts
 
 import logging
 
@@ -53,7 +54,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
 
     paths = dict()
     for key_tokens, values in sp_index.items():
-        key = delimiter_nested.join(map(str, key_tokens))
+        key = key_tokens.replace('.', delimiter_nested)
         if exclude_keys and key in exclude_keys:
             continue
         for value, group in values.items():
@@ -335,24 +336,9 @@ def _make_path_based_schema_function(schema_path):
             for key in types:
                 if key in sp:
                     sp[key] = types[key](sp[key])
-            return _convert_to_nested(sp)
+            return _dotted_dict_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
 
     return parse_path
-
-
-def _convert_to_nested(sp):
-    """Convert a flat state point dict to a nested dict."""
-    ret = dict()
-    for key, value in sp.items():
-        tokens = key.split(_DOT_MAGIC_WORD)
-        if len(tokens) > 1:
-            tmp = ret.setdefault(tokens[0], dict())
-            for token in tokens[1:-1]:
-                tmp = tmp.setdefault(token, dict())
-            tmp[tokens[-1]] = value
-        else:
-            ret[tokens[0]] = value
-    return ret
 
 
 def _with_consistency_check(schema_function, read_sp_manifest_file):

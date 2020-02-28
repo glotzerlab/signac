@@ -23,11 +23,11 @@ def _collect_by_type(values):
 
 def _build_job_statepoint_index(jobs, exclude_const, index):
     from .collection import Collection
-    from .collection import _traverse_filter
     from .collection import _DictPlaceholder
+    from .utility import _nested_dicts_to_dotted_keys
     collection = Collection(index, _trust=True)
     for doc in collection.find():
-        for key, _ in _traverse_filter(doc):
+        for key, _ in _nested_dicts_to_dotted_keys(doc):
             if key == '_id' or key.split('.')[0] != 'statepoint':
                 continue
             collection.index(key, build=True)
@@ -42,7 +42,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
         if exclude_const and len(tmp[k]) == 1 \
                 and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
             continue
-        yield tuple(strip_prefix(k).split('.')), remove_dict_placeholder(tmp[k])
+        yield strip_prefix(k), remove_dict_placeholder(tmp[k])
 
 
 class ProjectSchema(object):
@@ -109,19 +109,21 @@ class ProjectSchema(object):
         if depth > 0:
             schema_dict = _Vividict()
             for key, values in self._schema.items():
-                if len(key) > 1:
-                    for k in key[:-1]:
-                        x = schema_dict[k]
-                    x[key[-1]] = _fmt_values(values)
+                keys = key.split('.')
+                if len(keys) > 1:
+                    x = schema_dict[keys[0]]
+                    for k in keys[1:-1]:
+                        x = x[k]
+                    x[keys[-1]] = _fmt_values(values)
                 else:
-                    schema_dict[key[0]] = _fmt_values(values)
+                    schema_dict[keys[0]] = _fmt_values(values)
             return pformat(schema_dict, depth=depth)
         else:
             ret = ['{']
             for key in sorted(self._schema):
                 values = self._schema[key]
                 if values:
-                    ret.append(" '{}': '{}',".format('.'.join(key), _fmt_values(values)))
+                    ret.append(" '{}': '{}',".format(key, _fmt_values(values)))
             ret.append('}')
             return '\n'.join(ret)
 
@@ -136,13 +138,14 @@ class ProjectSchema(object):
 
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
-            key_or_keys = key_or_keys.split('.')
-        return tuple(key_or_keys) in self._schema
+            return key_or_keys in self._schema
+        key_or_keys = '.'.join(key_or_keys)
+        return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
         if isinstance(key_or_keys, str):
-            key_or_keys = key_or_keys.split('.')
-        return self._schema.__getitem__(tuple(key_or_keys))
+            return self._schema[key_or_keys]
+        return self._schema['.'.join(key_or_keys)]
 
     def __iter__(self):
         return iter(self._schema)
@@ -181,11 +184,12 @@ class ProjectSchema(object):
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []
+            keys = key.split('.')
             for sp in it:
                 if not isinstance(sp, Mapping):
                     sp = sp.statepoint
-                v = sp[key[0]]
-                for k in key[1:]:
+                v = sp[keys[0]]
+                for k in keys[1:]:
                     v = v[k]
                 values.append(v)
             s[key] = _collect_by_type(values)

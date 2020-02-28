@@ -36,6 +36,7 @@ Removed
 
  - Removed vendored ``tqdm`` module and replaced it with a requirement (#289).
  - Removed support for ``rapidjson`` as an alternative JSON library (#285, #287).
+ - Removed tuple of keys implementation of Nested Dict (#272, #296).
 
 
 [1.3.0] -- 2019-12-20
