@@ -144,8 +144,8 @@ class ProjectSchema(object):
 
     def __getitem__(self, key_or_keys):
         if isinstance(key_or_keys, str):
-            return self._schema.__getitem__(key_or_keys)
-        return self._schema.__getitem__('.'.join(key_or_keys))
+            return self._schema[key_or_keys]
+        return self._schema['.'.join(key_or_keys)]
 
     def __iter__(self):
         return iter(self._schema)

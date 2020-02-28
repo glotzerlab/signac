@@ -234,7 +234,7 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict.
 
     :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
-    :param delimiter_nested: A string to represent delimiter between keys.
+    :param delimiter_nested: A string delimiter between keys, defaults to '.'.
     :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
     """
     nested_dict = dict()
@@ -276,7 +276,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
 
     :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
     :param encode: By default, values are encoded to be hashable. Use ``None`` to skip encoding.
-    :yields: Tuples of dotted key and value e.g. ('a.b': 'c').
+    :yields: Tuples of dotted key and value e.g. ('a.b', 'c').
     """
     if encode is not None:
         t = encode(t)
