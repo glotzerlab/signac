@@ -234,7 +234,7 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict.
 
     :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
-    :params delimiter_nested: A string to represent delimiter between keys.
+    :param delimiter_nested: A string to represent delimiter between keys.
     :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
     """
     nested_dict = dict()
