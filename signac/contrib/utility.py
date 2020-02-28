@@ -230,24 +230,24 @@ def _extract(filename):
             raise RuntimeError("Unknown file type: '{}'.".format(filename))
 
 
-def _dotted_keys_to_nested_dicts(sp, delimiter_nested='.'):
+def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict.
 
-    :param sp: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
+    :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
     :params delimiter_nested: A string to represent delimiter between keys.
     :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
     """
-    ret = dict()
-    for key, value in sp.items():
+    nested_dict = dict()
+    for key, value in dotted_dict.items():
         tokens = key.split(delimiter_nested)
         if len(tokens) > 1:
-            tmp = ret.setdefault(tokens[0], dict())
+            tmp = nested_dict.setdefault(tokens[0], dict())
             for token in tokens[1:-1]:
                 tmp = tmp.setdefault(token, dict())
             tmp[tokens[-1]] = value
         else:
-            ret[tokens[0]] = value
-    return ret
+            nested_dict[tokens[0]] = value
+    return nested_dict
 
 
 class _hashable_dict(dict):
@@ -272,12 +272,11 @@ def _encode_tree(x):
 
 
 def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
-    """Convert dict of dict representation of nested dict to string
-    with dotted keys.
+    """Generate tuples of key in dotted string format and value from nested dict.
 
     :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
-    :param encode: None to skip encoding.
-    :returns: A mapping with dots in its keys, e.g. {'a.b': 'c'}.
+    :param encode: By default, values are encoded to be hashable. Use ``None`` to skip encoding.
+    :yields: Tuples of dotted key and value e.g. ('a.b': 'c').
     """
     if encode is not None:
         t = encode(t)
@@ -285,7 +284,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
         if t:
             for k in t:
                 k_ = k if key is None else '.'.join((key, k))
-                for k__, v in _nested_dicts_to_dotted_keys(t[k], key=k_, encode=encode):
+                for k__, v in _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_):
                     yield k__, v
         elif key is not None:
             yield key, t

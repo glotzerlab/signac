@@ -1,7 +1,7 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from .contrib.utility import _dotted_keys_to_nested_dicts
+from .contrib.utility import _dotted_dict_to_nested_dicts
 from .contrib.utility import _nested_dicts_to_dotted_keys
 
 

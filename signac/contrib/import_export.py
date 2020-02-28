@@ -18,7 +18,7 @@ from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError
 from .utility import _mkdir_p
-from .utility import _dotted_keys_to_nested_dicts
+from .utility import _dotted_dict_to_nested_dicts
 
 import logging
 
@@ -336,7 +336,7 @@ def _make_path_based_schema_function(schema_path):
             for key in types:
                 if key in sp:
                     sp[key] = types[key](sp[key])
-            return _dotted_keys_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
+            return _dotted_dict_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
 
     return parse_path
 

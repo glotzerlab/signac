@@ -137,14 +137,15 @@ class ProjectSchema(object):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
     def __contains__(self, key_or_keys):
-        if isinstance(key_or_keys, tuple) or isinstance(key_or_keys, list):
-            key_or_keys = '.'.join(key_or_keys)
+        if isinstance(key_or_keys, str):
+            return key_or_keys in self._schema
+        key_or_keys = '.'.join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
-        if isinstance(key_or_keys, tuple) or isinstance(key_or_keys, list):
-            key_or_keys = '.'.join(key_or_keys)
-        return self._schema.__getitem__(key_or_keys)
+        if isinstance(key_or_keys, str):
+            return self._schema.__getitem__(key_or_keys)
+        return self._schema.__getitem__('.'.join(key_or_keys))
 
     def __iter__(self):
         return iter(self._schema)
