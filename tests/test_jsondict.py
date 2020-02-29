@@ -25,7 +25,6 @@ class TestJSONDictBase():
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
-        
 
 
 class TestJSONDict(TestJSONDictBase):

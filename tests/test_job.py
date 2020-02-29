@@ -23,7 +23,6 @@ from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
 
-
 try:
     import h5py    # noqa
     H5PY = True

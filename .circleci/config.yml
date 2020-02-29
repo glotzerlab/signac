@@ -19,8 +19,8 @@ jobs:
       - run:
           name: style-check
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.1
-            python -m flake8 --show-source signac/
+            pip install --progress-bar off --user -U flake8==3.7.9
+            python -m flake8 --show-source .
 
 
   linux-python-38: &linux-template
@@ -155,8 +155,7 @@ jobs:
       - run:
           name: test-deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .test-deploy.bash
+            bash .circleci/deploy.bash testpypi
 
   deploy-pypi:
     docker:
@@ -167,8 +166,7 @@ jobs:
       - run:
           name: deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .deploy.bash
+            bash .circleci/deploy.bash pypi
 
 
 workflows:
