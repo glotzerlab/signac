@@ -27,7 +27,6 @@ from tempfile import TemporaryDirectory
 from unittest.mock import Mock
 
 
-
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
 import re
 

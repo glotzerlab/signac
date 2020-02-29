@@ -84,7 +84,8 @@ class TestBasicShell():
     def test_project_workspace(self):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
-        assert os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()) == \
+        assert os.path.realpath(self.call(
+                'python -m signac project --workspace'.split()).strip()) == \
             os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
 
     def test_job_with_argument(self):

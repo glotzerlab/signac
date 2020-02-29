@@ -63,20 +63,18 @@ WINDOWS = (sys.platform == 'win32')
 test_token = {'test_token': str(uuid.uuid4())}
 
 
-S_FORMAT1 = \
-'''{
+S_FORMAT1 = """{
  'a': 'int([0, 1, 2, ..., 8, 9], 10)',
  'b.b2': 'int([0, 1, 2, ..., 8, 9], 10)',
  'c.c2.c3.c4.c5': 'tuple([((0, 0, 0),), ((1, 0, 0),), ((2, 0, 0),), ..., ((8, 0, 0),), ((9, 0, 0),)], 10)',
  'const': 'int([0], 1)',
-}'''
+}"""  # noqa: E501
 
 
-S_FORMAT2 = \
-'''{'a': 'int([0, 1, 2, ..., 8, 9], 10)',
+S_FORMAT2 = """{'a': 'int([0, 1, 2, ..., 8, 9], 10)',
  'b': {'b2': 'int([0, 1, 2, ..., 8, 9], 10)'},
  'c': {'c2': {...}},
- 'const': 'int([0], 1)'}'''
+ 'const': 'int([0], 1)'}"""
 
 
 class TestProjectBase(TestJobBase):
@@ -816,7 +814,7 @@ class TestProject(TestProjectBase):
         s_format2 = s.format(depth=2)
 
         assert S_FORMAT1 == s_format1
-        assert S_FORMAT2 == s_format2   
+        assert S_FORMAT2 == s_format2
 
     def test_jobs_groupby(self):
         def get_sp(i):
@@ -2280,14 +2278,17 @@ class TestProjectStoreClosed(TestProjectStore, test_h5store.TestH5StoreClosed):
     pass
 
 
-class TestProjectStoreNestedDataClosed(TestProjectStoreNestedData, test_h5store.TestH5StoreNestedDataClosed):
+class TestProjectStoreNestedDataClosed(TestProjectStoreNestedData,
+                                       test_h5store.TestH5StoreNestedDataClosed):
     pass
 
 
 class TestProjectStorePandasData(TestProjectStore, test_h5store.TestH5StorePandasData):
     pass
 
-class TestProjectStoreNestedPandasData(TestProjectStorePandasData, test_h5store.TestH5StoreNestedPandasData):
+
+class TestProjectStoreNestedPandasData(TestProjectStorePandasData,
+                                       test_h5store.TestH5StoreNestedPandasData):
     pass
 
 
@@ -2295,7 +2296,8 @@ class TestProjectStoreMultiThreading(TestProjectStoreBase, test_h5store.TestH5St
     pass
 
 
-class TestProjectStoreMultiProcessing(TestProjectStoreBase, test_h5store.TestH5StoreMultiProcessing):
+class TestProjectStoreMultiProcessing(TestProjectStoreBase,
+                                      test_h5store.TestH5StoreMultiProcessing):
 
     """
     These tests open multiple instances of H5Store, but
@@ -2337,5 +2339,6 @@ class TestProjectStorePerformance(TestProjectStoreBase, test_h5store.TestH5Store
         self.baseline_time = times
 
 
-class TestProjectStorePerformanceNestedData(TestProjectStorePerformance, test_h5store.TestH5StorePerformance):
+class TestProjectStorePerformanceNestedData(TestProjectStorePerformance,
+                                            test_h5store.TestH5StorePerformance):
     pass

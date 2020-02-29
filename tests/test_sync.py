@@ -250,7 +250,6 @@ class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
         request.addfinalizer(self._tmp_dir.cleanup)
         self.doc = JSONDict(
             filename=os.path.join(self._tmp_dir.name, 'doc.json'))
-        
 
 
 class TestJobSync(TestJobBase):
@@ -549,7 +548,6 @@ class ProjectSyncTest():
             name='test-project-a', root=self._tmp_pr_a)
         self.project_b = signac.Project.init_project(
             name='test-project-b', root=self._tmp_pr_b)
-        
 
     def _init_job(self, job, data='data'):
         with job:

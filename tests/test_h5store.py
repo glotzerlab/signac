@@ -23,7 +23,6 @@ from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenE
 from signac.errors import InvalidKeyError
 
 
-
 PYPY = 'PyPy' in platform.python_implementation()
 
 try:
