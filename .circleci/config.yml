@@ -68,13 +68,9 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then
-              ${PYTHON} -m coverage run -m pytest tests/ -v
-              ${PYTHON} -m coverage report -i
-              codecov
-            else
-              ${PYTHON} -m pytest tests/ -v
-            fi
+            ${PYTHON} -m coverage run -m pytest tests/ -v
+            ${PYTHON} -m coverage report -i
+            codecov
 
       - store_artifacts:
           path: test-reports
