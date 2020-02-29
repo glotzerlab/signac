@@ -155,8 +155,7 @@ jobs:
       - run:
           name: test-deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .test-deploy.bash
+            bash .circleci/deploy.bash testpypi
 
   deploy-pypi:
     docker:
@@ -167,8 +166,7 @@ jobs:
       - run:
           name: deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .deploy.bash
+            bash .circleci/deploy.bash pypi
 
 
 workflows:
