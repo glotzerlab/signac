@@ -203,17 +203,6 @@ class TestBasicShell():
                                  ['{"a": ' + str(i) + '}']).strip() == \
                     list(project.find_job_ids(doc_filter={'a': i}))[0]
 
-    def test_diff(self):
-        self.call('python -m signac init ProjectA'.split())
-        project = signac.Project()
-        job_a = project.open_job({"a": 0, "b": 1})
-        job_a.init()
-        job_b = project.open_job({"a": 0, "b": 0})
-        job_b.init()
-        out = self.call('python -m signac diff {} {}'.format(job_a.id, job_b.id).split())
-        expected = str(job_a.id) + "\r\n{'b': 1}\r\n" + str(job_b.id) + "\r\n{'b': 0}\r\n"
-        assert out == expected
-
     def test_clone(self):
         self.call('python -m signac init ProjectA'.split())
         project_a = signac.Project()
