@@ -277,7 +277,7 @@ class TestBasicShell():
             }).init()
 
         s = project.detect_schema()
-        out = self.call('python -m signac schema')
+        out = self.call('python -m signac schema'.split())
         assert s.format() == out.strip().replace(os.linesep, '\n')
 
     def test_sync(self):
