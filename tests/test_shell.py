@@ -203,6 +203,17 @@ class TestBasicShell():
                                  ['{"a": ' + str(i) + '}']).strip() == \
                     list(project.find_job_ids(doc_filter={'a': i}))[0]
 
+    def test_diff(self):
+        self.call('python -m signac init ProjectA'.split())
+        project = signac.Project()
+        job_a = project.open_job({"a": 0, "b": 1})
+        job_a.init()
+        job_b = project.open_job({"a": 0, "b": 0})
+        job_b.init()
+        out = self.call('python -m signac diff {} {}'.format(job_a.id, job_b.id).split())
+        expected = [str(job_a.id), "{'b': 1}", str(job_b.id), "{'b': 0}"]
+        assert out.strip().split(os.linesep) == expected
+
     def test_clone(self):
         self.call('python -m signac init ProjectA'.split())
         project_a = signac.Project()
@@ -251,6 +262,23 @@ class TestBasicShell():
         with pytest.deprecated_call():
             self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove not in project
+
+    def test_schema(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        for i in range(10):
+            project.open_job({
+                'a': i,
+                'b': {'b2': i},
+                'c': [i if i % 2 else None, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
+                'f': {'f2': [[i, 0, 0]]},
+            }).init()
+
+        s = project.detect_schema()
+        out = self.call('python -m signac schema')
+        assert s.format() == out.strip().replace(os.linesep, '\n')
 
     def test_sync(self):
         project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
