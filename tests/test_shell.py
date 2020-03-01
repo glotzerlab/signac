@@ -136,6 +136,21 @@ class TestBasicShell():
         assert 'b' in doc
         assert doc['b'] == 0
 
+    def test_document(self):
+        self.call('python -m signac init my_project'.split())
+        self.call('python -m signac project --access'.split())
+        project = signac.Project()
+        job_a = project.open_job({'a': 0})
+        job_a.init()
+        assert len(project) == 1
+        job_a.document['data'] = 4
+        doc = json.loads(self.call('python -m signac document'.split()))
+        assert 'data' in doc
+        assert doc['data'] == 4
+        doc = json.loads(self.call('python -m signac document {}'.format(job_a.id).split()))
+        assert 'data' in doc
+        assert doc['data'] == 4
+
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view_single(self):
         """Check whether command line views work for single job workspaces."""
@@ -188,6 +203,47 @@ class TestBasicShell():
                                  ['{"a": ' + str(i) + '}']).strip() == \
                     list(project.find_job_ids(doc_filter={'a': i}))[0]
 
+    def test_diff(self):
+        self.call('python -m signac init ProjectA'.split())
+        project = signac.Project()
+        job_a = project.open_job({"a": 0, "b": 1})
+        job_a.init()
+        job_b = project.open_job({"a": 0, "b": 0})
+        job_b.init()
+        out = self.call('python -m signac diff {} {}'.format(job_a.id, job_b.id).split())
+        expected = str(job_a.id) + "\r\n{'b': 1}\r\n" + str(job_b.id) + "\r\n{'b': 0}\r\n"
+        assert out == expected
+
+    def test_clone(self):
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        job = project_a.open_job({'a': 0})
+        job.init()
+        assert len(project_a) == 1
+        assert len(project_b) == 0
+        self.call("python -m signac clone {} {}"
+                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        assert len(project_a) == 1
+        assert job in project_a
+        assert len(project_b) == 1
+        assert job in project_b
+
+    def test_move(self):
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        job = project_a.open_job({'a': 0})
+        job.init()
+        assert len(project_a) == 1
+        assert len(project_b) == 0
+        self.call("python -m signac move {} {}"
+                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        assert len(project_a) == 0
+        assert job not in project_a
+        assert len(project_b) == 1
+        assert job in project_b
+
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
@@ -206,6 +262,40 @@ class TestBasicShell():
         with pytest.deprecated_call():
             self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove not in project
+
+    def test_schema(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        for i in range(10):
+            project.open_job({
+                'a': i,
+                'b': {'b2': i},
+                'c': [i if i % 2 else None, 0, 0],
+                'd': [[i, 0, 0]],
+                'e': {'e2': [i, 0, 0]} if i % 2 else 0,  # heterogeneous!
+                'f': {'f2': [[i, 0, 0]]},
+            }).init()
+
+        s = project.detect_schema()
+        out = self.call('python -m signac schema')
+        assert s.format().split("\n") == out.strip().split("\r\n")
+
+    def test_sync(self):
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        for i in range(4):
+            project_a.open_job({'a': i}).init()
+            project_b.open_job({'a': i}).init()
+        assert len(project_a) == 4
+        assert len(project_b) == 4
+        project_b.document['a'] = 0
+        self.call('python -m signac sync {} {}'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert len(project_a) == 4
+        assert len(project_b) == 4
+        assert 'a' in project_a.document
+        assert 'a' in project_b.document
 
     def test_shell(self):
         self.call('python -m signac init my_project'.split())
