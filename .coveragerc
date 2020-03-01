@@ -1,4 +1,4 @@
 [run]
 source=signac
 omit=
-    signac/common/configobj/*.py
+    */signac/common/configobj/*.py
