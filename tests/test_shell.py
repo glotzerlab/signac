@@ -347,12 +347,11 @@ class TestBasicShell():
         for i in range(10):
             project.open_job({'a': i}).init()
         job_ids = list(project.find_job_ids())
-        assert len(project) == 10 
+        assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
         assert list(project.find_job_ids()) == job_ids
-
 
     def test_shell(self):
         self.call('python -m signac init my_project'.split())
