@@ -193,6 +193,12 @@ class TestBasicShell():
             assert set(job_ids) == set(project.find_job_ids())
             assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
                 list(project.find_job_ids({'a': 0}))[0]
+        out = self.call('python -m signac find a 0 --sp'.split()).strip()
+        job = project.open_job({'a': 0})
+        assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint())]
+        job.document['a'] = 2
+        out = self.call('python -m signac find a 0 --doc'.split()).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), str(job.document)]
 
         # Test the doc_filter
         for job in project.find_jobs():
@@ -222,6 +228,9 @@ class TestBasicShell():
         job.init()
         assert len(project_a) == 1
         assert len(project_b) == 0
+        with pytest.raises(ExitCodeError):
+            self.call("python -m signac clone {} 9bfd29df07674bc5"
+                      .format(os.path.join(self.tmpdir.name, 'b')).split())
         self.call("python -m signac clone {} {}"
                   .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 1
@@ -296,6 +305,54 @@ class TestBasicShell():
         assert len(project_b) == 4
         assert 'a' in project_a.document
         assert 'a' in project_b.document
+
+    def test_sync_merge(self):
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        for i in range(4):
+            project_a.open_job({'a': i}).init()
+            project_b.open_job({'a': i}).init()
+        project_b.open_job({'a': 4}).init()
+        assert len(project_a) == 4
+        assert len(project_b) == 5
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {} '
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert len(project_a) == 4
+        assert len(project_b) == 5
+        self.call('python -m signac sync {} {} --merge'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert len(project_a) == 5
+        assert len(project_b) == 5
+
+    def test_export(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        prefix_data = os.path.join(self.tmpdir.name, 'data')
+        for i in range(10):
+            project.open_job({'a': i}).init()
+        assert len(project) == 10
+        self.call("python -m signac export {}".format(prefix_data))
+        assert len(project) == 10
+        assert len(os.listdir(prefix_data)) == 1
+        assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
+        for i in range(10):
+            assert os.path.isdir(os.path.join(prefix_data, 'a', str(i)))
+
+    def test_import(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        prefix_data = os.path.join(self.tmpdir.name, 'data')
+        for i in range(10):
+            project.open_job({'a': i}).init()
+        job_ids = list(project.find_job_ids())
+        assert len(project) == 10 
+        project.export_to(target=prefix_data, copytree=os.replace)
+        self.call("python -m signac import {}".format(prefix_data).split())
+        assert len(project) == 10
+        assert list(project.find_job_ids()) == job_ids
+
 
     def test_shell(self):
         self.call('python -m signac init my_project'.split())
