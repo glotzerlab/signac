@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Dict implementation with backend JSON file."
+"""Dict implementation with backend JSON file."""
 import os
 import sys
 import errno
@@ -31,7 +31,8 @@ _JSONDICT_META = dict()
 
 
 class BufferException(Error):
-    "An exception occured in buffered mode."
+    """An exception occured in buffered mode."""
+
     pass
 
 
@@ -44,15 +45,17 @@ class BufferedFileError(BufferException):
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.
     """
+
     def __init__(self, files):
         self.files = files
 
     def __str__(self):
+        """Doc string here."""
         return "{}({})".format(type(self).__name__, self.files)
 
 
 def _hash(blob):
-    "Calculate and return the md5 hash value for the file data."
+    """Calculate and return the md5 hash value for the file data."""
     if blob is not None:
         m = hashlib.md5()
         m.update(blob)
@@ -87,7 +90,7 @@ def _store_in_buffer(filename, blob, store_hash=False):
 
 
 def flush_all():
-    "Execute all deferred JSONDict write operations."
+    """Execute all deferred JSONDict write operations."""
     logger.debug("Flushing buffer...")
     issues = dict()
     while _JSONDICT_BUFFER:
@@ -117,17 +120,17 @@ def flush_all():
 
 
 def get_buffer_size():
-    "Returns the current maximum size of the read/write buffer."
+    """Return the current maximum size of the read/write buffer."""
     return _BUFFER_SIZE
 
 
 def get_buffer_load():
-    "Returns the current actual size of the read/write buffer."
+    """Return the current actual size of the read/write buffer."""
     return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
 
 
 def in_buffered_mode():
-    "Return true if in buffered read/write mode."
+    """Return true if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 
 
@@ -235,6 +238,7 @@ class JSONDict(SyncedAttrDict):
     :param parent:
         A parent instance of JSONDict or None.
     """
+
     def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(
@@ -311,18 +315,23 @@ class JSONDict(SyncedAttrDict):
 
     @contextmanager
     def buffered(self):
+        """Doc string here."""
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
         buffered_dict.flush()
 
 
 class BufferedSyncedAttrDict(SyncedAttrDict):
+    """Doc string here."""
 
     def load(self):
+        """Doc string here."""
         pass
 
     def save(self):
+        """Doc string here."""
         pass
 
     def flush(self):
+        """Doc string here."""
         self._parent._save(self())
