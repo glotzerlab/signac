@@ -7,6 +7,7 @@ import json
 import pytest
 import subprocess
 from tempfile import TemporaryDirectory
+from signac.common import config
 
 import signac
 
@@ -246,6 +247,9 @@ class TestBasicShell():
         job.init()
         assert len(project_a) == 1
         assert len(project_b) == 0
+        with pytest.raises(ExitCodeError):
+            self.call("python -m signac move {} 9bfd29df07674bc5"
+                      .format(os.path.join(self.tmpdir.name, 'b')).split())
         self.call("python -m signac move {} {}"
                   .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 0
@@ -333,6 +337,13 @@ class TestBasicShell():
         for i in range(10):
             project.open_job({'a': i}).init()
         assert len(project) == 10
+        print(os.isdir(self.tempdir.name))
+        try:
+            f = open(os.join(self.tempdir.name, 'f.txt'), 'w')
+            f.close
+        except IOError:
+            print('No Write access')
+
         self.call("python -m signac export {}".format(prefix_data))
         assert len(project) == 10
         assert len(os.listdir(prefix_data)) == 1
@@ -349,6 +360,7 @@ class TestBasicShell():
         job_ids = list(project.find_job_ids())
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
+        assert len(project) == 0
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
         assert list(project.find_job_ids()) == job_ids
@@ -396,3 +408,28 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
         assert out.strip() == '>>> {} {} 1'.format(project, job)
+
+    def test_config_show(self):
+        self.call('python -m signac init my_project'.split())
+        project = signac.Project()
+        out = self.call('python -m signac config show'.split()).strip()
+        cfg = config.load_config()
+        expected = config.Config(cfg).write()
+        assert out.split(os.linesep) == expected
+        out = self.call('python -m signac config --global show'.split()).strip()
+        cfg = config.read_config_file(config.FN_CONFIG)
+        expected = config.Config(cfg).write()
+        assert out.split(os.linesep) == expected
+
+    def test_config_set(self):
+        self.call('python -m signac init my_project'.split())
+        self.call('python -m signac config --global set a b')
+        cfg = config.load_config()
+        assert 'a' in cfg
+        assert cfg['a'] == 'b'
+        self.call('python -m signac config --global set a c')
+        cfg = config.load_config()
+        assert 'a' in cfg
+        assert cfg['a'] == 'c'
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac config --global set a.password b')
