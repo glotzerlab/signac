@@ -337,13 +337,7 @@ class TestBasicShell():
         for i in range(10):
             project.open_job({'a': i}).init()
         assert len(project) == 10
-        print(os.path.isdir(self.tmpdir.name))
-        try:
-            f = open(os.path.join(self.tmpdir.name, 'f.txt'), 'w')
-            f.close
-        except IOError:
-            print('No Write access')
-
+        os.mkdir(prefix_data)
         self.call("python -m signac export {}".format(prefix_data))
         assert len(project) == 10
         assert len(os.listdir(prefix_data)) == 1
