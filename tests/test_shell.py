@@ -339,7 +339,7 @@ class TestBasicShell():
         assert len(project) == 10
         print(os.path.isdir(self.tmpdir.name))
         try:
-            f = open(os.join(self.tmpdir.name, 'f.txt'), 'w')
+            f = open(os.path.join(self.tmpdir.name, 'f.txt'), 'w')
             f.close
         except IOError:
             print('No Write access')
@@ -431,4 +431,4 @@ class TestBasicShell():
         assert 'a' in cfg
         assert cfg['a'] == 'c'
         with pytest.raises(ExitCodeError):
-            self.call('python -m signac config --global set a.password b')
+            self.call('python -m signac config --global set a.password b'.split())
