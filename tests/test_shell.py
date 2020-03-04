@@ -411,7 +411,6 @@ class TestBasicShell():
 
     def test_config_show(self):
         self.call('python -m signac init my_project'.split())
-        project = signac.Project()
         out = self.call('python -m signac config show'.split()).strip()
         cfg = config.load_config()
         expected = config.Config(cfg).write()
