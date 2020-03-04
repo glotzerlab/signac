@@ -337,9 +337,9 @@ class TestBasicShell():
         for i in range(10):
             project.open_job({'a': i}).init()
         assert len(project) == 10
-        print(os.isdir(self.tempdir.name))
+        print(os.path.isdir(self.tmpdir.name))
         try:
-            f = open(os.join(self.tempdir.name, 'f.txt'), 'w')
+            f = open(os.join(self.tmpdir.name, 'f.txt'), 'w')
             f.close
         except IOError:
             print('No Write access')
@@ -422,11 +422,11 @@ class TestBasicShell():
 
     def test_config_set(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac config --global set a b')
+        self.call('python -m signac config --global set a b'.split())
         cfg = config.load_config()
         assert 'a' in cfg
         assert cfg['a'] == 'b'
-        self.call('python -m signac config --global set a c')
+        self.call('python -m signac config --global set a c'.split())
         cfg = config.load_config()
         assert 'a' in cfg
         assert cfg['a'] == 'c'
