@@ -445,8 +445,8 @@ class TestBasicShell():
         job_dst = project_b.open_job({'a': 0})
         for i, job in enumerate([job_src, job_dst]):
             with job:
-                    with open('test', 'w') as file:
-                        file.write('x'*i)
+                with open('test', 'w') as file:
+                    file.write('x'*i)
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
