@@ -362,6 +362,12 @@ class TestBasicShell():
         assert len(project_b) == 4
         assert 'a' in project_a.document
         assert 'a' in project_b.document
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {} -s never -u'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {} -t'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
 
     def test_sync_merge(self):
         project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
@@ -376,7 +382,7 @@ class TestBasicShell():
         assert len(project_a) == 5
         assert len(project_b) == 6
         with pytest.raises(ExitCodeError):
-            self.call('python -m signac sync {} {} '
+            self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert len(project_a) == 5
         assert len(project_b) == 6
