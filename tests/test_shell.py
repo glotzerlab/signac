@@ -67,6 +67,20 @@ class TestBasicShell():
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
         return out.decode()
 
+    def test_print_usage(self):
+        with pytest.raises(ExitCodeError):
+            out = self.call('python -m signac'.split())
+            assert 'usage:' in out
+
+    def test_version(self):
+        out = self.call('python -m signac --version'.split())
+        assert 'signac {}'.format(signac.__version__) in out
+
+    def test_help(self):
+        out = self.call('python -m signac --help'.split())
+        assert 'positional arguments:' in out
+        assert 'optional arguments:' in out
+
     def test_init_project(self):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
@@ -114,9 +128,13 @@ class TestBasicShell():
         self.call('python -m signac init my_project'.split())
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         project = signac.Project()
-        for job in project:
-            sp = self.call('python -m signac statepoint {}'.format(job).split())
-            assert project.open_job(json.loads(sp)) == job
+        job = project.open_job({'a': 0})
+        sp = self.call('python -m signac statepoint {}'.format(job).split())
+        assert project.open_job(json.loads(sp)) == job
+        sp = self.call('python -m signac statepoint'.split())
+        assert project.open_job(json.loads(sp)) == job
+        sp = self.call('python -m signac statepoint --pretty'.split())
+        assert "{'a': 0}" in sp
 
     def test_index(self):
         self.call('python -m signac init my_project'.split())
@@ -128,6 +146,9 @@ class TestBasicShell():
             assert len(list(project.index())) == 1
             assert len(list(signac.index())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
+        assert 'statepoint' in doc
+        assert doc['statepoint'] == {'a': 0}
+        doc = json.loads(self.call('python -m signac project --index'.split()))
         assert 'statepoint' in doc
         assert doc['statepoint'] == {'a': 0}
         project.open_job({'a': 0}).document['b'] = 0
@@ -151,6 +172,10 @@ class TestBasicShell():
         doc = json.loads(self.call('python -m signac document {}'.format(job_a.id).split()))
         assert 'data' in doc
         assert doc['data'] == 4
+        out = self.call('python -m signac document --pretty'.split())
+        for key, value in doc.items():
+            assert str(key) in out
+            assert str(value) in out
 
     @pytest.mark.skipif(WINDOWS, reason='Symbolic links are unsupported on Windows.')
     def test_view_single(self):
@@ -194,12 +219,26 @@ class TestBasicShell():
             assert set(job_ids) == set(project.find_job_ids())
             assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
                 list(project.find_job_ids({'a': 0}))[0]
-        out = self.call('python -m signac find a 0 --sp'.split()).strip()
+
         job = project.open_job({'a': 0})
+        out = self.call('python -m signac find a 0 --sp'.split()).strip()
         assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint())]
+        out = self.call('python -m signac find a 0 --sp a'.split()).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), str(job.statepoint())]
+        out = self.call('python -m signac find a 0 --sp b'.split()).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), '{}']
+
         job.document['a'] = 2
         out = self.call('python -m signac find a 0 --doc'.split()).strip()
         assert out.strip().split(os.linesep) == [str(job.id), str(job.document)]
+        out = self.call('python -m signac find a 0 --doc a'.split()).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), str(job.document)]
+        out = self.call('python -m signac find a 0 --doc b'.split()).strip()
+        assert out.strip().split(os.linesep) == [str(job.id), '{}']
+        out = self.call('python -m signac find a 0 --show --one-line'.split()).strip()
+        assert str(job.id) in out
+        assert '{"a": 0}' in out
+        assert '{"a": 2}' in out
 
         # Test the doc_filter
         for job in project.find_jobs():
@@ -238,6 +277,12 @@ class TestBasicShell():
         assert job in project_a
         assert len(project_b) == 1
         assert job in project_b
+        self.call("python -m signac clone {} {}"
+                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        assert len(project_a) == 1
+        assert job in project_a
+        assert len(project_b) == 1
+        assert job in project_b
 
     def test_move(self):
         self.call('python -m signac init ProjectA'.split())
@@ -256,6 +301,13 @@ class TestBasicShell():
         assert job not in project_a
         assert len(project_b) == 1
         assert job in project_b
+        project_a.open_job({'a': 0}).init()
+        self.call("python -m signac move {} {}"
+                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        assert len(project_a) == 1
+        assert job in project_a
+        assert len(project_b) == 1
+        assert job in project_b
 
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
@@ -268,12 +320,13 @@ class TestBasicShell():
         assert job_to_remove in project
         assert job_to_remove.doc.a == 0
         assert len(job_to_remove.doc) == 1
-        with pytest.deprecated_call():
-            self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
+        self.call('python -m signac rm --clear {}'.format(job_to_remove.id).split())
         assert job_to_remove in project
         assert len(job_to_remove.doc) == 0
-        with pytest.deprecated_call():
-            self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
+        self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
+        assert job_to_remove not in project
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
         assert job_to_remove not in project
 
     def test_schema(self):
@@ -317,18 +370,87 @@ class TestBasicShell():
         for i in range(4):
             project_a.open_job({'a': i}).init()
             project_b.open_job({'a': i}).init()
+        project_a.open_job({'c': 1}).init()
+        project_b.open_job({'b': 1}).init()
         project_b.open_job({'a': 4}).init()
-        assert len(project_a) == 4
-        assert len(project_b) == 5
+        assert len(project_a) == 5
+        assert len(project_b) == 6
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {} '
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
-        assert len(project_a) == 4
-        assert len(project_b) == 5
+        assert len(project_a) == 5
+        assert len(project_b) == 6
         self.call('python -m signac sync {} {} --merge'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
-        assert len(project_a) == 5
-        assert len(project_b) == 5
+        assert len(project_a) == 7
+        assert len(project_b) == 6
+
+    def test_sync_document(self):
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        job_src = project_a.open_job({'a': 0})
+        job_dst = project_b.open_job({'a': 0})
+
+        def reset():
+            job_src.document['a'] = 0
+            job_src.document['nested'] = dict(a=1)
+            job_dst.document['a'] = 1
+            job_dst.document['nested'] = dict(a=2)
+
+        reset()
+        assert job_dst.document != job_src.document
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {}'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert job_dst.document != job_src.document
+        self.call('python -m signac sync {} {} --no-key'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert job_dst.document != job_src.document
+        assert job_dst.document['a'] != job_src.document['a']
+        assert job_dst.document['nested'] != job_src.document['nested']
+        reset()     # only sync a
+        self.call('python -m signac sync {} {} --key a'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert job_dst.document != job_src.document
+        assert job_dst.document['nested'] != job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
+        reset()     # only sync nested
+        self.call('python -m signac sync {} {} --key nested'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert job_dst.document != job_src.document
+        assert job_dst.document['a'] != job_src.document['a']
+        assert job_dst.document['nested'] == job_src.document['nested']
+        reset()
+        self.call('python -m signac sync {} {} --all-key'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert job_dst.document == job_src.document
+        assert job_dst.document['nested'] == job_src.document['nested']
+        assert job_dst.document['a'] == job_src.document['a']
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {} --all-key --no-key'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+
+    def test_sync_file(self):
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        job_src = project_a.open_job({'a': 0})
+        job_dst = project_b.open_job({'a': 0})
+        for i, job in enumerate([job_src, job_dst]):
+            with job:
+                    with open('test', 'w') as file:
+                        file.write('x'*i)
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {}'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        self.call('python -m signac sync {} {} --strategy never'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac sync {} {}'
+                      .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        self.call('python -m signac sync {} {} --strategy always'
+                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
 
     def test_export(self):
         self.call('python -m signac init my_project'.split())
@@ -425,3 +547,10 @@ class TestBasicShell():
         assert cfg['a'] == 'c'
         with pytest.raises(ExitCodeError):
             self.call('python -m signac config --global set a.password b'.split())
+
+    def test_update_cache(self):
+        self.call('python -m signac init ProjectA'.split())
+        project_a = signac.Project()
+        for i in range(4):
+            project_a.open_job({'a': i}).init()
+        self.call('python -m signac update-cache'.split())
