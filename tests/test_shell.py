@@ -56,7 +56,7 @@ class TestBasicShell():
     def return_to_cwd(self):
         os.chdir(self.cwd)
 
-    def call(self, command, input=None, shell=False):
+    def call(self, command, input=None, shell=False, error=False):
         p = subprocess.Popen(
             command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
@@ -65,6 +65,8 @@ class TestBasicShell():
         out, err = p.communicate()
         if p.returncode != 0:
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
+        if error:
+            return err.decode()
         return out.decode()
 
     def test_print_usage(self):
@@ -455,7 +457,7 @@ class TestBasicShell():
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
-        self.call('python -m signac sync {} {} --strategy always'
+        self.call('python -m signac sync {} {} --update'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
 
     def test_export(self):
@@ -485,6 +487,34 @@ class TestBasicShell():
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
         assert list(project.find_job_ids()) == job_ids
+        # invalid combination
+        with pytest.raises(ExitCodeError):
+            self.call('python -m signac import {} --move --sync-interactive'
+                      .format(prefix_data).split())
+
+    def test_import_sync(self):
+        project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
+        self.call('python -m signac init ProjectA'.split())
+        prefix_data = os.path.join(self.tmpdir.name, 'data')
+        project_a = signac.Project()
+        for i in range(4):
+            project_a.open_job({'a': i}).init()
+            project_b.open_job({'a': i}).init()
+        job_dst = project_a.open_job({'a': 0})
+        job_src = project_b.open_job({'a': 0})
+        job_src.document['a'] = 0
+        project_b.export_to(prefix_data)
+        err = self.call("python -m signac import {}".format(prefix_data).split(), error=True)
+        assert "Import failed" in err
+        self.call("python -m signac import {} --sync".format(prefix_data).split(), error=True)
+        assert len(project_a) == 4
+        assert 'a' in job_dst.document
+        assert job_dst.document['a'] == 0
+        out = self.call(
+            'python -m signac import {} --sync-interactive'.format(prefix_data),
+            'print(str(tmp_project), len(tmp_project)); exit()', shell=True)
+        assert 'ProjectA' in out
+        assert '4' in out
 
     def test_shell(self):
         self.call('python -m signac init my_project'.split())
@@ -531,11 +561,20 @@ class TestBasicShell():
         assert out.strip() == '>>> {} {} 1'.format(project, job)
 
     def test_config_show(self):
+        err = self.call('python -m signac config --local show'.split(), error=True).strip()
+        assert 'Did not find a local configuration file' in err
+
         self.call('python -m signac init my_project'.split())
+        out = self.call('python -m signac config --local show'.split()).strip()
+        cfg = config.read_config_file('signac.rc')
+        expected = config.Config(cfg).write()
+        assert out.split(os.linesep) == expected
+
         out = self.call('python -m signac config show'.split()).strip()
         cfg = config.load_config()
         expected = config.Config(cfg).write()
         assert out.split(os.linesep) == expected
+
         out = self.call('python -m signac config --global show'.split()).strip()
         cfg = config.read_config_file(config.FN_CONFIG)
         expected = config.Config(cfg).write()
@@ -543,20 +582,48 @@ class TestBasicShell():
 
     def test_config_set(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac config --global set a b'.split())
-        cfg = config.load_config()
+        self.call('python -m signac config --local set a b'.split())
+        cfg = self.call('python -m signac config --local show'.split())
         assert 'a' in cfg
-        assert cfg['a'] == 'b'
-        self.call('python -m signac config --global set a c'.split())
-        cfg = config.load_config()
-        assert 'a' in cfg
-        assert cfg['a'] == 'c'
+        assert 'a = b' in cfg
+
+        self.call('python -m signac config --local set x.y z'.split())
+        cfg = self.call('python -m signac config --local show'.split())
+        assert '[x]' in cfg
+        assert 'y = z' in cfg
+
+        self.call('python -m signac config --global set b c'.split())
+        cfg = self.call('python -m signac config --global show'.split())
+        assert 'b' in cfg
+        assert 'b = c' in cfg.split(os.linesep)
+
         with pytest.raises(ExitCodeError):
             self.call('python -m signac config --global set a.password b'.split())
+
+    def test_config_host(self):
+        self.call('python -m signac init my_project'.split())
+        self.call('python -m signac config --local host Mongo -u abc -p 123')
+        cfg = self.call('python -m signac config --local show'.split())
+        assert 'Mongo' in cfg
+        assert 'username = abc' in cfg
+        assert 'password = ***' in cfg
+        out = self.call('python -m signac config --local host Mongo --show-pw')
+        assert '123' in out
+
+    # def test_config_verify(self):
+    #     self.call('python -m signac init my_project'.split())
+    #     err = self.call('python -m signac config --local verify'.split(), error=True)
+    #     assert 'Passed' in err
+    #
+    #     self.call('python -m signac config --local host Mongo -u abc -p 123')
+    #     err = self.call('python -m signac config --local verify'.split(), error=True)
+    #     assert 'hosts.Mongo.password_config.[missing section]' in err
 
     def test_update_cache(self):
         self.call('python -m signac init ProjectA'.split())
         project_a = signac.Project()
+        assert not os.path.isfile(project_a.FN_CACHE)
         for i in range(4):
             project_a.open_job({'a': i}).init()
         self.call('python -m signac update-cache'.split())
+        assert os.path.isfile(project_a.FN_CACHE)
