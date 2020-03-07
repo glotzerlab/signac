@@ -375,7 +375,7 @@ class TestBasicShell():
         assert 'a' in project_b.document
         assert 'b' in project_a.document
         assert 'b' not in project_b.document
-        with job_src:
+        with job_dst:
             with open('test', 'r') as file:
                 assert 'x' == file.read()
         # invalid cases
