@@ -361,7 +361,7 @@ class TestBasicShell():
         job_dst = project_a.open_job({'a': 0})
         with job_src:
             with open('test', 'w') as file:
-                    file.write('x')
+                file.write('x')
         assert len(project_a) == 4
         assert len(project_b) == 4
         project_b.document['a'] = 0
