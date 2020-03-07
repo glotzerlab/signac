@@ -602,12 +602,12 @@ class TestBasicShell():
 
     def test_config_host(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac config --local host Mongo -u abc -p 123')
+        self.call('python -m signac config --local host Mongo -u abc -p 123'.split())
         cfg = self.call('python -m signac config --local show'.split())
         assert 'Mongo' in cfg
         assert 'username = abc' in cfg
         assert 'password = ***' in cfg
-        out = self.call('python -m signac config --local host Mongo --show-pw')
+        out = self.call('python -m signac config --local host Mongo --show-pw'.split())
         assert '123' in out
 
     # def test_config_verify(self):
