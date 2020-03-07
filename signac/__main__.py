@@ -718,8 +718,7 @@ def main_update_cache(args):
 #
 #
 def verify_config(cfg, preserve_errors=True):
-    verification = cfg.verify(
-        preserve_errors=preserve_errors, skip_missing=True)
+    verification = cfg.verify(preserve_errors=preserve_errors)
     if verification is True:
         _print_err("Passed.")
     else:
