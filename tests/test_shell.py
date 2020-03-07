@@ -273,12 +273,14 @@ class TestBasicShell():
         with pytest.raises(ExitCodeError):
             self.call("python -m signac clone {} 9bfd29df07674bc5"
                       .format(os.path.join(self.tmpdir.name, 'b')).split())
+
         self.call("python -m signac clone {} {}"
                   .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 1
         assert job in project_a
         assert len(project_b) == 1
         assert job in project_b
+
         self.call("python -m signac clone {} {}"
                   .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 1
@@ -355,15 +357,28 @@ class TestBasicShell():
         for i in range(4):
             project_a.open_job({'a': i}).init()
             project_b.open_job({'a': i}).init()
+        job_src = project_b.open_job({'a': 0})
+        job_dst = project_a.open_job({'a': 0})
+        with job_src:
+            with open('test', 'w') as file:
+                    file.write('x')
         assert len(project_a) == 4
         assert len(project_b) == 4
         project_b.document['a'] = 0
-        self.call('python -m signac sync {} {}'
-                  .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        project_a.document['b'] = 0
+        out = self.call('python -m signac sync {} {} --stats --human-readable'
+                        .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        assert 'Number of files transferred: 1' in out
         assert len(project_a) == 4
         assert len(project_b) == 4
         assert 'a' in project_a.document
         assert 'a' in project_b.document
+        assert 'b' in project_a.document
+        assert 'b' not in project_b.document
+        with job_src:
+            with open('test', 'r') as file:
+                assert 'x' == file.read()
+        # invalid cases
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {} -s never -u'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -383,11 +398,13 @@ class TestBasicShell():
         project_b.open_job({'a': 4}).init()
         assert len(project_a) == 5
         assert len(project_b) == 6
+
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert len(project_a) == 5
         assert len(project_b) == 6
+
         self.call('python -m signac sync {} {} --merge'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert len(project_a) == 7
@@ -412,29 +429,34 @@ class TestBasicShell():
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
+
         self.call('python -m signac sync {} {} --no-key'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
         assert job_dst.document['nested'] != job_src.document['nested']
+
         reset()     # only sync a
         self.call('python -m signac sync {} {} --key a'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
         assert job_dst.document['nested'] != job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
+
         reset()     # only sync nested
         self.call('python -m signac sync {} {} --key nested'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
         assert job_dst.document['nested'] == job_src.document['nested']
+
         reset()
         self.call('python -m signac sync {} {} --all-key'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document == job_src.document
         assert job_dst.document['nested'] == job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
+
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {} --all-key --no-key'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -448,12 +470,16 @@ class TestBasicShell():
         for i, job in enumerate([job_src, job_dst]):
             with job:
                 with open('test', 'w') as file:
-                    file.write('x'*i)
+                    file.write('x'*(i+1))
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         self.call('python -m signac sync {} {} --strategy never'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
+        with job_dst:
+            with open('test', 'r') as file:
+                assert file.read() == 'xx'
+
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -464,6 +490,11 @@ class TestBasicShell():
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         prefix_data = os.path.join(self.tmpdir.name, 'data')
+
+        err = self.call("python -m signac export {}"
+                        .format(prefix_data).split(), error=True)
+        assert 'No jobs to export' in err
+
         for i in range(10):
             project.open_job({'a': i}).init()
         assert len(project) == 10
@@ -478,6 +509,11 @@ class TestBasicShell():
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         prefix_data = os.path.join(self.tmpdir.name, 'data')
+
+        err = self.call("python -m signac import {}"
+                    .format(self.tmpdir.name).split(), error=True)
+        assert 'Nothing to import.' in err
+
         for i in range(10):
             project.open_job({'a': i}).init()
         job_ids = list(project.find_job_ids())
@@ -487,9 +523,10 @@ class TestBasicShell():
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
         assert list(project.find_job_ids()) == job_ids
+
         # invalid combination
         with pytest.raises(ExitCodeError):
-            self.call('python -m signac import {} --move --sync-interactive'
+            self.call('python -m signac import {} --sync-interactive --move'
                       .format(prefix_data).split())
 
     def test_import_sync(self):
@@ -525,6 +562,9 @@ class TestBasicShell():
         assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
     def test_shell_with_jobs(self):
+        out = self.call('python -m signac shell', shell=True)
+        assert 'No project within this directory' in out
+
         self.call('python -m signac init my_project'.split())
         project = signac.Project()
         for i in range(3):
@@ -553,7 +593,7 @@ class TestBasicShell():
         project = signac.Project()
         for i in range(3):
             project.open_job(dict(a=i)).init()
-        assert len(project)
+        assert len(project) == 3
         out = self.call(
             'python -m signac shell -f a 0',
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
@@ -582,7 +622,7 @@ class TestBasicShell():
 
     def test_config_set(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac config --local set a b'.split())
+        self.call('python -m signac config  set a b'.split())
         cfg = self.call('python -m signac config --local show'.split())
         assert 'a' in cfg
         assert 'a = b' in cfg
@@ -607,10 +647,24 @@ class TestBasicShell():
         assert 'Mongo' in cfg
         assert 'username = abc' in cfg
         assert 'password = ***' in cfg
+
+        self.call('python -m signac config --local host Mongo -u abcd'.split())
+        cfg = self.call('python -m signac config --local show'.split())
+        assert 'Mongo' in cfg
+        assert 'username = abcd' in cfg
+        assert 'password = ***' in cfg
+
         out = self.call('python -m signac config --local host Mongo --show-pw'.split())
         assert '123' in out
 
+        self.call('python -m signac config --local host Mongo --remove'.split(),
+                  input='y')
+        cfg = self.call('python -m signac config --local show'.split())
+        assert 'Mongo' not in cfg
+
     # def test_config_verify(self):
+    #     err = self.call('python -m signac config --local verify'.split(), error=True)
+    #     assert 'Did not find a local configuration file' in err
     #     self.call('python -m signac init my_project'.split())
     #     err = self.call('python -m signac config --local verify'.split(), error=True)
     #     assert 'Passed' in err
@@ -623,7 +677,12 @@ class TestBasicShell():
         self.call('python -m signac init ProjectA'.split())
         project_a = signac.Project()
         assert not os.path.isfile(project_a.FN_CACHE)
+
         for i in range(4):
             project_a.open_job({'a': i}).init()
-        self.call('python -m signac update-cache'.split())
+        err = self.call('python -m signac update-cache'.split(), error=True)
         assert os.path.isfile(project_a.FN_CACHE)
+        assert 'Updated cache' in err
+
+        err = self.call('python -m signac update-cache'.split(), error=True)
+        assert 'Cache is up to date' in err
