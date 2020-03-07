@@ -511,7 +511,7 @@ class TestBasicShell():
         prefix_data = os.path.join(self.tmpdir.name, 'data')
 
         err = self.call("python -m signac import {}"
-                    .format(self.tmpdir.name).split(), error=True)
+                        .format(self.tmpdir.name).split(), error=True)
         assert 'Nothing to import.' in err
 
         for i in range(10):
