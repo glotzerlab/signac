@@ -561,6 +561,11 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
+        out = self.call(
+            'python -m signac shell -c print(str(project),len(list(jobs)))'
+            .split())
+        assert out.strip() == '{} {}'.format(project, len(project))
+
     def test_shell_with_jobs(self):
         out = self.call('python -m signac shell', shell=True)
         assert 'No project within this directory' in out
