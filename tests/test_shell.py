@@ -131,7 +131,7 @@ class TestBasicShell():
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         project = signac.Project()
         job = project.open_job({'a': 0})
-        sp = self.call('python -m signac statepoint {}'.format(job).split())
+        sp = self.call('python -m signac statepoint {}'.format(job.id).split())
         assert project.open_job(json.loads(sp)) == job
         sp = self.call('python -m signac statepoint'.split())
         assert project.open_job(json.loads(sp)) == job
@@ -162,7 +162,6 @@ class TestBasicShell():
 
     def test_document(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac project --access'.split())
         project = signac.Project()
         job_a = project.open_job({'a': 0})
         job_a.init()
@@ -422,7 +421,7 @@ class TestBasicShell():
             job_src.document['nested'] = dict(a=1)
             job_dst.document['a'] = 1
             job_dst.document['nested'] = dict(a=2)
-
+        # don't sync any key
         reset()
         assert job_dst.document != job_src.document
         with pytest.raises(ExitCodeError):
@@ -435,28 +434,28 @@ class TestBasicShell():
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
         assert job_dst.document['nested'] != job_src.document['nested']
-
-        reset()     # only sync a
+        # only sync a
+        reset()
         self.call('python -m signac sync {} {} --key a'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
         assert job_dst.document['nested'] != job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
-
-        reset()     # only sync nested
+        # only sync nested
+        reset()
         self.call('python -m signac sync {} {} --key nested'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
         assert job_dst.document['nested'] == job_src.document['nested']
-
+        # sync both
         reset()
         self.call('python -m signac sync {} {} --all-key'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document == job_src.document
         assert job_dst.document['nested'] == job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
-
+        # invalid input
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {} --all-key --no-key'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -468,17 +467,15 @@ class TestBasicShell():
         job_src = project_a.open_job({'a': 0})
         job_dst = project_b.open_job({'a': 0})
         for i, job in enumerate([job_src, job_dst]):
-            with job:
-                with open('test', 'w') as file:
-                    file.write('x'*(i+1))
+            with open(job.fn('test'), 'w') as file:
+                file.write('x'*(i+1))
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         self.call('python -m signac sync {} {} --strategy never'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
-        with job_dst:
-            with open('test', 'r') as file:
-                assert file.read() == 'xx'
+        with open(job_dst.fn('test'), 'r') as file:
+            assert file.read() == 'xx'
 
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
@@ -561,9 +558,8 @@ class TestBasicShell():
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         assert out.strip() == '>>> {} None {}'.format(project, len(project))
 
-        out = self.call(
-            'python -m signac shell -c print(str(project),len(list(jobs)))'
-            .split())
+        cmd = 'python -m signac shell -c'.split() + ['print(str(project), len(list(jobs)))']
+        out = self.call(cmd)
         assert out.strip() == '{} {}'.format(project, len(project))
 
     def test_shell_with_jobs(self):
@@ -627,7 +623,7 @@ class TestBasicShell():
 
     def test_config_set(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac config  set a b'.split())
+        self.call('python -m signac config set a b'.split())
         cfg = self.call('python -m signac config --local show'.split())
         assert 'a' in cfg
         assert 'a = b' in cfg
