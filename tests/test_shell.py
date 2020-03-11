@@ -670,7 +670,7 @@ class TestBasicShell():
         err = self.call('python -m signac config --local verify'.split(), error=True)
         assert 'Passed' in err
 
-        self.call('python -m signac config --local host Mongo -u abc -p 123')
+        self.call('python -m signac config --local host Mongo -u abc -p 123'.split())
         err = self.call('python -m signac config --local verify'.split(), error=True)
         assert 'hosts.Mongo.password_config.[missing section]' in err
 
