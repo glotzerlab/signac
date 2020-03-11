@@ -662,16 +662,16 @@ class TestBasicShell():
         cfg = self.call('python -m signac config --local show'.split())
         assert 'Mongo' not in cfg
 
-    # def test_config_verify(self):
-    #     err = self.call('python -m signac config --local verify'.split(), error=True)
-    #     assert 'Did not find a local configuration file' in err
-    #     self.call('python -m signac init my_project'.split())
-    #     err = self.call('python -m signac config --local verify'.split(), error=True)
-    #     assert 'Passed' in err
-    #
-    #     self.call('python -m signac config --local host Mongo -u abc -p 123')
-    #     err = self.call('python -m signac config --local verify'.split(), error=True)
-    #     assert 'hosts.Mongo.password_config.[missing section]' in err
+    def test_config_verify(self):
+        err = self.call('python -m signac config --local verify'.split(), error=True)
+        assert 'Did not find a local configuration file' in err
+        self.call('python -m signac init my_project'.split())
+        err = self.call('python -m signac config --local verify'.split(), error=True)
+        assert 'Passed' in err
+    
+        self.call('python -m signac config --local host Mongo -u abc -p 123')
+        err = self.call('python -m signac config --local verify'.split(), error=True)
+        assert 'hosts.Mongo.password_config.[missing section]' in err
 
     def test_update_cache(self):
         self.call('python -m signac init ProjectA'.split())
