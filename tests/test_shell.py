@@ -663,8 +663,9 @@ class TestBasicShell():
         assert 'Mongo' not in cfg
 
     def test_config_verify(self):
-        err = self.call('python -m signac config --local verify'.split(), error=True)
-        assert 'Did not find a local configuration file' in err
+        with pytest.raises(ExitCodeError):
+            err = self.call('python -m signac config --local verify'.split(), error=True)
+            assert 'Did not find a local configuration file' in err
         self.call('python -m signac init my_project'.split())
         err = self.call('python -m signac config --local verify'.split(), error=True)
         assert 'Passed' in err
