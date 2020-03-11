@@ -464,8 +464,8 @@ class TestBasicShell():
         self.call('python -m signac init ProjectA'.split())
         project_a = signac.Project()
         project_b = signac.init_project('ProjectB', os.path.join(self.tmpdir.name, 'b'))
-        job_src = project_a.open_job({'a': 0})
-        job_dst = project_b.open_job({'a': 0})
+        job_src = project_a.open_job({'a': 0}).init()
+        job_dst = project_b.open_job({'a': 0}).init()
         for i, job in enumerate([job_src, job_dst]):
             with open(job.fn('test'), 'w') as file:
                 file.write('x'*(i+1))
