@@ -56,23 +56,23 @@ class TestBasicShell():
     def return_to_cwd(self):
         os.chdir(self.cwd)
 
-    def call(self, command, input=None, shell=False, error=False):
+    def call(self, command, input=None, shell=False, error=False, raise_error=True):
         p = subprocess.Popen(
             command,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
         if input:
             p.stdin.write(input.encode())
         out, err = p.communicate()
-        if p.returncode != 0:
+        if p.returncode != 0 and raise_error:
             raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
-        if error:
-            return err.decode()
-        return out.decode()
+        return err.decode() if error else out.decode()
 
     def test_print_usage(self):
         with pytest.raises(ExitCodeError):
-            out = self.call('python -m signac'.split())
-            assert 'usage:' in out
+            self.call('python -m signac'.split())
+
+        out = self.call('python -m signac'.split(), raise_error=False)
+        assert 'usage:' in out
 
     def test_version(self):
         out = self.call('python -m signac --version'.split())
@@ -130,13 +130,17 @@ class TestBasicShell():
         self.call('python -m signac init my_project'.split())
         self.call(['python', '-m', 'signac', 'job', '--create', '{"a": 0}'])
         project = signac.Project()
+        assert len(project) == 1
         job = project.open_job({'a': 0})
         sp = self.call('python -m signac statepoint {}'.format(job.id).split())
         assert project.open_job(json.loads(sp)) == job
+        assert len(project) == 1
         sp = self.call('python -m signac statepoint'.split())
         assert project.open_job(json.loads(sp)) == job
+        assert len(project) == 1
         sp = self.call('python -m signac statepoint --pretty'.split())
         assert "{'a': 0}" in sp
+        assert len(project) == 1
 
     def test_index(self):
         self.call('python -m signac init my_project'.split())
@@ -269,23 +273,29 @@ class TestBasicShell():
         job.init()
         assert len(project_a) == 1
         assert len(project_b) == 0
+
+        self.call("python -m signac clone {} {}"
+                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        assert len(project_a) == 1
+        assert job in project_a
+        assert len(project_b) == 1
+        assert job in project_b
+
+        # cloning a job that exist at both source and destination
+        err = self.call("python -m signac clone {} {}"
+                        .format(os.path.join(self.tmpdir.name, 'b'), job.id).split(), error=True)
+        assert 'Destination already exists' in err
+        assert len(project_a) == 1
+        assert job in project_a
+        assert len(project_b) == 1
+        assert job in project_b
+
+        # checking for id that does not exit at source
         with pytest.raises(ExitCodeError):
             self.call("python -m signac clone {} 9bfd29df07674bc5"
                       .format(os.path.join(self.tmpdir.name, 'b')).split())
-
-        self.call("python -m signac clone {} {}"
-                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 1
-        assert job in project_a
         assert len(project_b) == 1
-        assert job in project_b
-
-        self.call("python -m signac clone {} {}"
-                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
-        assert len(project_a) == 1
-        assert job in project_a
-        assert len(project_b) == 1
-        assert job in project_b
 
     def test_move(self):
         self.call('python -m signac init ProjectA'.split())
@@ -295,22 +305,30 @@ class TestBasicShell():
         job.init()
         assert len(project_a) == 1
         assert len(project_b) == 0
-        with pytest.raises(ExitCodeError):
-            self.call("python -m signac move {} 9bfd29df07674bc5"
-                      .format(os.path.join(self.tmpdir.name, 'b')).split())
+
         self.call("python -m signac move {} {}"
                   .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
         assert len(project_a) == 0
         assert job not in project_a
         assert len(project_b) == 1
         assert job in project_b
+
+        # moving a job that already exists at destination
         project_a.open_job({'a': 0}).init()
-        self.call("python -m signac move {} {}"
-                  .format(os.path.join(self.tmpdir.name, 'b'), job.id).split())
+        err = self.call("python -m signac move {} {}"
+                        .format(os.path.join(self.tmpdir.name, 'b'), job.id).split(), error=True)
+        assert 'Destination already exists' in err
         assert len(project_a) == 1
         assert job in project_a
         assert len(project_b) == 1
         assert job in project_b
+
+        # moving a job that does not exits
+        with pytest.raises(ExitCodeError):
+            self.call("python -m signac move {} 9bfd29df07674bc5"
+                      .format(os.path.join(self.tmpdir.name, 'b')).split())
+        assert len(project_a) == 1
+        assert len(project_b) == 1
 
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
@@ -328,6 +346,8 @@ class TestBasicShell():
         assert len(job_to_remove.doc) == 0
         self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
         assert job_to_remove not in project
+
+        # removing job that does not exist at source
         with pytest.raises(ExitCodeError):
             self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
         assert job_to_remove not in project
@@ -398,6 +418,7 @@ class TestBasicShell():
         assert len(project_a) == 5
         assert len(project_b) == 6
 
+        # sync with projects having diffent schema
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -421,14 +442,15 @@ class TestBasicShell():
             job_src.document['nested'] = dict(a=1)
             job_dst.document['a'] = 1
             job_dst.document['nested'] = dict(a=2)
-        # don't sync any key
+
+        # DocumentSyncConflict without any doc-strategy
         reset()
         assert job_dst.document != job_src.document
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
-
+        # don't sync any key
         self.call('python -m signac sync {} {} --no-key'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         assert job_dst.document != job_src.document
@@ -469,6 +491,7 @@ class TestBasicShell():
         for i, job in enumerate([job_src, job_dst]):
             with open(job.fn('test'), 'w') as file:
                 file.write('x'*(i+1))
+        # FileSyncConflict
         with pytest.raises(ExitCodeError):
             self.call('python -m signac sync {} {}'
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
@@ -638,6 +661,7 @@ class TestBasicShell():
         assert 'b' in cfg
         assert 'b = c' in cfg.split(os.linesep)
 
+        # setting password with config set should fail
         with pytest.raises(ExitCodeError):
             self.call('python -m signac config --global set a.password b'.split())
 
@@ -664,9 +688,12 @@ class TestBasicShell():
         assert 'Mongo' not in cfg
 
     def test_config_verify(self):
+        # no config file
         with pytest.raises(ExitCodeError):
             err = self.call('python -m signac config --local verify'.split(), error=True)
-            assert 'Did not find a local configuration file' in err
+        err = self.call('python -m signac config --local verify'.split(),
+                        error=True, raise_error=False)
+        assert 'Did not find a local configuration file' in err
         self.call('python -m signac init my_project'.split())
         err = self.call('python -m signac config --local verify'.split(), error=True)
         assert 'Passed' in err
