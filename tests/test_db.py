@@ -7,7 +7,8 @@ import signac.db
 
 
 try:
-    signac.db.get_database('testing', hostname='testing')
+    with pytest.deprecated_call():
+        signac.db.get_database('testing', hostname='testing')
 except signac.common.errors.ConfigError:
     SKIP_REASON = "No 'testing' host configured."
 except ImportError:
@@ -21,7 +22,8 @@ else:
 class TestDB():
 
     def get_test_db(self):
-        signac.db.get_database('testing', hostname='testing')
+        with pytest.deprecated_call():
+            signac.db.get_database('testing', hostname='testing')
 
     def test_get_connector(self):
         host_config = signac.common.host.get_host_config(hostname='testing')

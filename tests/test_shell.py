@@ -84,7 +84,8 @@ class TestBasicShell():
     def test_project_workspace(self):
         self.call('python -m signac init my_project'.split())
         assert str(signac.get_project()) == 'my_project'
-        assert os.path.realpath(self.call('python -m signac project --workspace'.split()).strip()) == \
+        assert os.path.realpath(self.call(
+                'python -m signac project --workspace'.split()).strip()) == \
             os.path.realpath(os.path.join(self.tmpdir.name, 'workspace'))
 
     def test_job_with_argument(self):
@@ -122,8 +123,9 @@ class TestBasicShell():
         project = signac.Project()
         project.open_job({'a': 0}).init()
         assert len(project) == 1
-        assert len(list(project.index())) == 1
-        assert len(list(signac.index())) == 1
+        with pytest.deprecated_call():
+            assert len(list(project.index())) == 1
+            assert len(list(signac.index())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
         assert 'statepoint' in doc
         assert doc['statepoint'] == {'a': 0}
@@ -172,18 +174,19 @@ class TestBasicShell():
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
-        assert set(job_ids) == set(project.find_job_ids())
-        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-            list(project.find_job_ids({'a': 0}))[0]
+        with pytest.deprecated_call():
+            assert set(job_ids) == set(project.find_job_ids())
+            assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
+                list(project.find_job_ids({'a': 0}))[0]
 
         # Test the doc_filter
         for job in project.find_jobs():
             job.document['a'] = job.statepoint()['a']
-
-        for i in range(3):
-            assert self.call('python -m signac find --doc-filter'.split() +
-                             ['{"a": ' + str(i) + '}']).strip() == \
-                list(project.find_job_ids(doc_filter={'a': i}))[0]
+        with pytest.deprecated_call():
+            for i in range(3):
+                assert self.call('python -m signac find --doc-filter'.split() +
+                                 ['{"a": ' + str(i) + '}']).strip() == \
+                    list(project.find_job_ids(doc_filter={'a': i}))[0]
 
     def test_remove(self):
         self.call('python -m signac init my_project'.split())
@@ -196,10 +199,12 @@ class TestBasicShell():
         assert job_to_remove in project
         assert job_to_remove.doc.a == 0
         assert len(job_to_remove.doc) == 1
-        self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
+        with pytest.deprecated_call():
+            self.call('python -m signac rm --clear {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove in project
         assert len(job_to_remove.doc) == 0
-        self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
+        with pytest.deprecated_call():
+            self.call('python -m signac rm {}'.format(job_to_remove.get_id()).split())
         assert job_to_remove not in project
 
     def test_shell(self):

@@ -1,3 +1,6 @@
+# Copyright (c) 2020 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 import os
 from setuptools import setup, find_packages
 
@@ -13,7 +16,7 @@ requirements = [
     'tqdm>=4.10.0',
 ]
 
-description = "Simple file data management database."
+description = "Manage large and heterogeneous data spaces on the file system."
 
 try:
     this_path = os.path.dirname(os.path.abspath(__file__))
@@ -25,17 +28,19 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='1.3.0',
+    version='1.4.0',
     packages=find_packages(),
     zip_safe=True,
-
-    author='Carl Simon Adorf',
+    maintainer='signac Developers',
+    maintainer_email='signac-support@umich.edu',
+    author='Carl Simon Adorf et al.',
     author_email='csadorf@umich.edu',
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    keywords='simulation database index collaboration workflow',
     url="https://signac.io",
+    download_url="https://pypi.org/project/signac/",
+    keywords='simulation database index collaboration workflow',
 
     classifiers=[
         "Development Status :: 5 - Production/Stable",

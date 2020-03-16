@@ -10,6 +10,11 @@ Version 1
 next
 ----
 
+- Fix the ``signac config verify`` command (previously broken) (#301, #302).
+
+[1.4.0] -- 2020-02-28
+---------------------
+
 Added
 +++++
 
@@ -27,13 +32,16 @@ Fixed
 +++++
 
  - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
- - Calling ``items`` or ``values`` on _SyncedDict objects does not mutate nested dictionaries (#234, #269).
+ - Calling ``items`` or ``values`` on ``_SyncedDict`` objects does not mutate nested dictionaries (#234, #269).
+ - Fixed issue with ``project.data`` access from separate instances of ``H5StoreManager`` (#274, #278).
+ - Fixed error when launching ``signac shell`` if permissions are denied for ``.signac_shell_history`` (#279).
 
 Removed
 +++++++
 
  - Removed vendored ``tqdm`` module and replaced it with a requirement (#289).
  - Removed support for ``rapidjson`` as an alternative JSON library (#285, #287).
+ - Removed tuple of keys implementation of nested dictionaries (#272, #296).
 
 
 [1.3.0] -- 2019-12-20

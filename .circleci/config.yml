@@ -24,7 +24,7 @@ jobs:
       - run:
           name: style-check-code
           command: |
-            python -m flake8 --show-source signac/
+            python -m flake8 --show-source .
 
       - run:
           name: style-check-doc-strings
@@ -76,13 +76,9 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            if [ $(python -c "import sys; print(sys.version_info.minor)") -lt 8 ]; then
-              ${PYTHON} -m coverage run -m pytest tests/ -v
-              ${PYTHON} -m coverage report -i
-              codecov
-            else
-              ${PYTHON} -m pytest tests/ -v
-            fi
+            ${PYTHON} -m coverage run -m pytest tests/ -v
+            ${PYTHON} -m coverage report -i
+            codecov
 
       - store_artifacts:
           path: test-reports
@@ -167,8 +163,7 @@ jobs:
       - run:
           name: test-deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .test-deploy.bash
+            bash .circleci/deploy.bash testpypi
 
   deploy-pypi:
     docker:
@@ -179,8 +174,7 @@ jobs:
       - run:
           name: deploy-pypi
           command: |
-            pip install --progress-bar off --user -U -r .requirements-deploy.txt
-            bash .deploy.bash
+            bash .circleci/deploy.bash pypi
 
 
 workflows:

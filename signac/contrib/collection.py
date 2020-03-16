@@ -20,10 +20,11 @@ import re
 import sys
 from itertools import islice
 from numbers import Number
-from collections.abc import Mapping
 from math import isclose
 
 from ..core import json
+from .utility import _nested_dicts_to_dotted_keys
+from .utility import _to_hashable
 from .filterparse import parse_filter_arg
 
 
@@ -56,49 +57,8 @@ def _flatten(container):
             yield i
 
 
-class _hashable_dict(dict):
-    def __hash__(self):
-        return hash(tuple(sorted(self.items())))
-
-
-def _to_hashable(l):
-    if type(l) is list:
-        return tuple(_to_hashable(_) for _ in l)
-    elif type(l) is dict:
-        return _hashable_dict(l)
-    else:
-        return l
-
-
 class _DictPlaceholder(object):
     pass
-
-
-def _encode_tree(x):
-    if type(x) is list:
-        return _to_hashable(x)
-    else:
-        return x
-
-
-def _traverse_tree(t, encode=None, key=None):
-    if encode is not None:
-        t = encode(t)
-    if isinstance(t, Mapping):
-        if t:
-            for k in t:
-                k_ = k if key is None else '.'.join((key, k))
-                for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
-                    yield k__, v
-        elif key is not None:
-            yield key, t
-    else:
-        yield key, t
-
-
-def _traverse_filter(t):
-    for key, value in _traverse_tree(t, encode=_encode_tree):
-        yield key, value
 
 
 def _valid_filter(f, top=True):
@@ -653,7 +613,7 @@ class Collection(object):
         not_expression = expr.pop('$not', None)
 
         # Reduce the result based on the remaining non-logical expression:
-        for key, value in _traverse_filter(expr):
+        for key, value in _nested_dicts_to_dotted_keys(expr):
             reduce_results(self._find_expression(key, value))
             if not result_ids:          # No match, no need to continue...
                 return set()

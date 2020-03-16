@@ -156,6 +156,9 @@ class Project(object):
         self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
 
+        # Prepare project h5-stores
+        self._stores = H5StoreManager(self._rd)
+
         # Prepare Workspace Directory
         if not os.path.isdir(self._wd):
             try:
@@ -378,7 +381,7 @@ class Project(object):
         :return: The HDF5-Store manager for this project.
         :rtype: :class:`~..core.h5store.H5StoreManager`
         """
-        return H5StoreManager(self._rd)
+        return self._stores
 
     @property
     def data(self):
@@ -548,8 +551,9 @@ class Project(object):
         from .schema import _build_job_statepoint_index
         if index is None:
             index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
-        for x in _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index):
-            yield x
+        for x, y in _build_job_statepoint_index(
+                    jobs=self, exclude_const=exclude_const, index=index):
+            yield tuple(x.split('.')), y
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
@@ -568,12 +572,14 @@ class Project(object):
         :rtype:
             `signac.contrib.schema.ProjectSchema`
         """
+        from .schema import _build_job_statepoint_index
         if index is None:
             index = self.index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc['_id'] in subset]
-        statepoint_index = self.build_job_statepoint_index(exclude_const=exclude_const, index=index)
+        statepoint_index = _build_job_statepoint_index(
+            jobs=self, exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,

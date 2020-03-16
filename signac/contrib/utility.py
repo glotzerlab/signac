@@ -14,6 +14,7 @@ from datetime import timedelta
 from contextlib import contextmanager
 from deprecation import deprecated
 from tempfile import TemporaryDirectory
+from collections.abc import Mapping
 
 from ..version import __version__
 
@@ -227,3 +228,65 @@ def _extract(filename):
                 yield tmpdir
         else:
             raise RuntimeError("Unknown file type: '{}'.".format(filename))
+
+
+def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
+    """Convert dotted keys in the state point dict to a nested dict.
+
+    :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
+    :param delimiter_nested: A string delimiter between keys, defaults to '.'.
+    :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    """
+    nested_dict = dict()
+    for key, value in dotted_dict.items():
+        tokens = key.split(delimiter_nested)
+        if len(tokens) > 1:
+            tmp = nested_dict.setdefault(tokens[0], dict())
+            for token in tokens[1:-1]:
+                tmp = tmp.setdefault(token, dict())
+            tmp[tokens[-1]] = value
+        else:
+            nested_dict[tokens[0]] = value
+    return nested_dict
+
+
+class _hashable_dict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+def _to_hashable(l):
+    if type(l) is list:
+        return tuple(_to_hashable(_) for _ in l)
+    elif type(l) is dict:
+        return _hashable_dict(l)
+    else:
+        return l
+
+
+def _encode_tree(x):
+    if type(x) is list:
+        return _to_hashable(x)
+    else:
+        return x
+
+
+def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
+    """Generate tuples of key in dotted string format and value from nested dict.
+
+    :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    :param encode: By default, values are encoded to be hashable. Use ``None`` to skip encoding.
+    :yields: Tuples of dotted key and value e.g. ('a.b', 'c').
+    """
+    if encode is not None:
+        t = encode(t)
+    if isinstance(t, Mapping):
+        if t:
+            for k in t:
+                k_ = k if key is None else '.'.join((key, k))
+                for k__, v in _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_):
+                    yield k__, v
+        elif key is not None:
+            yield key, t
+    else:
+        yield key, t

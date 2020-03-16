@@ -168,7 +168,6 @@ class TestBufferedMode(TestProjectBase):
                     pass
 
     def test_integration(self):
-
         def routine():
             for i in range(1, 4):
                 job = self.project.open_job(dict(a=i))
@@ -178,11 +177,13 @@ class TestBufferedMode(TestProjectBase):
                 assert job.sp.a > 0
                 job.sp.a = - job.sp.a
                 assert job.sp.a < 0
-                job2 = self.project.open_job(id=job.get_id())
+                with pytest.deprecated_call():
+                    job2 = self.project.open_job(id=job.get_id())
                 assert job2.sp.a < 0
                 job.sp.a = - job.sp.a
                 assert job.sp.a > 0
-                job2 = self.project.open_job(id=job.get_id())
+                with pytest.deprecated_call():
+                    job2 = self.project.open_job(id=job.get_id())
                 assert job2.sp.a > 0
 
             for job in self.project:
@@ -203,7 +204,8 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a == x
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
-                job2 = self.project.open_job(id=job.get_id())
+                with pytest.deprecated_call():
+                    job2 = self.project.open_job(id=job.get_id())
                 assert job2.doc.a == (not x)
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
