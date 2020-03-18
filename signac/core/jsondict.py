@@ -315,23 +315,30 @@ class JSONDict(SyncedAttrDict):
 
     @contextmanager
     def buffered(self):
-        """Doc string here."""
+        """
+        Context manager.
+
+        Context manager for buffering reads from and writes to this
+        JSONDict that flushes all changes when the context is exited.
+        """
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
         buffered_dict.flush()
 
 
 class BufferedSyncedAttrDict(SyncedAttrDict):
-    """Doc string here."""
+    """
+    Buffered :class:~.SyncedAttrDict.
 
-    def load(self):
-        """Doc string here."""
+    Saves all changes in memory but does not write them to file until :meth:~.flush is called.
+    """
+
+    def load(self):  # noqa: D102
         pass
 
-    def save(self):
-        """Doc string here."""
+    def save(self):  # noqa: D102
         pass
 
     def flush(self):
-        """Doc string here."""
+        """Save buffered changes to the underlying file."""
         self._parent._save(self())
