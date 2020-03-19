@@ -8,3 +8,5 @@ click>=7.0
 ruamel.yaml>=0.15.89
 pytest==5.3.4
 pytest-subtests==0.3.0
+pytest-cov==2.8.1
+pymongo==3.10.1
