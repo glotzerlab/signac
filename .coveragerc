@@ -1,4 +1,0 @@
-[run]
-source=signac
-omit=
-    */signac/common/configobj/*.py
