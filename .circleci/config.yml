@@ -68,7 +68,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m pytest --cov --cov-config=.coveragerc --cov-report=xml tests/ -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 
       - store_artifacts:
