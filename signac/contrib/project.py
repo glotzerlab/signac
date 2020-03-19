@@ -1448,6 +1448,9 @@ class Project(object):
         for doc in docs:
             yield doc
 
+    @deprecated(
+        deprecated_in="1.4", removed_in="2.0", current_version=__version__,
+        details="Uses deprecated functionality")
     def create_access_module(self, filename=None, master=True):
         """Create the access module for indexing
 
