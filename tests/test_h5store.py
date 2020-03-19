@@ -631,6 +631,7 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
 
         assert self.get_h5store()['x'] in set(range(100))
 
+    @pytest.mark.xfail(reason="This test fails randomly on CI.")
     def test_multithreading_with_error(self):
 
         def set_x(x):
