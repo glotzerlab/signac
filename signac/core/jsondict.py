@@ -315,11 +315,10 @@ class JSONDict(SyncedAttrDict):
 
     @contextmanager
     def buffered(self):
-        """
-        Context manager.
+        """Context manager for buffering reads and writes.
 
-        Context manager for buffering reads from and writes to this
-        JSONDict that flushes all changes when the context is exited.
+        This context manager buffers reads from and writes to disk,
+        flushing all changes when the context is exited.
         """
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
@@ -327,10 +326,9 @@ class JSONDict(SyncedAttrDict):
 
 
 class BufferedSyncedAttrDict(SyncedAttrDict):
-    """
-    Buffered :class:~.SyncedAttrDict.
+    """Buffered :class:`~.SyncedAttrDict`.
 
-    Saves all changes in memory but does not write them to file until :meth:~.flush is called.
+    Saves all changes in memory but does not write them to disk until :meth:`~.flush` is called.
     """
 
     def load(self):  # noqa: D102
