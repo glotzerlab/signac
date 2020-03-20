@@ -36,7 +36,7 @@ class DummyFile(object):
 class ExitCodeError(RuntimeError):
     pass
 
-
+@pytest.mark.xfail()
 class TestBasicShell():
 
     @pytest.fixture(autouse=True)
