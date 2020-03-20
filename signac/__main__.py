@@ -6,7 +6,6 @@ import sys
 import click
 import json
 import logging
-import getpass
 import errno
 from pprint import pformat
 
