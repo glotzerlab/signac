@@ -7,87 +7,13 @@ import click
 import json
 import logging
 import getpass
-import difflib
 import errno
 from pprint import pformat
 
 
-from . import Project, get_project, init_project, index
+from . import get_project, init_project
 from .version import __version__
-from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
-
-try:
-    from .common.host import get_client, get_database, get_credentials, make_uri
-except ImportError:
-    HOST = False
-else:
-    HOST = True
-
-PW_ENCRYPTION_SCHEMES = ['None']
-DEFAULT_PW_ENCRYPTION_SCHEME = PW_ENCRYPTION_SCHEMES[0]
-if get_crypt_context() is not None:
-    PW_ENCRYPTION_SCHEMES.extend(get_crypt_context().schemes())
-    DEFAULT_PW_ENCRYPTION_SCHEME = get_crypt_context().default_scheme()
-
-
-CONFIG_HOST_DEFAULTS = {
-    'url': 'mongodb://localhost',
-    'username': getpass.getuser(),
-    'auth_mechanism': 'none',
-    'ssl_cert_reqs': 'required',
-}
-
-
-CONFIG_HOST_CHOICES = {
-    'auth_mechanism': ('none', 'SCRAM-SHA-1', 'SSL-x509')
-}
-
-
-MSG_SYNC_SPECIFY_KEY = """
-Synchronization conflict occurred, no strategy defined to synchronize keys:
-{keys}
-
-Use the `-k/--key` option to specify a regular expression pattern matching
-all keys that should be overwritten, `--all-keys` to overwrite all conflicting
-keys, or `--no-keys` to overwrite none of the conflicting keys."""
-
-
-MSG_SYNC_FILE_CONFLICT = """
-Synchronization conflict occurred, no strategy defined to synchronize files:
-{files}
-
-Use the `-s/--strategy` option to specify a file synchronization strategy,
-or the `-u/--update` option to overwrite all files which have a more recent
-modification time stamp."""
-
-
-MSG_SYNC_STATS = """
-Number of files transferred: {stats.num_files}
-Total transfer volume:       {stats.volume}
-"""
-
-
-SHELL_BANNER = """Python {python_version}
-signac {signac_version}
-
-Project:\t{project_id}{job_banner}
-Root:\t\t{root_path}
-Workspace:\t{workspace_path}
-Size:\t\t{size}
-
-Interact with the project interface using the "project" or "pr" variable.
-Type "help(project)" or "help(signac)" for more information."""
-
-
-SHELL_BANNER_INTERACTIVE_IMPORT = SHELL_BANNER + """
-
-The data from origin '{origin}' has been imported into a temporary project.
-Synchronize your project with the temporary project, for example with:
-
-                    project.sync(tmp_project, recursive=True)
-"""
 
 
 def _print_err(msg=None, *args):
@@ -197,7 +123,7 @@ def init(project_id, workspace):
 @click.option('--workspace', is_flag=True)
 @click.option('--access', is_flag=True)
 @click.option('--index', is_flag=True)
-def project(access, index, workspace):
+def project(workspace, access, index):
     project = get_project()
     if access:
         fn = project.create_access_module()
