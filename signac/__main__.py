@@ -203,12 +203,14 @@ def _open_job_by_id(project, job_id):
                           "Use at least {} characters for guaranteed "
                           "unique ids.".format(job_id, n))
 
+
 def transform_option(opt):
-    if len(opt)<1:
+    if len(opt) < 1:
         return None
     if opt[0] is None:
         return list()
     return list(opt)
+
 
 def find_with_filter_or_none(**kwargs):
     if kwargs['job_id'] or kwargs['filter'] or kwargs['doc_filter']:
@@ -220,7 +222,7 @@ def find_with_filter(**kwargs):
         if kwargs['filter'] or kwargs['doc_filter']:
             raise ValueError("Can't provide both 'job-id' and filter arguments!")
         else:
-            return kwargs.job_id
+            return kwargs['job_id']
 
     project = get_project()
     if hasattr(kwargs, 'index'):
@@ -231,6 +233,7 @@ def find_with_filter(**kwargs):
     f = parse_filter_arg(kwargs['filter'])
     df = parse_filter_arg(kwargs['doc_filter'])
     return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+
 
 class MultipleOptionalArgument(click.Option):
 
@@ -256,15 +259,15 @@ class MultipleOptionalArgument(click.Option):
                     value.append(state.rargs.pop(0))
             if not len(value):
                 if self._nargs is '+':
-                    raise click.ClickException('ERROR: {} option requires an argument'.format('/'.join(self.opts)))
-                value = [ self._const if self._nargs is '?' else None]
+                    raise click.ClickException(
+                            'ERROR: {} option requires an argument'.format('/'.join(self.opts)))
+                value = [self._const if self._nargs is '?' else None]
             value = tuple(value)
 
             # call the actual process
             self._previous_parser_process(value, state)
-        
-        retval = super(MultipleOptionalArgument, self).add_to_parser(parser, ctx)
-        
+
+        super(MultipleOptionalArgument, self).add_to_parser(parser, ctx)
         for name in self.opts:
             new_parser = parser._long_opt.get(name) or parser._short_opt.get(name)
             if new_parser:
@@ -272,12 +275,12 @@ class MultipleOptionalArgument(click.Option):
                 self._previous_parser_process = new_parser.process
                 new_parser.process = parser_process
                 break
-        return retval
+
 
 @click.group()
 @click.version_option(__version__)
-@click.option('--debug', is_flag=True)
-@click.option('--verbosity','-v', 'verbosity', count=True)
+@click.option('--debug', '-d', is_flag=True)
+@click.option('--verbosity', '-v', 'verbosity', count=True)
 @click.pass_context
 def main(ctx, debug, verbosity):
     log_level = logging.DEBUG if debug else [
@@ -285,14 +288,14 @@ def main(ctx, debug, verbosity):
         logging.WARNING, logging.INFO,
         logging.MORE, logging.DEBUG][min(verbosity, 5)]
     logging.basicConfig(level=log_level)
-    
+
 
 @main.command()
 @click.argument('project_id', type=click.STRING)
-@click.option('--workspace','-w', type=click.STRING)
-def init(project_id, workspace):    
+@click.option('--workspace', '-w', type=click.STRING)
+def init(project_id, workspace):
     project = init_project(
-        name= project_id,
+        name=project_id,
         root=os.getcwd(),
         workspace=workspace)
     _print_err("Initialized project '{}'.".format(project))
@@ -319,23 +322,22 @@ def project(access, index, workspace):
 
 
 @main.command()
-@click.argument('filter', nargs= -1, type=click.STRING)
+@click.argument('filter', nargs=-1, type=click.STRING)
 @click.option('-d', '--doc-filter', type=click.STRING, cls=MultipleOptionalArgument, nargs='+')
 @click.option('-i', '--index', type=click.STRING)
 @click.option('--show', '-s', is_flag=True)
-@click.option('--sp', cls=MultipleOptionalArgument,
-              type=click.STRING)
+@click.option('--sp', cls=MultipleOptionalArgument, type=click.STRING)
 @click.option('--doc', cls=MultipleOptionalArgument, type=click.STRING)
-@click.option('-p','--pretty', cls=MultipleOptionalArgument,
-              type=click.INT, nargs='?', const=3)
-@click.option('-1','--one-line', is_flag=True)
+@click.option('-p', '--pretty', cls=MultipleOptionalArgument, type=click.INT, nargs='?', const=3)
+@click.option('-1', '--one-line', is_flag=True)
 def find(**kwargs):
-    
+
     for opt in ['filter', 'doc_filter', 'sp', 'doc', 'pretty']:
         kwargs[opt] = transform_option(kwargs[opt])
 
+    # setting default values
     kwargs['pretty'] = 3 if kwargs['pretty'] is None else kwargs['pretty']
-    
+
     project = get_project()
 
     len_id = max(6, project.min_len_unique_id())
@@ -344,11 +346,8 @@ def find(**kwargs):
     # if --sp or --doc are also specified, those subsets of keys will be used
 
     if kwargs['show']:
-        if kwargs['sp'] is None:
-           kwargs['sp'] = []
-        if kwargs['doc'] is None:
-            kwargs['doc'] = []
-
+        kwargs['sp'] = [] if kwargs['sp'] is None else kwargs['sp']
+        kwargs['doc'] = [] if kwargs['doc'] is None else kwargs['doc']
 
     def format_lines(cat, _id, s):
         if kwargs['one_line']:
