@@ -144,7 +144,8 @@ class TestBasicShell():
 
     def test_index(self):
         self.call('python -m signac init my_project'.split())
-        self.call('python -m signac project --access'.split())
+        with pytest.deprecated_call():
+            self.call('python -m signac project --access'.split())
         project = signac.Project()
         project.open_job({'a': 0}).init()
         assert len(project) == 1
