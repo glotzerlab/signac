@@ -68,7 +68,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/test_shell.py -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 
       - store_artifacts:
@@ -127,7 +127,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            python -m pytest tests/test_shell.py -v
+            python -m pytest tests/ -v
 
   check-metadata:
     docker:
