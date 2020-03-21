@@ -263,7 +263,9 @@ class TestBasicShell():
         job_b.init()
         out = self.call('python -m signac diff {} {}'.format(job_a.id, job_b.id).split())
         expected = [str(job_a.id), "{'b': 1}", str(job_b.id), "{'b': 0}"]
-        assert out.strip().split(os.linesep) == expected
+        outputs = out.strip().split(os.linesep)
+        for line in expected:
+            assert line in outputs
 
     def test_clone(self):
         self.call('python -m signac init ProjectA'.split())
