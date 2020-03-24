@@ -314,7 +314,7 @@ class JSONDict(SyncedAttrDict):
 
     @contextmanager
     def buffered(self):
-        """Context manager for buffering reads and writes.
+        """Context manager for buffering read and write operations.
 
         This context manager activates the "buffered" mode, which
         means that all read operations are cached, and all write operations
