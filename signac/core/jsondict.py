@@ -316,8 +316,9 @@ class JSONDict(SyncedAttrDict):
     def buffered(self):
         """Context manager for buffering reads and writes.
 
-        This context manager buffers reads from and writes to disk,
-        flushing all changes when the context is exited.
+        This context manager activates the "buffered" mode, which
+        means that all read operations are cached, and all write operations
+        are deferred until the buffered mode is deactivated.
         """
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
