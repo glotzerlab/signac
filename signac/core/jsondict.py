@@ -50,7 +50,6 @@ class BufferedFileError(BufferException):
         self.files = files
 
     def __str__(self):
-        """Doc string here."""
         return "{}({})".format(type(self).__name__, self.files)
 
 
