@@ -48,13 +48,13 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
 
 
 class dircmp_deep(dircmp):
-
     def phase3(self):  # Find out differences between common files
         xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
         self.same_files, self.diff_files, self.funny_files = xx
 
     methodmap = dict(dircmp.methodmap)
-    methodmap['samefiles'] = methodmap['diff_files'] = phase3
+    # The following line must be ignored: https://github.com/python/mypy/issues/708
+    methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
 
 
 class _DocProxy(object):
