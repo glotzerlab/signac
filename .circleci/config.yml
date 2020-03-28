@@ -19,7 +19,7 @@ jobs:
       - run:
           name: install-dependencies
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2
+            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2 mypy==0.770
 
       - run:
           name: style-check-code
@@ -30,6 +30,11 @@ jobs:
           name: style-check-doc-strings
           command: |
             pydocstyle
+
+      - run:
+          name: style-check-type-hints
+          command: |
+            mypy -p signac
 
   linux-python-38: &linux-template
     docker:
