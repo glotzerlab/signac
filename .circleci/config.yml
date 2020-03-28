@@ -34,7 +34,7 @@ jobs:
       - run:
           name: style-check-type-hints
           command: |
-            mypy -p signac --ignore-missing-imports
+            mypy -p signac
 
   linux-python-38: &linux-template
     docker:
