@@ -620,6 +620,8 @@ class TestH5StoreNestedPandasData(TestH5StorePandasData):
 
 class TestH5StoreMultiThreading(TestH5StoreBase):
 
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_multithreading(self):
 
         def set_x(x):
@@ -631,6 +633,8 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
 
         assert self.get_h5store()['x'] in set(range(100))
 
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_multithreading_with_error(self):
 
         def set_x(x):
@@ -761,6 +765,8 @@ class TestH5StorePerformance(TestH5StoreBase):
             self.max_slowdown_vs_native_factor, msg
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_speed_get(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_get'
@@ -774,6 +780,8 @@ class TestH5StorePerformance(TestH5StoreBase):
         self.assertSpeed(times)
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_speed_set(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_set'
