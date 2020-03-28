@@ -11,14 +11,14 @@ LEVEL_MORE = logging.INFO - 5
 
 logger = logging.getLogger('sync')
 logging.addLevelName(LEVEL_MORE, 'MORE')
-logging.MORE = LEVEL_MORE
+logging.MORE = LEVEL_MORE  # type: ignore
 
 
 def log_more(msg, *args, **kwargs):
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
 
-logger.more = log_more
+logger.more = log_more  # type: ignore
 
 
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
