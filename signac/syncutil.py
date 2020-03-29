@@ -53,7 +53,8 @@ class dircmp_deep(dircmp):
         self.same_files, self.diff_files, self.funny_files = xx
 
     methodmap = dict(dircmp.methodmap)
-    # The type check for the following line must be ignored: https://github.com/python/mypy/issues/708
+    # The type check for the following line must be ignored.
+    # See: https://github.com/python/mypy/issues/708
     methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
 
 
