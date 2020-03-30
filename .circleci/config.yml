@@ -17,11 +17,19 @@ jobs:
     steps:
       - checkout
       - run:
-          name: style-check
+          name: install-dependencies
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.9
+            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2
+
+      - run:
+          name: style-check-code
+          command: |
             python -m flake8 --show-source .
 
+      - run:
+          name: style-check-doc-strings
+          command: |
+            pydocstyle
 
   linux-python-38: &linux-template
     docker:
