@@ -228,7 +228,7 @@ def find_with_filter(args):
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
-    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
 
 
 def main_project(args):
