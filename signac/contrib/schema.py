@@ -9,12 +9,18 @@ from collections.abc import Mapping
 
 
 class _Vividict(dict):
+    """ """
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value
 
 
 def _collect_by_type(values):
+    """
+
+    :param values: 
+
+    """
     values_by_type = ddict(set)
     for v in values:
         values_by_type[type(v)].add(v)
@@ -22,6 +28,13 @@ def _collect_by_type(values):
 
 
 def _build_job_statepoint_index(jobs, exclude_const, index):
+    """
+
+    :param jobs: 
+    :param exclude_const: 
+    :param index: 
+
+    """
     from .collection import Collection
     from .collection import _DictPlaceholder
     from .utility import _nested_dicts_to_dotted_keys
@@ -36,6 +49,11 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     def strip_prefix(key): return k[len('statepoint.'):]
 
     def remove_dict_placeholder(x):
+        """
+
+        :param key): return k[len('statepoint.': 
+
+        """
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
 
     for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
@@ -46,6 +64,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
 
 
 class ProjectSchema(object):
+    """ """
     "A description of a project's state point schema."
 
     def __init__(self, schema=None):
@@ -55,26 +74,25 @@ class ProjectSchema(object):
 
     @classmethod
     def detect(cls, statepoint_index):
+        """
+
+        :param statepoint_index: 
+
+        """
         return cls({k: _collect_by_type(v) for k, v in statepoint_index})
 
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
 
-        :param depth:
-            A non-zero value will return a nested formatting up to the specified depth,
+        :param depth: A non-zero value will return a nested formatting up to the specified depth,
             defaults to 0.
-        :type depth:
-            int
-        :param precision:
-            Round numerical values up the give precision, defaults to unlimited precision.
-        :type precision:
-            int
-        :param max_num_range:
-            The maximum number of entries shown for a value range, defaults to 5.
-        :type max_num_range:
-            int
-        :returns:
-            A formatted representation of the project schema.
+        :type depth: int
+        :param precision: Round numerical values up the give precision, defaults to unlimited precision.
+        :type precision: int
+        :param max_num_range: The maximum number of entries shown for a value range, defaults to 5.
+        :type max_num_range: int
+        :returns: A formatted representation of the project schema.
+
         """
         if depth is None:
             depth = 0
@@ -82,12 +100,23 @@ class ProjectSchema(object):
             max_num_range = 5
 
         def _fmt_value(x):
+            """
+
+            :param x: 
+
+            """
             if precision is not None and isinstance(x, Number):
                 return str(round(x, precision))
             else:
                 return str(x)
 
         def _fmt_range(type_, values):
+            """
+
+            :param type_: 
+            :param values: 
+
+            """
             try:
                 sorted_values = sorted(values)
             except TypeError:
@@ -104,6 +133,11 @@ class ProjectSchema(object):
                 type_name=type_.__name__, values_string=values_string, length=len(values))
 
         def _fmt_values(values):
+            """
+
+            :param values: 
+
+            """
             return ', '.join(_fmt_range(*v) for v in values.items())
 
         if depth > 0:
@@ -151,12 +185,15 @@ class ProjectSchema(object):
         return iter(self._schema)
 
     def keys(self):
+        """ """
         return self._schema.keys()
 
     def values(self):
+        """ """
         return self._schema.values()
 
     def items(self):
+        """ """
         return self._schema.items()
 
     def __eq__(self, other):
@@ -165,12 +202,11 @@ class ProjectSchema(object):
     def difference(self, other, ignore_values=False):
         """Determine the difference between this and another project schema.
 
-        :param ignore_values:
-            Ignore if the value (range) of a specific keys differ, only return missing keys.
-        :type ignore_values:
-            bool
-        :returns:
-            A set of key tuples that are either missing or different in the other schema.
+        :param ignore_values: Ignore if the value (range) of a specific keys differ, only return missing keys. (Default value = False)
+        :type ignore_values: bool
+        :param other: 
+        :returns: A set of key tuples that are either missing or different in the other schema.
+
         """
 
         ret = set(self.keys()).difference(other.keys())
