@@ -232,6 +232,7 @@ def main_project(args):
     project = get_project()
     if args.access:
         fn = project.create_access_module()
+        # print("HELLO", file=sys.stderr)
         warnings.warn(("The method `create_access_module` is deprecated as of "
                       "version 1.5 and will be removed in 2.0"), DeprecationWarning)
         _print_err("Created access module '{}'.".format(fn))

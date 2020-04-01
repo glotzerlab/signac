@@ -144,14 +144,14 @@ class TestBasicShell():
 
     def test_index(self):
         self.call('python -m signac init my_project'.split())
-        with pytest.deprecated_call():
-            self.call('python -m signac project --access'.split())
+        # with pytest.deprecated_call():
+        self.call('python -m signac project --access'.split())
         project = signac.Project()
         project.open_job({'a': 0}).init()
         assert len(project) == 1
-        with pytest.deprecated_call():
-            assert len(list(project.index())) == 1
-            assert len(list(signac.index())) == 1
+        # with pytest.deprecated_call():
+        assert len(list(project.index())) == 1
+        assert len(list(signac.index())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
         assert 'statepoint' in doc
         assert doc['statepoint'] == {'a': 0}
