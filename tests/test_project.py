@@ -19,6 +19,7 @@ from tempfile import TemporaryDirectory
 from packaging import version
 from contextlib import redirect_stderr, contextmanager
 from time import time
+from conftest import deprecated_in_version
 
 
 import signac
@@ -919,6 +920,10 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
+
+    def test_access_module(self):
+        with deprecated_in_version('1.5'):
+            self.project.create_access_module()
 
 
 class TestProjectExportImport(TestProjectBase):

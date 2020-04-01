@@ -116,6 +116,9 @@ Synchronize your project with the temporary project, for example with:
 """
 
 
+warnings.simplefilter("default")
+
+
 def _print_err(msg=None, *args):
     print(msg, *args, file=sys.stderr)
 
@@ -225,16 +228,13 @@ def find_with_filter(args):
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
-    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
 
 
 def main_project(args):
     project = get_project()
     if args.access:
         fn = project.create_access_module()
-        # print("HELLO", file=sys.stderr)
-        warnings.warn(("The method `create_access_module` is deprecated as of "
-                      "version 1.5 and will be removed in 2.0"), DeprecationWarning)
         _print_err("Created access module '{}'.".format(fn))
         return
     if args.index:
