@@ -18,7 +18,12 @@ class _Vividict(dict):
 def _collect_by_type(values):
     """
 
-    :param values: 
+    Parameters
+    ----------
+    values :
+
+    Returns
+    -------
 
     """
     values_by_type = ddict(set)
@@ -30,9 +35,16 @@ def _collect_by_type(values):
 def _build_job_statepoint_index(jobs, exclude_const, index):
     """
 
-    :param jobs: 
-    :param exclude_const: 
-    :param index: 
+    Parameters
+    ----------
+    jobs :
+        param exclude_const:
+    index :
+
+    exclude_const :
+
+    Returns
+    -------
 
     """
     from .collection import Collection
@@ -51,7 +63,14 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     def remove_dict_placeholder(x):
         """
 
-        :param key): return k[len('statepoint.': 
+        Parameters
+        ----------
+        key :
+            return k[len('statepoint.':
+        key): return k[len('statepoint.' :
+
+        Returns
+        -------
 
         """
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
@@ -76,7 +95,12 @@ class ProjectSchema(object):
     def detect(cls, statepoint_index):
         """
 
-        :param statepoint_index: 
+        Parameters
+        ----------
+        statepoint_index :
+
+        Returns
+        -------
 
         """
         return cls({k: _collect_by_type(v) for k, v in statepoint_index})
@@ -84,14 +108,20 @@ class ProjectSchema(object):
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
 
-        :param depth: A non-zero value will return a nested formatting up to the specified depth,
+        Parameters
+        ----------
+        depth : int
+            A non-zero value will return a nested formatting up to the specified depth,
             defaults to 0.
-        :type depth: int
-        :param precision: Round numerical values up the give precision, defaults to unlimited precision.
-        :type precision: int
-        :param max_num_range: The maximum number of entries shown for a value range, defaults to 5.
-        :type max_num_range: int
-        :returns: A formatted representation of the project schema.
+        precision : int
+            Round numerical values up the give precision, defaults to unlimited precision.
+        max_num_range : int
+            The maximum number of entries shown for a value range, defaults to 5.
+
+        Returns
+        -------
+        type
+            A formatted representation of the project schema.
 
         """
         if depth is None:
@@ -102,7 +132,12 @@ class ProjectSchema(object):
         def _fmt_value(x):
             """
 
-            :param x: 
+            Parameters
+            ----------
+            x :
+
+            Returns
+            -------
 
             """
             if precision is not None and isinstance(x, Number):
@@ -113,8 +148,14 @@ class ProjectSchema(object):
         def _fmt_range(type_, values):
             """
 
-            :param type_: 
-            :param values: 
+            Parameters
+            ----------
+            type_ :
+                param values:
+            values :
+
+            Returns
+            -------
 
             """
             try:
@@ -135,7 +176,12 @@ class ProjectSchema(object):
         def _fmt_values(values):
             """
 
-            :param values: 
+            Parameters
+            ----------
+            values :
+
+            Returns
+            -------
 
             """
             return ', '.join(_fmt_range(*v) for v in values.items())
@@ -202,10 +248,18 @@ class ProjectSchema(object):
     def difference(self, other, ignore_values=False):
         """Determine the difference between this and another project schema.
 
-        :param ignore_values: Ignore if the value (range) of a specific keys differ, only return missing keys. (Default value = False)
-        :type ignore_values: bool
-        :param other: 
-        :returns: A set of key tuples that are either missing or different in the other schema.
+        Parameters
+        ----------
+        ignore_values : bool
+            Ignore if the value (range) of a specific keys differ,
+            only return missing keys. (Default value = False)
+        other :
+            returns: A set of key tuples that are either missing or different in the other schema.
+
+        Returns
+        -------
+        type
+            A set of key tuples that are either missing or different in the other schema.
 
         """
 
