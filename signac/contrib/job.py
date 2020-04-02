@@ -23,14 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
+    """ """
 
     def __init__(self, *jobs):
         self.jobs = list(jobs)
 
     def load(self):
+        """ """
         pass
 
     def save(self):
+        """ """
         for job in self.jobs:
             job._reset_sp()
 
@@ -40,7 +43,16 @@ class Job(object):
 
     Application developers should usually not need to directly
     instantiate this class, but use :meth:`~signac.Project.open_job`
-    instead."""
+    instead.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
+    """
 
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
@@ -80,16 +92,32 @@ class Job(object):
     def get_id(self):
         """The job's statepoint's unique identifier.
 
-        :return: The job id.
-        :rtype: str"""
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The job id.
+
+
+        """
         return self._id
 
     @property
     def id(self):
         """The unique identifier for the job's statepoint.
 
-        :return: The job id.
-        :rtype: str"""
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The job id.
+
+
+        """
         return self._id
 
     def __hash__(self):
@@ -110,8 +138,16 @@ class Job(object):
     def workspace(self):
         """Each job is associated with a unique workspace directory.
 
-        :return: The path to the job's workspace directory.
-        :rtype: str"""
+        Parameters
+        ----------
+
+        Returns
+        -------
+        str
+            The path to the job's workspace directory.
+
+
+        """
         return self._wd
 
     @property
@@ -128,12 +164,22 @@ class Job(object):
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
-        :param new_statepoint: The job's new state point.
-        :type new_statepoint: mapping
-        :raises DestinationExistsError:
+        Parameters
+        ----------
+        new_statepoint : mapping
+            The job's new state point.
+
+        Returns
+        -------
+
+        Raises
+        ------
+        DestinationExistsError
             If a job associated with the new state point is already initialized.
-        :raises OSError:
+        OSError
             If the move failed due to an unknown system related error.
+
+
         """
         dst = self._project.open_job(new_statepoint)
         if dst == self:
@@ -168,6 +214,19 @@ class Job(object):
         logger.info("Moved '{}' -> '{}'.".format(self, dst))
 
     def _reset_sp(self, new_sp=None):
+        """Check for new state point requested to assign this job.
+
+        Parameters
+        ----------
+        new_sp :
+            (Default value = None)
+
+        Returns
+        -------
+
+
+        """
+
         if new_sp is None:
             new_sp = self.statepoint()
         self.reset_statepoint(new_sp)
@@ -181,18 +240,29 @@ class Job(object):
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
-        :param update: A mapping used for the statepoint update.
-        :type update: mapping
-        :param overwrite:
+        Parameters
+        ----------
+        update : mapping
+            A mapping used for the statepoint update.
+        overwrite :
             Set to true, to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point. Use with caution!
-        :raises KeyError:
+            which are currently part of the job's state point.
+            Use with caution! (Default value = False)
+
+        Returns
+        -------
+
+        Raises
+        ------
+        KeyError
             If the update contains keys, which are already part of the job's
             state point and overwrite is False.
-        :raises DestinationExistsError:
+        DestinationExistsError
             If a job associated with the new state point is already initialized.
-        :raises OSError:
+        OSError
             If the move failed due to an unknown system related error.
+
+
         """
         statepoint = self.statepoint()
         if not overwrite:
@@ -215,20 +285,52 @@ class Job(object):
             you can access a dict copy of the statepoint by calling it, e.g.
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
         """
         return self._statepoint
 
     @statepoint.setter
     def statepoint(self, new_sp):
+        """Assigns new state point to this Job.
+
+        Parameters
+        ----------
+        new_sp :
+
+
+        Returns
+        -------
+
+
+        """
         self._reset_sp(new_sp)
 
     @property
     def sp(self):
-        "Alias for :attr:`Job.statepoint`."
+        """Alias for :attr:`Job.statepoint`."""
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
+        """Alias for :attr:`Job.statepoint`.
+
+        Parameters
+        ----------
+        new_sp :
+
+
+        Returns
+        -------
+
+
+        """
         self.statepoint = new_sp
 
     @property
@@ -242,10 +344,15 @@ class Job(object):
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
 
-        :return:
+        Parameters
+        ----------
+
+        Returns
+        -------
+        class : `~signac.JSONDict`
             The job document handle.
-        :rtype:
-            :class:`~signac.JSONDict`
+
+
         """
         if self._document is None:
             self.init()
@@ -254,6 +361,18 @@ class Job(object):
 
     @document.setter
     def document(self, new_doc):
+        """Assigns new document to the this job.
+
+        Parameters
+        ----------
+        new_doc :
+
+
+        Returns
+        -------
+
+
+        """
         self.document.reset(new_doc)
 
     @property
@@ -266,11 +385,31 @@ class Job(object):
             persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
         """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
+        """Alias for :attr:`Job.document
+
+        Parameters
+        ----------
+        new_doc :
+
+
+        Returns
+        -------
+
+
+        """
         self.document = new_doc
 
     @property
@@ -300,10 +439,15 @@ class Job(object):
 
             job.stores.my_data.array = np.random((32, 4))
 
-        :return:
+        Parameters
+        ----------
+
+        Returns
+        -------
+        class : `~signac.H5StoreManager`
             The HDF5-Store manager for this job.
-        :rtype:
-            :class:`~signac.H5StoreManager`
+
+
         """
         return self.init()._stores
 
@@ -321,16 +465,47 @@ class Job(object):
 
                 return job.stores['signac_data']
 
-        :return: An HDF5-backed datastore.
-        :rtype: :class:`~signac.H5Store`
+        Parameters
+        ----------
+
+        Returns
+        -------
+        class : `~signac.H5Store`
+            An HDF5-backed datastore.
+
+
         """
         return self.stores[self.KEY_DATA]
 
     @data.setter
     def data(self, new_data):
+        """Assigns new data to this job.
+
+        Parameters
+        ----------
+        new_data :
+
+
+        Returns
+        -------
+
+
+        """
         self.stores[self.KEY_DATA] = new_data
 
     def _init(self, force=False):
+        """Helper function to initialize the job's workspace directory.
+
+        Parameters
+        ----------
+        force :
+            (Default value = False)
+
+        Returns
+        -------
+
+
+        """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
 
         # Create the workspace directory if it did not exist yet.
@@ -363,7 +538,7 @@ class Job(object):
             self._check_manifest()
 
     def _check_manifest(self):
-        "Check whether the manifest file, if it exists, is correct."
+        """Check whether the manifest file, if it exists, is correct."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as file:
@@ -382,15 +557,18 @@ class Job(object):
 
         Returns the calling job.
 
-        :param force:
+        Parameters
+        ----------
+        force : bool
             Overwrite any existing state point's manifest
-            files, e.g., to repair them when they got corrupted.
-        :type force:
-            bool
-        :return:
+            files, e.g., to repair them when they got corrupted. (Default value = False)
+
+        Returns
+        -------
+        class : `~.Job`
             The job handle.
-        :rtype:
-            :class:`~.Job`
+
+
         """
         try:
             self._init(force=force)
@@ -405,6 +583,14 @@ class Job(object):
 
         This function will do nothing if the job was not previously
         initialized.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
         """
         try:
             for fn in os.listdir(self._wd):
@@ -424,7 +610,16 @@ class Job(object):
         """Remove all job data, but not the job itself.
 
         This function will initialize the job if it was not previously
-        initialized."""
+        initialized.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
+        """
         self.clear()
         self.init()
 
@@ -432,7 +627,16 @@ class Job(object):
         """Remove the job's workspace including the job document.
 
         This function will do nothing if the workspace directory
-        does not exist."""
+        does not exist.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
+        """
         try:
             shutil.rmtree(self.workspace())
         except OSError as error:
@@ -454,17 +658,25 @@ class Job(object):
         This function will attempt to move this instance of job from
         its original project to a different project.
 
-        :param project:
+        Parameters
+        ----------
+        project : py:class:`~.project.Project`
             The project to move this job to.
-        :type project:
-            :py:class:`~.project.Project`
-        :raises DestinationExistsError:
+
+        Returns
+        -------
+
+        Raises
+        ------
+        DestinationExistsError
             If the job is already initialized in project.
-        :raises RuntimeError:
+        RuntimeError
             If the job is not initialized or the destination is on a different
             device.
-        :raises OSError:
+        OSError
             When the move failed due unexpected file system issues.
+
+
         """
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
@@ -501,28 +713,37 @@ class Job(object):
         A document synchronization conflict can be resolved by providing a doc_sync function
         that takes the source and the destination document as first and second argument.
 
-        :param other:
+        Parameters
+        ----------
+        other : Job`
             The other job to synchronize from.
-        :type other:
-            `.Job`
-        :param strategy:
+        strategy :
             A synchronization strategy for file conflicts. If no strategy is provided, a
             :class:`~.errors.SyncConflict` exception will be raised upon conflict.
-        :param exclude:
+            (Default value = None)
+        exclude : str
             An filename exclude pattern. All files matching this pattern will be
-            excluded from synchronization.
-        :type exclude:
-            str
-        :param doc_sync:
+            excluded from synchronization. (Default value = None)
+        doc_sync :
             A synchronization strategy for document keys. If this argument is None, by default
             no keys will be synchronized upon conflict.
-        :param dry_run:
+        dry_run :
             If True, do not actually perform the synchronization.
-        :param kwargs:
+        kwargs :
             Extra keyword arguments will be forward to the :py:func:`~.sync.sync_jobs`
             function which actually excutes the synchronization operation.
-        :raises FileSyncConflict:
+        **kwargs :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        FileSyncConflict
             In case that a file synchronization results in a conflict.
+
+
         """
         sync_jobs(
             src=other,
@@ -535,18 +756,35 @@ class Job(object):
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
 
-        :param filename: The filename of the file.
-        :type filename: str
-        :return: The full workspace path of the file."""
+        Parameters
+        ----------
+        filename : str
+            The filename of the file.
+
+        Returns
+        -------
+        type
+            The full workspace path of the file.
+
+
+        """
         return os.path.join(self._wd, filename)
 
     def isfile(self, filename):
         """Return True if file exists in the job's workspace.
 
-        :param filename: The filename of the file.
-        :type filename: str
-        :return: True if file with filename exists in workspace.
-        :rtype: bool"""
+        Parameters
+        ----------
+        filename : str
+            The filename of the file.
+
+        Returns
+        -------
+        bool
+            True if file with filename exists in workspace.
+
+
+        """
         return os.path.isfile(self.fn(filename))
 
     def open(self):
@@ -561,6 +799,14 @@ class Job(object):
 
         Opening the context will switch into the job's workspace,
         leaving it will switch back to the previous working directory.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
         """
         self._cwd.append(os.getcwd())
         self.init()
@@ -568,7 +814,7 @@ class Job(object):
         os.chdir(self._wd)
 
     def close(self):
-        "Close the job and switch to the previous working directory."
+        """Close the job and switch to the previous working directory."""
         try:
             os.chdir(self._cwd.pop())
             logger.info("Leave workspace.")
