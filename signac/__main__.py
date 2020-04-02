@@ -1075,7 +1075,7 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
+                    project_id=project.id,
                     job_banner='\nJob:\t\t{job._id}'.format(job=job) if job is not None else '',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
