@@ -159,7 +159,7 @@ class RegexFileCrawler(BaseCrawler):
         MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
     """
     "Mapping of compiled regex objects and associated formats."
-    definitions = dict()
+    definitions = dict()  # type: ignore
 
     @classmethod
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
