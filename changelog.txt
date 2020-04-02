@@ -10,6 +10,14 @@ Version 1
 next
 ----
 
+Added
++++++
+
+- Type annotations are validated during continuous integration (#313).
+
+Fixed
++++++
+
 - Fix the ``signac config verify`` command (previously broken) (#301, #302).
 
 [1.4.0] -- 2020-02-28

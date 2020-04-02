@@ -1195,7 +1195,7 @@ class Project(object):
         if corrupted:
             logger.error(
                 "At least one job appears to be corrupted. Call Project.repair() "
-                "to try to fix errors.".format(len(corrupted)))
+                "to try to fix errors.")
             raise JobsCorruptedError(corrupted)
 
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
