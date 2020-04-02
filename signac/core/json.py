@@ -4,6 +4,7 @@
 import logging
 from json import load, loads, JSONEncoder
 from json.decoder import JSONDecodeError
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class CustomJSONEncoder(JSONEncoder):
     an object that is otherwise not serializable, by calling the object's
     `_as_dict()` method.
     """
-    def default(self, o):
+    def default(self, o: Any) -> Dict[str, Any]:
         if NUMPY:
             if isinstance(o, numpy.number):
                 return o.item()
@@ -35,7 +36,7 @@ class CustomJSONEncoder(JSONEncoder):
             return super(CustomJSONEncoder, self).default(o)
 
 
-def dumps(o, sort_keys=False, indent=None):
+def dumps(o: Any, sort_keys: bool = False, indent: Optional[int] = None) -> str:
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 

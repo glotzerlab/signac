@@ -11,14 +11,14 @@ LEVEL_MORE = logging.INFO - 5
 
 logger = logging.getLogger('sync')
 logging.addLevelName(LEVEL_MORE, 'MORE')
-logging.MORE = LEVEL_MORE
+logging.MORE = LEVEL_MORE  # type: ignore
 
 
 def log_more(msg, *args, **kwargs):
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
 
-logger.more = log_more
+logger.more = log_more  # type: ignore
 
 
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
@@ -48,13 +48,14 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
 
 
 class dircmp_deep(dircmp):
-
     def phase3(self):  # Find out differences between common files
         xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
         self.same_files, self.diff_files, self.funny_files = xx
 
     methodmap = dict(dircmp.methodmap)
-    methodmap['samefiles'] = methodmap['diff_files'] = phase3
+    # The type check for the following line must be ignored.
+    # See: https://github.com/python/mypy/issues/708
+    methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
 
 
 class _DocProxy(object):

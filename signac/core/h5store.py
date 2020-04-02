@@ -507,8 +507,8 @@ class H5StoreManager(DictManager):
     :param prefix:
         The directory prefix shared by all stores managed by this class.
     """
-    cls = H5Store
-    suffix = '.h5'
+    cls = H5Store  # type: ignore
+    suffix = '.h5'  # type: ignore
 
     @staticmethod
     def _validate_key(key):
