@@ -8,7 +8,7 @@ orbs:
   win: circleci/windows@2.2.0  # Enables Windows executors
 
 jobs:
-  style-check:
+  pre-checks:
     docker:
       - image: circleci/python:3.8
 
@@ -17,11 +17,24 @@ jobs:
     steps:
       - checkout
       - run:
-          name: style-check
+          name: install-dependencies
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.9
+            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2 mypy==0.770
+
+      - run:
+          name: check-style
+          command: |
             python -m flake8 --show-source .
 
+      - run:
+          name: check-docstyle
+          command: |
+            pydocstyle
+
+      - run:
+          name: check-type-hints
+          command: |
+            mypy .
 
   linux-python-38: &linux-template
     docker:
@@ -172,25 +185,25 @@ workflows:
   version: 2
   test:
     jobs:
-      - style-check
+      - pre-checks
       - linux-python-38:
           requires:
-            - style-check
+            - pre-checks
       - linux-python-37:
           requires:
-            - style-check
+            - pre-checks
       - linux-python-36:
           requires:
-            - style-check
+            - pre-checks
       - linux-python-35:
           requires:
-            - style-check
+            - pre-checks
       - linux-pypy-3:
           requires:
             - linux-python-36
       - windows-python-38:
           requires:
-            - style-check
+            - pre-checks
       - check-metadata:
           filters:
             branches:

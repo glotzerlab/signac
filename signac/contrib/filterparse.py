@@ -56,7 +56,7 @@ def _cast(x):
     "Attempt to interpret x with the correct type."
     try:
         if x in CAST_MAPPING_WARNING:
-            print("Did you mean {}?".format(CAST_MAPPING_WARNING[x], file=sys.stderr))
+            print("Did you mean {}?".format(CAST_MAPPING_WARNING[x]), file=sys.stderr)
         return CAST_MAPPING[x]
     except KeyError:
         try:
