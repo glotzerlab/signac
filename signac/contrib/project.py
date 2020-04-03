@@ -1570,7 +1570,7 @@ class Project(object):
 
     @classmethod
     def get_project(cls, root=None, search=True, **kwargs):
-        """Find a project configuration and return the associated project.
+        r"""Find a project configuration and return the associated project.
 
         :param root:
             The starting point to search for a project, defaults to the
@@ -1581,7 +1581,11 @@ class Project(object):
             the specified root directory, otherwise only return projects
             with a root directory identical to the specified root argument.
         :type search: bool
+        :param \*\*kwargs:
+            Optional keyword arguments that are forwarded to the
+            :class:`.Project` class constructor.
         :returns: The project handle.
+        :rtype: :py:class:`~.Project`
         :raises LookupError: If no project configuration can be found.
         """
         if root is None:
@@ -1629,7 +1633,7 @@ class Project(object):
 
 @contextmanager
 def TemporaryProject(name=None, cls=None, **kwargs):
-    """Context manager for the generation of a temporary project.
+    r"""Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
     and must be used as context manager, for example like this:
@@ -1642,12 +1646,14 @@ def TemporaryProject(name=None, cls=None, **kwargs):
     :param name:
         An optional name for the temporary project.
         Defaults to a unique random string.
+    :type name: str
     :param cls:
         The class of the temporary project.
         Defaults to :class:`.Project`.
-    :param kwargs:
-        Optional key-word arguments that are forwarded to the TemporaryDirectory class
-        constructor, which is used to create a temporary root directory.
+    :param \*\*kwargs:
+        Optional keyword arguments that are forwarded to the
+        :func:`~tempfile.TemporaryDirectory` class constructor, which is
+        used to create a temporary root directory.
     :returns:
         An instance of :class:`.Project`.
     """
@@ -1953,7 +1959,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
 
 def get_project(root=None, search=True, **kwargs):
-    """Find a project configuration and return the associated project.
+    r"""Find a project configuration and return the associated project.
 
     :param root:
         The starting point to search for a project, defaults to the
@@ -1964,6 +1970,9 @@ def get_project(root=None, search=True, **kwargs):
         the specified root directory, otherwise only return projects
         with a root directory identical to the specified root argument.
     :type search: bool
+    :param \*\*kwargs:
+        Optional keyword arguments that are forwarded to the
+        :class:`.Project` class constructor.
     :returns: The project handle.
     :rtype: :py:class:`~.Project`
     :raises LookupError: If no project configuration can be found.
