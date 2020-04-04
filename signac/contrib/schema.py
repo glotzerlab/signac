@@ -9,23 +9,28 @@ from collections.abc import Mapping
 
 
 class _Vividict(dict):
-    """ """
+    """A dict that returns an empty _Vividict for keys that are missing.
+
+    Useful for automatically nesting keys with ``vividict['a']['b']['c'] = 'd'``.
+    """
+
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value
 
 
 def _collect_by_type(values):
-    """
+    """Constructs a mapping of types to a set of elements drawn from the input values.
 
     Parameters
     ----------
-    values :
+    values : An iterable of values.
 
     Returns
     -------
-
+    A mapping of types to a set of input values of that type.
     """
+
     values_by_type = ddict(set)
     for v in values:
         values_by_type[type(v)].add(v)
@@ -47,6 +52,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     -------
 
     """
+
     from .collection import Collection
     from .collection import _DictPlaceholder
     from .utility import _nested_dicts_to_dotted_keys
@@ -61,18 +67,8 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     def strip_prefix(key): return k[len('statepoint.'):]
 
     def remove_dict_placeholder(x):
-        """
+        """Removes _DictPlaceholder elements from a mapping."""
 
-        Parameters
-        ----------
-        key :
-            return k[len('statepoint.':
-        key): return k[len('statepoint.' :
-
-        Returns
-        -------
-
-        """
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
 
     for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
@@ -83,8 +79,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
 
 
 class ProjectSchema(object):
-    """ """
-    "A description of a project's state point schema."
+    """A description of a project's state point schema."""
 
     def __init__(self, schema=None):
         if schema is None:
@@ -231,15 +226,18 @@ class ProjectSchema(object):
         return iter(self._schema)
 
     def keys(self):
-        """ """
+        """Returns schema keys."""
+
         return self._schema.keys()
 
     def values(self):
-        """ """
+        """Returns schema values."""
+
         return self._schema.values()
 
     def items(self):
-        """ """
+        """Returns schema items."""
+
         return self._schema.items()
 
     def __eq__(self, other):
@@ -253,12 +251,12 @@ class ProjectSchema(object):
         ignore_values : bool
             Ignore if the value (range) of a specific keys differ,
             only return missing keys. (Default value = False)
-        other :
-            returns: A set of key tuples that are either missing or different in the other schema.
+        other : ProjectSchema
+            Other project schema.
 
         Returns
         -------
-        type
+        set
             A set of key tuples that are either missing or different in the other schema.
 
         """
