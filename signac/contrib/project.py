@@ -44,17 +44,6 @@ JOB_ID_REGEX = re.compile('[a-f0-9]{32}')
 ACCESS_MODULE_MINIMAL = """import signac
 
 def get_indexes(root):
-    """
-
-    Parameters
-    ----------
-    root :
-
-
-    Returns
-    -------
-
-    """
     yield signac.get_project(root).index()
 """
 
@@ -63,17 +52,6 @@ ACCESS_MODULE_MASTER = """#!/usr/bin/env python
 import signac
 
 def get_indexes(root):
-    """
-
-    Parameters
-    ----------
-    root :
-
-
-    Returns
-    -------
-
-    """
     yield signac.get_project(root).index()
 
 if __name__ == '__main__':
@@ -98,7 +76,6 @@ class JobSearchIndex(object):
     -------
 
     """
-
     def __init__(self, index, _trust=False):
         self._collection = Collection(index, _trust=_trust)
 
@@ -258,7 +235,8 @@ class Project(object):
         Returns
         -------
         str
-            html containing project details."""
+            html containing project details.
+        """
         return "<p>" + \
             '<strong>Project:</strong> {}<br>'.format(self.id) + \
             "<strong>Root:</strong> {}<br>".format(self.root_directory()) + \
@@ -548,7 +526,7 @@ class Project(object):
             The project document handle.
 
         Returns
-    Returns    -------
+        -------
 
         """
         self.document = new_doc
@@ -839,7 +817,8 @@ class Project(object):
         Parameters
         ----------
         exclude_const : bool
-            Exclude all state point keys that are shared by all jobs within this project. (Default value = False)
+            Exclude all state point keys that are shared by all jobs within this project.
+            (Default value = False)
         subset :
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected. (Default value = None)
@@ -1045,7 +1024,8 @@ class Project(object):
         ----------
         key : str, iterable, or function
             The statepoint grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :attr:`Job.document`. (Default value = None)
+            or a function that will be passed one argument, :attr:`Job.document`.
+            (Default value = None)
         default :
             A default value to be used when a given state point key is not present (must
             be sortable).
@@ -1172,7 +1152,6 @@ class Project(object):
         -------
 
         """
-
         self._sp_cache[job._id] = job._statepoint._as_dict()
 
     def _get_statepoint_from_workspace(self, jobid):
@@ -1398,7 +1377,8 @@ class Project(object):
             A mapping used for the statepoint update.
         overwrite :
             Set to true, to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point. Use with caution! (Default value = False)
+            which are currently part of the job's state point. Use with caution!
+            (Default value = False)
 
         Returns
         -------
@@ -1614,7 +1594,8 @@ class Project(object):
             a directory, a zip file, or a tarball archive. (Default value = None)
         schema :
             An optional schema function, which is either a string or a function that accepts a
-            path as its first and only argument and returns the corresponding state point as dict. (Default value = None)
+            path as its first and only argument and returns the corresponding state point as dict.
+            (Default value = None)
         sync :
             If ``True``, the project will be synchronized with the imported data space. If a
             dict of keyword arguments is provided, the arguments will be used for :meth:`~.sync`.
@@ -1853,7 +1834,6 @@ class Project(object):
 
     def _remove_persistent_cache_file(self):
         """Remove the persistent cache file (if it exists)."""
-
         try:
             os.remove(self.fn(self.FN_CACHE))
         except (OSError, IOError) as error:
@@ -2506,7 +2486,8 @@ class JobsCursor(object):
         ----------
         key : str, iterable, or function
             The statepoint grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :attr:`job.document`. (Default value = None)
+            or a function that will be passed one argument, :attr:`job.document`.
+            (Default value = None)
         default :
             A default value to be used when a given state point key is not present (must
             be sortable).
