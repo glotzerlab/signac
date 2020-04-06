@@ -23,8 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
-    """ """
+    """
 
+    Parameters
+    ----------
+    jobs :
+
+    """
     def __init__(self, *jobs):
         self.jobs = list(jobs)
 
@@ -47,10 +52,11 @@ class Job(object):
 
     Parameters
     ----------
+    project :
 
-    Returns
-    -------
+    statepoint :
 
+    _id :
 
     """
 
@@ -92,14 +98,10 @@ class Job(object):
     def get_id(self):
         """The job's statepoint's unique identifier.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str
             The job id.
-
 
         """
         return self._id
@@ -108,14 +110,10 @@ class Job(object):
     def id(self):
         """The unique identifier for the job's statepoint.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str
             The job id.
-
 
         """
         return self._id
@@ -138,14 +136,10 @@ class Job(object):
     def workspace(self):
         """Each job is associated with a unique workspace directory.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str
             The path to the job's workspace directory.
-
 
         """
         return self._wd
@@ -169,16 +163,12 @@ class Job(object):
         new_statepoint : mapping
             The job's new state point.
 
-        Returns
-        -------
-
         Raises
         ------
         DestinationExistsError
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
-
 
         """
         dst = self._project.open_job(new_statepoint)
@@ -221,10 +211,6 @@ class Job(object):
         new_sp :
             (Default value = None)
 
-        Returns
-        -------
-
-
         """
 
         if new_sp is None:
@@ -249,9 +235,6 @@ class Job(object):
             which are currently part of the job's state point.
             Use with caution! (Default value = False)
 
-        Returns
-        -------
-
         Raises
         ------
         KeyError
@@ -261,7 +244,6 @@ class Job(object):
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
-
 
         """
         statepoint = self.statepoint()
@@ -286,12 +268,8 @@ class Job(object):
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
 
-        Parameters
-        ----------
-
         Returns
         -------
-
 
         """
         return self._statepoint
@@ -303,12 +281,7 @@ class Job(object):
         Parameters
         ----------
         new_sp :
-
-
-        Returns
-        -------
-
-
+            new state point to be assign.
         """
         self._reset_sp(new_sp)
 
@@ -319,18 +292,7 @@ class Job(object):
 
     @sp.setter
     def sp(self, new_sp):
-        """Alias for :attr:`Job.statepoint`.
-
-        Parameters
-        ----------
-        new_sp :
-
-
-        Returns
-        -------
-
-
-        """
+        """Alias for :attr:`Job.statepoint`."""
         self.statepoint = new_sp
 
     @property
@@ -344,14 +306,10 @@ class Job(object):
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
 
-        Parameters
-        ----------
-
         Returns
         -------
         class : `~signac.JSONDict`
             The job document handle.
-
 
         """
         if self._document is None:
@@ -365,51 +323,20 @@ class Job(object):
 
         Parameters
         ----------
-        new_doc :
-
-
-        Returns
-        -------
-
+        new_doc : class : `~signac.JSONDict`
+            The job document handle.
 
         """
         self.document.reset(new_doc)
 
     @property
     def doc(self):
-        """Alias for :attr:`Job.document`.
-
-        .. warning::
-
-            If you need a deep copy that will not modify the underlying
-            persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see :attr:`Job.statepoint` or
-            :class:`~signac.JSONDict`.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
-
-        """
+        """Alias for :attr:`Job.document`."""
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
-        """Alias for :attr:`Job.document
-
-        Parameters
-        ----------
-        new_doc :
-
-
-        Returns
-        -------
-
-
-        """
+        """Alias for :attr:`Job.document."""
         self.document = new_doc
 
     @property
@@ -439,14 +366,10 @@ class Job(object):
 
             job.stores.my_data.array = np.random((32, 4))
 
-        Parameters
-        ----------
-
         Returns
         -------
         class : `~signac.H5StoreManager`
             The HDF5-Store manager for this job.
-
 
         """
         return self.init()._stores
@@ -465,14 +388,10 @@ class Job(object):
 
                 return job.stores['signac_data']
 
-        Parameters
-        ----------
-
         Returns
         -------
         class : `~signac.H5Store`
             An HDF5-backed datastore.
-
 
         """
         return self.stores[self.KEY_DATA]
@@ -483,12 +402,8 @@ class Job(object):
 
         Parameters
         ----------
-        new_data :
-
-
-        Returns
-        -------
-
+        new_data : class : `~signac.H5Store`
+            An HDF5-backed datastore.
 
         """
         self.stores[self.KEY_DATA] = new_data
@@ -501,9 +416,8 @@ class Job(object):
         force :
             (Default value = False)
 
-        Returns
-        -------
-
+        Raises
+        ------
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -568,6 +482,8 @@ class Job(object):
         class : `~.Job`
             The job handle.
 
+        Raises
+        ------
 
         """
         try:
@@ -584,12 +500,8 @@ class Job(object):
         This function will do nothing if the job was not previously
         initialized.
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-
+        Raises
+        ------
 
         """
         try:
@@ -612,13 +524,6 @@ class Job(object):
         This function will initialize the job if it was not previously
         initialized.
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-
-
         """
         self.clear()
         self.init()
@@ -629,12 +534,8 @@ class Job(object):
         This function will do nothing if the workspace directory
         does not exist.
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-
+        Raises
+        ------
 
         """
         try:
@@ -663,9 +564,6 @@ class Job(object):
         project : py:class:`~.project.Project`
             The project to move this job to.
 
-        Returns
-        -------
-
         Raises
         ------
         DestinationExistsError
@@ -675,7 +573,6 @@ class Job(object):
             device.
         OSError
             When the move failed due unexpected file system issues.
-
 
         """
         dst = project.open_job(self.statepoint())
@@ -735,14 +632,10 @@ class Job(object):
         **kwargs :
 
 
-        Returns
-        -------
-
         Raises
         ------
         FileSyncConflict
             In case that a file synchronization results in a conflict.
-
 
         """
         sync_jobs(
@@ -766,7 +659,6 @@ class Job(object):
         type
             The full workspace path of the file.
 
-
         """
         return os.path.join(self._wd, filename)
 
@@ -783,7 +675,6 @@ class Job(object):
         bool
             True if file with filename exists in workspace.
 
-
         """
         return os.path.isfile(self.fn(filename))
 
@@ -799,13 +690,6 @@ class Job(object):
 
         Opening the context will switch into the job's workspace,
         leaving it will switch back to the previous working directory.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
 
         """
         self._cwd.append(os.getcwd())
