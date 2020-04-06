@@ -71,9 +71,8 @@ class JobSearchIndex(object):
     ----------
     index :
         A document index.
-
-    Returns
-    -------
+    _trust :
+        (Default value = False)
 
     """
     def __init__(self, index, _trust=False):
@@ -90,8 +89,8 @@ class JobSearchIndex(object):
         q :
 
 
-        Returns
-        -------
+        Yield
+        -----
 
         """
         for k, v in q.items():
@@ -155,9 +154,10 @@ class Project(object):
 
     Parameters
     ----------
-
-    Returns
-    -------
+    config :
+        (Default value = None)
+    _ignore_schema_version :
+        (Default value = False)
 
     """
     Job = Job
@@ -229,13 +229,11 @@ class Project(object):
     def _repr_html_(self):
         """Project details in html format.
 
-        Paramters
-        ---------
-
         Returns
         -------
         str
             html containing project details.
+
         """
         return "<p>" + \
             '<strong>Project:</strong> {}<br>'.format(self.id) + \
@@ -252,9 +250,6 @@ class Project(object):
     def config(self):
         """The project's configuration.
 
-        Parameters
-        ----------
-
         Returns
         -------
         dict
@@ -267,9 +262,6 @@ class Project(object):
     def _rd(self):
         """The project root directory.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str :
@@ -281,9 +273,6 @@ class Project(object):
     @property
     def _wd(self):
         """Returns the path of workspace directory.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -315,9 +304,6 @@ class Project(object):
             The configuration will respect environment variables,
             such as $HOME.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str
@@ -331,9 +317,6 @@ class Project(object):
     def get_id(self):
         """Get the project identifier.
 
-        Parameters
-        ----------
-
         Returns
         -------
         str
@@ -345,9 +328,6 @@ class Project(object):
     @property
     def id(self):
         """Get the project identifier.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -362,12 +342,6 @@ class Project(object):
 
     def _check_schema_compatibility(self):
         """Checks whether this project's data schema is compatible with this version.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
 
         Raises
         ------
@@ -397,9 +371,6 @@ class Project(object):
 
     def min_len_unique_id(self):
         """Determine the minimum length required for an id to be unique.
-
-        Paramters
-        ---------
 
         Returns
         -------
@@ -460,18 +431,12 @@ class Project(object):
         new_doc : class:`~.JSONDict`
             The project document handle.
 
-        Returns
-        -------
-
         """
         self.document.reset(new_doc)
 
     @property
     def document(self):
         """The document associated with this project.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -493,9 +458,6 @@ class Project(object):
             The project document handle.
 
 
-        Returns
-        -------
-
         """
         self._reset_document(new_doc)
 
@@ -504,9 +466,6 @@ class Project(object):
         """The document associated with this project.
 
         Alias for :attr:`~signac.Project.document`.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -524,9 +483,6 @@ class Project(object):
         ----------
         new_doc : class:`~.JSONDict`
             The project document handle.
-
-        Returns
-        -------
 
         """
         self.document = new_doc
@@ -558,9 +514,6 @@ class Project(object):
 
             project.stores.my_data.array = np.random((32, 4))
 
-        Parameters
-        ----------
-
         Returns
         -------
         class:`~..core.h5store.H5StoreManager`
@@ -586,9 +539,6 @@ class Project(object):
 
             return project.stores['signac_data']
 
-        Parameters
-        ----------
-
         Returns
         -------
         class:`~..core.h5store.H5Store`
@@ -605,9 +555,6 @@ class Project(object):
         ----------
         new_data : class:`~..core.h5store.H5Store`
             An HDF5-backed datastore.
-
-        Returns
-        -------
 
         """
         self.stores[self.KEY_DATA] = new_data
@@ -669,9 +616,6 @@ class Project(object):
     def _job_dirs(self):
         """Generator for ids of jobs in the workspace.
 
-        Parameters
-        ----------
-
         Yields
         ------
         str
@@ -699,9 +643,6 @@ class Project(object):
 
     def num_jobs(self):
         """Return the number of initialized jobs.
-
-        Parameters
-        ----------
 
         Returns
         -------
@@ -779,9 +720,6 @@ class Project(object):
             A document index.
             :yields: Pairs of state point keys and mappings of values to a set of all
             corresponding job ids. (Default value = None)
-
-        Returns
-        -------
 
         >>> for i in range(4):
             ...     project.open_job({'a': i, 'b': {'c': i % 2}}).init()
@@ -896,9 +834,6 @@ class Project(object):
              (Default value = None)
         index :
              (Default value = None)
-
-        Returns
-        -------
 
         """
         if filter is None and doc_filter is None and index is None:
@@ -1030,9 +965,6 @@ class Project(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
 
-        Returns
-        -------
-
         """
         return self.find_jobs().groupbydoc(key, default=default)
 
@@ -1117,9 +1049,6 @@ class Project(object):
         indent : int
             Specify the indentation of the json file. (Default value = 2)
 
-        Returns
-        -------
-
         """
         if fn is None:
             fn = self.fn(self.FN_STATEPOINTS)
@@ -1148,9 +1077,6 @@ class Project(object):
         job : class:`~.Job`
             The job instance.
 
-        Returns
-        -------
-
         """
         self._sp_cache[job._id] = job._statepoint._as_dict()
 
@@ -1160,11 +1086,7 @@ class Project(object):
         Parameters
         ----------
         jobid :
-
-
-        Returns
-        -------
-
+            Identifier of the job.
         """
         fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
@@ -1345,9 +1267,6 @@ class Project(object):
         new_statepoint : mapping
             The job's new state point.
 
-        Returns
-        -------
-
         Raises
         ------
         DestinationExistsError
@@ -1379,9 +1298,6 @@ class Project(object):
             Set to true, to ignore whether this update overwrites parameters,
             which are currently part of the job's state point. Use with caution!
             (Default value = False)
-
-        Returns
-        -------
 
         Raises
         ------
@@ -1456,7 +1372,6 @@ class Project(object):
             This method accepts the same keyword arguments as the :func:`~.sync.sync_projects`
             function.
         **kwargs :
-
 
         Returns
         -------
@@ -1627,12 +1542,6 @@ class Project(object):
     def check(self):
         """Check the project's workspace for corruption.
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         Raises
         ------
         JobsCorruptedError
@@ -1671,9 +1580,6 @@ class Project(object):
             A document index (Default value = None)
         job_ids :
             An iterable of job ids that should get repaired. Defaults to all jobs.
-
-        Returns
-        -------
 
         Raises
         ------
@@ -1744,9 +1650,6 @@ class Project(object):
     def _sp_index(self):
         """Update and return the statepoint index cache.
 
-        Parameters
-        ----------
-
         Returns
         -------
         dict
@@ -1769,9 +1672,6 @@ class Project(object):
         ----------
         include_job_document :
              (Default value = False)
-
-        Returns
-        -------
 
         """
         wd = self.workspace() if self.Job is Job else None
@@ -1809,10 +1709,6 @@ class Project(object):
                 ----------
                 _id :
 
-
-                Returns
-                -------
-
                 """
                 self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
 
@@ -1848,12 +1744,6 @@ class Project(object):
         including iteration and filtering or selection are expected
         to be significantly faster after calling this function, especially
         for large data spaces.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
 
         """
         logger.info('Update cache...')
@@ -1929,10 +1819,6 @@ class Project(object):
         Yields
         ------
         index document
-
-
-        Returns
-        -------
 
         """
         if formats is None:
@@ -2246,9 +2132,6 @@ def _skip_errors(iterable, log=print):
     log :
          (Default value = print)
 
-    Returns
-    -------
-
     """
     while True:
         try:
@@ -2280,9 +2163,11 @@ class JobsCursor(object):
 
     Parameters
     ----------
+    project :
 
-    Returns
-    -------
+    filter :
+
+    doc_filter :
 
     """
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
@@ -2321,12 +2206,6 @@ class JobsCursor(object):
         """Return the next element.
         This function is deprecated, users should use iter(..).next() instead!
         .. deprecated:: 0.9.6
-
-        Parameters
-        ----------
-
-        Returns
-        -------
 
         """
         warnings.warn("Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning)
@@ -2372,9 +2251,6 @@ class JobsCursor(object):
         default :
             A default value to be used when a given state point key is not present (must
             be sortable).
-
-        Returns
-        -------
 
         """
         if isinstance(key, str):
@@ -2491,9 +2367,6 @@ class JobsCursor(object):
         default :
             A default value to be used when a given state point key is not present (must
             be sortable).
-
-        Returns
-        -------
 
         """
         if isinstance(key, str):
@@ -2654,7 +2527,12 @@ class JobsCursor(object):
                    doc_filter=repr(self._doc_filter))
 
     def _repr_html_jobs(self):
-        """ """
+        """
+
+        Returns
+        -------
+
+        """
         html = ''
         len_self = len(self)
         try:
