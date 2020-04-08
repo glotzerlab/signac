@@ -860,6 +860,17 @@ class TestProject(TestProjectBase):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
 
+        self.project.open_job({'a': 20}).init()
+        for k, g in self.project.groupby('b'):
+            assert len(list(g)) == 6
+            for job in list(g):
+                assert job.sp['b'] == k
+        for k, g in self.project.groupby(('b', 'c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.sp['c'] == k[1]
+
     def test_jobs_groupbydoc(self):
         def get_doc(i):
             return {
