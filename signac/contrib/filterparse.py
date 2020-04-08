@@ -17,7 +17,7 @@ def _print_err(msg=None):
     """
     print(msg, file=sys.stderr)
 
-#function that is called no where but this file.
+
 def _with_message(query, file):
     """Writes the message to the passed file.
 
@@ -32,6 +32,7 @@ def _with_message(query, file):
     -------
     query : dict
         Filter arguments.
+
     """
     print("Interpreted filter arguments as '{}'.".format(json.dumps(query)), file=file)
     return query
@@ -60,6 +61,7 @@ def _read_index(project, fn_index=None):
         fd = open(fn_index)
         return (json.loads(l) for l in fd)
 
+
 def _is_json(q):
     """Check if q is json.
 
@@ -74,6 +76,7 @@ def _is_json(q):
 
     """
     return q.strip().startswith('{') and q.strip().endswith('}')
+
 
 def _is_regex(q):
     """Check if q is regex.
