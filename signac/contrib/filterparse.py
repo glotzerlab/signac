@@ -6,30 +6,105 @@ from ..core import json
 
 
 def _print_err(msg=None):
+    """Prints the error message.
+
+    Parameters
+    ----------
+    msg : str
+        Error message to be printed.
+         (Default value = None)
+
+    """
     print(msg, file=sys.stderr)
 
-
+#function that is called no where but this file.
 def _with_message(query, file):
+    """Writes the message to the passed file.
+
+    Parameters
+    ----------
+    query : dict
+        Filter arguments.
+    file :
+        The file to write message for the query passed.
+
+    Returns
+    -------
+    query : dict
+        Filter arguments.
+    """
     print("Interpreted filter arguments as '{}'.".format(json.dumps(query)), file=file)
     return query
 
 
 def _read_index(project, fn_index=None):
+    """Read index from the file passed.
+
+    Parameters
+    ----------
+    project : class:`~.contrib.project.Project`
+        Signac project handle
+
+    fn_index : str
+        File name having index.
+         (Default value = None)
+
+    Returns
+    -------
+    generator
+        Returns the file content.
+
+    """
     if fn_index is not None:
         _print_err("Reading index from file '{}'...".format(fn_index))
         fd = open(fn_index)
         return (json.loads(l) for l in fd)
 
-
 def _is_json(q):
+    """Check if q is json.
+
+    Parameters
+    ----------
+    q : str
+
+    Returns
+    -------
+    bool
+        True if q starts with "{" and ends with "}"
+
+    """
     return q.strip().startswith('{') and q.strip().endswith('}')
 
-
 def _is_regex(q):
+    """Check if q is regex.
+
+    Parameters
+    ----------
+    q : str
+
+    Returns
+    -------
+    bool
+        True if q starts with "/" and ends with "/"
+
+    """
     return q.startswith('/') and q.endswith('/')
 
 
 def _parse_json(q):
+    """Parse json q.
+
+    Parameters
+    ----------
+    q : json
+        Query arguement.
+
+    Raises
+    ------
+    JSONDecodeError
+        When fail to parse query arguement(q).
+
+    """
     try:
         return json.loads(q)
     except json.JSONDecodeError:
@@ -53,7 +128,17 @@ CAST_MAPPING_WARNING = {
 
 
 def _cast(x):
-    "Attempt to interpret x with the correct type."
+    """Attempt to interpret x with the correct type.
+
+    Parameters
+    ----------
+    x :
+
+
+    Returns
+    -------
+
+    """
     try:
         if x in CAST_MAPPING_WARNING:
             print("Did you mean {}?".format(CAST_MAPPING_WARNING[x]), file=sys.stderr)
@@ -69,6 +154,25 @@ def _cast(x):
 
 
 def _parse_simple(key, value=None):
+    """
+
+    Parameters
+    ----------
+    key :
+
+    value :
+         (Default value = None)
+
+    Returns
+    -------
+    dict
+
+    Raises
+    ------
+    ValueError
+        filter arguments have an invalid key.
+
+    """
     if value is None or value == '!':
         return {key: {'$exists': True}}
     elif _is_json(value):
@@ -84,6 +188,22 @@ def _parse_simple(key, value=None):
 
 
 def parse_filter_arg(args, file=sys.stderr):
+    """
+
+    Parameters
+    ----------
+    args :
+
+    file :
+        The file to write message.
+         (Default value = sys.stderr)
+
+    Returns
+    -------
+    dict
+        Filter arguments.
+
+    """
     if args is None or len(args) == 0:
         return None
     elif len(args) == 1:

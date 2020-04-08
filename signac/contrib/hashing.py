@@ -8,7 +8,18 @@ import json
 
 
 def calc_id(spec):
-    "Calculate and return a hash value for the given spec."
+    """Calculate and return a hash value for the given spec."
+
+    Parameters
+    ----------
+    spec :
+
+    Returns
+    -------
+    str
+        encoded hash in hexadecimal format.
+
+    """
     blob = json.dumps(spec, sort_keys=True)
     m = hashlib.md5()
     m.update(blob.encode())
