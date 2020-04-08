@@ -681,6 +681,15 @@ class Project(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
+        if default is None:
+            if isinstance(key, str):
+                _filter = {key: {"$exists": True}}
+            elif isinstance(key, Iterable):
+                _filter = {k: {"$exists": True} for k in key}
+            else:
+                _filter = None
+            return self.find_jobs(filter=_filter).groupby(key, default=default)
+
         return self.find_jobs().groupby(key, default=default)
 
     def groupbydoc(self, key=None, default=None):

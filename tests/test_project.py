@@ -835,9 +835,7 @@ class TestProject(TestProjectBase):
             assert len(list(g)) == 6
             for job in list(g):
                 assert job.sp['b'] == k
-        with pytest.raises(KeyError):
-            for k, g in self.project.groupby('d'):
-                pass
+        assert len(list(self.project.groupby('d'))) == 0
         for k, g in self.project.groupby('d', default=-1):
             assert k == -1
             assert len(list(g)) == len(self.project)
