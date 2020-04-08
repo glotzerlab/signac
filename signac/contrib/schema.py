@@ -137,7 +137,7 @@ class ProjectSchema(object):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
     def _repr_html_(self):
-        return self.format().replace('\n', '<br>')
+        return "<pre>{}</pre>".format(self)
 
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
