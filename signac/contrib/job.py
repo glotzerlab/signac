@@ -23,11 +23,15 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
-    """
+    """Force the job's statepoint to reset,
+    whenever the statepoint is changed.
+    Resetting a statepoint requires recomputing
+    the hash and moving the folder.
 
     Parameters
     ----------
     jobs :
+        list of jobs.
 
     """
     def __init__(self, *jobs):
@@ -38,7 +42,9 @@ class _sp_save_hook(object):
         pass
 
     def save(self):
-        """ """
+        """Resets the statepoint for all the jobs.
+
+        """
         for job in self.jobs:
             job._reset_sp()
 
@@ -52,14 +58,16 @@ class Job(object):
 
     Parameters
     ----------
-    project :
+    project : class:`~.contrib.project.Project`
+        Project handle.
 
-    statepoint :
+    statepoint : dict
+        statepoint for the job.
 
-    _id :
+    _id : str
+        A file-like object to write to.
 
     """
-
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
 
@@ -122,7 +130,9 @@ class Job(object):
         return hash(os.path.realpath(self._wd))
 
     def __str__(self):
-        "Returns the job's id."
+        """Returns the job's id.
+
+        """
         return str(self.id)
 
     def __repr__(self):
@@ -146,15 +156,15 @@ class Job(object):
 
     @property
     def ws(self):
-        """Alias for :attr:`Job.workspace`."""
+        """Alias for :attr:`Job.workspace`.
+
+        """
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
         """Reset the state point of this job.
 
-        .. danger::
-
-            Use this function with caution! Resetting a job's state point
+        .. danger:: Use this function with caution! Resetting a job's state point
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
@@ -208,11 +218,10 @@ class Job(object):
 
         Parameters
         ----------
-        new_sp :
-            (Default value = None)
+        new_sp : mapping
+            The job's new state point.(Default value = None)
 
         """
-
         if new_sp is None:
             new_sp = self.statepoint()
         self.reset_statepoint(new_sp)
@@ -220,9 +229,7 @@ class Job(object):
     def update_statepoint(self, update, overwrite=False):
         """Update the statepoint of this job.
 
-        .. warning::
-
-            While appending to a job's state point is generally safe,
+        .. warning:: While appending to a job's state point is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
@@ -258,9 +265,7 @@ class Job(object):
     def statepoint(self):
         """Access the job's state point as attribute dictionary.
 
-        .. warning::
-
-            The statepoint object behaves like a dictionary in most cases,
+        .. warning:: The statepoint object behaves like a dictionary in most cases,
             but because it persists changes to the filesystem, making a copy
             requires explicitly converting it to a dict. If you need a
             modifiable copy that will not modify the underlying JSON file,
@@ -270,6 +275,8 @@ class Job(object):
 
         Returns
         -------
+        dict
+            Returns the job's state point.
 
         """
         return self._statepoint
@@ -282,26 +289,29 @@ class Job(object):
         ----------
         new_sp :
             new state point to be assign.
+
         """
         self._reset_sp(new_sp)
 
     @property
     def sp(self):
-        """Alias for :attr:`Job.statepoint`."""
+        """Alias for :attr:`Job.statepoint`.
+
+        """
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        """Alias for :attr:`Job.statepoint`."""
+        """Alias for :attr:`Job.statepoint`.
+
+        """
         self.statepoint = new_sp
 
     @property
     def document(self):
         """The document associated with this job.
 
-        .. warning::
-
-            If you need a deep copy that will not modify the underlying
+        .. warning:: If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
             :class:`~signac.JSONDict`.
@@ -331,12 +341,21 @@ class Job(object):
 
     @property
     def doc(self):
-        """Alias for :attr:`Job.document`."""
+        """Alias for :attr:`Job.document`.
+
+        """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
-        """Alias for :attr:`Job.document."""
+        """Alias for :attr:`Job.document`.
+
+        .. warning:: If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
+
+        """
         self.document = new_doc
 
     @property
@@ -452,7 +471,12 @@ class Job(object):
             self._check_manifest()
 
     def _check_manifest(self):
-        """Check whether the manifest file, if it exists, is correct."""
+        """Check whether the manifest file, if it exists, is correct.
+
+        Raises
+        ------
+
+        """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as file:
@@ -698,7 +722,9 @@ class Job(object):
         os.chdir(self._wd)
 
     def close(self):
-        """Close the job and switch to the previous working directory."""
+        """Close the job and switch to the previous working directory.
+
+        """
         try:
             os.chdir(self._cwd.pop())
             logger.info("Leave workspace.")
