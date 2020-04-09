@@ -144,6 +144,10 @@ def _cast(x):
 
     Returns
     -------
+    int
+        cast x into int.
+    float
+        cast x into float.
 
     """
     try:
