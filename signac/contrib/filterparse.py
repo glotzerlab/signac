@@ -1,12 +1,13 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan.
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Parse the filter arguments."""
 import sys
 from ..core import json
 
 
 def _print_err(msg=None):
-    """Prints the provided message to stderr.
+    """Print the provided message to stderr.
 
     Parameters
     ----------
@@ -19,7 +20,7 @@ def _print_err(msg=None):
 
 
 def _with_message(query, file):
-    """Writes the message to the passed file.
+    """Write the message to the passed file.
 
     Parameters
     ----------
@@ -68,6 +69,7 @@ def _is_json(q):
     Parameters
     ----------
     q : str
+        Query string.
 
     Returns
     -------
@@ -84,6 +86,8 @@ def _is_regex(q):
     Parameters
     ----------
     q : str
+        Query string.
+
 
     Returns
     -------
@@ -194,7 +198,7 @@ def _parse_simple(key, value=None):
 
 
 def parse_filter_arg(args, file=sys.stderr):
-    """Parses a series of filter arguments into a dictionary.
+    """Parse a series of filter arguments into a dictionary.
 
     Parameters
     ----------
