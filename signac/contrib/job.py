@@ -288,7 +288,7 @@ class Job(object):
         Parameters
         ----------
         new_sp :
-            new state point to be assign.
+            new state point to be assigned.
 
         """
         self._reset_sp(new_sp)
