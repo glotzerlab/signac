@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Errors raised by signac.contrib classes."""
 from ..core.errors import Error
 
 
@@ -21,7 +22,7 @@ class WorkspaceError(Error, OSError):
 
 
 class DestinationExistsError(Error, RuntimeError):
-    """The destination for a move or copy operation already exists."
+    """The destination for a move or copy operation already exists.
 
     Parameters
     ----------
