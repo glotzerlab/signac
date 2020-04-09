@@ -6,7 +6,7 @@ from ..core import json
 
 
 def _print_err(msg=None):
-    """Prints the error message.
+    """Prints the provided message to stderr.
 
     Parameters
     ----------
@@ -44,16 +44,16 @@ def _read_index(project, fn_index=None):
     Parameters
     ----------
     project : class:`~.contrib.project.Project`
-        Signac project handle
+        Project handle.
 
     fn_index : str
-        File name having index.
+        File name of the index.
          (Default value = None)
 
     Returns
     -------
     generator
-        Returns the file content.
+        Returns the file contents, parsed as JSON-encoded lines.
 
     """
     if fn_index is not None:
@@ -63,7 +63,7 @@ def _read_index(project, fn_index=None):
 
 
 def _is_json(q):
-    """Check if q is json.
+    """Check if q is JSON.
 
     Parameters
     ----------
@@ -72,14 +72,14 @@ def _is_json(q):
     Returns
     -------
     bool
-        True if q starts with "{" and ends with "}"
+        True if q starts with "{" and ends with "}".
 
     """
     return q.strip().startswith('{') and q.strip().endswith('}')
 
 
 def _is_regex(q):
-    """Check if q is regex.
+    """Check if q is a regular expression.
 
     Parameters
     ----------
@@ -88,24 +88,24 @@ def _is_regex(q):
     Returns
     -------
     bool
-        True if q starts with "/" and ends with "/"
+        True if q starts with "/" and ends with "/".
 
     """
     return q.startswith('/') and q.endswith('/')
 
 
 def _parse_json(q):
-    """Parse json q.
+    """Parse a query argument as JSON.
 
     Parameters
     ----------
     q : json
-        Query arguement.
+        Query argument.
 
     Raises
     ------
     JSONDecodeError
-        When fail to parse query arguement(q).
+        Raised if the input cannot be parsed as JSON.
 
     """
     try:
@@ -136,7 +136,7 @@ def _cast(x):
     Parameters
     ----------
     x :
-
+        The value to cast.
 
     Returns
     -------
@@ -157,14 +157,17 @@ def _cast(x):
 
 
 def _parse_simple(key, value=None):
-    """
+    """Parse simple search syntax.
 
     Parameters
     ----------
-    key :
+    key : str
+        The filter key.
 
     value :
-         (Default value = None)
+        The filter value. If None, the filter returns
+        True if the provided key exists
+        (Default value = None).
 
     Returns
     -------
@@ -191,11 +194,12 @@ def _parse_simple(key, value=None):
 
 
 def parse_filter_arg(args, file=sys.stderr):
-    """
+    """Parses a series of filter arguments into a dictionary.
 
     Parameters
     ----------
-    args :
+    args : sequence of str
+        Filter arguments to parse.
 
     file :
         The file to write message.
