@@ -343,17 +343,17 @@ class Job(object):
     def doc(self):
         """Alias for :attr:`Job.document`.
 
+        .. warning:: If you need a deep copy that will not modify the underlying
+            persistent JSON file, use `job.document()` instead of `job.doc`.
+            For more information, see :attr:`Job.statepoint` or
+            :class:`~signac.JSONDict`.
+
         """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
         """Alias for :attr:`Job.document`.
-
-        .. warning:: If you need a deep copy that will not modify the underlying
-            persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see :attr:`Job.statepoint` or
-            :class:`~signac.JSONDict`.
 
         """
         self.document = new_doc
