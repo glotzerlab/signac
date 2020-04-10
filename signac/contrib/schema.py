@@ -1,6 +1,7 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan.
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Project Schema."""
 from pprint import pformat
 from collections import defaultdict as ddict
 from numbers import Number
@@ -20,11 +21,12 @@ class _Vividict(dict):
 
 
 def _collect_by_type(values):
-    """Constructs a mapping of types to a set of elements drawn from the input values.
+    """Construct a mapping of types to a set of elements drawn from the input values.
 
     Parameters
     ----------
-    values : An iterable of values.
+    values :
+        An iterable of values.
 
     Returns
     -------
@@ -38,15 +40,22 @@ def _collect_by_type(values):
 
 
 def _build_job_statepoint_index(jobs, exclude_const, index):
-    """
+    """Build index for job statepoints.
 
     Parameters
     ----------
-    jobs :
-        param exclude_const:
+    jobs : class:`~signac.contrib.job.Job`
+        Job.
     index :
+        A document index.
 
-    exclude_const :
+    exclude_const : bool
+        Exclude all state point keys that are shared by all jobs within this project.
+
+    Yields
+    ------
+    tupple
+        Job statepoint index.
 
     """
     from .collection import Collection
@@ -63,14 +72,16 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
     def strip_prefix(key): return k[len('statepoint.'):]
 
     def remove_dict_placeholder(x):
-        """Removes _DictPlaceholder elements from a mapping.
+        """Remove _DictPlaceholder elements from a mapping.
 
         Parameters
         ----------
         x :
+            dictionary values.
 
-        Yields
+        Returns
         -------
+        dict
 
         """
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
@@ -87,7 +98,8 @@ class ProjectSchema(object):
 
     Parameters
     ----------
-    schema :
+    schema : dict
+        Project schema.
 
     """
     def __init__(self, schema=None):
@@ -97,14 +109,17 @@ class ProjectSchema(object):
 
     @classmethod
     def detect(cls, statepoint_index):
-        """
+        """Detect Project's state point schema.
 
         Parameters
         ----------
         statepoint_index :
+            statepoint index.
 
         Returns
         -------
+        type : `signac.contrib.schema.ProjectSchema`
+            The detected project schema.
 
         """
         return cls({k: _collect_by_type(v) for k, v in statepoint_index})
@@ -124,7 +139,7 @@ class ProjectSchema(object):
 
         Returns
         -------
-        type
+        str
             A formatted representation of the project schema.
 
         """
@@ -134,14 +149,16 @@ class ProjectSchema(object):
             max_num_range = 5
 
         def _fmt_value(x):
-            """
+            """Convert x to string.
 
             Parameters
             ----------
-            x :
+            x : int
+                integer value to convert to string.
 
             Returns
             -------
+            str
 
             """
             if precision is not None and isinstance(x, Number):
@@ -150,16 +167,18 @@ class ProjectSchema(object):
                 return str(x)
 
         def _fmt_range(type_, values):
-            """
+            """Convert range of values into a single string.
 
             Parameters
             ----------
             type_ :
-                param values:
+                param values.
             values :
+                An iterable of values.
 
             Returns
             -------
+            str
 
             """
             try:
@@ -178,14 +197,16 @@ class ProjectSchema(object):
                 type_name=type_.__name__, values_string=values_string, length=len(values))
 
         def _fmt_values(values):
-            """
+            """Convert values into a single string.
 
             Parameters
             ----------
             values :
+                An iterable of values.
 
             Returns
             -------
+            str
 
             """
             return ', '.join(_fmt_range(*v) for v in values.items())
@@ -235,15 +256,15 @@ class ProjectSchema(object):
         return iter(self._schema)
 
     def keys(self):
-        """Returns schema keys."""
+        """Return schema keys."""
         return self._schema.keys()
 
     def values(self):
-        """Returns schema values."""
+        """Return schema values."""
         return self._schema.values()
 
     def items(self):
-        """Returns schema items."""
+        """Return schema items."""
         return self._schema.items()
 
     def __eq__(self, other):
@@ -285,6 +306,7 @@ class ProjectSchema(object):
         Parameters
         ----------
         jobs_or_statepoints :
+            jobs or statepoints of Project.
 
         Returns
         -------
