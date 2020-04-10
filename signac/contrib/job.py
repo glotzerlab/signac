@@ -1,6 +1,7 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2017 The Regents of the University of Michigan.
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Job class defiend here."""
 import os
 import errno
 import logging
@@ -23,9 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
-    """Force the job's statepoint to reset,
-    whenever the statepoint is changed.
-    Resetting a statepoint requires recomputing
+    """Force the job's statepoint to reset.
+
+    Whenever the statepoint is changed. Resetting
+    a statepoint requires recomputing
     the hash and moving the folder.
 
     Parameters
@@ -38,13 +40,10 @@ class _sp_save_hook(object):
         self.jobs = list(jobs)
 
     def load(self):
-        """ """
         pass
 
     def save(self):
-        """Resets the statepoint for all the jobs.
-
-        """
+        """Reset the statepoint for all the jobs."""
         for job in self.jobs:
             job._reset_sp()
 
@@ -104,7 +103,7 @@ class Job(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use job.id instead.")
     def get_id(self):
-        """The job's statepoint's unique identifier.
+        """Job's statepoint's unique identifier.
 
         Returns
         -------
@@ -116,7 +115,7 @@ class Job(object):
 
     @property
     def id(self):
-        """The unique identifier for the job's statepoint.
+        """Return Unique identifier for the job's statepoint.
 
         Returns
         -------
@@ -130,9 +129,7 @@ class Job(object):
         return hash(os.path.realpath(self._wd))
 
     def __str__(self):
-        """Returns the job's id.
-
-        """
+        """Return the job's id."""
         return str(self.id)
 
     def __repr__(self):
@@ -156,9 +153,7 @@ class Job(object):
 
     @property
     def ws(self):
-        """Alias for :attr:`Job.workspace`.
-
-        """
+        """Alias for :attr:`Job.workspace`."""
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
@@ -283,7 +278,7 @@ class Job(object):
 
     @statepoint.setter
     def statepoint(self, new_sp):
-        """Assigns new state point to this Job.
+        """Assign new state point to this Job.
 
         Parameters
         ----------
@@ -295,21 +290,17 @@ class Job(object):
 
     @property
     def sp(self):
-        """Alias for :attr:`Job.statepoint`.
-
-        """
+        """Alias for :attr:`Job.statepoint`."""
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        """Alias for :attr:`Job.statepoint`.
-
-        """
+        """Alias for :attr:`Job.statepoint`."""
         self.statepoint = new_sp
 
     @property
     def document(self):
-        """The document associated with this job.
+        """Document associated with this job.
 
         .. warning:: If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
@@ -329,7 +320,7 @@ class Job(object):
 
     @document.setter
     def document(self, new_doc):
-        """Assigns new document to the this job.
+        """Assign new document to the this job.
 
         Parameters
         ----------
@@ -353,9 +344,7 @@ class Job(object):
 
     @doc.setter
     def doc(self, new_doc):
-        """Alias for :attr:`Job.document`.
-
-        """
+        """Alias for :attr:`Job.document`."""
         self.document = new_doc
 
     @property
@@ -395,7 +384,7 @@ class Job(object):
 
     @property
     def data(self):
-        """The data associated with this job.
+        """Return data associated with this job.
 
         This property should be used for large array-like data, which can't be
         stored efficiently in the job document. For examples and usage, see
@@ -417,7 +406,7 @@ class Job(object):
 
     @data.setter
     def data(self, new_data):
-        """Assigns new data to this job.
+        """Assign new data to this job.
 
         Parameters
         ----------
@@ -428,7 +417,9 @@ class Job(object):
         self.stores[self.KEY_DATA] = new_data
 
     def _init(self, force=False):
-        """Helper function to initialize the job's workspace directory.
+        """Is called by init() function.
+
+        To initialize the job's workspace directory.
 
         Parameters
         ----------
@@ -437,6 +428,10 @@ class Job(object):
 
         Raises
         ------
+        OSError
+            Error occured while trying to create
+            workspace directory for job
+        IOError
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -475,6 +470,10 @@ class Job(object):
 
         Raises
         ------
+        IOError
+            manifest file does not exist.
+        JobCorruptedError
+            One or more jobs cannot be opened or is corrupted.
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -506,9 +505,6 @@ class Job(object):
         class : `~.Job`
             The job handle.
 
-        Raises
-        ------
-
         """
         try:
             self._init(force=force)
@@ -526,6 +522,8 @@ class Job(object):
 
         Raises
         ------
+        OSError
+        IOError
 
         """
         try:
@@ -560,6 +558,8 @@ class Job(object):
 
         Raises
         ------
+        OSError
+        IOError
 
         """
         try:
@@ -722,9 +722,7 @@ class Job(object):
         os.chdir(self._wd)
 
     def close(self):
-        """Close the job and switch to the previous working directory.
-
-        """
+        """Close the job and switch to the previous working directory."""
         try:
             os.chdir(self._cwd.pop())
             logger.info("Leave workspace.")
