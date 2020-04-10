@@ -96,7 +96,7 @@ Total transfer volume:       {stats.volume}
 
 
 SHELL_BANNER = """Python {python_version}
-signac {signac_version}
+signac {signac_version} 🎨
 
 Project:\t{project_id}{job_banner}
 Root:\t\t{root_path}
@@ -1818,7 +1818,7 @@ This feature is still experimental and may be removed in future versions.""")
     # allow to parse only --version without any
     # of the other required arguments.
     if '--version' in sys.argv:
-        print('signac', __version__)
+        print('signac', __version__, '🎨')
         sys.exit(0)
 
     args = parser.parse_args()
