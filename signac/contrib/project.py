@@ -1788,8 +1788,8 @@ class JobsCursor(object):
                     _filter = {k: {"$exists": True} for k in key}
                 else:
                     for k in key:
-                        if k not in _filter.keys()
-                    _filter[k] = {"$exists": True}
+                        if k not in _filter.keys():
+                            _filter[k] = {"$exists": True}
 
                 def keyfunction(job):
                     return tuple(job.sp[k] for k in key)
