@@ -681,15 +681,6 @@ class Project(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
-        if default is None:
-            if isinstance(key, str):
-                _filter = {key: {"$exists": True}}
-            elif isinstance(key, Iterable):
-                _filter = {k: {"$exists": True} for k in key}
-            else:
-                _filter = None
-            return self.find_jobs(filter=_filter).groupby(key, default=default)
-
         return self.find_jobs().groupby(key, default=default)
 
     def groupbydoc(self, key=None, default=None):
@@ -1777,8 +1768,11 @@ class JobsCursor(object):
             A default value to be used when a given state point key is not present (must
             be sortable).
         """
+        _filter = None
         if isinstance(key, str):
             if default is None:
+                _filter = {key: {"$exists": True}}
+
                 def keyfunction(job):
                     return job.sp[key]
             else:
@@ -1787,6 +1781,8 @@ class JobsCursor(object):
 
         elif isinstance(key, Iterable):
             if default is None:
+                _filter = {k: {"$exists": True} for k in key}
+
                 def keyfunction(job):
                     return tuple(job.sp[k] for k in key)
             else:
@@ -1801,7 +1797,8 @@ class JobsCursor(object):
         else:
             keyfunction = key
 
-        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
+        return groupby(sorted(iter(JobsCursor(self._project, _filter, None)), key=keyfunction),
+                       key=keyfunction)
 
     def groupbydoc(self, key=None, default=None):
         """Groups jobs according to one or more document values.
