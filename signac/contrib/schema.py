@@ -1,7 +1,8 @@
-# Copyright (c) 2017 The Regents of the University of Michigan.
+# Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Project Schema."""
+
 from pprint import pformat
 from collections import defaultdict as ddict
 from numbers import Number
@@ -30,7 +31,8 @@ def _collect_by_type(values):
 
     Returns
     -------
-    A mapping of types to a set of input values of that type.
+    defaultdict(set)
+        A mapping of types to a set of input values of that type.
 
     """
     values_by_type = ddict(set)
@@ -54,7 +56,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
 
     Yields
     ------
-    tupple
+    tuple
         Job statepoint index.
 
     """
@@ -82,6 +84,7 @@ def _build_job_statepoint_index(jobs, exclude_const, index):
         Returns
         -------
         dict
+            Dictionary with ``_DictPlaceholder`` keys removed.
 
         """
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
@@ -114,7 +117,7 @@ class ProjectSchema(object):
         Parameters
         ----------
         statepoint_index :
-            statepoint index.
+            State point index.
 
         Returns
         -------
@@ -133,7 +136,7 @@ class ProjectSchema(object):
             A non-zero value will return a nested formatting up to the specified depth,
             defaults to 0.
         precision : int
-            Round numerical values up the give precision, defaults to unlimited precision.
+            Round numerical values to the given precision, defaults to unlimited precision.
         max_num_range : int
             The maximum number of entries shown for a value range, defaults to 5.
 
@@ -149,16 +152,17 @@ class ProjectSchema(object):
             max_num_range = 5
 
         def _fmt_value(x):
-            """Convert x to string.
+            """Convert a value to a string, rounded to a given precision.
 
             Parameters
             ----------
-            x : int
-                integer value to convert to string.
+            x : float or int
+                Value to convert to string.
 
             Returns
             -------
             str
+                Formatted value.
 
             """
             if precision is not None and isinstance(x, Number):
@@ -167,7 +171,9 @@ class ProjectSchema(object):
                 return str(x)
 
         def _fmt_range(type_, values):
-            """Convert range of values into a single string.
+            """Convert sequence of values into a comma-separated string.
+
+            Inserts an ellipsis (...) if the number of values exceeds ``max_num_range``.
 
             Parameters
             ----------
@@ -179,6 +185,7 @@ class ProjectSchema(object):
             Returns
             -------
             str
+                Comma-separated string for squence of values passed.
 
             """
             try:
@@ -310,7 +317,8 @@ class ProjectSchema(object):
 
         Returns
         -------
-        Schema of the project.
+        type : `signac.contrib.schema.ProjectSchema`
+            Schema of the project.
 
         """
         s = dict()
