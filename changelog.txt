@@ -14,6 +14,7 @@ Added
 +++++
 
  - Type annotations are validated during continuous integration (#313).
+ - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
 
 Fixed
 +++++
