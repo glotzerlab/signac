@@ -41,24 +41,23 @@ def _collect_by_type(values):
     return values_by_type
 
 
-def _build_job_statepoint_index(jobs, exclude_const, index):
-    """Build index for job statepoints.
+def _build_job_statepoint_index(exclude_const, index):
+    """Build index for job state points.
 
     Parameters
     ----------
-    jobs : class:`~signac.contrib.job.Job`
-        Job.
-    index :
-        A document index.
-
     exclude_const : bool
-        Exclude all state point keys that are shared by all jobs within this project.
+        Excludes state point keys whose values are constant across the index.
+    index :
+        An iterable of state points.
 
     Yields
     ------
-    tuple
-        Job statepoint index.
-
+    statepoint_key : str
+        State point key.
+    statepoint_values : dict
+        Dictionary mapping from a state point value to the set of job ids
+        with that state point value.
     """
     from .collection import Collection
     from .collection import _DictPlaceholder
