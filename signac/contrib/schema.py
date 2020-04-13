@@ -139,13 +139,10 @@ class ProjectSchema(object):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
     def _repr_html_(self):
-        html = "{<br>"
-        for key in sorted(self._schema):
-            values = self._schema[key]
-            if values:
-                html += "<pre>  '{}': '{}',</pre>".format(key, self._fmt_values(values, 5))
-        html += "}"
-        return html
+        import html
+        html_repr = "<strong>" + html.escape(repr(self)) + "</strong>"
+        html_repr += "<pre>" + str(self) + "</pre>"
+        return html_repr
 
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
