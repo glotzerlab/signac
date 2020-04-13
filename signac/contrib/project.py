@@ -1,6 +1,8 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Project, Job and other essential classes defined here."""
+
 import os
 import stat
 import re
@@ -82,15 +84,17 @@ class JobSearchIndex(object):
         return len(self._collection)
 
     def _resolve_statepoint_filter(self, q):
-        """
+        """Resolve state point based on filter.
 
         Parameters
         ----------
-        q :
-
+        q : filter
+            Filter based on which state point selection is done.
 
         Yield
         -----
+        str
+            Filtered state point.
 
         """
         for k, v in q.items():
@@ -103,14 +107,16 @@ class JobSearchIndex(object):
                 yield 'statepoint.{}'.format(k), v
 
     def find_job_ids(self, filter=None, doc_filter=None):
-        """
+        """Find  job ids based on filter passed.
 
         Parameters
         ----------
-        filter :
-             (Default value = None)
+        filter : Mapping
+            A mapping of key-value pairs that all
+            indexed job statepoints are compared against. (Default value = None)
         doc_filter :
-             (Default value = None)
+            A mapping of key-value pairs that all
+            indexed job documents are compared against. (Default value = None)
 
         Returns
         -------
@@ -218,7 +224,7 @@ class Project(object):
             'statepoint_cache_miss_warning_threshold', 500)
 
     def __str__(self):
-        "Returns the project's id."
+        """Return the project's id."""
         return str(self.id)
 
     def __repr__(self):
@@ -248,19 +254,19 @@ class Project(object):
 
     @property
     def config(self):
-        """The project's configuration.
+        """Project's configuration.
 
         Returns
         -------
         dict
-            dictionary containing project's configuration.
+            Dictionary containing project's configuration.
 
         """
         return self._config
 
     @property
     def _rd(self):
-        """The project root directory.
+        """Project root directory.
 
         Returns
         -------
@@ -272,7 +278,7 @@ class Project(object):
 
     @property
     def _wd(self):
-        """Returns the path of workspace directory.
+        """Return the path of workspace directory.
 
         Returns
         -------
@@ -287,11 +293,18 @@ class Project(object):
             return os.path.join(self._rd, wd)
 
     def root_directory(self):
-        """Returns the project's root directory."""
+        """Return the project's root directory.
+
+        Returns
+        -------
+        str :
+            Path of project directory.
+
+        """
         return self._rd
 
     def workspace(self):
-        """Returns the project's workspace directory.
+        """Return the project's workspace directory.
 
         The workspace defaults to `project_root/workspace`.
         Configure this directory with the 'workspace_dir'
@@ -341,7 +354,7 @@ class Project(object):
             return None
 
     def _check_schema_compatibility(self):
-        """Checks whether this project's data schema is compatible with this version.
+        """Check whether this project's data schema is compatible with this version.
 
         Raises
         ------
@@ -407,7 +420,7 @@ class Project(object):
         return os.path.join(self.root_directory(), filename)
 
     def isfile(self, filename):
-        """True if a file with filename exists in the project's root directory.
+        """Return True if a file with filename exists in the project's root directory.
 
         Parameters
         ----------
@@ -424,7 +437,7 @@ class Project(object):
         return os.path.isfile(self.fn(filename))
 
     def _reset_document(self, new_doc):
-        """
+        """Reset document to new document passed.
 
         Parameters
         ----------
@@ -436,7 +449,7 @@ class Project(object):
 
     @property
     def document(self):
-        """The document associated with this project.
+        """Document associated with this project.
 
         Returns
         -------
@@ -450,7 +463,7 @@ class Project(object):
 
     @document.setter
     def document(self, new_doc):
-        """
+        """Setter method for document associated with this project.
 
         Parameters
         ----------
@@ -463,7 +476,7 @@ class Project(object):
 
     @property
     def doc(self):
-        """The document associated with this project.
+        """Document associated with this project.
 
         Alias for :attr:`~signac.Project.document`.
 
@@ -477,7 +490,7 @@ class Project(object):
 
     @doc.setter
     def doc(self, new_doc):
-        """
+        """Setter method for document associated with this project.
 
         Parameters
         ----------
@@ -524,7 +537,7 @@ class Project(object):
 
     @property
     def data(self):
-        """The data associated with this project.
+        """Return Data associated with this project.
 
         This property should be used for large array-like data, which can't be
         stored efficiently in the project document. For examples and usage, see
@@ -549,7 +562,7 @@ class Project(object):
 
     @data.setter
     def data(self, new_data):
-        """
+        """Setter method for data associated with this project.
 
         Parameters
         ----------
@@ -614,7 +627,7 @@ class Project(object):
             return self.Job(project=self, statepoint=self._get_statepoint(id), _id=id)
 
     def _job_dirs(self):
-        """Generator for ids of jobs in the workspace.
+        """Generate ids of jobs in the workspace.
 
         Yields
         ------
@@ -824,16 +837,43 @@ class Project(object):
         return self._find_job_ids(filter, doc_filter, index)
 
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
-        """
+        """Find the job_ids of all jobs matching the filters.
+
+        The optional filter arguments must be a Mapping of key-value
+        pairs and JSON serializable.
+
+        .. note::
+            Providing a pre-calculated index may vastly increase the
+            performance of this function.
 
         Parameters
         ----------
-        filter :
-             (Default value = None)
+        filter : Mapping
+            A mapping of key-value pairs that all
+            indexed job statepoints are compared against. (Default value = None)
         doc_filter :
-             (Default value = None)
+            A mapping of key-value pairs that all
+            indexed job documents are compared against. (Default value = None)
         index :
-             (Default value = None)
+            A document index.
+
+        Yields
+        ------
+         The ids of all indexed jobs matching both filters.
+
+        Returns
+        -------
+            The ids of all indexed jobs matching both filters.
+
+        Raises
+        ------
+        TypeError
+            If the filters are not JSON serializable. (Default value = None)
+        ValueError
+            If the filters are invalid.
+        RuntimeError
+            If the filters are not supported
+            by the index.
 
         """
         if filter is None and doc_filter is None and index is None:
@@ -890,7 +930,8 @@ class Project(object):
         return iter(self.find_jobs())
 
     def groupby(self, key=None, default=None):
-        """Groups jobs according to one or more statepoint parameters.
+        """Group jobs according to one or more statepoint parameters.
+
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:
@@ -932,7 +973,8 @@ class Project(object):
         return self.find_jobs().groupby(key, default=default)
 
     def groupbydoc(self, key=None, default=None):
-        """Groups jobs according to one or more document values.
+        """Group jobs according to one or more document values.
+
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:
@@ -989,6 +1031,7 @@ class Project(object):
 
     def read_statepoints(self, fn=None):
         """Read all statepoints from a file.
+
         See also :meth:`dump_statepoints` and :meth:`write_statepoints`.
 
         Parameters
@@ -999,7 +1042,8 @@ class Project(object):
 
         Returns
         -------
-            dict
+        dict
+            state ponit.
 
         """
         if fn is None:
@@ -1074,7 +1118,7 @@ class Project(object):
 
         Parameters
         ----------
-        job : class:`~.Job`
+        job : class:`~.contrib.job.Job`
             The job instance.
 
         """
@@ -1087,6 +1131,7 @@ class Project(object):
         ----------
         jobid :
             Identifier of the job.
+
         """
         fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
@@ -1319,7 +1364,7 @@ class Project(object):
 
         Parameters
         ----------
-        job : py:class:`~.Job`
+        job : class:`~.contrib.job.Job`
             The job to copy into this project.
         copytree :
              (Default value = syncutil.copytree)
@@ -1372,9 +1417,6 @@ class Project(object):
             This method accepts the same keyword arguments as the :func:`~.sync.sync_projects`
             function.
         **kwargs :
-
-        Returns
-        -------
 
         Raises
         ------
@@ -1691,7 +1733,6 @@ class Project(object):
 
     def _update_in_memory_cache(self):
         """Update the in-memory state point cache to reflect the workspace."""
-
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
@@ -1703,13 +1744,6 @@ class Project(object):
                 del self._sp_cache[_id]
 
             def _add(_id):
-                """
-
-                Parameters
-                ----------
-                _id :
-
-                """
                 self._sp_cache[_id] = self._get_statepoint_from_workspace(_id)
 
             to_add_chunks = split_and_print_progress(
@@ -1772,7 +1806,6 @@ class Project(object):
 
     def _read_cache(self):
         """Read the persistent state point cache (if available)."""
-
         logger.debug("Reading cache...")
         start = time.time()
         try:
@@ -1825,18 +1858,19 @@ class Project(object):
             root = self.workspace()
 
             def _full_doc(doc):
-                """
+                """Add `signac_id` and `root` to the state point.
 
                 Parameters
                 ----------
-                doc :
-
+                doc : dict
+                    State point index.
 
                 Returns
                 -------
+                dict
+                    Modified state point index.
 
                 """
-
                 doc['signac_id'] = doc['_id']
                 doc['root'] = root
                 return doc
@@ -1848,7 +1882,6 @@ class Project(object):
                 formats = {formats: 'File'}
 
             class Crawler(SignacProjectCrawler):
-                """ """
                 pass
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
@@ -1860,7 +1893,7 @@ class Project(object):
             yield doc
 
     def create_access_module(self, filename=None, master=True):
-        """Create the access module for indexing
+        """Create the access module for indexing.
 
         This method generates the access module required to make
         this project's index part of a master index.
@@ -2107,9 +2140,8 @@ def TemporaryProject(name=None, cls=None, **kwargs):
         constructor, which is used to create a temporary root directory.
     **kwargs :
 
-
     Yields
-    -------
+    ------
     type
         An instance of :class:`.Project`.
 
@@ -2123,12 +2155,12 @@ def TemporaryProject(name=None, cls=None, **kwargs):
 
 
 def _skip_errors(iterable, log=print):
-    """
+    """Skip errors.
 
     Parameters
     ----------
-    iterable :
-
+    iterable : dict
+        State point index.
     log :
          (Default value = print)
 
@@ -2158,16 +2190,21 @@ class _JobsCursorIterator(object):
 
 
 class JobsCursor(object):
-    """An iterator over a search query result, enabling simple iteration and
-    grouping operations.
+    """An iterator over a search query result.
+
+    Enables simple iteration and grouping operations.
 
     Parameters
     ----------
-    project :
+    project : class:`~.Project`
+        Project handle.
 
-    filter :
-
+    filter : Mapping
+        A mapping of key-value pairs that all
+        indexed job statepoints are compared against. (Default value = None)
     doc_filter :
+        A mapping of key-value pairs that all
+        indexed job documents are compared against. (Default value = None)
 
     """
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
@@ -2204,6 +2241,7 @@ class JobsCursor(object):
 
     def next(self):
         """Return the next element.
+
         This function is deprecated, users should use iter(..).next() instead!
         .. deprecated:: 0.9.6
 
@@ -2218,7 +2256,8 @@ class JobsCursor(object):
             raise
 
     def groupby(self, key=None, default=None):
-        """Groups jobs according to one or more statepoint parameters.
+        """Group jobs according to one or more statepoint parameters.
+
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:
@@ -2256,29 +2295,35 @@ class JobsCursor(object):
         if isinstance(key, str):
             if default is None:
                 def keyfunction(job):
-                    """
+                    """Return job's state point value corresponding to the key.
 
                     Parameters
                     ----------
-                    job :
-
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
                     Returns
                     -------
+                    State point value corresponding to the key.
 
                     """
                     return job.sp[key]
             else:
                 def keyfunction(job):
-                    """
+                    """Return job's state point value corresponding to the key.
+
+                    Return default if key is not present.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    State point value corresponding to the key.
+                    Default if key is not present.
 
                     """
                     return job.sp.get(key, default)
@@ -2286,29 +2331,38 @@ class JobsCursor(object):
         elif isinstance(key, Iterable):
             if default is None:
                 def keyfunction(job):
-                    """
+                    """Return job's state point value corresponding to the key.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    tuple
+                        State point values.
+
 
                     """
                     return tuple(job.sp[k] for k in key)
             else:
                 def keyfunction(job):
-                    """
+                    """Return job's state point value corresponding to the key.
+
+                    Return default if key is not present.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    tuple
+                        State point values.
 
                     """
                     return tuple(job.sp.get(k, default) for k in key)
@@ -2316,15 +2370,17 @@ class JobsCursor(object):
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                """
+                """Return the job's id.
 
                 Parameters
                 ----------
-                job :
-
+                job : class:`~.contrib.job.Job`
+                    The job instance.
 
                 Returns
                 -------
+                str
+                    The job's id.
 
                 """
                 return str(job)
@@ -2335,7 +2391,8 @@ class JobsCursor(object):
         return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def groupbydoc(self, key=None, default=None):
-        """Groups jobs according to one or more document values.
+        """Group jobs according to one or more document values.
+
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:
@@ -2372,84 +2429,106 @@ class JobsCursor(object):
         if isinstance(key, str):
             if default is None:
                 def keyfunction(job):
-                    """
+                    """Return job's document value corresponding to the key.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    Document value corresponding to the key.
 
                     """
                     return job.document[key]
             else:
                 def keyfunction(job):
-                    """
+                    """Return job's document value corresponding to the key.
+
+                    Return default if key is not present.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    Document value corresponding to the key.
+                    Default if key is not present.
 
                     """
                     return job.document.get(key, default)
         elif isinstance(key, Iterable):
             if default is None:
                 def keyfunction(job):
-                    """
+                    """Return job's document value corresponding to the key.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    tuple
+                        Document values.
 
                     """
                     return tuple(job.document[k] for k in key)
             else:
                 def keyfunction(job):
-                    """
+                    """Return job's document value corresponding to the key.
+
+                    Return default if key is not present.
 
                     Parameters
                     ----------
-                    job :
+                    job : class:`~.contrib.job.Job`
+                        The job instance.
 
 
                     Returns
                     -------
+                    tuple
+                        Document values.
 
                     """
                     return tuple(job.document.get(k, default) for k in key)
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
-                """
+                """Return the job's id.
 
                 Parameters
                 ----------
+                job : class:`~.contrib.job.Job`
+                    The job instance.
 
                 Returns
                 -------
+                str
+                    The job's id.
 
                 """
                 return str(job)
         else:
             # Pass the job document to lambda functions
             def keyfunction(job):
-                """
+                """Return job's document value corresponding to the key.
 
                 Parameters
                 ----------
+                job : class:`~.contrib.job.Job`
+                    The job instance.
 
                 Returns
                 -------
+                Document values.
 
                 """
                 return key(job.document)
@@ -2463,10 +2542,11 @@ class JobsCursor(object):
         Parameters
         ----------
         target : str
+            Target location.
         path : str
-             (Default value = None)
+             (Default value = None).
         copytree : str
-             (Default value = None)
+             (Default value = None).
 
         Returns
         -------
@@ -2499,15 +2579,17 @@ class JobsCursor(object):
         import pandas
 
         def _export_sp_and_doc(job):
-            """
+            """Prefix state point and document keys to be able to distinguish them.
 
             Parameters
             ----------
-            job :
+            job : class:`~.contrib.job.Job`
                 write its type etc
 
-            Returns
-            -------
+            Yields
+            ------
+            tuple
+                tuple with modified state point/ document key and values.
 
             """
             for key, value in job.sp.items():
@@ -2527,10 +2609,12 @@ class JobsCursor(object):
                    doc_filter=repr(self._doc_filter))
 
     def _repr_html_jobs(self):
-        """
+        """Jobs representation as HTML.
 
         Returns
         -------
+        html : str
+        HTML representation of jobs.
 
         """
         html = ''
@@ -2553,8 +2637,7 @@ class JobsCursor(object):
         return html
 
     def _repr_html_(self):
-        """Returns an HTML representation of JobsCursor."""
-
+        """Return an HTML representation of JobsCursor."""
         return repr(self) + self._repr_html_jobs()
 
 
@@ -2651,5 +2734,6 @@ def get_job(root=None):
 
     >>> signac.get_job()
         signac.contrib.job.Job(project=..., statepoint={...})
+
     """
     return Project.get_job(root=root)
