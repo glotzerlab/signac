@@ -58,6 +58,7 @@ def _build_job_statepoint_index(exclude_const, index):
     statepoint_values : dict
         Dictionary mapping from a state point value to the set of job ids
         with that state point value.
+
     """
     from .collection import Collection
     from .collection import _DictPlaceholder
