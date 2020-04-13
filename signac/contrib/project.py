@@ -161,7 +161,9 @@ class Project(object):
     Parameters
     ----------
     config :
-        (Default value = None)
+        The project configuration to use. By default, it loads the first signac
+        project configuration found while searching upward from the current
+        working directory (Default value = None).
     _ignore_schema_version :
         (Default value = False)
 
