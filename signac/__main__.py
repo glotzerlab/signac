@@ -13,6 +13,7 @@ import atexit
 import code
 import importlib
 import platform
+import warnings
 from rlcompleter import Completer
 import re
 import errno
@@ -113,6 +114,9 @@ Synchronize your project with the temporary project, for example with:
 
                     project.sync(tmp_project, recursive=True)
 """
+
+
+warnings.simplefilter("default")
 
 
 def _print_err(msg=None, *args):
@@ -224,7 +228,7 @@ def find_with_filter(args):
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
-    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
 
 
 def main_project(args):
@@ -1071,7 +1075,7 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
+                    project_id=project.id,
                     job_banner='\nJob:\t\t{job._id}'.format(job=job) if job is not None else '',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),

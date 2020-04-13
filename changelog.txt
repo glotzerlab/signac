@@ -10,7 +10,21 @@ Version 1
 next
 ----
 
-- Fix the ``signac config verify`` command (previously broken) (#301, #302).
+Added
++++++
+
+ - Type annotations are validated during continuous integration (#313).
+
+Fixed
++++++
+ - Fix the ``signac config verify`` command (previously broken) (#301, #302).
+ - Warnings now appear when raised by the ``signac`` CLI (#317, #308).
+
+Deprecated
+++++++++++
+
+ - Deprecate the ``create_access_modules`` method in ``Project``, to be removed in 2.0 (#303, #308).
+
 
 [1.4.0] -- 2020-02-28
 ---------------------
