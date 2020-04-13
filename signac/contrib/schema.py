@@ -57,32 +57,6 @@ class ProjectSchema(object):
     def detect(cls, statepoint_index):
         return cls({k: _collect_by_type(v) for k, v in statepoint_index})
 
-    def _fmt_values(self, values, max_num_range, precision=None):
-
-        def _fmt_value(x):
-            if precision is not None and isinstance(x, Number):
-                return str(round(x, precision))
-            else:
-                return str(x)
-
-        def _fmt_range(type_, val):
-            try:
-                sorted_values = sorted(val)
-            except TypeError:
-                sorted_values = sorted(val, key=repr)
-            if len(val) <= max_num_range:
-                values_string = ', '.join((_fmt_value(v) for v in sorted_values))
-            else:
-                values_string = ', '.join((_fmt_value(v)
-                                           for v in sorted_values[:max_num_range - 2]))
-                values_string += ', ..., '
-                values_string += ', '.join((_fmt_value(v)
-                                            for v in sorted_values[-2:]))
-            return '{type_name}([{values_string}], {length})'.format(
-                type_name=type_.__name__, values_string=values_string, length=len(val))
-
-        return ', '.join(_fmt_range(*v) for v in values.items())
-
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
 
@@ -107,6 +81,31 @@ class ProjectSchema(object):
         if max_num_range is None:
             max_num_range = 5
 
+        def _fmt_value(x):
+            if precision is not None and isinstance(x, Number):
+                return str(round(x, precision))
+            else:
+                return str(x)
+
+        def _fmt_range(type_, values):
+            try:
+                sorted_values = sorted(values)
+            except TypeError:
+                sorted_values = sorted(values, key=repr)
+            if len(values) <= max_num_range:
+                values_string = ', '.join((_fmt_value(v) for v in sorted_values))
+            else:
+                values_string = ', '.join((_fmt_value(v)
+                                           for v in sorted_values[:max_num_range - 2]))
+                values_string += ', ..., '
+                values_string += ', '.join((_fmt_value(v)
+                                            for v in sorted_values[-2:]))
+            return '{type_name}([{values_string}], {length})'.format(
+                type_name=type_.__name__, values_string=values_string, length=len(values))
+
+        def _fmt_values(values):
+            return ', '.join(_fmt_range(*v) for v in values.items())
+
         if depth > 0:
             schema_dict = _Vividict()
             for key, values in self._schema.items():
@@ -115,17 +114,16 @@ class ProjectSchema(object):
                     x = schema_dict[keys[0]]
                     for k in keys[1:-1]:
                         x = x[k]
-                    x[keys[-1]] = self._fmt_values(values, max_num_range, precision)
+                    x[keys[-1]] = _fmt_values(values)
                 else:
-                    schema_dict[keys[0]] = self._fmt_values(values, max_num_range, precision)
+                    schema_dict[keys[0]] = _fmt_values(values)
             return pformat(schema_dict, depth=depth)
         else:
             ret = ['{']
             for key in sorted(self._schema):
                 values = self._schema[key]
                 if values:
-                    ret.append(" '{}': '{}',"
-                               .format(key, self._fmt_values(values, max_num_range, precision)))
+                    ret.append(" '{}': '{}',".format(key, _fmt_values(values)))
             ret.append('}')
             return '\n'.join(ret)
 
@@ -140,9 +138,9 @@ class ProjectSchema(object):
 
     def _repr_html_(self):
         import html
-        html_repr = "<strong>" + html.escape(repr(self)) + "</strong>"
-        html_repr += "<pre>" + str(self) + "</pre>"
-        return html_repr
+        output = "<strong>" + html.escape(repr(self)) + "</strong>"
+        output += "<pre>" + str(self) + "</pre>"
+        return output
 
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
