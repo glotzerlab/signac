@@ -107,21 +107,21 @@ class JobSearchIndex(object):
                 yield 'statepoint.{}'.format(k), v
 
     def find_job_ids(self, filter=None, doc_filter=None):
-        """Find  job ids based on filter passed.
+        """Find job ids from a state point or document filter.
 
         Parameters
         ----------
-        filter : Mapping
-            A mapping of key-value pairs that all
-            indexed job statepoints are compared against. (Default value = None)
-        doc_filter :
-            A mapping of key-value pairs that all
-            indexed job documents are compared against. (Default value = None)
+        filter : dict
+            A mapping of key-value pairs that all indexed job statepoints are
+            compared against (Default value = None).
+        doc_filter : dict
+            A mapping of key-value pairs that all indexed job documents are
+            compared against (Default value = None).
 
         Returns
         -------
-        class:`~.Collection`
-            The project document handle.
+        list
+            List of job ids matching the provided filter(s).
 
         """
         if filter:
