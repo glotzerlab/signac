@@ -1774,7 +1774,7 @@ class JobsCursor(object):
                 if _filter is None:
                     _filter = {key: {"$exists": True}}
                 elif key not in _filter.keys():
-                    _filter[key] = {"$exists": True}
+                    _filter = {'$and': [{key: {"$exists": True}}, _filter]}
 
                 def keyfunction(job):
                     return job.sp[key]
@@ -1787,9 +1787,7 @@ class JobsCursor(object):
                 if _filter is None:
                     _filter = {k: {"$exists": True} for k in key}
                 else:
-                    for k in key:
-                        if k not in _filter.keys():
-                            _filter[k] = {"$exists": True}
+                    _filter = {'$and': [{k: {"$exists": True} for k in key}, _filter]}
 
                 def keyfunction(job):
                     return tuple(job.sp[k] for k in key)
