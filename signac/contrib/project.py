@@ -1773,7 +1773,7 @@ class JobsCursor(object):
             if default is None:
                 if _filter is None:
                     _filter = {key: {"$exists": True}}
-                elif key not in _filter.keys():
+                else:
                     _filter = {'$and': [{key: {"$exists": True}}, _filter]}
 
                 def keyfunction(job):
