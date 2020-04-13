@@ -1498,6 +1498,15 @@ class TestProjectRepresentation(TestProjectBase):
                                     raise pytest.skip('requires use_pandas')
                                 self.project.find_jobs(filter_)._repr_html_()
 
+        with subtests.test(of='Schema'):
+            schema = self.project.detect_schema()
+            with subtests.test(type='str'):
+                str(schema)
+            with subtests.test(type='repr'):
+                repr(schema)
+            with subtests.test(type='html'):
+                schema._repr_html_()
+
     def test_repr_no_jobs(self, subtests):
         self.call_repr_methods(subtests)
 
