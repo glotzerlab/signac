@@ -79,7 +79,7 @@ def _build_job_statepoint_index(exclude_const, index):
         Parameters
         ----------
         x :
-            dictionary values.
+            Dictionary from which ``_DictPlaceholder`` values will be removed.
 
         Returns
         -------
@@ -121,7 +121,7 @@ class ProjectSchema(object):
 
         Returns
         -------
-        type : `signac.contrib.schema.ProjectSchema`
+        ProjectSchema
             The detected project schema.
 
         """
@@ -156,7 +156,7 @@ class ProjectSchema(object):
 
             Parameters
             ----------
-            x : float or int
+            x :
                 Value to convert to string.
 
             Returns
@@ -177,15 +177,15 @@ class ProjectSchema(object):
 
             Parameters
             ----------
-            type_ :
-                param values.
+            type_ : type
+                Type of values.
             values :
                 An iterable of values.
 
             Returns
             -------
             str
-                Comma-separated string for squence of values passed.
+                Comma-separated string of the input values.
 
             """
             try:
@@ -280,7 +280,7 @@ class ProjectSchema(object):
         Returns
         -------
         bool
-            True if both the schema has has the same values.
+            True if both schemas have the same keys and values.
 
         """
         return self._schema == other._schema
@@ -292,7 +292,7 @@ class ProjectSchema(object):
         ----------
         ignore_values : bool
             Ignore if the value (range) of a specific keys differ,
-            only return missing keys. (Default value = False)
+            only return missing keys (Default value = False).
         other : ProjectSchema
             Other project schema.
 
@@ -313,11 +313,11 @@ class ProjectSchema(object):
         Parameters
         ----------
         jobs_or_statepoints :
-            jobs or statepoints of Project.
+            An iterable of jobs or state points.
 
         Returns
         -------
-        type : `signac.contrib.schema.ProjectSchema`
+        ProjectSchema
             Schema of the project.
 
         """
