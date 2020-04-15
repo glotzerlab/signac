@@ -766,8 +766,7 @@ class Project(object):
         from .schema import _build_job_statepoint_index
         if index is None:
             index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
-        for x, y in _build_job_statepoint_index(
-                    jobs=self, exclude_const=exclude_const, index=index):
+        for x, y in _build_job_statepoint_index(exclude_const=exclude_const, index=index):
             yield tuple(x.split('.')), y
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
@@ -796,8 +795,7 @@ class Project(object):
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc['_id'] in subset]
-        statepoint_index = _build_job_statepoint_index(
-            jobs=self, exclude_const=exclude_const, index=index)
+        statepoint_index = _build_job_statepoint_index(exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
@@ -1248,10 +1246,10 @@ class Project(object):
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
-        Similar to `signac.contrib.Project.export_to`, this function expands the data space for the selected
-        jobs, but instead of copying data will create symbolic links to the individual job
-        workspace directories. This is primarily useful for browsing through the data
-        space using a file-browser with human-interpretable directory paths.
+        Similar to `signac.contrib.Project.export_to`, this function expands the data space
+        for the selected jobs, but instead of copying data will create symbolic links to the
+        individual job workspace directories. This is primarily useful for browsing through
+        the data space using a file-browser with human-interpretable directory paths.
 
         By default, the paths of the view will be based on variable state point keys as part
         of the *implicit* schema of the selected jobs that we create the view for. For example,
@@ -1428,8 +1426,8 @@ class Project(object):
         selection :
             Only sync the given jobs (Default value = None).
         kwargs :
-            This method accepts the same keyword arguments as the `signac.Project.sync.sync_projects`
-            function.
+            This method accepts the same keyword arguments as the
+            `signac.Project.sync.sync_projects` function.
         **kwargs :
 
         Raises
@@ -1457,8 +1455,8 @@ class Project(object):
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (compressed) archive file.
 
-        Use this function in combination with `signac.Project.find_jobs` to export only a select number
-        of jobs, for example:
+        Use this function in combination with `signac.Project.find_jobs` to export only a select
+        number of jobs, for example:
 
         .. code-block:: python
 
@@ -1571,8 +1569,8 @@ class Project(object):
             (Default value = None).
         sync :
             If ``True``, the project will be synchronized with the imported data space. If a
-            dict of keyword arguments is provided, the arguments will be used for `signac.Project.sync`.
-            Defaults to None.
+            dict of keyword arguments is provided, the arguments will be used for
+            `signac.Project.sync` (Default value = None).
         copytree :
             Specify which exact function to use for the actual copytree operation.
             Defaults to :func:`shutil.copytree`.

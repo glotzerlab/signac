@@ -21,7 +21,7 @@ def _collect_by_type(values):
     return values_by_type
 
 
-def _build_job_statepoint_index(jobs, exclude_const, index):
+def _build_job_statepoint_index(exclude_const, index):
     from .collection import Collection
     from .collection import _DictPlaceholder
     from .utility import _nested_dicts_to_dotted_keys
