@@ -93,7 +93,9 @@ def _build_job_statepoint_index(exclude_const, index):
         if exclude_const and len(tmp[k]) == 1 \
                 and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
             continue
-        yield strip_prefix(k), remove_dict_placeholder(tmp[k])
+        statepoint_key = strip_prefix(k)
+        statepoint_values = remove_dict_placeholder(tmp[k])
+        yield statepoint_key, statepoint_values
 
 
 class ProjectSchema(object):
