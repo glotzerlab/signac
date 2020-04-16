@@ -936,7 +936,6 @@ class Project(object):
 
         Examples
         --------
-
         .. code-block:: python
 
             # Group jobs by statepoint parameter 'a'.
@@ -1727,6 +1726,7 @@ class Project(object):
         include_job_document :
             Whether to include the job document in the index (Default value =
             False).
+
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
@@ -2416,7 +2416,6 @@ class JobsCursor(object):
 
         Examples
         --------
-
         .. code-block:: python
 
             # Group jobs by document value 'a'.
@@ -2670,6 +2669,7 @@ class JobsCursor(object):
         -------
         str
             HTML representation of jobs.
+
         """
         return repr(self) + self._repr_html_jobs()
 
@@ -2694,6 +2694,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     make_dir : bool
         Create the project root directory, if it does not exist yet (Default
         value = True).
+
     Returns
     -------
     signac.Project
