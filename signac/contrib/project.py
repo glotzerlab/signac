@@ -812,10 +812,10 @@ class Project(object):
 
         Parameters
         ----------
-        filter : Mapping
+        filter : dict
             A mapping of key-value pairs that all
             indexed job statepoints are compared against (Default value = None).
-        doc_filter :
+        doc_filter : dict
             A mapping of key-value pairs that all
             indexed job documents are compared against (Default value = None).
         index :
