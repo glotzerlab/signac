@@ -169,13 +169,6 @@ class Job(object):
         new_statepoint : mapping
             The job's new state point.
 
-        Raises
-        ------
-        DestinationExistsError
-            If a job associated with the new state point is already initialized.
-        OSError
-            If the move failed due to an unknown system related error.
-
         """
         dst = self._project.open_job(new_statepoint)
         if dst == self:
@@ -460,14 +453,7 @@ class Job(object):
             self._check_manifest()
 
     def _check_manifest(self):
-        """Check whether the manifest file, if it exists, is correct.
-
-        Raises
-        ------
-        JobCorruptedError
-            One or more jobs cannot be opened or is corrupted.
-
-        """
+        """Check whether the manifest file, if it exists, is correct."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as file:
@@ -569,16 +555,6 @@ class Job(object):
         ----------
         project : signac.Project
             The project to move this job to.
-
-        Raises
-        ------
-        DestinationExistsError
-            If the job is already initialized in project.
-        RuntimeError
-            If the job is not initialized or the destination is on a different
-            device.
-        OSError
-            When the move failed due unexpected file system issues.
 
         """
         dst = project.open_job(self.statepoint())
