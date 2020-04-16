@@ -214,6 +214,7 @@ class ProjectSchema(object):
             Returns
             -------
             str
+                Comma-separated string of the input values.
 
             """
             return ', '.join(_fmt_range(*v) for v in values.items())
