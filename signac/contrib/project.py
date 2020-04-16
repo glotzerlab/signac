@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""The signac Project classes."""
+"""The signac Project and JobsCursor classes."""
 
 import os
 import stat
@@ -361,7 +361,7 @@ class Project(object):
 
         Raises
         ------
-        RuntimeError
+        signac.errors.IncompatibleSchemaVersion
             If the schema version is incompatible.
 
         """
