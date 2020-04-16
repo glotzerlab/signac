@@ -603,8 +603,8 @@ class Project(object):
         KeyError
             If the attempt to open the job by id fails.
         LookupError
-            If the attempt to open the job by an
-            abbreviated id returns more than one match.
+            If the attempt to open the job by an abbreviated id returns more
+            than one match.
 
         """
         if (id is None) == (statepoint is None):
