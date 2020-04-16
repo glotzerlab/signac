@@ -3,6 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 """Errors raised by signac."""
 
+# The subpackage error modules (e.g. signac.core.errors) are used to bundle
+# exceptions that are relevant beyond a single module. This top-level errors
+# module is used to expose user-facing exception classes.
+
 from .core.errors import Error
 
 from .core.jsondict import BufferException
