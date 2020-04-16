@@ -1020,7 +1020,8 @@ class Project(object):
     def to_dataframe(self, *args, **kwargs):
         """Export the project metadata to a pandas dataframe.
 
-        The arguments to this function are forwarded to `signac.contrib.project.JobsCursor.to_dataframe`.
+        The arguments to this function are forwarded to
+        `signac.contrib.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
