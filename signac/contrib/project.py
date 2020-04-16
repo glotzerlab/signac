@@ -261,7 +261,7 @@ class Project(object):
 
         Returns
         -------
-        signac.contrib.Project._ProjectConfig
+        signac.contrib.project._ProjectConfig
             Dictionary containing project's configuration.
 
         """
@@ -705,7 +705,7 @@ class Project(object):
 
         Returns
         -------
-        signac.contrib.Project.JobSearchIndex
+        signac.contrib.project.JobSearchIndex
             A job search index based on the provided index.
 
         """
@@ -914,7 +914,7 @@ class Project(object):
 
         Returns
         -------
-        singac.Project.JobsCursor
+        singac.contrib.project.JobsCursor
             JobsCursor of jobs matching the provided filter(s).
 
         Raises
@@ -935,7 +935,7 @@ class Project(object):
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point parameters.
 
-        This method can be called on any `signac.Project.JobCursor` such as
+        This method can be called on any `signac.contrib.project.JobCursor` such as
         the one returned by `signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -980,7 +980,7 @@ class Project(object):
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
 
-        This method can be called on any `signac.Project.JobCursor` such as
+        This method can be called on any `signac.contrib.project.JobCursor` such as
         the one returned by `signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -1020,7 +1020,7 @@ class Project(object):
     def to_dataframe(self, *args, **kwargs):
         """Export the project metadata to a pandas dataframe.
 
-        The arguments to this function are forwarded to `signac.Project.JobsCursor.to_dataframe`.
+        The arguments to this function are forwarded to `signac.contrib.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
@@ -1048,7 +1048,7 @@ class Project(object):
         ----------
         fn : str
             The filename of the file containing the statepoints,
-            defaults to signac.contrib.Project.FN_STATEPOINTS.
+            defaults to signac.Project.FN_STATEPOINTS.
 
         Returns
         -------
@@ -1102,7 +1102,7 @@ class Project(object):
             defaults to all statepoints which are defined in the workspace.
         fn : str
             The filename of the file containing the statepoints,
-            defaults to signac.contrib.Project.FN_STATEPOINTS.
+            defaults to signac.Project.FN_STATEPOINTS.
         indent : int
             Specify the indentation of the json file (Default value = 2).
 
@@ -1170,7 +1170,7 @@ class Project(object):
             A job id to get the statepoint for.
         fn : str
             The filename of the file containing the statepoints, defaults
-            to `signac.contrib.Project.FN_STATEPOINTS`.
+            to `signac.Project.FN_STATEPOINTS`.
 
         Returns
         -------
@@ -1225,7 +1225,7 @@ class Project(object):
             A job id to get the statepoint for.
         fn : str
             The filename of the file containing the statepoints, defaults
-            to `signac.contrib.Project.FN_STATEPOINTS`.
+            to `signac.Project.FN_STATEPOINTS`.
 
         Returns
         -------
@@ -1246,7 +1246,7 @@ class Project(object):
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
 
-        Similar to `signac.contrib.Project.export_to`, this function expands the data space
+        Similar to `signac.Project.export_to`, this function expands the data space
         for the selected jobs, but instead of copying data will create symbolic links to the
         individual job workspace directories. This is primarily useful for browsing through
         the data space using a file-browser with human-interpretable directory paths.
@@ -1631,7 +1631,7 @@ class Project(object):
         ----------
         fn_statepoints : str
             The filename of the file containing the statepoints, defaults
-            to `signac.contrib.Project.FN_STATEPOINTS`.
+            to `signac.Project.FN_STATEPOINTS`.
         index :
             A document index (Default value = None).
         job_ids :
@@ -2000,7 +2000,7 @@ class Project(object):
             Defaults to the current working directory.
         workspace : str
             The workspace directory for the project.
-            Defaults to `$project_root/workspace`.
+            Defaults to ``$project_root/workspace``.
         make_dir : bool
             Create the project root directory, if
             it does not exist yet (Default value = True).
@@ -2272,7 +2272,7 @@ class JobsCursor(object):
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more statepoint parameters.
 
-        This method can be called on any `signac.Project.JobCursor` such as
+        This method can be called on any `signac.contrib.project.JobCursor` such as
         the one returned by `signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -2409,7 +2409,7 @@ class JobsCursor(object):
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
 
-        This method can be called on any `signac.Project.JobsCursor` such as
+        This method can be called on any `signac.contrib.project.JobsCursor` such as
         the one returned by `signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -2679,7 +2679,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         Defaults to the current working directory.
     workspace : str
         The workspace directory for the project.
-        Defaults to `$project_root/workspace`.
+        Defaults to ``$project_root/workspace``.
     make_dir : bool
         Create the project root directory, if
         it does not exist yet (Default value = True).
