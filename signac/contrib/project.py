@@ -273,7 +273,7 @@ class Project(object):
 
         Returns
         -------
-        str :
+        str
             Path of project directory.
 
         """
@@ -845,8 +845,8 @@ class Project(object):
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
-        The optional filter arguments must be a Mapping of key-value
-        pairs and JSON serializable.
+        The optional filter arguments must be a JSON serializable mapping of
+        key-value pairs.
 
         .. note::
             Providing a pre-calculated index may vastly increase the
@@ -855,18 +855,14 @@ class Project(object):
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all
-            indexed job statepoints are compared against (Default value = None).
+            A mapping of key-value pairs that all indexed job state points are
+            compared against (Default value = None).
         doc_filter :
-            A mapping of key-value pairs that all
-            indexed job documents are compared against (Default value = None).
+            A mapping of key-value pairs that all indexed job documents are
+            compared against (Default value = None).
         index :
-             A document index. If not provided, an index will be computed
+            A document index. If not provided, an index will be computed
             (Default value = None).
-
-        Yields
-        ------
-         The ids of all indexed jobs matching both filter(s).
 
         Returns
         -------
@@ -880,7 +876,6 @@ class Project(object):
             If the filters are invalid.
         RuntimeError
             If the filters are not supported by the index.
-
 
         """
         if filter is None and doc_filter is None and index is None:
@@ -906,15 +901,15 @@ class Project(object):
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all
-            indexed job statepoints are compared against (Default value = None).
+            A mapping of key-value pairs that all indexed job statepoints are
+            compared against (Default value = None).
         doc_filter : Mapping
-            A mapping of key-value pairs that all
-            indexed job documents are compared against (Default value = None).
+            A mapping of key-value pairs that all indexed job documents are
+            compared against (Default value = None).
 
         Returns
         -------
-        singac.contrib.project.JobsCursor
+        signac.contrib.project.JobsCursor
             JobsCursor of jobs matching the provided filter(s).
 
         Raises
@@ -941,6 +936,7 @@ class Project(object):
 
         Examples
         --------
+
         .. code-block:: python
 
             # Group jobs by statepoint parameter 'a'.
@@ -963,16 +959,20 @@ class Project(object):
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, the job (Default value = None).
+        key : str, iterable, or callable
+            The state point grouping parameter(s) passed as a string,
+            iterable of strings, or a callable that will be passed one
+            argument, the job (Default value = None).
         default :
             A default value to be used when a given state point key is not present (must
             be sortable).
 
         Returns
         -------
-            Groups of Jobs
+        key : str
+            Grouped key.
+        group : iterable of Jobs
+            Iterable of `Job`s matching this group key.
 
         """
         return self.find_jobs().groupby(key, default=default)
@@ -1018,7 +1018,7 @@ class Project(object):
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        """Export the project metadata to a pandas dataframe.
+        """Export the project metadata to a pandas DataFrame.
 
         The arguments to this function are forwarded to
         `signac.contrib.project.JobsCursor.to_dataframe`.
@@ -1029,7 +1029,6 @@ class Project(object):
 
         **kwargs :
 
-
         Returns
         -------
         pandas.DataFrame
@@ -1038,17 +1037,17 @@ class Project(object):
         return self.find_jobs().to_dataframe(*args, **kwargs)
 
     def read_statepoints(self, fn=None):
-        """Read all statepoints from a file.
+        """Read all state points from a file.
 
         See Also
         --------
-        dump_statepoints : Dump the statepoints and associated job ids.
-        write_statepoints : Dump statepoints to a file.
+        dump_statepoints : Dump the state points and associated job ids.
+        write_statepoints : Dump state points to a file.
 
         Parameters
         ----------
         fn : str
-            The filename of the file containing the statepoints,
+            The filename of the file containing the state points,
             defaults to signac.Project.FN_STATEPOINTS.
 
         Returns
@@ -1064,7 +1063,7 @@ class Project(object):
             return json.loads(file.read())
 
     def dump_statepoints(self, statepoints):
-        """Dump the statepoints and associated job ids.
+        """Dump the state points and associated job ids.
 
         Equivalent to:
 
@@ -1075,37 +1074,37 @@ class Project(object):
         Parameters
         ----------
         statepoints : iterable
-            A list of statepoints.
+            A list of state points.
 
         Returns
         -------
         dict
-            A mapping, where the key is the job id
-            and the value is the statepoint.
+            A mapping, where the key is the job id and the value is the
+            state point.
 
         """
         return {calc_id(sp): sp for sp in statepoints}
 
     def write_statepoints(self, statepoints=None, fn=None, indent=2):
-        """Dump statepoints to a file.
+        """Dump state points to a file.
 
-        If the file already contains statepoints, all new statepoints
+        If the file already contains state points, all new state points
         will be appended, while the old ones are preserved.
 
         See Also
         --------
-        dump_statepoints : Dump the statepoints and associated job ids.
+        dump_statepoints : Dump the state points and associated job ids.
 
         Parameters
         ----------
         statepoints : iterable
-            A list of statepoints,
-            defaults to all statepoints which are defined in the workspace.
+            A list of state points, defaults to all state points which are
+            defined in the workspace.
         fn : str
-            The filename of the file containing the statepoints,
-            defaults to signac.Project.FN_STATEPOINTS.
+            The filename of the file containing the state points, defaults to
+            signac.Project.FN_STATEPOINTS.
         indent : int
-            Specify the indentation of the json file (Default value = 2).
+            Specify the indentation of the JSON file (Default value = 2).
 
         """
         if fn is None:
@@ -1139,7 +1138,7 @@ class Project(object):
         self._sp_cache[job._id] = job._statepoint._as_dict()
 
     def _get_statepoint_from_workspace(self, jobid):
-        """Attempt to read the statepoint from the workspace.
+        """Attempt to read the state point from the workspace.
 
         Parameters
         ----------
@@ -1160,7 +1159,7 @@ class Project(object):
             raise KeyError(jobid)
 
     def _get_statepoint(self, jobid, fn=None):
-        """Get the statepoint associated with a job id.
+        """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
         the workspace or from a state points file.
@@ -1170,7 +1169,7 @@ class Project(object):
         jobid : str
             A job id to get the statepoint for.
         fn : str
-            The filename of the file containing the statepoints, defaults
+            The filename of the file containing the state points, defaults
             to `signac.Project.FN_STATEPOINTS`.
 
         Returns
@@ -1258,6 +1257,10 @@ class Project(object):
 
         .. code-block:: python
 
+            >>> print(project.detect_schema())
+            {
+             'foo': 'int([0, 1, 2, ..., 8, 9], 10)',
+            }
 
         by calling ``project.create_linked_view('my_view')`` will look similar to:
 
@@ -1272,17 +1275,17 @@ class Project(object):
 
         .. note::
             The behavior of this function is almost equivalent to
-            ``project.export_to('my_view', copytree=os.symlink)`` with the major difference,
-            that view hierarchies are actually *updated*, that means no longer valid links
-            are automatically removed.
+            ``project.export_to('my_view', copytree=os.symlink)`` with the
+            major difference that view hierarchies are actually *updated*,
+            meaning that invalid links are automatically removed.
 
         Parameters
         ----------
         prefix : str
             The path where the linked view will be created or updated (Default value = None).
-        job_ids :
+        job_ids : iterable
             If None (the default), create the view for the complete data space,
-            otherwise only for the sub space constituted by the provided job ids.
+            otherwise only for this iterable of job ids.
         index :
             A document index (Default value = None).
         path :
@@ -1291,13 +1294,8 @@ class Project(object):
         Returns
         -------
         dict
-            A dict that maps the source directory paths, to the linked
+            A dictionary that maps the source directory paths to the linked
             directory paths.
-
-        >>> print(project.detect_schema())
-            {
-             'foo': 'int([0, 1, 2, ..., 8, 9], 10)',
-            }
 
         """
         if index is not None:
@@ -1321,13 +1319,13 @@ class Project(object):
         Parameters
         ----------
         job : signac.contrib.job.Job
-            The job, that should be reset to a new state point.
+            The job that should be reset to a new state point.
         new_statepoint : mapping
             The job's new state point.
 
         Raises
         ------
-        DestinationExistsError
+        signac.errors.DestinationExistsError
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
@@ -1349,11 +1347,11 @@ class Project(object):
         Parameters
         ----------
         job : signac.contrib.job.Job
-            The job, whose statepoint shall be updated.
+            The job whose state point shall be updated.
         update : mapping
-            A mapping used for the statepoint update.
+            A mapping used for the state point update.
         overwrite :
-            Set to true, to ignore whether this update overwrites parameters,
+            Set to true to ignore whether this update overwrites parameters,
             which are currently part of the job's state point. Use with caution!
             (Default value = False).
 
@@ -1362,7 +1360,7 @@ class Project(object):
         KeyError
             If the update contains keys, which are already part of the job's
             state point and overwrite is False.
-        DestinationExistsError
+        signac.errors.DestinationExistsError
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
@@ -1389,7 +1387,7 @@ class Project(object):
 
         Raises
         ------
-        DestinationExistsError
+        signac.errors.DestinationExistsError
             In case that a job with the same id is already
             initialized within this project.
 
@@ -1426,20 +1424,19 @@ class Project(object):
             The function applied for synchronizing documents (Default value = None).
         selection :
             Only sync the given jobs (Default value = None).
-        kwargs :
-            This method accepts the same keyword arguments as the
-            `signac.Project.sync.sync_projects` function.
         **kwargs :
+            This method also accepts the same keyword arguments as the
+            `signac.Project.sync.sync_projects` function.
 
         Raises
         ------
-        DocumentSyncConflict
+        signac.errors.DocumentSyncConflict
             If there are conflicting keys within the project or job documents that cannot
             be resolved with the given strategy or if there is no strategy provided.
-        FileSyncConflict
+        signac.errors.FileSyncConflict
             If there are differing files that cannot be resolved with the given strategy
             or if no strategy is provided.
-        SyncSchemaConflict
+        signac.errors.SyncSchemaConflict
             In case that the check_schema argument is True and the detected state point
             schema of this and the other project differ.
 
@@ -1705,12 +1702,12 @@ class Project(object):
             raise JobsCorruptedError(corrupted)
 
     def _sp_index(self):
-        """Update and return the statepoint index cache.
+        """Update and return the state point index cache.
 
         Returns
         -------
         dict
-            dictornay containing all the ids and statepoints.
+            Dictionary containing ids and state points in the cache.
 
         """
         job_ids = set(self._job_dirs())
@@ -1728,8 +1725,8 @@ class Project(object):
         Parameters
         ----------
         include_job_document :
-             (Default value = False).
-
+            Whether to include the job document in the index (Default value =
+            False).
         """
         wd = self.workspace() if self.Job is Job else None
         for _id in self._find_job_ids():
@@ -1852,38 +1849,41 @@ class Project(object):
 
         Parameters
         ----------
-        formats : dict
-            The format definitions as mapping (Default value = None).
+        formats : str, dict
+            The format definitions as a pattern string (e.g. ``r'.*\.txt'``)
+            or a mapping from pattern strings to formats (e.g.
+            ``'TextFile'``). If None, only the job document is indexed
+            (Default value = None).
         depth : int
-            Specifies the crawling depth.
-            A value of 0 (default) means no limit.
+            Specifies the crawling depth. A value of 0 means no limit
+            (Default value = 0).
         skip_errors : bool
-            Skip all errors which occur during indexing.
-            This is useful when trying to repair a broken workspace (Default value = False).
+            Skip all errors which occur during indexing. This is useful when
+            trying to repair a broken workspace (Default value = False).
         include_job_document : bool
-            Include the contents of job
-            documents (Default value = True).
+            Include the contents of job documents (Default value = True).
 
         Yields
         ------
-        index document
+        dict
+            Index document.
 
         """
         if formats is None:
             root = self.workspace()
 
             def _full_doc(doc):
-                """Add `signac_id` and `root` to the state point.
+                """Add `signac_id` and `root` to the index document.
 
                 Parameters
                 ----------
                 doc : dict
-                    State point index.
+                    Index document.
 
                 Returns
                 -------
                 dict
-                    Modified state point index.
+                    Modified index document.
 
                 """
                 doc['signac_id'] = doc['_id']
@@ -1916,12 +1916,11 @@ class Project(object):
         Parameters
         ----------
         filename : str
-            The name of the access module file.
-            Defaults to the standard name and should usually
-            not be changed.
+            The name of the access module file. Defaults to the standard name
+            and should usually not be changed.
         master : bool
-            If True, add directives for the compilation
-            of a master index when executing the module (Default value = True).
+            If True, add directives for the compilation of a master index
+            when executing the module (Default value = True).
 
         Returns
         -------
@@ -1961,10 +1960,10 @@ class Project(object):
 
         Parameters
         ----------
-        name :
+        name : str
             An optional name for the temporary project.
             Defaults to a unique random string.
-        dir :
+        dir : str
             Optionally specify where the temporary project root directory is to be
             created. Defaults to the project's workspace directory.
 
@@ -1986,11 +1985,10 @@ class Project(object):
     def init_project(cls, name, root=None, workspace=None, make_dir=True):
         """Initialize a project with the given name.
 
-        It is safe to call this function multiple times with
-        the same arguments.
-        However, a `RuntimeError` is raised in case where an
-        existing project configuration would conflict with
-        the provided initialization parameters.
+        It is safe to call this function multiple times with the same
+        arguments. However, a `RuntimeError` is raised if an existing project
+        configuration would conflict with the provided initialization
+        parameters.
 
         Parameters
         ----------
@@ -2001,10 +1999,10 @@ class Project(object):
             Defaults to the current working directory.
         workspace : str
             The workspace directory for the project.
-            Defaults to ``$project_root/workspace``.
+            Defaults to a subdirectory ``workspace`` in the project root.
         make_dir : bool
-            Create the project root directory, if
-            it does not exist yet (Default value = True).
+            Create the project root directory if it does not exist yet
+            (Default value = True).
 
         Returns
         -------
@@ -2014,8 +2012,8 @@ class Project(object):
         Raises
         ------
         RuntimeError
-            If the project root path already
-            contains a conflicting project configuration.
+            If the project root path already contains a conflicting project
+            configuration.
 
         """
         if root is None:
@@ -2062,7 +2060,7 @@ class Project(object):
             the specified root directory, otherwise only return projects
             with a root directory identical to the specified root argument (Default value = True).
         **kwargs :
-
+            Forwarded to the project constructor.
 
         Returns
         -------
@@ -2072,7 +2070,7 @@ class Project(object):
         Raises
         ------
         LookupError
-            When project configuration can not be found.
+            When project configuration cannot be found.
 
         """
         if root is None:
@@ -2150,10 +2148,9 @@ def TemporaryProject(name=None, cls=None, **kwargs):
     cls :
         The class of the temporary project.
         Defaults to signac.Project.
-    kwargs :
-        Optional key-word arguments that are forwarded to the TemporaryDirectory class
-        constructor, which is used to create a temporary root directory.
     **kwargs :
+        Optional keyword arguments that are forwarded to the TemporaryDirectory class
+        constructor, which is used to create a temporary root directory.
 
     Yields
     ------
@@ -2175,9 +2172,13 @@ def _skip_errors(iterable, log=print):
     Parameters
     ----------
     iterable : dict
-        State point index.
-    log :
-         (Default value = print)
+        An iterable.
+    log : callable
+        The function to call when logging errors (Default value = print)
+
+    Yields
+    ------
+    Elements from the iterable, with exceptions ignored.
 
     """
     while True:
@@ -2190,7 +2191,7 @@ def _skip_errors(iterable, log=print):
 
 
 class _JobsCursorIterator(object):
-    """Cursor itterator for Jobs."""
+    """Iterator for JobsCursor."""
 
     def __init__(self, project, ids):
         self._project = project
@@ -2213,13 +2214,12 @@ class JobsCursor(object):
     ----------
     project : signac.Project
         Project handle.
-
-    filter : Mapping
-        A mapping of key-value pairs that all
-        indexed job statepoints are compared against (Default value = None).
-    doc_filter :
-        A mapping of key-value pairs that all
-        indexed job documents are compared against (Default value = None).
+    filter : dict
+        A mapping of key-value pairs that all indexed job statepoints are
+        compared against (Default value = None).
+    doc_filter : dict
+        A mapping of key-value pairs that all indexed job documents are
+        compared against (Default value = None).
 
     """
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
@@ -2271,7 +2271,7 @@ class JobsCursor(object):
             raise
 
     def groupby(self, key=None, default=None):
-        """Group jobs according to one or more statepoint parameters.
+        """Group jobs according to one or more state point parameters.
 
         This method can be called on any `signac.contrib.project.JobCursor` such as
         the one returned by `signac.Project.find_jobs` or by iterating over a
@@ -2281,7 +2281,7 @@ class JobsCursor(object):
         --------
         .. code-block:: python
 
-            # Group jobs by statepoint parameter 'a'.
+            # Group jobs by state point parameter 'a'.
             for key, group in project.groupby('a'):
                 print(key, list(group))
 
@@ -2302,7 +2302,7 @@ class JobsCursor(object):
         Parameters
         ----------
         key : str, iterable, or function
-            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, the job (Default value = None).
         default :
             A default value to be used when a given state point key is not present (must
@@ -2416,6 +2416,7 @@ class JobsCursor(object):
 
         Examples
         --------
+
         .. code-block:: python
 
             # Group jobs by document value 'a'.
@@ -2563,15 +2564,20 @@ class JobsCursor(object):
         Parameters
         ----------
         target : str
-            Target location.
-        path : str
-             (Default value = None).
-        copytree : str
-             (Default value = None).
+            A path to a directory or archive file to export to.
+        path : str or callable
+            The path (function) used to structure the exported data space
+            (Default value = None).
+        copytree : callable
+            The function used for copying of directory tree structures.
+            Defaults to :func:`shutil.copytree`. Can only be used when the
+            target is a directory (Default value = None).
 
         Returns
         -------
         dict
+            A dictionary that maps the source directory paths to the target
+            directory paths.
 
         """
         from .import_export import export_jobs
@@ -2634,8 +2640,8 @@ class JobsCursor(object):
 
         Returns
         -------
-        html : str
-        HTML representation of jobs.
+        str
+            HTML representation of jobs.
 
         """
         html = ''
@@ -2658,18 +2664,22 @@ class JobsCursor(object):
         return html
 
     def _repr_html_(self):
-        """Return an HTML representation of JobsCursor."""
+        """Return an HTML representation of JobsCursor.
+
+        Returns
+        -------
+        str
+            HTML representation of jobs.
+        """
         return repr(self) + self._repr_html_jobs()
 
 
 def init_project(name, root=None, workspace=None, make_dir=True):
     """Initialize a project with the given name.
 
-    It is safe to call this function multiple times with
-    the same arguments.
-    However, a `RuntimeError` is raised in case where an
-    existing project configuration would conflict with
-    the provided initialization parameters.
+    It is safe to call this function multiple times with the same arguments.
+    However, a `RuntimeError` is raised if an existing project configuration
+    would conflict with the provided initialization parameters.
 
     Parameters
     ----------
@@ -2680,21 +2690,20 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         Defaults to the current working directory.
     workspace : str
         The workspace directory for the project.
-        Defaults to ``$project_root/workspace``.
+        Defaults to a subdirectory ``workspace`` in the project root.
     make_dir : bool
-        Create the project root directory, if
-        it does not exist yet (Default value = True).
-
+        Create the project root directory, if it does not exist yet (Default
+        value = True).
     Returns
     -------
     signac.Project
-        Project of the initialized project.
+        The initialized project instance.
 
     Raises
     ------
     RuntimeError
-        If the project root path already
-        contains a conflicting project configuration
+        If the project root path already contains a conflicting project
+        configuration.
 
     """
     return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
@@ -2706,19 +2715,21 @@ def get_project(root=None, search=True, **kwargs):
     Parameters
     ----------
     root : str
-        The starting point to search for a project, defaults to the
-        current working directory.
+        The starting point to search for a project, defaults to the current
+        working directory.
     search : bool
-        If True, search for project configurations inside and above
-        the specified root directory, otherwise only return projects
-        with a root directory identical to the specified root argument (Default value = True).
+        If True, search for project configurations inside and above the
+        specified root directory, otherwise only return projects with a root
+        directory identical to the specified root argument (Default value =
+        True).
     **kwargs :
+        Forwarded to `signac.Project.get_project`.
 
 
     Returns
     -------
     signac.Project
-        An instace of signac.Project.
+        An instance of signac.Project.
 
     Raises
     ------
@@ -2749,11 +2760,11 @@ def get_job(root=None):
     LookupError
         If this job cannot be found.
 
-        For example, when the current directory is a job workspace directory:
+    For example, when the current directory is a job workspace directory:
 
-        .. code-block:: python
+    .. code-block:: python
 
-    >>> signac.get_job()
+        >>> signac.get_job()
         signac.contrib.job.Job(project=..., statepoint={...})
 
     """
