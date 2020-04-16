@@ -6,6 +6,7 @@
 import hashlib
 # we need to use the standard module here to ensure
 # exact consistent formatting
+
 import json
 
 
@@ -14,8 +15,8 @@ def calc_id(spec):
 
     Parameters
     ----------
-    spec :
-        Data to hash.
+    spec : Collection
+        A JSON-encodable collection.
 
     Returns
     -------

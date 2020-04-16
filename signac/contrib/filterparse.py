@@ -45,7 +45,7 @@ def _read_index(project, fn_index=None):
 
     Parameters
     ----------
-    project : class:`~.contrib.project.Project`
+    project : signac.Project
         Project handle.
 
     fn_index : str
@@ -174,8 +174,7 @@ def _parse_simple(key, value=None):
 
     value :
         The filter value. If None, the filter returns
-        True if the provided key exists
-        (Default value = None).
+        True if the provided key exists (Default value = None).
 
     Returns
     -------
