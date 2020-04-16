@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Job class defiend here."""
+
 import os
 import errno
 import logging
@@ -32,7 +33,7 @@ class _sp_save_hook(object):
 
     Parameters
     ----------
-    jobs :
+    jobs : Job
         list of jobs.
 
     """
@@ -57,7 +58,7 @@ class Job(object):
 
     Parameters
     ----------
-    project : class:`~.contrib.project.Project`
+    project : signac.Project
         Project handle.
 
     statepoint : dict
@@ -103,7 +104,7 @@ class Job(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use job.id instead.")
     def get_id(self):
-        """Job's statepoint's unique identifier.
+        """Job's state point unique identifier.
 
         Returns
         -------
@@ -115,7 +116,7 @@ class Job(object):
 
     @property
     def id(self):
-        """Return Unique identifier for the job's statepoint.
+        """Get Unique identifier for the job's statepoint.
 
         Returns
         -------
@@ -213,7 +214,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_sp : mapping
+        new_sp : dict
             The job's new state point.(Default value = None)
 
         """
@@ -258,7 +259,7 @@ class Job(object):
 
     @property
     def statepoint(self):
-        """Access the job's state point as attribute dictionary.
+        """Get the job's state point as attribute dictionary.
 
         .. warning:: The statepoint object behaves like a dictionary in most cases,
             but because it persists changes to the filesystem, making a copy
@@ -266,7 +267,7 @@ class Job(object):
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the statepoint by calling it, e.g.
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
-            For more information, see :class:`~signac.JSONDict`.
+            For more information, see : `signac.JSONDict`.
 
         Returns
         -------
@@ -282,7 +283,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_sp :
+        new_sp : dict
             new state point to be assigned.
 
         """
@@ -300,16 +301,16 @@ class Job(object):
 
     @property
     def document(self):
-        """Document associated with this job.
+        """Get document associated with this job.
 
         .. warning:: If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
-            :class:`~signac.JSONDict`.
+            `signac.JSONDict`.
 
         Returns
         -------
-        class : `~signac.JSONDict`
+        signac.JSONDict
             The job document handle.
 
         """
@@ -324,7 +325,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_doc : class : `~signac.JSONDict`
+        new_doc : signac.JSONDict
             The job document handle.
 
         """
@@ -337,7 +338,7 @@ class Job(object):
         .. warning:: If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
             For more information, see :attr:`Job.statepoint` or
-            :class:`~signac.JSONDict`.
+            `signac.JSONDict`.
 
         """
         return self.document
@@ -349,10 +350,10 @@ class Job(object):
 
     @property
     def stores(self):
-        """Access HDF5-stores associated with this job.
+        """Get HDF5-stores associated with this job.
 
         Use this property to access an HDF5 file within the job's workspace
-        directory using the :class:`~signac.H5Store` dict-like interface.
+        directory using the : `signac.H5Store` dict-like interface.
 
         This is an example for accessing an HDF5 file called 'my_data.h5' within
         the job's workspace:
@@ -376,7 +377,7 @@ class Job(object):
 
         Returns
         -------
-        class : `~signac.H5StoreManager`
+        signac.H5StoreManager
             The HDF5-Store manager for this job.
 
         """
@@ -384,7 +385,7 @@ class Job(object):
 
     @property
     def data(self):
-        """Return data associated with this job.
+        """Get data associated with this job.
 
         This property should be used for large array-like data, which can't be
         stored efficiently in the job document. For examples and usage, see
@@ -398,7 +399,7 @@ class Job(object):
 
         Returns
         -------
-        class : `~signac.H5Store`
+        signac.H5Store
             An HDF5-backed datastore.
 
         """
@@ -410,7 +411,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_data : class : `~signac.H5Store`
+        new_data : signac.H5Store
             An HDF5-backed datastore.
 
         """
@@ -425,13 +426,6 @@ class Job(object):
         ----------
         force :
             (Default value = False)
-
-        Raises
-        ------
-        OSError
-            Error occured while trying to create
-            workspace directory for job
-        IOError
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -470,8 +464,6 @@ class Job(object):
 
         Raises
         ------
-        IOError
-            manifest file does not exist.
         JobCorruptedError
             One or more jobs cannot be opened or is corrupted.
 
@@ -502,7 +494,7 @@ class Job(object):
 
         Returns
         -------
-        class : `~.Job`
+        Job
             The job handle.
 
         """
@@ -519,11 +511,6 @@ class Job(object):
 
         This function will do nothing if the job was not previously
         initialized.
-
-        Raises
-        ------
-        OSError
-        IOError
 
         """
         try:
@@ -556,11 +543,6 @@ class Job(object):
         This function will do nothing if the workspace directory
         does not exist.
 
-        Raises
-        ------
-        OSError
-        IOError
-
         """
         try:
             shutil.rmtree(self.workspace())
@@ -585,7 +567,7 @@ class Job(object):
 
         Parameters
         ----------
-        project : py:class:`~.project.Project`
+        project : signac.Project
             The project to move this job to.
 
         Raises
@@ -629,7 +611,7 @@ class Job(object):
 
         A file conflict can be resolved by providing a 'FileSync' *strategy* or by
         *excluding* files from the synchronization. An unresolvable conflict is indicated with
-        the raise of a :py:class:`~.errors.FileSyncConflict` exception.
+        the raise of a `signac.errors.FileSyncConflict` exception.
 
         A document synchronization conflict can be resolved by providing a doc_sync function
         that takes the source and the destination document as first and second argument.
@@ -640,7 +622,7 @@ class Job(object):
             The other job to synchronize from.
         strategy :
             A synchronization strategy for file conflicts. If no strategy is provided, a
-            :class:`~.errors.SyncConflict` exception will be raised upon conflict.
+            : `signac.errors.SyncConflict` exception will be raised upon conflict.
             (Default value = None)
         exclude : str
             An filename exclude pattern. All files matching this pattern will be
@@ -680,7 +662,7 @@ class Job(object):
 
         Returns
         -------
-        type
+        str
             The full workspace path of the file.
 
         """
@@ -705,7 +687,7 @@ class Job(object):
     def open(self):
         """Enter the job's workspace directory.
 
-        You can use the :class:`~.Job` class as context manager:
+        You can use the : `Job` class as context manager:
 
         .. code-block:: python
 
