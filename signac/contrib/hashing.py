@@ -13,10 +13,14 @@ import json
 def calc_id(spec):
     """Calculate and return a hash value for the given spec.
 
+    The hash is computed as an MD5 checksum of the input data. The input data
+    is first encoded as JSON, with dictionary keys sorted to ensure the hash
+    is reproducible.
+
     Parameters
     ----------
-    spec : Collection
-        A JSON-encodable collection.
+    spec : dict
+        A JSON-encodable mapping.
 
     Returns
     -------
