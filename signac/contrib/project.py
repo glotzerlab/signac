@@ -716,33 +716,15 @@ class Project(object):
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a statepoint index to identify jobs with specific parameters.
 
-        This method generates pairs of state point keys and mappings of values
-        to a set of all corresponding job ids. The pairs are ordered by the number
-        of different values.
-        Since state point keys may be nested, they are represented as a tuple.
+        This method generates pairs of state point keys and mappings of
+        values to a set of all corresponding job ids. The pairs are ordered
+        by the number of different values. Since state point keys may be
+        nested, they are represented as a tuple.
         For example:
 
         .. code-block:: python
 
-
-        Values that are constant over the complete data space can be optionally
-        ignored with the exclude_const argument set to True.
-
-        Parameters
-        ----------
-        exclude_const : bool
-            Exclude entries that are shared by all jobs
-            that are part of the index (Default value = False).
-        index :
-            A document index.
-
-        Yields
-        ------
-        tuple
-            Pairs of state point keys and mappings of values to a set of all
-            corresponding job ids (Default value = None).
-
-        >>> for i in range(4):
+            >>> for i in range(4):
             ...     project.open_job({'a': i, 'b': {'c': i % 2}}).init()
             ...
             >>> for key, value in project.build_job_statepoint_index():
@@ -761,6 +743,24 @@ class Project(object):
                          1: {'d49c6609da84251ab096654971115d0c'},
                          2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
                          3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
+
+
+        Values that are constant over the complete data space can be optionally
+        ignored with the `exclude_const` argument set to True.
+
+        Parameters
+        ----------
+        exclude_const : bool
+            Exclude entries that are shared by all jobs
+            that are part of the index (Default value = False).
+        index :
+            A document index.
+
+        Yields
+        ------
+        tuple
+            Pairs of state point keys and mappings of values to a set of all
+            corresponding job ids (Default value = None).
 
         """
         from .schema import _build_job_statepoint_index
