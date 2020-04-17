@@ -1,6 +1,8 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Linked view classes."""
+
 import os
 import errno
 import logging
@@ -11,7 +13,37 @@ logger = logging.getLogger(__name__)
 
 
 def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None):
-    """Create or update a persistent linked view of the selected data space."""
+    """Create or update a persistent linked view of the selected data space.
+
+    Parameters
+    ----------
+    project : signac.Project
+        Project handle.
+    prefix : str
+        (Default value = None).
+    job_ids :
+        Identifier of the job (Default value = None).
+    index :
+        A document index (Default value = None).
+    path : str
+        (Default value = None).
+
+    Raises
+    ------
+    OSError
+        When linked views are not created on Windows, because
+        symbolic links are not supported by the platform.
+    ValueError
+        When insufficient index for selected data space is provided.
+    RuntimeError
+        When state points contain [os.sep, " ", "*"].
+
+    Returns
+    -------
+    dict
+        Persistent linked view of selected data space.
+
+    """
     from .import_export import _make_path_function
     from .import_export import _check_directory_structure_validity
 
@@ -78,7 +110,18 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
 
 def _update_view(prefix, links, leaf='job'):
-    "Update an existing linked view hierarchy in prefix."
+    """Update an existing linked view hierarchy in prefix.
+
+    Parameters
+    ----------
+    prefix : str
+        (Default value = None).
+    links : dict
+        Linked view.
+    leaf : str
+        (Default value = 'job').
+
+    """
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
     if num_ops:
@@ -105,7 +148,22 @@ def _update_view(prefix, links, leaf='job'):
 
 
 def _analyze_view(prefix, links, leaf='job'):
-    "Analyze an existing view to prepare for update."
+    """Analyze an existing view to prepare for update.
+
+    Parameters
+    ----------
+    prefix : str
+         (Default value = None).
+    links : dict
+        Linked view.
+    leaf : str
+         (Default value = 'job').
+
+    Returns
+    -------
+    tuple
+
+    """
     logger.info("Analyzing view prefix '{}'...".format(prefix))
     existing_paths = {os.path.join(p, leaf) for p in _find_all_links(prefix, leaf)}
     existing_tree = _build_tree(existing_paths)
@@ -126,7 +184,14 @@ def _analyze_view(prefix, links, leaf='job'):
 
 
 def _make_link(src, dst):
-    "Create a symbolic link and all directories leading to it."
+    """Create a symbolic link and all directories leading to it.
+
+    Parameters
+    ----------
+    src : str
+    dst : str
+
+    """
     try:
         os.makedirs(os.path.dirname(dst))
     # except FileExistsError:
@@ -143,7 +208,21 @@ def _make_link(src, dst):
 
 
 def _find_all_links(root, leaf='job'):
-    "Find all symbolic links under root."
+    """Find all symbolic links under root.
+
+    Parameters
+    ----------
+    root : str
+        Project root directory.
+    leaf : str
+        (Default value = 'job')
+
+    Yield
+    -----
+    str
+        Relative path of leaf to root.
+
+    """
     for dirpath, dirnames, filenames in os.walk(root):
         for dirname in dirnames:
             if dirname == leaf:
@@ -156,14 +235,25 @@ def _find_all_links(root, leaf='job'):
 
 
 class _Node(object):
-    "Generic graph-node class."
-
+    """Generic graph-node class."""
     def __init__(self, name=None, value=None):
         self.name = name
         self.value = value
         self.children = dict()
 
     def get_child(self, name):
+        """Get child graph-node for the name passed.
+
+        Parameters
+        ----------
+        name : str
+
+        Returns
+        -------
+        signac.contrib.linked_view._Node
+            Child of name passed in the graph.
+
+        """
         return self.children.setdefault(name, type(self)(name))
 
     def __str__(self):
@@ -173,7 +263,18 @@ class _Node(object):
 
 
 def _build_tree(paths):
-    "Build a graph structure for paths."
+    """Build a graph structure for paths.
+
+    Parameters
+    ----------
+    paths : str
+
+    Returns
+    -------
+    signac.contrib.linked_view._Node
+        Graph structure for path.
+
+    """
     root = _Node()
     for path in paths:
         node = root
@@ -183,7 +284,20 @@ def _build_tree(paths):
 
 
 def _get_branches(root, branch=None):
-    "Get all branches from the root node."
+    """Get all branches from the root node.
+
+    Parameters
+    ----------
+    root : signac.contrib.linked_view._Node
+    branch : list
+         (Default value = None)
+
+    Yield
+    -----
+    list
+        Branches for the root node.
+
+    """
     if branch is None:
         branch = list()
     else:
@@ -197,7 +311,14 @@ def _get_branches(root, branch=None):
 
 
 def _color_path(root, path):
-    "Color the path from root by setting value to True."
+    """Color the path from root by setting value to True.
+
+    Parameters
+    ----------
+    root : signac.contrib.linked_view._Node
+    path : str
+
+    """
     root.value = True
     for name in path:
         root = root.get_child(name)
@@ -205,7 +326,20 @@ def _color_path(root, path):
 
 
 def _find_dead_branches(root, branch=None):
-    "Find all branches considered dead (not-colored)."
+    """Find all branches considered dead (not-colored).
+
+    Parameters
+    ----------
+    root : signac.contrib.linked_view._Node
+    branch : list
+        (Default value = None)
+
+    Yields
+    ------
+    list
+        Branches that are considered as dead.
+
+    """
     if branch is None:
         branch = list()
     else:

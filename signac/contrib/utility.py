@@ -1,6 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Utilities for signac."""
+
 import logging
 import sys
 import os
@@ -30,6 +32,18 @@ def query_yes_no(question, default="yes"):
     an answer is required of the user).
 
     The "answer" return value is one of "yes" or "no".
+
+    Parameters
+    ----------
+    question : str
+        Question asked.
+    default : str
+         (Default value = "yes").
+
+    Returns
+    -------
+    bool
+
     """
     valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
     if default is None:
@@ -54,6 +68,19 @@ def query_yes_no(question, default="yes"):
 
 
 def prompt_password(prompt='Password: '):
+    """Prompt password for user.
+
+    Parameters
+    ----------
+    prompt : str
+         (Default value = 'Password: ')
+
+    Returns
+    -------
+    str
+        Response password.
+
+    """
     return getpass.getpass(prompt)
 
 
@@ -65,9 +92,13 @@ def add_verbosity_argument(parser, default=0):
       Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
       increase the level of verbosity.
 
-    Args:
-      parser: A argparse object.
-      default: The default level, defaults to 0.
+    Parameters
+    ----------
+    parser :
+        A argparse object.
+    default : int
+        The default level, defaults to 0.
+
     """
     parser.add_argument(
         '-v', '--verbosity',
@@ -87,9 +118,13 @@ def add_verbosity_action_argument(parser, default=0):
       Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
       increase the level of verbosity.
 
-    Args:
-      parser: A argparse object.
-      default: The default level, defaults to 0.
+    Parameters
+    ----------
+    parser :
+        A argparse object.
+    default :
+        The default level, defaults to 0.
+
     """
     parser.add_argument(
         '-v',
@@ -105,9 +140,15 @@ def add_verbosity_action_argument(parser, default=0):
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
-    Args:
-      verbosity: The verbosity level as integer.
-      default: The default verbosity level, defaults to logging.ERROR.
+    Parameters
+    ----------
+    verbosity :
+        The verbosity level as integer.
+    default :
+        The default verbosity level, defaults to logging.ERROR.
+    increment :
+         (Default value = 10)
+
     """
     if default is None:
         default = logging.ERROR
@@ -117,7 +158,6 @@ def set_verbosity_level(verbosity, default=None, increment=10):
 
 # this class is deprecated
 class VerbosityAction(argparse.Action):
-
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="This class is obsolete")
     def __call__(self, parser, args, values, option_string=None):
@@ -133,6 +173,7 @@ class VerbosityAction(argparse.Action):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
+    """ """
 
     def __call__(self, parser, args, values, option_string=None):
         super(VerbosityLoggingConfigAction, self).__call__(
@@ -144,6 +185,7 @@ class VerbosityLoggingConfigAction(VerbosityAction):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The EmptyIsTrue class is obsolete.")
 class EmptyIsTrue(argparse.Action):
+    """ """
 
     def __call__(self, parser, namespace, values, option_string=None):
         if values is None:
@@ -154,14 +196,51 @@ class EmptyIsTrue(argparse.Action):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The SmartFormatter class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
+    """ """
 
     def _split_lines(self, text, width):
+        """
+
+        Parameters
+        ----------
+        text :
+
+        width :
+
+
+        Returns
+        -------
+
+        """
         if text.startswith('R|'):
             return text[2:].splitlines()
         return argparse.HelpFormatter._split_lines(self, text, width)
 
 
 def walkdepth(path, depth=0):
+    """
+
+    Parameters
+    ----------
+    path :str
+        Directory passed to walk.
+
+    depth : int
+         (Default value = 0)
+
+    Yields
+    ------
+    str
+
+    Raises
+    ------
+    ValueError
+        When the value of depth is negetive.
+
+    OSError
+        When path is not a directory.
+
+    """
     if depth == 0:
         for p in os.walk(path):
             yield p
@@ -180,6 +259,14 @@ def walkdepth(path, depth=0):
 
 
 def _mkdir_p(path):
+    """
+
+    Parameters
+    ----------
+    path : str
+
+
+    """
     try:
         os.makedirs(path)
     except OSError as error:
@@ -188,6 +275,23 @@ def _mkdir_p(path):
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):
+    """
+
+    Parameters
+    ----------
+    iterable :
+
+    num_chunks :
+        (Default value = 10)
+    write :
+        (Default value = None)
+    desc :
+        (Default value = 'Progress: ')
+
+    Returns
+    -------
+
+    """
     if write is None:
         write = print
     assert num_chunks > 0
@@ -217,6 +321,17 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
 
 @contextmanager
 def _extract(filename):
+    """
+
+    Parameters
+    ----------
+    filename :
+
+
+    Returns
+    -------
+
+    """
     with TemporaryDirectory() as tmpdir:
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename) as file:
@@ -233,9 +348,18 @@ def _extract(filename):
 def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
     """Convert dotted keys in the state point dict to a nested dict.
 
-    :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
-    :param delimiter_nested: A string delimiter between keys, defaults to '.'.
-    :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    Parameters
+    ----------
+    dotted_dict : dict
+        A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
+    delimiter_nested : str
+        A string delimiter between keys, defaults to '.'.
+
+    Returns
+    -------
+    dict
+        A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+
     """
     nested_dict = dict()
     for key, value in dotted_dict.items():
@@ -251,11 +375,23 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
 
 
 class _hashable_dict(dict):
+    """ """
     def __hash__(self):
         return hash(tuple(sorted(self.items())))
 
 
 def _to_hashable(l):
+    """
+
+    Parameters
+    ----------
+    l :
+
+
+    Returns
+    -------
+
+    """
     if type(l) is list:
         return tuple(_to_hashable(_) for _ in l)
     elif type(l) is dict:
@@ -265,6 +401,18 @@ def _to_hashable(l):
 
 
 def _encode_tree(x):
+    """Encodes if type of x is list.
+
+    Parameters
+    ----------
+    x :
+        type to encode.
+
+    Returns
+    -------
+
+
+    """
     if type(x) is list:
         return _to_hashable(x)
     else:
@@ -274,9 +422,20 @@ def _encode_tree(x):
 def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     """Generate tuples of key in dotted string format and value from nested dict.
 
-    :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
-    :param encode: By default, values are encoded to be hashable. Use ``None`` to skip encoding.
-    :yields: Tuples of dotted key and value e.g. ('a.b', 'c').
+    Parameters
+    ----------
+    t : dict
+        A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    encode :
+        By default, values are encoded to be hashable. Use ``None`` to skip encoding.
+    key : str
+         (Default value = None).
+
+    Yields
+    ------
+    tuple
+        Tupples of dotted key and values e.g. ('a.b', 'c')
+
     """
     if encode is not None:
         t = encode(t)
