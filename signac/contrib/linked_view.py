@@ -19,7 +19,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     ----------
     project : signac.Project
         Project handle.
-    prefix : str
+    prefix : False or str
         (Default value = None).
     job_ids :
         Identifier of the job (Default value = None).
@@ -189,7 +189,10 @@ def _make_link(src, dst):
     Parameters
     ----------
     src : str
+        Name of directory/ file to create a symbolic link.
+
     dst : str
+        Destination symbolic link directory/ file name.
 
     """
     try:
@@ -220,7 +223,7 @@ def _find_all_links(root, leaf='job'):
     Yield
     -----
     str
-        Relative path of leaf to root.
+        leaf relative path to root.
 
     """
     for dirpath, dirnames, filenames in os.walk(root):
@@ -247,6 +250,7 @@ class _Node(object):
         Parameters
         ----------
         name : str
+            Name of graph-node to get child graph-node.
 
         Returns
         -------
@@ -267,7 +271,8 @@ def _build_tree(paths):
 
     Parameters
     ----------
-    paths : str
+    paths : list
+        list of sting.
 
     Returns
     -------
@@ -289,8 +294,9 @@ def _get_branches(root, branch=None):
     Parameters
     ----------
     root : signac.contrib.linked_view._Node
+        root node.
     branch : list
-         (Default value = None)
+        (Default value = None)
 
     Yield
     -----
@@ -316,7 +322,9 @@ def _color_path(root, path):
     Parameters
     ----------
     root : signac.contrib.linked_view._Node
-    path : str
+        root node.
+    path : list
+        name of directory/ file to color(set value to True).
 
     """
     root.value = True
@@ -331,13 +339,14 @@ def _find_dead_branches(root, branch=None):
     Parameters
     ----------
     root : signac.contrib.linked_view._Node
+        root node.
     branch : list
         (Default value = None)
 
     Yields
     ------
     list
-        Branches that are considered as dead.
+        Branches that are considered as dead(not-colored).
 
     """
     if branch is None:
