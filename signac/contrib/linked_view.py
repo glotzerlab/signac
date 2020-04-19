@@ -21,8 +21,9 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         Project handle.
     prefix : False or str
         (Default value = None).
-    job_ids :
-        Identifier of the job (Default value = None).
+    job_ids : iterable
+        If None (the default), create the view for the complete data space,
+        otherwise only for this iterable of job ids.
     index :
         A document index (Default value = None).
     path : str

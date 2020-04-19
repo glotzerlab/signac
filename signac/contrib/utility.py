@@ -36,13 +36,18 @@ def query_yes_no(question, default="yes"):
     Parameters
     ----------
     question : str
-        Question asked.
+        Question presented to the user.
     default : str
-         (Default value = "yes").
+        Presumed answer if the user just hits <Enter> (Default value = "yes").
 
     Returns
     -------
     bool
+
+    Raises
+    ------
+    ValueError
+        When default is set to invalid answer.
 
     """
     valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
@@ -73,12 +78,12 @@ def prompt_password(prompt='Password: '):
     Parameters
     ----------
     prompt : str
-         (Default value = 'Password: ')
+        String to prompt (Default value = 'Password: ').
 
     Returns
     -------
     str
-        Response password.
+        Password input by the user.
 
     """
     return getpass.getpass(prompt)
@@ -87,10 +92,11 @@ def prompt_password(prompt='Password: '):
 def add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
-    Note:
-      The argument is '-v' or '--verbosity'.
-      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-      increase the level of verbosity.
+    Notes
+    -----
+    The argument is '-v' or '--verbosity'.
+    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
+    increase the level of verbosity.
 
     Parameters
     ----------
@@ -113,10 +119,11 @@ def add_verbosity_argument(parser, default=0):
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
-    Note:
-      The argument is '-v'.
-      Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-      increase the level of verbosity.
+    Notes
+    -----
+    The argument is '-v'.
+    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
+    increase the level of verbosity.
 
     Parameters
     ----------
@@ -147,7 +154,7 @@ def set_verbosity_level(verbosity, default=None, increment=10):
     default :
         The default verbosity level, defaults to logging.ERROR.
     increment :
-         (Default value = 10)
+         (Default value = 10).
 
     """
     if default is None:
@@ -173,8 +180,6 @@ class VerbosityAction(argparse.Action):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
-    """ """
-
     def __call__(self, parser, args, values, option_string=None):
         super(VerbosityLoggingConfigAction, self).__call__(
             parser, args, values, option_string)
@@ -185,8 +190,6 @@ class VerbosityLoggingConfigAction(VerbosityAction):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The EmptyIsTrue class is obsolete.")
 class EmptyIsTrue(argparse.Action):
-    """ """
-
     def __call__(self, parser, namespace, values, option_string=None):
         if values is None:
             values = True
@@ -196,49 +199,38 @@ class EmptyIsTrue(argparse.Action):
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The SmartFormatter class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
-    """ """
 
     def _split_lines(self, text, width):
-        """
 
-        Parameters
-        ----------
-        text :
-
-        width :
-
-
-        Returns
-        -------
-
-        """
         if text.startswith('R|'):
             return text[2:].splitlines()
         return argparse.HelpFormatter._split_lines(self, text, width)
 
 
 def walkdepth(path, depth=0):
-    """
+    """Transverse the directory starting from path.
 
     Parameters
     ----------
     path :str
-        Directory passed to walk.
+        Directory passed to walk(transverse from).
 
     depth : int
-         (Default value = 0)
+        (Default value = 0)
 
     Yields
     ------
     str
+        When depth==0.
+    tuple
+        When depth>0.
 
     Raises
     ------
     ValueError
         When the value of depth is negetive.
-
     OSError
-        When path is not a directory.
+        When path is not name of a directory.
 
     """
     if depth == 0:
@@ -259,12 +251,12 @@ def walkdepth(path, depth=0):
 
 
 def _mkdir_p(path):
-    """
+    """Make directory with name path.
 
     Parameters
     ----------
     path : str
-
+        New directory name.
 
     """
     try:
@@ -275,11 +267,11 @@ def _mkdir_p(path):
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):
-    """
+    """Split the progress and prints it.
 
     Parameters
     ----------
-    iterable :
+    iterable : list
 
     num_chunks :
         (Default value = 10)
@@ -288,8 +280,9 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
     desc :
         (Default value = 'Progress: ')
 
-    Returns
-    -------
+    Yields
+    ------
+    iterable
 
     """
     if write is None:
@@ -325,11 +318,18 @@ def _extract(filename):
 
     Parameters
     ----------
-    filename :
+    filename : str
+        Name of temperory to be created.
 
+    Yields
+    ------
+    TemporaryDirectory
+        Temperory directory created.
 
-    Returns
-    -------
+    Raises
+    ------
+    RuntimeError
+        filename is of unknown type.
 
     """
     with TemporaryDirectory() as tmpdir:
@@ -375,21 +375,21 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
 
 
 class _hashable_dict(dict):
-    """ """
     def __hash__(self):
         return hash(tuple(sorted(self.items())))
 
 
 def _to_hashable(l):
-    """
+    """Create a hash of passed type.
 
     Parameters
     ----------
     l :
-
+        Create hash for.
 
     Returns
     -------
+
 
     """
     if type(l) is list:
@@ -411,7 +411,6 @@ def _encode_tree(x):
     Returns
     -------
 
-
     """
     if type(x) is list:
         return _to_hashable(x)
@@ -429,7 +428,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     encode :
         By default, values are encoded to be hashable. Use ``None`` to skip encoding.
     key : str
-         (Default value = None).
+        (Default value = None).
 
     Yields
     ------

@@ -1,6 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Utility classes for signac version."""
+
 import re
 import subprocess
 from deprecation import deprecated
@@ -35,6 +37,7 @@ class Version(dict):
                                       prerelease=prerelease)
 
     def to_tuple(self):
+        """Return version details as tuple."""
         return self['major'], self['minor'], self['change'],\
             self['prerelease'], self['postrelease']
 
