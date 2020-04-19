@@ -164,10 +164,10 @@ def set_verbosity_level(verbosity, default=None, increment=10):
 
 
 # this class is deprecated
-class VerbosityAction(argparse.Action):
+class VerbosityAction(argparse.Action): # noqa: D101, E261
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="This class is obsolete")
-    def __call__(self, parser, args, values, option_string=None):
+    def __call__(self, parser, args, values, option_string=None): # noqa: D102, E261
         if values is None:
             values = '1'
         try:
@@ -179,8 +179,8 @@ class VerbosityAction(argparse.Action):
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The VerbosityLoggingConfigAction class is obsolete.")
-class VerbosityLoggingConfigAction(VerbosityAction):
-    def __call__(self, parser, args, values, option_string=None):
+class VerbosityLoggingConfigAction(VerbosityAction): # noqa: D101, E261
+    def __call__(self, parser, args, values, option_string=None): # noqa:D102, E261
         super(VerbosityLoggingConfigAction, self).__call__(
             parser, args, values, option_string)
         v_level = getattr(args, self.dest)
@@ -189,8 +189,8 @@ class VerbosityLoggingConfigAction(VerbosityAction):
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The EmptyIsTrue class is obsolete.")
-class EmptyIsTrue(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+class EmptyIsTrue(argparse.Action): # noqa: D101, E261
+    def __call__(self, parser, namespace, values, option_string=None): # noqa: D102, E261
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
@@ -198,7 +198,7 @@ class EmptyIsTrue(argparse.Action):
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The SmartFormatter class is obsolete.")
-class SmartFormatter(argparse.HelpFormatter):
+class SmartFormatter(argparse.HelpFormatter): # noqa: D101, E261
 
     def _split_lines(self, text, width):
 
@@ -251,7 +251,7 @@ def walkdepth(path, depth=0):
 
 
 def _mkdir_p(path):
-    """Make directory with name path.
+    """Make a new directory.
 
     Parameters
     ----------
@@ -272,17 +272,22 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
     Parameters
     ----------
     iterable : list
-
-    num_chunks :
+        list of state points.
+    num_chunks : int
         (Default value = 10)
     write :
         (Default value = None)
-    desc :
+    desc : str
         (Default value = 'Progress: ')
 
     Yields
     ------
     iterable
+
+    Raises
+    ------
+    AssertionError
+        If num_chunks <= 0.
 
     """
     if write is None:
@@ -314,22 +319,22 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
 
 @contextmanager
 def _extract(filename):
-    """
+    """Extract zipfile and tarfile.
 
     Parameters
     ----------
     filename : str
-        Name of temperory to be created.
+        Name of zipfile/ tarfile to extract.
 
     Yields
     ------
-    TemporaryDirectory
-        Temperory directory created.
+    str
+        Path to the extraced directory.
 
     Raises
     ------
     RuntimeError
-        filename is of unknown type.
+        When name of file is neither zipfile or tarfile.
 
     """
     with TemporaryDirectory() as tmpdir:
@@ -389,7 +394,7 @@ def _to_hashable(l):
 
     Returns
     -------
-
+    Hash created for l.
 
     """
     if type(l) is list:
@@ -401,7 +406,7 @@ def _to_hashable(l):
 
 
 def _encode_tree(x):
-    """Encodes if type of x is list.
+    """Encode if type of x is list.
 
     Parameters
     ----------
@@ -410,6 +415,7 @@ def _encode_tree(x):
 
     Returns
     -------
+    Hash created for x
 
     """
     if type(x) is list:
