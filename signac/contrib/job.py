@@ -25,16 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
-    """Force the job's statepoint to reset.
+    """Force the job state point to reset.
 
-    Whenever the statepoint is changed. Resetting
-    a statepoint requires recomputing
+    Whenever the state point is changed. Resetting
+    a state point requires recomputing
     the hash and moving the folder.
 
     Parameters
     ----------
-    jobs : Job
-        list of jobs.
+    jobs : iteratables of Jobs
+        List of jobs(instance of `Job`).
 
     """
     def __init__(self, *jobs):
@@ -44,16 +44,16 @@ class _sp_save_hook(object):
         pass
 
     def save(self):
-        """Reset the statepoint for all the jobs."""
+        """Reset the state point for all the jobs."""
         for job in self.jobs:
             job._reset_sp()
 
 
 class Job(object):
-    """The job instance is a handle to the data of a unique statepoint.
+    """The job instance is a handle to the data of a unique state point.
 
     Application developers should usually not need to directly
-    instantiate this class, but use :meth:`~signac.Project.open_job`
+    instantiate this class, but use `signac.Project.open_job`
     instead.
 
     Parameters
@@ -62,7 +62,7 @@ class Job(object):
         Project handle.
 
     statepoint : dict
-        statepoint for the job.
+        State point for the job.
 
     _id : str
         A file-like object to write to.
@@ -71,8 +71,8 @@ class Job(object):
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
 
-    The job manifest, this means a human-readable dump of the job's\
-    statepoint is stored in each workspace directory.
+    The job manifest, this means a human-readable dump of the job's
+    state point is stored in each workspace directory.
     """
 
     FN_DOCUMENT = 'signac_job_document.json'
@@ -116,7 +116,7 @@ class Job(object):
 
     @property
     def id(self):
-        """Get Unique identifier for the job's statepoint.
+        """Get unique identifier for the job's state point.
 
         Returns
         -------
@@ -154,19 +154,21 @@ class Job(object):
 
     @property
     def ws(self):
-        """Alias for :attr:`Job.workspace`."""
+        """Alias for `Job.workspace`."""
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
         """Reset the state point of this job.
 
-        .. danger:: Use this function with caution! Resetting a job's state point
+        .. danger::
+
+            Use this function with caution! Resetting a job's state point
             may sometimes be necessary, but can possibly lead to incoherent
             data spaces.
 
         Parameters
         ----------
-        new_statepoint : mapping
+        new_statepoint : dict
             The job's new state point.
 
         """
@@ -208,7 +210,7 @@ class Job(object):
         Parameters
         ----------
         new_sp : dict
-            The job's new state point.(Default value = None)
+            The job's new state point (Default value = None).
 
         """
         if new_sp is None:
@@ -216,16 +218,18 @@ class Job(object):
         self.reset_statepoint(new_sp)
 
     def update_statepoint(self, update, overwrite=False):
-        """Update the statepoint of this job.
+        """Update the state point of this job.
 
-        .. warning:: While appending to a job's state point is generally safe,
+        .. warning::
+
+            While appending to a job's state point is generally safe,
             modifying existing parameters may lead to data
             inconsistency. Use the overwrite argument with caution!
 
         Parameters
         ----------
-        update : mapping
-            A mapping used for the statepoint update.
+        update : dict
+            A mapping used for the state point update.
         overwrite :
             Set to true, to ignore whether this update overwrites parameters,
             which are currently part of the job's state point.
@@ -254,11 +258,13 @@ class Job(object):
     def statepoint(self):
         """Get the job's state point as attribute dictionary.
 
-        .. warning:: The statepoint object behaves like a dictionary in most cases,
+        .. warning::
+
+            The state point object behaves like a dictionary in most cases,
             but because it persists changes to the filesystem, making a copy
             requires explicitly converting it to a dict. If you need a
             modifiable copy that will not modify the underlying JSON file,
-            you can access a dict copy of the statepoint by calling it, e.g.
+            you can access a dict copy of the state point by calling it, e.g.
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see : `signac.JSONDict`.
 
@@ -284,22 +290,23 @@ class Job(object):
 
     @property
     def sp(self):
-        """Alias for :attr:`Job.statepoint`."""
+        """Alias for `Job.statepoint`."""
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        """Alias for :attr:`Job.statepoint`."""
+        """Alias for `Job.statepoint`."""
         self.statepoint = new_sp
 
     @property
     def document(self):
         """Get document associated with this job.
 
-        .. warning:: If you need a deep copy that will not modify the underlying
+        .. warning::
+
+            If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see :attr:`Job.statepoint` or
-            `signac.JSONDict`.
+            For more information, see `Job.statepoint` or `signac.JSONDict`.
 
         Returns
         -------
@@ -326,19 +333,20 @@ class Job(object):
 
     @property
     def doc(self):
-        """Alias for :attr:`Job.document`.
+        """Alias for `Job.document`.
 
-        .. warning:: If you need a deep copy that will not modify the underlying
+        .. warning::
+
+            If you need a deep copy that will not modify the underlying
             persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see :attr:`Job.statepoint` or
-            `signac.JSONDict`.
+            For more information, see `Job.statepoint` or `signac.JSONDict`.
 
         """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
-        """Alias for :attr:`Job.document`."""
+        """Alias for `Job.document`."""
         self.document = new_doc
 
     @property
@@ -417,8 +425,8 @@ class Job(object):
 
         Parameters
         ----------
-        force :
-            (Default value = False)
+        force : bool
+            (Default value = False).
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -476,7 +484,7 @@ class Job(object):
         ----------
         force : bool
             Overwrite any existing state point's manifest
-            files, e.g., to repair them when they got corrupted. (Default value = False)
+            files, e.g., to repair them when they got corrupted (Default value = False).
 
         Returns
         -------
@@ -594,22 +602,22 @@ class Job(object):
 
         Parameters
         ----------
-        other : Job`
+        other : Job
             The other job to synchronize from.
         strategy :
             A synchronization strategy for file conflicts. If no strategy is provided, a
-            : `signac.errors.SyncConflict` exception will be raised upon conflict.
-            (Default value = None)
+            : `signac.errors.SyncConflict` exception will be raised upon conflict
+            (Default value = None).
         exclude : str
             An filename exclude pattern. All files matching this pattern will be
-            excluded from synchronization. (Default value = None)
+            excluded from synchronization (Default value = None).
         doc_sync :
             A synchronization strategy for document keys. If this argument is None, by default
             no keys will be synchronized upon conflict.
         dry_run :
             If True, do not actually perform the synchronization.
         kwargs :
-            Extra keyword arguments will be forward to the :py:func:`~.sync.sync_jobs`
+            Extra keyword arguments will be forward to the `sync.sync_jobs`
             function which actually excutes the synchronization operation.
         **kwargs :
 
@@ -634,7 +642,7 @@ class Job(object):
         Parameters
         ----------
         filename : str
-            The filename of the file.
+            The name of the file.
 
         Returns
         -------
@@ -650,7 +658,7 @@ class Job(object):
         Parameters
         ----------
         filename : str
-            The filename of the file.
+            The name of the file.
 
         Returns
         -------
