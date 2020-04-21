@@ -67,7 +67,7 @@ class JobSearchIndex(object):
 
     The JobSearchIndex allows to search for job_ids,
     that are part of an index, which match specific
-    statepoint filters or job document filters.
+    state point filters or job document filters.
 
     Parameters
     ----------
@@ -113,7 +113,7 @@ class JobSearchIndex(object):
         Parameters
         ----------
         filter : dict
-            A mapping of key-value pairs that all indexed job statepoints are
+            A mapping of key-value pairs that all indexed job state points are
             compared against (Default value = None).
         doc_filter : dict
             A mapping of key-value pairs that all indexed job documents are
@@ -178,7 +178,7 @@ class Project(object):
     "The project's datastore key."
 
     FN_STATEPOINTS = 'signac_statepoints.json'
-    "The default filename to read from and write statepoints to."
+    "The default filename to read from and write state points to."
 
     FN_CACHE = '.signac_sp_cache.json.gz'
     "The default filename for the state point cache file."
@@ -577,12 +577,12 @@ class Project(object):
         self.stores[self.KEY_DATA] = new_data
 
     def open_job(self, statepoint=None, id=None):
-        """Get a job handle associated with a statepoint.
+        """Get a job handle associated with a state point.
 
         This method returns the job instance associated with
-        the given statepoint or job id.
-        Opening a job by a valid statepoint never fails.
-        Opening a job by id requires a lookup of the statepoint
+        the given state point or job id.
+        Opening a job by a valid state point never fails.
+        Opening a job by id requires a lookup of the state point
         from the job id, which may fail if the job was not
         previously initialized.
 
@@ -609,7 +609,7 @@ class Project(object):
         """
         if (id is None) == (statepoint is None):
             raise ValueError(
-                "You need to either provide the statepoint or the id.")
+                "You need to either provide the state point or the id.")
         if id is None:
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
@@ -620,7 +620,7 @@ class Project(object):
             # optimal case
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
-            # worst case (no statepoint and cache miss)
+            # worst case (no state point and cache miss)
             if len(id) < 32:
                 job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
@@ -714,7 +714,7 @@ class Project(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use the detect_schema() function instead.")
     def build_job_statepoint_index(self, exclude_const=False, index=None):
-        """Build a statepoint index to identify jobs with specific parameters.
+        """Build a state point index to identify jobs with specific parameters.
 
         This method generates pairs of state point keys and mappings of
         values to a set of all corresponding job ids. The pairs are ordered
@@ -814,7 +814,7 @@ class Project(object):
         ----------
         filter : dict
             A mapping of key-value pairs that all
-            indexed job statepoints are compared against (Default value = None).
+            indexed job state points are compared against (Default value = None).
         doc_filter : dict
             A mapping of key-value pairs that all
             indexed job documents are compared against (Default value = None).
@@ -895,13 +895,13 @@ class Project(object):
 
         The optional filter arguments must be a Mapping of key-value pairs and
         JSON serializable. The `filter` argument is used to search against job
-        statepoints, whereas the `doc_filter` argument compares against job
+        state points, whereas the `doc_filter` argument compares against job
         document keys.
 
         Parameters
         ----------
         filter : Mapping
-            A mapping of key-value pairs that all indexed job statepoints are
+            A mapping of key-value pairs that all indexed job state points are
             compared against (Default value = None).
         doc_filter : Mapping
             A mapping of key-value pairs that all indexed job documents are
@@ -914,7 +914,7 @@ class Project(object):
 
         Raises
         ------
-        TypeError:
+        TypeError
             If the filters are not JSON serializable.
         ValueError
             If the filters are invalid.
@@ -938,7 +938,7 @@ class Project(object):
         --------
         .. code-block:: python
 
-            # Group jobs by statepoint parameter 'a'.
+            # Group jobs by state point parameter 'a'.
             for key, group in project.groupby('a'):
                 print(key, list(group))
 
@@ -1006,7 +1006,7 @@ class Project(object):
         Parameters
         ----------
         key : str, iterable, or function
-            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, :attr:`Job.document`.
             (Default value = None).
         default :
@@ -1057,7 +1057,7 @@ class Project(object):
         """
         if fn is None:
             fn = self.fn(self.FN_STATEPOINTS)
-        # See comment in write statepoints.
+        # See comment in write state points.
         with open(fn, 'r') as file:
             return json.loads(file.read())
 
@@ -1166,7 +1166,7 @@ class Project(object):
         Parameters
         ----------
         jobid : str
-            A job id to get the statepoint for.
+            A job id to get the state point for.
         fn : str
             The filename of the file containing the state points, defaults
             to `signac.Project.FN_STATEPOINTS`.
@@ -1213,7 +1213,7 @@ class Project(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use open_job(id=jobid).statepoint() function instead.")
     def get_statepoint(self, jobid, fn=None):
-        """Get the statepoint associated with a job id.
+        """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
         the workspace or from a state points file.
@@ -1221,9 +1221,9 @@ class Project(object):
         Parameters
         ----------
         jobid : str
-            A job id to get the statepoint for.
+            A job id to get the state point for.
         fn : str
-            The filename of the file containing the statepoints, defaults
+            The filename of the file containing the state points, defaults
             to `signac.Project.FN_STATEPOINTS`.
 
         Returns
@@ -1335,7 +1335,7 @@ class Project(object):
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
                 details="Use job.update_statepoint() instead.")
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the statepoint of this job.
+        """Update the state point of this job.
 
         .. warning::
 
@@ -1627,7 +1627,7 @@ class Project(object):
         Parameters
         ----------
         fn_statepoints : str
-            The filename of the file containing the statepoints, defaults
+            The filename of the file containing the state points, defaults
             to `signac.Project.FN_STATEPOINTS`.
         index :
             A document index (Default value = None).
@@ -2215,7 +2215,7 @@ class JobsCursor(object):
     project : signac.Project
         Project handle.
     filter : dict
-        A mapping of key-value pairs that all indexed job statepoints are
+        A mapping of key-value pairs that all indexed job state points are
         compared against (Default value = None).
     doc_filter : dict
         A mapping of key-value pairs that all indexed job documents are
@@ -2437,7 +2437,7 @@ class JobsCursor(object):
         Parameters
         ----------
         key : str, iterable, or function
-            The statepoint grouping parameter(s) passed as a string, iterable of strings,
+            The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, :attr:`job.document`.
             (Default value = None).
         default :
