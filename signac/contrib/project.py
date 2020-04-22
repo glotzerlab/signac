@@ -93,7 +93,7 @@ class JobSearchIndex(object):
             Filter used for state point selection.
 
         Yields
-        -----
+        ------
         str
             Filtered state point.
 
