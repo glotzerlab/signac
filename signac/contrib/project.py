@@ -92,7 +92,7 @@ class JobSearchIndex(object):
         q : dict
             Filter used for state point selection.
 
-        Yield
+        Yields
         -----
         str
             Filtered state point.
@@ -285,7 +285,7 @@ class Project(object):
 
         Returns
         -------
-        str :
+        str
             Path of workspace directory.
 
         """
@@ -300,7 +300,7 @@ class Project(object):
 
         Returns
         -------
-        str :
+        str
             Path of project directory.
 
         """
