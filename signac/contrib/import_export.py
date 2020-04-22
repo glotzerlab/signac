@@ -235,7 +235,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
     :param path:
         The path (function) used to structure the exported data space.
     :param copytree:
-        The function used for the actualy copying of directory tree
+        The function used for copying of directory tree
         structures. Defaults to :func:`shutil.copytree`.
         Can only be used when the target is a directory.
     :returns:
