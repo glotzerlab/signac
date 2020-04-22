@@ -1431,7 +1431,7 @@ class Project(object):
         :class:`~signac.errors.FileSyncConflict`
             If there are differing files that cannot be resolved with the given strategy
             or if no strategy is provided.
-        :class:`~signac.errors.SyncSchemaConflict`
+        :class:`~signac.errors.SchemaSyncConflict`
             In case that the check_schema argument is True and the detected state point
             schema of this and the other project differ.
 
