@@ -10,7 +10,6 @@ from .core.jsondict import BufferedFileError
 from .common.errors import ConfigError
 from .common.errors import AuthenticationError
 from .common.errors import ExportError
-from .common.errors import FileNotFoundError
 from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
@@ -67,7 +66,6 @@ __all__ = [
     'ConfigError',
     'AuthenticationError',
     'ExportError',
-    'FileNotFoundError',
     'FetchError',
     'DestinationExistsError',
     'JobsCorruptedError',

@@ -19,6 +19,7 @@ from tempfile import TemporaryDirectory
 from packaging import version
 from contextlib import redirect_stderr, contextmanager
 from time import time
+from conftest import deprecated_in_version
 
 
 import signac
@@ -929,6 +930,10 @@ class TestProject(TestProjectBase):
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
 
+    def test_access_module(self):
+        with deprecated_in_version('1.5'):
+            self.project.create_access_module()
+
 
 class TestProjectExportImport(TestProjectBase):
 
@@ -1506,6 +1511,15 @@ class TestProjectRepresentation(TestProjectBase):
                                 if use_pandas and not PANDAS:
                                     raise pytest.skip('requires use_pandas')
                                 self.project.find_jobs(filter_)._repr_html_()
+
+        with subtests.test(of='Schema'):
+            schema = self.project.detect_schema()
+            with subtests.test(type='str'):
+                str(schema)
+            with subtests.test(type='repr'):
+                repr(schema)
+            with subtests.test(type='html'):
+                schema._repr_html_()
 
     def test_repr_no_jobs(self, subtests):
         self.call_repr_methods(subtests)
