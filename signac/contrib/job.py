@@ -1,7 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan.
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Job class defiend here."""
+"""Job class defined here."""
 
 import os
 import errno
@@ -25,15 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
-    """Force the job state point to reset.
+    """Hook to handle job migration when statepoints are changed.
 
-    Whenever the state point is changed. Resetting
-    a state point requires recomputing
-    the hash and moving the folder.
+    When a job's state point is changed, in addition
+    to the contents of the file being modified this hook
+    calls `Job._reset_sp` to rehash the state
+    point, compute a new job id, and move the folder.
 
     Parameters
     ----------
-    jobs : iteratables of Jobs
+    jobs : iterable of `Jobs`
         List of jobs(instance of `Job`).
 
     """
@@ -116,7 +117,7 @@ class Job(object):
 
     @property
     def id(self):
-        """Get unique identifier for the job's state point.
+        """Get the unique identifier for the job's state point.
 
         Returns
         -------
@@ -256,7 +257,7 @@ class Job(object):
 
     @property
     def statepoint(self):
-        """Get the job's state point as attribute dictionary.
+        """Get the job's state point.
 
         .. warning::
 
@@ -278,12 +279,12 @@ class Job(object):
 
     @statepoint.setter
     def statepoint(self, new_sp):
-        """Assign new state point to this Job.
+        """Assign a new state point to this job.
 
         Parameters
         ----------
         new_sp : dict
-            new state point to be assigned.
+            The new state point to be assigned.
 
         """
         self._reset_sp(new_sp)
@@ -351,10 +352,10 @@ class Job(object):
 
     @property
     def stores(self):
-        """Get HDF5-stores associated with this job.
+        """Get HDF5 stores associated with this job.
 
         Use this property to access an HDF5 file within the job's workspace
-        directory using the : `signac.H5Store` dict-like interface.
+        directory using the `signac.H5Store` dict-like interface.
 
         This is an example for accessing an HDF5 file called 'my_data.h5' within
         the job's workspace:
@@ -419,13 +420,18 @@ class Job(object):
         self.stores[self.KEY_DATA] = new_data
 
     def _init(self, force=False):
-        """Is called by init() function.
+        """Contains all logic for job initialization.
 
-        To initialize the job's workspace directory.
+        This method is called by :meth:`~.init` and is responsible
+        for actually creating the job workspace directory and
+        writing out the statepoint file.
 
         Parameters
         ----------
         force : bool
+            If ``True``, write the job manifest even if it
+            already exists. If ``False``, this method will
+            raise an Exception of the manifest exists
             (Default value = False).
 
         """
@@ -461,7 +467,7 @@ class Job(object):
             self._check_manifest()
 
     def _check_manifest(self):
-        """Check whether the manifest file, if it exists, is correct."""
+        """Check whether the manifest file is correct (if it exists)."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, 'rb') as file:
@@ -484,7 +490,7 @@ class Job(object):
         ----------
         force : bool
             Overwrite any existing state point's manifest
-            files, e.g., to repair them when they got corrupted (Default value = False).
+            files, e.g., to repair them if they got corrupted (Default value = False).
 
         Returns
         -------
@@ -671,7 +677,7 @@ class Job(object):
     def open(self):
         """Enter the job's workspace directory.
 
-        You can use the : `Job` class as context manager:
+        You can use the `Job` class as context manager:
 
         .. code-block:: python
 
