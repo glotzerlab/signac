@@ -136,6 +136,12 @@ class ProjectSchema(object):
     def __repr__(self):
         return "{}(<len={}>)".format(type(self).__name__, len(self))
 
+    def _repr_html_(self):
+        import html
+        output = "<strong>" + html.escape(repr(self)) + "</strong>"
+        output += "<pre>" + str(self) + "</pre>"
+        return output
+
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
             return key_or_keys in self._schema
