@@ -29,7 +29,7 @@ class _sp_save_hook(object):
 
     When a job's state point is changed, in addition
     to the contents of the file being modified this hook
-    calls `Job._reset_sp` to rehash the state
+    calls :meth:`~Job._reset_sp` to rehash the state
     point, compute a new job id, and move the folder.
 
     Parameters
@@ -54,12 +54,12 @@ class Job(object):
     """The job instance is a handle to the data of a unique state point.
 
     Application developers should usually not need to directly
-    instantiate this class, but use `signac.Project.open_job`
+    instantiate this class, but use :meth:`~signac.Project.open_job`
     instead.
 
     Parameters
     ----------
-    project : signac.Project
+    project : :class:`~signac.Project`
         Project handle.
 
     statepoint : dict
@@ -155,7 +155,7 @@ class Job(object):
 
     @property
     def ws(self):
-        """Alias for `Job.workspace`."""
+        """Alias for :meth:`~Job.workspace`."""
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
@@ -267,7 +267,7 @@ class Job(object):
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the state point by calling it, e.g.
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
-            For more information, see : `signac.JSONDict`.
+            For more information, see : :class:`~signac.JSONDict`.
 
         Returns
         -------
@@ -291,12 +291,12 @@ class Job(object):
 
     @property
     def sp(self):
-        """Alias for `Job.statepoint`."""
+        """Alias for :attr:`~Job.statepoint`."""
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
-        """Alias for `Job.statepoint`."""
+        """Alias for :attr:`~Job.statepoint`."""
         self.statepoint = new_sp
 
     @property
@@ -306,12 +306,12 @@ class Job(object):
         .. warning::
 
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see `Job.statepoint` or `signac.JSONDict`.
+            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
+            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
 
         Returns
         -------
-        signac.JSONDict
+        :class:`~signac.JSONDict`
             The job document handle.
 
         """
@@ -326,7 +326,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_doc : signac.JSONDict
+        new_doc : :class:`~signac.JSONDict`
             The job document handle.
 
         """
@@ -334,20 +334,20 @@ class Job(object):
 
     @property
     def doc(self):
-        """Alias for `Job.document`.
+        """Alias for :attr:`~Job.document`.
 
         .. warning::
 
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use `job.document()` instead of `job.doc`.
-            For more information, see `Job.statepoint` or `signac.JSONDict`.
+            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
+            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
 
         """
         return self.document
 
     @doc.setter
     def doc(self, new_doc):
-        """Alias for `Job.document`."""
+        """Alias for :attr:`~Job.document`."""
         self.document = new_doc
 
     @property
@@ -355,7 +355,7 @@ class Job(object):
         """Get HDF5 stores associated with this job.
 
         Use this property to access an HDF5 file within the job's workspace
-        directory using the `signac.H5Store` dict-like interface.
+        directory using the :class:`~signac.H5Store` dict-like interface.
 
         This is an example for accessing an HDF5 file called 'my_data.h5' within
         the job's workspace:
@@ -370,7 +370,7 @@ class Job(object):
 
             H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
 
-        Both the `job.stores` and the `H5Store` itself support attribute
+        Both the :attr:`~job.stores` and the :class:`~signac.H5Store` itself support attribute
         access. The above example could therefore also be expressed as:
 
         .. code-block:: python
@@ -379,7 +379,7 @@ class Job(object):
 
         Returns
         -------
-        signac.H5StoreManager
+        :class:`~signac.H5StoreManager`
             The HDF5-Store manager for this job.
 
         """
@@ -401,7 +401,7 @@ class Job(object):
 
         Returns
         -------
-        signac.H5Store
+        :class:`~signac.H5Store`
             An HDF5-backed datastore.
 
         """
@@ -413,7 +413,7 @@ class Job(object):
 
         Parameters
         ----------
-        new_data : signac.H5Store
+        new_data : :class:`~signac.H5Store`
             An HDF5-backed datastore.
 
         """
@@ -567,7 +567,7 @@ class Job(object):
 
         Parameters
         ----------
-        project : signac.Project
+        project : :class:`~signac.Project`
             The project to move this job to.
 
         """
@@ -601,7 +601,7 @@ class Job(object):
 
         A file conflict can be resolved by providing a 'FileSync' *strategy* or by
         *excluding* files from the synchronization. An unresolvable conflict is indicated with
-        the raise of a `signac.errors.FileSyncConflict` exception.
+        the raise of a :class:`~signac.errors.FileSyncConflict` exception.
 
         A document synchronization conflict can be resolved by providing a doc_sync function
         that takes the source and the destination document as first and second argument.
@@ -612,7 +612,7 @@ class Job(object):
             The other job to synchronize from.
         strategy :
             A synchronization strategy for file conflicts. If no strategy is provided, a
-            : `signac.errors.SyncConflict` exception will be raised upon conflict
+            :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
             (Default value = None).
         exclude : str
             An filename exclude pattern. All files matching this pattern will be
@@ -623,7 +623,7 @@ class Job(object):
         dry_run :
             If True, do not actually perform the synchronization.
         kwargs :
-            Extra keyword arguments will be forward to the `sync.sync_jobs`
+            Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
             function which actually excutes the synchronization operation.
         **kwargs :
 
