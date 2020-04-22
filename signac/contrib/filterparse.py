@@ -13,8 +13,7 @@ def _print_err(msg=None):
     Parameters
     ----------
     msg : str
-        Error message to be printed.
-         (Default value = None)
+        Error message to be printed (Default value = None).
 
     """
     print(msg, file=sys.stderr)
@@ -45,12 +44,11 @@ def _read_index(project, fn_index=None):
 
     Parameters
     ----------
-    project : signac.Project
+    project : :class:`~signac.Project`
         Project handle.
 
     fn_index : str
-        File name of the index.
-         (Default value = None)
+        File name of the index (Default value = None).
 
     Returns
     -------
@@ -209,8 +207,7 @@ def parse_filter_arg(args, file=sys.stderr):
         Filter arguments to parse.
 
     file :
-        The file to write message.
-         (Default value = sys.stderr)
+        The file to write message (Default value = sys.stderr).
 
     Returns
     -------
