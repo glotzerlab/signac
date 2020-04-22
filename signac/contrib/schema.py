@@ -123,7 +123,7 @@ class ProjectSchema(object):
 
         Returns
         -------
-        ProjectSchema
+        :class:`~ProjectSchema`
             The detected project schema.
 
         """
@@ -296,7 +296,7 @@ class ProjectSchema(object):
         ignore_values : bool
             Ignore if the value (range) of a specific keys differ,
             only return missing keys (Default value = False).
-        other : ProjectSchema
+        other : :class:`~ProjectSchema`
             Other project schema.
 
         Returns
@@ -320,7 +320,7 @@ class ProjectSchema(object):
 
         Returns
         -------
-        ProjectSchema
+        :class:`~ProjectSchema`
             Schema of the project.
 
         """
