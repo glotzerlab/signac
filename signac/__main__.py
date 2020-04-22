@@ -96,7 +96,7 @@ Total transfer volume:       {stats.volume}
 
 
 SHELL_BANNER = """Python {python_version}
-signac {signac_version}
+signac {signac_version} 🎨
 
 Project:\t{project_id}{job_banner}
 Root:\t\t{root_path}
