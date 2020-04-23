@@ -836,9 +836,7 @@ class TestProject(TestProjectBase):
             assert len(list(g)) == 6
             for job in list(g):
                 assert job.sp['b'] == k
-        with pytest.raises(KeyError):
-            for k, g in self.project.groupby('d'):
-                pass
+        assert len(list(self.project.groupby('d'))) == 0
         for k, g in self.project.groupby('d', default=-1):
             assert k == -1
             assert len(list(g)) == len(self.project)
@@ -862,6 +860,17 @@ class TestProject(TestProjectBase):
             for job in list(g):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
+
+        self.project.open_job({'a': 20}).init()
+        for k, g in self.project.groupby('b'):
+            assert len(list(g)) == 6
+            for job in list(g):
+                assert job.sp['b'] == k
+        for k, g in self.project.groupby(('b', 'c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.sp['c'] == k[1]
 
     def test_jobs_groupbydoc(self):
         def get_doc(i):

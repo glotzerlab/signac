@@ -15,9 +15,11 @@ Added
 
  - Type annotations are validated during continuous integration (#313).
  - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
+ - Allow grouping by variables that are not present in all jobs in the project in ``JobsCursor.groupby`` (#321, #323).
 
 Fixed
 +++++
+
  - Fix the ``signac config verify`` command (previously broken) (#301, #302).
  - Warnings now appear when raised by the ``signac`` CLI (#317, #308).
 
