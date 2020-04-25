@@ -12,6 +12,8 @@
 # on files on the local file system instead of a MongoDB database.
 #
 # [1]: https://github.com/mongodb/mongo-python-driver
+"""Collection in signac defined here."""
+
 import argparse
 import io
 import logging
@@ -48,7 +50,17 @@ _TYPES = {
 MAX_DEFAULT_ID = int('F' * 32, 16)
 
 
-def _flatten(container):
+def _flatten(container): # noqa: D205, D212, D400, D415, D417, D414, E261
+    """
+
+    Parameters
+    ----------
+    container :
+
+    Yields
+    ------
+
+    """
     for i in container:
         if isinstance(i, (list, tuple)):
             for j in _flatten(i):
@@ -62,6 +74,21 @@ class _DictPlaceholder(object):
 
 
 def _valid_filter(f, top=True):
+    """Return True if the filter is valid.
+
+    Parameters
+    ----------
+    f :
+        The filter argument.
+    top : bool
+        (Default value = True)
+
+    Returns
+    -------
+    bool
+        True is filter is valid.
+
+    """
     if f is None:
         return True
     elif type(f) is dict:
@@ -90,6 +117,7 @@ class _TypedSetDefaultDict(dict):
     This is necessary, because the hash value of integers with float type is identical
     to the same integer as int type, which means they cannot be stored separately in a
     standard dict.
+
     """
 
     def keys(self):
@@ -120,12 +148,47 @@ class _TypedSetDefaultDict(dict):
                          _float(key) if type(key) is float else key)
 
     def get(self, key, default=None):
+        """Get the value for given key.
+
+        Parameters
+        ----------
+        key :
+            The key to get the value.
+        default :
+            (Default value = None)
+
+        Returns
+        -------
+        The value for given key.
+
+        """
         return dict.get(self,
                         _float(key) if type(key) is float else key, default)
 
 
 def _build_index(docs, key, primary_key):
-    "Build an index for 'key'; highly performance critical code path."
+    """Build an index for 'key'; highly performance critical code path.
+
+    Parameters
+    ----------
+    docs : iterable
+        iterable of doc to build index.
+    key : str
+        The key to build index.
+    primary_key : str
+        The primary key.
+
+    Returns
+    -------
+    :class:`~_TypedSetDefaultDict`
+        Index for key.
+
+    Raises
+    ------
+    InvalidKeyError
+        The document contains invalid keys.
+
+    """
     nodes = key.split('.')
     index = _TypedSetDefaultDict()
 
@@ -166,7 +229,28 @@ def _build_index(docs, key, primary_key):
     return index
 
 
-def _find_with_index_operator(index, op, argument):
+def _find_with_index_operator(index, op, argument): # noqa: D417, E261
+    """Find index for given operator and argument.
+
+    Parameters
+    ----------
+    index : dict
+
+    op : str
+        logical operator.
+    argument :
+
+    Returns
+    -------
+    set
+        Index for given operator and argument.
+
+    Raises
+    ------
+    ValueError
+        When unknown argument is given for $type operator (When the operator is $type).
+
+    """
     if op == '$in':
         def op(value, argument):
             return value in argument
@@ -218,6 +302,22 @@ def _find_with_index_operator(index, op, argument):
 
 
 def _check_logical_operator_argument(op, argument):
+    """Check arguments for the logical-operator.
+
+    Parameters
+    ----------
+    op : str
+        logical-operator.
+
+    argument : list
+        list of arguments for logical-operator.
+
+    Raises
+    ------
+    ValueError
+        The argument of logical-operator is not a list or is an empty list.
+
+    """
     if not isinstance(argument, list):
         raise ValueError("The argument of logical-operator '{}' must be a list!".format(op))
     if not len(argument):
@@ -225,7 +325,7 @@ def _check_logical_operator_argument(op, argument):
 
 
 class _CollectionSearchResults(object):
-    "Iterator for a Collection result vector."
+    """Iterator for a Collection result vector."""
 
     def __init__(self, collection, _ids):
         self._collection = collection
@@ -241,6 +341,7 @@ class _CollectionSearchResults(object):
 
 
 class JSONParseError(ValueError):
+    """Error class for JSON Parse."""
     pass
 
 
@@ -279,7 +380,7 @@ class Collection(object):
     By default a collection object will reside in memory. However, it is
     possible to manage a collection associated to a file on disk. To open
     a collection which is associated with a file on disk, use the
-    :py:meth:`Collection.open` class method:
+    :meth:`Collection.open` class method:
 
     .. code-block:: python
 
@@ -290,15 +391,26 @@ class Collection(object):
     The collection file is by default opened in `a+` mode, which means it can
     be read from and written to and will be created if it does not exist yet.
 
-    :param docs: Initialize the collection with these documents.
-    :param primary_key: The name of the key which serves as the primary
+    Parameters
+    ----------
+    docs : dict
+        Initialize the collection with these documents.
+    primary_key : str
+        The name of the key which serves as the primary
         index of the collection. Selecting documents by primary key has
         time complexity of O(N) in the worst case and O(1) on average.
         All documents must have a primary key value. The default primary
         key is `_id`.
-    :param compresslevel: The level of compression to use. Any positive value
+    compresslevel : int
+        The level of compression to use. Any positive value
         implies compression and is used by the underlying gzip implementation.
         Default value is 0 (no compression).
+
+    Raises
+    ------
+    ValueError
+        When first argument is a string.
+
     """
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
         if isinstance(docs, str):
@@ -330,6 +442,19 @@ class Collection(object):
                 type(self).__name__))
 
     def _next_default_id(self):
+        """Return next default id.
+
+        Returns
+        -------
+        _id : str
+            Next default id.
+
+        Raises
+        ------
+        RuntimeError
+            When unable to determine default id.
+
+        """
         if self._next_default_id_ is None:
             self._next_default_id_ = len(self)
         for i in range(len(self)+1):
@@ -341,6 +466,14 @@ class Collection(object):
         raise RuntimeError("Unable to determine default id.")
 
     def _remove_from_indexes(self, _id):
+        """Remove index corresponding to given id.
+
+        Parameters
+        ----------
+        _id : str
+            id to remove from the index.
+
+        """
         for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
@@ -352,6 +485,7 @@ class Collection(object):
                 del index[key]
 
     def _update_indexes(self):
+        """Update the indexes."""
         if self._dirty:
             for _id in self._dirty:
                 self._remove_from_indexes(_id)
@@ -363,6 +497,14 @@ class Collection(object):
             self._dirty.clear()
 
     def _build_index(self, key):
+        """Build index for given key.
+
+        Parameters
+        ----------
+        key : str
+            The key to build index for.
+
+        """
         logger.debug("Building index for key '{}'...".format(key))
         self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
         logger.debug("Built index for key '{}'.".format(key))
@@ -380,7 +522,7 @@ class Collection(object):
                 print(member_collection[_id]['name'])
 
         This means we can access documents by the 'age' key in O(1) time on
-        average in addition to the primary key. Using the :py:meth:`.find`
+        average in addition to the primary key. Using the :meth:`.find`
         method will automatically build all required indexes for the particular
         search.
 
@@ -388,12 +530,25 @@ class Collection(object):
         class and updated with subsequent changes. An index returned by this
         method is always current with the latest state of the collection.
 
-        :param key: The primary key of the requested index.
-        :type key: str
-        :param build: If True, build a non-existing index if necessary,
-            otherwise raise KeyError.
-        :raises KeyError: In case that build is False and the index has not
-            been built yet.
+        Parameters
+        ----------
+        key : str
+            The primary key of the requested index.
+        build : bool
+            If True, build a non-existing index if necessary,
+            otherwise raise KeyError (Default value = False).
+
+        Returns
+        -------
+        dict
+            Index for the given key.
+
+        Raises
+        ------
+        KeyError
+            In case that build is False and the index has not been built yet. Or
+            No index is present for the key.
+
         """
         if key == self._primary_key:
             raise KeyError("Can't access index for primary key via index() method.")
@@ -424,13 +579,20 @@ class Collection(object):
 
     @property
     def ids(self):
-        "Return an iterator over the primary key in the collection."
+        """Get an iterator over the primary key in the collection.
+
+        Returns
+        -------
+        iterable
+            iterator over the primary key in the collection.
+
+        """
         self._assert_open()
         return iter(self._docs)
 
     @property
     def primary_key(self):
-        "The name of the collection's primary key (default='_id')."
+        """Get the name of the collection's primary key (default='_id')."""
         return self._primary_key
 
     def __len__(self):
@@ -452,7 +614,24 @@ class Collection(object):
 
     @staticmethod
     def _validate_key(key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key.
+
+        Parameters
+        ----------
+        key : str
+            Key to validate.
+
+        Returns
+        -------
+        str
+            If key is validated.
+
+        Raises
+        ------
+        InvalidKeyError
+            When key given is invalid.
+
+        """
         if '.' in key:
             from ..errors import InvalidKeyError
             raise InvalidKeyError("Keys may not contain dots ('.').")
@@ -460,7 +639,19 @@ class Collection(object):
 
     @classmethod
     def _validate_doc(cls, doc):
-        "Emit a warning or raise an exception if the document is invalid. Returns doc."
+        """Emit a warning or raise an exception if the document is invalid. Returns doc.
+
+        Parameters
+        ----------
+        doc : dict
+            The document to validate.
+
+        Returns
+        -------
+        doc : dict
+            If doc is validated.
+
+        """
         try:
             for key in doc.keys():
                 cls._validate_doc(doc[cls._validate_key(key)])
@@ -488,7 +679,7 @@ class Collection(object):
         self._requires_flush = True
 
     def insert_one(self, doc):
-        """Insert one document into the collection
+        """Insert one document into the collection.
 
         If the document does not have a value for the
         collection's primary key yet, it will be assigned one.
@@ -503,8 +694,16 @@ class Collection(object):
             The document will be directly updated in case that
             it has no primary key and must therefore be mutable!
 
-        :param doc: The document to be inserted.
-        :returns: The _id of the inserted documented.
+        Parameters
+        ----------
+        doc : dict
+            The document to be inserted.
+
+        Returns
+        -------
+        str
+            The _id of the inserted documented.
+
         """
         self._assert_open()
         if self._primary_key in doc:
@@ -527,7 +726,7 @@ class Collection(object):
         self._requires_flush = True
 
     def clear(self):
-        "Remove all documents from the collection."
+        """Remove all documents from the collection."""
         self._docs.clear()
         self._indexes.clear()
         self._dirty.clear()
@@ -539,8 +738,11 @@ class Collection(object):
         Any existing documents with the same primary key
         will be replaced.
 
-        :param docs: A sequence of documents to be upserted
-            into the collection.
+        Parameters
+        ----------
+        docs : iterable
+            A sequence of documents to be upserted into the collection.
+
         """
         for doc in docs:
             if self._primary_key in doc:
@@ -550,6 +752,29 @@ class Collection(object):
             self[_id] = doc
 
     def _find_expression(self, key, value):
+        """Find document for key value pair.
+
+        Parameters
+        ----------
+        key : str
+            The key for expression-operator.
+        value :
+            The value for expression-operator.
+
+        Returns
+        -------
+        set
+            The document for key value pair.
+
+        Raises
+        ------
+        KeyError
+            When Bad operator expression/ Bad operator placement. Or
+            The expression-operator is unknown.
+        ValueError
+            The value is not bool when operator for '$exists' operator.
+
+        """
         logger.debug("Find documents for expression '{}: {}'.".format(key, value))
         if '$' in key:
             if key.count('$') > 1:
@@ -589,12 +814,33 @@ class Collection(object):
                 return index.get(value, set())
 
     def _find_result(self, expr):
+        """Find ids for given expression.
+
+        Parameters
+        ----------
+        expr : str
+            The expression to get result.
+
+        Returns
+        -------
+        set
+            Set of all the ids if the given expression is empty.
+
+        """
         if not len(expr):
             return set(self.ids)    # Empty expression yields all ids...
 
         result_ids = None
 
         def reduce_results(match):
+            """Reduce the results by intersection of matches.
+
+            Parameters
+            ----------
+            match : set
+                match for the given expression.
+
+            """
             nonlocal result_ids
             if result_ids is None:  # First match
                 result_ids = match
@@ -639,7 +885,7 @@ class Collection(object):
         return result_ids
 
     def _find(self, filter=None, limit=0):
-        """Returns a result vector of ids for the given filter and limit.
+        """Return a result vector of ids for the given filter and limit.
 
         This function normalizes the filter argument and then attempts to
         build a result vector for the given key-value queries.
@@ -658,10 +904,23 @@ class Collection(object):
             3. The filter is processed key by key, once the result vector is
                empty it is immediately returned.
 
-        :param filter: The filter argument that all documents must match.
-        :param limit: Limit the size of the result vector.
-        :raises ValueError: In case that the filter argument is invalid.
-        :returns: A set of ids of documents that match the given filter.
+        Parameters
+        ----------
+        filter : dict
+            The filter argument that all documents must match (Default value = None).
+        limit : int
+            Limit the size of the result vector (Default value = 0).
+
+        Returns
+        -------
+        set
+            A set of ids of documents that match the given filter.
+
+        Raises
+        ------
+        ValueError
+            In case that the filter argument is invalid.
+
         """
         self._assert_open()
         if filter:
@@ -692,7 +951,7 @@ class Collection(object):
 
         will return documents with a nested structure: ``{'nested': {'value': 42}}``.
 
-        The result of :py:meth:`~.find` can be stored and iterated over multiple times.
+        The result of :meth:`~.find` can be stored and iterated over multiple times.
         In addition, the result vector can be queried for its size:
 
         .. code-block:: python
@@ -779,13 +1038,24 @@ class Collection(object):
 
             Matches all docs, where the value for foo starts with the word 'bar'.
 
-        :param filter: All documents must match the given filter.
-        :type filter: Mapping
-        :param limit: Do not return more than limit number of documents.
+        Parameters
+        ----------
+        filter : dict
+            All documents must match the given filter (Default value = None).
+        limit : int
+            Do not return more than limit number of documents.
             A limit value of 0 (the default) means no limit.
-        :type limit: int
-        :returns: A result object that iterates over all matching documents.
-        :raises ValueError: In case that the filter argument is invalid.
+
+        Returns
+        -------
+        :class:`~signac.contrib.collection._CollectionSearchResults`
+            A result object that iterates over all matching documents.
+
+        Raises
+        ------
+        ValueError
+            In case that the filter argument is invalid.
+
         """
         return _CollectionSearchResults(self, self._find(filter, limit=limit))
 
@@ -800,9 +1070,21 @@ class Collection(object):
             else:
                 print("Doc matching filter:", my_filter, doc)
 
-        :param filter: The returned document must match the given filter.
-        :raises ValueError: In case that the filter argument is invalid.
-        :returns: A matching document or None.
+        Parameters
+        ----------
+        filter : dict
+            The returned document must match the given filter (Default value = None).
+
+        Returns
+        -------
+        dict
+            A matching document or None.
+
+        Raises
+        ------
+        ValueError
+            In case that the filter argument is invalid.
+
         """
         for doc in self.find(filter, limit=1):
             return doc
@@ -815,13 +1097,26 @@ class Collection(object):
         is True, the replacement will be inserted in case that
         no document matches the filter.
 
-        :param filter: A document that should be replaced must
-            match this filter.
-        :param replacement: The replacement document.
-        :param upsert: If True, insert the replacement document in
-            the case that no document matches the filter.
-        :raises ValueError: In case that the filter argument is invalid.
-        :returns: The _id of the replaced (or upserted) documented.
+        Parameters
+        ----------
+        filter : dict
+            A document that should be replaced must match this filter.
+        replacement : dict
+            The replacement document.
+        upsert : bool
+            If True, insert the replacement document in
+            the case that no document matches the filter. (Default value = False)
+
+        Returns
+        -------
+        str
+            The _id of the replaced (or upserted) documented.
+
+        Raises
+        ------
+        ValueError
+            In case that the filter argument is invalid.
+
         """
         self._assert_open()
         if len(filter) == 1 and self._primary_key in filter:
@@ -838,19 +1133,40 @@ class Collection(object):
                     return self.insert_one(replacement)
 
     def delete_many(self, filter):
-        "Delete all documents that match the filter."
+        """Delete all documents that match the filter.
+
+        Parameters
+        ----------
+        filter : dict
+            A document that should be deleted must match this filter.
+
+        """
         to_delete = set(self._find(filter))
         for _id in to_delete:
             del self[_id]
 
     def delete_one(self, filter):
-        "Delete one document that matches the filter."
+        """Delete one document that matches the filter.
+
+        Parameters
+        ----------
+        filter : dict
+            The document that should be deleted must match this filter.
+
+        """
         to_delete = set(self._find(filter, limit=1))
         for _id in to_delete:
             del self[_id]
 
     def _dump(self, text_buffer):
-        "Dump collection content serialized to JSON to text-buffer."
+        """Dump collection content serialized to JSON to text-buffer.
+
+        Parameters
+        ----------
+        text_buffer :
+            The file to write the content serialized to JSON (Default value = sys.stdout).
+
+        """
         for doc in self._docs.values():
             text_buffer.write((json.dumps(doc) + '\n'))
 
@@ -868,7 +1184,11 @@ class Collection(object):
             with open('my_collection.txt', 'w') as file:
                 collection.dump(file)
 
-        :param file: The file to write the encoded blob to.
+        Parameters
+        ----------
+        file :
+            The file to write the encoded blob to (Default value = sys.stdout).
+
         """
         self._assert_open()
         if self._compresslevel > 0:
@@ -887,8 +1207,16 @@ class Collection(object):
         This function returns the JSON-string directly if the
         file argument is None.
 
-        :param file:
-            The file to write the JSON string to.
+        Parameters
+        ----------
+        file :
+            The filename or a file-like object to write the JSON string to (Default value = None).
+
+        Returns
+        -------
+        JSON
+            JSON-string when file argument is not provided.
+
         """
         json_string = json.dumps(list(self.find()))
         if file is None:
@@ -903,11 +1231,17 @@ class Collection(object):
     def read_json(cls, file=None):
         """Construct an instance of Collection from a JSON file.
 
-        :param file:
+        Parameters
+        ----------
+        file :
             The json file to read, provided as either a filename or a
-            file-like object.
-        :return:
+            file-like object (Default value = None).
+
+        Returns
+        -------
+        :class:`~Collection`
             A Collection containing the JSON file
+
         """
         if isinstance(file, str):
             with open(file, 'r') as json_file:
@@ -918,6 +1252,20 @@ class Collection(object):
 
     @classmethod
     def _open(cls, file, compresslevel=0):
+        """Open a collection associated with a file on disk.
+
+        Parameters
+        ----------
+        file :
+            The file to read the documents from or create the file if it does not exist
+        compresslevel : int
+            (Default value = 0)
+
+        Returns
+        -------
+        :class:`~Collection`
+
+        """
         try:
             if compresslevel > 0:
                 import gzip
@@ -974,8 +1322,8 @@ class Collection(object):
         the file if it does not exist yet.
 
         Modifications to the file will be written to the file when the
-        :py:meth:`~Collection.flush` method is called or the collection is
-        explicitly closed by calling the :py:meth:`Collection.close` method or
+        :meth:`~Collection.flush` method is called or the collection is
+        explicitly closed by calling the :meth:`Collection.close` method or
         implicitly by leaving the `with`-clause:
 
         .. code-block:: python
@@ -992,6 +1340,26 @@ class Collection(object):
         sure to open the file in read, write, or append mode as required. Due to
         the manner in which gzip works, opening a file in `mode=wt` will
         effectively erase the current file, so take care using `mode=wt`.
+
+        Parameters
+        ----------
+        filename : str
+            Name of file to read the documents from or create the file if it does not exist.
+        mode : str
+            Open the file with mode (Default value = None).
+        compresslevel : int
+            (Default value = None)
+
+        Returns
+        -------
+        :class:`~Collection`
+
+        Raises
+        ------
+        RuntimeError
+            File open-mode is not None for in-memory collection. Or
+            Compressed collections are not opened in binary mode.
+
         """
         if compresslevel is None:
             compresslevel = 9 if filename.endswith('.gz') else 0
@@ -1024,11 +1392,12 @@ class Collection(object):
         """Write all changes to the associated file.
 
         If the collection instance is associated with a file-object,
-        calling the :py:meth:`~Collection.flush` method will write all changes
+        calling the :meth:`~Collection.flush` method will write all changes
         to this file.
 
         This method is also called when the collection is explicitly or
         implicitly closed.
+
         """
         self._assert_open()
         if self._requires_flush:
@@ -1055,6 +1424,7 @@ class Collection(object):
 
         It is not possible to re-open the same collection instance
         after closing it.
+
         """
         if self._file is not None:
             try:
@@ -1090,6 +1460,11 @@ class Collection(object):
             $ python find.py '{"age": 32}'
             {"name": "John", "age": 32}
             {"name": "Kevin", "age": 32}
+
+        Raises
+        ------
+        ValueError
+            When both `--id` or `--indent` are selected.
 
         """
         parser = argparse.ArgumentParser(
