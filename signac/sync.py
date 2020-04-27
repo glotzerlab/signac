@@ -21,14 +21,14 @@ part of the :class:`~.FileSync` class. These are the default strategies:
 
     1. always -- Always overwrite on conflict.
     2. never -- Never overwrite on conflict.
-    3. time -- Overwrite when the modification time of the source file is newer.
+    3. update -- Overwrite when the modification time of the source file is newer.
     4. Ask -- Ask the user interactively about each conflicting filename.
 
 For example, to synchronize two projects resolving conflicts by modification time, use:
 
 .. code-block:: python
 
-    dest_project.sync(source_project, strategy=sync.FileSync.time)
+    dest_project.sync(source_project, strategy=sync.FileSync.update)
 
 Unlike files, which are always either overwritten as a whole or not, documents
 can be synchronized more fine-grained with a *sync function*. Such a function (or
@@ -78,21 +78,17 @@ import re
 from collections import defaultdict as ddict
 from collections import namedtuple
 from multiprocessing.pool import ThreadPool
+from collections.abc import Mapping
 
 from .errors import DestinationExistsError
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
 from .contrib.utility import query_yes_no
-from .common import six
 from .syncutil import dircmp
 from .syncutil import dircmp_deep
 from .syncutil import _FileModifyProxy
 from .syncutil import logger
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
 
 
 __all__ = [
@@ -256,7 +252,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
               preserve_permissions=False, preserve_times=False,
               preserve_owner=False, preserve_group=False,
               deep=False, dry_run=False):
-    """Synchronize the src job with the dst job.
+    """Synchronize the dst job with the src job.
 
         By default, this method will synchronize all files and document data
         of dst job with the src job until a synchronization conflict occurs.

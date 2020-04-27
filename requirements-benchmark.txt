@@ -1,7 +1,7 @@
-numpy==1.15
-GitPython==2.1
-pandas==0.22; python_version<='3.4' or implementation_name!='cpython' --no-binary pandas
-pandas==0.23; python_version>'3.4' and implementation_name=='cpython'
-psutil==5.5
-tqdm==4.30
-backports.tempfile==1.0
+click>=7.0
+numpy==1.18
+gitdb2==3.0.2
+GitPython==3.0.8
+pandas==0.25.3; implementation_name!='cpython' --no-binary pandas
+pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
+psutil==5.6.7

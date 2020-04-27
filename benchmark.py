@@ -19,14 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
-import six
 import sys
 import string
 import random
 import timeit
 import argparse
 import logging
-import warnings
 import base64
 import json
 import platform
@@ -36,17 +34,16 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 from tempfile import gettempdir
+from tempfile import TemporaryDirectory
 from multiprocessing import Pool
+from textwrap import fill
 
 import signac
 import git
+import click
 import psutil
 import pandas as pd
 from tqdm import tqdm
-if six.PY2:
-    from backports.tempfile import TemporaryDirectory
-else:
-    from tempfile import TemporaryDirectory
 
 
 logger = logging.getLogger('signac-benchmark')
@@ -93,12 +90,7 @@ def get_partition(path):
 
 def create_doc(args):
     tmpdir = gettempdir() if args.root is None else args.root
-    if six.PY2:
-        platform_doc = dict((k, v) for k, v in
-                            zip(('system', 'node', 'release', 'version',
-                                 'machine', 'processor'), platform.uname()))
-    else:
-        platform_doc = platform.uname()._asdict()
+    platform_doc = platform.uname()._asdict()
     return {'meta': {
         'tool': 'signac',
         'num_keys': args.num_keys,
@@ -151,11 +143,6 @@ def _make_job(project, num_keys, num_doc_keys, data_size, data_std, i):
 def generate_random_data(project, N_sp, num_keys=1, num_doc_keys=0,
                          data_size=0, data_std=0, parallel=True):
     assert len(project) == 0
-
-    if six.PY2:
-        if parallel:
-            warnings.warn("Function 'generate_random_data()' not parallelized for Python 2.")
-            parallel = False
 
     if parallel:
         with Pool() as pool:
@@ -376,32 +363,49 @@ def main_compare(args):
     print(doc_this.min() / doc_other.min())
     print()
 
-    slow_down = (doc_this.min() / doc_other.min()).mean()
-    speed_up = (doc_other.min() / doc_this.min()).mean()
-    if round(speed_up, 1) > 1:
-        average_change = "{:0.1f}x faster than".format(speed_up)
-    elif round(speed_up, 1) < 1:
-        average_change = "{:0.1f}x slower than".format(slow_down)
+    speedup = doc_other.min() / doc_this.min()
+    slowdown = doc_this.min() / doc_other.min()
+
+    average_speedup = speedup.mean().round(1)
+
+    if average_speedup > 1:
+        average_change = click.style("{:0.1f}x faster".format(
+            average_speedup), fg='green') + " than"
+    elif average_speedup < 1:
+        average_change = click.style("{:0.1f}x slower".format(
+            slowdown.mean()), fg='yellow') + " than"
     else:
-        average_change = "{} as fast as".format('exactly' if speed_up == 1 else 'about')
+        average_change = click.style("{} as fast as".format(
+            'exactly' if average_speedup == 1 else 'about'), fg='green')
 
-    slow_down = (doc_this.min() / doc_other.min()).max()
-    speed_up = (doc_other.min() / doc_this.min()).max()
-    if round(slow_down, 1) > round(speed_up, 1):
-        maximal_change = "{:0.1f}x slower".format(slow_down)
-    elif round(speed_up, 1) > round(slow_down, 1):
-        maximal_change = "{:0.1f}x faster".format(speed_up)
+    difference = doc_other.min() - doc_this.min()
+    idx_max_speedup = speedup.idxmax()
+    idx_max_slowdown = slowdown.idxmax()
+
+    if round(difference[idx_max_speedup], 1) > 0:
+        s_speedup = click.style(
+            "a speedup of {:0.1f}x in the best category".format(
+                speedup[idx_max_speedup]), fg='green')
     else:
-        maximal_change = "{} as fast".format('exactly' if speed_up == 1 else 'about')
+        s_speedup = click.style("insignificant speedup (<10%) in the best category", fg='blue')
 
-    print("Revision '{this}' is {average_change} '{other}' on average and {maximal_change} for "
-          "the category with the biggest difference.".format(
-              this=args.rev_this, other=args.rev_other,
-              average_change=average_change, maximal_change=maximal_change))
+    if round(difference[idx_max_slowdown], 1) < 0:
+        max_slowdown = slowdown[idx_max_slowdown]
+        s_slowdown = click.style("a slowdown of {:0.1f}x in the worst category".format(
+            slowdown[idx_max_slowdown]), fg='yellow')
+    else:
+        max_slowdown = 0
+        s_slowdown = click.style("insignificant slowdown (<10%) in the worst category", fg='blue')
 
-    if args.fail_above and slow_down > args.fail_above:
-        print("FAIL: Runtime difference for the worst category ({:0.1f}) "
-              "is above threshold ({})!".format(slow_down, args.fail_above))
+    click.echo(fill(
+        "Revision '{this}' is {average_change} '{other}' on average "
+        "with {speedup} and {slowdown}.".format(
+            this=args.rev_this, other=args.rev_other,
+            average_change=average_change, speedup=s_speedup, slowdown=s_slowdown)) + '\n')
+
+    if args.fail_above and max_slowdown > args.fail_above:
+        click.secho("FAIL: Runtime difference for the worst category ({:0.1f}x) "
+                    "is above threshold ({}x)!".format(max_slowdown, args.fail_above), fg='red')
         sys.exit(1)
 
 

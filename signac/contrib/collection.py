@@ -20,21 +20,12 @@ import re
 import sys
 from itertools import islice
 from numbers import Number
+from math import isclose
 
 from ..core import json
-from ..common import six
+from .utility import _nested_dicts_to_dotted_keys
+from .utility import _to_hashable
 from .filterparse import parse_filter_arg
-
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
-
-if six.PY2 or (six.PY3 and sys.version_info.minor < 5):
-    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
-        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-else:
-    from math import isclose
 
 
 logger = logging.getLogger(__name__)
@@ -48,7 +39,7 @@ _TYPES = {
     'int': int,
     'float': float,
     'bool': bool,
-    'str': basestring if six.PY2 else str,   # noqa
+    'str': str,
     'list': tuple,
     'null': type(None),
 }
@@ -66,42 +57,8 @@ def _flatten(container):
             yield i
 
 
-def _to_tuples(l):
-    if type(l) is list:
-        return tuple(_to_tuples(_) for _ in l)
-    else:
-        return l
-
-
 class _DictPlaceholder(object):
     pass
-
-
-def _encode_tree(x):
-    if type(x) is list:
-        return _to_tuples(x)
-    else:
-        return x
-
-
-def _traverse_tree(t, encode=None, key=None):
-    if encode is not None:
-        t = encode(t)
-    if isinstance(t, Mapping):
-        if t:
-            for k in t:
-                k_ = k if key is None else '.'.join((key, k))
-                for k__, v in _traverse_tree(t[k], key=k_, encode=encode):
-                    yield k__, v
-        elif key is not None:
-            yield key, t
-    else:
-        yield key, t
-
-
-def _traverse_filter(t):
-    for key, value in _traverse_tree(t, encode=_encode_tree):
-        yield key, value
 
 
 def _valid_filter(f, top=True):
@@ -190,7 +147,7 @@ def _build_index(docs, key, primary_key):
             if type(v) is dict:
                 continue
             elif type(v) is list:   # performance
-                index[_to_tuples(v)].add(doc[primary_key])
+                index[_to_hashable(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
 
@@ -206,11 +163,6 @@ def _build_index(docs, key, primary_key):
                     "Specifically keys with dots ('.').\n\n"
                     "See https://signac.io/document-wide-migration/ "
                     "for a recipe on how to replace dots in existing keys.")
-                # inlined for performance
-                if type(v) is list:     # performance
-                    index[_to_tuples(v)].add(doc[primary_key])
-                else:
-                    index[v].add(doc[primary_key])
     return index
 
 
@@ -223,7 +175,7 @@ def _find_with_index_operator(index, op, argument):
             return value not in argument
     elif op == '$regex':
         def op(value, argument):
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 return re.search(argument, value)
             else:
                 return False
@@ -349,7 +301,7 @@ class Collection(object):
         Default value is 0 (no compression).
     """
     def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
-        if isinstance(docs, six.string_types):
+        if isinstance(docs, str):
             raise ValueError(
                 "First argument cannot be of str type. "
                 "Did you mean to use {}.open()?".format(type(self).__name__))
@@ -518,7 +470,7 @@ class Collection(object):
 
     def __setitem__(self, _id, doc, _trust=False):
         self._assert_open()
-        if not isinstance(_id, six.string_types):
+        if not isinstance(_id, str):
             raise TypeError("The primary key must be of type str!")
         doc.setdefault(self._primary_key, _id)
         if _id != doc[self._primary_key]:
@@ -640,25 +592,20 @@ class Collection(object):
         if not len(expr):
             return set(self.ids)    # Empty expression yields all ids...
 
-        class result:
-            "Mutable local result context class."
-            # Once we drop Python 2.7 support we can replace `result.ids`
-            # simply with `result_ids`, remove the `result` class, and use
-            # a local function and `nonlocal result_ids`.
-            ids = None
+        result_ids = None
 
-            @classmethod
-            def reduce(cls, match):
-                if result.ids is None:  # First match
-                    result.ids = match
-                else:               # Update previous match
-                    result.ids = result.ids.intersection(match)
+        def reduce_results(match):
+            nonlocal result_ids
+            if result_ids is None:  # First match
+                result_ids = match
+            else:               # Update previous match
+                result_ids = result_ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
         # immediately reduce the result.
         _id = expr.pop(self._primary_key, None)
         if _id is not None and _id in self:
-            result.reduce({_id})
+            reduce_results({_id})
 
         # Extract all logical-operator expressions for now.
         or_expressions = expr.pop('$or', None)
@@ -666,30 +613,30 @@ class Collection(object):
         not_expression = expr.pop('$not', None)
 
         # Reduce the result based on the remaining non-logical expression:
-        for key, value in _traverse_filter(expr):
-            result.reduce(self._find_expression(key, value))
-            if not result.ids:          # No match, no need to continue...
+        for key, value in _nested_dicts_to_dotted_keys(expr):
+            reduce_results(self._find_expression(key, value))
+            if not result_ids:          # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
         if not_expression is not None:
             not_match = self._find_result(not_expression)
-            result.reduce(set(self.ids).difference(not_match))
+            reduce_results(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
             _check_logical_operator_argument('$and', and_expressions)
             for expr_ in and_expressions:
-                result.reduce(self._find_result(expr_))
+                reduce_results(self._find_result(expr_))
 
         if or_expressions is not None:
             _check_logical_operator_argument('$or', or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
-            result.reduce(or_results)
+            reduce_results(or_results)
 
-        assert result.ids is not None
-        return result.ids
+        assert result_ids is not None
+        return result_ids
 
     def _find(self, filter=None, limit=0):
         """Returns a result vector of ids for the given filter and limit.
@@ -760,7 +707,7 @@ class Collection(object):
         Arithmetic Operators
 
                 * *$eq*: equal
-                * *$neq*: not equal
+                * *$ne*: not equal
                 * *$gt*: greater than
                 * *$gte*: greater or equal than
                 * *$lt*: less than
@@ -904,12 +851,8 @@ class Collection(object):
 
     def _dump(self, text_buffer):
         "Dump collection content serialized to JSON to text-buffer."
-        if six.PY2:
-            for doc in self._docs.values():
-                text_buffer.write(unicode(json.dumps(doc) + '\n', 'utf-8'))  # noqa
-        else:
-            for doc in self._docs.values():
-                text_buffer.write((json.dumps(doc) + '\n'))
+        for doc in self._docs.values():
+            text_buffer.write((json.dumps(doc) + '\n'))
 
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
@@ -938,13 +881,48 @@ class Collection(object):
         else:
             self._dump(file)
 
+    def to_json(self, file=None):
+        """Dump the collection as a JSON file.
+
+        This function returns the JSON-string directly if the
+        file argument is None.
+
+        :param file:
+            The file to write the JSON string to.
+        """
+        json_string = json.dumps(list(self.find()))
+        if file is None:
+            return json_string
+        elif isinstance(file, str):
+            with open(file, 'w') as json_file:
+                json_file.write(json_string)
+        else:
+            file.write(json_string)
+
+    @classmethod
+    def read_json(cls, file=None):
+        """Construct an instance of Collection from a JSON file.
+
+        :param file:
+            The json file to read, provided as either a filename or a
+            file-like object.
+        :return:
+            A Collection containing the JSON file
+        """
+        if isinstance(file, str):
+            with open(file, 'r') as json_file:
+                json_data = json.load(json_file)
+        else:
+            json_data = json.load(file)
+        return Collection(json_data)
+
     @classmethod
     def _open(cls, file, compresslevel=0):
         try:
             if compresslevel > 0:
                 import gzip
                 with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
-                    if six.PY2 or (sys.version_info.major == 3 and sys.version_info.minor < 6):
+                    if sys.version_info < (3, 6):
                         text = gzipfile.read().decode('utf-8')
                         docs = [json.loads(line) for line in text.splitlines()]
                         collection = cls(docs=docs)
@@ -1061,12 +1039,7 @@ class Collection(object):
                 try:
                     self._file.truncate(0)
                 except ValueError as error:
-                    if isinstance(error, io.UnsupportedOperation):
-                        raise error                             # Python 3
-                    elif str(error).lower() == "file not open for writing":
-                        raise io.UnsupportedOperation(error)    # Python 2
-                    else:
-                        raise error  # unrelated error
+                    raise error
                 else:
                     self.dump(self._file)
                     self._file.flush()

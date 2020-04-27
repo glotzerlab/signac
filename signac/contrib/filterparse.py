@@ -1,10 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
 import sys
 from ..core import json
-from ..common import six
 
 
 def _print_err(msg=None):
@@ -34,7 +32,7 @@ def _is_regex(q):
 def _parse_json(q):
     try:
         return json.loads(q)
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         _print_err("Failed to parse query argument. "
                    "Ensure that '{}' is valid JSON!".format(q))
         raise
@@ -58,7 +56,7 @@ def _cast(x):
     "Attempt to interpret x with the correct type."
     try:
         if x in CAST_MAPPING_WARNING:
-            print("Did you mean {}?".format(CAST_MAPPING_WARNING[x], file=sys.stderr))
+            print("Did you mean {}?".format(CAST_MAPPING_WARNING[x]), file=sys.stderr)
         return CAST_MAPPING[x]
     except KeyError:
         try:
@@ -140,17 +138,11 @@ def _root_keys(filter):
 
 
 def _parse_filter(filter):
-    if isinstance(filter, six.string_types):
-        # yield from parse_simple(filter.split())  # TODO: After dropping Py27.
-        for key, value in parse_simple(filter.split()):
-            yield key, value
+    if isinstance(filter, str):
+        yield from parse_simple(filter.split())
     elif filter:
-        # yield from filter.items()   # TODO: After dropping Py27.
-        for key, value in filter.items():
-            yield key, value
+        yield from filter.items()
 
 
 def parse_filter(filter, prefix='sp'):
-    # yield from _add_prefix(_parse_filter(filter), prefix)  # TODO: After dropping Py27.
-    for key, value in _add_prefix(_parse_filter(filter), prefix):
-        yield key, value
+    yield from _add_prefix(_parse_filter(filter), prefix)

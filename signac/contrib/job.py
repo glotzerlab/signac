@@ -5,9 +5,9 @@ import os
 import errno
 import logging
 import shutil
-import uuid
+from copy import deepcopy
+from deprecation import deprecated
 
-from ..common import six
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
@@ -16,24 +16,23 @@ from .hashing import calc_id
 from .utility import _mkdir_p
 from .errors import DestinationExistsError, JobsCorruptedError
 from ..sync import sync_jobs
-if six.PY2:
-    from collections import Mapping
-else:
-    from collections.abc import Mapping
+from ..version import __version__
+
 
 logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook(object):
 
-    def __init__(self, job):
-        self.job = job
+    def __init__(self, *jobs):
+        self.jobs = list(jobs)
 
     def load(self):
         pass
 
     def save(self):
-        self.job._reset_sp()
+        for job in self.jobs:
+            job._reset_sp()
 
 
 class Job(object):
@@ -54,20 +53,14 @@ class Job(object):
     "The job's document filename."
 
     KEY_DATA = 'signac_data'
+    "The job's datastore key."
 
     def __init__(self, project, statepoint, _id=None):
         self._project = project
 
-        # Ensure that the job id is configured
-        if _id is None:
-            self._statepoint = json.loads(json.dumps(statepoint))
-            self._id = calc_id(self._statepoint)
-        else:
-            self._statepoint = dict(statepoint)
-            self._id = _id
-
-        # Prepare job statepoint
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
+        # Set statepoint and id
+        self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+        self._id = calc_id(self._statepoint()) if _id is None else _id
 
         # Prepare job working directory
         self._wd = os.path.join(project.workspace(), self._id)
@@ -82,7 +75,17 @@ class Job(object):
         # Prepare current working directory for context management
         self._cwd = list()
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="Use job.id instead.")
     def get_id(self):
+        """The job's statepoint's unique identifier.
+
+        :return: The job id.
+        :rtype: str"""
+        return self._id
+
+    @property
+    def id(self):
         """The unique identifier for the job's statepoint.
 
         :return: The job id.
@@ -94,11 +97,11 @@ class Job(object):
 
     def __str__(self):
         "Returns the job's id."
-        return str(self.get_id())
+        return str(self.id)
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__module__ + '.' + self.__class__.__name__,
+            self.__class__.__name__,
             repr(self._project), self._statepoint)
 
     def __eq__(self, other):
@@ -138,12 +141,12 @@ class Job(object):
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + '~'
         try:
-            os.rename(fn_manifest, fn_manifest_backup)
+            os.replace(fn_manifest, fn_manifest_backup)
             try:
-                os.rename(self.workspace(), dst.workspace())
+                os.replace(self.workspace(), dst.workspace())
             except OSError as error:
-                os.rename(fn_manifest_backup, fn_manifest)  # rollback
-                if error.errno == errno.ENOTEMPTY:
+                os.replace(fn_manifest_backup, fn_manifest)  # rollback
+                if error.errno in (errno.ENOTEMPTY, errno.EACCES):
                     raise DestinationExistsError(dst)
                 else:
                     raise
@@ -155,9 +158,8 @@ class Job(object):
             else:
                 raise
         # Update this instance
-        self._statepoint = dst._statepoint
+        self._statepoint._data = dst._statepoint._data
         self._id = dst._id
-        self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
         self._wd = dst._wd
         self._fn_doc = dst._fn_doc
         self._document = None
@@ -214,9 +216,7 @@ class Job(object):
             `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
             For more information, see :class:`~signac.JSONDict`.
         """
-        if self._sp is None:
-            self._sp = SyncedAttrDict(self._statepoint, parent=_sp_save_hook(self))
-        return self._sp
+        return self._statepoint
 
     @statepoint.setter
     def statepoint(self, new_sp):
@@ -224,32 +224,12 @@ class Job(object):
 
     @property
     def sp(self):
-        """ Alias for :attr:`Job.statepoint`.
-
-        .. warning::
-
-            As with :attr:`Job.statepoint`, use `job.sp()` instead of
-            `job.sp` if you need a deep copy that will not modify the
-            underlying persistent JSON file.
-        """
+        "Alias for :attr:`Job.statepoint`."
         return self.statepoint
 
     @sp.setter
     def sp(self, new_sp):
         self.statepoint = new_sp
-
-    def _reset_document(self, new_doc):
-        if not isinstance(new_doc, Mapping):
-            raise ValueError("The document must be a mapping.")
-        dirname, filename = os.path.split(self._fn_doc)
-        fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-            uid=uuid.uuid4(), fn=filename))
-        with open(fn_tmp, 'wb') as tmpfile:
-            tmpfile.write(json.dumps(new_doc).encode())
-        if six.PY2:
-            os.rename(fn_tmp, self._fn_doc)
-        else:
-            os.replace(fn_tmp, self._fn_doc)
 
     @property
     def document(self):
@@ -274,7 +254,7 @@ class Job(object):
 
     @document.setter
     def document(self, new_doc):
-        self._reset_document(new_doc)
+        self.document.reset(new_doc)
 
     @property
     def doc(self):
@@ -314,7 +294,7 @@ class Job(object):
             H5Store(job.fn('my_data.h5'))['array'] = np.random((32, 4))
 
         Both the `job.stores` and the `H5Store` itself support attribute
-        access. The above example could therefore also be expressed as
+        access. The above example could therefore also be expressed as:
 
         .. code-block:: python
 
@@ -329,7 +309,11 @@ class Job(object):
 
     @property
     def data(self):
-        """The data store associated with this job.
+        """The data associated with this job.
+
+        This property should be used for large array-like data, which can't be
+        stored efficiently in the job document. For examples and usage, see
+        `Job Data Storage <https://docs.signac.io/en/latest/jobs.html#job-data-storage>`_.
 
         Equivalent to:
 
@@ -363,23 +347,8 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                if six.PY2:
-                    # Adapted from: http://stackoverflow.com/questions/10978869/
-                    if force:
-                        flags = os.O_CREAT | os.O_WRONLY
-                    else:
-                        flags = os.O_CREAT | os.O_WRONLY | os.O_EXCL
-                    try:
-                        fd = os.open(fn_manifest, flags)
-                    except OSError as error:
-                        if error.errno != errno.EEXIST:
-                            raise
-                    else:
-                        with os.fdopen(fd, 'w') as file:
-                            file.write(blob)
-                else:
-                    with open(fn_manifest, 'w' if force else 'x') as file:
-                        file.write(blob)
+                with open(fn_manifest, 'w' if force else 'x') as file:
+                    file.write(blob)
             except (IOError, OSError) as error:
                 if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise
@@ -500,12 +469,12 @@ class Job(object):
         dst = project.open_job(self.statepoint())
         _mkdir_p(project.workspace())
         try:
-            os.rename(self.workspace(), dst.workspace())
+            os.replace(self.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.ENOENT:
                 raise RuntimeError(
                     "Cannot move job '{}', because it is not initialized!".format(self))
-            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY):
+            elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
                 raise RuntimeError(
@@ -613,3 +582,15 @@ class Job(object):
     def __exit__(self, err_type, err_value, tb):
         self.close()
         return False
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._statepoint._parent.jobs.append(self)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result

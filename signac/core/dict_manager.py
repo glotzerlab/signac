@@ -7,8 +7,6 @@ import re
 import errno
 import uuid
 
-from ..common import six
-
 
 class DictManager(object):
     """Helper class to manage multiple instances of dict-like classes.
@@ -37,7 +35,7 @@ class DictManager(object):
             self.suffix == other.suffix
 
     def __repr__(self):
-        return "{}(prefix='{}')".format(type(self).__name__, os.path.relpath(self.prefix))
+        return "{}(prefix={})".format(type(self).__name__, repr(os.path.relpath(self.prefix)))
 
     __str__ = __repr__
 
@@ -56,13 +54,10 @@ class DictManager(object):
         tmp_key = str(uuid.uuid4())
         try:
             self[tmp_key].update(value)
-            if six.PY2:
-                os.rename(self[tmp_key].filename, self[key].filename)
-            else:
-                os.replace(self[tmp_key].filename, self[key].filename)
+            os.replace(self[tmp_key].filename, self[key].filename)
         except (IOError, OSError) as error:
             if error.errno == errno.ENOENT and not len(value):
-                raise ValueError("Cannot asssign empty value!")
+                raise ValueError("Cannot assign empty value!")
             else:
                 raise error
         except Exception as error:
@@ -108,7 +103,7 @@ class DictManager(object):
 
     def __iter__(self):
         for fn in os.listdir(self.prefix):
-            m = re.match('(.*){}'.format(self.suffix), fn)
+            m = re.match('^(.*){}$'.format(self.suffix), fn)
             if m:
                 yield m.groups()[0]
 

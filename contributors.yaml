@@ -48,4 +48,49 @@ contributors:
     family-names: Wang
     given-names: Kelly
     affiliation: "University of Michigan"
+  -
+    family-names: Adams
+    given-names: Alexander
+    affiliation: "University of Michigan"
+  -
+    family-names: Waltmann
+    given-names: "Thomas R."
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-6876-5956"
+  -
+    family-names: Malek
+    given-names: Ali
+    affiliation: "University of Goettingen"
+  -
+    family-names: Fothergill
+    given-names: Jenny
+    affiliation: "Boise State University"
+    orcid: "https://orcid.org/0000-0001-9665-5420"
+  -
+    family-names: Travitz
+    given-names: Alyssa
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-5953-8807"
+  -
+    family-names: Butler
+    given-names: Brandon
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-7739-7796"
+  -
+    family-names: Sharma
+    given-names: Vishav
+    affiliation: "National Institute of Technology, Hamirpur"
+  -
+    family-names: Chandra
+    given-names: Abhavya
+    affiliation: "Indian Institute of Technology, Gandhinagar"
+  -
+    family-names: Henry
+    given-names: "Michael M."
+    affiliation: "Boise State University"
+    orcid: "https://orcid.org/0000-0002-3870-9993"
+  -
+    family-names: Ojha
+    given-names: Hardik
+    affiliation: "Indian Institute of Technology Roorkee"
 ...

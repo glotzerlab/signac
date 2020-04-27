@@ -1,12 +1,17 @@
-# Copyright (c) 2017 The Regents of the University of Michigan
+# Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
+import sys
 import json
-import unittest
+import pytest
+from io import StringIO
 from itertools import chain
+from contextlib import contextmanager
 
 from signac.contrib.filterparse import parse_filter_arg
+from signac.core.json import JSONDecodeError
+
 
 FILTERS = [
     {'a': 0},
@@ -46,12 +51,12 @@ VALUES = {
 }
 
 ARITHMETIC_EXPRESSIONS = [
-   {'$eq': 0},
-   {'$ne': 0},
-   {'$lt': 0},
-   {'$gt': 0},
-   {'$lte': 0},
-   {'$gte': 0},
+    {'$eq': 0},
+    {'$ne': 0},
+    {'$lt': 0},
+    {'$gt': 0},
+    {'$lte': 0},
+    {'$gte': 0},
 ]
 
 
@@ -65,7 +70,20 @@ ARRAY_EXPRESSIONS = [
 ]
 
 
-class FindCommandLineInterfaceTest(unittest.TestCase):
+@contextmanager
+def redirect_stderr(new_target=None):
+    "Temporarily redirect all output to stderr to new_target."
+    if new_target is None:
+        new_target = StringIO()
+    old_target = sys.stderr
+    try:
+        sys.stderr = new_target
+        yield
+    finally:
+        sys.stderr = old_target
+
+
+class TestFindCommandLineInterface():
 
     @staticmethod
     def _parse(args):
@@ -74,24 +92,25 @@ class FindCommandLineInterfaceTest(unittest.TestCase):
 
     def test_interpret_json(self):
         def _assert_equal(q):
-            self.assertEqual(q, self._parse([json.dumps(q)]))
+            assert q == self._parse([json.dumps(q)])
         for f in FILTERS:
             _assert_equal(f)
 
     def test_interpret_simple(self):
         for s, v in VALUES.items():
-            self.assertEqual(self._parse(['a', s]), {'a': v})
+            assert self._parse(['a', s]) == {'a': v}
         for f in FILTERS:
             f_ = f.copy()
             key, value = f.popitem()
             if key.startswith('$'):
                 continue
-            self.assertEqual(self._parse([key, json.dumps(value)]), f_)
+            assert self._parse([key, json.dumps(value)]) == f_
 
     def test_interpret_mixed_key_value(self):
         for expr in chain(ARITHMETIC_EXPRESSIONS, ARRAY_EXPRESSIONS):
-            self.assertEqual(self._parse(['a', json.dumps(expr)]), {'a': expr})
+            assert self._parse(['a', json.dumps(expr)]) == {'a': expr}
 
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_invalid_json(self):
+        with redirect_stderr():
+            with pytest.raises(JSONDecodeError):
+                parse_filter_arg(['{"x": True}'])

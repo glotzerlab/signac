@@ -12,13 +12,13 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from collections import OrderedDict
 from contextlib import contextmanager, closing
 from string import Formatter
+from tempfile import TemporaryDirectory
 
-from ..common import six
-from ..common.tempdir import TemporaryDirectory
 from ..core import json
 from .errors import StatepointParsingError
 from .errors import DestinationExistsError
 from .utility import _mkdir_p
+from .utility import _dotted_dict_to_nested_dicts
 
 import logging
 
@@ -44,7 +44,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
     "Generate schema based paths as a function of the given jobs."
     from .schema import _build_job_statepoint_index
     if len(jobs) <= 1:
-        return lambda job: ''
+        # The lambda must (optionally) take a format spec argument to match the
+        # signature of the path function below.
+        return lambda job, sep=None: ''
 
     index = [{'_id': job._id, 'sp': job.sp()} for job in jobs]
     jsi = _build_job_statepoint_index(jobs=jobs, exclude_const=True, index=index)
@@ -52,7 +54,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
 
     paths = dict()
     for key_tokens, values in sp_index.items():
-        key = delimiter_nested.join(map(str, key_tokens))
+        key = key_tokens.replace('.', delimiter_nested)
         if exclude_keys and key in exclude_keys:
             continue
         for value, group in values.items():
@@ -105,7 +107,7 @@ def _make_path_function(jobs, path):
         def path_function(job):
             return str(job.get_id())
 
-    elif isinstance(path, six.string_types):
+    elif isinstance(path, str):
         # Detect keys that are already provided as part of the path specifier and
         # and should therefore be excluded from the 'auto'-part.
         exclude_keys = [x[1] for x in Formatter().parse(path)]
@@ -241,32 +243,25 @@ def export_jobs(jobs, target, path=None, copytree=None):
         directory paths.
     """
     if copytree is not None:
-        if not (isinstance(target, six.string_types) and os.path.splitext(target)[1] == ''):
+        if not (isinstance(target, str) and os.path.splitext(target)[1] == ''):
             raise ValueError(
                 "The copytree argument can only be used in combination "
                 "with directories as targets.")
 
-    # All of the generator delegations below should be refactored to use 'yield from'
-    # once we drop Python 2.7 support.
-
-    if isinstance(target, six.string_types):
+    if isinstance(target, str):
         ext = os.path.splitext(target)[1]
         if ext == '':  # target is directory
-            for src_dst in export_to_directory(
-                    jobs=jobs, target=target, path=path, copytree=copytree):
-                yield src_dst
+            yield from export_to_directory(
+                jobs=jobs, target=target, path=path, copytree=copytree)
         elif ext == '.zip':     # target is zipfile
             with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as zipfile:
-                for src_dst in export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path):
-                    yield src_dst
+                yield from export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path)
         elif ext == '.tar':     # target is uncompressed tarball
             with tarfile.open(name=target, mode='a') as file:
-                for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
-                    yield src_dst
+                yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         elif ext in ('.gz', '.bz2', '.xz'):    # target is compressed tarball
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
-                for src_dst in export_to_tarfile(jobs=jobs, tarfile=file, path=path):
-                    yield src_dst
+                yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         else:
             raise TypeError("Unknown extension '{}'.".format(ext))
     elif isinstance(target, ZipFile):
@@ -297,6 +292,10 @@ def _convert_schema_path_to_regex(schema_path):
 
     When no type is specified, we default to str.
     """
+    # First, replace escaped backslashes with double-escaped backslashes.
+    # This is needed for compatibility with Windows, which uses backslashes.
+    schema_path = re.sub(r'\\', r'\\\\', schema_path)
+
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
     re_key_type_field = r'\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}'
@@ -337,24 +336,9 @@ def _make_path_based_schema_function(schema_path):
             for key in types:
                 if key in sp:
                     sp[key] = types[key](sp[key])
-            return _convert_to_nested(sp)
+            return _dotted_dict_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
 
     return parse_path
-
-
-def _convert_to_nested(sp):
-    """Convert a flat state point dict to a nested dict."""
-    ret = dict()
-    for key, value in sp.items():
-        tokens = key.split(_DOT_MAGIC_WORD)
-        if len(tokens) > 1:
-            tmp = ret.setdefault(tokens[0], dict())
-            for token in tokens[1:-1]:
-                tmp = tmp.setdefault(token, dict())
-            tmp[tokens[-1]] = value
-        else:
-            ret[tokens[0]] = value
-    return ret
 
 
 def _with_consistency_check(schema_function, read_sp_manifest_file):
@@ -438,7 +422,7 @@ def _analyze_directory_for_import(root, project, schema):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         if not schema.startswith(root):
             schema = os.path.normpath(os.path.join(root, schema))
         schema_function = _with_consistency_check(
@@ -483,7 +467,8 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     names = zipfile.namelist()
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = path + '/' + project.Job.FN_MANIFEST
         if fn_manifest in names:
             return json.loads(zipfile.read(fn_manifest).decode())
 
@@ -491,7 +476,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         schema_function = _with_consistency_check(
             _make_path_based_schema_function(schema), read_sp_manifest_file)
     else:
@@ -539,13 +524,26 @@ class _CopyFromTarFileExecutor(object):
         return _copy_to_job_workspace(self.src, self.job, shutil.copytree)
 
 
+def _tarfile_path_join(path, fn):
+    """Replacement for os.path.join that always uses forward slashes.
+
+    Due to this bug in Python tarfile https://bugs.python.org/issue21987 we may
+    or may not have a trailing backslash in the provided path. Rather than
+    checking the exact length, which could lead to backwards incompatibilities,
+    we simply strip trailing slashes and always add them back.
+    """
+    path = path.rstrip('/')
+    return path + '/' + fn
+
+
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     def read_sp_manifest_file(path):
-        fn_manifest = os.path.join(path, project.Job.FN_MANIFEST)
+        # Must use forward slashes, not os.path.sep.
+        fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
-                if six.PY3 and sys.version_info.minor < 6:
+                if sys.version_info < (3, 6):
                     return json.loads(file.read().decode())
                 else:
                     return json.loads(file.read())
@@ -556,7 +554,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         schema_function = read_sp_manifest_file
     elif callable(schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
-    elif isinstance(schema, six.string_types):
+    elif isinstance(schema, str):
         schema_function = _with_consistency_check(
             _make_path_based_schema_function(schema), read_sp_manifest_file)
     else:
@@ -623,12 +621,12 @@ def import_into_project(origin, project, schema=None, copytree=None):
 
     Alternatively the schema argument may be a string, that is converted into a schema function,
     for example: Providing ``foo/{foo:int}`` as schema argument means that all directories under
-    ``foo/`` will be imported and their names will be interpeted as the value for ``foo`` within
+    ``foo/`` will be imported and their names will be interpreted as the value for ``foo`` within
     the state point.
 
     .. tip::
 
-        Use ``copytree=os.renames`` or ``copytree=shutil.move`` to move dataspaces on import
+        Use ``copytree=os.replace`` or ``copytree=shutil.move`` to move dataspaces on import
         instead of copying them.
 
         Warning: Imports can fail due to conflicts. Moving data instead of copying may

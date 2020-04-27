@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Dict implementation with backend JSON file."
+"""Dict implementation with backend JSON file."""
 import os
 import sys
 import errno
@@ -10,11 +10,12 @@ import hashlib
 import logging
 from tempfile import mkstemp
 from contextlib import contextmanager
+from copy import copy
+from collections.abc import Mapping
 
 from .errors import Error
 from . import json
 from .attrdict import SyncedAttrDict
-from ..common import six
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ _JSONDICT_META = dict()
 
 
 class BufferException(Error):
-    "An exception occured in buffered mode."
+    """An exception occured in buffered mode."""
+
     pass
 
 
@@ -43,6 +45,7 @@ class BufferedFileError(BufferException):
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.
     """
+
     def __init__(self, files):
         self.files = files
 
@@ -51,7 +54,7 @@ class BufferedFileError(BufferException):
 
 
 def _hash(blob):
-    "Calculate and return the md5 hash value for the file data."
+    """Calculate and return the md5 hash value for the file data."""
     if blob is not None:
         m = hashlib.md5()
         m.update(blob)
@@ -86,7 +89,7 @@ def _store_in_buffer(filename, blob, store_hash=False):
 
 
 def flush_all():
-    "Execute all deferred JSONDict write operations."
+    """Execute all deferred JSONDict write operations."""
     logger.debug("Flushing buffer...")
     issues = dict()
     while _JSONDICT_BUFFER:
@@ -107,10 +110,7 @@ def flush_all():
                     os.remove(fn_tmp)
                     raise
                 else:
-                    if six.PY2:
-                        os.rename(fn_tmp, filename)
-                    else:
-                        os.replace(fn_tmp, filename)
+                    os.replace(fn_tmp, filename)
             except OSError as error:
                 logger.error(str(error))
                 issues[filename] = error
@@ -119,17 +119,17 @@ def flush_all():
 
 
 def get_buffer_size():
-    "Returns the current maximum size of the read/write buffer."
+    """Return the current maximum size of the read/write buffer."""
     return _BUFFER_SIZE
 
 
 def get_buffer_load():
-    "Returns the current actual size of the read/write buffer."
+    """Return the current actual size of the read/write buffer."""
     return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
 
 
 def in_buffered_mode():
-    "Return true if in buffered read/write mode."
+    """Return true if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 
 
@@ -160,7 +160,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     assert _BUFFERED_MODE >= 0
 
     # Basic type check (to prevent common user error)
-    if not isinstance(buffer_size, six.integer_types) or \
+    if not isinstance(buffer_size, int) or \
             buffer_size is True or buffer_size is False:    # explicit check against boolean
         raise TypeError("The buffer size must be an integer!")
 
@@ -237,6 +237,7 @@ class JSONDict(SyncedAttrDict):
     :param parent:
         A parent instance of JSONDict or None.
     """
+
     def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(
@@ -289,28 +290,53 @@ class JSONDict(SyncedAttrDict):
                     uid=uuid.uuid4(), fn=filename))
                 with open(fn_tmp, 'wb') as tmpfile:
                     tmpfile.write(blob)
-                if six.PY2:
-                    os.rename(fn_tmp, self._filename)
-                else:
-                    os.replace(fn_tmp, self._filename)
+                os.replace(fn_tmp, self._filename)
             else:
                 with open(self._filename, 'wb') as file:
                     file.write(blob)
 
+    def reset(self, data):
+        """Replace the document contents with data."""
+        if isinstance(data, Mapping):
+            with self._suspend_sync():
+                backup = copy(self._data)
+                try:
+                    self._data = {
+                        self._validate_key(k): self._dfs_convert(v)
+                        for k, v in data.items()
+                    }
+                    self._save()
+                except BaseException:  # rollback
+                    self._data = backup
+                    raise
+        else:
+            raise ValueError("The document must be a mapping.")
+
     @contextmanager
     def buffered(self):
+        """Context manager for buffering read and write operations.
+
+        This context manager activates the "buffered" mode, which
+        means that all read operations are cached, and all write operations
+        are deferred until the buffered mode is deactivated.
+        """
         buffered_dict = BufferedSyncedAttrDict(self, parent=self)
         yield buffered_dict
         buffered_dict.flush()
 
 
 class BufferedSyncedAttrDict(SyncedAttrDict):
+    """Buffered :class:`~.SyncedAttrDict`.
 
-    def load(self):
+    Saves all changes in memory but does not write them to disk until :meth:`~.flush` is called.
+    """
+
+    def load(self):  # noqa: D102
         pass
 
-    def save(self):
+    def save(self):  # noqa: D102
         pass
 
     def flush(self):
+        """Save buffered changes to the underlying file."""
         self._parent._save(self())

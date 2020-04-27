@@ -4,17 +4,123 @@ Changelog
 
 The **signac** package follows `semantic versioning <https://semver.org/>`_.
 
-Version 1.0
-===========
+Version 1
+=========
 
-Highlights
-----------
+next
+----
 
- - Native integration of HDF5 files with the ``H5Store`` and ``H5StoreManager``, which are exposed as the ``job.data``, ``job.stores``, ``project.data``, and ``project.stores`` properties respectively.
- - The newly added ``signac.get_job()`` function makes it easier to obtain instances of ``Job`` by calling the function from within a job's workspace directory or by directly providing the path to the job's workspace directory. This is especially useful for interactive work or when accessing jobs which are outside of the current project.
- - Simplified export of project and job data to pandas dataframes *via* the ``to_dataframe()`` function.
- - Projects and job search results are displayed nicely in Jupyter Notebooks.
- - Support for compressed Collection files.
+Added
++++++
+
+ - Type annotations are validated during continuous integration (#313).
+ - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
+ - Allow grouping by variables that are not present in all jobs in the project in ``JobsCursor.groupby`` (#321, #323).
+
+Fixed
++++++
+
+ - Fix the ``signac config verify`` command (previously broken) (#301, #302).
+ - Warnings now appear when raised by the ``signac`` CLI (#317, #308).
+
+Deprecated
+++++++++++
+
+ - Deprecate the ``create_access_modules`` method in ``Project``, to be removed in 2.0 (#303, #308).
+
+
+[1.4.0] -- 2020-02-28
+---------------------
+
+Added
++++++
+
+ - Added Windows to platforms tested with continuous integration (#264, #266).
+ - Add command line option ``-m/--merge`` for ``signac sync`` (#280, #230).
+
+Changed
++++++++
+
+ - Workspace directory is created when ``Project`` is initialized (#267, #271).
+ - Changed testing framework from ``unittest`` to ``pytest`` (#212, #275).
+ - Refactored internal use of deprecated ``get_statepoint`` function (#227, #282).
+
+Fixed
++++++
+
+ - Fixed issues on Windows with ``H5Store``, project import/export, and operations that move files (#264, #266).
+ - Calling ``items`` or ``values`` on ``_SyncedDict`` objects does not mutate nested dictionaries (#234, #269).
+ - Fixed issue with ``project.data`` access from separate instances of ``H5StoreManager`` (#274, #278).
+ - Fixed error when launching ``signac shell`` if permissions are denied for ``.signac_shell_history`` (#279).
+
+Removed
++++++++
+
+ - Removed vendored ``tqdm`` module and replaced it with a requirement (#289).
+ - Removed support for ``rapidjson`` as an alternative JSON library (#285, #287).
+ - Removed tuple of keys implementation of nested dictionaries (#272, #296).
+
+
+[1.3.0] -- 2019-12-20
+---------------------
+
+Added
++++++
+
+ - Official support for Python 3.8 (#258).
+ - Add properties ``Project.id`` and ``Job.id`` (#250).
+ - Add ``signac.diff_jobs`` function to compare two or more state points (#248, #247).
+ - Add function to initialize a sample data space for testing purposes (#215).
+ - Add schema version to ensure compatibility and enable migrations in future package versions (#165, #253).
+
+Changed
++++++++
+
+ - Implemented ``Project.__contains__`` check in constant time (#231).
+
+Fixed
++++++
+
+ - Attempting to create a linked view for a Project on Windows now raises an informative error message (#214, #236).
+ - Project configuration is initialized using ConfigObj, allowing the configuration to include commas and special characters (#251, #252).
+
+Deprecated
+++++++++++
+
+ - Deprecate the ``get_id`` method in ``Project`` and ``Job`` classes in favor of the ``id`` property, to be removed in 2.0 (#250).
+ - In-memory modification of the project configuration, to be removed in 2.0 (#246).
+
+Removed
++++++++
+
+ - Dropped support for Python 2.7 (#232).
+
+
+[1.2.0] -- 2019-07-22
+---------------------
+
+Added
++++++
+
+ - Keep signac shell command history on a per-project basis (#134, #194).
+ - Add ``read_json()`` and ``to_json()`` methods to ``Collection`` class (#104, #200).
+
+Fixed
++++++
+
+ - Fix issue where shallow copies of instances of ``Job`` would behave incorrectly (#153, #207).
+ - Fix issue causing a failure of the automatic conversion of valid key types (#168, #205).
+ - Improve the 'dots in keys' error message to make it easier to fix related issues (#170, #205).
+ - Update the ``__repr__`` and ``__repr_html__`` implementations of the ``Project``, ``Job``, and ``JobsCursor`` classes (#193).
+ - Reduce the logging verbosity about a missing default host key in the configuration (#201).
+ - Fix issue with incorrect detection of dict-like files managed with the ``DictManager`` class (e.g. ``job.stores``) (#203).
+ - Fix issue with generating views from the command line for projects with only one job (#208, #211).
+ - Fix issue with heterogeneous types in state point values that are lists (#209, #210).
+
+Deprecated
+++++++++++
+
+ - Support for Python 2.7 is deprecated with this version and will be removed in the next minor release. See the `Python 3 Statement <https://python3statement.org/>`_.
 
 
 [1.1.0] -- 2019-05-19
@@ -85,17 +191,6 @@ Removed
 
 Version 0.9
 ===========
-
-Highlights
-----------
-
- - Adds persistent state point index caching, which speeds up all functions that require indexing, for example the ``$ signac find`` command.
- - Adds the ``$ signac sync`` tool for synchronization of multiple **signac** projects.
- - Adds the ``$ signac schema`` function for the automatic detection of the implicit schema of a **signac** project.
- - Adds the ``$near`` operator to match numbers with up to a specific precision.
- - Adds functions for the import and export of data spaces.
- - Add functions for the management of data on the project level, as opposed to the job level.
-
 
 [0.9.5] -- 2019-01-31
 ---------------------
@@ -201,14 +296,6 @@ Changed
 
 Version 0.8
 ===========
-
-Highlights
-----------
-
- - Adds boolean and arithmetic operators to search queries.
- - Major revision of the indexing system.
- - Adds ``$ signac document`` command line function.
- - Add the ``signac.Collection`` class for the management of persistent document collections.
 
 [0.8.7] -- 2017-10-05
 ---------------------
@@ -340,18 +427,6 @@ Fixed
 Version 0.7
 ===========
 
-Highlights
-----------
-
- - Add support for Python 3.6, PyPy and PyPy3.
- - Make any instance of ``Project`` behave like an iterable (``for job in project``).
- - Introduction of the ``Job.sp`` attribute to access state point variables.
- - Revision of the linked view function, which now allows the update of previous views.
- - Support for searching by job document keys on the command line.
- - Add functions for moving and cloning jobs.
- - Add functions for changing a job's state point.
- - Enable opening of jobs by *abbreviated id*.
-
 [0.7.1] -- 2017-01-09
 ---------------------
 
@@ -422,12 +497,6 @@ Removed
 
 Version 0.6
 ===========
-
-Highlights
-----------
-
- - General revision of the indexing and export system.
- - General consolidation including the removal of the *conversion framework*.
 
 [0.6.2] -- 2017-12-15
 ---------------------

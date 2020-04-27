@@ -1,7 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
 import os
 import sys
 import shutil
@@ -10,12 +9,16 @@ import json
 import logging
 import getpass
 import difflib
+import atexit
 import code
 import importlib
+import platform
+import warnings
 from rlcompleter import Completer
 import re
 import errno
 from pprint import pprint, pformat
+from tqdm import tqdm
 
 try:
     import readline
@@ -25,11 +28,10 @@ else:
     READLINE = True
 
 from . import Project, get_project, init_project, index
-from . import __version__
+from .version import __version__
 from .common import config
 from .common.configobj import flatten_errors, Section
 from .common.crypt import get_crypt_context, parse_pwhash, get_keyring
-from .common.tqdm import tqdm
 from .contrib.utility import query_yes_no, prompt_password, add_verbosity_argument
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import export_jobs, _SchemaPathEvaluationError
@@ -40,6 +42,7 @@ from .errors import SyncConflict
 from .errors import FileSyncConflict
 from .errors import DocumentSyncConflict
 from .errors import SchemaSyncConflict
+from .diff import diff_jobs
 
 try:
     from .common.host import get_client, get_database, get_credentials, make_uri
@@ -93,7 +96,7 @@ Total transfer volume:       {stats.volume}
 
 
 SHELL_BANNER = """Python {python_version}
-signac {signac_version}
+signac {signac_version} 🎨
 
 Project:\t{project_id}{job_banner}
 Root:\t\t{root_path}
@@ -111,6 +114,9 @@ Synchronize your project with the temporary project, for example with:
 
                     project.sync(tmp_project, recursive=True)
 """
+
+
+warnings.simplefilter("default")
 
 
 def _print_err(msg=None, *args):
@@ -222,7 +228,7 @@ def find_with_filter(args):
 
     f = parse_filter_arg(args.filter)
     df = parse_filter_arg(args.doc_filter)
-    return get_project().find_job_ids(index=index, filter=f, doc_filter=df)
+    return get_project()._find_job_ids(index=index, filter=f, doc_filter=df)
 
 
 def main_project(args):
@@ -382,6 +388,19 @@ def main_find(args):
             raise
 
 
+def main_diff(args):
+    project = get_project()
+
+    jobs = find_with_filter_or_none(args)
+    jobs = (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
+
+    diff = diff_jobs(*jobs)
+
+    for jobid, sp in diff.items():
+        print(jobid)
+        pprint(sp)
+
+
 def main_view(args):
     project = get_project()
     project.create_linked_view(
@@ -507,7 +526,7 @@ def main_sync(args):
             exclude=args.exclude,
             doc_sync=doc_sync,
             selection=selection,
-            check_schema=not args.force,
+            check_schema=not (args.merge or args.force),
             dry_run=args.dry_run,
             parallel=args.parallel,
             deep=args.deep,
@@ -522,17 +541,24 @@ def main_sync(args):
                 print(MSG_SYNC_STATS.format(stats=stats))
     except SchemaSyncConflict as error:
         _print_err(
-            "WARNING: The detected schemas of the two projects differ! "
-            "Use --force to ignore.")
-        only_in_src = error.schema_src.difference(error.schema_dst)
+            "Synchronizing two projects with different schema requires the -m/--merge option.")
+        diff_src = error.schema_src.difference(error.schema_dst)
+        diff_dst = error.schema_dst.difference(error.schema_src)
+        only_in_dst = diff_dst.difference(diff_src)
+        only_in_src = diff_src.difference(diff_src)
+        diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
             keys_formatted = ('.'.join(k) for k in only_in_src)
             _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
-        only_in_dst = error.schema_dst.difference(error.schema_src)
         if only_in_dst:
             keys_formatted = ('.'.join(k) for k in only_in_dst)
             _print_err(
                 "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+        if diff_value:
+            keys_formatted = ('.'.join(k) for k in diff_value)
+            _print_err(
+                "Keys having different values in source and destination: {}"
+                .format(', '.join(keys_formatted)))
     except DocumentSyncConflict as error:
         _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
@@ -670,9 +696,33 @@ def main_update_cache(args):
         _print_err("Updated cache (size={}).".format(n))
 
 
+# UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
+# def main_migrate(args):
+#     "Migrate the project's schema to the current schema version."
+#     from .contrib.migration import apply_migrations
+#     project = get_project(_ignore_schema_version=True)
+#
+#     schema_version = version.parse(SCHEMA_VERSION)
+#     config_schema_version = version.parse(project.config['schema_version'])
+#
+#     if config_schema_version > schema_version:
+#         _print_err(
+#             "The schema version of the project ({}) is newer than the schema "
+#             "version supported by signac version {}: {}. Try updating signac.".format(
+#                 config_schema_version, __version__, schema_version))
+#     elif config_schema_version == schema_version:
+#         _print_err(
+#             "The schema version of the project ({}) is up to date. "
+#             "Nothing to do.".format(config_schema_version))
+#     elif args.yes or query_yes_no(
+#         "Do you want to migrate this project's schema version from '{}' to '{}'? "
+#         "WARNING: THIS PROCESS IS IRREVERSIBLE!".format(
+#             config_schema_version, schema_version), 'no'):
+#         apply_migrations(project)
+#
+#
 def verify_config(cfg, preserve_errors=True):
-    verification = cfg.verify(
-        preserve_errors=preserve_errors, skip_missing=True)
+    verification = cfg.verify(preserve_errors=preserve_errors)
     if verification is True:
         _print_err("Passed.")
     else:
@@ -1000,6 +1050,24 @@ def main_shell(args):
                 interpreter.runsource(args.command, filename="<input>", symbol="exec")
         else:   # interactive
             if READLINE:
+                if 'PyPy' not in platform.python_implementation():
+                    fn_hist = project.fn('.signac_shell_history')
+                    try:
+                        readline.read_history_file(fn_hist)
+                        readline.set_history_length(1000)
+                    except FileNotFoundError:
+                        pass
+                    except PermissionError:
+                        print("Warning: Shell history could not be read from "
+                              "{}.".format(os.path.relpath(fn_hist)))
+
+                    def write_history_file():
+                        try:
+                            readline.write_history_file(fn_hist)
+                        except PermissionError:
+                            print("Warning: Shell history could not be written to "
+                                  "{}.".format(os.path.relpath(fn_hist)))
+                    atexit.register(write_history_file)
                 readline.set_completer(Completer(local_ns).complete)
                 readline.parse_and_bind('tab: complete')
             code.interact(
@@ -1007,7 +1075,7 @@ def main_shell(args):
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
-                    project_id=project.get_id(),
+                    project_id=project.id,
                     job_banner='\nJob:\t\t{job._id}'.format(job=job) if job is not None else '',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
@@ -1086,8 +1154,7 @@ def main():
         'job_id',
         nargs='*',
         type=str,
-        help="One or more job ids. The job corresponding to a job "
-             "id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_statepoint.add_argument(
         '-p', '--pretty',
         type=int,
@@ -1107,6 +1174,40 @@ def main():
         action='store_true',
         help="Sort the state point keys for output.")
     parser_statepoint.set_defaults(func=main_statepoint)
+
+    parser_diff = subparsers.add_parser(
+        'diff',
+        description="Find the difference among job state points.")
+    parser_diff.add_argument(
+        'job_id',
+        nargs='*',
+        type=str,
+        help="One or more job ids. The corresponding jobs must be initialized.")
+    parser_diff.add_argument(
+        '-p', '--pretty',
+        type=int,
+        nargs='?',
+        const=3,
+        help="Print state point in pretty format. "
+             "An optional argument to this flag specifies the maximal "
+             "depth a state point is printed.")
+    parser_diff.add_argument(
+        '-i', '--indent',
+        type=int,
+        nargs='?',
+        const='2',
+        help="Specify the indentation of the JSON formatted state point.")
+    parser_diff.add_argument(
+        '-f', '--filter',
+        type=str,
+        nargs='+',
+        help="Limit the diff to jobs matching this state point filter.")
+    parser_diff.add_argument(
+        '-d', '--doc-filter',
+        type=str,
+        nargs='+',
+        help="Show documents of jobs matching this document filter.")
+    parser_diff.set_defaults(func=main_diff)
 
     parser_document = subparsers.add_parser(
         'document',
@@ -1182,8 +1283,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids of jobs to move. The job corresponding to a "
-             "job id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_move.set_defaults(func=main_move)
 
     parser_clone = subparsers.add_parser('clone')
@@ -1195,8 +1295,7 @@ def main():
         'job_id',
         nargs='+',
         type=str,
-        help="One or more job ids of jobs to clone. The job corresponding to a "
-             "job id must be initialized.")
+        help="One or more job ids. The corresponding jobs must be initialized.")
     parser_clone.set_defaults(func=main_clone)
 
     parser_index = subparsers.add_parser('index')
@@ -1501,6 +1600,10 @@ job documents."
         action='store_true',
         help="Ignore all warnings, just synchronize.")
     parser_sync.add_argument(
+        '-m', '--merge',
+        action='store_true',
+        help="Clone all the jobs that are not present in destination from source.")
+    parser_sync.add_argument(
         '--parallel',
         type=int,
         nargs='?',
@@ -1704,6 +1807,13 @@ This feature is still experimental and may be removed in future versions.""")
     parser_verify = config_subparsers.add_parser('verify')
     parser_verify.set_defaults(func=main_config_verify)
 
+# UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
+#     parser_migrate = subparsers.add_parser(
+#         'migrate',
+#         description="Irreversibly migrate this project's schema version to the "
+#                     "supported version.")
+#     parser_migrate.set_defaults(func=main_migrate)
+#
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
     # of the other required arguments.

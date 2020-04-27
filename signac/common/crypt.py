@@ -3,7 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import base64
 
-from . import six
+from deprecation import deprecated
+from ..version import __version__
 
 try:
     from passlib.context import CryptContext
@@ -27,7 +28,13 @@ else:
         "Return the system user keyring."
         return keyring.get_keyring()
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 class SimpleKeyring(object):
     """Simple in-memory keyring for caching."""
 
@@ -38,19 +45,13 @@ class SimpleKeyring(object):
     def _encode(cls, msg):
         if msg is None:
             return
-        if six.PY2:
-            return base64.b64encode(msg)
-        else:
-            return base64.b64encode(msg.encode())
+        return base64.b64encode(msg.encode())
 
     @classmethod
     def _decode(cls, msg):
         if msg is None:
             return
-        if six.PY2:
-            return base64.b64decode(msg)
-        else:
-            return base64.b64decode(msg).decode()
+        return base64.b64decode(msg).decode()
 
     def __contains__(self, key):
         return key in self._cache
@@ -65,6 +66,8 @@ class SimpleKeyring(object):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The crypt module is deprecated.")
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
     if get_crypt_context().identify(pwhash) == 'bcrypt':

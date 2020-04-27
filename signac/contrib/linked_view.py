@@ -4,9 +4,8 @@
 import os
 import errno
 import logging
+import sys
 from itertools import chain
-
-from ..common import six
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +14,12 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     """Create or update a persistent linked view of the selected data space."""
     from .import_export import _make_path_function
     from .import_export import _check_directory_structure_validity
+
+    # Windows does not support the creation of symbolic links.
+    if sys.platform == 'win32':
+        raise OSError("signac cannot create linked views on Windows, because "
+                      "symbolic links are not supported by the platform.")
+
     if prefix is None:
         prefix = 'view'
 
@@ -33,6 +38,28 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         jobs = list(project.open_job(id=job_id) for job_id in job_ids)
         if not job_ids.issubset({doc['_id'] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
+
+    key_list = [
+            k for job in jobs for k in job.statepoint().keys()
+            ]
+    value_list = [
+            v for job in jobs for v in job.statepoint().values()
+            ]
+    item_list = key_list + value_list
+    bad_chars = [os.sep, " ", "*"]
+    bad_items = [
+            item for item in item_list for char in bad_chars
+            if isinstance(item, str) and char in item
+            ]
+
+    if any(bad_items):
+        err_msg = " ".join([
+            "In order to use view, statepoints should not contain {}:".format(
+                bad_chars
+            ),
+            *bad_items
+        ])
+        raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
 
@@ -107,10 +134,7 @@ def _make_link(src, dst):
         if error.errno != errno.EEXIST:
             raise
     try:
-        if six.PY2:
-            os.symlink(src, dst)
-        else:
-            os.symlink(src, dst, target_is_directory=True)
+        os.symlink(src, dst, target_is_directory=True)
     except OSError as error:
         if error.errno == errno.EEXIST:
             if os.path.realpath(src) == os.path.realpath(dst):

@@ -15,7 +15,7 @@ Code contributions
 
 This project is open-source.
 Users are highly encouraged to contribute directly by implementing new features and fixing issues.
-Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <http://docs.signac.io/en/latest/community.html#contributions>`_.
+Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <http://docs.signac.io/en/latest/community.html#contributions>`__.
 
 A brief summary of contributing guidelines are outlined in the `CONTRIBUTING.md <https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md>`_ file as part of the repository.
 All contributors must agree to the `Contributor Agreement <https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md>`_ before their pull request can be merged.
@@ -32,13 +32,13 @@ for example with `venv <https://docs.python.org/3/library/venv.html>`_:
 
     ~ $ python -m venv ~/envs/signac-dev
     ~ $ source ~/envs/signac-dev/bin/activate
-    (signac-dev) ~ $ pip install six flake8
+    (signac-dev) ~ $ pip install flake8
 
 or alternatively with `conda <https://conda.io/docs/>`_:
 
 .. code-block:: bash
 
-    ~ $ conda create -n signac-dev python=3 six flake8
+    ~ $ conda create -n signac-dev python=3 flake8
     ~ $ activate signac-dev
 
 Then clone your fork and install the package from source with:
@@ -91,7 +91,7 @@ To run tests, execute:
 
 .. code-block:: bash
 
-    (signac-dev) signac $ python -m unittest discover tests/
+    (signac-dev) signac $ python -m pytest tests/
 
 
 Building documentation
@@ -113,7 +113,7 @@ Then you can build the documentation from within the ``doc/`` directory as part 
 .. note::
 
     Documentation as part of the package should be largely limited to the API.
-    More elaborate documentation on how to integrate **signac** into a computational workflow should be documented as part of the `framework documentation <https://docs.signac.io>`_, which is maintained `here <https://github.com/glotzerlab/signac-docs>`_.
+    More elaborate documentation on how to integrate **signac** into a computational workflow should be documented as part of the `framework documentation <https://docs.signac.io>`_, which is maintained `here <https://github.com/glotzerlab/signac-docs>`__.
 
 
 Updating the changelog

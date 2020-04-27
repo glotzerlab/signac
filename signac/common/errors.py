@@ -1,7 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from . import six
 from ..core.errors import Error
 
 
@@ -21,14 +20,6 @@ class AuthenticationError(Error, RuntimeError):
 
 class ExportError(Error, RuntimeError):
     pass
-
-
-if six.PY2:
-    class FileNotFoundError(Error, IOError):
-        pass
-else:
-    class FileNotFoundError(Error, FileNotFoundError):
-        pass
 
 
 class FetchError(FileNotFoundError):

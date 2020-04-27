@@ -10,17 +10,14 @@ import warnings
 import errno
 from time import sleep
 from collections import defaultdict
+from deprecation import deprecated
+import importlib.machinery
 
+from ..version import __version__
 from ..core import json
-from ..common import six
 from ..common import errors
-from .utility import walkdepth, is_string
+from .utility import walkdepth
 from .hashing import calc_id
-
-if six.PY2:
-    import imp
-else:
-    import importlib.machinery
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +27,13 @@ KEY_FILENAME = 'filename'
 KEY_PATH = 'root'
 KEY_PAYLOAD = 'format'
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def md5(file):
     "Calculate and return the md5 hash value for the file data."
     m = hashlib.md5()
@@ -44,6 +47,7 @@ def _is_blank_module(module):
         return not bool(file.read().strip())
 
 
+# this class is deprecated
 class BaseCrawler(object):
     """Crawl through `root` and index all files.
 
@@ -51,6 +55,8 @@ class BaseCrawler(object):
     to a database for easier access."""
     tags = None
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
 
@@ -124,6 +130,7 @@ class BaseCrawler(object):
         return doc
 
 
+# this class is deprecated
 class RegexFileCrawler(BaseCrawler):
     r"""Generate documents from filenames and associate each file with a data type.
 
@@ -152,9 +159,11 @@ class RegexFileCrawler(BaseCrawler):
         MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
     """
     "Mapping of compiled regex objects and associated formats."
-    definitions = dict()
+    definitions = dict()  # type: ignore
 
     @classmethod
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
@@ -164,17 +173,15 @@ class RegexFileCrawler(BaseCrawler):
         :param format_: The format associated with all matching files.
         :type format_: :class:`object`
         """
-        if six.PY2:
-            if isinstance(regex, basestring):  # noqa
-                regex = re.compile(regex)
-        else:
-            if isinstance(regex, str):
-                regex = re.compile(regex)
+        if isinstance(regex, str):
+            regex = re.compile(regex)
         definitions = dict(cls.definitions)
         definitions[regex] = format_
         cls.definitions = definitions
 
     @classmethod
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def compute_file_id(cls, doc, file):
         """Compute the file id for a given doc and the associated file.
 
@@ -185,6 +192,8 @@ class RegexFileCrawler(BaseCrawler):
         file_id = doc['md5'] = md5(file)
         return file_id
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
 
@@ -213,6 +222,8 @@ class RegexFileCrawler(BaseCrawler):
                     doc['file_id'] = self.compute_file_id(doc, file)
                 yield doc
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def fetch(self, doc, mode='r'):
         """Fetch the data associated with `doc`.
 
@@ -227,7 +238,7 @@ class RegexFileCrawler(BaseCrawler):
                 ffn = os.path.join(self.root, fn)
                 m = regex.match(ffn)
                 if m:
-                    if is_string(format_):
+                    if isinstance(format_, str):
                         return open(ffn, mode=mode)
                     else:
                         for meth in ('read', 'close'):
@@ -241,6 +252,8 @@ class RegexFileCrawler(BaseCrawler):
         else:
             raise errors.FetchError("Insufficient meta data in doc '{}'.".format(doc))
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
 
@@ -276,6 +289,8 @@ class RegexFileCrawler(BaseCrawler):
                         result[key] = float(value)
         return super(RegexFileCrawler, self).process(result, dirpath, fn)
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def crawl(self, depth=0):
         if self.definitions:
             for doc in super(RegexFileCrawler, self).crawl(depth=depth):
@@ -284,6 +299,8 @@ class RegexFileCrawler(BaseCrawler):
             return
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 class JSONCrawler(BaseCrawler):
     encoding = 'utf-8'
     fn_regex = r'.*\.json'
@@ -345,6 +362,7 @@ def _index_signac_project_workspace(root,
         logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
 
 
+# this class is deprecated
 class SignacProjectCrawler(RegexFileCrawler):
     """Index a signac project workspace.
 
@@ -362,6 +380,8 @@ class SignacProjectCrawler(RegexFileCrawler):
     fn_job_document = 'signac_job_document.json'
     signac_id_alias = '_id'
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root):
         from .project import get_project
         root = get_project(root=root).workspace()
@@ -410,6 +430,7 @@ class SignacProjectCrawler(RegexFileCrawler):
             yield doc
 
 
+# this class is deprecated
 class MasterCrawler(BaseCrawler):
     r"""Compiles a master index from indexes defined in access modules.
 
@@ -471,13 +492,15 @@ class MasterCrawler(BaseCrawler):
     FN_ACCESS_MODULE = 'signac_access.py'
     "The filename of modules containing crawler definitions."
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="The indexing module is deprecated.")
     def __init__(self, root, raise_on_error=False):
         self.raise_on_error = raise_on_error
         super(MasterCrawler, self).__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
-        module = _load_crawler(name)
+        module = importlib.machinery.SourceFileLoader(name, name).load_module()
 
         logger.info("Crawling from module '{}'.".format(module.__file__))
 
@@ -540,13 +563,8 @@ class MasterCrawler(BaseCrawler):
                 logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
 
 
-def _load_crawler(name):
-    if six.PY2:
-        return imp.load_source(os.path.splitext(name)[0], name)
-    else:
-        return importlib.machinery.SourceFileLoader(name, name).load_module()
-
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_local=False):
     """Fetch the file associated with this document or file id.
 
@@ -601,6 +619,8 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
                 raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def fetched(docs):
     """Iterate over documents and yield associated files."""
     for doc in docs:
@@ -614,6 +634,8 @@ def _export_to_mirror(file, file_id, mirror):
         dst.write(file.read())
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     """Export a file associated with doc to mirror.
 
@@ -648,6 +670,8 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
         raise errors.ExportError(doc)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     """Export one document to index and an optionally associated file to mirrors.
 
@@ -671,6 +695,8 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
         return doc['_id'], None
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def export(docs, index, mirrors=None, update=False,
            num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
@@ -765,6 +791,8 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
         raise errors.ExportError()
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100):
     """Optimized :py:func:`~.export` function for pymongo index collections.
 
@@ -827,6 +855,8 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
                 "The exported docs sequence is empty! Unable to update!")
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def index_files(root='.', formats=None, depth=0):
     r"""Generate a file index.
 
@@ -885,12 +915,8 @@ def index_files(root='.', formats=None, depth=0):
     """
     if formats is None:
         formats = {'.*': 'File'}
-    if six.PY2:
-        if isinstance(formats, basestring):  # noqa
-            formats = {formats: 'File'}
-    else:
-        if isinstance(formats, str):
-            formats = {formats: 'File'}
+    if isinstance(formats, str):
+        formats = {formats: 'File'}
 
     class Crawler(RegexFileCrawler):
         pass
@@ -902,6 +928,8 @@ def index_files(root='.', formats=None, depth=0):
         yield doc
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The indexing module is deprecated.")
 def index(root='.', tags=None, depth=0, **kwargs):
     r"""Generate a master index.
 

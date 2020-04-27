@@ -51,6 +51,7 @@ The Project
     Project.groupby
     Project.groupbydoc
     Project.import_from
+    Project.id
     Project.index
     Project.isfile
     Project.min_len_unique_id
@@ -60,6 +61,7 @@ The Project
     Project.repair
     Project.reset_statepoint
     Project.root_directory
+    Project.stores
     Project.sync
     Project.update_cache
     Project.update_statepoint
@@ -92,6 +94,7 @@ The Job class
     Job.document
     Job.fn
     Job.get_id
+    Job.id
     Job.init
     Job.isfile
     Job.move
@@ -143,7 +146,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 The H5StoreManager
 ==================
 
-This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` aatribute, but can also be used stand-alone:
+This class implements the interface to the job's :attr:`~signac.contrib.job.Job.stores` attribute, but can also be used stand-alone:
 
 .. autoclass:: H5StoreManager
     :members:

@@ -1,7 +1,6 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
 import logging
 import sys
 import os
@@ -13,9 +12,11 @@ import tarfile
 from time import time
 from datetime import timedelta
 from contextlib import contextmanager
+from deprecation import deprecated
+from tempfile import TemporaryDirectory
+from collections.abc import Mapping
 
-from ..common import six
-from ..common.tempdir import TemporaryDirectory
+from ..version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,7 @@ def query_yes_no(question, default="yes"):
 
     while True:
         sys.stdout.write(question + prompt)
-        # Compatible with python 2.7 and 3.x
-        choice = raw_input().lower() if sys.hexversion < 0x03000000 else input().lower()  # NOQA
+        choice = input().lower()
         if default is not None and choice == '':
             return valid[default]
         elif choice in valid:
@@ -77,6 +77,8 @@ def add_verbosity_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="This function is obsolete.")
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
@@ -98,6 +100,8 @@ def add_verbosity_action_argument(parser, default=0):
     )
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="This function is obsolete.")
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
@@ -111,8 +115,11 @@ def set_verbosity_level(verbosity, default=None, increment=10):
         level=default - increment * verbosity)
 
 
+# this class is deprecated
 class VerbosityAction(argparse.Action):
 
+    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+                details="This class is obsolete")
     def __call__(self, parser, args, values, option_string=None):
         if values is None:
             values = '1'
@@ -123,6 +130,8 @@ class VerbosityAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction):
 
     def __call__(self, parser, args, values, option_string=None):
@@ -132,6 +141,8 @@ class VerbosityLoggingConfigAction(VerbosityAction):
         set_verbosity_level(v_level)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The EmptyIsTrue class is obsolete.")
 class EmptyIsTrue(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
@@ -140,6 +151,8 @@ class EmptyIsTrue(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The SmartFormatter class is obsolete.")
 class SmartFormatter(argparse.HelpFormatter):
 
     def _split_lines(self, text, width):
@@ -172,13 +185,6 @@ def _mkdir_p(path):
     except OSError as error:
         if not (error.errno == errno.EEXIST and os.path.isdir(path)):
             raise
-
-
-def is_string(s):
-    if six.PY2:
-        return isinstance(s, basestring)  # noqa
-    else:
-        return isinstance(s, str)
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):
@@ -222,3 +228,65 @@ def _extract(filename):
                 yield tmpdir
         else:
             raise RuntimeError("Unknown file type: '{}'.".format(filename))
+
+
+def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
+    """Convert dotted keys in the state point dict to a nested dict.
+
+    :param dotted_dict: A mapping with dots/delimiter_nested in its keys, e.g. {'a.b': 'c'}.
+    :param delimiter_nested: A string delimiter between keys, defaults to '.'.
+    :returns: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    """
+    nested_dict = dict()
+    for key, value in dotted_dict.items():
+        tokens = key.split(delimiter_nested)
+        if len(tokens) > 1:
+            tmp = nested_dict.setdefault(tokens[0], dict())
+            for token in tokens[1:-1]:
+                tmp = tmp.setdefault(token, dict())
+            tmp[tokens[-1]] = value
+        else:
+            nested_dict[tokens[0]] = value
+    return nested_dict
+
+
+class _hashable_dict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+def _to_hashable(l):
+    if type(l) is list:
+        return tuple(_to_hashable(_) for _ in l)
+    elif type(l) is dict:
+        return _hashable_dict(l)
+    else:
+        return l
+
+
+def _encode_tree(x):
+    if type(x) is list:
+        return _to_hashable(x)
+    else:
+        return x
+
+
+def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
+    """Generate tuples of key in dotted string format and value from nested dict.
+
+    :param t: A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+    :param encode: By default, values are encoded to be hashable. Use ``None`` to skip encoding.
+    :yields: Tuples of dotted key and value e.g. ('a.b', 'c').
+    """
+    if encode is not None:
+        t = encode(t)
+    if isinstance(t, Mapping):
+        if t:
+            for k in t:
+                k_ = k if key is None else '.'.join((key, k))
+                for k__, v in _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_):
+                    yield k__, v
+        elif key is not None:
+            yield key, t
+    else:
+        yield key, t

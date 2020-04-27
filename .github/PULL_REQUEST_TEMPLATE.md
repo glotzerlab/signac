@@ -21,11 +21,14 @@
 <!-- If you are unsure about any of these items, do not hesitate to ask! -->
 - [ ] I am familiar with the [**Contributing Guidelines**](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md).
 - [ ] I agree with the terms of the [**Contributor Agreement**](https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md).
-- [ ] My name is on the [list of contributors](https://github.com/glotzerlab/signac/blob/master/contributors.txt).
+- [ ] My name is on the [list of contributors](https://github.com/glotzerlab/signac/blob/master/contributors.yaml).
 - [ ] My code follows the [code style guideline](https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md#code-style) of this project.
 - [ ] The changes introduced by this pull request are covered by existing or newly introduced tests.
 
 If necessary:
 - [ ] I have updated the API documentation as part of the package doc-strings.
 - [ ] I have created a separate pull request to update the [framework documentation](https://docs.signac.io/) on [signac-docs](https://github.com/glotzerlab/signac-docs) and linked it here.
-- [ ] I have updated the [changelog](https://github.com/glotzerlab/signac/blob/master/changelog.txt).
+- [ ] I have updated the [changelog](https://github.com/glotzerlab/signac/blob/master/changelog.txt) and added all related issue and pull request numbers for future reference (if applicable). See example below.
+
+
+Example for a changelog entry: `Fix issue with launching rockets to the moon (#101, #212).`

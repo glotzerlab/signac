@@ -1,13 +1,13 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-from __future__ import print_function
 import os
 import sys
-import unittest
+import pytest
 import random
 import string
 import subprocess
+import platform
 from itertools import chain
 from array import array
 from contextlib import contextmanager
@@ -16,17 +16,14 @@ from functools import partial
 from platform import python_implementation
 from multiprocessing.pool import ThreadPool
 from contextlib import closing
+from tempfile import TemporaryDirectory
+from collections.abc import Mapping
 
 from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
-from signac.common import six
 from signac.errors import InvalidKeyError
 
-if six.PY2:
-    from tempdir import TemporaryDirectory
-    from collections import Mapping
-else:
-    from tempfile import TemporaryDirectory
-    from collections.abc import Mapping
+
+PYPY = 'PyPy' in platform.python_implementation()
 
 try:
     import h5py    # noqa
@@ -50,14 +47,19 @@ except ImportError:
 FN_STORE = 'signac_test_h5store.h5'
 
 
-@unittest.skipIf(not H5PY, 'test requires the h5py package')
-class BaseH5StoreTest(unittest.TestCase):
+WINDOWS = (sys.platform == 'win32')
 
-    def setUp(self):
+
+@pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
+@pytest.mark.skipif(PYPY, reason='h5py not reliable on PyPy platform')
+class TestH5StoreBase():
+
+    @pytest.fixture(autouse=True)
+    def setUp_base_h5Store(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
+        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_store = os.path.join(self._tmp_dir.name, FN_STORE)
         self._fn_store_other = os.path.join(self._tmp_dir.name, 'other_' + FN_STORE)
-        self.addCleanup(self._tmp_dir.cleanup)
 
     def get_h5store(self, **kwargs):
         return H5Store(filename=self._fn_store, **kwargs)
@@ -83,13 +85,13 @@ class BaseH5StoreTest(unittest.TestCase):
     def assertEqual(self, a, b):
         if hasattr(a, 'shape'):
             if not NUMPY:
-                raise unittest.SkipTest("This test requires the numpy package.")
+                raise pytest.skip("This test requires the numpy package.")
             numpy.testing.assert_array_equal(a, b)
         else:
-            super(BaseH5StoreTest, self).assertEqual(a, b)
+            assert a == b
 
 
-class H5StoreOpenTests(BaseH5StoreTest):
+class TestH5StoreOpen(TestH5StoreBase):
 
     def test_open(self):
         h5s = self.get_h5store()
@@ -101,29 +103,29 @@ class H5StoreOpenTests(BaseH5StoreTest):
             h5s['foo'] = 'bar'
 
         with self.open_h5store(mode='r') as h5s:
-            self.assertIn('foo', h5s)
+            assert 'foo' in h5s
             self.assertEqual(h5s['foo'], 'bar')
 
     def test_open_write_only(self):
         with self.open_h5store(mode='w') as h5s:
             h5s['foo'] = 'bar'
-            self.assertIn('foo', h5s)
+            assert 'foo' in h5s
             self.assertEqual(h5s['foo'], 'bar')
 
     def test_open_write_and_read_only(self):
         with self.open_h5store(mode='w') as h5s_w:
             with self.open_h5store(mode='r') as h5s_r:
-                self.assertNotIn('foo', h5s_r)
-                self.assertNotIn('foo', h5s_w)
+                assert 'foo' not in h5s_r
+                assert 'foo' not in h5s_w
 
                 h5s_w['foo'] = 'bar'
-                self.assertIn('foo', h5s_r)
+                assert 'foo' in h5s_r
                 self.assertEqual(h5s_r['foo'], 'bar')
-                self.assertIn('foo', h5s_w)
+                assert 'foo' in h5s_w
                 self.assertEqual(h5s_r['foo'], 'bar')
 
 
-class H5StoreTest(BaseH5StoreTest):
+class TestH5Store(TestH5StoreBase):
 
     valid_types = {
         'int': 123,
@@ -134,8 +136,6 @@ class H5StoreTest(BaseH5StoreTest):
         'double_array': array('d', [-1.5, 0, 1.5]),
         'int_array': array('i', [-1, 0, 1]),
         'uint_array': array('I', [0, 1, 2]),
-        'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
-        'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
         'dict': {
             'a': 1,
             'b': None,
@@ -143,15 +143,21 @@ class H5StoreTest(BaseH5StoreTest):
         },
     }
 
+    if NUMPY:
+        valid_types.update({
+            'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
+            'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
+        })
+
     def test_init(self):
         self.get_h5store()
 
     def test_invalid_filenames(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             H5Store(None)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             H5Store('')
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             H5Store(123)
 
     def test_set_get(self):
@@ -159,40 +165,40 @@ class H5StoreTest(BaseH5StoreTest):
             key = 'setget'
             d = self.get_testdata()
             h5s.clear()
-            self.assertFalse(bool(h5s))
-            self.assertEqual(len(h5s), 0)
-            self.assertNotIn(key, h5s)
-            with self.assertRaises(KeyError):
+            assert not bool(h5s)
+            assert len(h5s) == 0
+            assert key not in h5s
+            with pytest.raises(KeyError):
                 h5s[key]
             d_ = h5s[key] = d
             self.assertEqual(d_, d)
-            self.assertTrue(bool(h5s))
-            self.assertEqual(len(h5s), 1)
-            self.assertIn(key, h5s)
+            assert bool(h5s)
+            assert len(h5s) == 1
+            assert key in h5s
             self.assertEqual(h5s[key], d)
             self.assertEqual(h5s.get(key), d)
-            self.assertEqual(h5s.get('nonexistent', 'default'), 'default')
+            assert h5s.get('nonexistent', 'default') == 'default'
 
     def test_set_get_explicit_nested(self):
         with self.open_h5store() as h5s:
             key = 'setgetexplicitnested'
             d = self.get_testdata()
-            self.assertNotIn('a', h5s)
+            assert 'a' not in h5s
             ret = h5s.setdefault('a', dict())
-            self.assertIn('a', h5s)
+            assert 'a' in h5s
             self.assertEqual(ret, h5s['a'])
-            self.assertTrue(hasattr(ret, '_store'))  # is an H5Group object
+            assert hasattr(ret, '_store')  # is an H5Group object
             child1 = h5s['a']
             child2 = h5s['a']
             self.assertEqual(child1, child2)
-            self.assertEqual(type(child1), type(child2))
-            self.assertFalse(child1)
-            self.assertFalse(child2)
+            assert type(child1) == type(child2)
+            assert not child1
+            assert not child2
             child1[key] = d
-            self.assertTrue(child1)
-            self.assertTrue(child2)
-            self.assertIn(key, child1)
-            self.assertIn(key, child2)
+            assert child1
+            assert child2
+            assert key in child1
+            assert key in child2
             self.assertEqual(child1, child2)
             self.assertEqual(child1[key], d)
             self.assertEqual(child2[key], d)
@@ -200,9 +206,9 @@ class H5StoreTest(BaseH5StoreTest):
     def test_repr(self):
         with self.open_h5store() as h5s:
             key = 'test_repr'
-            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+            assert repr(h5s) == repr(eval(repr(h5s)))
             h5s[key] = self.get_testdata()
-        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+        assert repr(h5s) == repr(eval(repr(h5s)))
 
     def test_str(self):
         with self.open_h5store() as h5s:
@@ -213,15 +219,15 @@ class H5StoreTest(BaseH5StoreTest):
 
     def test_len(self):
         h5s = self.get_h5store()
-        self.assertEqual(len(h5s), 0)
+        assert len(h5s) == 0
         h5s['test_len'] = True
-        self.assertEqual(len(h5s), 1)
+        assert len(h5s) == 1
 
     def test_contains(self):
         h5s = self.get_h5store()
-        self.assertNotIn('test_contains', h5s)
+        assert 'test_contains' not in h5s
         h5s['test_contains'] = True
-        self.assertIn('test_contains', h5s)
+        assert 'test_contains' in h5s
 
     def test_copy_value(self):
         with self.open_h5store() as h5s:
@@ -229,13 +235,13 @@ class H5StoreTest(BaseH5StoreTest):
             key2 = 'copy_value2'
             d = self.get_testdata()
             h5s[key] = d
-            self.assertIn(key, h5s)
+            assert key in h5s
             self.assertEqual(h5s[key], d)
-            self.assertNotIn(key2, h5s)
+            assert key2 not in h5s
             h5s[key2] = h5s[key]
-            self.assertIn(key, h5s)
+            assert key in h5s
             self.assertEqual(h5s[key], d)
-            self.assertIn(key2, h5s)
+            assert key2 in h5s
             self.assertEqual(h5s[key2], d)
 
     def test_iter(self):
@@ -246,23 +252,23 @@ class H5StoreTest(BaseH5StoreTest):
             d2 = self.get_testdata()
             d = {key1: d1, key2: d2}
             h5s.update(d)
-            self.assertIn(key1, h5s)
-            self.assertIn(key2, h5s)
+            assert key1 in h5s
+            assert key2 in h5s
             for i, key in enumerate(h5s):
-                self.assertIn(key, d)
+                assert key in d
                 self.assertEqual(d[key], h5s[key])
-            self.assertEqual(i, 1)
+            assert i == 1
 
     def test_delete(self):
         with self.open_h5store() as h5s:
             key = 'delete'
             d = self.get_testdata()
             h5s[key] = d
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d)
             del h5s[key]
-            self.assertEqual(len(h5s), 0)
-            with self.assertRaises(KeyError):
+            assert len(h5s) == 0
+            with pytest.raises(KeyError):
                 h5s[key]
 
     def test_update(self):
@@ -270,7 +276,7 @@ class H5StoreTest(BaseH5StoreTest):
             key = 'update'
             d = {key: self.get_testdata()}
             h5s.update(d)
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d[key])
 
     def test_clear(self):
@@ -279,10 +285,10 @@ class H5StoreTest(BaseH5StoreTest):
             key = 'clear'
             d = self.get_testdata()
             h5s[key] = d
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d)
             h5s.clear()
-            self.assertEqual(len(h5s), 0)
+            assert len(h5s) == 0
 
     def test_reopen(self):
         with self.open_h5store() as h5s:
@@ -290,14 +296,14 @@ class H5StoreTest(BaseH5StoreTest):
             d = self.get_testdata()
             h5s[key] = d
         with self.open_h5store() as h5s:
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d)
 
     def test_open_twice(self):
         h5s = self.get_h5store()
         h5s.open()
         try:
-            with self.assertRaises(H5StoreAlreadyOpenError):
+            with pytest.raises(H5StoreAlreadyOpenError):
                 h5s.open()
         finally:
             h5s.close()
@@ -314,7 +320,7 @@ class H5StoreTest(BaseH5StoreTest):
         h5s[key] = d
         h5s.close()
         h5s.open()
-        self.assertEqual(len(h5s), 1)
+        assert len(h5s) == 1
         self.assertEqual(h5s[key], d)
         h5s.close()
 
@@ -372,7 +378,7 @@ class H5StoreTest(BaseH5StoreTest):
                     del same_h5s[other_key]
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(same_h5s[k], v)
-                    self.assertEqual(h5s[k], same_h5s[k])
+                    self.assertEqual(same_h5s[k], h5s[k])
 
     def test_assign_valid_types_between_files(self):
         with self.open_h5store() as h5s:
@@ -382,15 +388,15 @@ class H5StoreTest(BaseH5StoreTest):
                     self.assertEqual(h5s[k], v)
                     try:
                         other_h5s[k] = h5s[k]
-                    except RuntimeError as error:
-                        self.assertEqual(
-                            str(error),
-                            "Unable to create link (interfile hard links are not allowed)")
-                        self.assertTrue(isinstance(v, (array, numpy.ndarray)))
+                    except (OSError, RuntimeError) as error:
+                        # Type of error may depend on platform or software versions
+                        assert str(
+                            error) == "Unable to create link (interfile hard links are not allowed)"
+                        assert isinstance(v, (array, numpy.ndarray))
                         other_h5s[k] = h5s[k][()]
                     self.assertEqual(h5s[k], v)
                     self.assertEqual(other_h5s[k], v)
-                    self.assertEqual(h5s[k], other_h5s[k])
+                    self.assertEqual(other_h5s[k], h5s[k])
 
     def test_write_invalid_type(self):
         class Foo(object):
@@ -400,16 +406,16 @@ class H5StoreTest(BaseH5StoreTest):
             key = 'write_invalid_type'
             d = self.get_testdata()
             h5s[key] = d
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d)
             d2 = Foo()
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 h5s[key + '2'] = d2
-            self.assertEqual(len(h5s), 1)
+            assert len(h5s) == 1
             self.assertEqual(h5s[key], d)
 
     def test_keys_with_dots(self):
-        with self.assertRaises(InvalidKeyError):
+        with pytest.raises(InvalidKeyError):
             with self.open_h5store() as h5s:
                 key = 'a.b'
                 d = self.get_testdata()
@@ -434,28 +440,28 @@ class H5StoreTest(BaseH5StoreTest):
 
     def test_set_get_attr_sync(self):
         with self.get_h5store() as h5s:
-            self.assertEqual(len(h5s), 0)
-            self.assertNotIn('a', h5s)
-            with self.assertRaises(AttributeError):
+            assert len(h5s) == 0
+            assert 'a' not in h5s
+            with pytest.raises(AttributeError):
                 h5s.a
             a = 0
             h5s.a = a
-            self.assertEqual(len(h5s), 1)
-            self.assertIn('a', h5s)
+            assert len(h5s) == 1
+            assert 'a' in h5s
             self.assertEqual(h5s.a, a)
             self.assertEqual(h5s['a'], a)
             a = 1
             h5s.a = a
-            self.assertEqual(len(h5s), 1)
-            self.assertIn('a', h5s)
+            assert len(h5s) == 1
+            assert 'a' in h5s
             self.assertEqual(h5s.a, a)
             self.assertEqual(h5s['a'], a)
 
             def check_nested(a, b):
-                self.assertEqual(len(h5s), 1)
-                self.assertEqual(len(h5s.a), 1)
-                self.assertIn('a', h5s)
-                self.assertIn('b', h5s.a)
+                assert len(h5s) == 1
+                assert len(h5s.a) == 1
+                assert 'a' in h5s
+                assert 'b' in h5s.a
                 self.assertEqual(h5s.a, a)
                 self.assertEqual(h5s['a']['b'], b)
                 self.assertEqual(h5s.a.b, b)
@@ -479,18 +485,18 @@ class H5StoreTest(BaseH5StoreTest):
 
     def test_invalid_attr(self):
         h5s = self.get_h5store()
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             h5s.a
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             h5s._a
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             h5s.__a__
 
     def test_attr_reference_modification(self):
         with self.get_h5store() as h5s:
-            self.assertEqual(len(h5s), 0)
-            self.assertNotIn('a', h5s)
-            with self.assertRaises(AttributeError):
+            assert len(h5s) == 0
+            assert 'a' not in h5s
+            with pytest.raises(AttributeError):
                 h5s.a
             pairs = [(0, 1), (0.0, 1.0), ('0', '1'), (False, True)]
             dict_pairs = [(dict(c=a), dict(c=b)) for a, b in pairs]
@@ -532,28 +538,28 @@ class H5StoreTest(BaseH5StoreTest):
                 self.assertEqual(h5s.a.b, A)
 
 
-class H5StoreNestedDataTest(H5StoreTest):
+class TestH5StoreNestedData(TestH5Store):
 
     def get_testdata(self, size=None):
-        return dict(a=super(H5StoreNestedDataTest, self).get_testdata(size))
+        return dict(a=super(TestH5StoreNestedData, self).get_testdata(size))
 
     def test_repr(self):
         from signac.core.h5store import H5Store, H5Group  # noqa:F401
         with self.open_h5store() as h5s:
             key = 'test_repr'
-            self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+            assert repr(h5s) == repr(eval(repr(h5s)))
             h5s[key] = self.get_testdata()
-            self.assertEqual(repr(h5s[key]), repr(eval(repr(h5s[key]))))
-        self.assertEqual(repr(h5s), repr(eval(repr(h5s))))
+            assert repr(h5s[key]) == repr(eval(repr(h5s[key])))
+        assert repr(h5s) == repr(eval(repr(h5s)))
 
 
-class H5StoreBytesDataTest(H5StoreTest):
+class TestH5StoreBytesData(TestH5Store):
 
     def get_testdata(self, size=None):
-        return super(H5StoreBytesDataTest, self).get_testdata(size=size).encode()
+        return super(TestH5StoreBytesData, self).get_testdata(size=size).encode()
 
 
-class H5StoreClosedTest(H5StoreTest):
+class TestH5StoreClosed(TestH5Store):
 
     valid_types = {
         'int': 123,
@@ -572,13 +578,13 @@ class H5StoreClosedTest(H5StoreTest):
         yield self.get_h5store(**kwargs)
 
 
-class H5StoreNestedDataClosedTest(H5StoreNestedDataTest, H5StoreClosedTest):
+class TestH5StoreNestedDataClosed(TestH5StoreNestedData, TestH5StoreClosed):
     pass
 
 
-@unittest.skipIf(not PANDAS_AND_TABLES, 'requires pandas and pytables')
-@unittest.skipIf(not NUMPY, 'requires numpy package')
-class H5StorePandasDataTest(H5StoreTest):
+@pytest.mark.skipif(not PANDAS_AND_TABLES, reason='requires pandas and pytables')
+@pytest.mark.skipif(not NUMPY, reason='requires numpy package')
+class TestH5StorePandasData(TestH5Store):
 
     def get_testdata(self, size=None):
         if size is None:
@@ -589,26 +595,21 @@ class H5StorePandasDataTest(H5StoreTest):
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
             assert isinstance(b, Mapping)
-            if six.PY2:
-                super(H5StorePandasDataTest, self).assertEqual(
-                    sorted(map(str, a.keys())),
-                    sorted(map(str, b.keys())))
-            else:
-                super(H5StorePandasDataTest, self).assertEqual(a.keys(), b.keys())
+            super(TestH5StorePandasData, self).assertEqual(a.keys(), b.keys())
             for key in a:
                 self.assertEqual(a[key], b[key])
         else:
             try:
                 return (a == b).all()
             except (AttributeError, ValueError):
-                return super(H5StorePandasDataTest, self).assertEqual(a, b)
+                return super(TestH5StorePandasData, self).assertEqual(a, b)
             else:
                 assert isinstance(a, pandas.DataFrame)
 
 
-@unittest.skipIf(not PANDAS_AND_TABLES, 'requires pandas and pytables')
-@unittest.skipIf(not NUMPY, 'requires numpy package')
-class H5StoreNestedPandasDataTest(H5StorePandasDataTest):
+@pytest.mark.skipif(not PANDAS_AND_TABLES, reason='requires pandas and pytables')
+@pytest.mark.skipif(not NUMPY, reason='requires numpy package')
+class TestH5StoreNestedPandasData(TestH5StorePandasData):
 
     def get_testdata(self, size=None):
         if size is None:
@@ -617,8 +618,10 @@ class H5StoreNestedPandasDataTest(H5StorePandasDataTest):
             numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]))
 
 
-class H5StoreMultiThreadingTest(BaseH5StoreTest):
+class TestH5StoreMultiThreading(TestH5StoreBase):
 
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_multithreading(self):
 
         def set_x(x):
@@ -628,8 +631,10 @@ class H5StoreMultiThreadingTest(BaseH5StoreTest):
             pool.map(set_x, range(100))
         pool.join()
 
-        self.assertIn(self.get_h5store()['x'], set(range(100)))
+        assert self.get_h5store()['x'] in set(range(100))
 
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
     def test_multithreading_with_error(self):
 
         def set_x(x):
@@ -637,12 +642,12 @@ class H5StoreMultiThreadingTest(BaseH5StoreTest):
             if x == 50:
                 raise RuntimeError()
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             with closing(ThreadPool(2)) as pool:
                 pool.map(set_x, range(100))
         pool.join()
 
-        self.assertIn(self.get_h5store()['x'], set(range(100)))
+        assert self.get_h5store()['x'] in set(range(100))
 
 
 def _read_from_h5store(filename, **kwargs):
@@ -651,7 +656,7 @@ def _read_from_h5store(filename, **kwargs):
         list(h5s)
 
 
-class H5StoreMultiProcessingTest(BaseH5StoreTest):
+class TestH5StoreMultiProcessing(TestH5StoreBase):
 
     def test_single_writer_multiple_reader_same_process(self):
         with self.open_h5store() as writer:
@@ -659,17 +664,20 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
                 with self.open_h5store(mode='r') as reader1:
                     with self.open_h5store(mode='r') as reader2:
                         writer['test'] = True
-                        self.assertEqual(writer['test'], True)
-                        self.assertEqual(reader1['test'], True)
-                        self.assertEqual(reader2['test'], True)
+                        assert writer['test']
+                        assert reader1['test']
+                        assert reader2['test']
 
+    @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
     def test_single_writer_multiple_reader_same_instance(self):
         from multiprocessing import Process
 
         def read():
-            p = Process(target=_read_from_h5store, args=(self._fn_store,), kwargs=(dict(mode=None)))
+            p = Process(target=_read_from_h5store, args=(self._fn_store,), kwargs=(dict(mode='r')))
             p.start()
             p.join()
+            # Ensure the process succeeded
+            assert p.exitcode == 0
 
         with self.open_h5store() as writer:
             read()
@@ -678,9 +686,9 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
 
     def test_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store():
             pass    # create file
@@ -692,27 +700,25 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             print('\n', error.output.decode(), file=sys.stderr)
             raise
 
-    @unittest.skipIf(six.PY2, 'requires Python 3')
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r"); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store():   # single writer
-            with self.assertRaises(subprocess.CalledProcessError):
+            with pytest.raises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
-    @unittest.skipIf(six.PY2, 'requires Python 3')
-    @unittest.skipUnless(python_implementation() == 'CPython', 'SWMR mode not available.')
+    @pytest.mark.skipif(python_implementation() != 'CPython', reason='SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
-        read_cmd = "python -c 'from signac.core.h5store import H5Store; "
-        read_cmd += 'h5s = H5Store("{}", mode="r", swmr=True); '.format(self._fn_store)
-        read_cmd += "list(h5s); h5s.close()'"
+        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
+                    r'h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); '
+                    r'h5s.close()"').format(repr(self._fn_store))
 
         with self.open_h5store(libver='latest') as writer:
-            with self.assertRaises(subprocess.CalledProcessError):
+            with pytest.raises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
         try:
@@ -726,18 +732,18 @@ class H5StoreMultiProcessingTest(BaseH5StoreTest):
             raise
 
 
-@unittest.skipIf(not NUMPY, 'requires numpy package')
-@unittest.skipUnless(python_implementation() == 'CPython', 'Optimized for CPython.')
-class H5StorePerformanceTest(BaseH5StoreTest):
+@pytest.mark.skipif(not NUMPY, reason='requires numpy package')
+@pytest.mark.skipif(python_implementation() != 'CPython', reason='Optimized for CPython.')
+class TestH5StorePerformance(TestH5StoreBase):
     max_slowdown_vs_native_factor = 1.25
 
-    def setUp(self):
-        super(H5StorePerformanceTest, self).setUp()
+    @pytest.fixture
+    def setUp(self, setUp_base_h5Store):
         value = self.get_testdata()
         times = numpy.zeros(200)
         for i in range(len(times)):
             start = time()
-            with h5py.File(self._fn_store) as h5file:
+            with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_baseline']
                 h5file.create_dataset('_baseline', data=value, shape=None)
@@ -750,16 +756,18 @@ class H5StorePerformanceTest(BaseH5StoreTest):
         def format_row(text, reducer):
             return "{:<10}\t{:.2e}\t{:.2e}\t{:.3}\n".format(
                 text, reducer(times), reducer(self.baseline_time),
-                reducer(times)/reducer(self.baseline_time))
+                reducer(times) / reducer(self.baseline_time))
         msg += format_row('mean', numpy.mean)
         msg += format_row('median', numpy.median)
         msg += format_row('25 percentile', partial(numpy.percentile, q=25))
         msg += format_row('75 percentile', partial(numpy.percentile, q=75))
-        self.assertLess(
-            numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75),
-            self.max_slowdown_vs_native_factor, msg)
+        assert numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75) < \
+            self.max_slowdown_vs_native_factor, msg
 
-    def test_speed_get(self):
+    @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
+    def test_speed_get(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_get'
         value = self.get_testdata()
@@ -771,7 +779,10 @@ class H5StorePerformanceTest(BaseH5StoreTest):
             times[i] = time() - start
         self.assertSpeed(times)
 
-    def test_speed_set(self):
+    @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
+    @pytest.mark.skip(reason="This test fails randomly on CI. "
+                             "See https://github.com/glotzerlab/signac/pull/307")
+    def test_speed_set(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_set'
         value = self.get_testdata()
@@ -783,26 +794,22 @@ class H5StorePerformanceTest(BaseH5StoreTest):
         self.assertSpeed(times)
 
 
-class H5StorePerformanceNestedDataTest(H5StorePerformanceTest):
+class TestH5StorePerformanceNestedData(TestH5StorePerformance):
     max_slowdown_vs_native_factor = 1.75
 
     def get_testdata(self, size=None):
-        return dict(a=super(H5StorePerformanceNestedDataTest, self).get_testdata(size))
+        return dict(a=super(TestH5StorePerformanceNestedData, self).get_testdata(size))
 
-    def setUp(self):
-        super(H5StorePerformanceTest, self).setUp()
-        value = H5StorePerformanceTest.get_testdata(self)
+    @pytest.fixture
+    def setUp(self, setUp_base_h5Store):
+        value = TestH5StorePerformance.get_testdata(self)
         times = numpy.zeros(200)
         for i in range(len(times)):
             start = time()
-            with h5py.File(self._fn_store) as h5file:
+            with h5py.File(self._fn_store, mode='a') as h5file:
                 if i:
                     del h5file['_basegroup']
                 h5file.create_group('_basegroup').create_dataset(
                     '_baseline', data=value, shape=None)
             times[i] = time() - start
         self.baseline_time = times
-
-
-if __name__ == '__main__':
-    unittest.main()

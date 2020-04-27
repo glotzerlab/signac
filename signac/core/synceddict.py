@@ -6,15 +6,9 @@ import logging
 from contextlib import contextmanager
 from functools import wraps
 from copy import deepcopy
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 
-from ..common import six
-
-if six.PY2:
-    from collections import Mapping
-    from collections import MutableMapping
-else:
-    from collections.abc import Mapping
-    from collections.abc import MutableMapping
 try:
     import numpy
     NUMPY = True
@@ -76,6 +70,8 @@ class _SyncedList(list):
 
 class _SyncedDict(MutableMapping):
 
+    VALID_KEY_TYPES = (str, int, bool, type(None))
+
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
@@ -89,16 +85,22 @@ class _SyncedDict(MutableMapping):
             }
         self._suspend_sync_ = 0
 
-    @staticmethod
-    def _validate_key(key):
+    @classmethod
+    def _validate_key(cls, key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
-        if '.' in key:
-            from ..errors import InvalidKeyError
-            raise InvalidKeyError(
-                "\nThe use of '.' (dots) in keys is invalid.\n\n"
-                "See https://signac.io/document-wide-migration/ "
-                "for a recipe on how to replace dots in existing keys.")
-        return key
+        if isinstance(key, str):
+            if '.' in key:
+                from ..errors import InvalidKeyError
+                raise InvalidKeyError(
+                    "keys may not contain dots ('.'): {}".format(key))
+            else:
+                return key
+        elif isinstance(key, cls.VALID_KEY_TYPES):
+            return cls._validate_key(str(key))
+        else:
+            from ..errors import KeyTypeError
+            raise KeyTypeError(
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
 
     def _dfs_convert(self, root):
         if type(root) is type(self):
@@ -110,6 +112,8 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = root[k]
             return ret
+        elif type(root) is tuple:
+            return _SyncedList(root, self)
         elif type(root) is list:
             return _SyncedList(root, self)
         elif NUMPY:
@@ -261,11 +265,11 @@ class _SyncedDict(MutableMapping):
 
     def values(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).values()
+        return self._convert_to_dict(self).values()
 
     def items(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).items()
+        return self._convert_to_dict(self).items()
 
     def __repr__(self):
         return repr(self())
@@ -275,7 +279,7 @@ class _SyncedDict(MutableMapping):
 
     def _as_dict(self):
         with self._suspend_sync():
-            return self._convert_to_dict(self._data.copy())
+            return self._convert_to_dict(self)
 
     def __call__(self):
         self._synced_load()

@@ -10,7 +10,6 @@ from .core.jsondict import BufferedFileError
 from .common.errors import ConfigError
 from .common.errors import AuthenticationError
 from .common.errors import ExportError
-from .common.errors import FileNotFoundError
 from .common.errors import FetchError
 
 from .contrib.errors import DestinationExistsError
@@ -56,6 +55,10 @@ class InvalidKeyError(ValueError):
     """Raised when a user uses a non-conforming key."""
 
 
+class KeyTypeError(TypeError):
+    """Raised when a user uses a key of invalid type."""
+
+
 __all__ = [
     'Error',
     'BufferException',
@@ -63,7 +66,6 @@ __all__ = [
     'ConfigError',
     'AuthenticationError',
     'ExportError',
-    'FileNotFoundError',
     'FetchError',
     'DestinationExistsError',
     'JobsCorruptedError',

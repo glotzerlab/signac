@@ -1,0 +1,30 @@
+/* Sidebar header (and topbar for mobile) */
+.wy-side-nav-search, .wy-nav-top {
+  background: #2c2c30;
+  border-bottom: 1px solid #e8a022;
+}
+
+/* Sidebar navigation */
+.wy-nav-side {
+  background: #4e4e56;
+}
+
+/* Sidebar section headers */
+.wy-menu-vertical p.caption {
+  color: #04b3e7;
+}
+
+/* Sidebar button colors */
+.wy-menu-vertical a {
+  color: #fcfcfc;
+}
+
+.wy-menu-vertical a:hover {
+  background-color: #006ea0;
+  color: #fcfcfc;
+}
+
+.wy-menu-vertical a:active {
+  background-color: #0081b3;
+  color: #fcfcfc;
+}

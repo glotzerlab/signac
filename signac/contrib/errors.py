@@ -5,7 +5,7 @@ from ..core.errors import Error
 
 
 class WorkspaceError(Error, OSError):
-    "Raised when there is an issue to create or access the workspace."
+    "Raised when there is an issue creating or accessing the workspace."
     def __init__(self, error):
         self.error = error
         "The underlying error causing this issue."
@@ -22,12 +22,17 @@ class DestinationExistsError(Error, RuntimeError):
 
 
 class JobsCorruptedError(Error, RuntimeError):
-    "The state point manifest file of one or more jobs cannot be openend or is corrupted."
+    "The state point manifest file of one or more jobs cannot be opened or is corrupted."
     def __init__(self, job_ids):
         self.job_ids = job_ids
         "The job id(s) of the corrupted job(s)."
 
 
 class StatepointParsingError(Error, RuntimeError):
-    "Indicates an error that occurred while tyring to identify a state point."
+    "Indicates an error that occurred while trying to identify a state point."
+    pass
+
+
+class IncompatibleSchemaVersion(Error):
+    "The project's schema version is incompatible with this version of signac."
     pass

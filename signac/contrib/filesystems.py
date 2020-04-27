@@ -9,8 +9,10 @@ import errno
 import io
 import warnings
 
-from ..common import six
 from ..db import get_database
+from ..version import __version__
+from collections.abc import Mapping, Iterable
+from deprecation import deprecated
 
 try:
     import pymongo
@@ -19,13 +21,13 @@ except ImportError:
     GRIDFS = False
 else:
     GRIDFS = True
-if six.PY2:
-    from collections import Mapping, Iterable
-else:
-    from collections.abc import Mapping, Iterable
 
 GRIDFS_LARGE_FILE_WARNING_THRSHLD = int(1e9)  # 1GB
 FILESYSTEM_REGISTRY = dict()
+
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
 
 def _register_fs_class(fs):
@@ -33,6 +35,8 @@ def _register_fs_class(fs):
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 class LocalFS(object):
     """A file system handler for the local file system.
 
@@ -78,7 +82,7 @@ class LocalFS(object):
         :type _id: str
         :returns: A file-like object to write to."""
         if mode is None:
-            mode = 'wxb' if six.PY2 else 'xb'
+            mode = 'xb'
         if 'x' not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
@@ -193,7 +197,8 @@ if GRIDFS:
                 raise ValueError(mode)
     _register_fs_class(GridFS)
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 def filesystems_from_config(fs_config):
     """Generate file system handlers from a configuration.
 
@@ -225,18 +230,15 @@ def filesystems_from_config(fs_config):
     """
     for key, args in fs_config.items():
         fs_class = FILESYSTEM_REGISTRY[key]
-        if six.PY2:
-            is_str = isinstance(args, str) or isinstance(args, unicode)  # noqa
-        else:
-            is_str = isinstance(args, str)
         if isinstance(args, Mapping):
             yield fs_class(** args)
-        elif isinstance(args, Iterable) and not is_str:
+        elif isinstance(args, Iterable) and not isinstance(args, str):
             yield fs_class(* args)
         else:
             yield fs_class(args)
 
-
+@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
+            details="The filesystems module is deprecated.")
 def filesystems_from_configs(fs_configs):
     """Generate file system handlers.
 
