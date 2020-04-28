@@ -50,15 +50,17 @@ _TYPES = {
 MAX_DEFAULT_ID = int('F' * 32, 16)
 
 
-def _flatten(container): # noqa: D205, D212, D400, D415, D417, D414, E261
-    """
+def _flatten(container):
+    """Yield elements from the container.
 
     Parameters
     ----------
     container :
+            list/ tuple of elements.
 
     Yields
     ------
+    Element of container.
 
     """
     for i in container:
@@ -326,7 +328,6 @@ def _check_logical_operator_argument(op, argument):
 
 class _CollectionSearchResults(object):
     """Iterator for a Collection result vector."""
-
     def __init__(self, collection, _ids):
         self._collection = collection
         self._ids = _ids
@@ -393,7 +394,7 @@ class Collection(object):
 
     Parameters
     ----------
-    docs : dict
+    docs : iterable
         Initialize the collection with these documents.
     primary_key : str
         The name of the key which serves as the primary
