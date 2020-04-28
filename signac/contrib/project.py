@@ -10,7 +10,7 @@ import errno
 import uuid
 import gzip
 import time
-from collections.abc import Iterable
+from collections.abc import Container, Iterable
 from contextlib import contextmanager
 from deprecation import deprecated
 from itertools import groupby
@@ -1880,7 +1880,8 @@ class JobsCursor(object):
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', sp_includes=None,
+                     sp_excludes=None, doc_includes=None, doc_excludes=None):
         """Convert the selection of jobs to a pandas dataframe.
 
         This function exports the job metadata to a :py:class:`pandas.DataFrame`.
@@ -1901,11 +1902,31 @@ class JobsCursor(object):
         """
         import pandas
 
+        class _IncludeExcludeContainer(Container):
+            """An abstract container that includes/excludes user-provided lists."""
+
+            def __init__(self, includes=None, excludes=None):
+                self.includes = set(includes) if includes is not None else None
+                self.excludes = set(excludes) if excludes is not None else None
+
+            def __contains__(self, item):
+                if self.excludes is not None and item in self.excludes:
+                    return False
+                elif self.includes is not None and item not in self.includes:
+                    return False
+                else:
+                    return True
+
+        sp_valid_keys = _IncludeExcludeContainer(sp_includes, sp_excludes)
+        doc_valid_keys = _IncludeExcludeContainer(doc_includes, doc_excludes)
+
         def _export_sp_and_doc(job):
             for key, value in job.sp.items():
-                yield sp_prefix + key, value
+                if key in sp_valid_keys:
+                    yield sp_prefix + key, value
             for key, value in job.doc.items():
-                yield doc_prefix + key, value
+                if key in doc_valid_keys:
+                    yield doc_prefix + key, value
 
         return pandas.DataFrame.from_dict(
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
