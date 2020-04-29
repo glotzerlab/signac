@@ -1732,7 +1732,7 @@ class JobsCursor(object):
         if self._filter:
             # We use the standard function for determining job ids if and only if
             # any of the two filter is provided.
-            return len(self._project.find_job_ids(self._filter))
+            return len(self._project._find_job_ids(self._filter))
         else:
             # Without filter we can simply return the length of the whole project.
             return self._project.__len__()
@@ -1741,7 +1741,7 @@ class JobsCursor(object):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
             self._project,
-            self._project.find_job_ids(self._filter)
+            self._project._find_job_ids(self._filter)
             )
 
     def next(self):
