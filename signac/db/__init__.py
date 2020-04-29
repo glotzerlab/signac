@@ -9,7 +9,7 @@ except ImportError:
     warnings.warn("Failed to import pymongo. "
                   "get_database will not be available.", ImportWarning)
 
-    def get_database(*args, **kwargs):
+    def get_database(name, hostname=None, config=None):
         """Get a database handle.
 
         This function is only available if pymongo is installed."""
