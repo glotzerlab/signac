@@ -10,7 +10,7 @@ import errno
 import uuid
 import gzip
 import time
-from collections.abc import Container, Iterable
+from collections.abc import Iterable
 from contextlib import contextmanager
 from deprecation import deprecated
 from itertools import groupby
