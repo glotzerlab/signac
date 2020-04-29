@@ -180,14 +180,16 @@ class Project(object):
             'statepoint_cache_miss_warning_threshold', 500)
 
         self.db = None
-        hostname = config['index_host']
+        hostname = None
+        if 'index_host' in config:
+            hostname = config['index_host']
         if hostname is not None:
-            db_name = config['index_db']
-            if db_name is None:
+            if 'index_db' not in config:
                 raise ConfigError("When using a db host for the index, specify " +
                                   "the database, too.")
 
             # open the database connection
+            db_name = config['index_db']
             self.db = database.get_database(db_name, hostname=hostname)
 
             # 'index' is the default name for the collection
