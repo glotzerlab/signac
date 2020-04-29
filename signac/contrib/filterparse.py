@@ -68,7 +68,7 @@ def _cast(x):
                 return x
 
 
-def _parse_simple(key, value=None):
+def _parse_single(key, value=None):
     if value is None or value == '!':
         return key, {'$exists': True}
     elif _is_json(value):
@@ -90,7 +90,7 @@ def parse_filter_arg(args, file=sys.stderr):
         if _is_json(args[0]):
             return _parse_json(args[0])
         else:
-            key, value = _parse_simple(args[0])
+            key, value = _parse_single(args[0])
             return _with_message({key: value}, file)
     else:
         q = dict(parse_simple(args))
@@ -105,7 +105,7 @@ def parse_simple(tokens):
             value = tokens[i+1]
         else:
             value = None
-        yield _parse_simple(key, value)
+        yield _parse_single(key, value)
 
 
 def _add_prefix(filter, prefix):

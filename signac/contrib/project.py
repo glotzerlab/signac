@@ -1419,7 +1419,7 @@ class Project(object):
             return cache
 
     def index(self, formats=None, depth=0,
-              skip_errors=False, include_job_document=True, **kwargs):
+              skip_errors=False, include_job_document=True):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -1830,7 +1830,7 @@ class JobsCursor(object):
         else:
             keyfunction = key
 
-        return groupby(sorted(iter(JobsCursor(self._project, _filter, self._doc_filter)),
+        return groupby(sorted(iter(JobsCursor(self._project, _filter)),
                               key=keyfunction), key=keyfunction)
 
     def groupbydoc(self, key=None, default=None):
@@ -1931,10 +1931,10 @@ class JobsCursor(object):
             orient='index').infer_objects()
 
     def __repr__(self):
-        return "{type}({{'project': '{project}', 'filter': '{filter}'}})".format(
-                   type=self.__class__.__module__ + '.' + self.__class__.__name__,
-                   project=self._project,
-                   filter=self._filter)
+        return '{type}(project={project}, filter={filter})'.format(
+                   type=self.__class__.__name__,
+                   project=repr(self._project),
+                   filter=repr(self._filter))
 
     def _repr_html_jobs(self):
         html = ''

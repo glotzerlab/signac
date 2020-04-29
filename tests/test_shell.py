@@ -142,7 +142,7 @@ class TestBasicShell():
         assert "{'a': 0}" in sp
         assert len(project) == 1
 
-    @unittest.expectedFailure
+    @pytest.mark.xfail()
     def test_index(self):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac project --access'.split())
@@ -249,10 +249,17 @@ class TestBasicShell():
         # Test the doc_filter
         for job in project.find_jobs():
             job.document['a'] = job.statepoint()['a']
+
         with pytest.deprecated_call():
             for i in range(3):
                 assert self.call('python -m signac find --doc-filter'.split() +
                                  ['{"a": ' + str(i) + '}']).strip() == \
+                    list(project.find_job_ids(doc_filter={'a': i}))[0]
+
+        with pytest.deprecated_call():
+            for i in range(3):
+                assert self.call('python -m signac find '.split() +
+                                 ['{"doc.a": ' + str(i) + '}']).strip() == \
                     list(project.find_job_ids(doc_filter={'a': i}))[0]
 
     def test_diff(self):
