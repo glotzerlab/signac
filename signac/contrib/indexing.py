@@ -525,7 +525,7 @@ class MasterCrawler(BaseCrawler):
 
         if not has_tags and _is_blank_module(module):
             from .project import get_project
-            for doc in get_project(root=dirpath).index():
+            for doc in get_project(root=dirpath).index_from_workspace():
                 yield doc
 
         if hasattr(module, 'get_indexes'):
