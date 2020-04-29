@@ -1902,30 +1902,23 @@ class JobsCursor(object):
         """
         import pandas
 
-        class _IncludeExcludeContainer(Container):
-            """An abstract container that includes/excludes user-provided lists."""
-
-            def __init__(self, includes=None, excludes=None):
-                self.includes = set(includes) if includes is not None else None
-                self.excludes = set(excludes) if excludes is not None else None
-
-            def __contains__(self, item):
-                if self.excludes is not None and item in self.excludes:
-                    return False
-                elif self.includes is not None and item not in self.includes:
-                    return False
-                else:
-                    return True
-
-        sp_valid_keys = _IncludeExcludeContainer(sp_includes, sp_excludes)
-        doc_valid_keys = _IncludeExcludeContainer(doc_includes, doc_excludes)
+        if sp_includes is not None:
+            sp_includes = set(sp_includes)
+        if sp_excludes is not None:
+            sp_excludes = set(sp_excludes)
+        if doc_includes is not None:
+            doc_includes = set(doc_includes)
+        if doc_excludes is not None:
+            doc_excludes = set(doc_excludes)
 
         def _export_sp_and_doc(job):
             for key, value in job.sp.items():
-                if key in sp_valid_keys:
+                if (sp_includes is None or key in sp_includes) and \
+                        (sp_excludes is None or key not in sp_excludes):
                     yield sp_prefix + key, value
             for key, value in job.doc.items():
-                if key in doc_valid_keys:
+                if (doc_includes is None or key in doc_includes) and \
+                        (doc_excludes is None or key not in doc_excludes):
                     yield doc_prefix + key, value
 
         return pandas.DataFrame.from_dict(
