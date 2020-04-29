@@ -149,8 +149,8 @@ class TestBasicShell():
         project.open_job({'a': 0}).init()
         assert len(project) == 1
         with pytest.deprecated_call():
-            assert len(list(project.index())) == 1
-            assert len(list(signac.index())) == 1
+            assert len(list(project.index_from_workspace())) == 1
+            assert len(list(signac.index_from_workspace())) == 1
         doc = json.loads(self.call('python -m signac index'.split()))
         assert 'statepoint' in doc
         assert doc['statepoint'] == {'a': 0}
