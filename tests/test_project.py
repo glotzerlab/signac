@@ -561,7 +561,8 @@ class TestProject(TestProjectBase):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index_from_workspace({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
+        docs = list(self.project.index_from_workspace({'.*' + re.escape(os.path.sep) +
+                                                       r'test\.txt': 'TextFile'}))
         assert len(docs) == 2 * len(statepoints)
         assert len(set((doc['_id'] for doc in docs))) == len(docs)
 
