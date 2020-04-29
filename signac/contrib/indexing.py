@@ -469,7 +469,7 @@ class MasterCrawler(BaseCrawler):
         import signac
 
         def get_indexes(root):
-            yield signac.get_project(root).index()
+            yield signac.get_project(root).index_from_workspace()
 
     Tags for indexes yielded from the `get_indexes()` function can be specified
     by assigning them directly to the function:
@@ -477,7 +477,7 @@ class MasterCrawler(BaseCrawler):
     .. code-block:: python
 
         def get_indexes(root):
-            yield signac.get_project(root).index()
+            yield signac.get_project(root).index_from_workspace()
 
         get_indexes.tags = {'foo'}
 

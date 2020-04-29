@@ -46,7 +46,7 @@ JOB_ID_REGEX = re.compile('[a-f0-9]{32}')
 ACCESS_MODULE_MINIMAL = """import signac
 
 def get_indexes(root):
-    yield signac.get_project(root).index()
+    yield signac.get_project(root).index_from_workspace()
 """
 
 ACCESS_MODULE_MASTER = """#!/usr/bin/env python
@@ -54,7 +54,7 @@ ACCESS_MODULE_MASTER = """#!/usr/bin/env python
 import signac
 
 def get_indexes(root):
-    yield signac.get_project(root).index()
+    yield signac.get_project(root).index_from_workspace()
 
 if __name__ == '__main__':
     with signac.Collection.open('index.txt') as index:
@@ -1449,7 +1449,7 @@ class Project(object):
 
         .. code-block:: python
 
-            for doc in project.index({r'.*\.txt', 'TextFile'}):
+            for doc in project.index_from_workspace({r'.*\.txt', 'TextFile'}):
                 print(doc)
 
         :param formats: The format definitions as mapping.

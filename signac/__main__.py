@@ -238,7 +238,7 @@ def main_project(args):
         _print_err("Created access module '{}'.".format(fn))
         return
     if args.index:
-        for doc in project.index():
+        for doc in project.index_from_workspace():
             print(json.dumps(doc))
         return
     if args.workspace:
