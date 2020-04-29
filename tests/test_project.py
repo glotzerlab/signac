@@ -297,7 +297,7 @@ class TestProject(TestProjectBase):
             assert 0 == len(list(self.project.find_job_ids(doc_filter={'b': 5})))
             for job_id in self.project.find_job_ids():
                 assert self.project.open_job(id=job_id).id == job_id
-            index = list(self.project.index())
+            index = list(self.project.index_from_workspace())
             for job_id in self.project.find_job_ids(index=index):
                 assert self.project.open_job(id=job_id).id == job_id
 
@@ -545,15 +545,15 @@ class TestProject(TestProjectBase):
             logging.disable(logging.NOTSET)
 
     def test_index(self):
-        docs = list(self.project.index(include_job_document=True))
+        docs = list(self.project.index_from_workspace(include_job_document=True))
         assert len(docs) == 0
-        docs = list(self.project.index(include_job_document=False))
+        docs = list(self.project.index_from_workspace(include_job_document=False))
         assert len(docs) == 0
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
         job_ids = set((job.id for job in self.project.find_jobs()))
-        docs = list(self.project.index())
+        docs = list(self.project.index_from_workspace())
         job_ids_cmp = set((doc['_id'] for doc in docs))
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
@@ -561,7 +561,7 @@ class TestProject(TestProjectBase):
             with self.project.open_job(sp):
                 with open('test.txt', 'w'):
                     pass
-        docs = list(self.project.index({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
+        docs = list(self.project.index_from_workspace({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
         assert len(docs) == 2 * len(statepoints)
         assert len(set((doc['_id'] for doc in docs))) == len(docs)
 
@@ -571,7 +571,7 @@ class TestProject(TestProjectBase):
             self.project.open_job(sp).document['test'] = True
         job_ids = set((job.id for job in self.project.find_jobs()))
         index = dict()
-        for doc in self.project.index():
+        for doc in self.project.index_from_workspace():
             index[doc['_id']] = doc
         assert len(index) == len(job_ids)
         assert set(index.keys()) == set(job_ids)
@@ -588,7 +588,7 @@ class TestProject(TestProjectBase):
                 file.write('test\n')
         formats = {r'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}
         index = dict()
-        for doc in self.project.index(formats):
+        for doc in self.project.index_from_workspace(formats):
             index[doc['_id']] = doc
         assert len(index) == 2 * len(job_ids)
 
