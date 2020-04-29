@@ -1895,6 +1895,26 @@ class JobsCursor(object):
             Prefix document keys with the given string. Defaults to "doc.".
         :type doc_prefix:
             str
+        :param sp_includes:
+            Iterable of state point keys to include. Defaults to including all
+            keys.
+        :type sp_includes:
+            Iterable[str]
+        :param sp_excludes:
+            Iterable of state point keys to exclude. Overrides ``sp_includes``.
+            Defaults to excluding no keys.
+        :type sp_excludes:
+            Iterable[str]
+        :param doc_includes:
+            Iterable of document keys to include. Defaults to including all
+            keys.
+        :type doc_includes:
+            Iterable[str]
+        :param doc_excludes:
+            Iterable of document keys to exclude. Overrides ``doc_includes``.
+            Defaults to excluding no keys.
+        :type doc_excludes:
+            Iterable[str]
         :returns:
             A pandas dataframe with all job metadata.
         :rtype:
