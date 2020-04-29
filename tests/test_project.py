@@ -1159,7 +1159,7 @@ class TestProjectExportImport(TestProjectBase):
 
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 4
-        assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
+        # assert len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
         for i in range(10):
             for j in range(2):
                 for k in range(2):
