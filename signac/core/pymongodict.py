@@ -3,8 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 """Dict implementation with pymongo backend."""
 
-from ..db import database
 from .attrdict import SyncedAttrDict
+from collections.abc import Mapping
+from copy import copy
+
 
 class PyMongoDict(SyncedAttrDict):
     """A dict-like mapping interface to pymongo document.

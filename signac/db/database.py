@@ -2,8 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from ..common import host
-from deprecation import deprecated
-from ..version import __version__
+
 
 def get_database(name, hostname=None, config=None):
     """Get a database handle.

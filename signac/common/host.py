@@ -5,7 +5,6 @@ import logging
 import warnings
 import getpass
 
-from ..version import __version__
 from ..core import json
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
@@ -17,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
 SESSION_USERNAME_CACHE = dict()  # type: ignore
+
 
 def get_default_host(config=None):
     if config is None:

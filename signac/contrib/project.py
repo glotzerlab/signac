@@ -184,11 +184,11 @@ class Project(object):
         if hostname is not None:
             db_name = config['index_db']
             if db_name is None:
-                raise ConfigError("When using a db host for the index, specify "+
+                raise ConfigError("When using a db host for the index, specify " +
                                   "the database, too.")
 
             # open the database connection
-            self.db = database.get_database(db_name,hostname=hostname)
+            self.db = database.get_database(db_name, hostname=hostname)
 
             # 'index' is the default name for the collection
             self.index_collection = self.db.index
@@ -1338,7 +1338,7 @@ class Project(object):
                             raise
             yield doc
 
-    def _build_index_pymongo(self,collection):
+    def _build_index_pymongo(self, collection):
         """
         Generate a state point index from a pymongo collection.
         """
@@ -1346,7 +1346,6 @@ class Project(object):
         # Fetch all documents from the collection called 'index'
         for doc in collection.find():
             yield doc
-
 
     def _update_in_memory_cache(self):
         "Update the in-memory state point cache to reflect the workspace."
@@ -1438,7 +1437,7 @@ class Project(object):
             return cache
 
     def index_from_workspace(self, formats=None, depth=0,
-              skip_errors=False, include_job_document=True):
+                             skip_errors=False, include_job_document=True):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
