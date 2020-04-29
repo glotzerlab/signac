@@ -358,7 +358,7 @@ class TestProject(TestProjectBase):
             job = self.project.open_job({'a': i, 'b': {'c': i}})
             job.init()
             job.doc.d = i
-        assert  len(self.project) == 10
+        assert len(self.project) == 10
         with pytest.raises(ValueError):
             list(self.project.find_jobs({'$and': {'foo': 'bar'}}))
 
@@ -436,7 +436,7 @@ class TestProject(TestProjectBase):
         q = {'$and': [{'$or': [{'sp.b.c': 0}, {'sp.b.c': 1}]}]}
         assert len(self.project.find_jobs(q)) == 2
         q = {'$or': [{'$or': [{'sp.b': {'c': 0}}, {'sp.b': {'c': 1}}]}]}
-        assert len(self.project.find_jobs(q)) == 2 
+        assert len(self.project.find_jobs(q)) == 2
         q = {'$or': [{'$or': [{'sp.b.c': 0}, {'sp.b.c': 1}]}]}
         assert len(self.project.find_jobs(q)) == 2
         q = {'$or': [{'$and': [{'sp.b': {'c': 0}}, {'sp.b': {'c': 1}}]}]}
