@@ -77,7 +77,7 @@ class JobSearchIndex(object):
     def __len__(self):
         return len(self._collection)
 
-    def find_job_ids(self, filter=None):
+    def find_job_ids(self, filter=None, doc_filter=None):
         """Find the job_ids of all jobs matching the filters.
 
         The optional filter arguments must be a Mapping of key-value
@@ -559,7 +559,7 @@ class Project(object):
         if index is None:
             index = [{'_id': job._id, 'sp': job.sp()} for job in self]
         for x in _build_job_statepoint_index(jobs=self, exclude_const=exclude_const, index=index):
-            yield tuple(x.split('.')), y
+            yield tuple(x.split('.'))
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
