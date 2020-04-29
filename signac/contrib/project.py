@@ -94,17 +94,6 @@ class JobSearchIndex(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-    # def _resolve_statepoint_filter(self, q):
-    #     for k, v in q.items():
-    #         if k in ('$and', '$or'):
-    #             if not isinstance(v, list) or isinstance(v, tuple):
-    #                 raise ValueError(
-    #                     "The argument to a logical operator must be a sequence (e.g. a list)!")
-    #             yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
-    #         else:
-    #             yield 'statepoint.{}'.format(k), v
-
-    # def find_job_ids(self, filter=None, doc_filter=None):
         if filter:
             filter = dict(self._resolve_statepoint_filter(filter))
             if doc_filter:
