@@ -414,7 +414,9 @@ def main_init(args):
     project = init_project(
         name=args.project_id,
         root=os.getcwd(),
-        workspace=args.workspace)
+        workspace=args.workspace,
+        index_host=args.index_host,
+        index_db=args.index_db)
     _print_err("Initialized project '{}'.".format(project))
 
 
@@ -1111,6 +1113,16 @@ def main():
         type=str,
         default='workspace',
         help="The path to the workspace directory.")
+    parser_init.add_argument(
+        '-H', '--index-host',
+        type=str,
+        default=None,
+        help="The database host containing the index.")
+    parser_init.add_argument(
+        '-D', '--index-db',
+        type=str,
+        default=None,
+        help="The name of the database containing the index.")
     parser_init.set_defaults(func=main_init)
 
     parser_project = subparsers.add_parser('project')

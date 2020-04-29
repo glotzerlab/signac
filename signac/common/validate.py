@@ -41,6 +41,7 @@ def get_validator():
 cfg = """
 project = string()
 workspace_dir = string(default='workspace')
+index_host = string()
 schema_version = string(default='1')
 
 [General]

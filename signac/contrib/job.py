@@ -11,6 +11,7 @@ from deprecation import deprecated
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.jsondict import JSONDict
+from ..core.pymongodict import PyMongoDict
 from ..core.h5store import H5StoreManager
 from .hashing import calc_id
 from .utility import _mkdir_p
@@ -248,8 +249,12 @@ class Job(object):
             :class:`~signac.JSONDict`
         """
         if self._document is None:
-            self.init()
-            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+            if self._project.db is None:
+                self.init()
+                self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+            else:
+                self._document = PyMongoDict(collection=self._project.index_collection,
+                                             jobid=self._id)
         return self._document
 
     @document.setter
@@ -374,6 +379,13 @@ class Job(object):
         except (AssertionError, ValueError):
             raise JobsCorruptedError([self._id])
 
+    def add(self):
+        """Adds the statepoint to the database index, if one exists.
+        """
+        if self._project.db is not None:
+            mongodb_doc = {'_id': self._id, 'statepoint': self._statepoint}
+            self._project.index_collection.insert_one(mongodb_doc)
+
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
@@ -392,6 +404,9 @@ class Job(object):
         :rtype:
             :class:`~.Job`
         """
+
+        self.add()
+
         try:
             self._init(force=force)
         except Exception:
@@ -426,7 +441,10 @@ class Job(object):
         This function will initialize the job if it was not previously
         initialized."""
         self.clear()
-        self.init()
+
+        if self._project.db is None:
+            # create local workspace
+            self.init()
 
     def remove(self):
         """Remove the job's workspace including the job document.

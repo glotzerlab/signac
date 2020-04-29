@@ -49,8 +49,6 @@ def raise_unsupported_auth_mechanism(mechanism):
     raise ValueError(msg.format(mechanism))
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The connection module is deprecated.")
 class DBClientConnector(object):
 
     def __init__(self, host_config, **kwargs):

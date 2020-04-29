@@ -25,6 +25,7 @@ from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
 from .collection import Collection
 from ..common.config import get_config, load_config, Config
+from ..db import database
 from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
@@ -32,6 +33,7 @@ from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
 from .utility import _mkdir_p, split_and_print_progress
 from .schema import ProjectSchema
+from ..errors import ConfigError
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
@@ -176,6 +178,20 @@ class Project(object):
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
             'statepoint_cache_miss_warning_threshold', 500)
+
+        self.db = None
+        hostname = config['index_host']
+        if hostname is not None:
+            db_name = config['index_db']
+            if db_name is None:
+                raise ConfigError("When using a db host for the index, specify "+
+                                  "the database, too.")
+
+            # open the database connection
+            self.db = database.get_database(db_name,hostname=hostname)
+
+            # 'index' is the default name for the collection
+            self.index_collection = self.db.index
 
     def __str__(self):
         "Returns the project's id."
@@ -574,7 +590,7 @@ class Project(object):
         """
         from .schema import _build_job_statepoint_index
         if index is None:
-            index = self.index(include_job_document=False)
+            index = self.index_from_workspace(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
             index = [doc for doc in index if doc['_id'] in subset]
@@ -609,13 +625,18 @@ class Project(object):
         return self._find_job_ids(filter, doc_filter, index)
 
     def _find_job_ids(self, filter=None, doc_filter=None, index=None):
-        if filter is None and doc_filter is None and index is None:
+        use_db = self.db is not None
+        if not use_db and filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            if doc_filter is None:
-                index = self._sp_index()
+            if not use_db:
+                # filesystem based index
+                if doc_filter is None:
+                    index = self._sp_index()
+                else:
+                    index = self.index_from_workspace(include_job_document=True)
             else:
-                index = self.index(include_job_document=True)
+                index = self.index_from_db(self.index_collection)
             search_index = JobSearchIndex(index, _trust=True)
         else:
             search_index = JobSearchIndex(index)
@@ -811,6 +832,10 @@ class Project(object):
                 raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
+    def _get_statepoint_pymongo(self, jobid):
+        "Attempt to read the statepoint from the workspace."
+        return self.index_collection.find_one({'_id': jobid})['statepoint']
+
     def _get_statepoint(self, jobid, fn=None):
         """Get the statepoint associated with a job id.
 
@@ -830,7 +855,12 @@ class Project(object):
                         "High number of state point cache misses. Consider "
                         "to update cache with the Project.update_cache() method.")
                     self._sp_cache_warned = True
-                sp = self._get_statepoint_from_workspace(jobid)
+
+                if self.db is None:
+                    sp = self._get_statepoint_from_workspace(jobid)
+                else:
+                    sp = self._get_statepoint_pymongo(jobid)
+
         except KeyError as error:
             try:
                 sp = self.read_statepoints(fn=fn)[jobid]
@@ -1308,6 +1338,16 @@ class Project(object):
                             raise
             yield doc
 
+    def _build_index_pymongo(self,collection):
+        """
+        Generate a state point index from a pymongo collection.
+        """
+
+        # Fetch all documents from the collection called 'index'
+        for doc in collection.find():
+            yield doc
+
+
     def _update_in_memory_cache(self):
         "Update the in-memory state point cache to reflect the workspace."
         logger.debug("Updating in-memory cache...")
@@ -1397,7 +1437,7 @@ class Project(object):
             logger.debug("Read cache in {:.3f} seconds.".format(delta))
             return cache
 
-    def index(self, formats=None, depth=0,
+    def index_from_workspace(self, formats=None, depth=0,
               skip_errors=False, include_job_document=True):
         r"""Generate an index of the project's workspace.
 
@@ -1445,6 +1485,28 @@ class Project(object):
             docs = crawler.crawl(depth=depth)
         if skip_errors:
             docs = _skip_errors(docs, logger.critical)
+        for doc in docs:
+            yield doc
+
+    def index_from_db(self, collection):
+        r"""Use an index document in a database
+
+        .. code-block:: python
+
+            db = signac.get_database('test', hostname='my_host_name')
+            for doc in project.index_from_db(db.my_collection):
+                print(doc)
+
+        :param db: The database handle
+        :type db: :py:class:~pymongo.collection.Collection~
+        :yields: index documents"""
+        def _full_doc(doc):
+            doc['signac_id'] = doc['_id']
+            return doc
+
+        docs = self._build_index_pymongo(collection)
+        docs = map(_full_doc, docs)
+
         for doc in docs:
             yield doc
 
@@ -1514,7 +1576,8 @@ class Project(object):
             yield tmp_project
 
     @classmethod
-    def init_project(cls, name, root=None, workspace=None, make_dir=True):
+    def init_project(cls, name, root=None, workspace=None, make_dir=True,
+                     index_host=None, index_db=None):
         """Initialize a project with the given name.
 
         It is safe to call this function multiple times with
@@ -1534,6 +1597,10 @@ class Project(object):
         :param make_dir: Create the project root directory, if
             it does not exist yet.
         :type make_dir: bool
+        :param index_host: Database host containing the master index
+        :type index_host: str
+        :param index_db: Name of database containing the master index
+        :type index_db: str
         :returns: The project handle of the initialized project.
         :rtype: :py:class:`~.Project`
         :raises RuntimeError: If the project root path already
@@ -1550,6 +1617,10 @@ class Project(object):
             config['project'] = name
             if workspace is not None:
                 config['workspace_dir'] = workspace
+            if index_host is not None:
+                config['index_host'] = index_host
+            if index_db is not None:
+                config['index_db'] = index_db
             config['schema_version'] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
@@ -1943,7 +2014,8 @@ class JobsCursor(object):
         return repr(self) + self._repr_html_jobs()
 
 
-def init_project(name, root=None, workspace=None, make_dir=True):
+def init_project(name, root=None, workspace=None, make_dir=True,
+                 index_host=None, index_db=None):
     """Initialize a project with the given name.
 
     It is safe to call this function multiple times with
@@ -1963,11 +2035,16 @@ def init_project(name, root=None, workspace=None, make_dir=True):
     :param make_dir: Create the project root directory, if
         it does not exist yet.
     :type make_dir: bool
+    :param index_host: Database host containing the master index
+    :type index_host: str
+    :param index_db: Name of database containing the master index
+    :type index_db: str
     :returns: The project handle of the initialized project.
     :rtype: :py:class:`~.Project`
     :raises RuntimeError: If the project root path already
         contains a conflicting project configuration."""
-    return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
+    return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir,
+                                index_host=index_host, index_db=index_db)
 
 
 def get_project(root=None, search=True, **kwargs):
