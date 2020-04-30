@@ -1932,14 +1932,16 @@ class JobsCursor(object):
             doc_excludes = set(doc_excludes)
 
         def _export_sp_and_doc(job):
-            for key, value in job.sp.items():
-                if (sp_includes is None or key in sp_includes) and \
-                        (sp_excludes is None or key not in sp_excludes):
-                    yield sp_prefix + key, value
-            for key, value in job.doc.items():
-                if (doc_includes is None or key in doc_includes) and \
-                        (doc_excludes is None or key not in doc_excludes):
-                    yield doc_prefix + key, value
+            if sp_includes is None or len(sp_includes):
+                for key, value in job.sp.items():
+                    if (sp_includes is None or key in sp_includes) and \
+                            (sp_excludes is None or key not in sp_excludes):
+                        yield sp_prefix + key, value
+            if doc_includes is None or len(doc_includes):
+                for key, value in job.doc.items():
+                    if (doc_includes is None or key in doc_includes) and \
+                            (doc_excludes is None or key not in doc_excludes):
+                        yield doc_prefix + key, value
 
         return pandas.DataFrame.from_dict(
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
