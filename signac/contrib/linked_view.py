@@ -19,30 +19,31 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     ----------
     project : signac.Project
         Project handle.
-    prefix : False or str
-        (Default value = None).
+    prefix : str
+        The path where the linked view will be created or updated (Default value = None).
     job_ids : iterable
         If None (the default), create the view for the complete data space,
         otherwise only for this iterable of job ids.
     index :
         A document index (Default value = None).
-    path : str
-        (Default value = None).
+    path :
+        The path (function) used to structure the linked data space (Default value = None).
 
     Raises
     ------
     OSError
-        When linked views are not created on Windows, because
+        Linked views can not be created on Windows, because
         symbolic links are not supported by the platform.
     ValueError
-        When insufficient index for selected data space is provided.
+        When selected data space is provided with insufficient index.
     RuntimeError
         When state points contain [os.sep, " ", "*"].
 
     Returns
     -------
     dict
-        Persistent linked view of selected data space.
+        A dictionary that maps the source directory paths to the linked
+        directory paths.
 
     """
     from .import_export import _make_path_function
@@ -116,9 +117,9 @@ def _update_view(prefix, links, leaf='job'):
     Parameters
     ----------
     prefix : str
-        (Default value = None).
+        The path where the linked view will be created or updated (Default value = None).
     links : dict
-        Linked view.
+        Linked view .
     leaf : str
         (Default value = 'job').
 
@@ -154,15 +155,16 @@ def _analyze_view(prefix, links, leaf='job'):
     Parameters
     ----------
     prefix : str
-         (Default value = None).
+        The path where the linked view will be created or updated (Default value = None).
     links : dict
         Linked view.
     leaf : str
-         (Default value = 'job').
+        (Default value = 'job').
 
     Returns
     -------
     tuple
+        tuple that contians :(list of outdated links, list of links to update, set of new links).
 
     """
     logger.info("Analyzing view prefix '{}'...".format(prefix))
@@ -191,7 +193,6 @@ def _make_link(src, dst):
     ----------
     src : str
         Name of directory/ file to create a symbolic link.
-
     dst : str
         Destination symbolic link directory/ file name.
 
@@ -224,7 +225,7 @@ def _find_all_links(root, leaf='job'):
     Yield
     -----
     str
-        leaf relative path to root.
+        Relative path to root from ``leaf``.
 
     """
     for dirpath, dirnames, filenames in os.walk(root):
@@ -255,7 +256,7 @@ class _Node(object):
 
         Returns
         -------
-        signac.contrib.linked_view._Node
+        :class:`~signac.contrib.linked_view._Node`
             Child of name passed in the graph.
 
         """
@@ -273,11 +274,11 @@ def _build_tree(paths):
     Parameters
     ----------
     paths : list
-        list of sting.
+        list of path to views that already exist.
 
     Returns
     -------
-    signac.contrib.linked_view._Node
+    :class:`~signac.contrib.linked_view._Node`
         Graph structure for path.
 
     """
@@ -294,7 +295,7 @@ def _get_branches(root, branch=None):
 
     Parameters
     ----------
-    root : signac.contrib.linked_view._Node
+    root : :class:`~signac.contrib.linked_view._Node`
         root node.
     branch : list
         (Default value = None)
@@ -322,7 +323,7 @@ def _color_path(root, path):
 
     Parameters
     ----------
-    root : signac.contrib.linked_view._Node
+    root : :class:`~signac.contrib.linked_view._Node`
         root node.
     path : list
         name of directory/ file to color(set value to True).
@@ -339,7 +340,7 @@ def _find_dead_branches(root, branch=None):
 
     Parameters
     ----------
-    root : signac.contrib.linked_view._Node
+    root : :class:`~signac.contrib.linked_view._Node`
         root node.
     branch : list
         (Default value = None)
