@@ -272,13 +272,13 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
     Parameters
     ----------
     iterable : list
-        list of state points.
+        list of values to be chunked.
     num_chunks : int
-        (Default value = 10)
+        Number of chunks to split the given iterable (Default value = 10).
     write :
-        (Default value = None)
+        Logging level used to log messages (Default value = None).
     desc : str
-        (Default value = 'Progress: ')
+        Prefix of message to log (Default value = 'Progress: ').
 
     Yields
     ------
