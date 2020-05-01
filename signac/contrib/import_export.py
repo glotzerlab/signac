@@ -41,7 +41,24 @@ RE_TYPES = {
 
 
 def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='.'):
-    "Generate schema based paths as a function of the given jobs."
+    """Generate schema based paths as a function of the given jobs.
+
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+
+    exclude_keys :
+        (Default value = None)
+    delimiter_nested :
+        (Default value = '.')
+
+    Returns
+    -------
+    callable
+        Function that returns Normalized path.
+
+    """
     from .schema import _build_job_statepoint_index
     if len(jobs) <= 1:
         # The lambda must (optionally) take a format spec argument to match the
@@ -64,6 +81,26 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
                 paths[job_id].extend(path_tokens)
 
     def path(job, sep=None):
+        """Normalize the path.
+
+        Parameters
+        ----------
+        jobs : iterable of :class:`~signac.contrib.job.Job`
+            A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+        sep : str
+            (Default value = None)
+
+        Returns
+        -------
+        str
+            Normalized path.
+
+        Raises
+        ------
+        RuntimeError
+            Unable to determine path for job.
+
+        """
         try:
             if sep:
                 return os.path.normpath(sep.join(paths[job._id]))
@@ -78,11 +115,25 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
 
 
 class _AutoPathFormatter(Formatter):
+    """ """
 
     def __init__(self, paths):
         self.paths = paths
 
     def format_field(self, value, format_spec):
+        """
+
+        Parameters
+        ----------
+        value :
+
+        format_spec :
+
+
+        Returns
+        -------
+
+        """
         from .job import Job
         if isinstance(value, Job):
             return self.paths(value, format_spec)
@@ -91,12 +142,29 @@ class _AutoPathFormatter(Formatter):
 
 
 class _SchemaPathEvaluationError(RuntimeError):
+    """ """
     pass
 
 
 def _make_path_function(jobs, path):
-    "Generate a path function for jobs or use `path` if its a callable."
+    """Generate a path function for jobs or use `path` if its a callable.
 
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    path :
+
+    Returns
+    -------
+    path function for given job and path.
+
+    Raises
+    ------
+    ValueError
+        The path argument must either be `None`, `False`, or of type `str`.
+
+    """
     if path is None:
         # Generate a path function based on the schema detected for jobs.
         path_function = _make_schema_based_path_function(jobs=jobs)
@@ -105,6 +173,19 @@ def _make_path_function(jobs, path):
 
         # Just use the job-id as path.
         def path_function(job):
+            """Create path function when path is not given.
+
+            Parameters
+            ----------
+            job : :class:`~signac.contrib.job.Job`
+                An instance of :class:`~signac.contrib.job.Job`.
+
+            Returns
+            -------
+            str
+                path function with just the job id.
+
+            """
             return str(job.get_id())
 
     elif isinstance(path, str):
@@ -117,6 +198,17 @@ def _make_path_function(jobs, path):
         paths = _make_schema_based_path_function(jobs=jobs, exclude_keys=exclude_keys)
 
         def path_function(job):
+            """
+
+            Parameters
+            ----------
+            job :
+
+
+            Returns
+            -------
+
+            """
             try:
                 try:
                     ret = path.format(job=job, **job.sp)
@@ -145,7 +237,17 @@ def _make_path_function(jobs, path):
 
 
 def _check_directory_structure_validity(paths):
-    "Check the consistency of the directory structure for export."
+    """
+
+    Parameters
+    ----------
+    paths :
+
+
+    Returns
+    -------
+
+    """
     check = set()
     for dst in paths:
         if dst in check:
@@ -157,8 +259,31 @@ def _check_directory_structure_validity(paths):
 
 
 def _export_jobs(jobs, path, copytree):
-    "Generic export function for jobs, using the provided copytree method."
+    """Generic export function for jobs, using the provided copytree method.
 
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    path :
+        The path (function) used to structure the exported data space (Default value = None).
+    copytree : callable
+        The function used for copying of directory tree structures.
+        Defaults to :func:`shutil.copytree`. Can only be used when the
+        target is a directory (Default value = None).
+
+    Yields
+    ------
+    tuple
+        `tuple` that has the source directory paths, to the target
+        directory paths based on given copytree callback function.
+
+    Raises
+    ------
+    RuntimeError
+        When paths generated with given path function are not unique.
+
+    """
     # Transform the path argument into a callable if necessary.
     if callable(path):
         path_function = path
@@ -183,23 +308,41 @@ def _export_jobs(jobs, path, copytree):
 def export_to_directory(jobs, target, path=None, copytree=None):
     """Export jobs to a directory.
 
-    :param jobs:
-        A sequence of jobs to export.
-    :param target:
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    target : str
         A path to a directory to export to. The directory can not already exist.
-    :param path:
-        The path (function) used to structure the exported data space.
-    :param copytree:
+    path :
+        The path (function) used to structure the exported data space. (Default value = None)
+    copytree : callable
         The function used for the actualy copying of directory tree
-        structures. Defaults to :func:`shutil.copytree`.
-    :returns:
-        A dict that maps the source directory paths, to the target
+        structures (Default value = None).
+
+    Returns
+    -------
+    generator
+        Generator that maps the source directory paths, to the target
         directory paths.
+
     """
     if copytree is None:
         copytree = shutil.copytree
 
     def copytree_to_directory(src, dst):
+        """
+
+        Parameters
+        ----------
+        src :
+
+        dst :
+
+        Returns
+        -------
+
+        """
         full_dst_path = os.path.join(target, dst)
         _mkdir_p(os.path.dirname(os.path.normpath(full_dst_path)))
         copytree(src, full_dst_path)
@@ -208,14 +351,58 @@ def export_to_directory(jobs, target, path=None, copytree=None):
 
 
 def export_to_tarfile(jobs, tarfile, path=None):
-    """Like :func:`~.export_to_directory`, but target is an instance of :class:`tarfile.TarFile`."""
+    """Like :func:`~.export_to_directory`, but target is an instance of :class:`tarfile.TarFile`.
+
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    tarfile : :class:`tarfile.TarFile`
+        An instance of :class:`tarfile.TarFile`.
+    path :
+        The path (function) used to structure the exported data space (Default value = None).
+
+    Returns
+    -------
+    generator
+        Generator that maps the source directory paths, to the target
+        directory paths.
+
+    """
     return _export_jobs(jobs=jobs, path=path, copytree=tarfile.add)
 
 
 def export_to_zipfile(jobs, zipfile, path=None):
-    """Like :func:`~.export_to_directory`, but target is an instance of :class:`zipfile.ZipFile`."""
+    """Like :func:`~.export_to_directory`, but target is an instance of :class:`zipfile.ZipFile`.
+
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+
+    zipfile : :class:`zipfile.ZipFile`
+        An instance of :class:`zipfile.ZipFile`.
+    path :
+        The path (function) used to structure the exported data space (Default value = None).
+
+    Returns
+    -------
+    generator
+        Generator that maps the source directory paths, to the target
+        directory paths.
+
+    """
 
     def copytree_to_zip(src, dst):
+        """
+
+        Parameters
+        ----------
+        src :
+
+        dst :
+
+        """
         for root, dirnames, filenames in os.walk(src):
             for fn in filenames:
                 zipfile.write(
@@ -228,19 +415,33 @@ def export_to_zipfile(jobs, zipfile, path=None):
 def export_jobs(jobs, target, path=None, copytree=None):
     """Export jobs to a target location, such as a directory or a (compressed) archive file.
 
-    :param jobs:
-        A sequence of jobs to export.
-    :param target:
+    Parameters
+    ----------
+    jobs : iterable of :class:`~signac.contrib.job.Job`
+        A sequence of jobs(instance of :class:`~signac.contrib.job.Job`).
+    target :
         A path to a directory or archive file to export to.
-    :param path:
-        The path (function) used to structure the exported data space.
-    :param copytree:
+    path :
+        The path (function) used to structure the exported data space. (Default value = None)
+    copytree : callable
         The function used for copying of directory tree
         structures. Defaults to :func:`shutil.copytree`.
         Can only be used when the target is a directory.
-    :returns:
-        A dict that maps the source directory paths, to the target
+
+    Yields
+    ------
+    type
+        A tuple of source directory paths, to the target
         directory paths.
+
+    Raises
+    ------
+    ValueError
+        When copytree argument is given and target is of type `str`.
+    TypeError
+        When the target type given is unknown. Or
+        When the target given is of type `str` and has a unknown extension.
+
     """
     if copytree is not None:
         if not (isinstance(target, str) and os.path.splitext(target)[1] == ''):
@@ -277,7 +478,17 @@ def export_jobs(jobs, target, path=None, copytree=None):
 # ### Import related ###
 
 def _convert_bool(value):
-    "Convert a boolean value encoded as string to corresponding bool."
+    """Convert a boolean value encoded as string to corresponding bool.
+
+    Parameters
+    ----------
+    value :
+
+
+    Returns
+    -------
+
+    """
     return {
         'true': True,   '1': True,
         'false': False, '0': False,
@@ -291,6 +502,22 @@ def _convert_schema_path_to_regex(schema_path):
     the following regular expression: 'data\/foo\/(?P<foo>\w+)'.
 
     When no type is specified, we default to str.
+
+    Parameters
+    ----------
+    schema_path : str
+        Path of schema.
+
+
+    Returns
+    -------
+    tuple
+
+    Raises
+    ------
+    ValueError
+        When type of
+
     """
     # First, replace escaped backslashes with double-escaped backslashes.
     # This is needed for compatibility with Windows, which uses backslashes.
@@ -326,10 +553,35 @@ def _convert_schema_path_to_regex(schema_path):
 
 
 def _make_path_based_schema_function(schema_path):
-    "Generate a schema function that is based on a directory path schema."
+    """Generate a schema function that is based on a directory path schema.
+
+    Parameters
+    ----------
+    schema_path : str
+        Path of schema.
+
+    Returns
+    -------
+    callable
+        Function that parse the schema path.
+
+    """
     schema_regex, types = _convert_schema_path_to_regex(schema_path)
 
     def parse_path(path):
+        """Function to parse the path given.
+
+        Parameters
+        ----------
+        path : str
+            The path to parse.
+
+        Returns
+        -------
+        dict
+            A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
+
+        """
         match = re.match(schema_regex, os.path.normpath(path))
         if match:
             sp = match.groupdict()
@@ -342,9 +594,39 @@ def _make_path_based_schema_function(schema_path):
 
 
 def _with_consistency_check(schema_function, read_sp_manifest_file):
-    "Check whether the state point detected from the schema function matches the manifest file."
+    """Check whether the state point detected from the schema function matches the manifest file.
 
+    Parameters
+    ----------
+    schema_function : callable
+
+    read_sp_manifest_file :
+
+
+
+    Returns
+    -------
+    callable
+
+
+    """
     def _check(path):
+        """
+
+        Parameters
+        ----------
+        path :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        StatepointParsingError
+            When identified state point conflicts with state point in job manifest file.
+
+        """
         if schema_function is read_sp_manifest_file:
             return schema_function(path)
         else:
@@ -358,9 +640,29 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
 
 
 def _parse_workspaces(fn_manifest):
-    "Generate a schema function that is based on parsing state point manifest files."
+    """Generate a schema function that is based on parsing state point manifest files.
 
+    Parameters
+    ----------
+    fn_manifest :
+
+
+    Returns
+    -------
+
+    """
     def _parse_workspace(path):
+        """
+
+        Parameters
+        ----------
+        path :
+
+
+        Returns
+        -------
+
+        """
         try:
             with open(os.path.join(path, fn_manifest), 'rb') as file:
                 return json.loads(file.read().decode())
@@ -372,6 +674,22 @@ def _parse_workspaces(fn_manifest):
 
 
 def _crawl_directory_data_space(root, project, schema_function):
+    """Crawl the directory data space.
+
+    Parameters
+    ----------
+    root : str
+        Path to the root directory.
+    Project : :class:`~signac.Project`
+        The signac project.
+    schema_function : callable
+
+    Returns
+    -------
+    tuple
+        Tuple of path of job and the job.
+
+    """
     # We compare paths to the 'realpath' of the project workspace to catch loops.
     workspace_real_path = os.path.realpath(project.workspace())
 
@@ -389,6 +707,24 @@ def _crawl_directory_data_space(root, project, schema_function):
 
 
 def _copy_to_job_workspace(src, job, copytree):
+    """Copy the source to job's workspace.
+
+    Parameters
+    ----------
+    src : str
+        Name of source file copy.
+    job : :class:`~signac.contrib.job.Job`
+        An instance of :class:`~signac.contrib.job.Job`.
+    copytree : callable
+        Specify which exact function to use for the actual copytree operation.
+        Defaults to :func:`shutil.copytree`.
+
+    Returns
+    -------
+    str
+        Desitnation filename.
+
+    """
     dst = job.workspace()
     try:
         copytree(src, dst)
@@ -402,7 +738,16 @@ def _copy_to_job_workspace(src, job, copytree):
 
 
 class _CopyFromDirectoryExecutor(object):
+    """Copy the source to job's workspace when the source is a directory.
 
+    Parameters
+    ----------
+    src : str
+        Name of source file copy.
+    job : :class:`~signac.contrib.job.Job`
+        An instance of :class:`~signac.contrib.job.Job`.
+
+    """
     def __init__(self, src, job):
         self.src = src
         self.job = job
@@ -414,8 +759,31 @@ class _CopyFromDirectoryExecutor(object):
 
 
 def _analyze_directory_for_import(root, project, schema):
-    "Prepare the data space located at the root directory for import into project."
+    """Prepare the data space located at the root directory for import into project.
 
+    Parameters
+    ----------
+    root : str
+        Path of the root directory.
+    Project : :class:`~signac.Project`
+        The signac project.
+    schema :
+        An optional schema function, which is either a string or a function that accepts a
+        path as its first and only argument and returns the corresponding state point as dict
+        (Default value = None).
+
+    Yields
+    ------
+    tuple
+
+    Raises
+    ------
+    StatepointParsingError
+        When the jobs identified with the given schema function are not unique.
+    TypeError
+        The schema variable given is not None, callable or a string.
+
+    """
     # Determine schema function
     read_sp_manifest_file = _parse_workspaces(project.Job.FN_MANIFEST)
     if schema is None:
@@ -442,7 +810,19 @@ def _analyze_directory_for_import(root, project, schema):
 
 
 class _CopyFromZipFileExecutor(object):
+    """Copy the source to job's workspace when the source is a zipfile.
 
+    Parameters
+    ----------
+    zipfile : zipfile.ZipFile
+        A instance of zipfile
+    root : str
+        Path of the root directory.
+    job : :class:`~signac.contrib.job.Job`
+        An instance of :class:`~signac.contrib.job.Job`.
+    names :
+
+    """
     def __init__(self, zipfile, root, job, names):
         self.zipfile = zipfile
         self.root = root
@@ -464,9 +844,45 @@ class _CopyFromZipFileExecutor(object):
 
 
 def _analyze_zipfile_for_import(zipfile, project, schema):
+    """
+
+    Parameters
+    ----------
+    zipfile : zipfile.ZipFile
+        A instance of zipfile
+    Project : :class:`~signac.Project`
+        The signac project.
+    schema :
+        An optional schema function, which is either a string or a function that accepts a
+        path as its first and only argument and returns the corresponding state point as dict
+        (Default value = None).
+
+    Yields
+    ------
+    tuple
+
+    Raises
+    ------
+    TypeError
+        The schema variable given is not None, callable or a string.
+    DestinationExistsError
+        If a job already initialized.
+
+    """
     names = zipfile.namelist()
 
     def read_sp_manifest_file(path):
+        """
+
+        Parameters
+        ----------
+        path :
+
+
+        Returns
+        -------
+
+        """
         # Must use forward slashes, not os.path.sep.
         fn_manifest = path + '/' + project.Job.FN_MANIFEST
         if fn_manifest in names:
@@ -513,6 +929,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
 
 
 class _CopyFromTarFileExecutor(object):
+    """ """
 
     def __init__(self, src, job):
         self.src = src
@@ -531,14 +948,69 @@ def _tarfile_path_join(path, fn):
     or may not have a trailing backslash in the provided path. Rather than
     checking the exact length, which could lead to backwards incompatibilities,
     we simply strip trailing slashes and always add them back.
+
+    Parameters
+    ----------
+    path :
+
+    fn :
+
+
+    Returns
+    -------
+
     """
     path = path.rstrip('/')
     return path + '/' + fn
 
 
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
+    """
+
+    Parameters
+    ----------
+    tarfile : :class:`tarfile.TarFile`
+        tarfile to analyze.
+    Project : :class:`~signac.Project`
+        The project to import the data into.
+    schema :
+        An optional schema function, which is either a string or a function that accepts a
+        path as its first and only argument and returns the corresponding state point as dict.
+        (Default value = None).
+    tmpdir : str
+        Temporary direcotry, an instance of `TemporaryDirectory`.
+
+    Yields
+    ------
+    tuple
+
+    Raises
+    ------
+    TypeError
+        The schema variable given is not None, callable or a string.
+    DestinationExistsError
+        If a job already initialized.
+    StatepointParsingError
+        When the jobs identified with the given schema function are not unique.
+    AssertionError
+        `tmpdir` given is not a directory.
+
+    """
 
     def read_sp_manifest_file(path):
+        """Read state point from the manifest file.
+
+        Parameters
+        ----------
+        path : str
+            Path to manifest file.
+
+        Returns
+        -------
+        dict
+            state point.
+
+        """
         # Must use forward slashes, not os.path.sep.
         fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
         try:
@@ -592,7 +1064,31 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
 @contextmanager
 def _prepare_import_into_project(origin, project, schema=None):
-    "Prepare the data space at origin for import into project with the given schema function."
+    """Prepare the data space at origin for import into project with the given schema function.
+
+    Parameters
+    ----------
+    origin : str
+        Path to current working directory.
+    Project : :class:`~signac.Project`
+        The project to import the data into.
+    schema :
+        An optional schema function, which is either a string or a function that accepts a
+        path as its first and only argument and returns the corresponding state point as dict
+        (Default value = None).
+
+    Yields
+    ------
+    tuple
+
+    Raises
+    ------
+    RuntimeError
+        When file type of `origin` is unknown.
+    ValueError
+        When given `origin` can not be imported.
+
+    """
     if os.path.isfile(origin):
         if zipfile.is_zipfile(origin):
             with zipfile.ZipFile(origin) as file:
@@ -632,20 +1128,26 @@ def import_into_project(origin, project, schema=None, copytree=None):
         Warning: Imports can fail due to conflicts. Moving data instead of copying may
         therefore lead to inconsistent states and users are advised to apply caution.
 
-    :param origin:
+    Parameters
+    ----------
+    origin : str
         The path to the data space origin, which is to be imported. This may be a path to
         a directory, a zipfile, or a tarball archive.
-    :param project:
+    project : :class:`~signac.Project`
         The project to import the data into.
-    :param schema:
+    schema :
         An optional schema function, which is either a string or a function that accepts a
-        path as its first and only argument and returns the corresponding state point as dict.
-    :param copytree:
+        path as its first and only argument and returns the corresponding state point as dict
+        (Default value = None).
+    copytree :
         Specify which exact function to use for the actual copytree operation.
         Defaults to :func:`shutil.copytree`.
-    :returns:
-        A dict that maps the source directory paths, to the target
-        directory paths.
+
+    Yields
+    -------
+    tuple
+        A dict that maps the source directory paths, to the target directory paths.
+
     """
     if origin is None:
         origin = os.getcwd()
