@@ -8,7 +8,6 @@ import getpass
 from ..core import json
 from .config import load_config
 from .errors import ConfigError, AuthenticationError
-from .connection import DBClientConnector
 from .crypt import get_crypt_context, SimpleKeyring, get_keyring
 
 logger = logging.getLogger(__name__)
@@ -155,6 +154,8 @@ def check_credentials(hostcfg):
 
 
 def get_connector(hostcfg, **kwargs):
+    # lazy import
+    from .connection import DBClientConnector
     return DBClientConnector(hostcfg, **kwargs)
 
 
