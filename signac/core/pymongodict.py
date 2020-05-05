@@ -82,4 +82,9 @@ class PyMongoDict(SyncedAttrDict):
         if data is None:
             data = self._as_dict()
 
-        self._collection.update_one({'_id': self._jobid}, {'$set': {'doc': data}})
+        update_query = {}
+        for key in data.keys():
+            update_query['doc'+'.'+key] = data[key]
+
+        if update_query:
+            self._collection.update_one({'_id': self._jobid}, {'$set': update_query})
