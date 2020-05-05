@@ -450,21 +450,25 @@ class Job(object):
         """Remove the job's workspace including the job document.
 
         This function will do nothing if the workspace directory
-        does not exist."""
-        try:
-            shutil.rmtree(self.workspace())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
+        does not exist or the statepoint does not exist in the database."""
+
+        if self._project.db is None:
+            try:
+                shutil.rmtree(self.workspace())
+            except OSError as error:
+                if error.errno != errno.ENOENT:
+                    raise
         else:
-            if self._document is not None:
-                try:
-                    self._document.clear()
-                except IOError as error:
-                    if not error.errno == errno.ENOENT:
-                        raise error
-                self._document = None
-            self._data = None
+            self._project.index_collection.delete_one({'_id': self._id})
+
+        if self._document is not None:
+            try:
+                self._document.clear()
+            except IOError as error:
+                if not error.errno == errno.ENOENT:
+                    raise error
+            self._document = None
+        self._data = None
 
     def move(self, project):
         """Move this job to project.
