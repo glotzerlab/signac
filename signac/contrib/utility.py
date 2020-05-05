@@ -43,6 +43,7 @@ def query_yes_no(question, default="yes"):
     Returns
     -------
     bool
+        ``True`` if yes, ``False`` if no.
 
     Raises
     ------
@@ -100,8 +101,8 @@ def add_verbosity_argument(parser, default=0):
 
     Parameters
     ----------
-    parser :
-        A argparse object.
+    parser : :class:`argparse.ArgumentParser`
+        The parser to which to add a verbosity argument.
     default : int
         The default level, defaults to 0.
 
@@ -127,8 +128,8 @@ def add_verbosity_action_argument(parser, default=0):
 
     Parameters
     ----------
-    parser :
-        A argparse object.
+    parser : :class:`argparse.ArgumentParser`
+        The parser to which to add a verbosity argument.
     default :
         The default level, defaults to 0.
 
@@ -213,7 +214,7 @@ def walkdepth(path, depth=0):
     Parameters
     ----------
     path :str
-        Directory passed to walk(transverse from).
+        Directory passed to walk (transverse from).
 
     depth : int
         (Default value = 0)
@@ -228,7 +229,7 @@ def walkdepth(path, depth=0):
     Raises
     ------
     ValueError
-        When the value of depth is negetive.
+        When the value of depth is negative.
     OSError
         When path is not name of a directory.
 
@@ -324,17 +325,17 @@ def _extract(filename):
     Parameters
     ----------
     filename : str
-        Name of zipfile/ tarfile to extract.
+        Name of zipfile/tarfile to extract.
 
     Yields
     ------
     str
-        Path to the extraced directory.
+        Path to the extracted directory.
 
     Raises
     ------
     RuntimeError
-        When name of file is neither zipfile or tarfile.
+        When the provided file is neither a zipfile nor a tarfile.
 
     """
     with TemporaryDirectory() as tmpdir:
@@ -389,8 +390,9 @@ def _to_hashable(l):
 
     Parameters
     ----------
-    l :
-        Create hash for.
+    l
+        Object to create a hashable version of. Lists are converted
+        to tuples, and hashes are defined for dicts.
 
     Returns
     -------
@@ -415,7 +417,7 @@ def _encode_tree(x):
 
     Returns
     -------
-    Hash created for x
+    Hashable version of ``x``.
 
     """
     if type(x) is list:
@@ -434,7 +436,9 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     encode :
         By default, values are encoded to be hashable. Use ``None`` to skip encoding.
     key : str
-        (Default value = None).
+        Key of root at current point in the recursion, used to
+        build up nested keys in the top-level dict through
+        multiple recursive calls (Default value = None).
 
     Yields
     ------

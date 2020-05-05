@@ -32,10 +32,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     Raises
     ------
     OSError
-        Linked views can not be created on Windows, because
+        Linked views cannot be created on Windows because
         symbolic links are not supported by the platform.
     ValueError
-        When selected data space is provided with insufficient index.
+        When the selected data space is provided with an insufficient index.
     RuntimeError
         When state points contain [os.sep, " ", "*"].
 
@@ -112,7 +112,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
 
 def _update_view(prefix, links, leaf='job'):
-    """Update an existing linked view hierarchy in prefix.
+    """Update an existing linked view hierarchy in place.
 
     Parameters
     ----------
@@ -121,7 +121,8 @@ def _update_view(prefix, links, leaf='job'):
     links : dict
         Linked view .
     leaf : str
-        (Default value = 'job').
+        The name of the leaf directories in the view
+        directory tree (Default value = 'job').
 
     """
     obsolete, to_update, new = _analyze_view(prefix, links)
@@ -159,12 +160,13 @@ def _analyze_view(prefix, links, leaf='job'):
     links : dict
         Linked view.
     leaf : str
-        (Default value = 'job').
+        The name of the leaf directories in the view
+        directory tree (Default value = 'job').
 
     Returns
     -------
     tuple
-        tuple that contians :(list of outdated links, list of links to update, set of new links).
+        tuple that contains: (list of outdated links, list of links to update, set of new links).
 
     """
     logger.info("Analyzing view prefix '{}'...".format(prefix))
@@ -192,9 +194,9 @@ def _make_link(src, dst):
     Parameters
     ----------
     src : str
-        Name of directory/ file to create a symbolic link.
+        Name of directory/file to create a symbolic link.
     dst : str
-        Destination symbolic link directory/ file name.
+        Destination symbolic link directory/file name.
 
     """
     try:
@@ -220,7 +222,8 @@ def _find_all_links(root, leaf='job'):
     root : str
         Project root directory.
     leaf : str
-        (Default value = 'job')
+        The name of the leaf directories in the view
+        directory tree (Default value = 'job').
 
     Yield
     -----
@@ -247,17 +250,17 @@ class _Node(object):
         self.children = dict()
 
     def get_child(self, name):
-        """Get child graph-node for the name passed.
+        """Get child node corresponding to the name passed.
 
         Parameters
         ----------
         name : str
-            Name of graph-node to get child graph-node.
+            Name of child node to get.
 
         Returns
         -------
         :class:`~signac.contrib.linked_view._Node`
-            Child of name passed in the graph.
+            The requested child node.
 
         """
         return self.children.setdefault(name, type(self)(name))
@@ -274,7 +277,7 @@ def _build_tree(paths):
     Parameters
     ----------
     paths : list
-        list of path to views that already exist.
+        A list of paths to views that already exist.
 
     Returns
     -------
@@ -296,9 +299,11 @@ def _get_branches(root, branch=None):
     Parameters
     ----------
     root : :class:`~signac.contrib.linked_view._Node`
-        root node.
+        Root node.
     branch : list
-        (Default value = None)
+        The current list of branches that has been collected,
+        used in recursive calls to build up the branches starting
+        at the root (Default value = None).
 
     Yield
     -----
@@ -324,9 +329,9 @@ def _color_path(root, path):
     Parameters
     ----------
     root : :class:`~signac.contrib.linked_view._Node`
-        root node.
+        Root node.
     path : list
-        name of directory/ file to color(set value to True).
+        The name of the directory/file to color (set value to True).
 
     """
     root.value = True
@@ -341,14 +346,16 @@ def _find_dead_branches(root, branch=None):
     Parameters
     ----------
     root : :class:`~signac.contrib.linked_view._Node`
-        root node.
+        Root node.
     branch : list
-        (Default value = None)
+        The current list of branches that has been collected,
+        used in recursive calls to build up the branches starting
+        at the root (Default value = None).
 
     Yields
     ------
     list
-        Branches that are considered as dead(not-colored).
+        Branches that are considered as dead (not-colored).
 
     """
     if branch is None:
