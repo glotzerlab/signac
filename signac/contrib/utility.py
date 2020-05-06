@@ -273,7 +273,7 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
     Parameters
     ----------
     iterable : list
-        list of values to be chunked.
+        List of values to be chunked.
     num_chunks : int
         Number of chunks to split the given iterable (Default value = 10).
     write :
