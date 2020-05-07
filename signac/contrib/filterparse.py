@@ -193,7 +193,7 @@ def _parse_simple(key, value=None):
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "
-            "Using as JSON expression as key is not allowed: '{}'.".format(key))
+            "Using a JSON expression as a key is not allowed: '{}'.".format(key))
     else:
         return {key: _cast(value)}
 
