@@ -4,10 +4,8 @@
 """Hashing functions."""
 
 import hashlib
-# we need to use the standard module here to ensure
-# exact consistent formatting
-
 import json
+# We must use the standard library json for exact consistency in formatting
 
 
 def calc_id(spec):
