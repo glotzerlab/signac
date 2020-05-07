@@ -1,6 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Utility classes for signac version."""
+
 import re
 import subprocess
 from deprecation import deprecated
@@ -9,7 +11,7 @@ from ..version import __version__
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="All database related functions have been deprecated.")
-def get_subject_from_certificate(fn_certificate):
+def get_subject_from_certificate(fn_certificate): # noqa: D103, E261
     try:
         cert_txt = subprocess.check_output(
             ['openssl', 'x509', '-in', fn_certificate,
@@ -35,6 +37,7 @@ class Version(dict):
                                       prerelease=prerelease)
 
     def to_tuple(self):
+        """Return version details as tuple."""
         return self['major'], self['minor'], self['change'],\
             self['prerelease'], self['postrelease']
 
