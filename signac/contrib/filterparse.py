@@ -1,4 +1,4 @@
-# Copyright (c) 2017 The Regents of the University of Michigan.
+# Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Parse the filter arguments."""
@@ -20,14 +20,14 @@ def _print_err(msg=None):
 
 
 def _with_message(query, file):
-    """Write the message to the passed file.
+    """Print the interpreted filter arguments to the provided file.
 
     Parameters
     ----------
     query : dict
         Filter arguments.
     file :
-        The file to write message for the query passed.
+        The file where the filter interpretation is printed.
 
     Returns
     -------
@@ -137,15 +137,13 @@ def _cast(x):
 
     Parameters
     ----------
-    x :
+    x : str
         The value to cast.
 
     Returns
     -------
-    int
-        cast x into int.
-    float
-        cast x into float.
+    object
+        Value of x, cast from a str to an appropriate type (bool, NoneType, int, float, str).
 
     """
     try:
@@ -177,11 +175,12 @@ def _parse_simple(key, value=None):
     Returns
     -------
     dict
+        Parsed filter arguments.
 
     Raises
     ------
     ValueError
-        filter arguments have an invalid key.
+        If filter arguments have an invalid key.
 
     """
     if value is None or value == '!':
