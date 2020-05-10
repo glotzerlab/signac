@@ -80,9 +80,10 @@ def _valid_filter(f, top=True):
 
     Parameters
     ----------
-    f :
+    f : dict
         The filter argument.
     top : bool
+        Used to return True if the filter passed is of type dict.
         (Default value = True)
 
     Returns
@@ -157,7 +158,7 @@ class _TypedSetDefaultDict(dict):
         key :
             The key to get the value.
         default :
-            (Default value = None)
+            Default value if type of key is not float (Default value = None).
 
         Returns
         -------
@@ -231,16 +232,18 @@ def _build_index(docs, key, primary_key):
     return index
 
 
-def _find_with_index_operator(index, op, argument): # noqa: D417, E261
+def _find_with_index_operator(index, op, argument):
     """Find index for given operator and argument.
 
     Parameters
     ----------
     index : dict
-
+        Index for the operator.
     op : str
         logical operator.
     argument :
+        Dependent on the choice of logical operator argument (op).
+        For better understanding have a look at :meth:`~Collection.find`.
 
     Returns
     -------
@@ -1106,12 +1109,12 @@ class Collection(object):
             The replacement document.
         upsert : bool
             If True, insert the replacement document in
-            the case that no document matches the filter. (Default value = False)
+            the case that no document matches the filter (Default value = False).
 
         Returns
         -------
         str
-            The _id of the replaced (or upserted) documented.
+            The id of the replaced (or upserted) documented.
 
         Raises
         ------
@@ -1265,6 +1268,7 @@ class Collection(object):
         Returns
         -------
         :class:`~Collection`
+            An instance of :class:`~Collection`.
 
         """
         try:
@@ -1349,11 +1353,14 @@ class Collection(object):
         mode : str
             Open the file with mode (Default value = None).
         compresslevel : int
+            The level of compression to use. Any positive value
+            implies compression and is used by the underlying gzip implementation.
             (Default value = None)
 
         Returns
         -------
         :class:`~Collection`
+            An instance of :class:`~Collection`.
 
         Raises
         ------
