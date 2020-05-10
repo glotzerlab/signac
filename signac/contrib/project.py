@@ -668,6 +668,14 @@ class Project(object):
             for key, group in project.groupby('a'):
                 print(key, list(group))
 
+            # Group jobs by document value 'a'.
+            for key, group in project.groupby('doc.a'):
+                print(key, list(group))
+
+            # Group jobs by jobs.sp['a'] and job.document['b']
+            for key, group in project.groupby('a', 'doc.b'):
+                print(key, list(group))
+
             # Find jobs where job.sp['a'] is 1 and group them
             # by job.sp['b'] and job.sp['c'].
             for key, group in project.find_jobs({'a': 1}).groupby(('b', 'c')):
@@ -1759,6 +1767,14 @@ class JobsCursor(object):
 
             # Group jobs by statepoint parameter 'a'.
             for key, group in project.groupby('a'):
+                print(key, list(group))
+
+            # Group jobs by document value 'a'.
+            for key, group in project.groupby('doc.a'):
+                print(key, list(group))
+
+            # Group jobs by jobs.sp['a'] and job.document['b']
+            for key, group in project.groupby('a', 'doc.b'):
                 print(key, list(group))
 
             # Find jobs where job.sp['a'] is 1 and group them
