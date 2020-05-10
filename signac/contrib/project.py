@@ -1792,13 +1792,33 @@ class JobsCursor(object):
                 else:
                     _filter = {'$and': [{key: {"$exists": True}}, _filter]}
 
-                def keyfunction(job):
-                    return job.sp[key]
+                if '.' in key and key.split('.', 1)[0] == 'doc':
+                    def keyfunction(job):
+                        return job.document[key[4:]]
+                else:
+                    key = key[3:] if '.' in key and key.split('.', 1)[0] == 'sp' else key
+
+                    def keyfunction(job):
+                        return job.sp[key]
             else:
-                def keyfunction(job):
-                    return job.sp.get(key, default)
+                if '.' in key and key.split('.', 1)[0] == 'doc':
+                    def keyfunction(job):
+                        return job.document.get(key, default)
+                else:
+                    key = key[3:] if '.' in key and key.split('.', 1)[0] == 'sp' else key
+
+                    def keyfunction(job):
+                        return job.sp.get(key, default)
 
         elif isinstance(key, Iterable):
+            sp_keys = []
+            doc_keys = []
+            for k in key:
+                if '.' in k and k.split('.', 1)[0] == 'doc':
+                    doc_keys.append(k[4:])
+                else:
+                    sp_keys.append(k[3:] if '.' in k and k.split('.', 1)[0] == 'sp' else k)
+
             if default is None:
                 if _filter is None:
                     _filter = {k: {"$exists": True} for k in key}
@@ -1806,10 +1826,11 @@ class JobsCursor(object):
                     _filter = {'$and': [{k: {"$exists": True} for k in key}, _filter]}
 
                 def keyfunction(job):
-                    return tuple(job.sp[k] for k in key)
+                    return tuple([job.sp[k] for k in sp_keys] + [job.document[k] for k in doc_keys])
             else:
                 def keyfunction(job):
-                    return tuple(job.sp.get(k, default) for k in key)
+                    return tuple([job.sp.get(k, default) for k in sp_keys] +
+                                 [job.document.get(k, default) for k in doc_keys])
 
         elif key is None:
             # Must return a type that can be ordered with <, >

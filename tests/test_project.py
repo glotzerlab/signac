@@ -924,8 +924,18 @@ class TestProject(TestProjectBase):
                 'c': i % 3
             }
 
+        def get_doc(i):
+            i += 1
+            return {
+                'a': i,
+                'b': i % 2,
+                'c': i % 3
+            }
+
         for i in range(12):
-            self.project.open_job(get_sp(i)).init()
+            job = self.project.open_job(get_sp(i))
+            job.init()
+            job.document = get_doc(i)
 
         for k, g in self.project.groupby('a'):
             assert len(list(g)) == 1
@@ -959,6 +969,51 @@ class TestProject(TestProjectBase):
             for job in list(g):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
+
+        # using sp.key and doc.key
+        for k, g in self.project.groupby('sp.a'):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.sp['a'] == k
+
+        assert len(list(self.project.groupby('d'))) == 0
+        for k, g in self.project.groupby('sp.d', default=-1):
+            assert k == -1
+            assert len(list(g)) == len(self.project)
+
+        for k, g in self.project.groupby(('sp.b', 'c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.sp['c'] == k[1]
+
+        for k, g in self.project.groupby('doc.a'):
+            assert len(list(g)) == 1
+            for job in list(g):
+                assert job.document['a'] == k
+
+        assert len(list(self.project.groupby('doc.d'))) == 0
+        for k, g in self.project.groupby('doc.d', default=-1):
+            assert k == -1
+            assert len(list(g)) == len(self.project)
+
+        for k, g in self.project.groupby(('doc.b', 'doc.c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.document['b'] == k[0]
+                assert job.document['c'] == k[1]
+
+        for k, g in self.project.groupby(('b', 'doc.c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.document['c'] == k[1]
+
+        for k, g in self.project.groupby(('sp.b', 'doc.c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.document['c'] == k[1]
 
         self.project.open_job({'a': 20}).init()
         for k, g in self.project.groupby('b'):
