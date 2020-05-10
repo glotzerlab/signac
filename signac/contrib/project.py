@@ -1831,13 +1831,12 @@ class JobsCursor(object):
                 def keyfunction(job):
                     return tuple([job.sp.get(k, default) for k in sp_keys] +
                                  [job.document.get(k, default) for k in doc_keys])
-
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
                 return str(job)
-
         else:
+            # Pass the job document to a callable
             keyfunction = key
 
         return groupby(sorted(iter(JobsCursor(self._project, _filter)),
@@ -1895,7 +1894,7 @@ class JobsCursor(object):
             def keyfunction(job):
                 return str(job)
         else:
-            # Pass the job document to lambda functions
+            # Pass the job document to a callable
             def keyfunction(job):
                 return key(job.document)
         return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
