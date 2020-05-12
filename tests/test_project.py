@@ -358,7 +358,8 @@ class TestProject(TestProjectBase):
             assert len(self.project.find_jobs(q)) == num
 
         for i in range(10):
-            job = self.project.open_job({'a': i, 'b': {'c': i}}).init()
+            job = self.project.open_job({'a': i, 'b': {'c': i}})
+            job.init()
             job.doc.d = i
         assert len(self.project) == 10
         with pytest.raises(ValueError):
@@ -901,7 +902,8 @@ class TestProject(TestProjectBase):
             }
 
         for i in range(12):
-            job = self.project.open_job(get_sp(i)).init()
+            job = self.project.open_job(get_sp(i))
+            job.init()
             job.document = get_doc(i)
 
         for k, g in self.project.groupby('a'):
@@ -1002,7 +1004,8 @@ class TestProject(TestProjectBase):
             }
 
         for i in range(12):
-            job = self.project.open_job({'i': i}).init()
+            job = self.project.open_job({'i': i})
+            job.init()
             job.document = get_doc(i)
 
         for k, g in self.project.groupbydoc('a'):
