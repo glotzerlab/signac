@@ -142,6 +142,7 @@ class TestBasicShell():
         assert "{'a': 0}" in sp
         assert len(project) == 1
 
+    # Index schema is changed
     @pytest.mark.xfail()
     def test_index(self):
         self.call('python -m signac init my_project'.split())

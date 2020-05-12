@@ -657,7 +657,7 @@ class Project(object):
         return iter(self.find_jobs())
 
     def groupby(self, key=None, default=None):
-        """Groups jobs according to one or more statepoint or document parameters.
+        """Groups jobs according to one or more statepoint parameters.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:
@@ -1758,7 +1758,7 @@ class JobsCursor(object):
             raise
 
     def groupby(self, key=None, default=None):
-        """Groups jobs according to one or more statepoint or document parameters.
+        """Groups jobs according to one or more statepoint parameters.
         This method can be called on any :class:`~.JobsCursor` such as
         the one returned by :meth:`find_jobs` or by iterating over a
         project. Examples:

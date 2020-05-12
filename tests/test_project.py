@@ -630,6 +630,7 @@ class TestProject(TestProjectBase):
         assert len(docs) == 2 * len(statepoints)
         assert len(set((doc['_id'] for doc in docs))) == len(docs)
 
+    # Index schema is changed
     @pytest.mark.xfail()
     def test_signac_project_crawler(self):
         statepoints = [{'a': i} for i in range(5)]
