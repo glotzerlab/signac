@@ -57,9 +57,10 @@ setup(
     ],
     
     project_urls={
-    'Documentation': 'https://docs.signac.io',
-    'Source': 'https://github.com/glotzerlab/signac',
-    'Tracker': 'https://github.com/glotzerlab/signac/issues',
+        'Homepage': 'https://signac.io'
+        'Documentation': 'https://docs.signac.io',
+        'Source Code': 'https://github.com/glotzerlab/signac',
+        'Issue Tracker': 'https://github.com/glotzerlab/signac/issues',
     },
 
     install_requires=requirements,
