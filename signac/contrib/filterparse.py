@@ -121,7 +121,7 @@ def _add_prefix(filter, prefix):
         elif key in ('sp', 'doc'):
             yield key, value
         else:
-            yield prefix + '.' + key, value
+            yield prefix + key, value
 
 
 def _root_keys(filter):
@@ -144,5 +144,5 @@ def _parse_filter(filter):
         yield from filter.items()
 
 
-def parse_filter(filter, prefix='sp'):
+def parse_filter(filter, prefix='sp.'):
     yield from _add_prefix(_parse_filter(filter), prefix)

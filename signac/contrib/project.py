@@ -618,9 +618,9 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            filter = dict(parse_filter(filter, 'sp'))
+            filter = dict(parse_filter(filter, 'sp.'))
             if doc_filter:
-                filter.update(parse_filter(doc_filter, 'doc'))
+                filter.update(parse_filter(doc_filter, 'doc.'))
                 index = self.index(include_job_document=True)
             elif 'doc' in _root_keys(filter):
                 index = self.index(include_job_document=True)
@@ -648,9 +648,9 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        filter = dict(parse_filter(filter, 'sp'))
+        filter = dict(parse_filter(filter, 'sp.'))
         if doc_filter:
-            filter.update(parse_filter(doc_filter, 'doc'))
+            filter.update(parse_filter(doc_filter, 'doc.'))
         return JobsCursor(self, filter)
 
     def __iter__(self):
