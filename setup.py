@@ -57,7 +57,7 @@ setup(
     ],
     
     project_urls={
-        'Homepage': 'https://signac.io'
+        'Homepage': 'https://signac.io',
         'Documentation': 'https://docs.signac.io',
         'Source Code': 'https://github.com/glotzerlab/signac',
         'Issue Tracker': 'https://github.com/glotzerlab/signac/issues',
