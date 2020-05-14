@@ -55,7 +55,6 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
-    
     project_urls={
         'Homepage': 'https://signac.io',
         'Documentation': 'https://docs.signac.io',
