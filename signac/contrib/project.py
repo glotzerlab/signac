@@ -35,7 +35,7 @@ from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
 from .errors import JobsCorruptedError
-from .filterparse import parse_filter, _root_keys
+from .filterparse import parse_filter, _add_prefix, _root_keys
 from .errors import IncompatibleSchemaVersion
 
 logger = logging.getLogger(__name__)
@@ -618,9 +618,9 @@ class Project(object):
         if filter is None and doc_filter is None and index is None:
             return list(self._job_dirs())
         if index is None:
-            filter = dict(parse_filter(filter, 'sp.'))
+            filter = dict(parse_filter(_add_prefix('sp.', filter)))
             if doc_filter:
-                filter.update(parse_filter(doc_filter, 'doc.'))
+                filter.update(parse_filter(_add_prefix('doc.', doc_filter)))
                 index = self.index(include_job_document=True)
             elif 'doc' in _root_keys(filter):
                 index = self.index(include_job_document=True)
@@ -648,9 +648,9 @@ class Project(object):
         :raises RuntimeError: If the filters are not supported
             by the index.
         """
-        filter = dict(parse_filter(filter, 'sp.'))
+        filter = dict(parse_filter(_add_prefix('sp.', filter)))
         if doc_filter:
-            filter.update(parse_filter(doc_filter, 'doc.'))
+            filter.update(parse_filter(_add_prefix('doc.', doc_filter)))
         return JobsCursor(self, filter)
 
     def __iter__(self):

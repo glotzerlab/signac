@@ -108,20 +108,21 @@ def parse_simple(tokens):
         yield _parse_single(key, value)
 
 
-def _add_prefix(filter, prefix):
-    for key, value in filter:
-        if key in ('$and', '$or'):
-            if isinstance(value, list) or isinstance(value, tuple):
-                yield key, [dict(_add_prefix(item.items(), prefix)) for item in value]
+def _add_prefix(prefix, filter):
+    if filter:
+        for key, value in filter.items():
+            if key in ('$and', '$or'):
+                if isinstance(value, list) or isinstance(value, tuple):
+                    yield key, [dict(_add_prefix(prefix, item)) for item in value]
+                else:
+                    raise ValueError(
+                        "The argument to a logical operator must be a sequence (e.g. a list)!")
+            elif '.' in key and key.split('.', 1)[0] in ('sp', 'doc'):
+                yield key, value
+            elif key in ('sp', 'doc'):
+                yield key, value
             else:
-                raise ValueError(
-                    "The argument to a logical operator must be a sequence (e.g. a list)!")
-        elif '.' in key and key.split('.', 1)[0] in ('sp', 'doc'):
-            yield key, value
-        elif key in ('sp', 'doc'):
-            yield key, value
-        else:
-            yield prefix + key, value
+                yield prefix + key, value
 
 
 def _root_keys(filter):
@@ -137,12 +138,11 @@ def _root_keys(filter):
             yield key
 
 
-def _parse_filter(filter):
+def parse_filter(filter):
     if isinstance(filter, str):
         yield from parse_simple(filter.split())
-    elif filter:
+    elif isinstance(filter, dict):
         yield from filter.items()
+    elif filter:
+        yield from filter
 
-
-def parse_filter(filter, prefix='sp.'):
-    yield from _add_prefix(_parse_filter(filter), prefix)
