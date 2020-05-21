@@ -145,4 +145,3 @@ def parse_filter(filter):
         yield from filter.items()
     elif filter:
         yield from filter
-
