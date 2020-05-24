@@ -45,23 +45,24 @@ class TestPandasIntegration(TestProjectBase):
         assert 'a' in df.columns
         assert 'b' in df.columns
 
-    def test_includes_excludes(self):
+    def test_usecols(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i, b=i*2))
             job.doc.c = float(i)
             job.doc.d = float(i*3)
 
         # Including no keys should return an empty DataFrame
-        df = self.project.to_dataframe(sp_includes=[], doc_includes=[])
+        df = self.project.to_dataframe(usecols=[])
         assert len(df) == 0
 
         # Excluding all keys should return an empty DataFrame
-        df = self.project.to_dataframe(
-            sp_excludes=['a', 'b'], doc_excludes=['c', 'd'])
+        def usecols(column):
+            return column not in ['sp.a', 'sp.b', 'doc.c', 'doc.d']
+        df = self.project.to_dataframe(usecols=usecols)
         assert len(df) == 0
 
         # Include one state point column
-        df = self.project.to_dataframe(sp_includes=['a'])
+        df = self.project.to_dataframe(usecols=['sp.a'])
         assert 'sp.a' in df.columns
         assert 'sp.b' not in df.columns
         assert 'doc.c' in df.columns
@@ -69,7 +70,9 @@ class TestPandasIntegration(TestProjectBase):
         assert len(df) == len(self.project)
 
         # Exclude one state point column
-        df = self.project.to_dataframe(sp_excludes=['b'])
+        def usecols(column):
+            return column != 'sp.b'
+        df = self.project.to_dataframe(usecols=usecols)
         assert 'sp.a' in df.columns
         assert 'sp.b' not in df.columns
         assert 'doc.c' in df.columns
@@ -77,7 +80,7 @@ class TestPandasIntegration(TestProjectBase):
         assert len(df) == len(self.project)
 
         # Include one document column
-        df = self.project.to_dataframe(doc_includes=['c'])
+        df = self.project.to_dataframe(usecols=['doc.c'])
         assert 'sp.a' in df.columns
         assert 'sp.b' in df.columns
         assert 'doc.c' in df.columns
@@ -85,7 +88,9 @@ class TestPandasIntegration(TestProjectBase):
         assert len(df) == len(self.project)
 
         # Exclude one document column
-        df = self.project.to_dataframe(doc_excludes=['d'])
+        def usecols(column):
+            return column != 'doc.d'
+        df = self.project.to_dataframe(usecols=usecols)
         assert 'sp.a' in df.columns
         assert 'sp.b' in df.columns
         assert 'doc.c' in df.columns

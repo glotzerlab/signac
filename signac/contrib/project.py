@@ -1878,68 +1878,63 @@ class JobsCursor(object):
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', sp_includes=None,
-                     sp_excludes=None, doc_includes=None, doc_excludes=None):
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None,
+                     flatten=False):
         """Convert the selection of jobs to a pandas dataframe.
 
-        This function exports the job metadata to a :py:class:`pandas.DataFrame`.
-        All state point and document keys are prefixed by default to be able to distinguish them.
+        This function exports the job metadata to a
+        :py:class:`pandas.DataFrame`. All state point and document keys are
+        prefixed by default to be able to distinguish them.
 
         :param sp_prefix:
-            Prefix state point keys with the given string. Defaults to "sp.".
+            Prefix state point keys with the given string. Defaults to
+            ``'sp.'``.
         :type sp_prefix:
-            str
+            str, optional
         :param doc_prefix:
-            Prefix document keys with the given string. Defaults to "doc.".
+            Prefix document keys with the given string. Defaults to ``'doc.'``.
         :type doc_prefix:
-            str
-        :param sp_includes:
-            Iterable of state point keys to include. Defaults to including all
-            keys.
-        :type sp_includes:
-            Iterable[str]
-        :param sp_excludes:
-            Iterable of state point keys to exclude. Overrides ``sp_includes``.
-            Defaults to excluding no keys.
-        :type sp_excludes:
-            Iterable[str]
-        :param doc_includes:
-            Iterable of document keys to include. Defaults to including all
-            keys.
-        :type doc_includes:
-            Iterable[str]
-        :param doc_excludes:
-            Iterable of document keys to exclude. Overrides ``doc_includes``.
-            Defaults to excluding no keys.
-        :type doc_excludes:
-            Iterable[str]
+            str, optional
+        :param usecols:
+            Used to select a subset of columns. If list-like, must contain
+            strings corresponding to the column names that should be included.
+            For example, ``['sp.a', 'doc.notes']``. If callable, the column
+            will be included if the function called on the column name returns
+            True. For example, ``lambda x: 'sp.' in x``.
+        :type usecols:
+            list-like or callable, optional
+        :param flatten:
+            Whether nested state points or document keys should be flattened.
+            If True, ``{'a': {'b': 'c'}}`` becomes a column named ``a.b`` with
+            value ``c``. If False, it becomes a column named ``a`` with value
+            ``{'b': 'c'}``.
+        :type flatten:
+            bool, optional
         :returns:
-            A pandas dataframe with all job metadata.
+            A pandas DataFrame with all job metadata.
         :rtype:
             :py:class:`pandas.DataFrame`
         """
         import pandas
 
-        if sp_includes is not None:
-            sp_includes = set(sp_includes)
-        if sp_excludes is not None:
-            sp_excludes = set(sp_excludes)
-        if doc_includes is not None:
-            doc_includes = set(doc_includes)
-        if doc_excludes is not None:
-            doc_excludes = set(doc_excludes)
+        if usecols is None:
+            def usecols(column):
+                return True
+        elif not callable(usecols):
+            included_columns = set(usecols)
+
+            def usecols(column):
+                return column in included_columns
 
         def _export_sp_and_doc(job):
-            if sp_includes is None or len(sp_includes):
-                for key, value in job.sp.items():
-                    if (sp_includes is None or key in sp_includes) and \
-                            (sp_excludes is None or key not in sp_excludes):
-                        yield sp_prefix + key, value
-            if doc_includes is None or len(doc_includes):
-                for key, value in job.doc.items():
-                    if (doc_includes is None or key in doc_includes) and \
-                            (doc_excludes is None or key not in doc_excludes):
-                        yield doc_prefix + key, value
+            for key, value in job.sp.items():
+                prefixed_key = sp_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
+            for key, value in job.doc.items():
+                prefixed_key = doc_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
