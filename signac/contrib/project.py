@@ -30,7 +30,7 @@ from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .utility import _mkdir_p, split_and_print_progress
+from .utility import _mkdir_p, split_and_print_progress, _nested_dicts_to_dotted_keys
 from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
@@ -1926,12 +1926,15 @@ class JobsCursor(object):
             def usecols(column):
                 return column in included_columns
 
+        def _flatten(d):
+            return dict(_nested_dicts_to_dotted_keys(d)) if flatten else d
+
         def _export_sp_and_doc(job):
-            for key, value in job.sp.items():
+            for key, value in _flatten(job.sp).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value
-            for key, value in job.doc.items():
+            for key, value in _flatten(job.doc).items():
                 prefixed_key = doc_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value
