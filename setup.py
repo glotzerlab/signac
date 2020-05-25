@@ -56,6 +56,13 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
 
+    project_urls={
+        'Homepage': 'https://signac.io',
+        'Documentation': 'https://docs.signac.io',
+        'Source Code': 'https://github.com/glotzerlab/signac',
+        'Issue Tracker': 'https://github.com/glotzerlab/signac/issues',
+    },
+
     install_requires=requirements,
 
     python_requires='>=3.5, <4',
