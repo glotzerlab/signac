@@ -1901,7 +1901,9 @@ class JobsCursor(object):
             For example, ``['sp.a', 'doc.notes']``. If callable, the column
             will be included if the function called on the column name returns
             True. For example, ``lambda x: 'sp.' in x``. Defaults to ``None``,
-            which uses all columns from the state point and document.
+            which uses all columns from the state point and document. Note
+            that this filter is applied *after* the doc and sp prefixes are
+            added to the column names.
         :type usecols:
             list-like or callable, optional
         :param flatten:
@@ -1912,7 +1914,7 @@ class JobsCursor(object):
         :type flatten:
             bool, optional
         :returns:
-            A pandas DataFrame with all job metadata.
+            A :class:`pandas.DataFrame` with all job metadata.
         :rtype:
             :py:class:`pandas.DataFrame`
         """
