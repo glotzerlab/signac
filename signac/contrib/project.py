@@ -1900,14 +1900,15 @@ class JobsCursor(object):
             strings corresponding to the column names that should be included.
             For example, ``['sp.a', 'doc.notes']``. If callable, the column
             will be included if the function called on the column name returns
-            True. For example, ``lambda x: 'sp.' in x``.
+            True. For example, ``lambda x: 'sp.' in x``. Defaults to ``None``,
+            which uses all columns from the state point and document.
         :type usecols:
             list-like or callable, optional
         :param flatten:
             Whether nested state points or document keys should be flattened.
             If True, ``{'a': {'b': 'c'}}`` becomes a column named ``a.b`` with
             value ``c``. If False, it becomes a column named ``a`` with value
-            ``{'b': 'c'}``.
+            ``{'b': 'c'}``. Defaults to ``False``.
         :type flatten:
             bool, optional
         :returns:
