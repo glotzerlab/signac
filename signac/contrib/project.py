@@ -30,7 +30,7 @@ from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
 from .indexing import MasterCrawler
-from .utility import _mkdir_p, split_and_print_progress
+from .utility import _mkdir_p, split_and_print_progress, _nested_dicts_to_dotted_keys
 from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
@@ -1878,32 +1878,69 @@ class JobsCursor(object):
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None,
+                     flatten=False):
         """Convert the selection of jobs to a pandas dataframe.
 
-        This function exports the job metadata to a :py:class:`pandas.DataFrame`.
-        All state point and document keys are prefixed by default to be able to distinguish them.
+        This function exports the job metadata to a
+        :py:class:`pandas.DataFrame`. All state point and document keys are
+        prefixed by default to be able to distinguish them.
 
         :param sp_prefix:
-            Prefix state point keys with the given string. Defaults to "sp.".
+            Prefix state point keys with the given string. Defaults to
+            ``'sp.'``.
         :type sp_prefix:
-            str
+            str, optional
         :param doc_prefix:
-            Prefix document keys with the given string. Defaults to "doc.".
+            Prefix document keys with the given string. Defaults to ``'doc.'``.
         :type doc_prefix:
-            str
+            str, optional
+        :param usecols:
+            Used to select a subset of columns. If list-like, must contain
+            strings corresponding to the column names that should be included.
+            For example, ``['sp.a', 'doc.notes']``. If callable, the column
+            will be included if the function called on the column name returns
+            True. For example, ``lambda x: 'sp.' in x``. Defaults to ``None``,
+            which uses all columns from the state point and document. Note
+            that this filter is applied *after* the doc and sp prefixes are
+            added to the column names.
+        :type usecols:
+            list-like or callable, optional
+        :param flatten:
+            Whether nested state points or document keys should be flattened.
+            If True, ``{'a': {'b': 'c'}}`` becomes a column named ``a.b`` with
+            value ``c``. If False, it becomes a column named ``a`` with value
+            ``{'b': 'c'}``. Defaults to ``False``.
+        :type flatten:
+            bool, optional
         :returns:
-            A pandas dataframe with all job metadata.
+            A :class:`pandas.DataFrame` with all job metadata.
         :rtype:
             :py:class:`pandas.DataFrame`
         """
         import pandas
 
+        if usecols is None:
+            def usecols(column):
+                return True
+        elif not callable(usecols):
+            included_columns = set(usecols)
+
+            def usecols(column):
+                return column in included_columns
+
+        def _flatten(d):
+            return dict(_nested_dicts_to_dotted_keys(d)) if flatten else d
+
         def _export_sp_and_doc(job):
-            for key, value in job.sp.items():
-                yield sp_prefix + key, value
-            for key, value in job.doc.items():
-                yield doc_prefix + key, value
+            for key, value in _flatten(job.sp).items():
+                prefixed_key = sp_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
+            for key, value in _flatten(job.doc).items():
+                prefixed_key = doc_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
