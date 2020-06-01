@@ -38,6 +38,7 @@ from .diff import diff_jobs
 from .db import get_database
 from .core.jsondict import buffer_reads_writes as buffered
 from .core.jsondict import in_buffered_mode as is_buffered
+from .core.pymongodict import buffer_pymongo_reads_writes as pymongo_buffered
 from .core.jsondict import flush_all as flush
 from .core.jsondict import get_buffer_size
 from .core.jsondict import get_buffer_load
@@ -60,6 +61,7 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'MasterCrawler',
            'SignacProjectCrawler',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
+           'pymongo_buffered',
            'JSONDict',
            'H5Store', 'H5StoreManager',
            'testing',

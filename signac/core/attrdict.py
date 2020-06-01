@@ -15,7 +15,13 @@ class SyncedAttrDict(_SyncedDict):
         ad = SyncedAttrDict(nested_dict)
         assert ad.a.b == 0
     """
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_save')
+
+    _PROTECTED_KEYS = ['_data', '_suspend_sync_', '_load', '_save']
+
+    def __init__(self, initialdata=None, parent=None, protected_keys=None):
+        if isinstance(protected_keys, list):
+            self._PROTECTED_KEYS += protected_keys
+        super(SyncedAttrDict, self).__init__(initialdata=initialdata, parent=parent)
 
     def __getattr__(self, name):
         try:
