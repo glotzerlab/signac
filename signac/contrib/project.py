@@ -1207,32 +1207,25 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
-    def add_many(self,statepoints):
-        """Open jobs for a list of statepoint and add them to the database index, if one exists,
+    def add_many(self, jobs):
+        """Add a list of jobs to the index collection, if one exists,
            and they have not already been added.
 
-        :returns: list of Job instances
+        :returns: List of jobs that have been added and which did not exist in the collection before
         """
-        jobs = []
         if self.db is not None:
             from pymongo import UpdateOne
             ops = []
 
-            for sp in statepoints:
-                job = self.open_job(sp)
-                mongodb_doc = {'$set': {'statepoint': sp}}
-                ops.append(UpdateOne({'_id': job._id},mongodb_doc, upsert=True))
-                jobs.append(job)
+            for job in jobs:
+                mongodb_doc = {'$set': {'statepoint': job.statepoint()}}
+                ops.append(UpdateOne({'_id': job._id}, mongodb_doc, upsert=True))
 
             # execute bulk query
-            self.index_collection.bulk_write(ops, ordered=False)
-        else:
-            for sp in statepoints:
-                job = self.open_job(sp)
-                jobs.append(job)
+            result = self.index_collection.bulk_write(ops, ordered=False)
 
-        return jobs
-
+            added_jobs = [job for job in jobs if job.get_id() in result.upserted_ids.values()]
+            return added_jobs
 
     def check(self):
         """Check the project's workspace for corruption.

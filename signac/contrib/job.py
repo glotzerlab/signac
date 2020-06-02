@@ -381,10 +381,15 @@ class Job(object):
 
     def add(self):
         """Adds the statepoint to the database index, if one exists.
+        :returns: self if job didn't exist in collection, otherwise None
         """
         if self._project.db is not None:
-            mongodb_doc = {'_id': self._id, 'statepoint': self._statepoint}
-            self._project.index_collection.insert_one(mongodb_doc)
+            mongodb_doc = {'$set': {'statepoint': self._statepoint}}
+            result = self._project.index_collection.update_one({'_id': self._id}, mongodb_doc, upsert=True)
+            if result.upserted_id is not None:
+                return job
+            else:
+                return None
 
     def init(self, force=False):
         """Initialize the job's workspace directory.
