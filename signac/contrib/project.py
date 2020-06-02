@@ -1207,6 +1207,34 @@ class Project(object):
             origin=origin, project=self, schema=schema, copytree=copytree))
         return paths
 
+    def add_many(self,statepoints):
+        """Open jobs for a list of statepoint and add them to the database index, if one exists,
+           and they have not already been added.
+
+        :returns: list of Job instances
+        """
+        jobs = []
+        if self.db is not None:
+            from pymongo import UpdateOne
+            from pymongo.errors import BulkWriteError
+            ops = []
+
+            for sp in statepoints:
+                job = self.open_job(sp)
+                mongodb_doc = {'$set': {'statepoint': sp}}
+                ops.append(UpdateOne({'_id': job._id},mongodb_doc, upsert=True))
+                jobs.append(job)
+
+            # execute bulk query
+            self.index_collection.bulk_write(ops)
+        else:
+            for sp in statepoints:
+                job = self.open_job(sp)
+                jobs.append(job)
+
+        return jobs
+
+
     def check(self):
         """Check the project's workspace for corruption.
 
