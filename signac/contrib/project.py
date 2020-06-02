@@ -1216,7 +1216,6 @@ class Project(object):
         jobs = []
         if self.db is not None:
             from pymongo import UpdateOne
-            from pymongo.errors import BulkWriteError
             ops = []
 
             for sp in statepoints:
@@ -1226,7 +1225,7 @@ class Project(object):
                 jobs.append(job)
 
             # execute bulk query
-            self.index_collection.bulk_write(ops)
+            self.index_collection.bulk_write(ops, ordered=False)
         else:
             for sp in statepoints:
                 job = self.open_job(sp)
