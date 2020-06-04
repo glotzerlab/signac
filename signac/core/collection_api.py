@@ -1,3 +1,7 @@
+import os
+import json
+import errno
+import uuid
 from contextlib import contextmanager
 from collections.abc import Collection
 from collections.abc import Mapping
@@ -66,14 +70,12 @@ class SyncedCollection(Collection):
                     self._data = self.from_base(data)
 
 
-class SyncedDict(SyncedCollection, MutableMapping):
+class _SyncedDict(SyncedCollection, MutableMapping):
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync')
-
     def __init__(self, data=None):
-        super(SyncedDict, self).__init__()
+        super(_SyncedDict, self).__init__()
         if data is None:
             self._data = {}
         else:
@@ -133,34 +135,6 @@ class SyncedDict(SyncedCollection, MutableMapping):
         self.load()
         return len(self._data)
 
-    def __getattr__(self, name):
-        try:
-            return super(SyncedDict, self).__getattribute__(name)
-        except AttributeError:
-            if name.startswith('__'):
-                raise
-            try:
-                return self.__getitem__(name)
-            except KeyError as e:
-                raise AttributeError(e)
-
-    def __setattr__(self, key, value):
-        try:
-            self.__getattribute__('_data')
-        except AttributeError:
-            super(SyncedDict, self).__setattr__(key, value)
-        else:
-            if key.startswith('__') or key in self.__getattribute__('_PROTECTED_KEYS'):
-                super(SyncedDict, self).__setattr__(key, value)
-            else:
-                self.__setitem__(key, value)
-
-    def __delattr__(self, key):
-        if key.startswith('__') or key in self._PROTECTED_KEYS:
-            super(SyncedDict, self).__delattr__(key)
-        else:
-            self.__delitem__(key)
-
     def keys(self):
         self.load()
         return self._data.keys()
@@ -206,6 +180,39 @@ class SyncedDict(SyncedCollection, MutableMapping):
             ret = self._data.setdefault(key, self.from_base(default))
         self.sync()
         return ret
+
+
+class SyncedDict(_SyncedDict):
+
+    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync')
+
+    def __getattr__(self, name):
+        try:
+            return super(SyncedDict, self).__getattribute__(name)
+        except AttributeError:
+            if name.startswith('__'):
+                raise
+            try:
+                return self.__getitem__(name)
+            except KeyError as e:
+                raise AttributeError(e)
+
+    def __setattr__(self, key, value):
+        try:
+            super(SyncedDict, self).__getattribute__('_data')
+        except AttributeError:
+            super(SyncedDict, self).__setattr__(key, value)
+        else:
+            if key.startswith('__') or key in self.__getattribute__('_PROTECTED_KEYS'):
+                super(SyncedDict, self).__setattr__(key, value)
+            else:
+                self.__setitem__(key, value)
+
+    def __delattr__(self, key):
+        if key.startswith('__') or key in self._PROTECTED_KEYS:
+            super(SyncedDict, self).__delattr__(key)
+        else:
+            self.__delitem__(key)
 
 
 class SyncedList(SyncedCollection, MutableSequence):
@@ -287,3 +294,37 @@ class SyncedList(SyncedCollection, MutableSequence):
     def clear(self):
         self._data = []
         self.sync()
+
+
+class JSONCollection(SyncedCollection):
+
+    def __init__(self, filename, write_concern=False):
+        self._filename = os.path.realpath(filename)
+        self._write_concern = write_concern
+        super(JSONCollection, self).__init__()
+
+    def _load(self):
+        try:
+            with open(self._filename, 'rb') as file:
+                return file.read()
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                return None
+
+    def _sync(self, data=None):
+        if data is None:
+            data = self.to_base()
+
+        # Serialize data:
+        blob = json.dumps(data).encode()
+
+        if self._write_concern:
+            dirname, filename = os.path.split(self._filename)
+            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+                uid=uuid.uuid4(), fn=filename))
+            with open(fn_tmp, 'wb') as tmpfile:
+                tmpfile.write(blob)
+            os.replace(fn_tmp, self._filename)
+        else:
+            with open(self._filename, 'wb') as file:
+                file.write(blob)
