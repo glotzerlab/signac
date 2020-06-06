@@ -21,7 +21,7 @@ except ImportError:
     from collections.abc import Sized, Iterable, Container
     from _collections_abc import _check_methods
 
-    class Collection(Sized, Iterable, Container):
+    class Collection(Sized, Iterable, Container):  # type: ignore
         @classmethod
         def __subclasshook__(cls, C):
             if cls is Collection:
