@@ -2,8 +2,8 @@ import os
 import json
 import errno
 import uuid
+from copy import copy
 from contextlib import contextmanager
-from collections.abc import Collection
 from collections.abc import Mapping
 from collections.abc import MutableMapping
 from collections.abc import Sequence
@@ -15,6 +15,26 @@ try:
 except ImportError:
     NUMPY = False
 
+try:
+    from collections.abc import Collection
+except ImportError:
+    from collections.abc import Sized, Iterable, Container
+    from _collections_abc import _check_methods
+
+    class Collection(Sized, Iterable, Container):
+        @classmethod
+        def __subclasshook__(cls, C):
+            if cls is Collection:
+                return _check_methods(C,  "__len__", "__iter__", "__contains__")
+            return NotImplemented
+
+        @classmethod
+        def __instancecheck__(cls, instance):
+            for parent in cls.__mro__:
+                if not isinstance(instance, parent):
+                    return False
+            return True
+
 
 class SyncedCollection(Collection):
 
@@ -22,7 +42,8 @@ class SyncedCollection(Collection):
         self._data = None
         self._suspend_sync_ = 0
 
-    def __instancecheck__(self, instance):
+    @classmethod
+    def __instancecheck__(cls, instance):
         if not isinstance(instance, Collection):
             return False
         else:
@@ -59,15 +80,10 @@ class SyncedCollection(Collection):
         pass
 
     def sync(self):
-        if self._suspend_sync_ <= 0:
-            self._sync()
+        pass
 
     def load(self):
-        if self._suspend_sync_ <= 0:
-            data = self._load()
-            if data is not None:
-                with self._suspend_sync():
-                    self._data = self.from_base(data)
+        pass
 
 
 class _SyncedDict(SyncedCollection, MutableMapping):
@@ -75,7 +91,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
     def __init__(self, data=None):
-        super(_SyncedDict, self).__init__()
+        self._suspend_sync_ = 0
         if data is None:
             self._data = {}
         else:
@@ -94,6 +110,25 @@ class _SyncedDict(SyncedCollection, MutableMapping):
             else:
                 converted[key] = value
         return converted
+
+    def reset(self, data=None):
+        if isinstance(data, Mapping) or data is None:
+            with self._suspend_sync():
+                backup = copy(self._data)
+                try:
+                    if data is None:
+                        self._data = {}
+                    else:
+                        self._data = {
+                            key: self.from_base(value)
+                            for key, value in data.items()
+                        }
+                    self.sync()
+                except BaseException:  # rollback
+                    self._data = backup
+                    raise
+        else:
+            raise ValueError("The data must be a mapping or None.")
 
     @classmethod
     def _validate_key(cls, key):
@@ -235,6 +270,21 @@ class SyncedList(SyncedCollection, MutableSequence):
                 converted.append(value)
         return converted
 
+    def reset(self, data=None):
+        if data is None:
+            data = []
+        if isinstance(data, Sequence) and not isinstance(data, str):
+            with self._suspend_sync():
+                backup = copy(self._data)
+                try:
+                    self._data = [self.from_base(value) for value in data]
+                    self.sync()
+                except BaseException:  # rollback
+                    self._data = backup
+                    raise
+        else:
+            raise ValueError("The data must be a sequence or None.")
+
     def __delitem__(self, item):
         self.load()
         del self._data[item]
@@ -301,19 +351,23 @@ class JSONCollection(SyncedCollection):
     def __init__(self, filename, write_concern=False):
         self._filename = os.path.realpath(filename)
         self._write_concern = write_concern
-        super(JSONCollection, self).__init__()
 
-    def _load(self):
+    def _load_from_disk(self):
         try:
             with open(self._filename, 'rb') as file:
-                return file.read()
+                blob = file.read()
+                return json.loads(blob.decode())
         except IOError as error:
             if error.errno == errno.ENOENT:
                 return None
 
-    def _sync(self, data=None):
-        if data is None:
-            data = self.to_base()
+    def load(self):
+        data = self._load_from_disk()
+        with self._suspend_sync():
+            self.reset(data)
+
+    def sync(self):
+        data = self.to_base()
 
         # Serialize data:
         blob = json.dumps(data).encode()
@@ -328,3 +382,9 @@ class JSONCollection(SyncedCollection):
         else:
             with open(self._filename, 'wb') as file:
                 file.write(blob)
+
+
+class JSONDict(JSONCollection, SyncedDict):
+    def __init__(self, filename, data=None, write_concern=False):
+        super(JSONDict, self).__init__(filename, write_concern=write_concern)
+        super(JSONCollection, self).__init__(data=data)
