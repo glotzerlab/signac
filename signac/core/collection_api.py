@@ -73,12 +73,6 @@ class SyncedCollection(Collection):
         yield
         self._suspend_sync_ -= 1
 
-    def _load(self):
-        pass
-
-    def _sync(self):
-        pass
-
     def sync(self):
         pass
 
