@@ -56,7 +56,7 @@ def _flatten(container):
     Parameters
     ----------
     container :
-            list/ tuple of elements.
+            list/tuple of elements.
 
     Yields
     ------
@@ -155,7 +155,7 @@ class _TypedSetDefaultDict(dict):
 
         Parameters
         ----------
-        key :
+        key : str, float
             The key to get the value.
         default :
             Default value if type of key is not float (Default value = None).
@@ -550,8 +550,8 @@ class Collection(object):
         Raises
         ------
         KeyError
-            In case that build is False and the index has not been built yet. Or
-            No index is present for the key.
+            In case the build is False and the index has not been built yet or
+            no index is present for the key.
 
         """
         if key == self._primary_key:
@@ -773,8 +773,8 @@ class Collection(object):
         Raises
         ------
         KeyError
-            When Bad operator expression/ Bad operator placement. Or
-            The expression-operator is unknown.
+            When Bad operator expression/ Bad operator placement or
+            the expression-operator is unknown.
         ValueError
             The value is not bool when operator for '$exists' operator.
 
@@ -1261,8 +1261,10 @@ class Collection(object):
         Parameters
         ----------
         file :
-            The file to read the documents from or create the file if it does not exist
+            The file to read the documents from or create the file if it does not exist.
         compresslevel : int
+            The level of compression to use. Any positive value
+            implies compression and is used by the underlying gzip implementation.
             (Default value = 0)
 
         Returns
@@ -1365,8 +1367,8 @@ class Collection(object):
         Raises
         ------
         RuntimeError
-            File open-mode is not None for in-memory collection. Or
-            Compressed collections are not opened in binary mode.
+            File open-mode is not None for in-memory collection or
+            compressed collections are not opened in binary mode.
 
         """
         if compresslevel is None:
