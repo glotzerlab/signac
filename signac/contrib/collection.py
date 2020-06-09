@@ -89,7 +89,7 @@ def _valid_filter(f, top=True):
     Returns
     -------
     bool
-        True is filter is valid.
+        True if filter is valid.
 
     """
     if f is None:
