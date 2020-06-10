@@ -18,6 +18,8 @@ except ImportError:
 try:
     from collections.abc import Collection
 except ImportError:
+    # create Collection
+
     from collections.abc import Sized, Iterable, Container
 
     def _check_methods(C, *methods):
@@ -49,9 +51,10 @@ except ImportError:
 
 class SyncedCollection(Collection):
 
-    def __init__(self):
+    def __init__(self, parent=None):
         self._data = None
         self._suspend_sync_ = 0
+        self._parent = parent
 
     @classmethod
     def __instancecheck__(cls, instance):
@@ -63,16 +66,16 @@ class SyncedCollection(Collection):
                  ['sync', 'load', 'to_base', 'from_base']])
 
     @classmethod
-    def from_base(self, data):
+    def from_base(self, data, parent=None):
         if isinstance(data, Mapping):
-            return SyncedDict(data)
+            return SyncedDict(data, parent)
         elif isinstance(data, Sequence) and not isinstance(data, str):
-            return SyncedList(data)
+            return SyncedList(data, parent)
         elif NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
             elif isinstance(data, numpy.ndarray):
-                return SyncedList(data.tolist())
+                return SyncedList(data.tolist(), parent)
         return data
 
     def to_base(self):
@@ -84,24 +87,38 @@ class SyncedCollection(Collection):
         yield
         self._suspend_sync_ -= 1
 
-    def sync(self):
+    def _load(self):
         pass
 
-    def load(self):
+    def _sync(self):
         pass
+
+    def sync(self):
+        if self._suspend_sync_ <= 0:
+            if self._parent is None:
+                self._sync()
+            else:
+                self._parent.sync()
+
+    def load(self):
+        if self._suspend_sync_ <= 0:
+            if self._parent is None:
+                self._load()
+            else:
+                self._parent.load()
 
 
 class _SyncedDict(SyncedCollection, MutableMapping):
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
-    def __init__(self, data=None):
-        self._suspend_sync_ = 0
+    def __init__(self, data=None, parent=None):
+        super(_SyncedDict, self).__init__(parent=parent)
         if data is None:
             self._data = {}
         else:
             self._data = {
-                key: self.from_base(value)
+                key: self.from_base(value, self)
                 for key, value in data.items()
             }
 
@@ -117,21 +134,32 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         return converted
 
     def reset(self, data=None):
+        if data is None:
+            data = {}
+        backup = self._data
         if isinstance(data, Mapping) or data is None:
-            with self._suspend_sync():
-                backup = copy(self._data)
-                try:
-                    if data is None:
-                        self._data = {}
-                    else:
-                        self._data = {
-                            key: self.from_base(value)
-                            for key, value in data.items()
-                        }
-                    self.sync()
-                except BaseException:  # rollback
-                    self._data = backup
-                    raise
+            try:
+                with self._suspend_sync():
+                    for key in data:
+                        if key in self._data:
+                            if data[key] == self._data[key]:
+                                continue
+                            try:
+                                self._data[key].reset(key)
+                                continue
+                            except (ValueError, AttributeError):
+                                pass
+                        self._data[key] = self.from_base(data[key])
+                    remove = set()
+                    for key in self._data:
+                        if key not in data:
+                            remove.add(key)
+                    for key in remove:
+                        del self._data[key]
+                self.sync()
+            except BaseException:  # rollback
+                self._data = backup
+                raise
         else:
             raise ValueError("The data must be a mapping or None.")
 
@@ -160,7 +188,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():
-            self._data[self._validate_key(key)] = self.from_base(value)
+            self._data[self._validate_key(key)] = self.from_base(value, parent=self)
         self.sync()
 
     def __getitem__(self, key):
@@ -170,6 +198,16 @@ class _SyncedDict(SyncedCollection, MutableMapping):
     def __iter__(self):
         self.load()
         return iter(self._data)
+
+    def __call__(self):
+        self.load()
+        return self.to_base()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self() == other()
+        else:
+            return self() == other
 
     def __len__(self):
         self.load()
@@ -211,20 +249,20 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         self.load()
         with self._suspend_sync():
             for key, value in mapping.items():
-                self[key] = self.from_base(value)
+                self[key] = self.from_base(value, self)
         self.sync()
 
     def setdefault(self, key, default=None):
         self.load()
         with self._suspend_sync():
-            ret = self._data.setdefault(key, self.from_base(default))
+            ret = self._data.setdefault(key, self.from_base(default, self))
         self.sync()
         return ret
 
 
 class SyncedDict(_SyncedDict):
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync')
+    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
 
     def __getattr__(self, name):
         try:
@@ -257,12 +295,12 @@ class SyncedDict(_SyncedDict):
 
 class SyncedList(SyncedCollection, MutableSequence):
 
-    def __init__(self, data=None):
-        super(SyncedList, self).__init__()
+    def __init__(self, data=None, parent=None):
+        super(SyncedList, self).__init__(parent=parent)
         if data is None:
             self._data = []
         else:
-            self._data = [self.from_base(value) for value in data]
+            self._data = [self.from_base(value, self) for value in data]
 
     def to_base(self):
         """Recursively crawl a SyncedList and convert all elements to
@@ -282,7 +320,19 @@ class SyncedList(SyncedCollection, MutableSequence):
             with self._suspend_sync():
                 backup = copy(self._data)
                 try:
-                    self._data = [self.from_base(value) for value in data]
+                    for i in range(min(len(self), len(data))):
+                        if data[i] == self._data[i]:
+                            continue
+                        try:
+                            self._data[i].reset(data[i])
+                            continue
+                        except (ValueError, AttributeError):
+                            pass
+                        self._data[i] = self.from_base(data[i])
+                    if len(self._data) > len(data):
+                        self._data[:len(data)]
+                    else:
+                        self.extend(data[len(self)])
                     self.sync()
                 except BaseException:  # rollback
                     self._data = backup
@@ -298,7 +348,7 @@ class SyncedList(SyncedCollection, MutableSequence):
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():
-            self._data[key] = self.from_base(value)
+            self._data[key] = self.from_base(value, self)
         self.sync()
 
     def __getitem__(self, key):
@@ -319,31 +369,31 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __iadd__(self, iterable):
         self.load()
-        self._data += [self.from_base(value) for value in iterable]
+        self._data += [self.from_base(value, self) for value in iterable]
         self.sync()
 
     def insert(self, index, item):
         self.load()
         with self._suspend_sync():
-            self._data.insert(index, self.from_base(item))
+            self._data.insert(index, self.from_base(item, self))
         self.sync()
 
     def append(self, item):
         self.load()
         with self._suspend_sync():
-            self._data.append(self.from_base(item))
+            self._data.append(self.from_base(item, self))
         self.sync()
 
     def extend(self, iterable):
         self.load()
         with self._suspend_sync():
-            self._data.extend([self.from_base(value) for value in iterable])
+            self._data.extend([self.from_base(value, self) for value in iterable])
         self.sync()
 
     def remove(self, item):
         self.load()
         with self._suspend_sync():
-            self._data.remove(self.from_base(item))
+            self._data.remove(self.from_base(item, self))
         self.sync()
 
     def clear(self):
@@ -366,15 +416,16 @@ class JSONCollection(SyncedCollection):
             if error.errno == errno.ENOENT:
                 return None
 
-    def load(self):
+    def _load(self):
         data = self._load_from_disk()
         with self._suspend_sync():
             self.reset(data)
 
-    def sync(self):
+    def _sync(self):
         data = self.to_base()
 
         # Serialize data:
+        print(data)
         blob = json.dumps(data).encode()
 
         if self._write_concern:
@@ -390,6 +441,6 @@ class JSONCollection(SyncedCollection):
 
 
 class JSONDict(JSONCollection, SyncedDict):
-    def __init__(self, filename, data=None, write_concern=False):
+    def __init__(self, filename, data=None, write_concern=False, parent=None):
         super(JSONDict, self).__init__(filename, write_concern=write_concern)
-        super(JSONCollection, self).__init__(data=data)
+        super(JSONCollection, self).__init__(data=data, parent=parent)
