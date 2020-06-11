@@ -3,7 +3,5 @@ updates:
 - package-ecosystem: pip
   directory: "/"
   schedule:
-    interval: monthly
+    interval: daily
   open-pull-requests-limit: 10
-  reviewers:
-    - glotzerlab/signac-committers
