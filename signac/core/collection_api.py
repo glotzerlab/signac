@@ -48,6 +48,10 @@ except ImportError:
                     return False
             return True
 
+_PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
+
+VALID_KEY_TYPES_DICT = (str, int, bool, type(None))
+
 
 class SyncedCollection(Collection):
 
@@ -55,15 +59,6 @@ class SyncedCollection(Collection):
         self._data = None
         self._suspend_sync_ = 0
         self._parent = parent
-
-    @classmethod
-    def __instancecheck__(cls, instance):
-        if not isinstance(instance, Collection):
-            return False
-        else:
-            return all(
-                [hasattr(instance, attr) for attr in
-                 ['sync', 'load', 'to_base', 'from_base']])
 
     @classmethod
     def from_base(self, data, parent=None):
@@ -110,8 +105,6 @@ class SyncedCollection(Collection):
 
 class _SyncedDict(SyncedCollection, MutableMapping):
 
-    VALID_KEY_TYPES = (str, int, bool, type(None))
-
     def __init__(self, data=None, parent=None):
         super(_SyncedDict, self).__init__(parent=parent)
         if data is None:
@@ -123,8 +116,6 @@ class _SyncedDict(SyncedCollection, MutableMapping):
             }
 
     def to_base(self):
-        """Recursively crawl a SyncedDict and convert all elements to
-        corresponding synced elements."""
         converted = {}
         for key, value in self._data.items():
             if isinstance(value, SyncedCollection):
@@ -163,7 +154,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         else:
             raise ValueError("The data must be a mapping or None.")
 
-    @classmethod
+    @staticmethod
     def _validate_key(cls, key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
         if isinstance(key, str):
@@ -173,7 +164,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                     "keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
-        elif isinstance(key, cls.VALID_KEY_TYPES):
+        elif isinstance(key, VALID_KEY_TYPES_DICT):
             return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
@@ -262,8 +253,6 @@ class _SyncedDict(SyncedCollection, MutableMapping):
 
 class SyncedDict(_SyncedDict):
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
-
     def __getattr__(self, name):
         try:
             return super(SyncedDict, self).__getattribute__(name)
@@ -281,13 +270,13 @@ class SyncedDict(_SyncedDict):
         except AttributeError:
             super(SyncedDict, self).__setattr__(key, value)
         else:
-            if key.startswith('__') or key in self.__getattribute__('_PROTECTED_KEYS'):
+            if key.startswith('__') or key in _PROTECTED_KEYS:
                 super(SyncedDict, self).__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith('__') or key in self._PROTECTED_KEYS:
+        if key.startswith('__') or key in _PROTECTED_KEYS:
             super(SyncedDict, self).__delattr__(key)
         else:
             self.__delitem__(key)
@@ -303,8 +292,6 @@ class SyncedList(SyncedCollection, MutableSequence):
             self._data = [self.from_base(value, self) for value in data]
 
     def to_base(self):
-        """Recursively crawl a SyncedList and convert all elements to
-        corresponding synced elements."""
         converted = list()
         for value in self._data:
             if isinstance(value, SyncedCollection):
@@ -338,7 +325,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                     self._data = backup
                     raise
         else:
-            raise ValueError("The data must be a sequence or None.")
+            raise ValueError("The data must be a non-string sequence or None.")
 
     def __delitem__(self, item):
         self.load()
@@ -425,7 +412,6 @@ class JSONCollection(SyncedCollection):
         data = self.to_base()
 
         # Serialize data:
-        print(data)
         blob = json.dumps(data).encode()
 
         if self._write_concern:
@@ -441,6 +427,6 @@ class JSONCollection(SyncedCollection):
 
 
 class JSONDict(JSONCollection, SyncedDict):
-    def __init__(self, filename, data=None, write_concern=False, parent=None):
+    def __init__(self, filename, data=None, parent=None, write_concern=False):
         super(JSONDict, self).__init__(filename, write_concern=write_concern)
         super(JSONCollection, self).__init__(data=data, parent=parent)
