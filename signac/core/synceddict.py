@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Synchronized dictionary."
+"""Synchronized dictionary."""
 import logging
 from contextlib import contextmanager
 from functools import wraps
@@ -87,7 +87,7 @@ class _SyncedDict(MutableMapping):
 
     @classmethod
     def _validate_key(cls, key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         if isinstance(key, str):
             if '.' in key:
                 from ..errors import InvalidKeyError
@@ -125,7 +125,7 @@ class _SyncedDict(MutableMapping):
 
     @classmethod
     def _convert_to_dict(cls, root):
-        "Convert (nested) values to dict."
+        """Convert (nested) values to dict."""
         if type(root) == cls:
             ret = dict()
             with root._suspend_sync():
