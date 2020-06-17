@@ -1,7 +1,8 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Basic wrapper to access multiple different data stores."
+"""Basic wrapper to access multiple different data stores."""
+
 import os
 import re
 import errno
@@ -28,6 +29,7 @@ class DictManager(object):
 
     @property
     def prefix(self):
+        """Return the prefix."""
         return self._prefix
 
     def __eq__(self, other):
@@ -46,7 +48,7 @@ class DictManager(object):
 
     @staticmethod
     def _validate_key(key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         return key
 
     def __setitem__(self, key, value):
@@ -108,6 +110,7 @@ class DictManager(object):
                 yield m.groups()[0]
 
     def keys(self):
+        """Return an iterable of keys."""
         return iter(self)
 
     def __len__(self):
