@@ -3,10 +3,11 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 import uuid
+import os
 from tempfile import TemporaryDirectory
 
-from signac.core.collection_api import SyncedDict
-from signac.core.collection_api import SyncedList
+from signac.core.collection_api import JSONDict
+from signac.core.collection_api import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -15,21 +16,25 @@ def testdata():
     return str(uuid.uuid4())
 
 
+FN_DICT = 'jsondict.json'
+
+
 class TestSyncedCollectionBase():
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         request.addfinalizer(self._tmp_dir.cleanup)
+        self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
 
     def get_testdata(self):
         return str(uuid.uuid4())
 
 
-class TestSyncedDict(TestSyncedCollectionBase):
+class TestJSONDict(TestSyncedCollectionBase):
 
     def get_synced_dict(self, data=None):
-        return SyncedDict(data)
+        return JSONDict(filename=self._fn_dict, data=data)
 
     def test_init(self):
         self.get_synced_dict()
@@ -190,10 +195,10 @@ class TestSyncedDict(TestSyncedCollectionBase):
                 sd[key] = self.get_testdata()
 
 
-class TestSyncedList(TestSyncedCollectionBase):
+class TestJSONList(TestSyncedCollectionBase):
 
     def get_synced_list(self, data=None):
-        return SyncedList(data)
+        return JSONList(filename=self._fn_dict, data=data)
 
     def test_init(self):
         self.get_synced_list()
@@ -256,7 +261,7 @@ class TestSyncedList(TestSyncedCollectionBase):
         assert copy[0] == d
 
 
-class TestNestedDict(TestSyncedDict, TestSyncedList):
+class TestNestedDict(TestJSONDict, TestJSONList):
 
     def test_nested_dict(self):
         sd = self.get_synced_dict()
@@ -284,12 +289,12 @@ class TestNestedDict(TestSyncedDict, TestSyncedList):
         child3 = sd['a'][3]['a']
         assert isinstance(child2, type(sd))
         assert isinstance(child1, type(child3))
-        assert isinstance(child1, SyncedList)
-        assert isinstance(child3, SyncedList)
+        assert isinstance(child1, JSONList)
+        assert isinstance(child3, JSONList)
 
     def test_nested_list_with_dict(self):
         sl = self.get_synced_list([{'a': [1, 2, 3, 4]}])
         child1 = sl[0]
         child2 = sl[0]['a']
-        assert isinstance(child2, SyncedList)
-        assert isinstance(child1, SyncedDict)
+        assert isinstance(child2, JSONList)
+        assert isinstance(child1, JSONDict)

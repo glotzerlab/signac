@@ -1,3 +1,6 @@
+# Copyright (c) 2020 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
 import os
 import json
 import errno
@@ -8,6 +11,7 @@ from collections.abc import Mapping
 from collections.abc import MutableMapping
 from collections.abc import Sequence
 from collections.abc import MutableSequence
+from abc import abstractmethod
 
 try:
     import numpy
@@ -18,7 +22,7 @@ except ImportError:
 try:
     from collections.abc import Collection
 except ImportError:
-    # create Collection
+    # Collection does not exist in Python 3.5, only Python 3.6 or newer.
 
     from collections.abc import Sized, Iterable, Container
 
@@ -48,10 +52,6 @@ except ImportError:
                     return False
             return True
 
-_PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
-
-VALID_KEY_TYPES_DICT = (str, int, bool, type(None))
-
 
 class SyncedCollection(Collection):
 
@@ -60,19 +60,29 @@ class SyncedCollection(Collection):
         self._suspend_sync_ = 0
         self._parent = parent
 
+    def __instancecheck__(self, instance):
+        if not isinstance(instance, Collection):
+            return False
+        else:
+            return all(
+                [hasattr(instance, attr) for attr in
+                 ['sync', 'load', 'to_base', 'from_base']])
+
+    # TODO add filename
     @classmethod
     def from_base(self, data, parent=None):
         if isinstance(data, Mapping):
-            return SyncedDict(data, parent)
+            return JSONDict(data=data, parent=parent)
         elif isinstance(data, Sequence) and not isinstance(data, str):
-            return SyncedList(data, parent)
+            return JSONList(data=data, parent=parent)
         elif NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
             elif isinstance(data, numpy.ndarray):
-                return SyncedList(data.tolist(), parent)
+                return JSONList(data.tolist(), parent=parent)
         return data
 
+    @abstractmethod
     def to_base(self):
         pass
 
@@ -82,9 +92,11 @@ class SyncedCollection(Collection):
         yield
         self._suspend_sync_ -= 1
 
+    @abstractmethod
     def _load(self):
         pass
 
+    @abstractmethod
     def _sync(self):
         pass
 
@@ -98,20 +110,27 @@ class SyncedCollection(Collection):
     def load(self):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                self._load()
+                data = self._load()
+                with self._suspend_sync():
+                    self.reset(data)
             else:
                 self._parent.load()
 
 
 class _SyncedDict(SyncedCollection, MutableMapping):
 
-    def __init__(self, data=None, parent=None):
-        super(_SyncedDict, self).__init__(parent=parent)
+    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
+
+    VALID_KEY_TYPES = (str, int, bool, type(None))
+
+    def __init__(self, **kwargs):
+        data = kwargs.pop('data', None)
+        super().__init__(**kwargs)
         if data is None:
             self._data = {}
         else:
             self._data = {
-                key: self.from_base(value, self)
+                self._validate_key(key): self.from_base(value, self)
                 for key, value in data.items()
             }
 
@@ -128,7 +147,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         if data is None:
             data = {}
         backup = self._data
-        if isinstance(data, Mapping) or data is None:
+        if isinstance(data, Mapping):
             try:
                 with self._suspend_sync():
                     for key in data:
@@ -152,9 +171,9 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                 self._data = backup
                 raise
         else:
-            raise ValueError("The data must be a mapping or None.")
+            raise ValueError("The data must be a mapping or None not {}.".format(type(data)))
 
-    @staticmethod
+    @classmethod
     def _validate_key(cls, key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
         if isinstance(key, str):
@@ -164,7 +183,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                     "keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
-        elif isinstance(key, VALID_KEY_TYPES_DICT):
+        elif isinstance(key, cls.VALID_KEY_TYPES):
             return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
@@ -173,14 +192,24 @@ class _SyncedDict(SyncedCollection, MutableMapping):
 
     def __delitem__(self, item):
         self.load()
-        del self._data[item]
-        self.sync()
+        backup = self._data
+        try:
+            del self._data[item]
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def __setitem__(self, key, value):
         self.load()
-        with self._suspend_sync():
-            self._data[self._validate_key(key)] = self.from_base(value, parent=self)
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data[self._validate_key(key)] = self.from_base(value, parent=self)
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def __getitem__(self, key):
         self.load()
@@ -204,6 +233,12 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         self.load()
         return len(self._data)
 
+    def __repr__(self):
+        return repr(self())
+
+    def __str__(self):
+        return str(self())
+
     def keys(self):
         self.load()
         return self._data.keys()
@@ -222,40 +257,66 @@ class _SyncedDict(SyncedCollection, MutableMapping):
 
     def pop(self, key, default=None):
         self.load()
-        ret = self._data.pop(key, default)
-        self.sync()
+        backup = self._data
+        try:
+            ret = self._data.pop(key, default)
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
         return ret
 
     def popitem(self, key, default=None):
         self.load()
-        ret = self._data.pop(key, default)
-        self.sync()
+        backup = self._data
+        try:
+            ret = self._data.pop(key, default)
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
         return ret
 
     def clear(self):
-        self._data = {}
-        self.sync()
+        self.load()
+        backup = self._data
+        try:
+            self._data = {}
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def update(self, mapping):
         self.load()
-        with self._suspend_sync():
-            for key, value in mapping.items():
-                self[key] = self.from_base(value, self)
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                for key, value in mapping.items():
+                    self[key] = self.from_base(value, self)
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def setdefault(self, key, default=None):
         self.load()
-        with self._suspend_sync():
-            ret = self._data.setdefault(key, self.from_base(default, self))
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                ret = self._data.setdefault(key, self.from_base(default, self))
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
         return ret
 
 
-class SyncedDict(_SyncedDict):
+class SyncedAttrDict(_SyncedDict):
 
     def __getattr__(self, name):
         try:
-            return super(SyncedDict, self).__getattribute__(name)
+            return super().__getattribute__(name)
         except AttributeError:
             if name.startswith('__'):
                 raise
@@ -266,26 +327,27 @@ class SyncedDict(_SyncedDict):
 
     def __setattr__(self, key, value):
         try:
-            super(SyncedDict, self).__getattribute__('_data')
+            super().__getattribute__('_data')
         except AttributeError:
-            super(SyncedDict, self).__setattr__(key, value)
+            super().__setattr__(key, value)
         else:
-            if key.startswith('__') or key in _PROTECTED_KEYS:
-                super(SyncedDict, self).__setattr__(key, value)
+            if key.startswith('__') or key in self._PROTECTED_KEYS:
+                super().__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith('__') or key in _PROTECTED_KEYS:
-            super(SyncedDict, self).__delattr__(key)
+        if key.startswith('__') or key in self._PROTECTED_KEYS:
+            super().__delattr__(key)
         else:
             self.__delitem__(key)
 
 
 class SyncedList(SyncedCollection, MutableSequence):
 
-    def __init__(self, data=None, parent=None):
-        super(SyncedList, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        data = kwargs.pop('data', None)
+        super().__init__(**kwargs)
         if data is None:
             self._data = []
         else:
@@ -319,7 +381,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                     if len(self._data) > len(data):
                         self._data[:len(data)]
                     else:
-                        self.extend(data[len(self)])
+                        self.extend(data[len(self):])
                     self.sync()
                 except BaseException:  # rollback
                     self._data = backup
@@ -329,14 +391,24 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __delitem__(self, item):
         self.load()
-        del self._data[item]
-        self.sync()
+        backup = self._data
+        try:
+            del self._data[item]
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def __setitem__(self, key, value):
         self.load()
-        with self._suspend_sync():
-            self._data[key] = self.from_base(value, self)
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data[key] = self.from_base(value, self)
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def __getitem__(self, key):
         self.load()
@@ -356,45 +428,93 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __iadd__(self, iterable):
         self.load()
-        self._data += [self.from_base(value, self) for value in iterable]
-        self.sync()
+        backup = self._data
+        try:
+            self._data += [self.from_base(value, self) for value in iterable]
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
+
+    def __call__(self):
+        self.load()
+        return self.to_base()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self() == other()
+        else:
+            return self() == other
+
+    def __repr__(self):
+        return repr(self())
+
+    def __str__(self):
+        return str(self())
 
     def insert(self, index, item):
         self.load()
-        with self._suspend_sync():
-            self._data.insert(index, self.from_base(item, self))
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data.insert(index, self.from_base(item, self))
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def append(self, item):
         self.load()
-        with self._suspend_sync():
-            self._data.append(self.from_base(item, self))
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data.append(self.from_base(item, self))
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def extend(self, iterable):
         self.load()
-        with self._suspend_sync():
-            self._data.extend([self.from_base(value, self) for value in iterable])
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data.extend([self.from_base(value, self) for value in iterable])
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def remove(self, item):
         self.load()
-        with self._suspend_sync():
-            self._data.remove(self.from_base(item, self))
-        self.sync()
+        backup = self._data
+        try:
+            with self._suspend_sync():
+                self._data.remove(self.from_base(item, self))
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
     def clear(self):
-        self._data = []
-        self.sync()
+        backup = self._data
+        try:
+            self._data = []
+            self.sync()
+        except BaseException:
+            self._data = backup
+            raise
 
 
 class JSONCollection(SyncedCollection):
 
-    def __init__(self, filename, write_concern=False):
-        self._filename = os.path.realpath(filename)
-        self._write_concern = write_concern
+    def __init__(self, **kwargs):
+        filename = kwargs.pop('filename', None)
+        self._filename = None if filename is None else os.path.realpath(filename)
+        self._write_concern = kwargs.pop('write_concern', True)
+        super().__init__(**kwargs)
 
-    def _load_from_disk(self):
+    def _load(self):
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()
@@ -402,11 +522,6 @@ class JSONCollection(SyncedCollection):
         except IOError as error:
             if error.errno == errno.ENOENT:
                 return None
-
-    def _load(self):
-        data = self._load_from_disk()
-        with self._suspend_sync():
-            self.reset(data)
 
     def _sync(self):
         data = self.to_base()
@@ -426,7 +541,11 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
-class JSONDict(JSONCollection, SyncedDict):
-    def __init__(self, filename, data=None, parent=None, write_concern=False):
-        super(JSONDict, self).__init__(filename, write_concern=write_concern)
-        super(JSONCollection, self).__init__(data=data, parent=parent)
+class JSONDict(JSONCollection, SyncedAttrDict):
+    def __init__(self, filename=None, data=None, parent=None, write_concern=False):
+        super().__init__(filename=filename, data=data, parent=parent, write_concern=write_concern)
+
+
+class JSONList(JSONCollection, SyncedList):
+    def __init__(self, filename=None, data=None, parent=None, write_concern=False):
+        super().__init__(filename=filename, data=data, parent=parent, write_concern=write_concern)
