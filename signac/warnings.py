@@ -3,6 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 
 
+"""Module for signac depercation warnings."""
+
+
 class SignacDeprecationWarning(UserWarning):
     """Indicates the deprecation of a signac feature, API or behavior.
 
