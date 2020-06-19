@@ -922,14 +922,9 @@ class Collection(object):
             if compresslevel > 0:
                 import gzip
                 with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
-                    if sys.version_info < (3, 6):
-                        text = gzipfile.read().decode('utf-8')
-                        docs = [json.loads(line) for line in text.splitlines()]
-                        collection = cls(docs=docs)
-                    else:
-                        text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
-                        collection = cls(docs=(json.loads(line) for line in text_io))
-                        text_io.detach()
+                    text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
+                    collection = cls(docs=(json.loads(line) for line in text_io))
+                    text_io.detach()
             else:
                 collection = cls(docs=(json.loads(line) for line in file))
         except (IOError, io.UnsupportedOperation) as error:
