@@ -48,7 +48,6 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -65,7 +64,7 @@ setup(
 
     install_requires=requirements,
 
-    python_requires='>=3.5, <4',
+    python_requires='>=3.6, <4',
 
     extras_require={
         'db': ['pymongo>=3.0'],

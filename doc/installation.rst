@@ -5,7 +5,7 @@ Installation
 ============
 
 The recommended installation method for **signac** is via conda_ or pip_.
-The software is tested for Python versions 3.5+ and has minimal dependencies.
+The software is tested for Python versions 3.6+ and has minimal dependencies.
 However, some extra features such as the HDF5 integration require additional packages.
 
 .. _conda: https://conda.io/
