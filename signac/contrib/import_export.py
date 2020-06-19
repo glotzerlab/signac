@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import re
-import sys
 import errno
 import shutil
 import zipfile
