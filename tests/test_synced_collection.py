@@ -5,7 +5,10 @@ import pytest
 import uuid
 import os
 from tempfile import TemporaryDirectory
+from collections.abc import MutableMapping
+from collections.abc import MutableSequence
 
+from signac.core.collection_api import SyncedCollection
 from signac.core.collection_api import JSONDict
 from signac.core.collection_api import JSONList
 from signac.errors import InvalidKeyError
@@ -38,6 +41,12 @@ class TestJSONDict(TestSyncedCollectionBase):
 
     def test_init(self):
         self.get_synced_dict()
+
+    def test_isinstance(self):
+        sd = self.get_synced_dict()
+        assert isinstance(sd, SyncedCollection)
+        assert isinstance(sd, MutableMapping)
+        assert isinstance(sd, JSONDict)
 
     def test_set_get(self):
         sd = self.get_synced_dict()
@@ -144,6 +153,18 @@ class TestJSONDict(TestSyncedCollectionBase):
         sd.clear()
         assert len(sd) == 0
 
+    def test_reopen(self):
+        jsd = self.get_synced_dict()
+        key = 'reopen'
+        d = self.get_testdata()
+        jsd[key] = d
+        jsd.sync()
+        del jsd  # possibly unsafe
+        jsd2 = self.get_synced_dict()
+        jsd2.load()
+        assert len(jsd2) == 1
+        assert jsd2[key] == d
+
     def test_copy_as_dict(self):
         sd = self.get_synced_dict()
         key = 'copy'
@@ -158,14 +179,17 @@ class TestJSONDict(TestSyncedCollectionBase):
         class Foo(object):
             pass
 
-        sd = self.get_synced_dict()
+        jsd = self.get_synced_dict()
         key = 'write_invalid_type'
         d = self.get_testdata()
-        sd[key] = d
-        assert len(sd) == 1
-        assert sd[key] == d
-        assert len(sd) == 1
-        assert sd[key] == d
+        jsd[key] = d
+        assert len(jsd) == 1
+        assert jsd[key] == d
+        d2 = Foo()
+        with pytest.raises(TypeError):
+            jsd[key + '2'] = d2
+        assert len(jsd) == 1
+        assert jsd[key] == d
 
     def test_keys_with_dots(self):
         sd = self.get_synced_dict()
@@ -173,14 +197,14 @@ class TestJSONDict(TestSyncedCollectionBase):
             sd['a.b'] = None
 
     def test_keys_valid_type(self):
-        sd = self.get_synced_dict()
+        jsd = self.get_synced_dict()
 
         class MyStr(str):
             pass
         for key in ('key', MyStr('key'), 0, None, True):
-            d = sd[key] = self.get_testdata()
-            assert str(key) in sd
-            assert sd[str(key)] == d
+            d = jsd[key] = self.get_testdata()
+            assert str(key) in jsd
+            assert jsd[str(key)] == d
 
     def test_keys_invalid_type(self):
         sd = self.get_synced_dict()
@@ -202,6 +226,12 @@ class TestJSONList(TestSyncedCollectionBase):
 
     def test_init(self):
         self.get_synced_list()
+
+    def test_isinstance(self):
+        sl = self.get_synced_list()
+        assert isinstance(sl, JSONList)
+        assert isinstance(sl, MutableSequence)
+        assert isinstance(sl, SyncedCollection)
 
     def test_set_get(self):
         sl = self.get_synced_list()
@@ -250,6 +280,17 @@ class TestJSONList(TestSyncedCollectionBase):
         assert sd[0] == d
         sd.clear()
         assert len(sd) == 0
+
+    def test_reopen(self):
+        jsl = self.get_synced_list()
+        d = self.get_testdata()
+        jsl.append(d)
+        jsl.sync()
+        del jsl  # possibly unsafe
+        jsl2 = self.get_synced_list()
+        jsl2.load()
+        assert len(jsl2) == 1
+        assert jsl2[0] == d
 
     def test_copy_as_list(self):
         sl = self.get_synced_list()
