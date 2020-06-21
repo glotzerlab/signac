@@ -68,6 +68,7 @@ class SyncedCollection(Collection):
                 [hasattr(instance, attr) for attr in
                  ['sync', 'load', 'to_base', 'from_base']])
 
+    # TODO add back-end
     @classmethod
     def from_base(self, data, filename=None, parent=None):
         if isinstance(data, Mapping):
@@ -181,18 +182,17 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         else:
             raise ValueError("The data must be a mapping or None not {}.".format(type(data)))
 
-    @classmethod
-    def _validate_key(cls, key):
+    @staticmethod
+    def _validate_key(key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
-        if isinstance(key, str):
-            if '.' in key:
+        if isinstance(key, _SyncedDict.VALID_KEY_TYPES):
+            str_key = str(key)
+            if '.' in str_key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
                     "keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
-        elif isinstance(key, cls.VALID_KEY_TYPES):
-            return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
             raise KeyTypeError(
@@ -473,7 +473,6 @@ class JSONCollection(SyncedCollection):
 
     def _sync(self):
         data = self.to_base()
-
         # Serialize data:
         blob = json.dumps(data).encode()
 
