@@ -5,8 +5,10 @@ import pytest
 import uuid
 from copy import copy, deepcopy
 from itertools import chain
+from collections.abc import MutableMapping
 
-from signac.core.collection_api import JSONDict
+from signac.core.attrdict import SyncedAttrDict as SAD
+from signac.core.synceddict import _SyncedDict
 
 
 class _SyncPoint(object):
@@ -33,7 +35,7 @@ class _SyncPoint(object):
     def load(self):
         self._loaded += 1
 
-    def sync(self):
+    def save(self):
         self._saved += 1
 
 
@@ -47,7 +49,7 @@ class TestSyncedAttrDict():
         return str(uuid.uuid4())
 
     def get_sad(self, initialdata=None):
-        return JSONDict(data=initialdata, parent=self.sync_point)
+        return SAD(initialdata, parent=self.sync_point)
 
     def assert_no_read_write(self):
         assert self.sync_point.loaded == 0
@@ -64,6 +66,16 @@ class TestSyncedAttrDict():
     def assert_read_write(self, num_read=1, num_write=1):
         assert self.sync_point.loaded == num_read
         assert self.sync_point.saved == num_write
+
+    def test_init(self):
+        SAD()
+        SAD(dict(a=0))
+        self.get_sad()
+
+    def test_is_object_and_mapping(self):
+        assert isinstance(_SyncedDict(), object)
+        assert isinstance(_SyncedDict(), MutableMapping)
+        assert isinstance(self.get_sad(), _SyncedDict)
 
     def test_str(self):
         sad = self.get_sad()
@@ -304,7 +316,7 @@ class TestSyncedAttrDict():
         sad[key] = d
         self.assert_read_write()
         sad.clear()
-        self.assert_read_write()  # added load for safe_sync
+        self.assert_only_write()
         assert len(sad) == 0
         self.assert_only_read()
 
@@ -449,35 +461,35 @@ class TestSyncedAttrDict():
         sad['a'] = [1, 2, 3]
         self.assert_read_write()
         assert len(sad.a) == 3
-        self.assert_only_read(num=2)  # added load in len()
+        self.assert_only_read()
         assert sad['a'] == [1, 2, 3]
-        self.assert_only_read(num=2)  # added load in to_base of SyncedList
+        self.assert_only_read()
         assert sad.a == [1, 2, 3]
-        self.assert_only_read(num=2)
+        self.assert_only_read()
         sad['a'].append(4)
         self.assert_read_write(2, 1)
         assert len(sad.a) == 4
-        self.assert_only_read(num=2)
+        self.assert_only_read()
         assert sad['a'] == [1, 2, 3, 4]
-        self.assert_only_read(2)
+        self.assert_only_read()
         assert sad.a == [1, 2, 3, 4]
-        self.assert_only_read(2)
+        self.assert_only_read()
         sad.a.insert(0, 0)
         self.assert_read_write(2, 1)
         assert len(sad.a) == 5
-        self.assert_only_read(2)
+        self.assert_only_read()
         assert sad['a'] == [0, 1, 2, 3, 4]
-        self.assert_only_read(2)
+        self.assert_only_read()
         assert sad.a == [0, 1, 2, 3, 4]
-        self.assert_only_read(2)
+        self.assert_only_read()
         del sad.a[0]
         self.assert_read_write(2)
         assert len(sad.a) == 4
-        self.assert_only_read(2)
+        self.assert_only_read()
         assert sad.a.pop() is not None
-        self.assert_read_write(3)
+        self.assert_read_write(2)
         assert len(sad.a) == 3
-        self.assert_only_read(2)
+        self.assert_only_read()
 
     def test_suspend_sync(self):
         sad = self.get_sad()
@@ -501,10 +513,10 @@ class TestSyncedAttrDict():
         """Ensure that calling methods like items and values does not
         change the type of nested dictionaries."""
         sad = self.get_sad({'a': {'b': 1}})
-        assert type(sad['a']) is JSONDict
+        assert type(sad['a']) is SAD
         sad.items()
-        assert type(sad['a']) is JSONDict
+        assert type(sad['a']) is SAD
         sad.values()
-        assert type(sad['a']) is JSONDict
-        sad.to_base()
-        assert type(sad['a']) is JSONDict
+        assert type(sad['a']) is SAD
+        sad._as_dict()
+        assert type(sad['a']) is SAD
