@@ -186,8 +186,8 @@ class _SyncedDict(SyncedCollection, MutableMapping):
     def _validate_key(key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
         if isinstance(key, _SyncedDict.VALID_KEY_TYPES):
-            str_key = str(key)
-            if '.' in str_key:
+            key = str(key)
+            if '.' in key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
                     "keys may not contain dots ('.'): {}".format(key))
@@ -346,9 +346,9 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             data = []
         if isinstance(data, Sequence) and not isinstance(data, str):
-            with self._suspend_sync():
-                backup = copy(self._data)
-                try:
+            backup = copy(self._data)
+            try:
+                with self._suspend_sync():
                     for i in range(min(len(self), len(data))):
                         if data[i] == self._data[i]:
                             continue
@@ -359,13 +359,13 @@ class SyncedList(SyncedCollection, MutableSequence):
                             pass
                         self._data[i] = self.from_base(data=data[i], parent=self)
                     if len(self._data) > len(data):
-                        self._data[:len(data)]
+                        self._data = self._data[:len(data)]
                     else:
                         self.extend(data[len(self):])
-                    self.sync()
-                except BaseException:  # rollback
-                    self._data = backup
-                    raise
+                self.sync()
+            except BaseException:  # rollback
+                self._data = backup
+                raise
         else:
             raise ValueError("The data must be a non-string sequence or None.")
 
