@@ -27,6 +27,7 @@ Deprecated
 ++++++++++
 
  - Deprecate the ``create_access_modules`` method in ``Project``, to be removed in 2.0 (#303, #308).
+ - The ``MainCrawler`` class has replaced the ``MasterCrawler`` class. Both classes are deprecated.
 
 
 [1.4.0] -- 2020-02-28
