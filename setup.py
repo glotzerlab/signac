@@ -64,6 +64,8 @@ setup(
 
     install_requires=requirements,
 
+    # Supported versions are determined according to NEP 29.
+    # https://numpy.org/neps/nep-0029-deprecation_policy.html
     python_requires='>=3.6, <4',
 
     extras_require={
