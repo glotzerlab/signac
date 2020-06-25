@@ -30,7 +30,7 @@ __all__ = [
     'indexing',
     'Project', 'TemporaryProject', 'get_project', 'init_project', 'get_job',
     'BaseCrawler', 'RegexFileCrawler', 'JSONCrawler', 'SignacProjectCrawler',
-    'MainCrawler', 'fetch', 'fetched',
+    'MainCrawler', 'MasterCrawler', 'fetch', 'fetched',
     'export_one', 'export', 'export_to_mirror', 'export_pymongo',
     'index_files', 'index',
     'Collection',
