@@ -19,7 +19,8 @@ def testdata():
     return str(uuid.uuid4())
 
 
-FN_DICT = 'jsondict.json'
+FN_DICT = 'testdict.json'
+FN_LIST = 'testlist.json'
 
 
 class TestSyncedCollectionBase():
@@ -29,6 +30,7 @@ class TestSyncedCollectionBase():
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
+        self._fn_list = os.path.join(self._tmp_dir.name, FN_LIST)
 
     def get_testdata(self):
         return str(uuid.uuid4())
@@ -37,7 +39,10 @@ class TestSyncedCollectionBase():
 class TestJSONDict(TestSyncedCollectionBase):
 
     def get_synced_dict(self, data=None):
-        return JSONDict(filename=self._fn_dict, data=data)
+        ld = JSONDict(filename=self._fn_dict, data=data)
+        if data is not None:
+            ld.sync()
+        return ld
 
     def test_init(self):
         self.get_synced_dict()
@@ -222,7 +227,10 @@ class TestJSONDict(TestSyncedCollectionBase):
 class TestJSONList(TestSyncedCollectionBase):
 
     def get_synced_list(self, data=None):
-        return JSONList(filename=self._fn_dict, data=data)
+        ls = JSONList(filename=self._fn_list, data=data)
+        if data is not None:
+            ls.sync()
+        return ls
 
     def test_init(self):
         self.get_synced_list()

@@ -45,13 +45,6 @@ except ImportError:
                 return _check_methods(C,  "__len__", "__iter__", "__contains__")
             return NotImplemented
 
-        @classmethod
-        def __instancecheck__(cls, instance):
-            for parent in cls.__mro__:
-                if not isinstance(instance, parent):
-                    return False
-            return True
-
 
 class SyncedCollection(Collection):
 
@@ -59,14 +52,6 @@ class SyncedCollection(Collection):
         self._data = None
         self._suspend_sync_ = 0
         self._parent = parent
-
-    def __instancecheck__(self, instance):
-        if not isinstance(instance, Collection):
-            return False
-        else:
-            return all(
-                [hasattr(instance, attr) for attr in
-                 ['sync', 'load', 'to_base', 'from_base']])
 
     # TODO add back-end
     @classmethod
