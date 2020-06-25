@@ -11,7 +11,7 @@ The API of each package as part of the framework is documented in the form of do
 A more general introduction in the form of tutorials, guides, and recipes is published as part of the framework documentation: https://docs.signac.io.
 
 Anyone is invited to add to or edit any part of the documentation.
-To fix a spelling mistake or to make a minor edits, just click on the *Edit on GitHub** button in the top-right corner.
+To fix a spelling mistake or to make a minor edits, just click on the **Edit on GitHub** button in the top-right corner.
 We recommend to clone the signac-docs repository for more substantial edits on your local machine.
 
 ## Triaging Issues
@@ -35,6 +35,7 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement.
   * Preserve backwards-compatibility whenever possible, and make clear if something must change.
   * Document any portions of the code that might be less clear to others, especially to new developers.
   * Write API documentation in this package, and put usage information, guides, and concept overviews in the [framework documentation](https://docs.signac.io/) ([source](https://github.com/glotzerlab/signac-docs/)).
+  * Use inclusive language in all documentation and code. The [Google developer documentation style guide](https://developers.google.com/style/inclusive-documentation) is a helpful reference.
 
 Please see the [Support](https://docs.signac.io/projects/signac-core/en/latest/support.html) section as part of the documentation for detailed development guidelines.
 
@@ -54,7 +55,7 @@ Pull requests should generally be approved by two reviewers prior to merge.
 
 The following items represent a general guideline for points that should be considered during the review process:
 
-* Breaking changes to the API should be avoided whenever possible and require approval by a lead maintainer.
+* Breaking changes to the API should be avoided whenever possible and require approval by a project maintainer.
 * Significant performance degradations must be avoided unless the regression is necessary to fix a bug.
 * Updates for non-trivial bug fixes should be accompanied by a unit test that catches the related issue to avoid future regression.
 * The code is easy to follow and sufficiently documented to be understandable even to developers who are not highly familiar with the code.
