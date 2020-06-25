@@ -283,9 +283,9 @@ class TestIndexingBase():
         ids = set(doc['_id'] for doc in docs)
         assert len(ids) == len(docs)
 
-    def test_master_crawler(self):
+    def test_main_crawler(self):
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         no_find = True
         with pytest.deprecated_call():
@@ -326,7 +326,7 @@ class TestIndexingBase():
             with pytest.raises(errors.FetchError):
                 signac.fetch(dict())
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         with pytest.deprecated_call():
             docs = list(crawler.crawl())
@@ -343,7 +343,7 @@ class TestIndexingBase():
 
     def test_export_one(self):
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         with pytest.deprecated_call():
@@ -355,7 +355,7 @@ class TestIndexingBase():
 
     def test_export(self):
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         with pytest.deprecated_call():
@@ -403,7 +403,7 @@ class TestIndexingBase():
 
     def test_export_to_mirror(self):
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         crawler.tags = {'test1'}
         index = self.get_index_collection()
         mirror = _TestFS()
@@ -425,9 +425,9 @@ class TestIndexingBase():
                 with mirror.get(doc['file_id']):
                     pass
 
-    def test_master_crawler_tags(self):
+    def test_main_crawler_tags(self):
         self.setup_project()
-        crawler = indexing.MasterCrawler(root=self._tmp_dir.name)
+        crawler = indexing.MainCrawler(root=self._tmp_dir.name)
         with pytest.deprecated_call():
             assert 0 == len(list(crawler.crawl()))
             crawler.tags = None

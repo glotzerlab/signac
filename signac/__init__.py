@@ -32,6 +32,7 @@ from .contrib import Collection
 from .contrib import index_files
 from .contrib import index
 from .contrib import RegexFileCrawler
+from .contrib import MainCrawler
 from .contrib import MasterCrawler
 from .contrib import SignacProjectCrawler
 from .diff import diff_jobs
@@ -57,7 +58,7 @@ __all__ = ['__version__', 'contrib', 'db', 'errors', 'warnings', 'sync',
            'export_pymongo', 'fs',
            'index_files', 'index',
            'RegexFileCrawler',
-           'MasterCrawler',
+           'MainCrawler', 'MasterCrawler',
            'SignacProjectCrawler',
            'buffered', 'is_buffered', 'flush', 'get_buffer_size', 'get_buffer_load',
            'JSONDict',
