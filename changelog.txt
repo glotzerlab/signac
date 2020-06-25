@@ -546,7 +546,7 @@ Added
 Changed
 +++++++
 
- - The MasterCrawler logic has been simplified; their primary function is the compilation of index documents from slave crawlers, all export logic, including data mirroring is now provided by the ``signac.export()`` function.
+ - The MasterCrawler logic has been simplified; their primary function is the compilation of index documents from subcrawlers, all export logic, including data mirroring is now provided by the ``signac.export()`` function.
  - Each index document is now uniquely coupled with only one file or data object, which is why ``signac.fetch()`` replaces ``signac.fetch_one()`` and the latter one has been deprecated and is currently an alias of the former one.
  - The ``signac.fetch()`` function always returns a file-like object, regardless of format definition.
  - The format argument in the crawler ``define()`` function is now optional and has now very well defined behavior for str types. It is encouraged to define a format with a str constant rather than a file-like object type.

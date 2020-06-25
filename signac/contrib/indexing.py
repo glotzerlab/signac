@@ -536,7 +536,7 @@ class MasterCrawler(BaseCrawler):
 
         if hasattr(module, 'get_crawlers'):
             for crawler in module.get_crawlers(dirpath):
-                logger.info("Executing slave crawler:\n {}".format(crawler))
+                logger.info("Executing subcrawler:\n {}".format(crawler))
                 if _check_tags(getattr(crawler, 'tags', None)):
                     for doc in crawler.crawl():
                         doc.setdefault(
@@ -955,7 +955,7 @@ def index(root='.', tags=None, depth=0, **kwargs):
 
     :param root: Look for access modules under this directory path.
     :type root: str
-    :param tags: If tags are provided, do not execute slave crawlers
+    :param tags: If tags are provided, do not execute subcrawlers
         that don't match the same tags.
     :param depth: Limit the search to the specified directory depth.
     :param kwargs: These keyword-arguments are forwarded to the
