@@ -48,10 +48,9 @@ except ImportError:
 
 class SyncedCollection(Collection):
 
-    def __init__(self, parent=None):
+    def __init__(self):
         self._data = None
         self._suspend_sync_ = 0
-        self._parent = parent
 
     # TODO add back-end
     @classmethod
@@ -110,6 +109,41 @@ class SyncedCollection(Collection):
             else:
                 self._parent.load()
 
+    # defining common methods
+    def __getitem__(self, key):
+        self.load()
+        return self._data[key]
+
+    def __delitem__(self, item):
+        self.load()
+        with self._safe_sync():
+            del self._data[item]
+            self.sync()
+
+    def __iter__(self):
+        self.load()
+        return iter(self._data)
+
+    def __len__(self):
+        self.load()
+        return len(self._data)
+
+    def __call__(self):
+        self.load()
+        return self.to_base()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self() == other()
+        else:
+            return self() == other
+
+    def __repr__(self):
+        return repr(self._data)
+
+    def __str__(self):
+        return str(self._data)
+
 
 class _SyncedDict(SyncedCollection, MutableMapping):
 
@@ -122,10 +156,12 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         if data is None:
             self._data = {}
         else:
-            self._data = {
-                self._validate_key(key): self.from_base(data=value, parent=self)
-                for key, value in data.items()
-            }
+            with self._suspend_sync():
+                self._data = {
+                    self._validate_key(key): self.from_base(data=value, parent=self)
+                    for key, value in data.items()
+                }
+            self.sync()
 
     def to_base(self):
         converted = {}
@@ -147,11 +183,12 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                         if key in self._data:
                             if data[key] == self._data[key]:
                                 continue
-                            try:
-                                self._data[key].reset(key)
-                                continue
-                            except (ValueError, AttributeError):
-                                pass
+                            if isinstance(self._data[key], SyncedCollection):
+                                try:
+                                    self._data[key].reset(key)
+                                    continue
+                                except (ValueError):
+                                    pass
                         self._data[key] = self.from_base(data=data[key], parent=self)
                     remove = set()
                     for key in self._data:
@@ -164,7 +201,8 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                 self._data = backup
                 raise
         else:
-            raise ValueError("Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
+            raise ValueError(
+                "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
     @staticmethod
     def _validate_key(key):
@@ -182,46 +220,12 @@ class _SyncedDict(SyncedCollection, MutableMapping):
             raise KeyTypeError(
                 "SyncedDict keys must be str, int, bool or None, not {}".format(type(key).__name__))
 
-    def __delitem__(self, item):
-        self.load()
-        with self._safe_sync():
-            del self._data[item]
-            self.sync()
-
     def __setitem__(self, key, value):
         self.load()
         with self._safe_sync():
             with self._suspend_sync():
                 self._data[self._validate_key(key)] = self.from_base(data=value, parent=self)
             self.sync()
-
-    def __getitem__(self, key):
-        self.load()
-        return self._data[key]
-
-    def __iter__(self):
-        self.load()
-        return iter(self._data)
-
-    def __call__(self):
-        self.load()
-        return self.to_base()
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self() == other()
-        else:
-            return self() == other
-
-    def __len__(self):
-        self.load()
-        return len(self._data)
-
-    def __repr__(self):
-        return repr(self())
-
-    def __str__(self):
-        return str(self())
 
     def keys(self):
         self.load()
@@ -314,7 +318,9 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             self._data = []
         else:
-            self._data = [self.from_base(data=value, parent=self) for value in data]
+            with self._suspend_sync():
+                self._data = [self.from_base(data=value, parent=self) for value in data]
+            self.sync()
 
     def to_base(self):
         converted = list()
@@ -335,11 +341,12 @@ class SyncedList(SyncedCollection, MutableSequence):
                     for i in range(min(len(self), len(data))):
                         if data[i] == self._data[i]:
                             continue
-                        try:
-                            self._data[i].reset(data[i])
-                            continue
-                        except (ValueError, AttributeError):
-                            pass
+                        if isinstance(self._data[i], SyncedCollection):
+                            try:
+                                self._data[i].reset(i)
+                                continue
+                            except (ValueError):
+                                pass
                         self._data[i] = self.from_base(data=data[i], parent=self)
                     if len(self._data) > len(data):
                         self._data = self._data[:len(data)]
@@ -350,13 +357,9 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = backup
                 raise
         else:
-            raise ValueError("Unsupported type: {}. The data must be a non-string sequence or None.".format(type(data)))
-
-    def __delitem__(self, item):
-        self.load()
-        with self._safe_sync():
-            del self._data[item]
-            self.sync()
+            raise ValueError(
+                "Unsupported type: {}. The data must be a non-string sequence or None."
+                .format(type(data)))
 
     def __setitem__(self, key, value):
         self.load()
@@ -364,18 +367,6 @@ class SyncedList(SyncedCollection, MutableSequence):
             with self._suspend_sync():
                 self._data[key] = self.from_base(data=value, parent=self)
             self.sync()
-
-    def __getitem__(self, key):
-        self.load()
-        return self._data[key]
-
-    def __iter__(self):
-        self.load()
-        return iter(self._data)
-
-    def __len__(self):
-        self.load()
-        return len(self._data)
 
     def __reversed__(self):
         self.load()
@@ -386,22 +377,6 @@ class SyncedList(SyncedCollection, MutableSequence):
         with self._safe_sync():
             self._data += [self.from_base(data=value, parent=self) for value in iterable]
             self.sync()
-
-    def __call__(self):
-        self.load()
-        return self.to_base()
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self() == other()
-        else:
-            return self() == other
-
-    def __repr__(self):
-        return repr(self())
-
-    def __str__(self):
-        return str(self())
 
     def insert(self, index, item):
         self.load()
@@ -439,8 +414,14 @@ class SyncedList(SyncedCollection, MutableSequence):
 
 class JSONCollection(SyncedCollection):
 
-    def __init__(self, filename=None, write_concern=True, **kwargs):
-        self._filename = os.path.realpath(filename) if filename is not None
+    def __init__(self, filename=None, parent=None, write_concern=False, **kwargs):
+        self._parent = parent
+        self._filename = os.path.realpath(filename) if filename is not None else None
+        if (filename is None) == (parent is None):
+            raise ValueError(
+                "Illegal argument combination, one of the two arguments, "
+                "parent or filename must be None, but not both.")
+        self._write_concern = False
         super().__init__(**kwargs)
 
     def _load(self):
@@ -470,18 +451,8 @@ class JSONCollection(SyncedCollection):
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
-    def __init__(self, data=None, filename=None, parent=None, write_concern=False):
-        if (filename is None) == (parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
-        super().__init__(filename=filename, data=data, parent=parent, write_concern=write_concern)
+    pass
 
 
 class JSONList(JSONCollection, SyncedList):
-    def __init__(self, filename=None, data=None, parent=None, write_concern=False):
-        if (filename is None) == (parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
-        super().__init__(filename=filename, data=data, parent=parent, write_concern=write_concern)
+    pass
