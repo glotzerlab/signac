@@ -41,14 +41,14 @@ Please see the [Support](https://docs.signac.io/projects/signac-core/en/latest/s
 
 ### Code Style
 
-Code submitted to the signac project must adhere to the [PEP8 style guide](https://www.python.org/dev/peps/pep-0008/) with the exception that lines may have up to 100 characters.
+Code must adhere to the [PEP8 style guide](https://www.python.org/dev/peps/pep-0008/) with the exception that lines may have up to 100 characters.
 
 We recommend to use [flake8](http://flake8.pycqa.org/en/latest/) and [autopep8](https://pypi.org/project/autopep8/) to find and fix any code style issues prior to committing and pushing.
 
 ## Reviewing Pull Requests
 
 Pull requests represent the standard way of contributing code to the code base.
-Each pull request is assigned to one of the project committers, who is responsible for triaging it, finding at least two reviewers (one of whom can be the committer themselves), and eventually merging or closing the pull request.
+Each pull request is assigned to one of the project committers, who is responsible for triaging it, finding at least two reviewers (one of whom can be themselves), and eventually merging or closing the pull request.
 Pull requests should generally be approved by two reviewers prior to merge.
 
 ### Guidelines for Pull Request Reviewers
