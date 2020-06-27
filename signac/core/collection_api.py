@@ -117,8 +117,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
-    def __init__(self, **kwargs):
-        data = kwargs.pop('data', None)
+    def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
         if data is None:
             self._data = {}
@@ -165,7 +164,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
                 self._data = backup
                 raise
         else:
-            raise ValueError("The data must be a mapping or None not {}.".format(type(data)))
+            raise ValueError("Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
     @staticmethod
     def _validate_key(key):
@@ -175,13 +174,13 @@ class _SyncedDict(SyncedCollection, MutableMapping):
             if '.' in key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
-                    "keys may not contain dots ('.'): {}".format(key))
+                    "SyncedDict keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
         else:
             from ..errors import KeyTypeError
             raise KeyTypeError(
-                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
+                "SyncedDict keys must be str, int, bool or None, not {}".format(type(key).__name__))
 
     def __delitem__(self, item):
         self.load()
@@ -310,8 +309,7 @@ class SyncedAttrDict(_SyncedDict):
 
 class SyncedList(SyncedCollection, MutableSequence):
 
-    def __init__(self, **kwargs):
-        data = kwargs.pop('data', None)
+    def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
         if data is None:
             self._data = []
@@ -352,7 +350,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = backup
                 raise
         else:
-            raise ValueError("The data must be a non-string sequence or None.")
+            raise ValueError("Unsupported type: {}. The data must be a non-string sequence or None.".format(type(data)))
 
     def __delitem__(self, item):
         self.load()
@@ -441,10 +439,8 @@ class SyncedList(SyncedCollection, MutableSequence):
 
 class JSONCollection(SyncedCollection):
 
-    def __init__(self, **kwargs):
-        filename = kwargs.pop('filename', None)
-        self._filename = None if filename is None else os.path.realpath(filename)
-        self._write_concern = kwargs.pop('write_concern', True)
+    def __init__(self, filename=None, write_concern=True, **kwargs):
+        self._filename = os.path.realpath(filename) if filename is not None
         super().__init__(**kwargs)
 
     def _load(self):
@@ -474,7 +470,7 @@ class JSONCollection(SyncedCollection):
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
-    def __init__(self, filename=None, data=None, parent=None, write_concern=False):
+    def __init__(self, data=None, filename=None, parent=None, write_concern=False):
         if (filename is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
