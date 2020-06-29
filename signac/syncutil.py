@@ -1,3 +1,8 @@
+# Copyright (c) 2020 The Regents of the University of Michigan
+# All rights reserved.
+# This software is licensed under the BSD 3-Clause License.
+"""Utilities for synchronization."""
+
 import os
 import shutil
 import filecmp
@@ -15,6 +20,7 @@ logging.MORE = LEVEL_MORE  # type: ignore
 
 
 def log_more(msg, *args, **kwargs):
+    """Log using LEVEL_MORE."""
     logger.log(LEVEL_MORE, msg, *args, **kwargs)
 
 
@@ -22,7 +28,10 @@ logger.more = log_more  # type: ignore
 
 
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
-    "Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example'."
+    """Recursively copy a directory tree from src to dst, using a custom copy function.
+
+    Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example.
+    """
     os.makedirs(dst)
     names = os.listdir(src)
     errors = []
@@ -48,7 +57,9 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
 
 
 class dircmp_deep(dircmp):
-    def phase3(self):  # Find out differences between common files
+    """Deep directory comparator."""
+    def phase3(self):
+        """Find out differences between common files."""
         xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
         self.same_files, self.diff_files, self.funny_files = xx
 
@@ -113,7 +124,7 @@ class _DocProxy(object):
 
 
 class _FileModifyProxy(object):
-    """This proxy used for data modification.
+    """Proxy used for data modification.
 
     This proxy is used for all file data modification to keep
     track of changes and to ensure that dry runs do not actually
