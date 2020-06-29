@@ -31,6 +31,18 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
     """Recursively copy a directory tree from src to dst, using a custom copy function.
 
     Implementation adapted from https://docs.python.org/3/library/shutil.html#copytree-example.
+
+    Parameters
+    ----------
+    src :
+        Source directory tree.
+    dst :
+        Destination directory tree.
+    copy_function :
+        Function used to copy (Default value = ``shutil.copy2``).
+    symlinks : bool
+        Whether to copy symlinks (Default value = False).
+
     """
     os.makedirs(dst)
     names = os.listdir(src)
@@ -75,11 +87,14 @@ class _DocProxy(object):
     This proxy is used to keep track of changes and ensure that
     dry runs do not actually modify any data.
 
-    :param dry_run:
-        Do not actually perform any data modification operation, but
-        still log the action.
-    :type dry_run:
-        bool
+    Parameters
+    ----------
+    doc : dict
+        Document data.
+    dry_run : bool
+        Do not actually perform any data modification operation, but still log
+        the action (Default value = False).
+
     """
 
     def __init__(self, doc, dry_run=False):
@@ -101,12 +116,15 @@ class _DocProxy(object):
             self.doc[key] = value
 
     def keys(self):
+        """Return keys of proxy data."""
         return self.doc.keys()
 
     def clear(self):
+        """Clear proxy data."""
         self.doc.clear()
 
     def update(self, other):
+        """Update proxy data with other."""
         for key in other.keys():
             self[key] = other[key]
 
@@ -130,11 +148,26 @@ class _FileModifyProxy(object):
     track of changes and to ensure that dry runs do not actually
     modify any data.
 
-    :param dry_run:
-        Do not actually perform any data modification operation, but
-        still log the action.
-    :type dry_run:
-        bool
+    Parameters
+    ----------
+    root :
+        Root path.
+    follow_symlinks : bool
+        Whether to follow symlinks (Default value = True).
+    permissions : bool
+        Whether to preserve permissions (Default value = False).
+    times : bool
+        Whether to preserve timestamps (Default value = False).
+    owner : bool
+        Whether to preserve owner (Default value = False).
+    group : bool
+        Whether to preserve group (Default value = False).
+    dry_run : bool
+        If True, do not actually perform any data modification operation, but still log
+        the action (Default value = False).
+    collect_stats : bool
+        Whether to collect stats (Default value = False).
+
     """
 
     def __init__(self, root=None, follow_symlinks=True, permissions=False,
@@ -152,29 +185,35 @@ class _FileModifyProxy(object):
     # Internal proxy functions
 
     def _copy(self, src, dst):
+        """Copy src to dst."""
         if not self.dry_run:
             shutil.copy(src, dst)
 
     def _copy_p(self, src, dst):
+        """Copy src to dst with permissions."""
         if not self.dry_run:
             shutil.copy(src, dst)
             shutil.copymode(src, dst)
 
     def _copy2(self, src, dst):
+        """Copy src to dst with preserved metadata."""
         if not self.dry_run:
             shutil.copy2(src, dst)
 
     def _remove(self, path):
+        """Remove path."""
         if not self.dry_run:
             os.remove(path)
 
     # Public functions
 
     def remove(self, path):
+        """Remove path."""
         logger.more("Remove path '{}'.".format(os.path.relpath(path)))
         self._remove(path)
 
     def copy(self, src, dst):
+        """Copy src to dst."""
         if self.dry_run and self.root is not None:
             print(os.path.relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
@@ -212,11 +251,13 @@ class _FileModifyProxy(object):
                                  gid=stat.st_gid if self.group else -1)
 
     def copytree(self, src, dst, **kwargs):
+        """Copy tree src to dst."""
         logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
         copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
+        """Create a backup of path."""
         logger.debug("Create backup of '{}'.".format(os.path.relpath(path)))
         path_backup = path + '~'
         if os.path.isfile(path_backup):
@@ -236,6 +277,7 @@ class _FileModifyProxy(object):
 
     @contextmanager
     def create_doc_backup(self, doc):
+        """Create a backup of doc."""
         proxy = _DocProxy(doc, dry_run=self.dry_run)
         fn = getattr(doc, 'filename', getattr(doc, '_filename', None))
         if not len(proxy) or fn is None or not os.path.isfile(fn):
