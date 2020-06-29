@@ -180,7 +180,7 @@ def _make_path_function(jobs, path):
 
         # Just use the job id as path.
         def path_function(job):
-            """Create path function when path is not given.
+            """Use job-id to construct path.
 
             Parameters
             ----------
@@ -205,7 +205,7 @@ def _make_path_function(jobs, path):
         paths = _make_schema_based_path_function(jobs=jobs, exclude_keys=exclude_keys)
 
         def path_function(job):
-            """Format a path for a given job.
+            """Format a path based on a given string and schema.
 
             Parameters
             ----------
@@ -246,7 +246,7 @@ def _make_path_function(jobs, path):
 
 
 def _check_directory_structure_validity(paths):
-    """Validate directory structure.
+    """Validate directory structure consistency.
 
     Parameters
     ----------
