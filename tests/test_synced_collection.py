@@ -9,8 +9,8 @@ from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 
 from signac.core.collection_api import SyncedCollection
-from signac.core.collection_api import JSONDict
-from signac.core.collection_api import JSONList
+from signac.core.jsoncollection import JSONDict
+from signac.core.jsoncollection import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
