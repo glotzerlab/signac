@@ -10,7 +10,7 @@ from .collection_api import SyncedCollection
 class _SyncedDict(SyncedCollection, MutableMapping):
     """Implements the dict data structures"""
 
-    base_type = 'mapping'
+    base_type = 'mapping'  # type: ignore
 
     _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
 

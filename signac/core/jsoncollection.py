@@ -14,7 +14,7 @@ from .syncedlist import SyncedList
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
-    backend = 'JSON'
+    backend = 'JSON'  # type: ignore
 
     def __init__(self, filename=None, parent=None, write_concern=False, **kwargs):
         self._parent = parent

@@ -16,7 +16,7 @@ except ImportError:
 class SyncedList(SyncedCollection, MutableSequence):
     """Implementation of list data structure."""
 
-    base_type = 'non-str Sequence'
+    base_type = 'non-str Sequence'  # type: ignore
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
