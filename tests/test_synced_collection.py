@@ -378,6 +378,18 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(jsl) == 3
         assert jsl[1] == d
 
+    def test_remove(self):
+        jsl = self.get_synced_collection([1, 2])
+        assert len(jsl) == 2
+        jsl.remove(1)
+        assert len(jsl) == 1
+        assert jsl[0] == 2
+        jsl.reset([1, 2, 1])
+        jsl.remove(1)
+        assert len(jsl) == 2
+        assert jsl[0] == 2
+        assert jsl[1] == 1
+
     def test_reopen(self):
         jsl = self.get_synced_collection()
         d = self.get_testdata()
