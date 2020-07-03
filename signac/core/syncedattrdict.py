@@ -7,7 +7,7 @@ from collections.abc import MutableMapping
 from .collection_api import SyncedCollection
 
 
-class _SyncedDict(SyncedCollection, MutableMapping):
+class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implements the dict data structures"""
 
     base_type = 'mapping'  # type: ignore
@@ -44,7 +44,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         return converted
 
     @classmethod
-    def is_base_type(self, data):
+    def is_base_type(cls, data):
         """Checks whether the data is of base type of SyncedDict
         Parameters
         ----------
@@ -89,7 +89,7 @@ class _SyncedDict(SyncedCollection, MutableMapping):
     @staticmethod
     def _validate_key(key):
         "Emit a warning or raise an exception if key is invalid. Returns key."
-        if isinstance(key, _SyncedDict.VALID_KEY_TYPES):
+        if isinstance(key, SyncedAttrDict.VALID_KEY_TYPES):
             key = str(key)
             if '.' in key:
                 from ..errors import InvalidKeyError
@@ -157,9 +157,9 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         self.sync()
         return ret
 
-    def popitem(self, key, default=None):
+    def popitem(self):
         self.load()
-        ret = self._data.pop(key, default)
+        ret = self._data.popitem()
         self.sync()
         return ret
 
@@ -183,23 +183,17 @@ class _SyncedDict(SyncedCollection, MutableMapping):
         self.sync()
         return ret
 
-
-class SyncedAttrDict(_SyncedDict):
-    """A synced dictionary where (nested) values can be accessed as attributes."""
     def __getattr__(self, name):
+        if name.startswith('__'):
+            raise
         try:
-            return super().__getattribute__(name)
-        except AttributeError:
-            if name.startswith('__'):
-                raise
-            try:
-                return self.__getitem__(name)
-            except KeyError as e:
-                raise AttributeError(e)
+            return self.__getitem__(name)
+        except KeyError as e:
+            raise AttributeError(e)
 
     def __setattr__(self, key, value):
         try:
-            super().__getattribute__('_data')
+            self.__getattribute__('_data')
         except AttributeError:
             super().__setattr__(key, value)
         else:

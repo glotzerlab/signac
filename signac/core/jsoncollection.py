@@ -16,15 +16,14 @@ class JSONCollection(SyncedCollection):
 
     backend = 'JSON'  # type: ignore
 
-    def __init__(self, filename=None, parent=None, write_concern=False, **kwargs):
-        self._parent = parent
+    def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = os.path.realpath(filename) if filename is not None else None
-        if (filename is None) == (parent is None):
+        self._write_concern = write_concern
+        super().__init__(**kwargs)
+        if (filename is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
-        self._write_concern = False
-        super().__init__(**kwargs)
 
     def _load(self):
         "Loads the data from json file"
@@ -55,8 +54,89 @@ class JSONCollection(SyncedCollection):
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
+    """A dict-like mapping interface to a persistent JSON file.
+
+    The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
+    behaves similar to a :class:`dict`, but all data is stored persistently in
+    the associated JSON file on disk.
+
+    .. code-block:: python
+
+        doc = JSONDict('data.json', write_concern=True)
+        doc['foo'] = "bar"
+        assert doc.foo == doc['foo'] == "bar"
+        assert 'foo' in doc
+        del doc['foo']
+
+    This class allows access to values through key indexing or attributes
+    named by keys, including nested keys:
+
+    .. code-block:: python
+
+        >>> doc['foo'] = dict(bar=True)
+        >>> doc
+        {'foo': {'bar': True}}
+        >>> doc.foo.bar = False
+        {'foo': {'bar': False}}
+
+    .. warning::
+
+        While the JSONDict object behaves like a dictionary, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a JSONDict instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `to_base()` method to get a
+        dictionary representation, and if necessary construct a new JSONDict
+        instance: `new_dict = JSONDict(old_dict.to_base())`.
+
+    Parameters
+    ----------
+    filename: str
+        The filename of the associated JSON file on disk (Default value None).
+    data: mapping
+        The intial data pass to JSONDict
+    parent: object
+        A parent instance of JSONDict or None (Default value None).
+    write_concern: bool
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value None)."""
     pass
 
 
 class JSONList(JSONCollection, SyncedList):
+    """A non-string sequence interface to a persistent JSON file.
+
+    The JSONList is a :class:`~collections.abc.MutableSequence` and therefore
+    behaves similar to a :class:`list`, but all data is stored persistently in
+    the associated JSON file on disk.
+
+    .. code-block:: python
+
+        doc = JSONList('data.json', write_concern=True)
+        doc.append("bar")
+        assert doc[0] == "bar"
+        assert len(doc) == 1
+        del doc[0]
+
+    .. warning::
+
+        While the JSONList object behaves like a list, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a JSONList instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `to_base()` method to get a
+        dictionary representation, and if necessary construct a new JSONList
+        instance: `new_list = JSONList(old_list.to_base())`.
+
+    Parameters
+    ----------
+    filename: str
+        The filename of the associated JSON file on disk (Default value None).
+    data: non-str Sequence
+        The intial data pass to JSONDict
+    parent: object
+        A parent instance of JSONDict or None (Default value None).
+    write_concern: bool
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value None)."""
     pass

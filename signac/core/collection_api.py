@@ -50,7 +50,7 @@ class CustomABCMeta(ABCMeta):
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
         else:
-            if cls.base_type and cls.backend:
+            if not bool(cls.__abstractmethods__):
                 cls.registry[cls.backend].append(cls)
         return super().__init__(name, bases, dct)
 
@@ -64,12 +64,13 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
     base_type = None
     backend = None
 
-    def __init__(self):
+    def __init__(self, parent=None):
         self._data = None
+        self._parent = parent
         self._suspend_sync_ = 0
 
     @classmethod
-    def from_base(self, data, **kwargs):
+    def from_base(cls, data, **kwargs):
         """This method dynamically resolve the type of object to the
         corresponding synced collection.
 
@@ -87,7 +88,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         data : object
             Synced object of corresponding base type.
         """
-        for _cls in self.registry[self.backend]:
+        for _cls in cls.registry[cls.backend]:
             if _cls.is_base_type(data):
                 return _cls(data=data, **kwargs)
         if NUMPY:
@@ -102,13 +103,14 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
 
     @contextmanager
     def _suspend_sync(self):
-        """Prepares context where load and sync are ignored"""
+        """Prepares context where load and sync are suspended"""
         self._suspend_sync_ += 1
         yield
         self._suspend_sync_ -= 1
 
+    @classmethod
     @abstractmethod
-    def is_base_type(self):
+    def is_base_type(cls):
         """Check wether data is of same base type as Synced Class"""
         pass
 

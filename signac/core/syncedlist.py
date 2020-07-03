@@ -5,12 +5,10 @@ from collections.abc import Sequence
 from collections.abc import MutableSequence
 
 from .collection_api import SyncedCollection
+from .collection_api import NUMPY
 
-try:
+if NUMPY:
     import numpy
-    NUMPY = True
-except ImportError:
-    NUMPY = False
 
 
 class SyncedList(SyncedCollection, MutableSequence):
@@ -30,7 +28,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             self.sync()
 
     @classmethod
-    def is_base_type(self, data):
+    def is_base_type(cls, data):
         """Checks whether the data is of base type of SyncedDict.
 
         Parameters
@@ -89,6 +87,30 @@ class SyncedList(SyncedCollection, MutableSequence):
                 "Unsupported type: {}. The data must be a non-string sequence or None."
                 .format(type(data)))
 
+    def reset(self, data=None):
+        """Update the instance with new data.
+
+        Parameters
+        ----------
+        data: non-string Sequence
+            Data to update the instance(Default value None).
+
+        Raises
+        ------
+        ValueError
+            If the data is not instance of non-string seqeuence
+        """
+        if data is None:
+            data = []
+        if isinstance(data, Sequence) and not isinstance(data, str):
+            with self._suspend_sync():
+                self._data = [self.from_base(data=value, parent=self) for value in data]
+            self.sync()
+        else:
+            raise ValueError(
+                "Unsupported type: {}. The data must be a non-string sequence or None."
+                .format(type(data)))
+
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():
@@ -104,6 +126,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         with self._suspend_sync():
             self._data += [self.from_base(data=value, parent=self) for value in iterable]
         self.sync()
+        return self
 
     def insert(self, index, item):
         self.load()
@@ -132,27 +155,3 @@ class SyncedList(SyncedCollection, MutableSequence):
     def clear(self):
         self._data = []
         self.sync()
-
-    def reset(self, data=None):
-        """Update the instance with new data.
-
-        Parameters
-        ----------
-        data: non-string Sequence
-            Data to update the instance(Default value None).
-
-        Raises
-        ------
-        ValueError
-            If the data is not instance of non-string seqeuence
-        """
-        if data is None:
-            data = []
-        if isinstance(data, Sequence) and not isinstance(data, str):
-            with self._suspend_sync():
-                self._data = [self.from_base(data=value, parent=self) for value in data]
-            self.sync()
-        else:
-            raise ValueError(
-                "Unsupported type: {}. The data must be a non-string sequence or None."
-                .format(type(data)))
