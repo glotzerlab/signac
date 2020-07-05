@@ -114,7 +114,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         Parameters
         ----------
         data: mapping
-            Data to update the instance(Default value None).
+            Data to update the instance (Default value = None).
 
         Raises
         ------
@@ -185,7 +185,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def __getattr__(self, name):
         if name.startswith('__'):
-            raise
+            raise AttributeError("'SyncedAttrDict' object has no attribute '{}'".format(name))
         try:
             return self.__getitem__(name)
         except KeyError as e:

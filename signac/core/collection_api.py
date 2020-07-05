@@ -70,7 +70,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         self._suspend_sync_ = 0
 
     @classmethod
-    def from_base(cls, data, **kwargs):
+    def from_base(cls, data, backend=None, **kwargs):
         """This method dynamically resolve the type of object to the
         corresponding synced collection.
 
@@ -79,7 +79,9 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         data : any
             Data to be converted from base class.
         filename: str
-            Name of file to store the data(Default value None).
+            Name of file to store the data (Default value = None).
+        backend: str
+            Name of backend for synchronization. Defatult to backend of class.
         kwargs:
             Kwargs passed to instance of Synced Class.
 
@@ -88,7 +90,10 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         data : object
             Synced object of corresponding base type.
         """
-        for _cls in cls.registry[cls.backend]:
+        backend = cls.backend if backend is None else backend
+        if backend is None:
+            raise ValueError("No backend found!!")
+        for _cls in cls.registry[backend]:
             if _cls.is_base_type(data):
                 return _cls(data=data, **kwargs)
         if NUMPY:

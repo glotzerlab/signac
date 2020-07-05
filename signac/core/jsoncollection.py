@@ -92,14 +92,14 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     Parameters
     ----------
     filename: str
-        The filename of the associated JSON file on disk (Default value None).
+        The filename of the associated JSON file on disk (Default value = None).
     data: mapping
         The intial data pass to JSONDict
     parent: object
-        A parent instance of JSONDict or None (Default value None).
+        A parent instance of JSONDict or None (Default value = None).
     write_concern: bool
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value None)."""
+        first, before replacing the original file (Default value = None)."""
     pass
 
 
@@ -131,12 +131,12 @@ class JSONList(JSONCollection, SyncedList):
     Parameters
     ----------
     filename: str
-        The filename of the associated JSON file on disk (Default value None).
+        The filename of the associated JSON file on disk (Default value = None).
     data: non-str Sequence
         The intial data pass to JSONDict
     parent: object
-        A parent instance of JSONDict or None (Default value None).
+        A parent instance of JSONDict or None (Default value = None).
     write_concern: bool
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value None)."""
+        first, before replacing the original file (Default value = None)."""
     pass

@@ -93,7 +93,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         Parameters
         ----------
         data: non-string Sequence
-            Data to update the instance(Default value None).
+            Data to update the instance (Default value = None).
 
         Raises
         ------
