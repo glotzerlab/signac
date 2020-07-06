@@ -1,6 +1,8 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Command line interface (CLI) for signac."""
+
 import os
 import sys
 import shutil
@@ -120,7 +122,10 @@ def _print_err(msg=None, *args):
 
 
 def _fmt_bytes(nbytes, suffix='B'):
-    "Adapted from: https://stackoverflow.com/a/1094933"
+    """Format number of bytes.
+
+    Adapted from: https://stackoverflow.com/a/1094933
+    """
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(nbytes) < 1024.0:
             return "%3.1f %s%s" % (nbytes, unit, suffix)
@@ -180,12 +185,12 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 def _read_index(project, fn_index=None):
     if fn_index is not None:
         _print_err("Reading index from file '{}'...".format(fn_index))
-        fd = open(fn_index)
-        return (json.loads(l) for l in fd)
+        file_descriptor = open(fn_index)
+        return (json.loads(line) for line in file_descriptor)
 
 
 def _open_job_by_id(project, job_id):
-    "Attempt to open a job by id and provide user feedback on error."
+    """Attempt to open a job by id and provide user feedback on error."""
     try:
         return project.open_job(id=job_id)
     except KeyError:
@@ -205,11 +210,15 @@ def _open_job_by_id(project, job_id):
 
 
 def find_with_filter_or_none(args):
+    """Return a filtered subset of jobs or None."""
     if args.job_id or args.filter or args.doc_filter:
         return find_with_filter(args)
+    else:
+        return None
 
 
 def find_with_filter(args):
+    """Return a filtered subset of jobs."""
     if getattr(args, 'job_id', None):
         if args.filter or args.doc_filter:
             raise ValueError("Can't provide both 'job-id' and filter arguments!")
@@ -228,6 +237,7 @@ def find_with_filter(args):
 
 
 def main_project(args):
+    """Handle project subcommand."""
     project = get_project()
     if args.access:
         fn = project.create_access_module()
@@ -244,6 +254,7 @@ def main_project(args):
 
 
 def main_job(args):
+    """Handle job subcommand."""
     project = get_project()
     if args.statepoint == '-':
         sp = input()
@@ -264,6 +275,7 @@ def main_job(args):
 
 
 def main_statepoint(args):
+    """Handle statepoint subcommand."""
     project = get_project()
     if args.job_id:
         jobs = (_open_job_by_id(project, jid) for jid in args.job_id)
@@ -277,6 +289,7 @@ def main_statepoint(args):
 
 
 def main_document(args):
+    """Handle document subcommand."""
     project = get_project()
     for job_id in find_with_filter(args):
         job = _open_job_by_id(project, job_id)
@@ -287,6 +300,7 @@ def main_document(args):
 
 
 def main_remove(args):
+    """Handle remove subcommand."""
     project = get_project()
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
@@ -304,6 +318,7 @@ def main_remove(args):
 
 
 def main_move(args):
+    """Handle move subcommand."""
     project = get_project()
     dst_project = get_project(root=args.project)
     for job_id in args.job_id:
@@ -318,6 +333,7 @@ def main_move(args):
 
 
 def main_clone(args):
+    """Handle clone subcommand."""
     project = get_project()
     dst_project = get_project(root=args.project)
     for job_id in args.job_id:
@@ -331,6 +347,7 @@ def main_clone(args):
 
 
 def main_index(args):
+    """Handle index subcommand."""
     _print_err("Compiling master index for path '{}'...".format(
         os.path.realpath(args.root)))
     if args.tags:
@@ -341,6 +358,7 @@ def main_index(args):
 
 
 def main_find(args):
+    """Handle find subcommand."""
     project = get_project()
 
     len_id = max(6, project.min_len_unique_id())
@@ -385,6 +403,7 @@ def main_find(args):
 
 
 def main_diff(args):
+    """Handle diff subcommand."""
     project = get_project()
 
     jobs = find_with_filter_or_none(args)
@@ -398,6 +417,7 @@ def main_diff(args):
 
 
 def main_view(args):
+    """Handle view subcommand."""
     project = get_project()
     project.create_linked_view(
         prefix=args.prefix,
@@ -407,6 +427,7 @@ def main_view(args):
 
 
 def main_init(args):
+    """Handle init subcommand."""
     project = init_project(
         name=args.project_id,
         root=os.getcwd(),
@@ -415,6 +436,7 @@ def main_init(args):
 
 
 def main_schema(args):
+    """Handle schema subcommand."""
     project = get_project()
     print(project.detect_schema(
         exclude_const=args.exclude_const,
@@ -425,6 +447,7 @@ def main_schema(args):
 
 
 def main_sync(args):
+    """Handle sync subcommand."""
     #
     # Valid provided argument combinations
     #
@@ -632,6 +655,7 @@ def _main_import_non_interactive(project, origin, args):
 
 
 def main_import(args):
+    """Handle import subcommand."""
     if args.move and os.path.isfile(args.origin):
         raise ValueError(
             "Cannot use '--move' when importing from a file.")
@@ -654,6 +678,7 @@ def main_import(args):
 
 
 def main_export(args):
+    """Handle export subcommand."""
     if args.move and os.path.splitext(args.target)[1] != '':
         raise RuntimeError(
             "The '--move' argument can only be used when exporting to directories.")
@@ -683,6 +708,7 @@ def main_export(args):
 
 
 def main_update_cache(args):
+    """Handle update-cache subcommand."""
     project = get_project()
     _print_err("Updating cache...")
     n = project.update_cache()
@@ -718,6 +744,7 @@ def main_update_cache(args):
 #
 #
 def verify_config(cfg, preserve_errors=True):
+    """Verify provided configuration."""
     verification = cfg.verify(preserve_errors=preserve_errors)
     if verification is True:
         _print_err("Passed.")
@@ -738,6 +765,7 @@ def verify_config(cfg, preserve_errors=True):
 
 
 def main_config_show(args):
+    """Handle config show subcommand."""
     cfg = None
     if args.local and args.globalcfg:
         raise ValueError(
@@ -777,6 +805,7 @@ def main_config_show(args):
 
 
 def main_config_verify(args):
+    """Handle config verify subcommand."""
     cfg = None
     if args.local and args.globalcfg:
         raise ValueError(
@@ -809,6 +838,7 @@ def main_config_verify(args):
 
 
 def main_config_set(args):
+    """Handle config set subcommand."""
     if not (args.local or args.globalcfg):
         args.local = True
     fn_config = None
@@ -853,6 +883,7 @@ def main_config_set(args):
 
 
 def main_config_host(args):
+    """Handle config host subcommand."""
     if args.update_pw is True:
         args.update_pw = DEFAULT_PW_ENCRYPTION_SCHEME
     if not HOST:
@@ -932,11 +963,11 @@ def main_config_host(args):
         _print_err("Configuring new host '{}'.".format(args.hostname))
 
     def hide_password(k, v):
-        "Hide all fields containing sensitive information."
+        """Hide all fields containing sensitive information."""
         return '***' if k.endswith('password') else v
 
     def update_hostcfg(** update):
-        "Update the host configuration."
+        """Update the host configuration."""
         store = False
         for k, v in update.items():
             if v is None:
@@ -1000,6 +1031,7 @@ def main_config_host(args):
 
 
 def main_shell(args):
+    """Handle shell subcommand."""
     if args.file and args.command:
         raise ValueError(
             "Cannot provide file and -c/--command argument at the same time!")
@@ -1079,6 +1111,7 @@ def main_shell(args):
 
 
 def main():
+    """Provide command line interface."""
     parser = argparse.ArgumentParser(
         description="signac aids in the management, access and analysis of "
                     "large-scale computational investigations.")

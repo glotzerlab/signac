@@ -6,28 +6,26 @@ from itertools import cycle
 
 
 def init_jobs(project, nested=False, listed=False, heterogeneous=False):
-    """Initialize a dataspace for testing purposes
+    """Initialize a dataspace for testing purposes.
 
-    :param project:
-        The project to add the jobs to
-    :type project:
-        :py:class:`~.project.Project`
-    :param nested:
-        If True, included nested state points
-    :type nested:
-        bool
-    :param listed:
-        If True, include lists as values of state point parameters
-    :type listed:
-        bool
-    :param heterogeneous:
-        If True, include heterogeneous state point parameters
-    :type heterogeneous:
-        bool
-    :returns:
-        A list containing the initialized jobs
-    :rtype:
-        list of :py:class:`~.Job`
+    Parameters
+    ----------
+    project : :class:`~signac.Project`
+        The project where jobs will be added.
+    nested : bool
+        If True, included nested state points (Default value = False).
+    listed : bool
+        If True, include lists as values of state point parameters (Default
+        value = False).
+    heterogeneous : bool
+        If True, include heterogeneous state point parameters (Default value =
+        False).
+
+    Returns
+    -------
+    list[:class:`~signac.contrib.job.Job`]
+        A list containing the initialized jobs.
+
     """
     jobs_init = []
     vals = [1, 1.0, '1', False, True, None]
