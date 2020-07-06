@@ -280,14 +280,18 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
         The src job, data will be copied from this job's workspace.
     dst : :class:`~signac.contrib.job.Job`
         The dst job, data will be copied to this job's workspace.
-    strategy :
-        A synchronization strategy for file conflicts. If no strategy is
-        provided, a :class:`.errors.SyncConflict` exception will be raised upon
-        conflict. (Default value = None)
+    strategy : callable
+        A synchronization strategy for file conflicts. The strategy should be a
+        callable with signature ``strategy(src, dst, filepath)`` where ``src``
+        and ``dst`` are the source and destination instances of
+        :py:class:`~signac.Project` and ``filepath`` is the filepath relative
+        to the project root. If no strategy is provided, a
+        :class:`.errors.SyncConflict` exception will be raised upon conflict.
+        (Default value = None)
     exclude : str
         A filename exclusion pattern. All files matching this pattern will be
         excluded from the synchronization process. (Default value = None)
-    doc_sync :
+    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
         A synchronization strategy for document keys. The default is to use a
         safe key-by-key strategy that will not overwrite any values on
         conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
@@ -309,7 +313,7 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
         If True, do not actually perform any synchronization operations.
         (Default value = False)
     deep : bool
-         (Default value = False)
+        (Default value = False)
 
     """
     # Check identity
@@ -394,15 +398,23 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         The project presenting the source for synchronization.
     destination : class:`~.Project`
         The project that is modified for synchronization.
-    strategy :
-        A file synchronization strategy. (Default value = None)
-    exclude :
-        Files with names matching the given pattern will be excluded from the
-        synchronization. (Default value = None)
-    doc_sync :
-        The function applied for synchronizing documents. (Default value =
-        None)
-    selection :
+    strategy : callable
+        A synchronization strategy for file conflicts. The strategy should be a
+        callable with signature ``strategy(src, dst, filepath)`` where ``src``
+        and ``dst`` are the source and destination instances of
+        :py:class:`~signac.Project` and ``filepath`` is the filepath relative
+        to the project root. If no strategy is provided, a
+        :class:`.errors.SyncConflict` exception will be raised upon conflict.
+        (Default value = None)
+    exclude : str
+        A filename exclusion pattern. All files matching this pattern will be
+        excluded from the synchronization process. (Default value = None)
+    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
+        A synchronization strategy for document keys. The default is to use a
+        safe key-by-key strategy that will not overwrite any values on
+        conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
+        exception.
+    selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str)
         Only synchronize the given selection of jobs. (Default value = None)
     check_schema : bool
         If True, only synchronize if this and the other project have a matching
@@ -426,11 +438,11 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         log what would happen theoretically. Useful to test synchronization
         strategies without the risk of data loss. (Default value = False)
     deep : bool
-         (Default value = False)
+        (Default value = False)
     parallel : bool
-         (Default value = False)
+        (Default value = False)
     collect_stats : bool
-         (Default value = False)
+        (Default value = False)
 
     Returns
     -------
