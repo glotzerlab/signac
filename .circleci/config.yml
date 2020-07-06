@@ -111,11 +111,6 @@ jobs:
     docker:
       - image: circleci/python:3.6
 
-  linux-python-35:
-    <<: *linux-template
-    docker:
-      - image: circleci/python:3.5
-
   linux-pypy-3:
     <<: *linux-template
     docker:
@@ -195,9 +190,6 @@ workflows:
       - linux-python-36:
           requires:
             - pre-checks
-      - linux-python-35:
-          requires:
-            - pre-checks
       - linux-pypy-3:
           requires:
             - linux-python-36
@@ -213,7 +205,6 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - linux-python-35
             - linux-python-36
             - linux-python-37
             - linux-python-38
