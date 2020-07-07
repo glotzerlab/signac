@@ -58,7 +58,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
-    and :class:`~collections.abc.MutableMapping`.
+    and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
 
@@ -104,7 +104,7 @@ class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
     The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
-    and :class:`~collections.abc.MutableMapping`.
+    and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
 
