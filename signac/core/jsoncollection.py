@@ -26,7 +26,7 @@ class JSONCollection(SyncedCollection):
                 "parent or filename must be None, but not both.")
 
     def _load(self):
-        "Loads the data from json file"
+        "Load the data from a JSON-file."
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()

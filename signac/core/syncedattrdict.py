@@ -45,7 +45,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @classmethod
     def is_base_type(cls, data):
-        """Checks whether the data is of base type of SyncedDict
+        """Checks whether the data is of base type of SyncedDict.
+        
         Parameters
         ----------
         data: any

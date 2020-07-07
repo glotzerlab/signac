@@ -50,7 +50,7 @@ class CustomABCMeta(ABCMeta):
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
         else:
-            if not bool(cls.__abstractmethods__):
+            if not cls.__abstractmethods__:
                 cls.registry[cls.backend].append(cls)
         return super().__init__(name, bases, dct)
 
@@ -71,7 +71,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
-        """This method dynamically resolve the type of object to the
+        """This method dynamically resolves the type of object to the
         corresponding synced collection.
 
         Parameters
@@ -81,7 +81,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         filename: str
             Name of file to store the data (Default value = None).
         backend: str
-            Name of backend for synchronization. Defatult to backend of class.
+            Name of backend for synchronization. Default to backend of class.
         kwargs:
             Kwargs passed to instance of Synced Class.
 
@@ -103,7 +103,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
 
     @abstractmethod
     def to_base(self):
-        "Dynamically resolve the object synced collection to the corresponding base type."
+        "Dynamically resolve the synced collection to the corresponding base type."
         pass
 
     @contextmanager
@@ -116,7 +116,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
     @classmethod
     @abstractmethod
     def is_base_type(cls):
-        """Check wether data is of same base type as Synced Class"""
+        """Check whether data is of same base type as Synced Class"""
         pass
 
     @abstractmethod
