@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import re
-import sys
 import errno
 import shutil
 import zipfile
@@ -543,10 +542,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         fn_manifest = _tarfile_path_join(path, project.Job.FN_MANIFEST)
         try:
             with closing(tarfile.extractfile(fn_manifest)) as file:
-                if sys.version_info < (3, 6):
-                    return json.loads(file.read().decode())
-                else:
-                    return json.loads(file.read())
+                return json.loads(file.read())
         except KeyError:
             pass
 
