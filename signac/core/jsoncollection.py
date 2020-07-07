@@ -30,17 +30,18 @@ class JSONCollection(SyncedCollection):
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()
-                return json.loads(blob.decode())
+                return json.loads(blob)
         except IOError as error:
             if error.errno == errno.ENOENT:
                 return None
 
     def _sync(self):
-        "Write the data to json file"
+        "Write the data to json file."
         data = self.to_base()
         # Serialize data:
         blob = json.dumps(data).encode()
-
+        # When write_concern flag is set, we write the data into dummy file and then
+        # replace that file with original file.
         if self._write_concern:
             dirname, filename = os.path.split(self._filename)
             fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
@@ -56,9 +57,8 @@ class JSONCollection(SyncedCollection):
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
-    behaves similar to a :class:`dict`, but all data is stored persistently in
-    the associated JSON file on disk.
+    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    and :class:`~collections.abc.MutableMapping`.
 
     .. code-block:: python
 
@@ -67,9 +67,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         assert doc.foo == doc['foo'] == "bar"
         assert 'foo' in doc
         del doc['foo']
-
-    This class allows access to values through key indexing or attributes
-    named by keys, including nested keys:
 
     .. code-block:: python
 
@@ -91,13 +88,13 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
     Parameters
     ----------
-    filename: str
+    filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    data: mapping
-        The intial data pass to JSONDict
-    parent: object
+    data: mapping, optional
+        The intial data pass to JSONDict. Defaults to `list()`
+    parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool
+    write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None)."""
     pass
@@ -106,9 +103,8 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList is a :class:`~collections.abc.MutableSequence` and therefore
-    behaves similar to a :class:`list`, but all data is stored persistently in
-    the associated JSON file on disk.
+    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    and :class:`~collections.abc.MutableMapping`.
 
     .. code-block:: python
 

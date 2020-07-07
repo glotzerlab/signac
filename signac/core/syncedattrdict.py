@@ -5,12 +5,27 @@ from collections.abc import Mapping
 from collections.abc import MutableMapping
 
 from .collection_api import SyncedCollection
+from ..errors import InvalidKeyError
+from ..errors import KeyTypeError
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
-    """Implements the dict data structures"""
+    """Implements the dict data structures.
 
-    base_type = 'mapping'  # type: ignore
+    The SyncedAttrDict inherits from :class:`~core.collection_api.SyncedCollection`
+    and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
+    a :class:`dict`. This class also allows access to values through key indexing or
+    attributes named by keys, including nested keys.
+
+    .. warning::
+
+        While the SyncedAttrDict object behaves like a dictionary, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `to_base()` method to get a
+        dictionary representation, and if necessary construct a new.
+    """
 
     _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
 
@@ -45,8 +60,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @classmethod
     def is_base_type(cls, data):
-        """Checks whether the data is of base type of SyncedDict.
-        
+        """Checks whether the data is an instance of mapping.
+
         Parameters
         ----------
         data: any
@@ -60,7 +75,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             return True
         return False
 
-    def _dfs_update(self, data=None):
+    def _update(self, data=None):
         """Updates the SyncedDict instance with data by using dfs."""
         if data is None:
             data = {}
@@ -72,11 +87,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                             continue
                         if isinstance(self._data[key], SyncedCollection):
                             try:
-                                self._data[key]._dfs_update(data[key])
+                                self._data[key]._update(data[key])
                                 continue
                             except ValueError:
                                 pass
-                    self[key] = data[key]
+                    self._data[self._validate_key(key)] = self.from_base(data[key])
                 remove = set()
                 for key in self._data:
                     if key not in data:
@@ -93,13 +108,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if isinstance(key, SyncedAttrDict.VALID_KEY_TYPES):
             key = str(key)
             if '.' in key:
-                from ..errors import InvalidKeyError
                 raise InvalidKeyError(
                     "SyncedDict keys may not contain dots ('.'): {}".format(key))
             else:
                 return key
         else:
-            from ..errors import KeyTypeError
             raise KeyTypeError(
                 "SyncedDict keys must be str, int, bool or None, not {}".format(type(key).__name__))
 

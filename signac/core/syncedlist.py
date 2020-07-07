@@ -12,9 +12,20 @@ if NUMPY:
 
 
 class SyncedList(SyncedCollection, MutableSequence):
-    """Implementation of list data structure."""
+    """Implementation of list data structure.
 
-    base_type = 'non-str Sequence'  # type: ignore
+    The SyncedList inherits from :class:`~core.collection_api.SyncedCollection`
+    and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
+    to a :class:`list`.
+
+    .. warning::
+
+        While the SyncedList object behaves like a dictionary, there are
+        important distinctions to remember. In particular, because operations
+        are reflected as changes to an underlying file, copying (even deep
+        copying) a SyncedList instance may exhibit unexpected behavior. If a
+        true copy is required, you should use the `to_base()` method to get a
+        dictionary representation, and if necessary construct a new."""
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
@@ -29,7 +40,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     @classmethod
     def is_base_type(cls, data):
-        """Checks whether the data is of base type of SyncedDict.
+        """Checks whether the data is an non-string Sequence.
 
         Parameters
         ----------
@@ -62,7 +73,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 converted.append(value)
         return converted
 
-    def _dfs_update(self, data=None):
+    def _update(self, data=None):
         """Updates the instance of SyncedList with data by using dfs."""
         if data is None:
             data = []
@@ -73,7 +84,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                         continue
                     if isinstance(self._data[i], SyncedCollection):
                         try:
-                            self._data[i]._dfs_update(i)
+                            self._data[i]._update(i)
                             continue
                         except ValueError:
                             pass
@@ -92,7 +103,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
         Parameters
         ----------
-        data: non-string Sequence
+        data: non-string Sequence, optional
             Data to update the instance (Default value = None).
 
         Raises

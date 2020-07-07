@@ -18,26 +18,28 @@ from signac.errors import KeyTypeError
 FN_JSON = 'test.json'
 
 
+@pytest.fixture
+def get_testdata():
+    return str(uuid.uuid4())
+
+
 class TestSyncedCollectionBase():
 
     _type = None
     _write_concern = False
 
-    @pytest.fixture(autouse=True)
-    def setUp(self, request):
+    @pytest.fixture
+    def get_synced_collection(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-
-    def get_testdata(self):
-        return str(uuid.uuid4())
-
-    def get_synced_collection(self, data=None):
         if self._type is not None:
-            return self._type(filename=self._fn_, data=data, write_concern=self._write_concern)
+            yield self._type(filename=self._fn_, write_concern=self._write_concern)
+        else:
+            yield
+        self._tmp_dir.cleanup()
 
-    def test_init(self):
-        self.get_synced_collection()
+    def test_init(self, get_synced_collection):
+        get_synced_collection
 
     def test_invalid_kwargs(self):
         if self._type is not None:
@@ -49,16 +51,16 @@ class TestJSONDict(TestSyncedCollectionBase):
 
     _type = JSONDict
 
-    def test_isinstance(self):
-        sd = self.get_synced_collection()
+    def test_isinstance(self, get_synced_collection):
+        sd = get_synced_collection
         assert isinstance(sd, SyncedCollection)
         assert isinstance(sd, MutableMapping)
         assert isinstance(sd, JSONDict)
 
-    def test_set_get(self):
-        sd = self.get_synced_collection()
+    def test_set_get(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'setget'
-        d = self.get_testdata()
+        d = get_testdata
         sd.clear()
         assert not bool(sd)
         assert len(sd) == 0
@@ -70,10 +72,10 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert sd[key] == d
         assert sd.get(key) == d
 
-    def test_set_get_explicit_nested(self):
-        sd = self.get_synced_collection()
+    def test_set_get_explicit_nested(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'setgetexplicitnested'
-        d = self.get_testdata()
+        d = get_testdata
         sd.setdefault('a', dict())
         child1 = sd['a']
         child2 = sd['a']
@@ -91,11 +93,11 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert child1[key] == d
         assert child2[key] == d
 
-    def test_copy_value(self):
-        sd = self.get_synced_collection()
+    def test_copy_value(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'copy_value'
         key2 = 'copy_value2'
-        d = self.get_testdata()
+        d = get_testdata
         assert key not in sd
         assert key2 not in sd
         sd[key] = d
@@ -108,12 +110,12 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert key2 in sd
         assert sd[key2] == d
 
-    def test_iter(self):
-        sd = self.get_synced_collection()
+    def test_iter(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key1 = 'iter1'
         key2 = 'iter2'
-        d1 = self.get_testdata()
-        d2 = self.get_testdata()
+        d1 = get_testdata
+        d2 = get_testdata
         d = {key1: d1, key2: d2}
         sd.update(d)
         assert key1 in sd
@@ -123,10 +125,10 @@ class TestJSONDict(TestSyncedCollectionBase):
             assert d[key] == sd[key]
         assert i == 1
 
-    def test_delete(self):
-        sd = self.get_synced_collection()
+    def test_delete(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'delete'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert sd[key] == d
@@ -142,18 +144,18 @@ class TestJSONDict(TestSyncedCollectionBase):
         with pytest.raises(KeyError):
             sd[key]
 
-    def test_update(self):
-        sd = self.get_synced_collection()
+    def test_update(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'update'
-        d = {key: self.get_testdata()}
+        d = {key: get_testdata}
         sd.update(d)
         assert len(sd) == 1
         assert sd[key] == d[key]
 
-    def test_pop(self):
-        sd = self.get_synced_collection()
+    def test_pop(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'pop'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert sd[key] == d
@@ -166,10 +168,10 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert len(sd) == 0
         assert d2 == 'default'
 
-    def test_popitem(self):
-        sd = self.get_synced_collection()
+    def test_popitem(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'pop'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert sd[key] == d
@@ -180,24 +182,24 @@ class TestJSONDict(TestSyncedCollectionBase):
         with pytest.raises(KeyError):
             sd[key]
 
-    def test_reset(self):
-        sd = self.get_synced_collection()
+    def test_reset(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'reset'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert sd[key] == d
         sd.reset()
         assert len(sd) == 0
-        d1 = self.get_testdata()
+        d1 = get_testdata
         sd.reset({'reset': d1})
         assert len(sd) == 1
         assert sd[key] == d1
 
-    def test_attr_dict(self):
-        sd = self.get_synced_collection()
+    def test_attr_dict(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'test'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert key in sd
@@ -207,7 +209,7 @@ class TestJSONDict(TestSyncedCollectionBase):
         del sd.test
         assert len(sd) == 0
         assert key not in sd
-        d1 = self.get_testdata()
+        d1 = get_testdata
         key = 'test2'
         sd.test2 = d1
         assert len(sd) == 1
@@ -216,45 +218,67 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert sd.get(key) == d1
         assert sd.test2 == d1
 
-    def test_clear(self):
-        sd = self.get_synced_collection()
+    def test_clear(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'clear'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         assert len(sd) == 1
         assert sd[key] == d
         sd.clear()
         assert len(sd) == 0
 
-    def test_reopen(self):
-        jsd = self.get_synced_collection()
+    def test_reopen(self, get_synced_collection, get_testdata):
+        jsd = get_synced_collection
         key = 'reopen'
-        d = self.get_testdata()
+        d = get_testdata
         jsd[key] = d
         jsd.sync()
         del jsd  # possibly unsafe
-        jsd2 = self.get_synced_collection()
+        jsd2 = get_synced_collection
         jsd2.load()
         assert len(jsd2) == 1
         assert jsd2[key] == d
 
-    def test_copy_as_dict(self):
-        sd = self.get_synced_collection()
+    def test_copy_as_dict(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
         key = 'copy'
-        d = self.get_testdata()
+        d = get_testdata
         sd[key] = d
         copy = dict(sd)
         del sd
         assert key in copy
         assert copy[key] == d
 
-    def test_write_invalid_type(self):
+    def test_nested_dict(self, get_synced_collection):
+        self._type = JSONDict
+        sd = get_synced_collection
+        sd['a'] = dict(a=dict())
+        child1 = sd['a']
+        child2 = sd['a']['a']
+        assert isinstance(child1, type(sd))
+        assert isinstance(child1, type(child2))
+
+    def test_nested_dict_with_list(self, get_synced_collection):
+        self._type = JSONDict
+        sd = get_synced_collection
+        sd['a'] = [1, 2, 3]
+        child1 = sd['a']
+        sd['a'].append(dict(a=[1, 2, 3]))
+        child2 = sd['a'][3]
+        child3 = sd['a'][3]['a']
+        assert isinstance(child2, type(sd))
+        assert isinstance(child1, type(child3))
+        assert isinstance(child1, JSONList)
+        assert isinstance(child3, JSONList)
+
+    def test_write_invalid_type(self, get_synced_collection, get_testdata):
         class Foo(object):
             pass
 
-        jsd = self.get_synced_collection()
+        jsd = get_synced_collection
         key = 'write_invalid_type'
-        d = self.get_testdata()
+        d = get_testdata
         jsd[key] = d
         assert len(jsd) == 1
         assert jsd[key] == d
@@ -264,47 +288,47 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert len(jsd) == 1
         assert jsd[key] == d
 
-    def test_keys_with_dots(self):
-        sd = self.get_synced_collection()
+    def test_keys_with_dots(self, get_synced_collection):
+        sd = get_synced_collection
         with pytest.raises(InvalidKeyError):
             sd['a.b'] = None
 
-    def test_keys_valid_type(self):
-        jsd = self.get_synced_collection()
+    def test_keys_valid_type(self, get_synced_collection, get_testdata):
+        jsd = get_synced_collection
 
         class MyStr(str):
             pass
         for key in ('key', MyStr('key'), 0, None, True):
-            d = jsd[key] = self.get_testdata()
+            d = jsd[key] = get_testdata
             assert str(key) in jsd
             assert jsd[str(key)] == d
 
-    def test_keys_invalid_type(self):
-        sd = self.get_synced_collection()
+    def test_keys_invalid_type(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
 
         class A:
             pass
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
-                sd[key] = self.get_testdata()
+                sd[key] = get_testdata
         for key in ([], {}, dict()):
             with pytest.raises(TypeError):
-                sd[key] = self.get_testdata()
+                sd[key] = get_testdata
 
 
 class TestJSONList(TestSyncedCollectionBase):
 
     _type = JSONList
 
-    def test_isinstance(self):
-        sl = self.get_synced_collection()
+    def test_isinstance(self, get_synced_collection):
+        sl = get_synced_collection
         assert isinstance(sl, JSONList)
         assert isinstance(sl, MutableSequence)
         assert isinstance(sl, SyncedCollection)
 
-    def test_set_get(self):
-        sl = self.get_synced_collection()
-        d = self.get_testdata()
+    def test_set_get(self, get_synced_collection, get_testdata):
+        sl = get_synced_collection
+        d = get_testdata
         sl.clear()
         assert not bool(sl)
         assert len(sl) == 0
@@ -312,25 +336,25 @@ class TestJSONList(TestSyncedCollectionBase):
         assert bool(sl)
         assert len(sl) == 1
         assert sl[0] == d
-        d1 = self.get_testdata()
+        d1 = get_testdata
         sl[0] = d1
         assert bool(sl)
         assert len(sl) == 1
         assert sl[0] == d1
 
-    def test_iter(self):
-        sd = self.get_synced_collection()
-        d1 = self.get_testdata()
-        d2 = self.get_testdata()
+    def test_iter(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
+        d1 = get_testdata
+        d2 = get_testdata
         d = [d1, d2]
         sd.extend(d)
         for i in range(len(sd)):
             assert d[i] == sd[i]
         assert i == 1
 
-    def test_delete(self):
-        sd = self.get_synced_collection()
-        d = self.get_testdata()
+    def test_delete(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
+        d = get_testdata
         sd.append(d)
         assert len(sd) == 1
         assert sd[0] == d
@@ -339,29 +363,30 @@ class TestJSONList(TestSyncedCollectionBase):
         with pytest.raises(IndexError):
             sd[0]
 
-    def test_extend(self):
-        sl = self.get_synced_collection()
-        d = [self.get_testdata()]
+    def test_extend(self, get_synced_collection, get_testdata):
+        sl = get_synced_collection
+        d = [get_testdata]
         sl.extend(d)
         assert len(sl) == 1
         assert sl[0] == d[0]
-        d1 = self.get_testdata()
+        d1 = get_testdata
         sl += [d1]
         assert len(sl) == 2
         assert sl[0] == d[0]
         assert sl[1] == d1
 
-    def test_clear(self):
-        sd = self.get_synced_collection()
-        d = self.get_testdata()
+    def test_clear(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
+        d = get_testdata
         sd.append(d)
         assert len(sd) == 1
         assert sd[0] == d
         sd.clear()
         assert len(sd) == 0
 
-    def test_reset(self):
-        sl = self.get_synced_collection([1, 2, 3])
+    def test_reset(self, get_synced_collection):
+        sl = get_synced_collection
+        sl.reset([1, 2, 3])
         assert len(sl) == 3
         assert sl == [1, 2, 3]
         sl.reset()
@@ -370,16 +395,18 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(sl) == 2
         assert sl == [3, 4]
 
-    def test_insert(self):
-        jsl = self.get_synced_collection([1, 2])
+    def test_insert(self, get_synced_collection, get_testdata):
+        jsl = get_synced_collection
+        jsl.reset([1, 2])
         assert len(jsl) == 2
-        d = self.get_testdata()
+        d = get_testdata
         jsl.insert(1, d)
         assert len(jsl) == 3
         assert jsl[1] == d
 
-    def test_remove(self):
-        jsl = self.get_synced_collection([1, 2])
+    def test_remove(self, get_synced_collection):
+        jsl = get_synced_collection
+        jsl.reset([1, 2])
         assert len(jsl) == 2
         jsl.remove(1)
         assert len(jsl) == 1
@@ -390,51 +417,29 @@ class TestJSONList(TestSyncedCollectionBase):
         assert jsl[0] == 2
         assert jsl[1] == 1
 
-    def test_reopen(self):
-        jsl = self.get_synced_collection()
-        d = self.get_testdata()
+    def test_reopen(self, get_synced_collection, get_testdata):
+        jsl = get_synced_collection
+        d = get_testdata
         jsl.append(d)
         jsl.sync()
         del jsl  # possibly unsafe
-        jsl2 = self.get_synced_collection()
+        jsl2 = get_synced_collection
         jsl2.load()
         assert len(jsl2) == 1
         assert jsl2[0] == d
 
-    def test_copy_as_list(self):
-        sl = self.get_synced_collection()
-        d = self.get_testdata()
+    def test_copy_as_list(self, get_synced_collection, get_testdata):
+        sl = get_synced_collection
+        d = get_testdata
         sl.append(d)
         assert sl[0] == d
         copy = list(sl)
         del sl
         assert copy[0] == d
 
-
-class TestJSONListWriteConcern(TestJSONList):
-
-    _write_concern = True
-
-
-class TestJSONDictWriteConcern(TestJSONDict):
-
-    _write_concern = True
-
-
-class TestNestedDict(TestSyncedCollectionBase):
-
-    def test_nested_dict(self):
-        self._type = JSONDict
-        sd = self.get_synced_collection()
-        sd['a'] = dict(a=dict())
-        child1 = sd['a']
-        child2 = sd['a']['a']
-        assert isinstance(child1, type(sd))
-        assert isinstance(child1, type(child2))
-
-    def test_nested_list(self):
-        self._type = JSONList
-        sl = self.get_synced_collection([1, 2, 3])
+    def test_nested_list(self, get_synced_collection):
+        sl = get_synced_collection
+        sl.reset([1, 2, 3])
         sl.append([2, 4])
         child1 = sl[3]
         child2 = sl[3]
@@ -456,23 +461,20 @@ class TestNestedDict(TestSyncedCollectionBase):
         assert isinstance(child1, self._type)
         assert id(child1) == id(child2)
 
-    def test_nested_dict_with_list(self):
-        self._type = JSONDict
-        sd = self.get_synced_collection()
-        sd['a'] = [1, 2, 3]
-        child1 = sd['a']
-        sd['a'].append(dict(a=[1, 2, 3]))
-        child2 = sd['a'][3]
-        child3 = sd['a'][3]['a']
-        assert isinstance(child2, type(sd))
-        assert isinstance(child1, type(child3))
-        assert isinstance(child1, JSONList)
-        assert isinstance(child3, JSONList)
-
-    def test_nested_list_with_dict(self):
-        self._type = JSONList
-        sl = self.get_synced_collection([{'a': [1, 2, 3, 4]}])
+    def test_nested_list_with_dict(self, get_synced_collection):
+        sl = get_synced_collection
+        sl.reset([{'a': [1, 2, 3, 4]}])
         child1 = sl[0]
         child2 = sl[0]['a']
         assert isinstance(child2, JSONList)
         assert isinstance(child1, JSONDict)
+
+
+class TestJSONListWriteConcern(TestJSONList):
+
+    _write_concern = True
+
+
+class TestJSONDictWriteConcern(TestJSONDict):
+
+    _write_concern = True

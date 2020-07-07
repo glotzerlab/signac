@@ -2,9 +2,10 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 from contextlib import contextmanager
-from collections import defaultdict
 from abc import abstractmethod
 from abc import ABCMeta
+from collections import defaultdict
+from collections.abc import Collection
 
 try:
     import numpy
@@ -12,39 +13,13 @@ try:
 except ImportError:
     NUMPY = False
 
-try:
-    from collections.abc import Collection
-except ImportError:
-    # Collection does not exist in Python 3.5, only Python 3.6 or newer.
 
-    from collections.abc import Sized, Iterable, Container
-
-    def _check_methods(C, *methods):
-        mro = C.__mro__
-        for method in methods:
-            for B in mro:
-                if method in B.__dict__:
-                    if B.__dict__[method] is None:
-                        return NotImplemented
-                    break
-            else:
-                return NotImplemented
-        return True
-
-    class Collection(Sized, Iterable, Container):  # type: ignore
-        @classmethod
-        def __subclasshook__(cls, C):
-            if cls is Collection:
-                return _check_methods(C,  "__len__", "__iter__", "__contains__")
-            return NotImplemented
-
-
-class CustomABCMeta(ABCMeta):
+class SyncedCollectionABCMeta(ABCMeta):
     """ Metaclass for the definition of SyncedCollection.
 
-    This metaclass automatically registers Synced Classes definitions,
-    which enables the automatic determination of Synced Class for a
-    base type and backend.
+    This metaclass automatically registers synced data structures' definition,
+    this is used when recursively converting synced data structures to determine
+    what to convert their children into.
     """
     def __init__(cls, name, bases, dct):
         if not hasattr(cls, 'registry'):
@@ -55,13 +30,14 @@ class CustomABCMeta(ABCMeta):
         return super().__init__(name, bases, dct)
 
 
-class SyncedCollection(Collection, metaclass=CustomABCMeta):
-    """The base synced collection represents a collection that is synced with a
-    file.
-    The class is intended for use as an ABC.In addition, it declares abstract
-    methods that must be implemented by any subclass.
+class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
+    """The base synced collection represents a collection that is synced with a backend.
+
+    The class is intended for use as an ABC. In addition, it declares abstract
+    methods that must be implemented by any subclass.The SyncedCollection is a
+    :class:`~collections.abc.Collection` where all data is stored persistently in
+    the underlying backend.
     """
-    base_type = None
     backend = None
 
     def __init__(self, parent=None):
@@ -78,8 +54,6 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         ----------
         data : any
             Data to be converted from base class.
-        filename: str
-            Name of file to store the data (Default value = None).
         backend: str
             Name of backend for synchronization. Default to backend of class.
         kwargs:
@@ -130,8 +104,7 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
         pass
 
     def sync(self):
-        """If the parent is None, writes the data from the file,
-        otherwise, calls the load of the parent."""
+        """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._sync()
@@ -139,13 +112,12 @@ class SyncedCollection(Collection, metaclass=CustomABCMeta):
                 self._parent.sync()
 
     def load(self):
-        """If the parent is None, loads the data from the file and
-        updates the instance, otherwise, calls the load of the parent."""
+        """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 data = self._load()
                 with self._suspend_sync():
-                    self._dfs_update(data)
+                    self._update(data)
             else:
                 self._parent.load()
 
