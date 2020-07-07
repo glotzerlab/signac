@@ -1,7 +1,7 @@
 coverage==5.0.3
 numpy==1.18
 pandas==1.0.5; implementation_name!='cpython' --no-binary pandas
-pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
+pandas==1.0.5; implementation_name=='cpython' --no-binary :none:
 h5py==2.10; implementation_name=='cpython'
 tables==3.6.1; implementation_name=='cpython'
 click>=7.0
