@@ -1,5 +1,5 @@
 coverage==5.2
-numpy==1.18
+numpy==1.19.0
 pandas==1.0.5; implementation_name!='cpython' --no-binary pandas
 pandas==1.0.5; implementation_name=='cpython' --no-binary :none:
 h5py==2.10; implementation_name=='cpython'
