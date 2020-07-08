@@ -4,6 +4,7 @@
 import pytest
 import uuid
 import os
+import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
@@ -240,6 +241,17 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert len(jsd2) == 1
         assert jsd2[key] == d
 
+    def test_dfs_update(self, get_synced_collection, get_testdata):
+        sd = get_synced_collection
+        sd.a = {'a': 1}
+        sd.b = 'test'
+        assert 'a' in sd
+        assert 'b' in sd
+        data = {'a': 1, 'c': 1}
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data).encode())
+        assert sd == data
+
     def test_copy_as_dict(self, get_synced_collection, get_testdata):
         sd = get_synced_collection
         key = 'copy'
@@ -416,6 +428,19 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(jsl) == 2
         assert jsl[0] == 2
         assert jsl[1] == 1
+
+    def test_dfs_update(self, get_synced_collection, get_testdata):
+        sl = get_synced_collection
+        sl.reset([{'a': 1}, 'b'])
+        assert sl == [{'a': 1}, 'b']
+        data = ['a', 'b', 'c']
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data).encode())
+        assert sl == data
+        data1 = ['a', 'b']
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data1).encode())
+        assert sl == data1
 
     def test_reopen(self, get_synced_collection, get_testdata):
         jsl = get_synced_collection
