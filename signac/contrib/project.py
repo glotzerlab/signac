@@ -29,7 +29,7 @@ from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
-from .indexing import MasterCrawler
+from .indexing import MainCrawler
 from .utility import _mkdir_p, split_and_print_progress, _nested_dicts_to_dotted_keys
 from .schema import ProjectSchema
 from .errors import WorkspaceError
@@ -47,7 +47,7 @@ def get_indexes(root):
     yield signac.get_project(root).index()
 """
 
-ACCESS_MODULE_MASTER = """#!/usr/bin/env python
+ACCESS_MODULE_MAIN = """#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import signac
 
@@ -1450,32 +1450,37 @@ class Project(object):
 
     @deprecated(deprecated_in="1.5", removed_in="2.0", current_version=__version__,
                 details="Access modules are deprecated.")
-    def create_access_module(self, filename=None, master=True):
+    def create_access_module(self, filename=None, main=True, master=None):
         """Create the access module for indexing.
 
         This method generates the access module required to make
-        this project's index part of a master index.
+        this project's index part of a main index.
 
         :param filename: The name of the access module file.
             Defaults to the standard name and should usually
             not be changed.
         :type filename: str
-        :param master: If True, add directives for the compilation
-            of a master index when executing the module.
-        :type master: bool
+        :param main: If True, add directives for the compilation
+            of a main index when executing the module.
+        :type main: bool
+        :param master: Deprecated parameter. Replaced by main.
         :returns: The name of the created access module.
         :rtype: str
         """
+        if master is not None:
+            warnings.warn("The parameter master has been renamed to main.", DeprecationWarning)
+            main = master
+
         if filename is None:
             filename = os.path.join(
                 self.root_directory(),
-                MasterCrawler.FN_ACCESS_MODULE)
+                MainCrawler.FN_ACCESS_MODULE)
         with open(filename, 'x') as file:
-            if master:
-                file.write(ACCESS_MODULE_MASTER)
+            if main:
+                file.write(ACCESS_MODULE_MAIN)
             else:
                 file.write(ACCESS_MODULE_MINIMAL)
-        if master:
+        if main:
             mode = os.stat(filename).st_mode | stat.S_IEXEC
             os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))

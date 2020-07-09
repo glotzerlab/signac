@@ -159,7 +159,7 @@ Top-level functions
 .. automodule:: signac
     :members:
     :show-inheritance:
-    :exclude-members: Project,Collection,RegexFileCrawler,MasterCrawler,SignacProjectCrawler,JSONDict,H5Store,H5StoreManager
+    :exclude-members: Project,Collection,RegexFileCrawler,MainCrawler,MasterCrawler,SignacProjectCrawler,JSONDict,H5Store,H5StoreManager
 
 
 Submodules

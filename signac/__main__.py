@@ -335,7 +335,7 @@ def main_clone(args):
 
 
 def main_index(args):
-    _print_err("Compiling master index for path '{}'...".format(
+    _print_err("Compiling main index for path '{}'...".format(
         os.path.realpath(args.root)))
     if args.tags:
         args.tags = set(args.tags)
@@ -1303,11 +1303,11 @@ def main():
         'root',
         nargs='?',
         default='.',
-        help="Specify the root path from where the master index is to be compiled.")
+        help="Specify the root path from where the main index is to be compiled.")
     parser_index.add_argument(
         '-t', '--tags',
         nargs='+',
-        help="Specify tags for this master index compilation.")
+        help="Specify tags for this main index compilation.")
     parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser(
