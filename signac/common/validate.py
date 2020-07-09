@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def mongodb_uri(value, *args, **kwargs):
-    """Return a mongodb URI."""
+    """Return a MongoDB URI."""
     if isinstance(value, list):
         value = ','.join(value)
     if not value.startswith('mongodb://'):
