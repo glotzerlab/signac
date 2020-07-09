@@ -1,10 +1,12 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""SyncedAttrDict."""
+
 from collections.abc import Mapping
 from collections.abc import MutableMapping
 
-from .collection_api import SyncedCollection
+from .synced_collection_abc import SyncedCollection
 from ..errors import InvalidKeyError
 from ..errors import KeyTypeError
 

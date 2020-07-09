@@ -1,14 +1,16 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""JSON-backend."""
+
 import os
 import json
 import errno
 import uuid
 
-from .collection_api import SyncedCollection
+from .synced_collection_abc import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
-from .syncedlist import SyncedList
+from .synced_list import SyncedList
 
 
 class JSONCollection(SyncedCollection):
@@ -26,7 +28,7 @@ class JSONCollection(SyncedCollection):
                 "parent or filename must be None, but not both.")
 
     def _load(self):
-        "Load the data from a JSON-file."
+        """Load the data from a JSON-file."""
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()
@@ -36,7 +38,7 @@ class JSONCollection(SyncedCollection):
                 return None
 
     def _sync(self):
-        "Write the data to json file."
+        """Write the data to json file."""
         data = self.to_base()
         # Serialize data:
         blob = json.dumps(data).encode()
@@ -96,7 +98,9 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         A parent instance of JSONDict or None (Default value = None).
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None)."""
+        first, before replacing the original file (Default value = None).
+    """
+
     pass
 
 
@@ -134,5 +138,7 @@ class JSONList(JSONCollection, SyncedList):
         A parent instance of JSONDict or None (Default value = None).
     write_concern: bool
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None)."""
+        first, before replacing the original file (Default value = None).
+    """
+
     pass

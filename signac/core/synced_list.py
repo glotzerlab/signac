@@ -1,11 +1,13 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""SyncedList."""
+
 from collections.abc import Sequence
 from collections.abc import MutableSequence
 
-from .collection_api import SyncedCollection
-from .collection_api import NUMPY
+from .synced_collection_abc import SyncedCollection
+from .synced_collection_abc import NUMPY
 
 if NUMPY:
     import numpy
@@ -25,7 +27,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         are reflected as changes to an underlying file, copying (even deep
         copying) a SyncedList instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new."""
+        dictionary representation, and if necessary construct a new.
+    """
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
@@ -40,7 +43,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     @classmethod
     def is_base_type(cls, data):
-        """Checks whether the data is an non-string Sequence.
+        """Check whether the data is an non-string Sequence.
 
         Parameters
         ----------
@@ -59,12 +62,13 @@ class SyncedList(SyncedCollection, MutableSequence):
         return False
 
     def to_base(self):
-        """Converts the SyncedList object to list.
+        """Convert the SyncedList object to list.
 
         Returns
         -------
         converted: list
-            List containing the conveted SyncedList object."""
+            List containing the conveted SyncedList object.
+        """
         converted = list()
         for value in self._data:
             if isinstance(value, SyncedCollection):
@@ -74,7 +78,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         return converted
 
     def _update(self, data=None):
-        """Updates the instance of SyncedList with data by using dfs."""
+        """Update the instance of SyncedList with data by using dfs."""
         if data is None:
             data = []
         if isinstance(data, Sequence) and not isinstance(data, str):

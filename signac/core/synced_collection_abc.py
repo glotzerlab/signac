@@ -1,6 +1,8 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Synced Collection."""
+
 from contextlib import contextmanager
 from abc import abstractmethod
 from abc import ABCMeta
@@ -15,12 +17,13 @@ except ImportError:
 
 
 class SyncedCollectionABCMeta(ABCMeta):
-    """ Metaclass for the definition of SyncedCollection.
+    """Metaclass for the definition of SyncedCollection.
 
     This metaclass automatically registers synced data structures' definition,
-    this is used when recursively converting synced data structures to determine
+    this is used when recursively converting synced data structures to determine.
     what to convert their children into.
     """
+
     def __init__(cls, name, bases, dct):
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
@@ -33,11 +36,12 @@ class SyncedCollectionABCMeta(ABCMeta):
 class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
     """The base synced collection represents a collection that is synced with a backend.
 
-    The class is intended for use as an ABC. In addition, it declares abstract
-    methods that must be implemented by any subclass.The SyncedCollection is a
+    The class is intended for use as an ABC. It declares abstract
+    methods that must be implemented by any subclass. The SyncedCollection is a
     :class:`~collections.abc.Collection` where all data is stored persistently in
     the underlying backend.
     """
+
     backend = None
 
     def __init__(self, parent=None):
@@ -47,8 +51,7 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
-        """This method dynamically resolves the type of object to the
-        corresponding synced collection.
+        """Dynamically resolve the type of object to the corresponding synced collection.
 
         Parameters
         ----------
@@ -57,7 +60,7 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
         backend: str
             Name of backend for synchronization. Default to backend of class.
         kwargs:
-            Kwargs passed to instance of Synced Class.
+            Kwargs passed to instance of synced collection.
 
         Returns
         -------
@@ -77,12 +80,12 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
 
     @abstractmethod
     def to_base(self):
-        "Dynamically resolve the synced collection to the corresponding base type."
+        """Dynamically resolve the synced collection to the corresponding base type."""
         pass
 
     @contextmanager
     def _suspend_sync(self):
-        """Prepares context where load and sync are suspended"""
+        """Prepare context where load and sync are suspended."""
         self._suspend_sync_ += 1
         yield
         self._suspend_sync_ -= 1
@@ -90,17 +93,17 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
     @classmethod
     @abstractmethod
     def is_base_type(cls):
-        """Check whether data is of same base type as Synced Class"""
+        """Check whether data is of same base type as synced data structures."""
         pass
 
     @abstractmethod
     def _load(self):
-        """Loads data from file."""
+        """Load data from file."""
         pass
 
     @abstractmethod
     def _sync(self):
-        """Writes data to file."""
+        """Write data to file."""
         pass
 
     def sync(self):
