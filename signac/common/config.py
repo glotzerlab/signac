@@ -95,7 +95,7 @@ def check_and_fix_permissions(filename):
 
 
 def read_config_file(filename):
-    """Read signac configuration file."""
+    """Read a configuration file."""
     logger.debug("Reading config file '{}'.".format(filename))
     try:
         config = Config(filename, configspec=cfg.split('\n'))
