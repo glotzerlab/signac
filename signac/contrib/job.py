@@ -266,7 +266,7 @@ class Job(object):
             requires explicitly converting it to a dict. If you need a
             modifiable copy that will not modify the underlying JSON file,
             you can access a dict copy of the state point by calling it, e.g.
-            `sp_dict = job.statepoint()` instead of `sp = job.statepoint`.
+            ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see : :class:`~signac.JSONDict`.
 
         Returns
