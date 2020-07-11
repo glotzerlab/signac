@@ -29,6 +29,12 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     path :
         The path (function) used to structure the linked data space (Default value = None).
 
+    Returns
+    -------
+    dict
+        A dictionary that maps the source directory paths to the linked
+        directory paths.
+
     Raises
     ------
     OSError
@@ -38,12 +44,6 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         When the selected data space is provided with an insufficient index.
     RuntimeError
         When state points contain [os.sep, " ", "*"].
-
-    Returns
-    -------
-    dict
-        A dictionary that maps the source directory paths to the linked
-        directory paths.
 
     """
     from .import_export import _make_path_function

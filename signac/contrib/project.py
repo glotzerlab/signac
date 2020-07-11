@@ -2722,7 +2722,6 @@ def get_project(root=None, search=True, **kwargs):
     **kwargs :
         Forwarded to :meth:`~signac.Project.get_project`.
 
-
     Returns
     -------
     :class:`~signac.Project`
