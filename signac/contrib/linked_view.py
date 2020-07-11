@@ -29,6 +29,12 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     path :
         The path (function) used to structure the linked data space (Default value = None).
 
+    Returns
+    -------
+    dict
+        A dictionary that maps the source directory paths to the linked
+        directory paths.
+
     Raises
     ------
     OSError
@@ -38,12 +44,6 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         When the selected data space is provided with an insufficient index.
     RuntimeError
         When state points contain [os.sep, " ", "*"].
-
-    Returns
-    -------
-    dict
-        A dictionary that maps the source directory paths to the linked
-        directory paths.
 
     """
     from .import_export import _make_path_function
@@ -225,8 +225,8 @@ def _find_all_links(root, leaf='job'):
         The name of the leaf directories in the view
         directory tree (Default value = 'job').
 
-    Yield
-    -----
+    Yields
+    ------
     str
         Relative path to root from ``leaf``.
 
@@ -305,8 +305,8 @@ def _get_branches(root, branch=None):
         used in recursive calls to build up the branches starting
         at the root (Default value = None).
 
-    Yield
-    -----
+    Yields
+    ------
     list
         Branches for the root node.
 

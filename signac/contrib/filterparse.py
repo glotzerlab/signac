@@ -46,7 +46,6 @@ def _read_index(project, fn_index=None):
     ----------
     project : :class:`~signac.Project`
         Project handle.
-
     fn_index : str
         File name of the index (Default value = None).
 
@@ -167,7 +166,6 @@ def _parse_simple(key, value=None):
     ----------
     key : str
         The filter key.
-
     value :
         The filter value. If None, the filter returns
         True if the provided key exists (Default value = None).
@@ -204,7 +202,6 @@ def parse_filter_arg(args, file=sys.stderr):
     ----------
     args : sequence of str
         Filter arguments to parse.
-
     file :
         The file to write message (Default value = sys.stderr).
 

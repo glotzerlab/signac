@@ -56,7 +56,7 @@ def _flatten(container):
     Parameters
     ----------
     container :
-            list/tuple of elements.
+        list/tuple of elements.
 
     Yields
     ------
@@ -313,7 +313,6 @@ def _check_logical_operator_argument(op, argument):
     ----------
     op : str
         logical-operator.
-
     argument : list
         list of arguments for logical-operator.
 
