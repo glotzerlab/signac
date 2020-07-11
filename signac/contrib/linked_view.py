@@ -225,8 +225,8 @@ def _find_all_links(root, leaf='job'):
         The name of the leaf directories in the view
         directory tree (Default value = 'job').
 
-    Yield
-    -----
+    Yields
+    ------
     str
         Relative path to root from ``leaf``.
 
@@ -305,8 +305,8 @@ def _get_branches(root, branch=None):
         used in recursive calls to build up the branches starting
         at the root (Default value = None).
 
-    Yield
-    -----
+    Yields
+    ------
     list
         Branches for the root node.
 
