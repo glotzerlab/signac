@@ -8,7 +8,7 @@ import json
 import errno
 import uuid
 
-from .synced_collection_abc import SyncedCollection
+from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 

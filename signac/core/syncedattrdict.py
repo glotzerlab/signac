@@ -6,7 +6,7 @@
 from collections.abc import Mapping
 from collections.abc import MutableMapping
 
-from .synced_collection_abc import SyncedCollection
+from .synced_collection import SyncedCollection
 from ..errors import InvalidKeyError
 from ..errors import KeyTypeError
 
@@ -26,7 +26,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         are reflected as changes to an underlying file, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new.
+        dictionary representation, and if necessary construct a new SyncedAttrDict.
     """
 
     _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')

@@ -6,8 +6,8 @@
 from collections.abc import Sequence
 from collections.abc import MutableSequence
 
-from .synced_collection_abc import SyncedCollection
-from .synced_collection_abc import NUMPY
+from .synced_collection import SyncedCollection
+from .synced_collection import NUMPY
 
 if NUMPY:
     import numpy
@@ -27,7 +27,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         are reflected as changes to an underlying file, copying (even deep
         copying) a SyncedList instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new.
+        dictionary representation, and if necessary construct a new SyncedList.
     """
 
     def __init__(self, data=None, **kwargs):

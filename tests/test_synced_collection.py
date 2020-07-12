@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 
-from signac.core.synced_collection_abc import SyncedCollection
+from signac.core.synced_collection import SyncedCollection
 from signac.core.jsoncollection import JSONDict
 from signac.core.jsoncollection import JSONList
 from signac.errors import InvalidKeyError
