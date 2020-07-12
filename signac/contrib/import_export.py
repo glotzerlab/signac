@@ -519,7 +519,6 @@ def _convert_schema_path_to_regex(schema_path):
     schema_path : str
         Path of schema.
 
-
     Returns
     -------
     schema_regex : str
@@ -614,7 +613,6 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
     ----------
     schema_function : callable
         Schema function.
-
     read_sp_manifest_file : callable
         Function to read state point manifest.
 

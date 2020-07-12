@@ -2722,7 +2722,6 @@ def get_project(root=None, search=True, **kwargs):
     **kwargs :
         Forwarded to :meth:`~signac.Project.get_project`.
 
-
     Returns
     -------
     :class:`~signac.Project`
@@ -2757,12 +2756,12 @@ def get_job(root=None):
     LookupError
         If this job cannot be found.
 
-    For example, when the current directory is a job workspace directory:
+    Examples
+    --------
+    When the current directory is a job workspace directory:
 
-    .. code-block:: python
-
-        >>> signac.get_job()
-        signac.contrib.job.Job(project=..., statepoint={...})
+    >>> signac.get_job()
+    signac.contrib.job.Job(project=..., statepoint={...})
 
     """
     return Project.get_job(root=root)

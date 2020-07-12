@@ -93,18 +93,18 @@ def prompt_password(prompt='Password: '):
 def add_verbosity_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
-    Notes
-    -----
-    The argument is '-v' or '--verbosity'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
     Parameters
     ----------
     parser : :class:`argparse.ArgumentParser`
         The parser to which to add a verbosity argument.
     default : int
         The default level, defaults to 0.
+
+    Notes
+    -----
+    The argument is '-v' or '--verbosity'.
+    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
+    increase the level of verbosity.
 
     """
     parser.add_argument(
@@ -120,18 +120,18 @@ def add_verbosity_argument(parser, default=0):
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
-    Notes
-    -----
-    The argument is '-v'.
-    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
-    increase the level of verbosity.
-
     Parameters
     ----------
     parser : :class:`argparse.ArgumentParser`
         The parser to which to add a verbosity argument.
     default :
         The default level, defaults to 0.
+
+    Notes
+    -----
+    The argument is '-v'.
+    Add multiple '-v' arguments, e.g. '-vv' or '-vvv' to
+    increase the level of verbosity.
 
     """
     parser.add_argument(
@@ -155,7 +155,7 @@ def set_verbosity_level(verbosity, default=None, increment=10):
     default :
         The default verbosity level, defaults to logging.ERROR.
     increment :
-         (Default value = 10).
+        (Default value = 10).
 
     """
     if default is None:
@@ -215,7 +215,6 @@ def walkdepth(path, depth=0):
     ----------
     path :str
         Directory passed to walk (transverse from).
-
     depth : int
         (Default value = 0)
 
