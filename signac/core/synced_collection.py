@@ -5,7 +5,6 @@
 
 from contextlib import contextmanager
 from abc import abstractmethod
-from abc import ABCMeta
 from collections import defaultdict
 from collections.abc import Collection
 
@@ -16,28 +15,10 @@ except ImportError:
     NUMPY = False
 
 
-class SyncedCollectionABCMeta(ABCMeta):
-    """Metaclass for the definition of SyncedCollection.
-
-    This metaclass automatically registers synced data structures' definition,
-    this is used when recursively converting synced data structures to determine.
-    what to convert their children into.
-    """
-
-    def __init__(cls, name, bases, dct):
-        if not hasattr(cls, 'registry'):
-            cls.registry = defaultdict(list)
-        else:
-            if not cls.__abstractmethods__:
-                cls.registry[cls.backend].append(cls)
-        return super().__init__(name, bases, dct)
-
-
-class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
+class SyncedCollection(Collection):
     """The base synced collection represents a collection that is synced with a backend.
 
-    The class is intended for use as an ABC. It declares abstract
-    methods that must be implemented by any subclass. The SyncedCollection is a
+    The class is intended for use as an ABC. The SyncedCollection is a
     :class:`~collections.abc.Collection` where all data is stored persistently in
     the underlying backend.
     """
@@ -50,6 +31,23 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
         self._suspend_sync_ = 0
 
     @classmethod
+    def register(cls, *args):
+        """Register the synced data structures.
+
+        Registry is used when recursively converting synced data structures to determine
+        what to convert their children into.
+
+        Parameters
+        ----------
+        *args
+            list of classes to register
+        """
+        if not hasattr(cls, 'registry'):
+            cls.registry = defaultdict(list)
+        for _cls in args:
+            cls.registry[_cls.backend].append(_cls)
+
+    @classmethod
     def from_base(cls, data, backend=None, **kwargs):
         """Dynamically resolve the type of object to the corresponding synced collection.
 
@@ -59,7 +57,7 @@ class SyncedCollection(Collection, metaclass=SyncedCollectionABCMeta):
             Data to be converted from base class.
         backend: str
             Name of backend for synchronization. Default to backend of class.
-        kwargs:
+        **kwargs:
             Kwargs passed to instance of synced collection.
 
         Returns

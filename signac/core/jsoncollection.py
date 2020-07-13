@@ -142,3 +142,6 @@ class JSONList(JSONCollection, SyncedList):
     """
 
     pass
+
+
+JSONCollection.register(JSONDict, JSONList)
