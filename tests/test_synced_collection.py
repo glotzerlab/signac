@@ -41,7 +41,7 @@ class TestSyncedCollectionBase():
 
     def test_init(self, synced_collection):
         if synced_collection:
-            assert len(synced_collection)
+            assert len(synced_collection) == 0
 
     def test_invalid_kwargs(self):
         if self._type is not None:
