@@ -40,7 +40,7 @@ class TestSyncedCollectionBase():
         self._tmp_dir.cleanup()
 
     def test_init(self, synced_collection):
-        if synced_collection:
+        if self._type is not None:
             assert len(synced_collection) == 0
 
     def test_invalid_kwargs(self):
