@@ -40,7 +40,7 @@ class SyncedCollection(Collection):
         Parameters
         ----------
         *args
-            list of classes to register
+            Classes to register
         """
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
