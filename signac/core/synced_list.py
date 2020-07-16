@@ -90,7 +90,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                         continue
                     if isinstance(self._data[i], SyncedCollection):
                         try:
-                            self._data[i]._update(i)
+                            self._data[i]._update(data[i])
                             continue
                         except ValueError:
                             pass

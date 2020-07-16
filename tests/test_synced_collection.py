@@ -535,9 +535,9 @@ class TestJSONList(TestSyncedCollectionBase):
 
     def test_update_recursive(self, synced_collection, testdata):
         sl = synced_collection
-        sl.reset([{'a': 1}, 'b', {'c': 1}])
-        assert sl == [{'a': 1}, 'b', {'c': 1}]
-        data = ['a', 'b', {'c': 2}, 'd']
+        sl.reset([{'a': 1}, 'b', [1, 2, 3]])
+        assert sl == [{'a': 1}, 'b', [1, 2, 3]]
+        data = ['a', 'b', [1, 2, 4], 'd']
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data).encode())
         assert sl == data
