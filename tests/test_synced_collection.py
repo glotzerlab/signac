@@ -311,7 +311,7 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert 'a' in sd
         assert 'b' in sd
         assert 'c' in sd
-        data = {'a': 1, 'c': [0, 1, 2], 'd': 1}
+        data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data).encode())
         assert sd == data
@@ -437,7 +437,7 @@ class TestJSONList(TestSyncedCollectionBase):
         sl.append(data2)
         assert len(sl) == len(data_as_list) + 1
         assert sl[len(data_as_list)] == data2.tolist()
-        data3 = numpy.float(3.14)
+        data3 = numpy.float_(3.14)
         sl.append(data3)
         assert len(sl) == len(data_as_list) + 2
         assert sl[len(data_as_list) + 1] == data3
@@ -537,7 +537,7 @@ class TestJSONList(TestSyncedCollectionBase):
         sl = synced_collection
         sl.reset([{'a': 1}, 'b', {'c': 1}])
         assert sl == [{'a': 1}, 'b', {'c': 1}]
-        data = ['a', 'b', {'c': 1}, 'd']
+        data = ['a', 'b', {'c': 2}, 'd']
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data).encode())
         assert sl == data
