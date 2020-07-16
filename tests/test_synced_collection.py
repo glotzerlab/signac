@@ -433,10 +433,14 @@ class TestJSONList(TestSyncedCollectionBase):
         sl.reset(data)
         assert len(sl) == len(data_as_list)
         assert sl == data_as_list
-        data2 = numpy.float(3.14)
+        data2 = numpy.random.rand(3, 4)
         sl.append(data2)
         assert len(sl) == len(data_as_list) + 1
-        assert sl[len(data_as_list)] == data2
+        assert sl[len(data_as_list)] == data2.tolist()
+        data3 = numpy.float(3.14)
+        sl.append(data3)
+        assert len(sl) == len(data_as_list) + 2
+        assert sl[len(data_as_list) + 1] == data3
 
     def test_iter(self, synced_collection, testdata):
         sd = synced_collection
@@ -506,6 +510,15 @@ class TestJSONList(TestSyncedCollectionBase):
         jsl.insert(1, d)
         assert len(jsl) == 3
         assert jsl[1] == d
+
+    def test_reversed(self,  synced_collection):
+        sl = synced_collection
+        data = [1, 2, 3]
+        sl.reset([1, 2, 3])
+        assert len(sl) == 3
+        assert sl == data
+        for i, j in zip(reversed(sl), reversed(data)):
+            assert i == j
 
     def test_remove(self, synced_collection):
         jsl = synced_collection
