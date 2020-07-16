@@ -78,11 +78,13 @@ class SyncedList(SyncedCollection, MutableSequence):
         return converted
 
     def _update(self, data=None):
-        """Update the instance of SyncedList with data by using dfs."""
+        """Update the instance of SyncedList with data using depth-first traversal."""
         if data is None:
             data = []
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
+                # This loop avoids rebuilding existing synced collections for performance.
+                # TODO: Potential improvements to this code: Remove order constraints.
                 for i in range(min(len(self), len(data))):
                     if data[i] == self._data[i]:
                         continue

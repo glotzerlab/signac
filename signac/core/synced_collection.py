@@ -90,8 +90,8 @@ class SyncedCollection(Collection):
 
     @classmethod
     @abstractmethod
-    def is_base_type(cls):
-        """Check whether data is of same base type as synced data structures."""
+    def is_base_type(cls, data):
+        """Check whether data is of the same base type (such as list or dict) as this class."""
         pass
 
     @abstractmethod

@@ -242,7 +242,7 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert len(jsd2) == 1
         assert jsd2[key] == d
 
-    def test_dfs_update(self, synced_collection, testdata):
+    def test_update_recursive(self, synced_collection, testdata):
         sd = synced_collection
         sd.a = {'a': 1}
         sd.b = 'test'
@@ -430,7 +430,7 @@ class TestJSONList(TestSyncedCollectionBase):
         assert jsl[0] == 2
         assert jsl[1] == 1
 
-    def test_dfs_update(self, synced_collection, testdata):
+    def test_update_recursive(self, synced_collection, testdata):
         sl = synced_collection
         sl.reset([{'a': 1}, 'b'])
         assert sl == [{'a': 1}, 'b']

@@ -78,11 +78,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return False
 
     def _update(self, data=None):
-        """Updates the SyncedDict instance with data by using dfs."""
+        """Updates the SyncedDict instance with data using depth-first traversal."""
         if data is None:
             data = {}
         if isinstance(data, Mapping):
             with self._suspend_sync():
+                # This loop avoids rebuilding existing synced collections for performance.
                 for key in data:
                     if key in self._data:
                         if data[key] == self._data[key]:
