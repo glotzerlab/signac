@@ -9,5 +9,5 @@ for future migrations and testing purposes.
 
 
 def migrate_v0_to_v1(project):
-    "Migrate from schema version 0 to version 1."
-    pass  # nothing to do here, serves purely as example
+    """Migrate from schema version 0 to version 1."""
+    pass  # nothing to do here, serves purely as an example

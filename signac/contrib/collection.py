@@ -55,12 +55,12 @@ def _flatten(container):
 
     Parameters
     ----------
-    container :
-        list/tuple of elements.
+    container : sequence
+        List or tuple of elements.
 
     Yields
     ------
-    Element of container.
+    Elements of container, recursively flattening sub-sequences.
 
     """
     for i in container:

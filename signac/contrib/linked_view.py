@@ -43,7 +43,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     ValueError
         When the selected data space is provided with an insufficient index.
     RuntimeError
-        When state points contain [os.sep, " ", "*"].
+        When state points contain one of ``[os.sep, " ", "*"]``.
 
     """
     from .import_export import _make_path_function
