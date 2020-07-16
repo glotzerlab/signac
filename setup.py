@@ -48,7 +48,6 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Topic :: Database",
         "Topic :: Scientific/Engineering :: Physics",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -56,9 +55,18 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
 
+    project_urls={
+        'Homepage': 'https://signac.io',
+        'Documentation': 'https://docs.signac.io',
+        'Source Code': 'https://github.com/glotzerlab/signac',
+        'Issue Tracker': 'https://github.com/glotzerlab/signac/issues',
+    },
+
     install_requires=requirements,
 
-    python_requires='>=3.5, <4',
+    # Supported versions are determined according to NEP 29.
+    # https://numpy.org/neps/nep-0029-deprecation_policy.html
+    python_requires='>=3.6, <4',
 
     extras_require={
         'db': ['pymongo>=3.0'],

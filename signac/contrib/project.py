@@ -31,8 +31,8 @@ from ..sync import sync_projects
 from .job import Job
 from .hashing import calc_id
 from .indexing import SignacProjectCrawler
-from .indexing import MasterCrawler
-from .utility import _mkdir_p, split_and_print_progress
+from .indexing import MainCrawler
+from .utility import _mkdir_p, split_and_print_progress, _nested_dicts_to_dotted_keys
 from .schema import ProjectSchema
 from .errors import WorkspaceError
 from .errors import DestinationExistsError
@@ -49,7 +49,7 @@ def get_indexes(root):
     yield signac.get_project(root).index()
 """
 
-ACCESS_MODULE_MASTER = """#!/usr/bin/env python
+ACCESS_MODULE_MAIN = """#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import signac
 
@@ -1903,20 +1903,24 @@ class Project(object):
         for doc in docs:
             yield doc
 
-    def create_access_module(self, filename=None, master=True):
+    @deprecated(deprecated_in="1.5", removed_in="2.0", current_version=__version__,
+                details="Access modules are deprecated.")
+    def create_access_module(self, filename=None, main=True, master=None):
         """Create the access module for indexing.
 
         This method generates the access module required to make
-        this project's index part of a master index.
+        this project's index part of a main index.
 
         Parameters
         ----------
         filename : str
             The name of the access module file. Defaults to the standard name
             and should usually not be changed.
-        master : bool
+        main : bool
             If True, add directives for the compilation of a master index
             when executing the module (Default value = True).
+        master : bool
+            Deprecated parameter. Replaced by main.
 
         Returns
         -------
@@ -1924,16 +1928,20 @@ class Project(object):
             Access module name.
 
         """
+        if master is not None:
+            warnings.warn("The parameter master has been renamed to main.", DeprecationWarning)
+            main = master
+
         if filename is None:
             filename = os.path.join(
                 self.root_directory(),
-                MasterCrawler.FN_ACCESS_MODULE)
+                MainCrawler.FN_ACCESS_MODULE)
         with open(filename, 'x') as file:
-            if master:
-                file.write(ACCESS_MODULE_MASTER)
+            if main:
+                file.write(ACCESS_MODULE_MAIN)
             else:
                 file.write(ACCESS_MODULE_MINIMAL)
-        if master:
+        if main:
             mode = os.stat(filename).st_mode | stat.S_IEXEC
             os.chmod(filename, mode)
         logger.info("Created access module file '{}'.".format(filename))
@@ -2044,7 +2052,7 @@ class Project(object):
 
     @classmethod
     def get_project(cls, root=None, search=True, **kwargs):
-        """Find a project configuration and return the associated project.
+        r"""Find a project configuration and return the associated project.
 
         Parameters
         ----------
@@ -2054,14 +2062,16 @@ class Project(object):
         search : bool
             If True, search for project configurations inside and above
             the specified root directory, otherwise only return projects
-            with a root directory identical to the specified root argument (Default value = True).
-        **kwargs :
-            Forwarded to the project constructor.
+            with a root directory identical to the specified root argument
+            (Default value = True).
+        \*\*kwargs :
+            Optional keyword arguments that are forwarded to the
+            :class:`.Project` class constructor.
 
         Returns
         -------
         :class:`~signac.Project`
-            An instace of :class:`~signac.Project`.
+            An instance of :class:`~signac.Project`.
 
         Raises
         ------
@@ -2126,7 +2136,7 @@ class Project(object):
 
 @contextmanager
 def TemporaryProject(name=None, cls=None, **kwargs):
-    """Context manager for the generation of a temporary project.
+    r"""Context manager for the generation of a temporary project.
 
     This is a factory function that creates a Project within a temporary directory
     and must be used as context manager, for example like this:
@@ -2138,13 +2148,13 @@ def TemporaryProject(name=None, cls=None, **kwargs):
 
     Parameters
     ----------
-    name :
+    name : str
         An optional name for the temporary project.
         Defaults to a unique random string.
     cls :
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
-    **kwargs :
+    \*\*kwargs :
         Optional keyword arguments that are forwarded to the TemporaryDirectory class
         constructor, which is used to create a temporary root directory.
 
@@ -2305,8 +2315,14 @@ class JobsCursor(object):
             be sortable).
 
         """
+        _filter = self._filter
         if isinstance(key, str):
             if default is None:
+                if _filter is None:
+                    _filter = {key: {"$exists": True}}
+                else:
+                    _filter = {'$and': [{key: {"$exists": True}}, _filter]}
+
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
 
@@ -2340,9 +2356,13 @@ class JobsCursor(object):
 
                     """
                     return job.sp.get(key, default)
-
         elif isinstance(key, Iterable):
             if default is None:
+                if _filter is None:
+                    _filter = {k: {"$exists": True} for k in key}
+                else:
+                    _filter = {'$and': [{k: {"$exists": True} for k in key}, _filter]}
+
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
 
@@ -2379,7 +2399,6 @@ class JobsCursor(object):
 
                     """
                     return tuple(job.sp.get(k, default) for k in key)
-
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
@@ -2397,11 +2416,12 @@ class JobsCursor(object):
 
                 """
                 return str(job)
-
         else:
+            # Pass the job document to a callable
             keyfunction = key
 
-        return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
+        return groupby(sorted(iter(JobsCursor(self._project, _filter, self._doc_filter)),
+                              key=keyfunction), key=keyfunction)
 
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
@@ -2532,7 +2552,7 @@ class JobsCursor(object):
                 """
                 return str(job)
         else:
-            # Pass the job document to lambda functions
+            # Pass the job document to a callable
             def keyfunction(job):
                 """Return job's document value corresponding to the key.
 
@@ -2579,29 +2599,57 @@ class JobsCursor(object):
         return dict(export_jobs(jobs=list(self), target=target,
                                 path=path, copytree=copytree))
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.'):
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None,
+                     flatten=False):
         """Convert the selection of jobs to a pandas dataframe.
 
-        This function exports the job metadata to a `pandas.DataFrame`.
-        All state point and document keys are prefixed by default to be able to distinguish them.
+        This function exports the job metadata to a
+        :py:class:`pandas.DataFrame`. All state point and document keys are
+        prefixed by default to be able to distinguish them.
 
         Parameters
         ----------
-        sp_prefix : str
+        sp_prefix : str, optional
             Prefix state point keys with the given string. Defaults to "sp.".
-        doc_prefix : str
+        doc_prefix : str, optional
             Prefix document keys with the given string. Defaults to "doc.".
+        usecols : list-like or callable, optional
+            Used to select a subset of columns. If list-like, must contain
+            strings corresponding to the column names that should be included.
+            For example, ``['sp.a', 'doc.notes']``. If callable, the column
+            will be included if the function called on the column name returns
+            True. For example, ``lambda x: 'sp.' in x``. Defaults to ``None``,
+            which uses all columns from the state point and document. Note
+            that this filter is applied *after* the doc and sp prefixes are
+            added to the column names.
+        flatten : bool, optional
+            Whether nested state points or document keys should be flattened.
+            If True, ``{'a': {'b': 'c'}}`` becomes a column named ``a.b`` with
+            value ``c``. If False, it becomes a column named ``a`` with value
+            ``{'b': 'c'}``. Defaults to ``False``.
 
         Returns
         -------
         :class:`~pandas.DataFrame`
-            A pandas dataframe with all job metadata.
+            A pandas DataFrame with all job metadata.
 
         """
         import pandas
 
+        if usecols is None:
+            def usecols(column):
+                return True
+        elif not callable(usecols):
+            included_columns = set(usecols)
+
+            def usecols(column):
+                return column in included_columns
+
+        def _flatten(d):
+            return dict(_nested_dicts_to_dotted_keys(d)) if flatten else d
+
         def _export_sp_and_doc(job):
-            """Prefix state point and document keys to be able to distinguish them.
+            """Prefix and filter state point and document keys.
 
             Parameters
             ----------
@@ -2611,13 +2659,17 @@ class JobsCursor(object):
             Yields
             ------
             tuple
-                tuple with modified state point or document key and values.
+                tuple with prefixed state point or document key and values.
 
             """
-            for key, value in job.sp.items():
-                yield sp_prefix + key, value
-            for key, value in job.doc.items():
-                yield doc_prefix + key, value
+            for key, value in _flatten(job.sp).items():
+                prefixed_key = sp_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
+            for key, value in _flatten(job.doc).items():
+                prefixed_key = doc_prefix + key
+                if usecols(prefixed_key):
+                    yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
             data={job._id: dict(_export_sp_and_doc(job)) for job in self},
@@ -2707,7 +2759,7 @@ def init_project(name, root=None, workspace=None, make_dir=True):
 
 
 def get_project(root=None, search=True, **kwargs):
-    """Find a project configuration and return the associated project.
+    r"""Find a project configuration and return the associated project.
 
     Parameters
     ----------
@@ -2719,8 +2771,9 @@ def get_project(root=None, search=True, **kwargs):
         specified root directory, otherwise only return projects with a root
         directory identical to the specified root argument (Default value =
         True).
-    **kwargs :
-        Forwarded to :meth:`~signac.Project.get_project`.
+    \*\*kwargs :
+        Optional keyword arguments that are forwarded to
+        :meth:`~signac.Project.get_project`.
 
     Returns
     -------
@@ -2730,7 +2783,7 @@ def get_project(root=None, search=True, **kwargs):
     Raises
     ------
     LookupError
-        Can not find project configuration.
+        If no project configuration can be found.
 
     """
     return Project.get_project(root=root, search=search, **kwargs)

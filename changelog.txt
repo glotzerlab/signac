@@ -13,12 +13,27 @@ next
 Added
 +++++
 
-- Type annotations are validated during continuous integration (#313).
+ - Type annotations are validated during continuous integration (#313).
+ - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
+ - Allow grouping by variables that are not present in all jobs in the project in ``JobsCursor.groupby`` (#321, #323).
 
 Fixed
 +++++
 
-- Fix the ``signac config verify`` command (previously broken) (#301, #302).
+ - Fix the ``signac config verify`` command (previously broken) (#301, #302).
+ - Warnings now appear when raised by the ``signac`` CLI (#317, #308).
+
+Deprecated
+++++++++++
+
+ - Deprecate the ``create_access_modules`` method in ``Project``, to be removed in 2.0 (#303, #308).
+ - The ``MainCrawler`` class has replaced the ``MasterCrawler`` class. Both classes are deprecated.
+
+Removed
++++++++
+
+ - Dropped support for Python 3.5 (#340). The signac project will follow the `NEP 29 deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_ going forward.
+
 
 [1.4.0] -- 2020-02-28
 ---------------------
@@ -376,7 +391,7 @@ Added
 
  - Introduction of the ``Collection`` class for the management of document collections, such as indexes in memory and on disk.
  - Generation of file indexes directly via the ``signac.index_files()`` function.
- - Generation of master indexes directly via the ``signac.index()`` function and the ``$ signac index`` command.
+ - Generation of main indexes directly via the ``signac.index()`` function and the ``$ signac index`` command.
  - The API of ``signac_access.py`` files has been simplified, including the possibility to use a blank file for a minimal configuration.
  - Use the ``$ signac project --access`` command to create a minimal access module in addition to ``Project.create_access_module()``.
  - The update of existing index collections has been simplified by using the ``export()`` function with the `update=True` argument, which means that stale documents (the associated file or state point no longer exists) are automatically identified and removed.
@@ -386,7 +401,7 @@ Added
 Changed (breaking API)
 ++++++++++++++++++++++
 
- - The ``$ signac index`` command generates a master index instead of a project index. To generate a project index from the command line use ``$ signac project --index`` instead.
+ - The ``$ signac index`` command generates a main index instead of a project index. To generate a project index from the command line use ``$ signac project --index`` instead.
  - The ``SignacProjectCrawler`` class expects the project's root directory as first argument, not the workspace directory.
  - The ``get_crawlers()`` function defined within a ``signac_access.py`` access module is expected to yield crawler instances directly, not a mapping of crawler ids and instances.
  - The simplification of the ``signac_access.py`` module API is reflected in a reduction of arguments to the ``Project.create_access_module()`` method.
@@ -394,8 +409,8 @@ Changed (breaking API)
 Changed (non-breaking)
 ++++++++++++++++++++++
 
- - The ``RegexFileCrawler``, ``SignacProjectCrawler`` and ``MasterCrawler`` classes were moved into the root namespace.
- - If a ``MasterCrawler`` object is instantiated with the ``raise_on_error`` argument set to True, any errors encountered during crawling are raised instead of ignored and skipped; this simplifies the debugging of erroneous access modules.
+ - The ``RegexFileCrawler``, ``SignacProjectCrawler`` and ``MainCrawler`` classes were moved into the root namespace.
+ - If a ``MainCrawler`` object is instantiated with the ``raise_on_error`` argument set to True, any errors encountered during crawling are raised instead of ignored and skipped; this simplifies the debugging of erroneous access modules.
  - Improved error message for invalid configuration files.
  - Better error messages for invalid ``$ signac find`` queries.
  - Check a host configuration on the command line via ``$ signac host --test``.
@@ -537,7 +552,7 @@ Added
 Changed
 +++++++
 
- - The MasterCrawler logic has been simplified; their primary function is the compilation of index documents from slave crawlers, all export logic, including data mirroring is now provided by the ``signac.export()`` function.
+ - The MainCrawler logic has been simplified; their primary function is the compilation of index documents from subcrawlers, all export logic, including data mirroring is now provided by the ``signac.export()`` function.
  - Each index document is now uniquely coupled with only one file or data object, which is why ``signac.fetch()`` replaces ``signac.fetch_one()`` and the latter one has been deprecated and is currently an alias of the former one.
  - The ``signac.fetch()`` function always returns a file-like object, regardless of format definition.
  - The format argument in the crawler ``define()`` function is now optional and has now very well defined behavior for str types. It is encouraged to define a format with a str constant rather than a file-like object type.
@@ -548,7 +563,7 @@ Changed
  - The ``contrib.crawler`` module has been renamed to contrib.indexing to better reflect the semantic context.
  - The ``signac.export()`` function now implements the logic for data linking and mirroring.
  - Provide default argument for '--indent' option for ``$ signac statepoint`` command.
- - Log, but do not reraise exceptions during ``MasterCrawler`` execution, making the compilation of master indexes more robust against errors.
+ - Log, but do not reraise exceptions during ``MainCrawler`` execution, making the compilation of main indexes more robust against errors.
  - The object representation of ``Job`` and ``Project`` instances is simplified.
  - The warning verbosity has been reduced when importing modules with optional dependencies.
 

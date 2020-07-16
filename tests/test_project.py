@@ -19,6 +19,7 @@ from tempfile import TemporaryDirectory
 from packaging import version
 from contextlib import redirect_stderr, contextmanager
 from time import time
+from conftest import deprecated_in_version
 
 
 import signac
@@ -835,9 +836,7 @@ class TestProject(TestProjectBase):
             assert len(list(g)) == 6
             for job in list(g):
                 assert job.sp['b'] == k
-        with pytest.raises(KeyError):
-            for k, g in self.project.groupby('d'):
-                pass
+        assert len(list(self.project.groupby('d'))) == 0
         for k, g in self.project.groupby('d', default=-1):
             assert k == -1
             assert len(list(g)) == len(self.project)
@@ -861,6 +860,17 @@ class TestProject(TestProjectBase):
             for job in list(g):
                 assert str(job) == k
         assert group_count == len(list(self.project.find_jobs()))
+
+        self.project.open_job({'a': 20}).init()
+        for k, g in self.project.groupby('b'):
+            assert len(list(g)) == 6
+            for job in list(g):
+                assert job.sp['b'] == k
+        for k, g in self.project.groupby(('b', 'c')):
+            assert len(list(g)) == 2
+            for job in list(g):
+                assert job.sp['b'] == k[0]
+                assert job.sp['c'] == k[1]
 
     def test_jobs_groupbydoc(self):
         def get_doc(i):
@@ -919,6 +929,10 @@ class TestProject(TestProjectBase):
                 tmp_project.open_job(dict(a=i)).init()
             assert len(tmp_project) == 10
         assert not os.path.isdir(tmp_root_dir)
+
+    def test_access_module(self):
+        with deprecated_in_version('1.5'):
+            self.project.create_access_module()
 
 
 class TestProjectExportImport(TestProjectBase):
@@ -1497,6 +1511,15 @@ class TestProjectRepresentation(TestProjectBase):
                                 if use_pandas and not PANDAS:
                                     raise pytest.skip('requires use_pandas')
                                 self.project.find_jobs(filter_)._repr_html_()
+
+        with subtests.test(of='Schema'):
+            schema = self.project.detect_schema()
+            with subtests.test(type='str'):
+                str(schema)
+            with subtests.test(type='repr'):
+                repr(schema)
+            with subtests.test(type='html'):
+                schema._repr_html_()
 
     def test_repr_no_jobs(self, subtests):
         self.call_repr_methods(subtests)
