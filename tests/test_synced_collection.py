@@ -15,6 +15,11 @@ from signac.core.jsoncollection import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
+try:
+    import numpy
+    NUMPY = True
+except ImportError:
+    NUMPY = False
 
 FN_JSON = 'test.json'
 
@@ -47,6 +52,27 @@ class TestSyncedCollectionBase():
         if self._type is not None:
             with pytest.raises(ValueError):
                 return self._type()
+
+    def test_from_base(self, synced_collection):
+        sd = SyncedCollection.from_base(filename=self._fn_, data={'a': 0}, backend='JSON')
+        assert isinstance(sd, JSONDict)
+        assert 'a' in sd
+        assert sd['a'] == 0
+
+        # invalid input
+        with pytest.raises(ValueError):
+            SyncedCollection.from_base(data={'a': 0}, filename=self._fn_)
+
+    def test_repr(self, synced_collection):
+        if self._type is not None:
+            repr(synced_collection)
+            p = eval(repr(synced_collection))
+            assert repr(p) == repr(synced_collection)
+            assert p == synced_collection
+
+    def test_str(self, synced_collection):
+        if self._type is not None:
+            str(synced_collection) == str(synced_collection.to_base())
 
 
 class TestJSONDict(TestSyncedCollectionBase):
@@ -184,6 +210,27 @@ class TestJSONDict(TestSyncedCollectionBase):
         with pytest.raises(KeyError):
             sd[key]
 
+    def test_values(self, synced_collection, testdata):
+        sd = synced_collection
+        data = {'value1': testdata, 'value_nested': {'value2': testdata}}
+        sd.reset(data)
+        assert 'value1' in sd
+        assert 'value_nested' in sd
+        for val in sd.values():
+            assert not isinstance(val, self._type)
+            assert val in data.values()
+
+    def test_items(self, synced_collection, testdata):
+        sd = synced_collection
+        data = {'item1': testdata, 'item_nested': {'item2': testdata}}
+        sd.reset(data)
+        assert 'item1' in sd
+        assert 'item_nested' in sd
+        for key, val in sd.items():
+            assert sd[key] == data[key]
+            assert not isinstance(val, self._type)
+            assert (key, val) in data.items()
+
     def test_reset(self, synced_collection, testdata):
         sd = synced_collection
         key = 'reset'
@@ -197,6 +244,10 @@ class TestJSONDict(TestSyncedCollectionBase):
         sd.reset({'reset': d1})
         assert len(sd) == 1
         assert sd[key] == d1
+
+        # invalid input
+        with pytest.raises(ValueError):
+            sd.reset([0, 1])
 
     def test_attr_dict(self, synced_collection, testdata):
         sd = synced_collection
@@ -219,6 +270,16 @@ class TestJSONDict(TestSyncedCollectionBase):
         assert sd[key] == d1
         assert sd.get(key) == d1
         assert sd.test2 == d1
+        with pytest.raises(AttributeError):
+            sd.not_exist
+
+        # deleting a protected attribute
+        sd.load()
+        del sd._parent
+        # deleting _parent will lead to recursion as _parent is treated as key
+        # load() will check for _parent and __getattr__ will call __getitem__ which calls load()
+        with pytest.raises(RecursionError):
+            sd.load()
 
     def test_clear(self, synced_collection, testdata):
         sd = synced_collection
@@ -246,12 +307,21 @@ class TestJSONDict(TestSyncedCollectionBase):
         sd = synced_collection
         sd.a = {'a': 1}
         sd.b = 'test'
+        sd.c = [0, 1, 2]
         assert 'a' in sd
         assert 'b' in sd
-        data = {'a': 1, 'c': 1}
+        assert 'c' in sd
+        data = {'a': 1, 'c': [0, 1, 2], 'd': 1}
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data).encode())
         assert sd == data
+
+        # invalid data
+        data = [1, 2, 3]
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data).encode())
+        with pytest.raises(ValueError):
+            sd.load()
 
     def test_copy_as_dict(self, synced_collection, testdata):
         sd = synced_collection
@@ -355,6 +425,19 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(sl) == 1
         assert sl[0] == d1
 
+    @pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
+    def test_set_get_numpy_data(self, synced_collection):
+        sl = synced_collection
+        data = numpy.random.rand(3, 4)
+        data_as_list = data.tolist()
+        sl.reset(data)
+        assert len(sl) == len(data_as_list)
+        assert sl == data_as_list
+        data2 = numpy.float(3.14)
+        sl.append(data2)
+        assert len(sl) == len(data_as_list) + 1
+        assert sl[len(data_as_list)] == data2
+
     def test_iter(self, synced_collection, testdata):
         sd = synced_collection
         d1 = testdata
@@ -408,6 +491,13 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(sl) == 2
         assert sl == [3, 4]
 
+        # invalid inputs
+        with pytest.raises(ValueError):
+            sl.reset({'a': 1})
+
+        with pytest.raises(ValueError):
+            sl.reset(1)
+
     def test_insert(self, synced_collection, testdata):
         jsl = synced_collection
         jsl.reset([1, 2])
@@ -432,9 +522,9 @@ class TestJSONList(TestSyncedCollectionBase):
 
     def test_update_recursive(self, synced_collection, testdata):
         sl = synced_collection
-        sl.reset([{'a': 1}, 'b'])
-        assert sl == [{'a': 1}, 'b']
-        data = ['a', 'b', 'c']
+        sl.reset([{'a': 1}, 'b', {'c': 1}])
+        assert sl == [{'a': 1}, 'b', {'c': 1}]
+        data = ['a', 'b', {'c': 1}, 'd']
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data).encode())
         assert sl == data
@@ -442,6 +532,13 @@ class TestJSONList(TestSyncedCollectionBase):
         with open(self._fn_, 'wb') as file:
             file.write(json.dumps(data1).encode())
         assert sl == data1
+
+        # inavlid data in file
+        data2 = {'a': 1}
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data2).encode())
+        with pytest.raises(ValueError):
+            sl.load()
 
     def test_reopen(self, synced_collection, testdata):
         jsl = synced_collection

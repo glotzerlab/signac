@@ -144,4 +144,4 @@ class JSONList(JSONCollection, SyncedList):
     pass
 
 
-JSONCollection.register(JSONDict, JSONList)
+SyncedCollection.register(JSONDict, JSONList)
