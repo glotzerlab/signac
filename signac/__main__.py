@@ -185,7 +185,7 @@ def _read_index(project, fn_index=None):
     if fn_index is not None:
         _print_err("Reading index from file '{}'...".format(fn_index))
         fd = open(fn_index)
-        return (json.loads(l) for l in fd)
+        return (json.loads(i) for i in fd)
 
 
 def _open_job_by_id(project, job_id):

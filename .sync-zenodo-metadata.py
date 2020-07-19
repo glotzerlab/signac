@@ -24,7 +24,7 @@ class Contributor:
     last_names: str
     first_names: str
     affiliation: str
-    orcid: str = None
+    orcid = None
 
     @classmethod
     def from_citation_author(cls, **citation):

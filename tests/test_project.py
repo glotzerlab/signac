@@ -990,8 +990,8 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+                    for m in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1007,10 +1007,10 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
+                    for m in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'a',
                                                           str(i), 'b', str(j),
-                                                          'c_%d_d_%d' % (k, l)))
+                                                          'c_%d_d_%d' % (k, m)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
@@ -1019,8 +1019,8 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+                    for m in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1036,10 +1036,10 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
+                    for m in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'c',
                                                           str(k), 'b', str(j), 'd',
-                                                          str(l), 'a', str(i)))
+                                                          str(m), 'a', str(i)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
@@ -1048,8 +1048,8 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+                    for m in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1064,9 +1064,9 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
+                    for m in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (l, i)))
+                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (m, i)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
@@ -1075,8 +1075,8 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+                    for m in range(2):
+                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1092,9 +1092,9 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             for j in range(2):
                 for k in range(2):
-                    for l in range(2):
+                    for m in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, l, i)))
+                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, m, i)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 

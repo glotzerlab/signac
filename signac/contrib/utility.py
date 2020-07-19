@@ -255,13 +255,13 @@ class _hashable_dict(dict):
         return hash(tuple(sorted(self.items())))
 
 
-def _to_hashable(l):
-    if type(l) is list:
-        return tuple(_to_hashable(_) for _ in l)
-    elif type(l) is dict:
-        return _hashable_dict(l)
+def _to_hashable(obj):
+    if type(obj) is list:
+        return tuple(_to_hashable(_) for _ in obj)
+    elif type(obj) is dict:
+        return _hashable_dict(obj)
     else:
-        return l
+        return obj
 
 
 def _encode_tree(x):

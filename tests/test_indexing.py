@@ -6,6 +6,7 @@ import os
 import io
 import re
 import json
+from typing import Dict
 
 import signac
 import signac.db
@@ -21,7 +22,7 @@ except signac.common.errors.ConfigError:
 except ImportError:
     SKIP_REASON = "pymongo not available"
 else:
-    SKIP_REASON = None
+    SKIP_REASON = "None"
 
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
@@ -73,7 +74,7 @@ class TestFormat(object):
 
 class _TestFS(object):
     name = 'inmemorytestgrid'
-    files = dict()
+    files: Dict[str, Dict]
 
     class FileExistsError(IOError):
         pass
@@ -450,7 +451,7 @@ class TestIndexingBase():
             assert 2 == len(list(crawler.crawl()))
 
 
-@pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
+@pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
 class TestIndexingPyMongo(TestIndexingBase):
 
     def get_index_collection(self):
