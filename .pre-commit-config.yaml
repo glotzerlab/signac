@@ -13,7 +13,7 @@ repos:
     rev: v0.770
     hooks:
     -   id: mypy
-        args: ['--ignore_missing_imports']
+        args: ['--ignore-missing-imports']
 -   repo: local
     hooks:
     -   id: flake8
