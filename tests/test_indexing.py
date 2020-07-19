@@ -74,7 +74,7 @@ class TestFormat(object):
 
 class _TestFS(object):
     name = 'inmemorytestgrid'
-    files: Dict[str, Dict]
+    files: Dict[str, Dict] = dict()
 
     class FileExistsError(IOError):
         pass
