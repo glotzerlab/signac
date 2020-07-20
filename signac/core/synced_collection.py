@@ -1,7 +1,13 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Synced Collection."""
+"""Implement the SyncedCollection class.
+
+SyncedCollection encapsulates the synchronization and different data-structures.
+These features are implemented in different subclasses which enable us to use a
+backend with different data-structures or vice-versa. It declares as abstract
+methods the methods that must be implemented by any subclass to match the API.
+"""
 
 from contextlib import contextmanager
 from abc import abstractmethod

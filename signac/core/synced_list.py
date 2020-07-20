@@ -1,7 +1,11 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""SyncedList."""
+"""Implements the SyncedList class.
+
+This implements the list data-structure for SyncedCollection API by
+implementing the convert methods (`to_base`, `from_base`) for lists.
+"""
 
 from collections.abc import Sequence
 from collections.abc import MutableSequence

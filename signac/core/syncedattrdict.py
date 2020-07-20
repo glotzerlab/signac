@@ -1,7 +1,11 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""SyncedAttrDict."""
+"""Implements the SyncedAttrDict class.
+
+This implements the dict data-structure for SyncedCollection API by
+implementing the convert methods (`to_base`, `from_base`) for dictionaries.
+"""
 
 from collections.abc import Mapping
 from collections.abc import MutableMapping
@@ -46,12 +50,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self.sync()
 
     def to_base(self):
-        """Converts the SyncedDict object to Dictionary.
+        """Convert the SyncedDict object to Dictionary.
 
         Returns:
         --------
         converted: dict
-            Dictionary containing the converted synced dict object."""
+            Dictionary containing the converted synced dict object.
+        """
         converted = {}
         for key, value in self._data.items():
             if isinstance(value, SyncedCollection):
@@ -62,7 +67,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @classmethod
     def is_base_type(cls, data):
-        """Checks whether the data is an instance of mapping.
+        """Check whether the data is an instance of mapping.
 
         Parameters
         ----------
@@ -78,7 +83,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return False
 
     def _update(self, data=None):
-        """Updates the SyncedDict instance with data using depth-first traversal."""
+        """Update the SyncedDict instance with data using depth-first traversal."""
         if data is None:
             data = {}
         if isinstance(data, Mapping):
@@ -107,7 +112,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @staticmethod
     def _validate_key(key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         if isinstance(key, SyncedAttrDict.VALID_KEY_TYPES):
             key = str(key)
             if '.' in key:
