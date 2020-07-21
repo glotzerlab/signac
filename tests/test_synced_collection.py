@@ -291,6 +291,16 @@ class TestJSONDict(TestSyncedCollectionBase):
         sd.clear()
         assert len(sd) == 0
 
+    def test_call(self, synced_collection, testdata):
+        sd = synced_collection
+        key = 'call'
+        d = testdata
+        sd[key] = d
+        assert len(sd) == 1
+        assert sd[key] == d
+        assert isinstance(sd(), dict)
+        assert sd() == sd.to_base()
+
     def test_reopen(self, synced_collection, testdata):
         jsd = synced_collection
         key = 'reopen'
@@ -532,6 +542,13 @@ class TestJSONList(TestSyncedCollectionBase):
         assert len(jsl) == 2
         assert jsl[0] == 2
         assert jsl[1] == 1
+
+    def test_call(self, synced_collection):
+        jsl = synced_collection
+        jsl.reset([1, 2])
+        assert len(jsl) == 2
+        assert isinstance(jsl(), list)
+        assert jsl() == [1, 2]
 
     def test_update_recursive(self, synced_collection, testdata):
         sl = synced_collection
