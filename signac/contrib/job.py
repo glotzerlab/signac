@@ -431,7 +431,7 @@ class Job(object):
         force : bool
             If ``True``, write the job manifest even if it
             already exists. If ``False``, this method will
-            raise an Exception of the manifest exists
+            raise an Exception if the manifest exists
             (Default value = False).
 
         """
