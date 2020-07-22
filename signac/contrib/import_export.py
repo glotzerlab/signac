@@ -420,7 +420,7 @@ def export_to_zipfile(jobs, zipfile, path=None):
 def export_jobs(jobs, target, path=None, copytree=None):
     """Export jobs to a target location, such as a directory or a (compressed) archive file.
 
-    This function yields tuples ``(src, dst)`` of the exported path sources and destinations.
+     Yield tuples ``(src, dst)`` of the exported path sources and destinations.
 
     Parameters
     ----------
