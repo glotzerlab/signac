@@ -922,7 +922,7 @@ class Collection(object):
         Raises
         ------
         ValueError
-            In case that the filter argument is invalid.
+            When the filter argument is invalid.
 
         """
         self._assert_open()
