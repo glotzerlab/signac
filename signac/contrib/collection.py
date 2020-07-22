@@ -822,7 +822,7 @@ class Collection(object):
         Parameters
         ----------
         expr : str
-            The expression to get result.
+            The expression for which to get ids.
 
         Returns
         -------
