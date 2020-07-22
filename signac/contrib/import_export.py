@@ -575,7 +575,7 @@ def _make_path_based_schema_function(schema_path):
     Returns
     -------
     callable
-        Function that parse the schema path.
+        Function that parses the schema path.
 
     """
     schema_regex, types = _convert_schema_path_to_regex(schema_path)
