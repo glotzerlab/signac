@@ -42,7 +42,7 @@ RE_TYPES = {
 
 
 def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='.'):
-    """Generate schema based paths as a function of the given jobs.
+    """Generate schema-based paths as a function of the given jobs.
 
     Parameters
     ----------
