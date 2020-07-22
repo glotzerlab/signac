@@ -442,7 +442,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     Yields
     ------
     tuple
-        Tupples of dotted key and values e.g. ('a.b', 'c')
+        Tuples of dotted key and values e.g. ('a.b', 'c')
 
     """
     if encode is not None:
