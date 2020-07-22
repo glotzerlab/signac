@@ -179,7 +179,7 @@ def _make_path_function(jobs, path):
 
         # Just use the job id as path.
         def path_function(job):
-            """Use job-id to construct path.
+            """Use job id to construct path.
 
             Parameters
             ----------
