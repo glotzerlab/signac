@@ -102,35 +102,37 @@ __all__ = [
 # Definition of default sync strategies
 
 class FileSync(object):
-    "Collection of file synchronization strategies."
+    """Collection of file synchronization strategies."""
 
     @classmethod
     def keys(cls):
+        """Return keys."""
         return ('always', 'never', 'update', 'Ask')
 
     @staticmethod
     def always(src, dst, fn):
-        "Always overwrite files on conflict."
+        """Resolve sync conflicts by always overwriting."""
         return True
 
     @staticmethod
     def never(src, dst, fn):
-        "Never overwrite files on conflict."
+        """Resolve sync conflicts by never overwriting."""
         return False
 
     @staticmethod
     def update(src, dst, fn):
-        "Overwrite a file if the source file was modified last (based on timestamp)."
+        """Resolve sync conflicts based on newest modified timestamp."""
         return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
     class Ask(object):
-        "Ask whether a file should be overwritten interactively."
+        """Resolve sync conflicts by asking whether a file should be overwritten interactively."""
 
         def __init__(self):
             self.yes = set()
             self.no = set()
 
         def __call__(self, src, dst, fn):
+            """Ask user if a file should be overwritten."""
             if fn in self.yes:
                 return True
             elif fn in self.no:
@@ -146,7 +148,7 @@ class FileSync(object):
 
 
 class DocSync(object):
-    "Collection of document synchronization functions."
+    """Collection of document synchronization functions."""
 
     NO_SYNC = False
     "Do not synchronize documents."
@@ -156,17 +158,18 @@ class DocSync(object):
 
     @staticmethod
     def update(src, dst):
-        "Perform a simple update."
+        """Perform a simple update."""
         for key in src.keys():
             dst[key] = src[key]
 
     class ByKey(object):
-        "Synchronize documents key by key."
+        """Synchronize documents key by key."""
 
         def __init__(self, key_strategy=None):
             if isinstance(key_strategy, str):
 
                 def regex_key_strategy(key):
+                    """Match keys according to key_strategy."""
                     return re.match(key_strategy, key)
 
                 self.key_strategy = regex_key_strategy
@@ -178,6 +181,7 @@ class DocSync(object):
             return "{}({})".format(type(self).__name__, self.key_strategy)
 
         def __call__(self, src, dst, root=''):
+            """Synchronize src and dst."""
             if src == dst:
                 return
             for key, value in src.items():
@@ -203,7 +207,7 @@ class DocSync(object):
 
 def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
                          recursive=True, deep=False, subdir=''):
-    "Synchronize two job workspaces file by file, following the provided strategy."
+    """Synchronize two job workspaces file by file, following the provided strategy."""
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
     else:
@@ -244,6 +248,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
 
 
 def _identical_path(a, b):
+    """Verify if two absolute real paths match."""
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
@@ -254,68 +259,62 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
               deep=False, dry_run=False):
     """Synchronize the dst job with the src job.
 
-        By default, this method will synchronize all files and document data
-        of dst job with the src job until a synchronization conflict occurs.
-        There are two different kinds of synchronization conflicts:
+    By default, this method will synchronize all files and document data
+    of dst job with the src job until a synchronization conflict occurs.
+    There are two different kinds of synchronization conflicts:
 
-            1. The two jobs have files with the same name, but different content.
-            2. The two jobs have documents that share keys, but those keys are
-               mapped to different values.
+        1. The two jobs have files with the same name, but different content.
+        2. The two jobs have documents that share keys, but those keys are
+           mapped to different values.
 
-        A file conflict can be resolved by providing a 'FileSync' *strategy* or by
-        *excluding* files from the synchronization. An unresolvable conflict is indicated
-        with the raise of a :class:`~.errors.FileSyncConflict` exception.
+    A file conflict can be resolved by providing a 'FileSync' *strategy* or by
+    *excluding* files from the synchronization. An unresolvable conflict is indicated
+    with the raise of a :class:`~.errors.FileSyncConflict` exception.
 
-        A document synchronization conflict can be resolved by providing a doc_sync function
-        that takes the source and the destination document as first and second argument.
+    A document synchronization conflict can be resolved by providing a doc_sync function
+    that takes the source and the destination document as first and second argument.
 
-        :param src:
-            The src job, data will be copied from this job's workspace.
-        :type src:
-            `~.Job`
-        :param dst:
-            The dst job, data will be copied to this job's workspace.
-        :type dst:
-            `~.Job`
-        :param strategy:
-            A synchronization strategy for file conflicts. If no strategy is provided,
-            a :class:`.errors.SyncConflict` exception will be raised upon conflict.
-        :param exclude:
-            A filename exclusion pattern. All files matching this pattern will be
-            excluded from the synchronization process.
-        :type exclude:
-            str
-        :param doc_sync:
-            A synchronization strategy for document keys. The default is to use a safe key-by-key
-            strategy that will not overwrite any values on conflict, but instead raises a
-            :class:`~.errors.DocumentSyncConflict` exception.
-        :param recursive:
-            Recursively synchronize sub-directories encountered within
-            the job workspace directories.
-        :type recursive:
-            bool
-        :param follow_symlinks:
-            Follow and copy the target of symbolic links.
-        :type follow_symlinks:
-            bool
-        :param preserve_permissions:
-            Preserve file permissions
-        :type preserve_permissions:
-            bool
-        :param preserve_times:
-            Preserve file modification times
-        :type preserve_times:
-            bool
-        :param preserve_owner:
-            Preserve file owner
-        :type preserve_owner:
-            bool
-        :param preserve_group:
-            Preserve file group ownership
-        :type preserve_group:
-            bool
-        :param dry_run:
-            If True, do not actually perform any synchronization operations.
+    Parameters
+    ----------
+    src : :class:`~signac.contrib.job.Job`
+        The src job, data will be copied from this job's workspace.
+    dst : :class:`~signac.contrib.job.Job`
+        The dst job, data will be copied to this job's workspace.
+    strategy : callable
+        A synchronization strategy for file conflicts. The strategy should be a
+        callable with signature ``strategy(src, dst, filepath)`` where ``src``
+        and ``dst`` are the source and destination instances of
+        :py:class:`~signac.Project` and ``filepath`` is the filepath relative
+        to the project root. If no strategy is provided, a
+        :class:`.errors.SyncConflict` exception will be raised upon conflict.
+        (Default value = None)
+    exclude : str
+        A filename exclusion pattern. All files matching this pattern will be
+        excluded from the synchronization process. (Default value = None)
+    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
+        A synchronization strategy for document keys. The default is to use a
+        safe key-by-key strategy that will not overwrite any values on
+        conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
+        exception.
+    recursive : bool
+        Recursively synchronize sub-directories encountered within the job
+        workspace directories. (Default value = False)
+    follow_symlinks : bool
+        Follow and copy the target of symbolic links. (Default value = True)
+    preserve_permissions : bool
+        Preserve file permissions (Default value = False)
+    preserve_times : bool
+        Preserve file modification times (Default value = False)
+    preserve_owner : bool
+        Preserve file owner (Default value = False)
+    preserve_group : bool
+        Preserve file group ownership (Default value = False)
+    dry_run : bool
+        If True, do not actually perform any synchronization operations.
+        (Default value = False)
+    deep : bool
+        (Default value = False)
+
     """
     # Check identity
     if _identical_path(src.workspace(), dst.workspace()):
@@ -393,67 +392,76 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
     If the destination job already exist, try to synchronize the job using the
     optionally specified strategy.
 
-    :param source:
+    Parameters
+    ----------
+    source : class:`~.Project`
         The project presenting the source for synchronization.
-    :type source:
-        :class:`~.Project`
-    :param destination:
+    destination : class:`~.Project`
         The project that is modified for synchronization.
-    :type destination:
-        :class:`~.Project`
-    :param strategy:
-        A file synchronization strategy.
-    :param exclude:
-        Files with names matching the given pattern will be excluded
-        from the synchronization.
-    :param doc_sync:
-        The function applied for synchronizing documents.
-    :param selection:
-        Only synchronize the given selection of jobs.
-    :param check_schema:
+    strategy : callable
+        A synchronization strategy for file conflicts. The strategy should be a
+        callable with signature ``strategy(src, dst, filepath)`` where ``src``
+        and ``dst`` are the source and destination instances of
+        :py:class:`~signac.Project` and ``filepath`` is the filepath relative
+        to the project root. If no strategy is provided, a
+        :class:`.errors.SyncConflict` exception will be raised upon conflict.
+        (Default value = None)
+    exclude : str
+        A filename exclusion pattern. All files matching this pattern will be
+        excluded from the synchronization process. (Default value = None)
+    doc_sync : attribute or callable from :py:class:`~signac.sync.DocSync`
+        A synchronization strategy for document keys. The default is to use a
+        safe key-by-key strategy that will not overwrite any values on
+        conflict, but instead raises a :class:`~.errors.DocumentSyncConflict`
+        exception.
+    selection : sequence of :class:`~signac.contrib.job.Job` or job ids (str)
+        Only synchronize the given selection of jobs. (Default value = None)
+    check_schema : bool
         If True, only synchronize if this and the other project have a matching
-        state point schema. See also: :meth:`~.detect_schema`.
-    :type check_schema:
-        bool
-    :param recursive:
-        Recursively synchronize sub-directories encountered within the job workspace directories.
-    :type recursive:
-        bool
-    :param follow_symlinks:
-        Follow and copy the target of symbolic links.
-    :type follow_symlinks:
-        bool
-    :param preserve_permissions:
-        Preserve file permissions
-    :type preserve_permissions:
-        bool
-    :param preserve_times:
-        Preserve file modification times
-    :type preserve_times:
-        bool
-    :param preserve_owner:
-        Preserve file owner
-    :type preserve_owner:
-        bool
-    :param preserve_group:
-        Preserve file group ownership
-    :type preserve_group:
-        bool
-    :param dry_run:
-        If True, do not actually perform the synchronization operation,
-        just log what would happen theoretically. Useful to test synchronization strategies
-        without the risk of data loss.
-    :type dry_run:
-        bool
-    :raises DocumentSyncConflict:
-        If there are conflicting keys within the project or job documents that cannot
-        be resolved with the given strategy or if there is no strategy provided.
-    :raises FileSyncConflict:
-        If there are differing files that cannot be resolved with the given strategy
-        or if no strategy is provided.
-    :raises SchemaSyncConflict:
-        In case that the check_schema argument is True and the detected state point
-        schema of this and the other project differ.
+        state point schema. See also: :meth:`~.detect_schema`. (Default value =
+        True)
+    recursive : bool
+        Recursively synchronize sub-directories encountered within the job
+        workspace directories. (Default value = False)
+    follow_symlinks : bool
+        Follow and copy the target of symbolic links. (Default value = True)
+    preserve_permissions : bool
+        Preserve file permissions (Default value = False)
+    preserve_times : bool
+        Preserve file modification times (Default value = False)
+    preserve_owner : bool
+        Preserve file owner (Default value = False)
+    preserve_group : bool
+        Preserve file group ownership (Default value = False)
+    dry_run : bool
+        If True, do not actually perform the synchronization operation, just
+        log what would happen theoretically. Useful to test synchronization
+        strategies without the risk of data loss. (Default value = False)
+    deep : bool
+        (Default value = False)
+    parallel : bool
+        (Default value = False)
+    collect_stats : bool
+        (Default value = False)
+
+    Returns
+    -------
+    NoneType or :class:`~signac.sync.FileTransferStats`
+        Returns stats if ``collect_stats`` is ``True``, else ``None``.
+
+    Raises
+    ------
+    DocumentSyncConflict
+        If there are conflicting keys within the project or job documents that
+        cannot be resolved with the given strategy or if there is no strategy
+        provided.
+    FileSyncConflict
+        If there are differing files that cannot be resolved with the given
+        strategy or if no strategy is provided.
+    SchemaSyncConflict
+        In case that the check_schema argument is True and the detected state
+        point schema of this and the other project differ.
+
     """
     if source == destination:
         raise ValueError("Source and destination project cannot be identical!")
@@ -517,6 +525,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
     count = ddict(int)
 
     def _clone_or_sync(src_job):
+        """Clone a job if it does not exist, or sync if it exists."""
         try:
             destination.clone(src_job, copytree=proxy.copytree)
             logger.more("Cloned job '{}'.".format(src_job))

@@ -1,14 +1,13 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""The signac framework aids in the management of large and
-heterogeneous data spaces.
+"""The signac framework aids in the management of large and heterogeneous data spaces.
 
-It provides a simple and robust data model to create a
-well-defined indexable storage layout for data and metadata.
-This makes it easier to operate on large data spaces,
-streamlines post-processing and analysis and makes data
-collectively accessible."""
+It provides a simple and robust data model to create a well-defined, indexable
+storage layout for data and metadata. This makes it easier to operate on large
+data spaces, streamlines post-processing and analysis, and makes data
+collectively accessible.
+"""
 
 from . import contrib
 from . import db

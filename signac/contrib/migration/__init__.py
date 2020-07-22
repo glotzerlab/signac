@@ -1,6 +1,8 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Handle migrations of signac schema versions."""
+
 import os
 import sys
 from packaging import version
@@ -30,7 +32,7 @@ def _reload_project_config(project):
 
 
 def _update_project_config(project, **kwargs):
-    "Update the project configuration."
+    """Update the project configuration."""
     for fn in ('signac.rc', '.signacrc'):
         config = get_config(project.fn(fn))
         if 'project' in config:
@@ -81,6 +83,7 @@ def _collect_migrations(project):
 
 
 def apply_migrations(project):
+    """Apply migrations to a project."""
     with _lock_for_migration(project):
         for (origin, destination), migrate in _collect_migrations(project):
             try:
