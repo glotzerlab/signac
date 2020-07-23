@@ -987,11 +987,12 @@ class TestProjectExportImport(TestProjectBase):
 
     def test_export_custom_path_string_modify_tree_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1004,23 +1005,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'a',
-                                                          str(i), 'b', str(j),
-                                                          'c_%d_d_%d' % (k, m)))
+                                                          str(a_value), 'b', str(b_value),
+                                                          'c_%d_d_%d' % (c_value, d_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_tree_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1033,23 +1035,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 1
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'c',
-                                                          str(k), 'b', str(j), 'd',
-                                                          str(m), 'a', str(i)))
+                                                          str(c_value), 'b', str(b_value),
+                                                          'd', str(d_value), 'a', str(a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_flat_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1061,22 +1064,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 4
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (m, i)))
+                            prefix_data, 'c_%d_b_%d' % (c_value, b_value),
+                            'd_%d_a_%d' % (d_value, a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_flat_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=m)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1089,12 +1094,13 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 4
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for m in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, m, i)))
+                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (c_value, b_value,
+                                                                  d_value, a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 

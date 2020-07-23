@@ -1,7 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Data store implementation with backend HDF5 file."
+"""Data store implementation with backend HDF5 file."""
 import logging
 import os
 import errno
@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 
 
 class H5StoreClosedError(RuntimeError):
-    "Raised when trying to access a closed store."
+    """Raised when trying to access a closed store."""
 
 
 class H5StoreAlreadyOpenError(OSError):
@@ -67,8 +67,11 @@ class H5StoreAlreadyOpenError(OSError):
 
 
 def _h5set(store, grp, key, value, path=None):
-    """Set a key in an h5py container, recursively converting Mappings to h5py
-    groups and transparently handling None."""
+    """Set a key in an h5py container.
+
+    This method recursively converts Mappings to h5py groups and transparently
+    handles None values.
+    """
     import h5py
     import numpy    # h5py depends on numpy, so this is safe.
     path = path + '/' + key if path else key
@@ -223,6 +226,7 @@ class H5Group(MutableMapping):
             self.__setitem__(key, value)
 
     def setdefault(self, key, value):
+        """Set a value for a key if that key is not already set."""
         super(H5Group, self).setdefault(key, value)
         return self.__getitem__(key)
 
@@ -256,19 +260,20 @@ class H5Store(MutableMapping):
       * built-in types (int, float, str, bool, NoneType, array)
       * numpy arrays
       * pandas data frames (requires pandas and pytables)
+      * mappings with values that are supported types
 
-    as well as mappings of values of these types. Values can be accessed as
-    attributes (``h5s.foo``) or via key index (``h5s['foo']``).
+    Values can be accessed as attributes (``h5s.foo``) or via key index
+    (``h5s['foo']``).
 
-    Example:
-
-    .. code-block:: python
-
-        with H5Store('file.h5') as h5s:
-            h5s['foo'] = 'bar'
-            assert 'foo' in h5s
-            assert h5s.foo == 'bar'
-            assert h5s['foo'] == 'bar'
+    Examples
+    --------
+    >>> from signac import H5Store
+    >>> with H5Store('file.h5') as h5s:
+    ...     h5s['foo'] = 'bar'
+    ...     assert 'foo' in h5s
+    ...     assert h5s.foo == 'bar'
+    ...     assert h5s['foo'] == 'bar'
+    >>>
 
     The H5Store can be used as a context manager to ensure that the underlying
     file is opened, however most built-in types (excluding arrays) can be read
@@ -277,18 +282,20 @@ class H5Store(MutableMapping):
 
     To open a file in read-only mode, use the :py:meth:`.open` method with ``mode='r'``:
 
-    .. code-block:: python
+    >>> with H5Store('file.h5').open(mode='r') as h5s:
+    ...     pass
+    >>>
 
-        with H5Store('file.h5').open(mode='r') as h5s:
-            pass
-
-    :param filename:
+    Parameters
+    ----------
+    filename : str
         The filename of the underlying HDF5 file.
-    :param \*\*kwargs:
-        Additional keyword arguments to be forwarded to the ``h5py.File`` constructor.
-        See the documentation for the
-        `h5py.File constructor <http://docs.h5py.org/en/latest/high/file.html#File>`_
-        for more information.
+    \*\*kwargs
+        Additional keyword arguments to be forwarded to the ``h5py.File``
+        constructor. See the documentation for the `h5py.File constructor
+        <http://docs.h5py.org/en/latest/high/file.html#File>`_ for more
+        information.
+
     """
     __slots__ = ['_filename', '_file', '_kwargs']
 
@@ -303,6 +310,7 @@ class H5Store(MutableMapping):
 
     @property
     def filename(self):
+        """Return the H5Store filename."""
         return self._filename
 
     def __repr__(self):
@@ -397,7 +405,7 @@ class H5Store(MutableMapping):
 
     @property
     def mode(self):
-        """The default opening mode of this store."""
+        """Return the default opening mode of this H5Store."""
         return self._mode
 
     def flush(self):
@@ -414,7 +422,7 @@ class H5Store(MutableMapping):
 
     @staticmethod
     def _validate_key(key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         if '.' in key:
             raise InvalidKeyError("Keys for the H5Store may not contain dots ('.').")
         return key
@@ -452,6 +460,7 @@ class H5Store(MutableMapping):
             self.__delitem__(key)
 
     def setdefault(self, key, value):
+        """Set a value for a key if that key is not already set."""
         super(H5Store, self).setdefault(key, value)
         return self.__getitem__(key)
 
@@ -482,9 +491,8 @@ class H5Store(MutableMapping):
     def clear(self):
         """Remove all data from this store.
 
-            .. danger::
-
-                All data will be removed, this action cannot be reversed!
+        .. danger::
+            All data will be removed, this action cannot be reversed!
         """
         with _ensure_open(self):
             self._file.clear()
@@ -512,7 +520,7 @@ class H5StoreManager(DictManager):
 
     @staticmethod
     def _validate_key(key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         if '.' in key:
             raise InvalidKeyError("Keys for the H5StoreManager may not contain dots ('.').")
         return key

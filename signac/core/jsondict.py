@@ -197,8 +197,8 @@ class JSONDict(SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
-    behaves similar to a :class:`dict`, but all data is stored persistently in
-    the associated JSON file on disk.
+    behaves similarly to a :class:`dict`, but all data is stored persistently
+    in the associated JSON file on disk.
 
     .. code-block:: python
 
@@ -225,9 +225,9 @@ class JSONDict(SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying file, copying (even deep
         copying) a JSONDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `_as_dict` method to get a
-        dictionary representation, and if necessary construct a new JSONDict
-        instance: `new_dict = JSONDict(old_dict._as_dict())`.
+        true copy is required, you should use the ``_as_dict()`` method to get
+        a dictionary representation, and if necessary construct a new JSONDict
+        instance: ``new_dict = JSONDict(old_dict._as_dict())``.
 
     :param filename:
         The filename of the associated JSON file on disk.

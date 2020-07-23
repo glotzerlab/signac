@@ -1,6 +1,7 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Wrapper around json parsing library."""
 import logging
 from json import load, loads, JSONEncoder
 from json.decoder import JSONDecodeError
@@ -37,6 +38,7 @@ class CustomJSONEncoder(JSONEncoder):
 
 
 def dumps(o: Any, sort_keys: bool = False, indent: Optional[int] = None) -> str:
+    """Convert a JSON-compatible mapping into a string."""
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 
