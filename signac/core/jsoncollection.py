@@ -20,7 +20,7 @@ from .synced_list import SyncedList
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
-    backend = 'JSON'  # type: ignore
+    backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = os.path.realpath(filename) if filename is not None else None
@@ -116,11 +116,11 @@ class JSONList(JSONCollection, SyncedList):
 
     .. code-block:: python
 
-        doc = JSONList('data.json', write_concern=True)
-        doc.append("bar")
-        assert doc[0] == "bar"
-        assert len(doc) == 1
-        del doc[0]
+        synced_list = JSONList('data.json', write_concern=True)
+        synced_list.append("bar")
+        assert synced_list[0] == "bar"
+        assert len(synced_list) == 1
+        del synced_list[0]
 
     .. warning::
 

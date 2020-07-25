@@ -5,6 +5,8 @@
 
 This implements the dict data-structure for SyncedCollection API by
 implementing the convert methods (`to_base`, `from_base`) for dictionaries.
+This class also allows access to values through key indexing or attributes
+named by keys, including nested keys.
 """
 
 from collections.abc import Mapping
@@ -16,7 +18,7 @@ from ..errors import KeyTypeError
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
-    """Implements the dict data structures.
+    """Implement the dict data structure along with values access through attributes named as keys.
 
     The SyncedAttrDict inherits from :class:`~core.collection_api.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
@@ -27,7 +29,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
         While the SyncedAttrDict object behaves like a dictionary, there are
         important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
+        are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
         dictionary representation, and if necessary construct a new SyncedAttrDict.
@@ -112,7 +114,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @staticmethod
     def _validate_key(key):
-        """Emit a warning or raise an exception if key is invalid. Returns key."""
+        """Raise an exception if key is invalid. Returns key."""
         if isinstance(key, SyncedAttrDict.VALID_KEY_TYPES):
             key = str(key)
             if '.' in key:
@@ -145,6 +147,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         if data is None:
             data = {}
+
         if isinstance(data, Mapping):
             self.load()
             with self._suspend_sync():

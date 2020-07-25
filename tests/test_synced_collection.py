@@ -39,7 +39,9 @@ class TestSyncedCollectionBase():
         self._tmp_dir.cleanup()
 
     def test_from_base(self):
-        sd = SyncedCollection.from_base(filename=self._fn_, data={'a': 0}, backend='JSON')
+        print(JSONDict.backend)
+        sd = SyncedCollection.from_base(filename=self._fn_,
+                                        data={'a': 0}, backend='signac.core.jsoncollection')
         assert isinstance(sd, JSONDict)
         assert 'a' in sd
         assert sd['a'] == 0
@@ -360,7 +362,7 @@ class TestJSONDict():
                 synced_dict[key] = testdata
 
 
-class TestJSONList(TestSyncedCollectionBase):
+class TestJSONList:
 
     _write_concern = False
 

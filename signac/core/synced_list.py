@@ -28,7 +28,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
         While the SyncedList object behaves like a dictionary, there are
         important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
+        are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedList instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
         dictionary representation, and if necessary construct a new SyncedList.
