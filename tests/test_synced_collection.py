@@ -244,6 +244,14 @@ class TestJSONDict():
         with pytest.raises(AttributeError):
             synced_dict.not_exist
 
+        # deleting a protected attribute
+        synced_dict.load()
+        del synced_dict._parent
+        # deleting _parent will lead to recursion as _parent is treated as key
+        # load() will check for _parent and __getattr__ will call __getitem__ which calls load()
+        with pytest.raises(RecursionError):
+            synced_dict.load()
+
     def test_clear(self, synced_dict, testdata):
         key = 'clear'
         synced_dict[key] = testdata
