@@ -6,59 +6,141 @@ Command Line Interface
 
 .. rubric:: Overview
 
-.. autosummary::
-
-    signac init
-    signac project
-
 The following core **signac** functions are---in addition to the Python interface---accessible
 directly via the ``$ signac`` command.
 
 
 init
-``$ signac init [-h] [-w WORKSPACE] project_id``
-    positional arguments:
-    project_id            Initialize a project with the given project id.
+====
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    -w WORKSPACE, --workspace WORKSPACE
-                            The path to the workspace directory.
+.. ipython::
+
+   In [1]: !python -m signac init -h
+
 
 project
-``$ signac project [-h] [-w] [-i] [-a]``
-    optional arguments:
-    -h, --help       show this help message and exit
-    -w, --workspace  Print the project's workspace path instead of the project id.
-    -i, --index      Generate and print an index for the project.
-    -a, --access     Create access module for indexing.
+=======
 
-``$ signac job``
+.. ipython::
 
-``$ signac statepoint``
+   In [1]: !python -m signac project -h
 
-``$ signac diff``
 
-``$ signac document``
+job
+===
 
-``$ signac rm``
+.. ipython::
 
-``$ signac move``
+   In [1]: !python -m signac job -h
 
-``$ signac clone``
 
-``$ signac index``
+statepoint
+==========
 
-``$ signac find``
+.. ipython::
 
-``$ signac view``
+   In [1]: !python -m signac statepoint -h
 
-``$ signac schema``
 
-``$ signac shell``
+diff
+====
 
-``$ signac sync``
+.. ipython::
 
-``$ signac import``
+   In [1]: !python -m signac diff -h
 
-``$ signac export``
+
+document
+========
+
+.. ipython::
+
+   In [1]: !python -m signac document -h
+
+
+rm
+===========
+
+.. ipython::
+
+   In [1]: !python -m signac rm -h
+
+
+move
+====
+
+.. ipython::
+
+   In [1]: !python -m signac move -h
+
+
+clone
+=====
+
+.. ipython::
+
+   In [1]: !python -m signac clone -h
+
+
+index
+=====
+
+.. ipython::
+
+   In [1]: !python -m signac index -h
+
+
+find
+====
+
+.. ipython::
+
+   In [1]: !python -m signac find -h
+
+
+view
+====
+
+.. ipython::
+
+   In [1]: !python -m signac view -h
+
+
+schema
+======
+
+.. ipython::
+
+   In [1]: !python -m signac schema -h
+
+
+shell
+=====
+
+.. ipython::
+
+   In [1]: !python -m signac shell -h
+
+
+sync
+====
+
+.. ipython::
+
+   In [1]: !python -m signac sync -h
+
+
+import
+======
+
+.. ipython::
+
+   In [1]: !python -m signac import -h
+
+
+export
+======
+
+.. ipython::
+
+   In [1]: !python -m signac export -h
