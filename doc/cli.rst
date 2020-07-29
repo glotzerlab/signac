@@ -15,7 +15,7 @@ init
 
 .. ipython::
 
-   In [1]: !python -m signac init -help
+   In [1]: !python -m signac init --help
 
 
 project
@@ -23,7 +23,7 @@ project
 
 .. ipython::
 
-   In [1]: !python -m signac project -help
+   In [1]: !python -m signac project --help
 
 
 job
@@ -31,7 +31,7 @@ job
 
 .. ipython::
 
-   In [1]: !python -m signac job -help
+   In [1]: !python -m signac job --help
 
 
 statepoint
@@ -39,7 +39,7 @@ statepoint
 
 .. ipython::
 
-   In [1]: !python -m signac statepoint -help
+   In [1]: !python -m signac statepoint --help
 
 
 diff
@@ -47,7 +47,7 @@ diff
 
 .. ipython::
 
-   In [1]: !python -m signac diff -help
+   In [1]: !python -m signac diff --help
 
 
 document
@@ -55,7 +55,7 @@ document
 
 .. ipython::
 
-   In [1]: !python -m signac document -help
+   In [1]: !python -m signac document --help
 
 
 rm
@@ -63,7 +63,7 @@ rm
 
 .. ipython::
 
-   In [1]: !python -m signac rm -help
+   In [1]: !python -m signac rm --help
 
 
 move
@@ -71,7 +71,7 @@ move
 
 .. ipython::
 
-   In [1]: !python -m signac move -help
+   In [1]: !python -m signac move --help
 
 
 clone
@@ -79,7 +79,7 @@ clone
 
 .. ipython::
 
-   In [1]: !python -m signac clone -help
+   In [1]: !python -m signac clone --help
 
 
 index
@@ -87,7 +87,7 @@ index
 
 .. ipython::
 
-   In [1]: !python -m signac index -help
+   In [1]: !python -m signac index --help
 
 
 find
@@ -95,7 +95,7 @@ find
 
 .. ipython::
 
-   In [1]: !python -m signac find -help
+   In [1]: !python -m signac find --help
 
 
 view
@@ -103,7 +103,7 @@ view
 
 .. ipython::
 
-   In [1]: !python -m signac view -help
+   In [1]: !python -m signac view --help
 
 
 schema
@@ -111,7 +111,7 @@ schema
 
 .. ipython::
 
-   In [1]: !python -m signac schema -help
+   In [1]: !python -m signac schema --help
 
 
 shell
@@ -119,7 +119,7 @@ shell
 
 .. ipython::
 
-   In [1]: !python -m signac shell -help
+   In [1]: !python -m signac shell --help
 
 
 sync
@@ -127,7 +127,7 @@ sync
 
 .. ipython::
 
-   In [1]: !python -m signac sync -help
+   In [1]: !python -m signac sync --help
 
 
 import
@@ -135,7 +135,7 @@ import
 
 .. ipython::
 
-   In [1]: !python -m signac import -help
+   In [1]: !python -m signac import --help
 
 
 export
@@ -143,4 +143,4 @@ export
 
 .. ipython::
 
-   In [1]: !python -m signac export -help
+   In [1]: !python -m signac export --help
