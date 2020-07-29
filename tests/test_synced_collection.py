@@ -205,7 +205,7 @@ class TestJSONDict():
         assert 'item_nested' in synced_dict
         for key, val in synced_dict.items():
             assert synced_dict[key] == data[key]
-            assert not isinstance(val, self._cls)
+            assert not isinstance(val, type(synced_dict))
             assert (key, val) in data.items()
 
     def test_reset(self, synced_dict, testdata):
@@ -275,6 +275,7 @@ class TestJSONDict():
         assert len(synced_dict) == 1
         assert synced_dict[key] == testdata
         assert isinstance(synced_dict(), dict)
+        assert not isinstance(synced_dict(), SyncedCollection)
         assert synced_dict() == synced_dict.to_base()
 
     def test_reopen(self, synced_dict, testdata):
@@ -429,11 +430,10 @@ class TestJSONList:
         assert synced_list[len(data_as_list) + 1] == data3
 
     def test_iter(self, synced_list, testdata):
-        synced_dict = synced_list
         d = [testdata, 43]
-        synced_dict.extend(d)
-        for i in range(len(synced_dict)):
-            assert d[i] == synced_dict[i]
+        synced_list.extend(d)
+        for i in range(len(synced_list)):
+            assert d[i] == synced_list[i]
         assert i == 1
 
     def test_delete(self, synced_list, testdata):
@@ -511,6 +511,7 @@ class TestJSONList:
         synced_list.reset([1, 2])
         assert len(synced_list) == 2
         assert isinstance(synced_list(), list)
+        assert not isinstance(synced_list(), SyncedCollection)
         assert synced_list() == [1, 2]
 
     def test_update_recursive(self, synced_list):
@@ -561,20 +562,20 @@ class TestJSONList:
         child2 = synced_list[3]
         assert child1 == child2
         assert isinstance(child1, type(child2))
-        assert isinstance(child1, self._cls)
+        assert isinstance(child1, type(synced_list))
         assert id(child1) == id(child2)
         child1.append(1)
         assert child2[2] == child1[2]
         assert child1 == child2
         assert len(synced_list) == 4
         assert isinstance(child1, type(child2))
-        assert isinstance(child1, self._cls)
+        assert isinstance(child1, type(synced_list))
         assert id(child1) == id(child2)
         del child1[0]
         assert child1 == child2
         assert len(synced_list) == 4
         assert isinstance(child1, type(child2))
-        assert isinstance(child1, self._cls)
+        assert isinstance(child1, type(synced_list))
         assert id(child1) == id(child2)
 
     def test_nested_list_with_dict(self, synced_list):
