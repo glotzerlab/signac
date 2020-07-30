@@ -17,6 +17,8 @@ repos:
         entry: pydocstyle
         language: python
         types: [python]
+        files: ^((?!\.sync-zenodo-metadata|setup|benchmark|mpipool|connection|crypt|host|filesystems|indexing).)*\.py$'
+        files: ^((?!doc|tests|configobj|db).)*$
     -   id: mypy
         name: mypy
         entry: mypy
