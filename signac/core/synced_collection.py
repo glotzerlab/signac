@@ -128,7 +128,8 @@ class SyncedCollection(Collection):
             else:
                 self._parent.load()
 
-    # methods having same implementaion for all data-structures
+    # The following methods share a common implementation for
+    # all data structures and regardless of backend.
     def __getitem__(self, key):
         self.load()
         return self._data[key]

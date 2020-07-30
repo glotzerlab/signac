@@ -8,6 +8,7 @@ import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
+from copy import deepcopy
 
 from signac.core.synced_list import SyncedCollection
 from signac.core.jsoncollection import JSONDict
@@ -29,8 +30,9 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class TestSyncedCollectionBase():
+class TestSyncedCollectionBase:
 
+    # this fixture sets temprary directory for tests
     @pytest.fixture(autouse=True)
     def synced_collection(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
@@ -39,7 +41,6 @@ class TestSyncedCollectionBase():
         self._tmp_dir.cleanup()
 
     def test_from_base(self):
-        print(JSONDict.backend)
         sd = SyncedCollection.from_base(filename=self._fn_,
                                         data={'a': 0}, backend='signac.core.jsoncollection')
         assert isinstance(sd, JSONDict)
@@ -51,17 +52,14 @@ class TestSyncedCollectionBase():
             SyncedCollection.from_base(data={'a': 0}, filename=self._fn_)
 
 
-class TestJSONDict():
+class TestJSONDict:
 
-    _write_concern = False
-
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_dict(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-        self._cls = JSONDict
-        self._backend_kwargs = {'filename': self._fn_, 'write_concern': self._write_concern}
-        yield self._cls(**self._backend_kwargs)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': False}
+        yield JSONDict(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
     def store(self, data):
@@ -71,14 +69,14 @@ class TestJSONDict():
     def test_init(self, synced_dict):
         assert len(synced_dict) == 0
 
-    def test_invalid_kwargs(self):
+    def test_invalid_kwargs(self, synced_dict):
+        # JSONDict raise an error when neither filename nor parent is passed.
         with pytest.raises(ValueError):
-            return self._cls()
+            return type(synced_dict)()
 
     def test_isinstance(self, synced_dict):
         assert isinstance(synced_dict, SyncedCollection)
         assert isinstance(synced_dict, MutableMapping)
-        assert isinstance(synced_dict, self._cls)
 
     def test_set_get(self, synced_dict, testdata):
         key = 'setget'
@@ -195,7 +193,7 @@ class TestJSONDict():
         assert 'value1' in synced_dict
         assert 'value_nested' in synced_dict
         for val in synced_dict.values():
-            assert not isinstance(val, self._cls)
+            assert not isinstance(val, SyncedCollection)
             assert val in data.values()
 
     def test_items(self, synced_dict, testdata):
@@ -281,9 +279,9 @@ class TestJSONDict():
     def test_reopen(self, synced_dict, testdata):
         key = 'reopen'
         synced_dict[key] = testdata
+        synced_dict2 = deepcopy(synced_dict)
         synced_dict.sync()
         del synced_dict  # possibly unsafe
-        synced_dict2 = self._cls(**self._backend_kwargs)
         synced_dict2.load()
         assert len(synced_dict2) == 1
         assert synced_dict2[key] == testdata
@@ -301,8 +299,7 @@ class TestJSONDict():
 
         # invalid data
         data = [1, 2, 3]
-        with open(self._fn_, 'wb') as file:
-            file.write(json.dumps(data).encode())
+        self.store(data)
         with pytest.raises(ValueError):
             synced_dict.load()
 
@@ -375,13 +372,12 @@ class TestJSONList:
 
     _write_concern = False
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def synced_list(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-        self._cls = JSONList
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': self._write_concern}
-        yield self._cls(**self._backend_kwargs)
+        yield JSONList(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
     def store(self, data):
@@ -391,14 +387,14 @@ class TestJSONList:
     def test_init(self, synced_list):
         assert len(synced_list) == 0
 
-    def test_invalid_kwargs(self):
+    def test_invalid_kwargs(self, synced_list):
+        # JSONList raise an error when neither filename nor parent is passed.
         with pytest.raises(ValueError):
-            return self._cls()
+            return type(synced_list)()
 
     def test_isinstance(self, synced_list):
         assert isinstance(synced_list, MutableSequence)
         assert isinstance(synced_list, SyncedCollection)
-        assert isinstance(synced_list, self._cls)
 
     def test_set_get(self, synced_list, testdata):
         synced_list.clear()
@@ -531,10 +527,10 @@ class TestJSONList:
             synced_list.load()
 
     def test_reopen(self, synced_list, testdata):
+        synced_list2 = deepcopy(synced_list)
         synced_list.append(testdata)
         synced_list.sync()
         del synced_list  # possibly unsafe
-        synced_list2 = self._cls(**self._backend_kwargs)
         synced_list2.load()
         assert len(synced_list2) == 1
         assert synced_list2[0] == testdata
@@ -586,11 +582,23 @@ class TestJSONList:
         assert isinstance(child1, SyncedCollection)
 
 
-class TestJSONListWriteConcern(TestJSONList):
-
-    _write_concern = True
-
-
 class TestJSONDictWriteConcern(TestJSONDict):
 
-    _write_concern = True
+    @pytest.fixture
+    def synced_dict(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        yield JSONDict(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
+
+
+class TestJSONListWriteConcern(TestJSONList):
+
+    @pytest.fixture
+    def synced_list(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        yield JSONList(**self._backend_kwargs)
+        self._tmp_dir.cleanup()

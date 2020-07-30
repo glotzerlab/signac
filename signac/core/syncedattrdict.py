@@ -101,7 +101,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                                 continue
                             except ValueError:
                                 pass
-                    self._data[self._validate_key(key)] = self.from_base(data[key])
+                    self._data[self._validate_key(key)] = self.from_base(data[key], parent=self)
                 remove = set()
                 for key in self._data:
                     if key not in data:
