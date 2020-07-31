@@ -40,7 +40,7 @@ class JSONCollection(BufferedSyncedCollection):
         self.backend_kwargs['write_concern'] = write_concern
         self.backend_kwargs['backend'] = self.backend
         self._id = uuid.uuid5(get_namespace(type(self).__name__),
-                              self.backend_kwargs['filename']) if filename else None                   
+                              self.backend_kwargs['filename']) if filename else None
         if not no_sync and data is not None:
             self.sync()
 
