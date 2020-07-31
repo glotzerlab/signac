@@ -311,6 +311,33 @@ class TestJSONDict:
         assert key in copy
         assert copy[key] == testdata
 
+    def test_buffered_read_write(self, synced_dict, testdata):
+        synced_dict2 = deepcopy(synced_dict)
+        assert synced_dict == synced_dict2
+        key = 'buffered_read_write'
+        d2 = 'testdata'
+        assert len(synced_dict) == 0
+        assert len(synced_dict2) == 0
+        with synced_dict.buffered() as b:
+            b[key] = testdata
+            assert b[key] == testdata
+            assert len(b) == 1
+            assert len(synced_dict2) == 0
+        assert len(synced_dict) == 1
+        assert len(synced_dict2) == 1
+        with synced_dict2.buffered() as b2:
+            b2[key] = d2
+            assert len(synced_dict) == 1
+            assert len(b2) == 1
+            assert synced_dict[key] == testdata
+            assert b2[key] == d2
+        assert synced_dict[key] == d2
+        assert synced_dict2[key] == d2
+        with synced_dict.buffered() as b:
+            del b[key]
+            assert key not in b
+        assert key not in synced_dict
+
     def test_nested_dict(self, synced_dict):
         synced_dict['a'] = dict(a=dict())
         child1 = synced_dict['a']
@@ -525,6 +552,31 @@ class TestJSONList:
         self.store(data2)
         with pytest.raises(ValueError):
             synced_list.load()
+
+    def test_buffered_read_write(self, synced_list, testdata):
+        synced_list2 = deepcopy(synced_list)
+        assert synced_list == synced_list2
+        assert len(synced_list) == 0
+        assert len(synced_list2) == 0
+        with synced_list.buffered() as b:
+            b.append(testdata)
+            assert b[0] == testdata
+            assert len(b) == 1
+            assert len(synced_list2) == 0
+        assert len(synced_list) == 1
+        assert len(synced_list2) == 1
+        with synced_list2.buffered() as b2:
+            b2[0] = 'test'
+            assert len(synced_list) == 1
+            assert len(b2) == 1
+            assert synced_list[0] == testdata
+            assert b2[0] == 'test'
+        assert synced_list[0] == 'test'
+        assert synced_list2[0] == 'test'
+        with synced_list.buffered() as b:
+            del b[0]
+            assert len(b) == 0
+        assert len(synced_list) == 0
 
     def test_reopen(self, synced_list, testdata):
         synced_list2 = deepcopy(synced_list)
