@@ -700,7 +700,7 @@ class Project(object):
         ----------
         index : list
             A document index.
-        _trust :
+        _trust
             (Default value = False).
 
         Returns
@@ -744,7 +744,6 @@ class Project(object):
                          2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
                          3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
 
-
         Values that are constant over the complete data space can be optionally
         ignored with the `exclude_const` argument set to True.
 
@@ -753,7 +752,7 @@ class Project(object):
         exclude_const : bool
             Exclude entries that are shared by all jobs
             that are part of the index (Default value = False).
-        index :
+        index
             A document index.
 
         Yields
@@ -777,10 +776,10 @@ class Project(object):
         exclude_const : bool
             Exclude all state point keys that are shared by all jobs within this project
             (Default value = False).
-        subset :
+        subset
             A sequence of jobs or job ids specifying a subset over which the state point
             schema should be detected (Default value = None).
-        index :
+        index
             A document index (Default value = None).
 
         Returns
@@ -818,7 +817,7 @@ class Project(object):
         doc_filter : dict
             A mapping of key-value pairs that all
             indexed job documents are compared against (Default value = None).
-        index :
+        index
              A document index. If not provided, an index will be computed
             (Default value = None).
 
@@ -853,10 +852,10 @@ class Project(object):
         filter : Mapping
             A mapping of key-value pairs that all indexed job state points are
             compared against (Default value = None).
-        doc_filter :
+        doc_filter
             A mapping of key-value pairs that all indexed job documents are
             compared against (Default value = None).
-        index :
+        index
             A document index. If not provided, an index will be computed
             (Default value = None).
 
@@ -958,7 +957,7 @@ class Project(object):
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default :
+        default
             A default value to be used when a given state point key is not present (must
             be sortable).
 
@@ -1005,7 +1004,7 @@ class Project(object):
             The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
             (Default value = None).
-        default :
+        default
             A default value to be used when a given state point key is not present (must
             be sortable).
 
@@ -1020,9 +1019,8 @@ class Project(object):
 
         Parameters
         ----------
-        *args :
-
-        **kwargs :
+        *args
+        **kwargs
 
         Returns
         -------
@@ -1281,9 +1279,9 @@ class Project(object):
         job_ids : iterable
             If None (the default), create the view for the complete data space,
             otherwise only for this iterable of job ids.
-        index :
+        index
             A document index (Default value = None).
-        path :
+        path
             The path (function) used to structure the linked data space (Default value = None).
 
         Returns
@@ -1345,7 +1343,7 @@ class Project(object):
             The job whose state point shall be updated.
         update : mapping
             A mapping used for the state point update.
-        overwrite :
+        overwrite
             Set to true to ignore whether this update overwrites parameters,
             which are currently part of the job's state point. Use with caution!
             (Default value = False).
@@ -1372,8 +1370,8 @@ class Project(object):
         ----------
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
-        copytree :
-             (Default value = syncutil.copytree)
+        copytree
+            (Default value = syncutil.copytree)
 
         Returns
         -------
@@ -1410,16 +1408,16 @@ class Project(object):
         ----------
         other : :class:`~signac.Project`
             The other project to synchronize this project with.
-        strategy :
+        strategy
             A file synchronization strategy (Default value = None).
-        exclude :
+        exclude
             Files with names matching the given pattern will be excluded
             from the synchronization (Default value = None).
-        doc_sync :
+        doc_sync
             The function applied for synchronizing documents (Default value = None).
-        selection :
+        selection
             Only sync the given jobs (Default value = None).
-        **kwargs :
+        **kwargs
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
 
@@ -1497,18 +1495,18 @@ class Project(object):
 
         Parameters
         ----------
-        target :
+        target
             A path to a directory to export to. The target can not already exist.
             Besides directories, possible targets are tar files (`.tar`), gzipped tar files
             (`.tar.gz`), zip files (`.zip`), bzip2-compressed files (`.bz2`),
             and xz-compressed files (`.xz`).
-        path :
+        path
             The path (function) used to structure the exported data space.
             This argument must either be a callable which returns a path (str) as a function
             of `job`, a string where fields are replaced using the job-state point dictionary,
             or `False`, which means that we just use the job-id as path.
             Defaults to the equivalent of ``{{auto}}``.
-        copytree :
+        copytree
             The function used for the actual copying of directory tree
             structures. Defaults to :func:`shutil.copytree`.
             Can only be used when the target is a directory.
@@ -1553,18 +1551,18 @@ class Project(object):
 
         Parameters
         ----------
-        origin :
+        origin
             The path to the data space origin, which is to be imported. This may be a path to
             a directory, a zip file, or a tarball archive (Default value = None).
-        schema :
+        schema
             An optional schema function, which is either a string or a function that accepts a
             path as its first and only argument and returns the corresponding state point as dict.
             (Default value = None).
-        sync :
+        sync
             If ``True``, the project will be synchronized with the imported data space. If a
             dict of keyword arguments is provided, the arguments will be used for
             :meth:`~signac.Project.sync` (Default value = None).
-        copytree :
+        copytree
             Specify which exact function to use for the actual copytree operation.
             Defaults to :func:`shutil.copytree`.
 
@@ -1625,9 +1623,9 @@ class Project(object):
         fn_statepoints : str
             The filename of the file containing the state points, defaults
             to :attr:`~signac.Project.FN_STATEPOINTS`.
-        index :
+        index
             A document index (Default value = None).
-        job_ids :
+        job_ids
             An iterable of job ids that should get repaired. Defaults to all jobs.
 
         Raises
@@ -1719,7 +1717,7 @@ class Project(object):
 
         Parameters
         ----------
-        include_job_document :
+        include_job_document
             Whether to include the job document in the index (Default value =
             False).
 
@@ -2064,7 +2062,7 @@ class Project(object):
             the specified root directory, otherwise only return projects
             with a root directory identical to the specified root argument
             (Default value = True).
-        \*\*kwargs :
+        \*\*kwargs
             Optional keyword arguments that are forwarded to the
             :class:`.Project` class constructor.
 
@@ -2151,10 +2149,10 @@ def TemporaryProject(name=None, cls=None, **kwargs):
     name : str
         An optional name for the temporary project.
         Defaults to a unique random string.
-    cls :
+    cls
         The class of the temporary project.
         Defaults to :class:`~signac.Project`.
-    \*\*kwargs :
+    \*\*kwargs
         Optional keyword arguments that are forwarded to the TemporaryDirectory class
         constructor, which is used to create a temporary root directory.
 
@@ -2310,7 +2308,7 @@ class JobsCursor(object):
         key : str, iterable, or function
             The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, the job (Default value = None).
-        default :
+        default
             A default value to be used when a given state point key is not present (must
             be sortable).
 
@@ -2348,7 +2346,6 @@ class JobsCursor(object):
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     State point value corresponding to the key.
@@ -2371,12 +2368,10 @@ class JobsCursor(object):
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
                         State point values.
-
 
                     """
                     return tuple(job.sp[k] for k in key)
@@ -2390,7 +2385,6 @@ class JobsCursor(object):
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2456,7 +2450,7 @@ class JobsCursor(object):
             The state point grouping parameter(s) passed as a string, iterable of strings,
             or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
             (Default value = None).
-        default :
+        default
             A default value to be used when a given state point key is not present (must
             be sortable).
 
@@ -2470,7 +2464,6 @@ class JobsCursor(object):
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2489,7 +2482,6 @@ class JobsCursor(object):
                     job : class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     Document value corresponding to the key.
@@ -2506,7 +2498,6 @@ class JobsCursor(object):
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2525,7 +2516,6 @@ class JobsCursor(object):
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2574,7 +2564,8 @@ class JobsCursor(object):
 
         See Also
         --------
-        :meth:`~signac.Project.export_to` : For full details on how to use this function.
+        :meth:`~signac.Project.export_to`
+            For full details on how to use this function.
 
         Parameters
         ----------
@@ -2771,7 +2762,7 @@ def get_project(root=None, search=True, **kwargs):
         specified root directory, otherwise only return projects with a root
         directory identical to the specified root argument (Default value =
         True).
-    \*\*kwargs :
+    \*\*kwargs
         Optional keyword arguments that are forwarded to
         :meth:`~signac.Project.get_project`.
 

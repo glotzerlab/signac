@@ -24,9 +24,9 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     job_ids : iterable
         If None (the default), create the view for the complete data space,
         otherwise only for this iterable of job ids.
-    index :
+    index
         A document index (Default value = None).
-    path :
+    path
         The path (function) used to structure the linked data space (Default value = None).
 
     Returns

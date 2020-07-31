@@ -26,7 +26,7 @@ def _with_message(query, file):
     ----------
     query : dict
         Filter arguments.
-    file :
+    file
         The file where the filter interpretation is printed.
 
     Returns
@@ -166,7 +166,7 @@ def _parse_simple(key, value=None):
     ----------
     key : str
         The filter key.
-    value :
+    value
         The filter value. If None, the filter returns
         True if the provided key exists (Default value = None).
 
@@ -202,7 +202,7 @@ def parse_filter_arg(args, file=sys.stderr):
     ----------
     args : sequence of str
         Filter arguments to parse.
-    file :
+    file
         The file to write message (Default value = sys.stderr).
 
     Returns

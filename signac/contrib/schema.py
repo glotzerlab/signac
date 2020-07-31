@@ -26,7 +26,7 @@ def _collect_by_type(values):
 
     Parameters
     ----------
-    values :
+    values
         An iterable of values.
 
     Returns
@@ -48,7 +48,7 @@ def _build_job_statepoint_index(exclude_const, index):
     ----------
     exclude_const : bool
         Excludes state point keys whose values are constant across the index.
-    index :
+    index
         An iterable of state points.
 
     Yields
@@ -78,7 +78,7 @@ def _build_job_statepoint_index(exclude_const, index):
 
         Parameters
         ----------
-        x :
+        x
             Dictionary from which ``_DictPlaceholder`` values will be removed.
 
         Returns
@@ -118,7 +118,7 @@ class ProjectSchema(object):
 
         Parameters
         ----------
-        statepoint_index :
+        statepoint_index
             State point index.
 
         Returns
@@ -158,7 +158,7 @@ class ProjectSchema(object):
 
             Parameters
             ----------
-            x :
+            x
                 Value to convert to string.
 
             Returns
@@ -181,7 +181,7 @@ class ProjectSchema(object):
             ----------
             type_ : type
                 Type of values.
-            values :
+            values
                 An iterable of values.
 
             Returns
@@ -210,7 +210,7 @@ class ProjectSchema(object):
 
             Parameters
             ----------
-            values :
+            values
                 An iterable of values.
 
             Returns
@@ -321,7 +321,7 @@ class ProjectSchema(object):
 
         Parameters
         ----------
-        jobs_or_statepoints :
+        jobs_or_statepoints
             An iterable of jobs or state points.
 
         Returns

@@ -124,7 +124,7 @@ def add_verbosity_action_argument(parser, default=0):
     ----------
     parser : :class:`argparse.ArgumentParser`
         The parser to which to add a verbosity argument.
-    default :
+    default
         The default level, defaults to 0.
 
     Notes
@@ -150,11 +150,11 @@ def set_verbosity_level(verbosity, default=None, increment=10):
 
     Parameters
     ----------
-    verbosity :
+    verbosity
         The verbosity level as integer.
-    default :
+    default
         The default verbosity level, defaults to logging.ERROR.
-    increment :
+    increment
         (Default value = 10).
 
     """
@@ -213,7 +213,7 @@ def walkdepth(path, depth=0):
 
     Parameters
     ----------
-    path :str
+    path : str
         Directory passed to walk (transverse from).
     depth : int
         (Default value = 0)
@@ -275,7 +275,7 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
         List of values to be chunked.
     num_chunks : int
         Number of chunks to split the given iterable (Default value = 10).
-    write :
+    write
         Logging level used to log messages (Default value = None).
     desc : str
         Prefix of message to log (Default value = 'Progress: ').
@@ -411,7 +411,7 @@ def _encode_tree(x):
 
     Parameters
     ----------
-    x :
+    x
         type to encode.
 
     Returns
@@ -432,7 +432,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     ----------
     t : dict
         A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
-    encode :
+    encode
         By default, values are encoded to be hashable. Use ``None`` to skip encoding.
     key : str
         Key of root at current point in the recursion, used to

@@ -38,7 +38,7 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
         Source directory tree.
     dst : str
         Destination directory tree.
-    copy_function :
+    copy_function
         Function used to copy (Default value = ``shutil.copy2``).
     symlinks : bool
         Whether to copy symlinks (Default value = False).

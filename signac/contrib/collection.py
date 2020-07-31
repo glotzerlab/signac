@@ -157,7 +157,7 @@ class _TypedSetDefaultDict(dict):
         ----------
         key : str, float
             The key to get the value.
-        default :
+        default
             Default value if type of key is not float (Default value = None).
 
         Returns
@@ -241,7 +241,7 @@ def _find_with_index_operator(index, op, argument):
         Index for the operator.
     op : str
         logical operator.
-    argument :
+    argument
         Dependent on the choice of logical operator argument (op).
         For better understanding have a look at :meth:`~Collection.find`.
 
@@ -761,7 +761,7 @@ class Collection(object):
         ----------
         key : str
             The key for expression-operator.
-        value :
+        value
             The value for expression-operator.
 
         Returns
@@ -1166,7 +1166,7 @@ class Collection(object):
 
         Parameters
         ----------
-        text_buffer :
+        text_buffer
             The file to write the content serialized to JSON (Default value = sys.stdout).
 
         """
@@ -1189,7 +1189,7 @@ class Collection(object):
 
         Parameters
         ----------
-        file :
+        file
             The file to write the encoded blob to (Default value = sys.stdout).
 
         """
@@ -1212,7 +1212,7 @@ class Collection(object):
 
         Parameters
         ----------
-        file :
+        file
             The filename or a file-like object to write the JSON string to (Default value = None).
 
         Returns
@@ -1236,7 +1236,7 @@ class Collection(object):
 
         Parameters
         ----------
-        file :
+        file
             The json file to read, provided as either a filename or a
             file-like object (Default value = None).
 
@@ -1259,7 +1259,7 @@ class Collection(object):
 
         Parameters
         ----------
-        file :
+        file
             The file to read the documents from or create the file if it does not exist.
         compresslevel : int
             The level of compression to use. Any positive value

@@ -125,12 +125,10 @@ class _AutoPathFormatter(Formatter):
 
         Parameters
         ----------
-        value :
+        value
             The value to be formatted.
-
-        format_spec :
+        format_spec
             The format specification.
-
 
         Returns
         -------

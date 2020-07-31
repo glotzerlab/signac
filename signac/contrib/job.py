@@ -231,7 +231,7 @@ class Job(object):
         ----------
         update : dict
             A mapping used for the state point update.
-        overwrite :
+        overwrite
             Set to true, to ignore whether this update overwrites parameters,
             which are currently part of the job's state point.
             Use with caution! (Default value = False)
@@ -610,23 +610,22 @@ class Job(object):
         ----------
         other : Job
             The other job to synchronize from.
-        strategy :
+        strategy
             A synchronization strategy for file conflicts. If no strategy is provided, a
             :class:`~signac.errors.SyncConflict` exception will be raised upon conflict
             (Default value = None).
         exclude : str
             An filename exclude pattern. All files matching this pattern will be
             excluded from synchronization (Default value = None).
-        doc_sync :
+        doc_sync
             A synchronization strategy for document keys. If this argument is None, by default
             no keys will be synchronized upon conflict.
-        dry_run :
+        dry_run
             If True, do not actually perform the synchronization.
-        kwargs :
+        kwargs
             Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
             function which actually excutes the synchronization operation.
-        **kwargs :
-
+        **kwargs
 
         Raises
         ------
