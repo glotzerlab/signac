@@ -13,51 +13,69 @@ import errno
 import uuid
 
 from .synced_collection import SyncedCollection
+from .buffered_collection import BufferedSyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from .buffered_collection import _get_filemetadata
 
 
-class JSONCollection(SyncedCollection):
+def get_namespace(class_name):
+    """Generate namespace for classname"""
+    return uuid.uuid5(uuid.NAMESPACE_URL, 'signac::'+class_name)
+
+
+class JSONCollection(BufferedSyncedCollection):
     """Implement sync and load using a JSON back end."""
 
     backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, write_concern=False, **kwargs):
-        self._filename = os.path.realpath(filename) if filename is not None else None
-        self._write_concern = write_concern
+    def __init__(self, filename=None, data=None, write_concern=False, no_sync=False, **kwargs):
+        kwargs['data'] = data
         super().__init__(**kwargs)
         if (filename is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
+        self.backend_kwargs['filename'] = None if filename is None else os.path.realpath(filename)
+        self.backend_kwargs['write_concern'] = write_concern
+        self.backend_kwargs['backend'] = self.backend
+        self._id = uuid.uuid5(get_namespace(type(self).__name__),
+                              self.backend_kwargs['filename']) if filename else None                   
+        if not no_sync and data is not None:
+            self.sync()
 
     def _load(self):
         """Load the data from a JSON-file."""
         try:
-            with open(self._filename, 'rb') as file:
+            with open(self.backend_kwargs['filename'], 'rb') as file:
                 blob = file.read()
                 return json.loads(blob)
         except IOError as error:
             if error.errno == errno.ENOENT:
                 return None
 
-    def _sync(self):
+    def _sync(self, data=None):
         """Write the data to json file."""
-        data = self.to_base()
+        if data is None:
+            data = self.to_base()
+        _filename = self.backend_kwargs['filename']
         # Serialize data:
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.
-        if self._write_concern:
-            dirname, filename = os.path.split(self._filename)
+        if self.backend_kwargs['write_concern']:
+            dirname, filename = os.path.split(_filename)
             fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
                 uid=uuid.uuid4(), fn=filename))
             with open(fn_tmp, 'wb') as tmpfile:
                 tmpfile.write(blob)
-            os.replace(fn_tmp, self._filename)
+            os.replace(fn_tmp, _filename)
         else:
-            with open(self._filename, 'wb') as file:
+            with open(_filename, 'wb') as file:
                 file.write(blob)
+
+    def _get_metadata(self):
+        return _get_filemetadata(self.backend_kwargs['filename'])
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

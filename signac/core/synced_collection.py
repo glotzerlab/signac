@@ -34,6 +34,7 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None):
         self._data = None
         self._parent = parent
+        self.backend_kwargs = {}
         self._suspend_sync_ = 0
 
     @classmethod
@@ -127,6 +128,23 @@ class SyncedCollection(Collection):
                     self._update(data)
             else:
                 self._parent.load()
+
+    @contextmanager
+    def buffered(self):
+        """Context manager for buffering read and write operations.
+
+        This context manager activates the "buffered" mode, which
+        means that all read operations are cached, and all write operations
+        are deferred until the buffered mode is deactivated.
+
+        Yields
+        ------
+        buffered_collection : object
+            Buffered SyncedCollection object of corresponding base type.
+        """
+        buffered_collection = self.from_base(data=self, backend='buffered', parent=self)
+        yield buffered_collection
+        buffered_collection.flush()
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.
