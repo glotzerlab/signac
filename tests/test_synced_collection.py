@@ -5,6 +5,7 @@ import pytest
 import uuid
 import os
 import json
+import numcodecs
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
@@ -13,6 +14,8 @@ from copy import deepcopy
 from signac.core.synced_list import SyncedCollection
 from signac.core.jsoncollection import JSONDict
 from signac.core.jsoncollection import JSONList
+from signac.core.zarrcollection import ZarrDict
+from signac.core.zarrcollection import ZarrList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -21,6 +24,12 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+try:
+    import zarr
+    Zarr = True
+except ImportError:
+    Zarr = False
 
 FN_JSON = 'test.json'
 
@@ -602,3 +611,37 @@ class TestJSONListWriteConcern(TestJSONList):
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
         yield JSONList(**self._backend_kwargs)
         self._tmp_dir.cleanup()
+
+
+@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
+class TestZarrDict(TestJSONDict):
+
+    @pytest.fixture(autouse=True)
+    def synced_dict(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._store = zarr.DirectoryStore(self._tmp_dir.name)
+        self._backend_kwargs = {'name': 'test', 'store': self._store}
+        yield ZarrDict(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
+
+    def store(self, data):
+        dataset = zarr.group(self._store).require_dataset(
+            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
+        dataset[0] = data
+
+
+@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
+class TestZarrList(TestJSONList):
+
+    @pytest.fixture(autouse=True)
+    def synced_list(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._store = zarr.DirectoryStore(self._tmp_dir.name)
+        self._backend_kwargs = {'name': 'test', 'store': self._store}
+        yield ZarrList(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
+
+    def store(self, data):
+        dataset = zarr.group(self._store).require_dataset(
+            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
+        dataset[0] = data
