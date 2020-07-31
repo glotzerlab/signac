@@ -26,7 +26,7 @@ except ImportError:
 
 try:
     import zarr
-    import numcodecs # zarr depends on numcodecs 
+    import numcodecs  # zarr depends on numcodecs
     Zarr = True
 except ImportError:
     Zarr = False
