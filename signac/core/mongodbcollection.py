@@ -19,7 +19,7 @@ class MongoCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, client=None, database='signac_db', collection='collection'
+    def __init__(self, name=None, client=None, database='signac_db', collection='collection',
                  mongo_kwargs=None, **kwargs):
         if client is None:
             mongo_kwargs = mongo_kwargs if mongo_kwargs is not None else {}
@@ -35,7 +35,6 @@ class MongoCollection(SyncedCollection):
                 "Illegal argument combination, one of the two arguments, "
                 "parent or name must be None, but not both.")
         super().__init__(**kwargs)
-
 
     def _load(self):
         """Load the data from a Mongo-database."""
@@ -91,7 +90,7 @@ class MongoDict(MongoCollection, SyncedAttrDict):
         kwargs arguments passed through to the `pymongo.MongoClient` function.
     database : string
         Name of database (Default value = 'signac_db').
-    collection : string 
+    collection : string
         Name of collection (Default value = 'collection')
     data: mapping, optional
         The intial data pass to MOngoDict. Defaults to `dict()`
@@ -135,7 +134,7 @@ class MongoList(MongoCollection, SyncedList):
         kwargs arguments passed through to the `Mongo.Mongo` function.
     database : string
         Name of database (Default value = 'signac_db').
-    collection : string 
+    collection : string
         Name of collection (Default value = 'collection')
     data: mapping, optional
         The intial data pass to MongoDict. Defaults to `list()`
