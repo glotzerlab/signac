@@ -226,7 +226,7 @@ class BufferedCollection(SyncedCollection):
     buffering for a instance of `SyncedCollection`.
     """
 
-    backend = 'buffered'
+    backend = 'buffered'  # type: ignore
 
     def load(self):
         pass
