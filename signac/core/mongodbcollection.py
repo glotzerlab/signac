@@ -6,7 +6,6 @@
 This implements the Mongo-backend for SyncedCollection API by
 implementing sync and load methods.
 """
-import pymongo
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict

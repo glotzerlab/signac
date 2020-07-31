@@ -5,7 +5,6 @@ import pytest
 import uuid
 import os
 import json
-import numcodecs
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
@@ -27,6 +26,7 @@ except ImportError:
 
 try:
     import zarr
+    import numcodecs # zarr depends on numcodecs 
     Zarr = True
 except ImportError:
     Zarr = False
