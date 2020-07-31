@@ -1,13 +1,13 @@
-coverage==5.0.3
-numpy==1.18
-pandas==0.25.3; implementation_name!='cpython' --no-binary pandas
-pandas==0.25.3; implementation_name=='cpython' --no-binary :none:
+coverage==5.2
+numpy==1.19.0
+pandas==1.0.5; implementation_name!='cpython' --no-binary pandas
+pandas==1.0.5; implementation_name=='cpython' --no-binary :none:
 h5py==2.10; implementation_name=='cpython'
 tables==3.6.1; implementation_name=='cpython'
 click>=7.0
 ruamel.yaml>=0.15.89
 pytest==5.3.4
-pytest-subtests==0.3.0
+pytest-subtests==0.3.1
 pydocstyle==5.0.2
-pytest-cov==2.8.1
+pytest-cov==2.10.0
 pymongo==3.10.1
