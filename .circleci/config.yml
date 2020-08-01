@@ -17,7 +17,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install-dependencies
+          name: Install pre-check dependencies
           command: |
             pip install --progress-bar off --user -U -r requirements-precommit.txt
 
@@ -48,7 +48,7 @@ jobs:
             - python-env-v7
 
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
@@ -68,7 +68,7 @@ jobs:
             - "venv"
 
       - run:
-          name: run tests
+          name: Run tests
           command: |
             . venv/bin/activate
             ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
@@ -79,7 +79,7 @@ jobs:
           destination: test-reports
 
       - run:
-          name: benchmark
+          name: Run benchmarks
           command: |
             . venv/bin/activate
             ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
@@ -113,17 +113,17 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python
+          name: Install Python
           command: |
             choco install python --version 3.8.1 --limit-output --no-progress
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             python --version
             python -m pip install --progress-bar off certifi
             python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
-          name: run tests
+          name: Run tests
           command: |
             python -m pytest tests/ -v
 
