@@ -22,19 +22,9 @@ jobs:
             pip install --progress-bar off --user -U -r requirements-precommit.txt
 
       - run:
-          name: check-style
+          name: Run pre-checks
           command: |
-            python -m flake8 --show-source .
-
-      - run:
-          name: check-docstyle
-          command: |
-            pydocstyle
-
-      - run:
-          name: check-type-hints
-          command: |
-            mypy .
+            pre-commit run --all-files
 
   linux-python-38: &linux-template
     docker:
