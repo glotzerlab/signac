@@ -1,4 +1,4 @@
-coverage==5.2
+coverage==5.2.1
 numpy==1.19.0
 pandas==1.0.5; implementation_name!='cpython' --no-binary pandas
 pandas==1.0.5; implementation_name=='cpython' --no-binary :none:
