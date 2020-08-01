@@ -182,7 +182,7 @@ workflows:
             - pre-checks
       - linux-pypy-3:
           requires:
-            - linux-python-36
+            - pre-checks
       - windows-python-38:
           requires:
             - pre-checks
