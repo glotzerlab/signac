@@ -19,7 +19,7 @@ jobs:
       - run:
           name: install-dependencies
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2 mypy==0.770
+            pip install --progress-bar off --user -U -r requirements-precommit.txt
 
       - run:
           name: check-style
@@ -51,7 +51,7 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}
             - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
             - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
             - python-env-v7-{{ arch }}
@@ -73,7 +73,7 @@ jobs:
             ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{checksum "requirements-precommit.txt" }}
           paths:
             - "venv"
 
