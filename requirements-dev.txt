@@ -1,5 +1,5 @@
 -r requirements-precommit.txt
-click>=7.0
+click==7.1.2
 coverage==5.2.1
 h5py==2.10; implementation_name=='cpython'
 numpy==1.19.0
@@ -9,5 +9,5 @@ pymongo==3.10.1
 pytest-cov==2.10.0
 pytest-subtests==0.3.1
 pytest==5.4.3
-ruamel.yaml>=0.15.89
+ruamel.yaml==0.16.10
 tables==3.6.1; implementation_name=='cpython'
