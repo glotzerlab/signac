@@ -2,12 +2,16 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
-import uuid
 import os
 import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
+from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis import settings
+from hypothesis import example
+from string import printable
 from copy import deepcopy
 
 from signac.core.synced_list import SyncedCollection
@@ -22,12 +26,20 @@ try:
 except ImportError:
     NUMPY = False
 
+# changing default deadline of hypothesis
+settings.register_profile('ci', deadline=600)
+settings.load_profile('ci')
+
 FN_JSON = 'test.json'
 
+PRINTABLE_NO_DOTS = printable.replace('.', ' ')
 
-@pytest.fixture
-def testdata():
-    return str(uuid.uuid4())
+JSONDataStrategy = st.recursive(
+    st.none() | st.booleans() | st.floats(allow_nan=False) | st.text(printable),
+    lambda children: st.lists(children, max_size=5) | st.dictionaries(
+        st.text(PRINTABLE_NO_DOTS), children, max_size=5),  max_leaves=5)
+
+DictKeyStrategy = st.text(PRINTABLE_NO_DOTS)
 
 
 class TestSyncedCollectionBase:
