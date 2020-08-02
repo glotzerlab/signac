@@ -252,7 +252,6 @@ class TestJSONDict:
         assert 'a' in synced_dict
         assert 'b' in synced_dict
         assert 'c' in synced_dict
-        print(synced_dict._parent)
         data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
         self.store(data)
         assert synced_dict == data
@@ -560,7 +559,6 @@ class TestJSONList:
     @example(None)
     def test_reopen(self, synced_list, testdata):
         synced_list.clear()
-        print(synced_list)
         synced_list2 = deepcopy(synced_list)  # possibly unsafe
         synced_list2.append(testdata)
         assert synced_list2[0] == testdata
