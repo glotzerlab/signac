@@ -28,6 +28,7 @@ pip-log.txt
 .tox
 nosetests.xml
 .pytest_cache
+.hypothesis
 
 # Translations
 *.mo
