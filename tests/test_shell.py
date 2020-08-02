@@ -11,6 +11,13 @@ from signac.common import config
 
 import signac
 
+try:
+    import pymongo  # noqa
+except ImportError:
+    PYMONGO = False
+else:
+    PYMONGO = True
+
 
 # Skip linked view tests on Windows
 WINDOWS = (sys.platform == 'win32')
@@ -666,6 +673,7 @@ class TestBasicShell():
         with pytest.raises(ExitCodeError):
             self.call('python -m signac config --global set a.password b'.split())
 
+    @pytest.mark.skipif(not PYMONGO, reason='pymongo is required for host configuration')
     def test_config_host(self):
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac config --local host Mongo -u abc -p 123'.split())
@@ -688,6 +696,7 @@ class TestBasicShell():
         cfg = self.call('python -m signac config --local show'.split())
         assert 'Mongo' not in cfg
 
+    @pytest.mark.skipif(not PYMONGO, reason='pymongo is required for host configuration')
     def test_config_verify(self):
         # no config file
         with pytest.raises(ExitCodeError):

@@ -13,6 +13,7 @@ Both files use the [citation file-format][1] for [person objects][2].
 [2] https://citation-file-format.github.io/1.0.3/specifications/#/person-objects
 """
 from dataclasses import dataclass
+from typing import Optional
 
 import click
 import json
@@ -24,7 +25,7 @@ class Contributor:
     last_names: str
     first_names: str
     affiliation: str
-    orcid: str = None
+    orcid: Optional[str] = None
 
     @classmethod
     def from_citation_author(cls, **citation):
