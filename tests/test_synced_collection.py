@@ -635,7 +635,7 @@ class TestZarrList(TestJSONList):
 
     @pytest.fixture(autouse=True)
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='zarrdict_')
         self._store = zarr.DirectoryStore(self._tmp_dir.name)
         self._backend_kwargs = {'name': 'test', 'store': self._store}
         yield ZarrList(**self._backend_kwargs)
