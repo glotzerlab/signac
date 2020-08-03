@@ -14,11 +14,11 @@ except signac.common.errors.ConfigError:
 except ImportError:
     SKIP_REASON = "pymongo not available"
 else:
-    SKIP_REASON = None
+    SKIP_REASON = "None"
     import signac.common.host
 
 
-@pytest.mark.skipif(SKIP_REASON is not None, reason=SKIP_REASON)
+@pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
 class TestDB():
 
     def get_test_db(self):

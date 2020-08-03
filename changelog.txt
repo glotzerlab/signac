@@ -16,6 +16,7 @@ Added
  - Type annotations are validated during continuous integration (#313).
  - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
  - Allow grouping by variables that are not present in all jobs in the project in ``JobsCursor.groupby`` (#321, #323).
+ - Added support for `pre-commit hooks <https://pre-commit.com/>`__ (#355, #358).
 
 Fixed
 +++++

@@ -197,6 +197,7 @@ if GRIDFS:
                 raise ValueError(mode)
     _register_fs_class(GridFS)
 
+
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The filesystems module is deprecated.")
 def filesystems_from_config(fs_config):
@@ -236,6 +237,7 @@ def filesystems_from_config(fs_config):
             yield fs_class(* args)
         else:
             yield fs_class(args)
+
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The filesystems module is deprecated.")

@@ -384,26 +384,26 @@ class _hashable_dict(dict):
         return hash(tuple(sorted(self.items())))
 
 
-def _to_hashable(l):
+def _to_hashable(obj):
     """Create a hash of passed type.
 
     Parameters
     ----------
-    l
+    obj
         Object to create a hashable version of. Lists are converted
         to tuples, and hashes are defined for dicts.
 
     Returns
     -------
-    Hash created for l.
+    Hash created for obj.
 
     """
-    if type(l) is list:
-        return tuple(_to_hashable(_) for _ in l)
-    elif type(l) is dict:
-        return _hashable_dict(l)
+    if type(obj) is list:
+        return tuple(_to_hashable(_) for _ in obj)
+    elif type(obj) is dict:
+        return _hashable_dict(obj)
     else:
-        return l
+        return obj
 
 
 def _encode_tree(x):
