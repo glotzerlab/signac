@@ -110,3 +110,9 @@ export
 ======
 
 .. program-output:: signac export --help
+
+
+config
+======
+
+.. program-output:: signac config --help
