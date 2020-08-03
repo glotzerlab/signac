@@ -41,6 +41,8 @@ JSONDataStrategy = st.recursive(
 
 DictKeyStrategy = st.text(PRINTABLE_NO_DOTS)
 
+ListStrategy = st.lists(JSONDataStrategy, max_size=5)
+
 
 class TestSyncedCollectionBase:
 
@@ -66,13 +68,14 @@ class TestSyncedCollectionBase:
 
 class TestJSONDict:
 
-    @pytest.fixture
+    @pytest.fixture(scope='class')
     def synced_dict(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-        _backend_kwargs = {'filename': self._fn_, 'write_concern': False}
+        cls = type(self)
+        cls._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        cls._fn_ = os.path.join(cls._tmp_dir.name, FN_JSON)
+        _backend_kwargs = {'filename': cls._fn_, 'write_concern': False}
         yield JSONDict(**_backend_kwargs)
-        self._tmp_dir.cleanup()
+        cls._tmp_dir.cleanup()
 
     def store(self, data):
         with open(self._fn_, 'wb') as file:
@@ -155,13 +158,16 @@ class TestJSONDict:
         with pytest.raises(KeyError):
             synced_dict[key]
 
-    @given(key=DictKeyStrategy, testdata=JSONDataStrategy)
-    def test_update(self, synced_dict, key, testdata):
+    @given(key=DictKeyStrategy, testdata1=JSONDataStrategy, testdata2=JSONDataStrategy)
+    def test_update(self, synced_dict, key, testdata1, testdata2):
         synced_dict.clear()
-        d = {key: testdata}
+        d = {key: testdata1}
         synced_dict.update(d)
         assert len(synced_dict) == 1
         assert synced_dict[key] == d[key]
+        synced_dict.update({key: testdata2})
+        assert len(synced_dict) == 1
+        assert synced_dict[key] == testdata2
 
     @given(key=DictKeyStrategy, testdata=JSONDataStrategy)
     def test_pop(self, synced_dict, key, testdata):
@@ -222,28 +228,38 @@ class TestJSONDict:
         with pytest.raises(ValueError):
             synced_dict.reset([0, 1])
 
-    @given(testdata=JSONDataStrategy, testdata1=JSONDataStrategy)
-    def test_attr_dict(self, synced_dict, testdata, testdata1):
+    @given(testdata1=JSONDataStrategy, testdata2=JSONDataStrategy)
+    def test_attr_dict(self, synced_dict, testdata1, testdata2):
         synced_dict.clear()
         key = 'test'
-        synced_dict[key] = testdata
-        assert len(synced_dict) == 1
-        assert key in synced_dict
-        assert synced_dict[key] == testdata
-        assert synced_dict.get(key) == testdata
-        assert synced_dict.test == testdata
-        del synced_dict.test
-        assert len(synced_dict) == 0
-        assert key not in synced_dict
-        key = 'test2'
-        synced_dict.test2 = testdata1
+        synced_dict[key] = testdata1
         assert len(synced_dict) == 1
         assert key in synced_dict
         assert synced_dict[key] == testdata1
         assert synced_dict.get(key) == testdata1
-        assert synced_dict.test2 == testdata1
+        assert synced_dict.test == testdata1
+        del synced_dict.test
+        assert len(synced_dict) == 0
+        assert key not in synced_dict
+        key = 'test2'
+        synced_dict.test2 = testdata2
+        assert len(synced_dict) == 1
+        assert key in synced_dict
+        assert synced_dict[key] == testdata2
+        assert synced_dict.get(key) == testdata2
+        assert synced_dict.test2 == testdata2
         with pytest.raises(AttributeError):
             synced_dict.not_exist
+
+    def test_delete_protected_attr(self, synced_dict):
+        # deleting a protected attribute
+        synced_dict2 = deepcopy(synced_dict)
+        synced_dict2.load()
+        del synced_dict2._parent
+        # deleting _parent will lead to recursion as _parent is treated as key
+        # load() will check for _parent and __getattr__ will call __getitem__ which calls load()
+        with pytest.raises(RecursionError):
+            synced_dict2.load()
 
     def test_update_recursive(self, synced_dict):
         synced_dict.a = {'a': 1}
@@ -263,7 +279,12 @@ class TestJSONDict:
             synced_dict.load()
 
         # reset file
-        self.store({})
+        synced_dict.clear()
+
+    @given(testdata=st.dictionaries(keys=DictKeyStrategy, values=JSONDataStrategy))
+    def test_update_recursive_with_testdata(self, synced_dict, testdata):
+        self.store(testdata)
+        assert synced_dict == testdata
 
     @given(key=DictKeyStrategy, testdata=JSONDataStrategy)
     def test_clear(self, synced_dict, key,  testdata):
@@ -340,6 +361,10 @@ class TestJSONDict:
         assert len(synced_dict) == 1
         assert synced_dict[key] == testdata
         with pytest.raises(TypeError):
+            synced_dict[key + '2'] = Foo()
+        assert len(synced_dict) == 1
+        assert synced_dict[key] == testdata
+        with pytest.raises(TypeError):
             synced_dict[key] = Foo()
         assert len(synced_dict) == 1
         assert synced_dict[key] == testdata
@@ -363,7 +388,7 @@ class TestJSONDict:
         synced_dict[key2] = testdata
         assert synced_dict[key2] == testdata
 
-    @given(key1=st.tuples(st.integers(), st.integers()) | st.floats(allow_nan=False),
+    @given(key1=st.tuples(st.integers(), st.integers()) | st.floats(),
            key2=st.lists(st.integers(), max_size=2) |
            st.dictionaries(keys=st.text(), values=st.text()),
            testdata=JSONDataStrategy)
@@ -380,23 +405,15 @@ class TestJSONDict:
         with pytest.raises(TypeError):
             synced_dict[key2] = testdata
 
-    def test_delete_protected_attr(self, synced_dict):
-        # deleting a protected attribute
-        synced_dict.load()
-        del synced_dict._parent
-        # deleting _parent will lead to recursion as _parent is treated as key
-        # load() will check for _parent and __getattr__ will call __getitem__ which calls load()
-        with pytest.raises(RecursionError):
-            synced_dict.load()
-
 
 class TestJSONList:
 
-    @pytest.fixture
+    @pytest.fixture(scope='class')
     def synced_list(self):
+        cls = type(self)
         _tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        self._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
-        _backend_kwargs = {'filename': self._fn_, 'write_concern': False}
+        cls._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
+        _backend_kwargs = {'filename': cls._fn_, 'write_concern': False}
         yield JSONList(**_backend_kwargs)
         _tmp_dir.cleanup()
 
@@ -446,7 +463,7 @@ class TestJSONList:
         assert len(synced_list) == len(data_as_list) + 2
         assert synced_list[len(data_as_list) + 1] == data3
 
-    @given(st.lists(JSONDataStrategy, max_size=5))
+    @given(ListStrategy)
     def test_iter(self, synced_list, testdata):
         synced_list.reset(testdata)
         for i in range(len(synced_list)):
@@ -463,7 +480,7 @@ class TestJSONList:
         with pytest.raises(IndexError):
             synced_list[0]
 
-    @given(st.lists(JSONDataStrategy, max_size=5), JSONDataStrategy)
+    @given(ListStrategy, JSONDataStrategy)
     def test_extend(self, synced_list, testdata1, testdata2):
         synced_list.clear()
         synced_list.extend(testdata1)
@@ -473,7 +490,7 @@ class TestJSONList:
         assert len(synced_list) == len(testdata1) + 1
         assert synced_list[len(testdata1)] == testdata2
 
-    @given(st.lists(JSONDataStrategy, max_size=5))
+    @given(ListStrategy)
     def test_clear(self, synced_list, testdata):
         synced_list.reset(testdata)
         assert len(synced_list) == len(testdata)
@@ -481,7 +498,7 @@ class TestJSONList:
         synced_list.clear()
         assert len(synced_list) == 0
 
-    @given(st.lists(JSONDataStrategy, max_size=5), st.lists(JSONDataStrategy, max_size=5))
+    @given(ListStrategy, ListStrategy)
     def test_reset(self, synced_list, testdata, testdata1):
         synced_list.reset(testdata)
         assert len(synced_list) == len(testdata)
@@ -507,7 +524,7 @@ class TestJSONList:
         assert len(synced_list) == 3
         assert synced_list[1] == testdata
 
-    @given(st.lists(JSONDataStrategy, max_size=5))
+    @given(ListStrategy)
     def test_reversed(self,  synced_list, data):
         synced_list.reset(data)
         assert len(synced_list) == len(data)
@@ -528,7 +545,7 @@ class TestJSONList:
         assert synced_list[0] == d2
         assert synced_list[1] == d1
 
-    @given(st.lists(JSONDataStrategy, max_size=5))
+    @given(ListStrategy)
     def test_call(self, synced_list, testdata):
         synced_list.reset(testdata)
         assert len(synced_list) == len(testdata)
@@ -550,7 +567,7 @@ class TestJSONList:
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
-            synced_list.load()
+            synced_list == data2
 
         # reset the file
         self.store([])
@@ -585,7 +602,7 @@ class TestJSONList:
     def test_str(self, synced_list):
         str(synced_list) == str(synced_list.to_base())
 
-    @given(st.lists(JSONDataStrategy, max_size=5), JSONDataStrategy)
+    @given(ListStrategy, JSONDataStrategy)
     def test_nested_list(self, synced_list, testdata_list, testdata):
         synced_list.reset([testdata_list])
         child1 = synced_list[0]
@@ -609,7 +626,7 @@ class TestJSONList:
         assert isinstance(child1, type(synced_list))
         assert id(child1) == id(child2)
 
-    @given(key=DictKeyStrategy, testdata=st.lists(JSONDataStrategy, max_size=5))
+    @given(key=DictKeyStrategy, testdata=ListStrategy)
     def test_nested_list_with_dict(self, synced_list, key, testdata):
         synced_list.reset([{key: testdata}])
         child1 = synced_list[0]
@@ -620,21 +637,23 @@ class TestJSONList:
 
 class TestJSONDictWriteConcern(TestJSONDict):
 
-    @pytest.fixture
+    @pytest.fixture(scope='class')
     def synced_dict(self):
+        cls = type(self)
         _tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        self._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
-        _backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        cls._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
+        _backend_kwargs = {'filename': cls._fn_, 'write_concern': True}
         yield JSONDict(**_backend_kwargs)
         _tmp_dir.cleanup()
 
 
 class TestJSONListWriteConcern(TestJSONList):
 
-    @pytest.fixture
+    @pytest.fixture(scope='class')
     def synced_list(self):
+        cls = type(self)
         _tmp_dir = TemporaryDirectory(prefix='jsondict_')
-        self._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
-        _backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        cls._fn_ = os.path.join(_tmp_dir.name, FN_JSON)
+        _backend_kwargs = {'filename': cls._fn_, 'write_concern': True}
         yield JSONList(**_backend_kwargs)
         _tmp_dir.cleanup()
