@@ -6,17 +6,6 @@ API Reference
 
 This is the API for the **signac** (core) application.
 
-Command Line Interface
-======================
-
-Some core **signac** functions are---in addition to the Python interface---accessible
-directly via the ``$ signac`` command.
-
-For more information, please see ``$ signac --help``.
-
-.. literalinclude:: cli-help.txt
-
-
 The Project
 ===========
 

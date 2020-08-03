@@ -50,6 +50,7 @@ extensions = [
     'nbsphinx',
     'sphinx.ext.napoleon',
     'IPython.sphinxext.ipython_console_highlighting',
+    'sphinxcontrib.programoutput',
     'sphinx.ext.autosummary',
 ]
 
