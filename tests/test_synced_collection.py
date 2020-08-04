@@ -646,7 +646,7 @@ class TestZarrDict(TestJSONDict):
         dataset[0] = data
 
 
-@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
+@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
 class TestZarrList(TestJSONList):
 
     @pytest.fixture(autouse=True)
