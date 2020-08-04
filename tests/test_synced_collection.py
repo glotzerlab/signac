@@ -29,9 +29,9 @@ except ImportError:
 try:
     import zarr
     import numcodecs  # zarr depends on numcodecs
-    ZARR = True
+    Zarr = True
 except ImportError:
-    ZARR = False
+    Zarr = False
 
 try:
     import redis
@@ -42,7 +42,7 @@ try:
         assert json.loads(RedisClient.get(test_key)) == 0
         RedisClient.flushall()
         REDIS = True
-    except (redis.exceptions.ConnectionError, AssertionError) :
+    except (redis.exceptions.ConnectionError, AssertionError):
         REDIS = False
 except ImportError:
     REDIS = False
@@ -670,7 +670,7 @@ class TestRedisDict(TestJSONDict):
     def synced_dict(self, request):
         self._client = RedisClient
         request.addfinalizer(self._client.flushall)
-        self._name ='test'
+        self._name = 'test'
         yield RedisDict(name=self._name, client=self._client)
 
     def store(self, data):
@@ -684,7 +684,7 @@ class TestRedisList(TestJSONList):
     def synced_list(self, request):
         self._client = RedisClient
         request.addfinalizer(self._client.flushall)
-        self._name ='test'
+        self._name = 'test'
         yield RedisList(name=self._name, client=self._client)
 
     def store(self, data):
