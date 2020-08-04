@@ -15,6 +15,8 @@ from signac.core.jsoncollection import JSONDict
 from signac.core.jsoncollection import JSONList
 from signac.core.zarrcollection import ZarrDict
 from signac.core.zarrcollection import ZarrList
+from signac.core.rediscollection import RedisDict
+from signac.core.rediscollection import RedisList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -27,9 +29,23 @@ except ImportError:
 try:
     import zarr
     import numcodecs  # zarr depends on numcodecs
-    Zarr = True
+    ZARR = True
 except ImportError:
-    Zarr = False
+    ZARR = False
+
+try:
+    import redis
+    try:
+        RedisClient = redis.Redis()
+        test_key = str(uuid.uuid4())
+        RedisClient.set(test_key, 0)
+        assert json.loads(RedisClient.get(test_key)) == 0
+        RedisClient.flushall()
+        REDIS = True
+    except (redis.exceptions.ConnectionError, AssertionError) :
+        REDIS = False
+except ImportError:
+    REDIS = False
 
 FN_JSON = 'test.json'
 
@@ -630,18 +646,46 @@ class TestZarrDict(TestJSONDict):
         dataset[0] = data
 
 
-@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
+@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrList(TestJSONList):
 
     @pytest.fixture(autouse=True)
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='zarrdict_')
+        self._tmp_dir = TemporaryDirectory(prefix='zarrlist_')
         self._store = zarr.DirectoryStore(self._tmp_dir.name)
-        self._backend_kwargs = {'name': 'test', 'store': self._store}
-        yield ZarrList(**self._backend_kwargs)
+        self._name = 'test'
+        yield ZarrList(name=self._name, store=self._store)
         self._tmp_dir.cleanup()
 
     def store(self, data):
         dataset = zarr.group(self._store).require_dataset(
             'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
         dataset[0] = data
+
+
+@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
+class TestRedisDict(TestJSONDict):
+    
+    @pytest.fixture
+    def synced_dict(self, request):
+        self._client = RedisClient
+        request.addfinalizer(self._client.flushall)
+        self._name ='test'
+        yield RedisDict(name=self._name, client=self._client)
+
+    def store(self, data):
+        self._client.set(self._name, json.dumps(data).encode())
+
+
+@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
+class TestRedisList(TestJSONList):
+
+    @pytest.fixture
+    def synced_list(self, request):
+        self._client = RedisClient
+        request.addfinalizer(self._client.flushall)
+        self._name ='test'
+        yield RedisList(name=self._name, client=self._client)
+
+    def store(self, data):
+        self._client.set(self._name, json.dumps(data).encode())
