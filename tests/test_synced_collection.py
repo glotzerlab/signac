@@ -8,7 +8,7 @@ import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
-from copy import deepcopy
+from copy import copy
 
 from signac.core.synced_list import SyncedCollection
 from signac.core.jsoncollection import JSONDict
@@ -60,22 +60,29 @@ class TestSyncedCollectionBase:
     # this fixture sets temprary directory for tests
     @pytest.fixture(autouse=True)
     def synced_collection(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='synced_collection_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         yield
         self._tmp_dir.cleanup()
 
-    def test_from_base(self):
+    def test_from_base_json(self):
         sd = SyncedCollection.from_base(filename=self._fn_,
                                         data={'a': 0}, backend='signac.core.jsoncollection')
         assert isinstance(sd, JSONDict)
         assert 'a' in sd
         assert sd['a'] == 0
 
-        # invalid input
-        with pytest.raises(ValueError):
-            SyncedCollection.from_base(data={'a': 0}, filename=self._fn_)
+    @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
+    def test_from_base_zarr(self):
+        sd = SyncedCollection.from_base(name='test',
+                                        data={'a': 0}, backend='signac.core.zarrcollection')
+        assert isinstance(sd, ZarrDict)
+        assert 'a' in sd
+        assert sd['a'] == 0
 
+    def test_from_base_no_backend(self):
+        with pytest.raises(ValueError):
+            SyncedCollection.from_base(data={'a': 0})
 
 class TestJSONDict:
 
@@ -304,7 +311,7 @@ class TestJSONDict:
     def test_reopen(self, synced_dict, testdata):
         key = 'reopen'
         synced_dict[key] = testdata
-        synced_dict2 = deepcopy(synced_dict)
+        synced_dict2 = copy(synced_dict)
         synced_dict.sync()
         del synced_dict  # possibly unsafe
         synced_dict2.load()
@@ -399,7 +406,7 @@ class TestJSONList:
 
     @pytest.fixture
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': self._write_concern}
         yield JSONList(**self._backend_kwargs)
@@ -545,14 +552,14 @@ class TestJSONList:
         self.store(data1)
         assert synced_list == data1
 
-        # inavlid data in file
+        # invalid data in file
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
             synced_list.load()
 
     def test_reopen(self, synced_list, testdata):
-        synced_list2 = deepcopy(synced_list)
+        synced_list2 = copy(synced_list)
         synced_list.append(testdata)
         synced_list.sync()
         del synced_list  # possibly unsafe
@@ -629,15 +636,15 @@ class TestJSONListWriteConcern(TestJSONList):
         self._tmp_dir.cleanup()
 
 
-@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
+@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrDict(TestJSONDict):
 
     @pytest.fixture(autouse=True)
     def synced_dict(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='zarrdict_')
         self._store = zarr.DirectoryStore(self._tmp_dir.name)
-        self._backend_kwargs = {'name': 'test', 'store': self._store}
-        yield ZarrDict(**self._backend_kwargs)
+        self._name = 'test'
+        yield ZarrDict(name=self._name, store=self._store)
         self._tmp_dir.cleanup()
 
     def store(self, data):
