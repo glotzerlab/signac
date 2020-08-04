@@ -84,6 +84,7 @@ class TestSyncedCollectionBase:
         with pytest.raises(ValueError):
             SyncedCollection.from_base(data={'a': 0})
 
+
 class TestJSONDict:
 
     @pytest.fixture
