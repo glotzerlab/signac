@@ -29,9 +29,9 @@ except ImportError:
 try:
     import zarr
     import numcodecs  # zarr depends on numcodecs
-    Zarr = True
+    ZARR = True
 except ImportError:
-    Zarr = False
+    ZARR = False
 
 try:
     import redis
@@ -653,7 +653,7 @@ class TestZarrDict(TestJSONDict):
         dataset[0] = data
 
 
-@pytest.mark.skipif(not Zarr, reason='test requires the zarr package')
+@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrList(TestJSONList):
 
     @pytest.fixture(autouse=True)
@@ -672,7 +672,7 @@ class TestZarrList(TestJSONList):
 
 @pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
 class TestRedisDict(TestJSONDict):
-    
+
     @pytest.fixture
     def synced_dict(self, request):
         self._client = RedisClient
