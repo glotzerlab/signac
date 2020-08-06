@@ -6,9 +6,6 @@
 This implements the Zarr-backend for SyncedCollection API by
 implementing sync and load methods.
 """
-import zarr
-import numcodecs
-
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
@@ -20,6 +17,9 @@ class ZarrCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, name=None, store=None, **kwargs):
+        import zarr
+        import numcodecs
+
         self._root = zarr.group(store=store)
         self._name = name
         super().__init__(**kwargs)

@@ -6,8 +6,6 @@
 This implements the Mongo-backend for SyncedCollection API by
 implementing sync and load methods.
 """
-import pymongo
-
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
@@ -20,6 +18,8 @@ class MongoCollection(SyncedCollection):
 
     def __init__(self, name=None, client=None, database='signac_db', collection='collection',
                  mongo_kwargs=None, **kwargs):
+        import pymongo
+
         if client is None:
             mongo_kwargs = mongo_kwargs if mongo_kwargs is not None else {}
             self._client = pymongo.MongoClient(**mongo_kwargs)

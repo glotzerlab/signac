@@ -7,7 +7,6 @@ This implements the Redis-backend for SyncedCollection API by
 implementing sync and load methods.
 """
 import json
-import redis
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
@@ -20,6 +19,8 @@ class RedisCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, name=None, client=None, redis_kwargs=None, **kwargs):
+        import redis
+
         if client is None:
             redis_kwargs = redis_kwargs if redis_kwargs is not None else {}
             self._client = redis.Redis(**redis_kwargs)
