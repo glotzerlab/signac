@@ -53,8 +53,17 @@ except ImportError:
 try:
     import pymongo
     import bson  # required for invalid data error
-    MongoClient = pymongo.MongoClient()
-    PYMONGO = True
+    try:
+        # test the mongodb server
+        MongoClient = pymongo.MongoClient()
+        tmp_collection = MongoClient['test_db']['test']
+        tmp_collection.insert_one({'test': '0'})
+        ret = tmp_collection.find_one({'test': '0'})
+        assert ret['test'] == '0'
+        tmp_collection.drop()
+        PYMONGO = True
+    except (pymongo.errors.ServerSelectionTimeoutError, AssertionError):
+        PYMONGO = False
 except ImportError:
     PYMONGO = False
 
@@ -727,7 +736,7 @@ class TestRedisList(TestJSONList):
         self._client.set(self._name, json.dumps(data).encode())
 
 
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package')
+@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
 class TestMongoDict(TestJSONDict):
 
     @pytest.fixture
@@ -758,7 +767,7 @@ class TestMongoDict(TestJSONDict):
         assert synced_dict[key] == testdata
 
 
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package')
+@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
 class TestMongoList(TestJSONList):
 
     @pytest.fixture
