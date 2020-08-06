@@ -83,7 +83,7 @@ class MongoDict(MongoCollection, SyncedAttrDict):
     ----------
     name: str
         The name of the  collection (Default value = None).
-    client:
+    client: object
         A Mongo client.
     mongo_kwargs: dict
         kwargs arguments passed through to the `pymongo.MongoClient` function.
@@ -92,7 +92,7 @@ class MongoDict(MongoCollection, SyncedAttrDict):
     collection : string
         Name of collection (Default value = 'collection')
     data: mapping, optional
-        The intial data pass to MOngoDict. Defaults to `dict()`
+        The intial data pass to MongoDict. Defaults to `dict()`
     parent: object, optional
         A parent instance of MongoDict or None (Default value = None).
     """
@@ -107,7 +107,7 @@ class MongoList(MongoCollection, SyncedList):
 
     .. code-block:: python
 
-        synced_list = RedisList('data')
+        synced_list = MongoList('data')
         synced_list.append("bar")
         assert synced_list[0] == "bar"
         assert len(synced_list) == 1
@@ -130,15 +130,15 @@ class MongoList(MongoCollection, SyncedList):
     client:
         A Mongo client.
     Mongo_kwargs: dict
-        kwargs arguments passed through to the `Mongo.Mongo` function.
+        kwargs arguments passed through to the `pymongo.MongoClient` function.
     database : string
         Name of database (Default value = 'signac_db').
     collection : string
         Name of collection (Default value = 'collection')
     data: mapping, optional
-        The intial data pass to MongoDict. Defaults to `list()`
+        The intial data pass to MongoList. Defaults to `list()`
     parent: object, optional
-        A parent instance of MongoDict or None (Default value = None).
+        A parent instance of MongoList or None (Default value = None).
     """
 
     pass

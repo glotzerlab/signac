@@ -52,7 +52,7 @@ except ImportError:
 
 try:
     import pymongo
-    import bson  # required for invalid data error
+    import bson  # required for invalid data error in test_write_invalid_type
     try:
         # test the mongodb server
         MongoClient = pymongo.MongoClient()

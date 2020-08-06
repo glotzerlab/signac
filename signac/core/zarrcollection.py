@@ -123,11 +123,11 @@ class ZarrList(ZarrCollection, SyncedList):
     name: str
         The name of the  collection.
     data: mapping, optional
-        The intial data pass to ZarrDict. Defaults to `list()`.
+        The intial data pass to ZarrList. Defaults to `list()`.
     store: mapping
         A zarr store to synchronise the data
     parent: object, optional
-        A parent instance of ZarrDict or None (Default value = None).
+        A parent instance of ZarrList or None (Default value = None).
     """
 
     pass

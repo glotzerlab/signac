@@ -83,7 +83,7 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     ----------
     name: str
         The name of the  collection (Default value = None).
-    client:
+    client: object
         A redis client.
     redis_kwargs: dict
         kwargs arguments passed through to the `redis.Redis` function.
@@ -91,8 +91,6 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         The intial data pass to RedisDict. Defaults to `dict()`
     parent: object, optional
         A parent instance of RedisDict or None (Default value = None).
-
-
     """
 
     pass
@@ -126,14 +124,14 @@ class RedisList(RedisCollection, SyncedList):
     ----------
     name: str
         The name of the  collection (Default value = None).
-    client:
+    client: object
         A redis client.
     redis_kwargs: dict
         kwargs arguments passed through to the `redis.Redis` function.
     data: mapping, optional
-        The intial data pass to RedisDict. Defaults to `list()`
+        The intial data pass to RedisList. Defaults to `list()`
     parent: object, optional
-        A parent instance of RedisDict or None (Default value = None).
+        A parent instance of RedisList or None (Default value = None).
 
     """
 
