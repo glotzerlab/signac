@@ -38,11 +38,12 @@ except ImportError:
 try:
     import redis
     try:
+        # try to connect to server
         RedisClient = redis.Redis()
         test_key = str(uuid.uuid4())
         RedisClient.set(test_key, 0)
-        assert json.loads(RedisClient.get(test_key)) == 0
-        RedisClient.flushall()
+        assert RedisClient.get(test_key) == b'0'  # redis store data as bytes
+        RedisClient.delete(test_key)
         REDIS = True
     except (redis.exceptions.ConnectionError, AssertionError):
         REDIS = False
