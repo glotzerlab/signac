@@ -35,7 +35,6 @@ class MongoCollection(SyncedCollection):
                 "Illegal argument combination, one of the two arguments, "
                 "parent or name must be None, but not both.")
 
-
     def _load(self):
         """Load the data from a Mongo-database."""
         blob = self._collection.find_one({self._key: self._name})

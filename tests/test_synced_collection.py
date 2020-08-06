@@ -103,7 +103,7 @@ class TestSyncedCollectionBase:
     def test_from_base_redis(self):
         sd = SyncedCollection.from_base(name='test', data={'a': 0}, client=RedisClient,
                                         backend='signac.core.rediscollection')
-        assert isinstance(sd, ResisDict)
+        assert isinstance(sd, RedisDict)
         assert 'a' in sd
         assert sd['a'] == 0
 
@@ -741,7 +741,6 @@ class TestMongoDict(TestJSONDict):
         data_to_insert = {'MongoDict::name': self._name, 'data': data}
         self._client.test_db.test_dict.replace_one({'MongoDict::name': self._name}, data_to_insert)
 
-
     def test_write_invalid_type(self, synced_dict, testdata):
         # mongodict return InvalidDocument error for objects
         class Foo(object):
@@ -756,7 +755,6 @@ class TestMongoDict(TestJSONDict):
             synced_dict[key + '2'] = d2
         assert len(synced_dict) == 1
         assert synced_dict[key] == testdata
-
 
 
 @pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package')
