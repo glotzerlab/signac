@@ -28,12 +28,13 @@ class MongoCollection(SyncedCollection):
         self._db = self._client.get_database(database)
         self._collection = self._db.get_collection(collection)
         self._name = name
-        self._key = 'name'
+        self._key = type(self).__name__ + '::name'
+        super().__init__(**kwargs)
         if (name is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or name must be None, but not both.")
-        super().__init__(**kwargs)
+
 
     def _load(self):
         """Load the data from a Mongo-database."""
