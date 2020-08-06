@@ -18,10 +18,11 @@ class ZarrCollection(SyncedCollection):
 
     def __init__(self, name=None, store=None, **kwargs):
         import zarr
-        import numcodecs
+        import numcodecs  # zarr depends on numcodecs
 
         self._root = zarr.group(store=store)
         self._name = name
+        self._object_codec = numcodecs.JSON()
         super().__init__(**kwargs)
         if (name is None) == (self._parent is None):
             raise ValueError(
@@ -42,7 +43,7 @@ class ZarrCollection(SyncedCollection):
         data = self.to_base()
         # Serialize data:
         dataset = self._root.require_dataset(
-            self._name, overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
+            self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
         dataset[0] = data
 
 
