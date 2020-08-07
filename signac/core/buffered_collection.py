@@ -7,6 +7,7 @@ import errno
 import sys
 import logging
 from contextlib import contextmanager
+from abc import abstractmethod
 
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
@@ -15,13 +16,9 @@ from .errors import Error
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BUFFER_SIZE = 32 * 2**20    # 32 MB
-
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFER_SIZE = None
 _BUFFER = dict()
-_BACKEND_DATA = dict()
 _FILEMETA = dict()
 
 
@@ -56,21 +53,11 @@ def _get_filemetadata(filename):
             raise
 
 
-def _store_in_buffer(id, blob, backend_kwargs, metadata=None, synced_data=False):
+def _store_in_buffer(id, backend_kwargs, cache, metadata=None):
     assert _BUFFERED_MODE > 0
-    blob_size = sys.getsizeof(blob)
-    buffer_load = get_buffer_load()
-    if _BUFFER_SIZE > 0:
-        if blob_size > _BUFFER_SIZE:
-            return False
-        elif blob_size + buffer_load > _BUFFER_SIZE:
-            logger.debug("Buffer overflow, flushing...")
-            flush_all()
-    _BUFFER[id] = blob
-    _BACKEND_DATA[id] = (backend_kwargs, synced_data)
+    _BUFFER[id] = (backend_kwargs, cache)
     if not _BUFFERED_MODE_FORCE_WRITE:
         _FILEMETA[id] = metadata
-    return True
 
 
 def flush_all():
@@ -78,32 +65,22 @@ def flush_all():
     logger.debug("Flushing buffer...")
     issues = dict()
     while _BUFFER:
-        id, blob = _BUFFER.popitem()
-        backend_kwargs, synced_data = _BACKEND_DATA.pop(id)
+        id, (backend_kwargs, cache) = _BUFFER.popitem()
         if not _BUFFERED_MODE_FORCE_WRITE:
             meta = _FILEMETA.pop(id)
-            obj = SyncedCollection.from_base(data=blob, no_sync=True, **backend_kwargs)
+            backend_class = SyncedCollection.from_backend(backend_kwargs['backend'])
+            data = backend_class._read_from_cache(id, cache)
+            obj = SyncedCollection.from_base(data, cache=cache, no_sync=True, **backend_kwargs)
             if obj._get_metadata() != meta:
                 issues[id] = 'File appears to have been externally modified.'
                 continue
-        if not synced_data:
             try:
-                obj._sync(data=blob)
+                obj._sync()
             except OSError as error:
                 logger.error(str(error))
                 issues[id] = error
     if issues:
         raise BufferedFileError(issues)
-
-
-def get_buffer_size():
-    """Return the current maximum size of the read/write buffer."""
-    return _BUFFER_SIZE
-
-
-def get_buffer_load():
-    """Return the current actual size of the read/write buffer."""
-    return sum((sys.getsizeof(x) for x in _BUFFER.values()))
 
 
 def in_buffered_mode():
@@ -112,8 +89,8 @@ def in_buffered_mode():
 
 
 @contextmanager
-def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
-    """Enter a global buffer mode for all JSONDict instances.
+def buffer_reads_writes(force_write=False):
+    """Enter a global buffer mode for all SyncedCollection instances.
 
     All future write operations are written to the buffer, read
     operations are performed from the buffer whenever possible.
@@ -121,17 +98,9 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     All write operations are deferred until the flush_all() function
     is called, the buffer overflows, or upon exiting the buffer mode.
 
-    This context may be entered multiple times, however the buffer size
-    can only be set *once*. Any subsequent specifications of the buffer
-    size are ignored.
-
     Parameters
     ----------
 
-    buffer_size: int
-        Specify the maximum size of the read/write buffer. Defaults
-        to DEFAULT_BUFFER_SIZE. A negative number indicates to not
-        restrict the buffer size.
     force_mode: bool
         If true, overwrites the metadata check.
 
@@ -141,13 +110,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     """
     global _BUFFERED_MODE
     global _BUFFERED_MODE_FORCE_WRITE
-    global _BUFFER_SIZE
     assert _BUFFERED_MODE >= 0
-
-    # Basic type check (to prevent common user error)
-    if not isinstance(buffer_size, int) or \
-            buffer_size is True or buffer_size is False:    # explicit check against boolean
-        raise TypeError("The buffer size must be an integer!")
 
     # Can't enter force write mode, if already in non-force write mode:
     if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
@@ -155,11 +118,6 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
             "Unable to enter buffered mode with force write enabled, because "
             "we are already in buffered mode with force write disabled.")
 
-    # Check whether we can adjust the buffer size and warn otherwise:
-    if _BUFFER_SIZE is not None and _BUFFER_SIZE != buffer_size:
-        raise BufferException("Buffer size already set, unable to change its size!")
-
-    _BUFFER_SIZE = buffer_size
     _BUFFERED_MODE_FORCE_WRITE = force_write
     _BUFFERED_MODE += 1
     try:
@@ -171,51 +129,31 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
                 flush_all()
             finally:
                 assert not _BUFFER
-                assert not _BACKEND_DATA
                 assert not _FILEMETA
-                _BUFFER_SIZE = None
                 _BUFFERED_MODE_FORCE_WRITE = None
 
 
 class BufferedSyncedCollection(SyncedCollection):
     """Implement in-memory buffering, which is independent of back-end and data-type."""
 
-    def load(self):
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                if _BUFFERED_MODE > 0:
-                    if self._id in _BUFFER:
-                        # Load from buffer:
-                        blob = _BUFFER[self._id]
-                    else:
-                        # Load from disk and store in buffer
-                        blob = self._load()
+    def _sync_to_backend(self):
+        if _BUFFERED_MODE > 0:
+            # Storing in buffer
+            _store_in_buffer(
+                self._id, self.backend_kwargs, self._cache, metadata=self._get_metadata())
+        else:
+            # Saving to underlying backend:
+            self._sync()
 
-                        _store_in_buffer(self._id, blob, self.backend_kwargs,
-                                         metadata=self._get_metadata(), synced_data=True)
-                else:
-                    # Just load from disk
-                    blob = self._load()
-                # Reset the instance
-                with self._suspend_sync():
-                    self._update(blob)
-            else:
-                self._parent.load()
+    @classmethod
+    @abstractmethod
+    def _write_to_cache(cls, id, data, cache):
+        pass
 
-    def sync(self):
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                with self._suspend_sync():
-                    data = self.to_base()
-                if _BUFFERED_MODE > 0:
-                    # Storing in buffer
-                    _store_in_buffer(
-                        self._id, data, self.backend_kwargs, metadata=self._get_metadata())
-                else:
-                    # Saving to disk:
-                    self._sync(data)
-            else:
-                self._parent.sync()
+    @classmethod
+    @abstractmethod
+    def _read_from_cache(cls, id, cache):
+        pass
 
 
 class BufferedCollection(SyncedCollection):

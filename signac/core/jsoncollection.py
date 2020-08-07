@@ -6,7 +6,6 @@
 This implements the JSON-backend for SyncedCollection API by
 implementing sync and load methods.
 """
-
 import os
 import json
 import errno
@@ -39,8 +38,8 @@ class JSONCollection(BufferedSyncedCollection):
         self.backend_kwargs['filename'] = None if filename is None else os.path.realpath(filename)
         self.backend_kwargs['write_concern'] = write_concern
         self.backend_kwargs['backend'] = self.backend
-        self._id = uuid.uuid5(get_namespace(type(self).__name__),
-                              self.backend_kwargs['filename']) if filename else None
+        self._id = str(uuid.uuid5(get_namespace(type(self).__name__),
+                              self.backend_kwargs['filename'])) if filename else None
         if not no_sync and data is not None:
             self.sync()
 
@@ -73,6 +72,27 @@ class JSONCollection(BufferedSyncedCollection):
         else:
             with open(_filename, 'wb') as file:
                 file.write(blob)
+
+    @classmethod
+    def _write_to_cache(cls, id, data, cache):
+        # Serialize data
+        blob = json.dumps(data)
+        cache[id] = blob
+
+    def write_to_cache(self, data=None):
+        data = self.to_base() if data is None else data
+        self._write_to_cache(self._id, data, self._cache)
+
+    @classmethod
+    def _read_from_cache(cls, id, cache):
+        try:
+            data = cache[id]
+        except Exception:
+            data = None
+        return json.loads(data) if data is not None else None
+
+    def read_from_cache(self):
+        return self._read_from_cache(self._id, self._cache)
 
     def _get_metadata(self):
         return _get_filemetadata(self.backend_kwargs['filename'])
@@ -166,4 +186,4 @@ class JSONList(JSONCollection, SyncedList):
     pass
 
 
-SyncedCollection.register(JSONDict, JSONList)
+SyncedCollection.register(JSONCollection, JSONDict, JSONList)

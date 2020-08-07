@@ -14,6 +14,8 @@ from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
 
+from .caching import get_cache
+
 try:
     import numpy
     NUMPY = True
@@ -31,11 +33,12 @@ class SyncedCollection(Collection):
 
     backend = None
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, cache=None):
         self._data = None
         self._parent = parent
         self.backend_kwargs = {}
         self._suspend_sync_ = 0
+        self._cache = cache if cache is not None else get_cache()
 
     @classmethod
     def register(cls, *args):
@@ -51,8 +54,13 @@ class SyncedCollection(Collection):
         """
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
+        if not hasattr(cls, 'backend_registry'):
+            cls.backend_registry = []
         for _cls in args:
-            cls.registry[_cls.backend].append(_cls)
+            if not _cls.__abstractmethods__:
+                cls.registry[_cls.backend].append(_cls)
+            elif _cls.backend:
+                cls.backend_registry.append(_cls)
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
@@ -83,6 +91,13 @@ class SyncedCollection(Collection):
                 return data.item()
         return data
 
+    @classmethod
+    def from_backend(cls, backend):
+        for _cls in  cls.backend_registry:
+            if _cls.backend == backend:
+                return _cls
+        raise ValueError("{backend} backend not found.".format(backend=backend))
+
     @abstractmethod
     def to_base(self):
         """Dynamically resolve the synced collection to the corresponding base type."""
@@ -107,15 +122,29 @@ class SyncedCollection(Collection):
         pass
 
     @abstractmethod
-    def _sync(self):
+    def _sync(self, data):
         """Write data to underlying backend."""
         pass
+
+    @abstractmethod
+    def write_to_cache(self, data=None):
+        """Write data to cache."""
+        pass
+
+    @abstractmethod
+    def read_from_cache(self):
+        """Read data from cache."""
+        pass
+
+    def _sync_to_backend(self):
+        self._sync()
 
     def sync(self):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                self._sync()
+                self._sync_to_backend()
+                self.write_to_cache()
             else:
                 self._parent.sync()
 
@@ -123,7 +152,10 @@ class SyncedCollection(Collection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                data = self._load()
+                data = self.read_from_cache()
+                if data is None:
+                    data = self._load()
+                    self.write_to_cache(data)
                 with self._suspend_sync():
                     self._update(data)
             else:
