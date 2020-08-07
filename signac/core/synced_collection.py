@@ -93,7 +93,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def from_backend(cls, backend):
-        for _cls in  cls.backend_registry:
+        for _cls in cls.backend_registry:
             if _cls.backend == backend:
                 return _cls
         raise ValueError("{backend} backend not found.".format(backend=backend))

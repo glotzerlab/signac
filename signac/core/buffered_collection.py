@@ -4,7 +4,6 @@
 """Implement the buffering feature to  SyncedCollection API."""
 import os
 import errno
-import sys
 import logging
 from contextlib import contextmanager
 from abc import abstractmethod
