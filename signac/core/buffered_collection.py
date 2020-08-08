@@ -67,8 +67,10 @@ def flush_all():
         id, (backend_kwargs, cache) = _BUFFER.popitem()
         if not _BUFFERED_MODE_FORCE_WRITE:
             meta = _FILEMETA.pop(id)
+            # extract the data from cache
             backend_class = SyncedCollection.from_backend(backend_kwargs['backend'])
             data = backend_class._read_from_cache(id, cache)
+
             obj = SyncedCollection.from_base(data, cache=cache, no_sync=True, **backend_kwargs)
             if obj._get_metadata() != meta:
                 issues[id] = 'File appears to have been externally modified.'
@@ -144,6 +146,7 @@ class BufferedSyncedCollection(SyncedCollection):
             # Saving to underlying backend:
             self._sync()
 
+    # These methods are used to read the from cache while flushing buffer
     @classmethod
     @abstractmethod
     def _write_to_cache(cls, id, data, cache):
@@ -165,16 +168,24 @@ class BufferedCollection(SyncedCollection):
 
     backend = 'buffered'  # type: ignore
 
+    # overwritting load and sync methods
     def load(self):
         pass
 
     def sync(self):
         pass
 
+    # defining abstractmethods
     def _load(self):
         pass
 
     def _sync(self):
+        pass
+
+    def write_to_cache(self):
+        pass
+
+    def read_from_cache(self):
         pass
 
     def flush(self):
