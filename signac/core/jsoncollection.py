@@ -17,6 +17,40 @@ from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 
 
+class JSONFormatValidator:
+
+    @classmethod
+    def validate(cls, data):
+        if isinstance(data, (str, int, float, bool, type(None))):
+            return data
+        elif isinstance(data, Mapping):
+            ret = {}
+            for key, value in data:
+                if isinstance(key, (int, bool, type(None))):
+                    warnings.warn(
+                        "Use of {} as key is deprecated and will be removed in version 2.0")
+                    new_key = str(key)
+                elif isinstance(key, str):
+                    new_key = key
+                else:
+                    raise KeyTypeError(
+                        "Keys must be str, int, bool or None, not {}".format(type(key).__name__))
+                new_value = cls.validate(value)
+                ret[new_key] = new_value
+            return ret
+        elif isinstance(data, Sequence):
+            for i in range(len(data)):
+                data[i] = cls.validate(data[i])
+        elif NUMPY:
+            if isinstance(data, numpy.ndarray):
+                data = data.tolist()
+                return cls.validate(data)
+            if isinstance(data, numpy.number):
+                return data.item()
+        else:
+            raise TypeError("object of {} is not ......".format(type(data))
+
+
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
