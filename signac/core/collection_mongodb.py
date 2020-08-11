@@ -38,7 +38,7 @@ class MongoDBCollection(SyncedCollection):
         self._collection.replace_one({self._key: self._name}, data_to_insert, True)
 
 
-class MongoDict(MongoCollection, SyncedAttrDict):
+class MongoDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Mongo-database.
 
     The MongoDict inherits from :class:`~core.collection_api.MongoCollection`
@@ -85,7 +85,7 @@ class MongoDict(MongoCollection, SyncedAttrDict):
     pass
 
 
-class MongoList(MongoCollection, SyncedList):
+class MongoList(MongoDBCollection, SyncedList):
     """A non-string sequence interface to a persistent Mongo file.
 
     The MongoDict inherits from :class:`~core.synced_collection.SyncedCollection`
