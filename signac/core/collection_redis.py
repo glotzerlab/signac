@@ -18,14 +18,8 @@ class RedisCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, client=None, redis_kwargs=None, **kwargs):
-        import redis
-
-        if client is None:
-            redis_kwargs = redis_kwargs if redis_kwargs is not None else {}
-            self._client = redis.Redis(**redis_kwargs)
-        else:
-            self._client = client
+    def __init__(self, name=None, client=None **kwargs):
+        self._client = client
         self._name = name
         super().__init__(**kwargs)
         if (name is None) == (self._parent is None):
@@ -36,15 +30,11 @@ class RedisCollection(SyncedCollection):
     def _load(self):
         """Load the data from a Redis-database."""
         blob = self._client.get(self._name)
-        return json.loads(blob) if blob is not None else blob
+        return None if blob is None else json.loads(blob)
 
     def _sync(self):
         """Write the data from Redis-database."""
-        data = self.to_base()
-        # Serialize data:
-        blob = json.dumps(data).encode()
-
-        self._client.set(self._name, blob)
+        self._client.set(self._name, json.dumps(self.to_base()).encode())
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
@@ -85,8 +75,6 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         The name of the  collection (Default value = None).
     client: object
         A redis client.
-    redis_kwargs: dict
-        kwargs arguments passed through to the `redis.Redis` function.
     data: mapping, optional
         The intial data pass to RedisDict. Defaults to `dict()`
     parent: object, optional
@@ -126,8 +114,6 @@ class RedisList(RedisCollection, SyncedList):
         The name of the  collection (Default value = None).
     client: object
         A redis client.
-    redis_kwargs: dict
-        kwargs arguments passed through to the `redis.Redis` function.
     data: mapping, optional
         The intial data pass to RedisList. Defaults to `list()`
     parent: object, optional

@@ -16,11 +16,10 @@ class ZarrCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, store=None, **kwargs):
-        import zarr
+    def __init__(self, name=None, group=None, **kwargs):
         import numcodecs  # zarr depends on numcodecs
 
-        self._root = zarr.group(store=store)
+        self._root = group
         self._name = name
         self._object_codec = numcodecs.JSON()
         super().__init__(**kwargs)
@@ -32,16 +31,13 @@ class ZarrCollection(SyncedCollection):
     def _load(self):
         """Load the data from a Radis-database."""
         try:
-            dataset = self._root[self._name]
-            data = dataset[0]
+            return self._root[self._name][0]
         except KeyError:
-            data = None
-        return data
+            return None
 
     def _sync(self):
         """Write the data from Radis-database."""
         data = self.to_base()
-        # Serialize data:
         dataset = self._root.require_dataset(
             self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
         dataset[0] = data
@@ -85,8 +81,8 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         The name of the  collection (Default value = None).
     data: mapping, optional
         The intial data pass to ZarrDict. Defaults to `dict()`.
-    store: mapping
-        A zarr store to synchronise the data
+    group: object
+        A zarr.hierarchy.Group instance
     parent: object, optional
         A parent instance of ZarrDict or None (Default value = None).
     """
@@ -124,8 +120,8 @@ class ZarrList(ZarrCollection, SyncedList):
         The name of the  collection.
     data: mapping, optional
         The intial data pass to ZarrList. Defaults to `list()`.
-    store: mapping
-        A zarr store to synchronise the data
+    group: object
+        A zarr.hierarchy.Group instance
     parent: object, optional
         A parent instance of ZarrList or None (Default value = None).
     """

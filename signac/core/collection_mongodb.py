@@ -1,9 +1,9 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements Mongo-backend.
+"""Implements MongoDB-backend.
 
-This implements the Mongo-backend for SyncedCollection API by
+This implements the MongoDB-backend for SyncedCollection API by
 implementing sync and load methods.
 """
 from .synced_collection import SyncedCollection
@@ -11,22 +11,13 @@ from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 
 
-class MongoCollection(SyncedCollection):
-    """Implement sync and load using a Mongo backend."""
+class MongoDBCollection(SyncedCollection):
+    """Implement sync and load using a MongoDB backend."""
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, client=None, database='signac_db', collection='collection',
-                 mongo_kwargs=None, **kwargs):
-        import pymongo
-
-        if client is None:
-            mongo_kwargs = mongo_kwargs if mongo_kwargs is not None else {}
-            self._client = pymongo.MongoClient(**mongo_kwargs)
-        else:
-            self._client = client
-        self._db = self._client.get_database(database)
-        self._collection = self._db.get_collection(collection)
+    def __init__(self, name=None, collection, **kwargs):
+        self._collection = collection
         self._name = name
         self._key = type(self).__name__ + '::name'
         super().__init__(**kwargs)
@@ -83,19 +74,14 @@ class MongoDict(MongoCollection, SyncedAttrDict):
     ----------
     name: str
         The name of the  collection (Default value = None).
-    client: object
-        A Mongo client.
-    mongo_kwargs: dict
-        kwargs arguments passed through to the `pymongo.MongoClient` function.
-    database : string
-        Name of database (Default value = 'signac_db').
-    collection : string
-        Name of collection (Default value = 'collection')
+    collection : object
+        A pymongo.Collection instance
     data: mapping, optional
         The intial data pass to MongoDict. Defaults to `dict()`
     parent: object, optional
         A parent instance of MongoDict or None (Default value = None).
     """
+
     pass
 
 
@@ -127,14 +113,8 @@ class MongoList(MongoCollection, SyncedList):
     ----------
     name: str
         The name of the  collection (Default value = None).
-    client:
-        A Mongo client.
-    Mongo_kwargs: dict
-        kwargs arguments passed through to the `pymongo.MongoClient` function.
-    database : string
-        Name of database (Default value = 'signac_db').
-    collection : string
-        Name of collection (Default value = 'collection')
+    collection : object
+        A pymongo.Collection instance
     data: mapping, optional
         The intial data pass to MongoList. Defaults to `list()`
     parent: object, optional
