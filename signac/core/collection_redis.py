@@ -18,7 +18,7 @@ class RedisCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, client=None **kwargs):
+    def __init__(self, name=None, client=None, **kwargs):
         self._client = client
         self._name = name
         super().__init__(**kwargs)

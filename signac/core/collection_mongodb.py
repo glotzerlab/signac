@@ -16,7 +16,7 @@ class MongoDBCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, collection, **kwargs):
+    def __init__(self, collection, name=None, **kwargs):
         self._collection = collection
         self._name = name
         self._key = type(self).__name__ + '::name'

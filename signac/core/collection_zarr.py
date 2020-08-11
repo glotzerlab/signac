@@ -29,14 +29,14 @@ class ZarrCollection(SyncedCollection):
                 "parent or name must be None, but not both.")
 
     def _load(self):
-        """Load the data from a Radis-database."""
+        """Load the data."""
         try:
             return self._root[self._name][0]
         except KeyError:
             return None
 
     def _sync(self):
-        """Write the data from Radis-database."""
+        """Write the data."""
         data = self.to_base()
         dataset = self._root.require_dataset(
             self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
