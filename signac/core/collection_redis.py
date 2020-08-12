@@ -32,8 +32,9 @@ class RedisCollection(SyncedCollection):
         self._client.set(self._name, json.dumps(self.to_base()).encode())
 
     def __deepcopy__(self, memo):
-        return type(self)(client=self._client, name=self._name, data=self.to_base()
+        return type(self)(client=self._client, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
+
 
 class RedisDict(RedisCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Redis-database.

@@ -39,7 +39,7 @@ class MongoDBCollection(SyncedCollection):
             raise TypeError(str(err))
 
     def __deepcopy__(self, memo):
-        return type(self)(client=self._collection, name=self._name, data=self.to_base()
+        return type(self)(client=self._collection, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
 
 
