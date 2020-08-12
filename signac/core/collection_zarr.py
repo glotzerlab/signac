@@ -6,6 +6,8 @@
 This implements the Zarr-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+from copy import deepcopy
+
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
@@ -36,6 +38,10 @@ class ZarrCollection(SyncedCollection):
         dataset = self._root.require_dataset(
             self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
         dataset[0] = data
+
+    def __deepcopy__(self, memo):
+        return type(self)(group=self._root, name=self._name, data=self.to_base(),
+                          parent=deepcopy(self._parent, memo))
 
 
 class ZarrDict(ZarrCollection, SyncedAttrDict):
