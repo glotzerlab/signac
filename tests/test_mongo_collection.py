@@ -33,7 +33,7 @@ class TestMongoDict(TestJSONDict):
         self._client = MongoClient
         self._name = 'test'
         self._collection = self._client.test_db.test_dict
-        yield MongoDict(name=self._name, collection= self._collection)
+        yield MongoDict(name=self._name, collection=self._collection)
         self._collection.drop()
 
     def store(self, data):

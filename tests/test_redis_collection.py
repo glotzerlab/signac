@@ -2,6 +2,8 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
+import json
+import uuid
 
 from signac.core.collection_redis import RedisDict
 from signac.core.collection_redis import RedisList
