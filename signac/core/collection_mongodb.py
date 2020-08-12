@@ -17,7 +17,7 @@ class MongoDBCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, collection, name=None, **kwargs):
-        import bson # for InvalidDocument
+        import bson  # for InvalidDocument
 
         self._collection = collection
         self._errors = bson.errors
@@ -80,8 +80,6 @@ class MongoDict(MongoDBCollection, SyncedAttrDict):
         A parent instance of MongoDict or None (Default value = None).
     """
 
-    pass
-
 
 class MongoList(MongoDBCollection, SyncedList):
     """A non-string sequence interface to a persistent Mongo file.
@@ -118,8 +116,6 @@ class MongoList(MongoDBCollection, SyncedList):
     parent: object, optional
         A parent instance of MongoList or None (Default value = None).
     """
-
-    pass
 
 
 SyncedCollection.register(MongoDict, MongoList)

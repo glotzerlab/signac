@@ -102,8 +102,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         first, before replacing the original file (Default value = None).
     """
 
-    pass
-
 
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
@@ -141,8 +139,6 @@ class JSONList(JSONCollection, SyncedList):
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
     """
-
-    pass
 
 
 SyncedCollection.register(JSONDict, JSONList)

@@ -82,8 +82,6 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         A parent instance of ZarrDict or None (Default value = None).
     """
 
-    pass
-
 
 class ZarrList(ZarrCollection, SyncedList):
     """A non-string sequence interface to a persistent Zarr file.
@@ -120,8 +118,6 @@ class ZarrList(ZarrCollection, SyncedList):
     parent: object, optional
         A parent instance of ZarrList or None (Default value = None).
     """
-
-    pass
 
 
 SyncedCollection.register(ZarrDict, ZarrList)

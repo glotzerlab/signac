@@ -76,8 +76,6 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         A parent instance of RedisDict or None (Default value = None).
     """
 
-    pass
-
 
 class RedisList(RedisCollection, SyncedList):
     """A non-string sequence interface to a persistent Redis file.
@@ -113,10 +111,7 @@ class RedisList(RedisCollection, SyncedList):
         The intial data pass to RedisList. Defaults to `list()`
     parent: object, optional
         A parent instance of RedisList or None (Default value = None).
-
     """
-
-    pass
 
 
 SyncedCollection.register(RedisDict, RedisList)
