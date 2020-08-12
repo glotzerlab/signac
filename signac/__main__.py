@@ -568,7 +568,7 @@ def main_sync(args):
         diff_src = error.schema_src.difference(error.schema_dst)
         diff_dst = error.schema_dst.difference(error.schema_src)
         only_in_dst = diff_dst.difference(diff_src)
-        only_in_src = diff_src.difference(diff_src)
+        only_in_src = diff_src.difference(diff_dst)
         diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
             keys_formatted = ('.'.join(k) for k in only_in_src)
