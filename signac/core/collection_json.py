@@ -23,13 +23,10 @@ class JSONCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
-        self._filename = os.path.realpath(filename) if filename is not None else None
+        self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
+        kwargs['name'] = filename
         super().__init__(**kwargs)
-        if (filename is None) == (self._parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
 
     def _load(self):
         """Load the data from a JSON-file."""

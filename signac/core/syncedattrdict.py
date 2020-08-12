@@ -35,7 +35,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         dictionary representation, and if necessary construct a new SyncedAttrDict.
     """
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent')
+    _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent')
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 

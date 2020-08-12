@@ -16,17 +16,12 @@ class ZarrCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, name=None, group=None, **kwargs):
+    def __init__(self, group=None, **kwargs):
         import numcodecs  # zarr depends on numcodecs
 
         self._root = group
-        self._name = name
         self._object_codec = numcodecs.JSON()
         super().__init__(**kwargs)
-        if (name is None) == (self._parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both.")
 
     def _load(self):
         """Load the data."""

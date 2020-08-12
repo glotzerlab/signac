@@ -17,14 +17,12 @@ class MongoDBCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, collection, name=None, **kwargs):
+        import bson # for InvalidDocument
+
         self._collection = collection
-        self._name = name
+        self._errors = bson.errors
         self._key = type(self).__name__ + '::name'
         super().__init__(**kwargs)
-        if (name is None) == (self._parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both.")
 
     def _load(self):
         """Load the data from a Mongo-database."""
