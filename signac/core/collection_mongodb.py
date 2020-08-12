@@ -33,7 +33,14 @@ class MongoDBCollection(SyncedCollection):
         """Write the data from Mongo-database."""
         data = self.to_base()
         data_to_insert = {self._key: self._name, 'data': data}
-        self._collection.replace_one({self._key: self._name}, data_to_insert, True)
+        try:
+            self._collection.replace_one({self._key: self._name}, data_to_insert, True)
+        except self._errors.InvalidDocument as err:
+            raise TypeError(str(err))
+
+    def __deepcopy__(self, memo):
+        return type(self)(client=self._collection, name=self._name, data=self.to_base()
+                          parent=deepcopy(self._parent, memo))
 
 
 class MongoDict(MongoDBCollection, SyncedAttrDict):
