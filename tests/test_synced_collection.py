@@ -2,23 +2,16 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
-import uuid
 import os
 import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
-from copy import copy
+from copy import deepcopy
 
 from signac.core.synced_list import SyncedCollection
-from signac.core.jsoncollection import JSONDict
-from signac.core.jsoncollection import JSONList
-from signac.core.zarrcollection import ZarrDict
-from signac.core.zarrcollection import ZarrList
-from signac.core.rediscollection import RedisDict
-from signac.core.rediscollection import RedisList
-from signac.core.mongodbcollection import MongoDict
-from signac.core.mongodbcollection import MongoList
+from signac.core.collection_json import JSONDict
+from signac.core.collection_json import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -28,56 +21,12 @@ try:
 except ImportError:
     NUMPY = False
 
-try:
-    import zarr
-    import numcodecs  # zarr depends on numcodecs
-    ZARR = True
-except ImportError:
-    ZARR = False
-
-try:
-    import redis
-    try:
-        # try to connect to server
-        RedisClient = redis.Redis()
-        test_key = str(uuid.uuid4())
-        RedisClient.set(test_key, 0)
-        assert RedisClient.get(test_key) == b'0'  # redis store data as bytes
-        RedisClient.delete(test_key)
-        REDIS = True
-    except (redis.exceptions.ConnectionError, AssertionError):
-        REDIS = False
-except ImportError:
-    REDIS = False
-
-try:
-    import pymongo
-    import bson  # required for invalid data error in test_write_invalid_type
-    try:
-        # test the mongodb server
-        MongoClient = pymongo.MongoClient()
-        tmp_collection = MongoClient['test_db']['test']
-        tmp_collection.insert_one({'test': '0'})
-        ret = tmp_collection.find_one({'test': '0'})
-        assert ret['test'] == '0'
-        tmp_collection.drop()
-        PYMONGO = True
-    except (pymongo.errors.ServerSelectionTimeoutError, AssertionError):
-        PYMONGO = False
-except ImportError:
-    PYMONGO = False
-
 FN_JSON = 'test.json'
 
 
-@pytest.fixture
-def testdata():
-    return str(uuid.uuid4())
+class TestJSONCollectionBase:
 
-
-class TestSyncedCollectionBase:
-
-    # this fixture sets temprary directory for tests
+    # this fixture sets temporary directory for tests
     @pytest.fixture(autouse=True)
     def synced_collection(self):
         self._tmp_dir = TemporaryDirectory(prefix='synced_collection_')
@@ -87,33 +36,8 @@ class TestSyncedCollectionBase:
 
     def test_from_base_json(self):
         sd = SyncedCollection.from_base(filename=self._fn_,
-                                        data={'a': 0}, backend='signac.core.jsoncollection')
+                                        data={'a': 0}, backend='signac.core.collection_json')
         assert isinstance(sd, JSONDict)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
-    def test_from_base_zarr(self):
-        sd = SyncedCollection.from_base(name='test',
-                                        data={'a': 0}, backend='signac.core.zarrcollection')
-        assert isinstance(sd, ZarrDict)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    @pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package.')
-    def test_from_base_mongo(self):
-        sd = SyncedCollection.from_base(name='test', data={'a': 0}, client=MongoClient,
-                                        backend='signac.core.mongodbcollection')
-        assert isinstance(sd, MongoDict)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    @pytest.mark.skipif(not REDIS, reason='test requires the redis package '
-                                          'and running redis-server')
-    def test_from_base_redis(self):
-        sd = SyncedCollection.from_base(name='test', data={'a': 0}, client=RedisClient,
-                                        backend='signac.core.rediscollection')
-        assert isinstance(sd, RedisDict)
         assert 'a' in sd
         assert sd['a'] == 0
 
@@ -349,7 +273,7 @@ class TestJSONDict:
     def test_reopen(self, synced_dict, testdata):
         key = 'reopen'
         synced_dict[key] = testdata
-        synced_dict2 = copy(synced_dict)
+        synced_dict2 = deepcopy(synced_dict)
         synced_dict.sync()
         del synced_dict  # possibly unsafe
         synced_dict2.load()
@@ -597,7 +521,7 @@ class TestJSONList:
             synced_list.load()
 
     def test_reopen(self, synced_list, testdata):
-        synced_list2 = copy(synced_list)
+        synced_list2 = deepcopy(synced_list)
         synced_list.append(testdata)
         synced_list.sync()
         del synced_list  # possibly unsafe
@@ -672,112 +596,3 @@ class TestJSONListWriteConcern(TestJSONList):
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
         yield JSONList(**self._backend_kwargs)
         self._tmp_dir.cleanup()
-
-
-@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
-class TestZarrDict(TestJSONDict):
-
-    @pytest.fixture(autouse=True)
-    def synced_dict(self):
-        self._tmp_dir = TemporaryDirectory(prefix='zarrdict_')
-        self._store = zarr.DirectoryStore(self._tmp_dir.name)
-        self._name = 'test'
-        yield ZarrDict(name=self._name, store=self._store)
-        self._tmp_dir.cleanup()
-
-    def store(self, data):
-        dataset = zarr.group(self._store).require_dataset(
-            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
-        dataset[0] = data
-
-
-@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
-class TestZarrList(TestJSONList):
-
-    @pytest.fixture(autouse=True)
-    def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='zarrlist_')
-        self._store = zarr.DirectoryStore(self._tmp_dir.name)
-        self._name = 'test'
-        yield ZarrList(name=self._name, store=self._store)
-        self._tmp_dir.cleanup()
-
-    def store(self, data):
-        dataset = zarr.group(self._store).require_dataset(
-            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
-        dataset[0] = data
-
-
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
-class TestRedisDict(TestJSONDict):
-
-    @pytest.fixture
-    def synced_dict(self, request):
-        self._client = RedisClient
-        request.addfinalizer(self._client.flushall)
-        self._name = 'test'
-        yield RedisDict(name=self._name, client=self._client)
-
-    def store(self, data):
-        self._client.set(self._name, json.dumps(data).encode())
-
-
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
-class TestRedisList(TestJSONList):
-
-    @pytest.fixture
-    def synced_list(self, request):
-        self._client = RedisClient
-        request.addfinalizer(self._client.flushall)
-        self._name = 'test'
-        yield RedisList(name=self._name, client=self._client)
-
-    def store(self, data):
-        self._client.set(self._name, json.dumps(data).encode())
-
-
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoDict(TestJSONDict):
-
-    @pytest.fixture
-    def synced_dict(self, request):
-        self._client = MongoClient
-        self._name = 'test'
-        yield MongoDict(name=self._name, client=self._client,
-                        database='test_db', collection='test_dict')
-        self._client.test_db.test_dict.drop()
-
-    def store(self, data):
-        data_to_insert = {'MongoDict::name': self._name, 'data': data}
-        self._client.test_db.test_dict.replace_one({'MongoDict::name': self._name}, data_to_insert)
-
-    def test_write_invalid_type(self, synced_dict, testdata):
-        # mongodict return InvalidDocument error for objects
-        class Foo(object):
-            pass
-
-        key = 'write_invalid_type'
-        synced_dict[key] = testdata
-        assert len(synced_dict) == 1
-        assert synced_dict[key] == testdata
-        d2 = Foo()
-        with pytest.raises(bson.errors.InvalidDocument):
-            synced_dict[key + '2'] = d2
-        assert len(synced_dict) == 1
-        assert synced_dict[key] == testdata
-
-
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoList(TestJSONList):
-
-    @pytest.fixture
-    def synced_list(self, request):
-        self._client = MongoClient
-        self._name = 'test'
-        yield MongoList(name=self._name, client=self._client,
-                        database='test_db', collection='test_list')
-        self._client.test_db.test_list.drop()
-
-    def store(self, data):
-        data_to_insert = {'MongoList::name': self._name, 'data': data}
-        self._client.test_db.test_list.replace_one({'MongoList::name': self._name}, data_to_insert)

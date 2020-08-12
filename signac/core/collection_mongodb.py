@@ -6,6 +6,8 @@
 This implements the MongoDB-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+from copy impport deepcopy
+
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList

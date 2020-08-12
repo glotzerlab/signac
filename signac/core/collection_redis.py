@@ -7,6 +7,7 @@ This implements the Redis-backend for SyncedCollection API by
 implementing sync and load methods.
 """
 import json
+from copy import deepcopy
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
