@@ -571,17 +571,14 @@ def main_sync(args):
         only_in_src = diff_src.difference(diff_dst)
         diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
-            keys_formatted = ('.'.join(k) for k in only_in_src)
-            _print_err("Keys found only in the source schema: {}".format(', '.join(keys_formatted)))
+            _print_err("Keys found only in the source schema: {}".format(', '.join(only_in_src)))
         if only_in_dst:
-            keys_formatted = ('.'.join(k) for k in only_in_dst)
             _print_err(
-                "Keys found only in the destination schema: {}".format(', '.join(keys_formatted)))
+                "Keys found only in the destination schema: {}".format(', '.join(only_in_dst)))
         if diff_value:
-            keys_formatted = ('.'.join(k) for k in diff_value)
             _print_err(
                 "Keys having different values in source and destination: {}"
-                .format(', '.join(keys_formatted)))
+                .format(', '.join(diff_value)))
     except DocumentSyncConflict as error:
         _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
     except FileSyncConflict as error:
