@@ -18,7 +18,7 @@ class MongoDBCollection(SyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, collection, name=None, **kwargs):
+    def __init__(self, collection=None, **kwargs):
         import bson  # for InvalidDocument
 
         self._collection = collection
@@ -41,7 +41,7 @@ class MongoDBCollection(SyncedCollection):
             raise TypeError(str(err))
 
     def __deepcopy__(self, memo):
-        return type(self)(client=self._collection, name=self._name, data=self.to_base(),
+        return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
 
 
