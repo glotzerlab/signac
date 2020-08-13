@@ -27,12 +27,12 @@ class MongoDBCollection(SyncedCollection):
         super().__init__(**kwargs)
 
     def _load(self):
-        """Load the data from a Mongo-database."""
+        """Load the data from a MongoDB."""
         blob = self._collection.find_one({self._key: self._name})
         return blob['data'] if blob is not None else None
 
     def _sync(self):
-        """Write the data from Mongo-database."""
+        """Write the data from MongoDB."""
         data = self.to_base()
         data_to_insert = {self._key: self._name, 'data': data}
         try:
@@ -45,7 +45,7 @@ class MongoDBCollection(SyncedCollection):
                           parent=deepcopy(self._parent, memo))
 
 
-class MongoDict(MongoDBCollection, SyncedAttrDict):
+class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Mongo-database.
 
     The MongoDict inherits from :class:`~core.collection_api.MongoCollection`
@@ -90,7 +90,7 @@ class MongoDict(MongoDBCollection, SyncedAttrDict):
     """
 
 
-class MongoList(MongoDBCollection, SyncedList):
+class MongoDBList(MongoDBCollection, SyncedList):
     """A non-string sequence interface to a persistent Mongo file.
 
     The MongoDict inherits from :class:`~core.synced_collection.SyncedCollection`
@@ -127,4 +127,4 @@ class MongoList(MongoDBCollection, SyncedList):
     """
 
 
-SyncedCollection.register(MongoDict, MongoList)
+SyncedCollection.register(MongoDBDict, MongoDBList)

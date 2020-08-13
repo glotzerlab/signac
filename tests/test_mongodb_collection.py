@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.core.collection_mongodb import MongoDict
-from signac.core.collection_mongodb import MongoList
+from signac.core.collection_mongodb import MongoDBDict
+from signac.core.collection_mongodb import MongoDBList
 from test_synced_collection import TestJSONDict
 from test_synced_collection import TestJSONList
 
@@ -26,14 +26,14 @@ except ImportError:
 
 
 @pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoDict(TestJSONDict):
+class TestMongoDBDict(TestJSONDict):
 
     @pytest.fixture
     def synced_dict(self, request):
         self._client = MongoClient
         self._name = 'test'
         self._collection = self._client.test_db.test_dict
-        yield MongoDict(name=self._name, collection=self._collection)
+        yield MongoDBDict(name=self._name, collection=self._collection)
         self._collection.drop()
 
     def store(self, data):
@@ -42,14 +42,14 @@ class TestMongoDict(TestJSONDict):
 
 
 @pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoList(TestJSONList):
+class TestMongoDBList(TestJSONList):
 
     @pytest.fixture
     def synced_list(self, request):
         self._client = MongoClient
         self._name = 'test'
         self._collection = self._client.test_db.test_list
-        yield MongoList(name=self._name, collection=self._collection)
+        yield MongoDBList(name=self._name, collection=self._collection)
         self._collection.drop()
 
     def store(self, data):
