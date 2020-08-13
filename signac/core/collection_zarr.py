@@ -26,21 +26,21 @@ class ZarrCollection(SyncedCollection):
         super().__init__(**kwargs)
 
     def _load(self):
-        """Load the data."""
+        """Load the data from zarr-store."""
         try:
             return self._root[self._name][0]
         except KeyError:
             return None
 
     def _sync(self):
-        """Write the data."""
+        """Write the data to zarr-store."""
         data = self.to_base()
         dataset = self._root.require_dataset(
             self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
         dataset[0] = data
 
     def __deepcopy__(self, memo):
-        return type(self)(group=self._root, name=self._name, data=self.to_base(),
+        return type(self)(group=deepcopy(self._root, memo), name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
 
 
