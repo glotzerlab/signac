@@ -37,8 +37,8 @@ class TestMongoDBDict(TestJSONDict):
         self._collection.drop()
 
     def store(self, data):
-        data_to_insert = {'MongoDict::name': self._name, 'data': data}
-        self._collection.replace_one({'MongoDict::name': self._name}, data_to_insert)
+        data_to_insert = {'MongoDBDict::name': self._name, 'data': data}
+        self._collection.replace_one({'MongoDBDict::name': self._name}, data_to_insert)
 
 
 @pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
@@ -53,5 +53,5 @@ class TestMongoDBList(TestJSONList):
         self._collection.drop()
 
     def store(self, data):
-        data_to_insert = {'MongoList::name': self._name, 'data': data}
-        self._collection.replace_one({'MongoList::name': self._name}, data_to_insert)
+        data_to_insert = {'MongoDBList::name': self._name, 'data': data}
+        self._collection.replace_one({'MongoDBList::name': self._name}, data_to_insert)
