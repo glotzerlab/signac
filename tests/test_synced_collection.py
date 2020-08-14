@@ -295,12 +295,18 @@ class TestJSONDict:
         assert 'c' in synced_dict
         data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
         self.store(data)
+        if hasattr(synced_dict, '_cache'):
+            # refresh the cache
+            synced_list.refresh_cache()
         assert synced_dict == data
 
         # invalid data
         data = [1, 2, 3]
         self.store(data)
         with pytest.raises(ValueError):
+            if hasattr(synced_dict, '_cache'):
+                # refresh the cache
+                synced_list.refresh_cache()
             synced_dict.load()
 
     def test_copy_as_dict(self, synced_dict, testdata):
@@ -542,15 +548,24 @@ class TestJSONList:
         assert synced_list == [{'a': 1}, 'b', [1, 2, 3]]
         data = ['a', 'b', [1, 2, 4], 'd']
         self.store(data)
+        if hasattr(synced_list, '_cache'):
+            # refresh the cache
+            synced_list.refresh_cache()
         assert synced_list == data
         data1 = ['a', 'b']
         self.store(data1)
+        if hasattr(synced_list, '_cache'):
+            # refresh the cache
+            synced_list.refresh_cache()
         assert synced_list == data1
 
         # inavlid data in file
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
+            if hasattr(synced_list, '_cache'):
+                # refresh the cache
+                synced_list.refresh_cache()
             synced_list.load()
 
     def test_buffered_read_write(self, synced_list, testdata):

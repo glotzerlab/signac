@@ -8,13 +8,11 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
-
+import inspect
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
-
-from .caching import get_cache
 
 try:
     import numpy
@@ -33,12 +31,11 @@ class SyncedCollection(Collection):
 
     backend = None
 
-    def __init__(self, parent=None, cache=None):
+    def __init__(self, parent=None):
         self._data = None
         self._parent = parent
-        self.backend_kwargs = {}
+        self._backend_kwargs = {}
         self._suspend_sync_ = 0
-        self._cache = cache if cache is not None else get_cache()
 
     @classmethod
     def register(cls, *args):
@@ -57,7 +54,7 @@ class SyncedCollection(Collection):
         if not hasattr(cls, 'backend_registry'):
             cls.backend_registry = []
         for _cls in args:
-            if not _cls.__abstractmethods__:
+            if not inspect.isabstract(_cls):
                 cls.registry[_cls.backend].append(_cls)
             elif _cls.backend:
                 cls.backend_registry.append(_cls)
@@ -126,16 +123,6 @@ class SyncedCollection(Collection):
         """Write data to underlying backend."""
         pass
 
-    @abstractmethod
-    def write_to_cache(self, data=None):
-        """Write data to cache."""
-        pass
-
-    @abstractmethod
-    def read_from_cache(self):
-        """Read data from cache."""
-        pass
-
     def _sync_to_backend(self):
         self._sync()
 
@@ -144,7 +131,6 @@ class SyncedCollection(Collection):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._sync_to_backend()
-                self.write_to_cache()
             else:
                 self._parent.sync()
 
@@ -152,31 +138,12 @@ class SyncedCollection(Collection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                data = self.read_from_cache()
-                if data is None:
-                    data = self._load()
-                    self.write_to_cache(data)
+                data = self._load()
                 with self._suspend_sync():
                     self._update(data)
             else:
                 self._parent.load()
 
-    @contextmanager
-    def buffered(self):
-        """Context manager for buffering read and write operations.
-
-        This context manager activates the "buffered" mode, which
-        means that all read operations are cached, and all write operations
-        are deferred until the buffered mode is deactivated.
-
-        Yields
-        ------
-        buffered_collection : object
-            Buffered SyncedCollection object of corresponding base type.
-        """
-        buffered_collection = self.from_base(data=self, backend='buffered', parent=self)
-        yield buffered_collection
-        buffered_collection.flush()
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

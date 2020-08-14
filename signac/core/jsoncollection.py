@@ -15,12 +15,8 @@ from .synced_collection import SyncedCollection
 from .buffered_collection import BufferedSyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from .buffered_collection import _store_in_buffer
 from .buffered_collection import _get_filemetadata
-
-
-def get_namespace(class_name):
-    """Generate namespace for classname"""
-    return uuid.uuid5(uuid.NAMESPACE_URL, 'signac::'+class_name)
 
 
 class JSONCollection(BufferedSyncedCollection):
@@ -28,25 +24,23 @@ class JSONCollection(BufferedSyncedCollection):
 
     backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, data=None, write_concern=False, no_sync=False, **kwargs):
+    def __init__(self, filename=None, data=None, write_concern=False, **kwargs):
         kwargs['data'] = data
+        self._filename = None if filename is None else os.path.realpath(filename)
         super().__init__(**kwargs)
         if (filename is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
-        self.backend_kwargs['filename'] = None if filename is None else os.path.realpath(filename)
-        self.backend_kwargs['write_concern'] = write_concern
-        self.backend_kwargs['backend'] = self.backend
-        self._id = str(uuid.uuid5(get_namespace(type(self).__name__),
-                       self.backend_kwargs['filename'])) if filename else None
-        if not no_sync and data is not None:
+        self._backend_kwargs['filename'] = self._filename
+        self._backend_kwargs['write_concern'] = write_concern
+        if data is not None:
             self.sync()
 
     def _load(self):
         """Load the data from a JSON-file."""
         try:
-            with open(self.backend_kwargs['filename'], 'rb') as file:
+            with open(self._filename, 'rb') as file:
                 blob = file.read()
                 return json.loads(blob)
         except IOError as error:
@@ -54,48 +48,52 @@ class JSONCollection(BufferedSyncedCollection):
                 return None
 
     def _sync(self, data=None):
-        """Write the data to json file."""
+        """Write the data to JSON-file."""
         if data is None:
             data = self.to_base()
-        _filename = self.backend_kwargs['filename']
         # Serialize data:
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.
-        if self.backend_kwargs['write_concern']:
-            dirname, filename = os.path.split(_filename)
+        if self._backend_kwargs['write_concern']:
+            dirname, filename = os.path.split(self._filename)
             fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
                 uid=uuid.uuid4(), fn=filename))
             with open(fn_tmp, 'wb') as tmpfile:
                 tmpfile.write(blob)
-            os.replace(fn_tmp, _filename)
+            os.replace(fn_tmp, self._filename)
         else:
-            with open(_filename, 'wb') as file:
+            with open(self._filename, 'wb') as file:
                 file.write(blob)
 
-    @classmethod
-    def _write_to_cache(cls, id, data, cache):
-        # Serialize data
-        blob = json.dumps(data)
-        cache[id] = blob
-
-    def write_to_cache(self, data=None):
+    def _write_to_cache(self, data=None):
         data = self.to_base() if data is None else data
-        self._write_to_cache(self._id, data, self._cache)
+        self._cache[self._filename] = json.dumps(self.to_base())
 
-    @classmethod
-    def _read_from_cache(cls, id, cache):
+    def _read_from_cache(self):
         try:
-            data = cache[id]
-        except Exception:
+            data = self._cache[self._filename]
+        except KeyError:
             data = None
         return json.loads(data) if data is not None else None
 
-    def read_from_cache(self):
-        return self._read_from_cache(self._id, self._cache)
+    @staticmethod
+    def _get_metadata(filename):
+        return _get_filemetadata(filename)
 
-    def _get_metadata(self):
-        return _get_filemetadata(self.backend_kwargs['filename'])
+    def _write_to_buffer(self):
+        _store_in_buffer(self._filename, self._backend_kwargs, self.backend,
+                         cache=self._cache, metadata=self._get_metadata(self._filename))
+
+    @classmethod
+    def _sync_from_buffer(cls, id, backend_kwargs, cache, metadata=None):
+        # compare the metadata and
+        if metadata is not None:
+            if metadata != cls._get_metadata(id):
+                return False # if matadat do not match abandon the sync
+        data = json.loads(cache[id])
+        cls.from_base(data=data, **backend_kwargs)._sync()
+        return True
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

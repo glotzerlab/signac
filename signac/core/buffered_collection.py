@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from abc import abstractmethod
 
 from .synced_collection import SyncedCollection
+from .caching import CachedSyncedCollection
 from .synced_list import SyncedList
 from .syncedattrdict import SyncedAttrDict
 from .errors import Error
@@ -24,14 +25,13 @@ _FILEMETA = dict()
 class BufferException(Error):
     """An exception occured in buffered mode."""
 
-    pass
-
 
 class BufferedFileError(BufferException):
     """Raised when an error occured while flushing one or more buffered files.
 
-    .. attribute:: files
-
+    Attribute
+    ---------
+    files:
         A dictionary of files that caused issues during the flush operation,
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.
@@ -46,46 +46,51 @@ class BufferedFileError(BufferException):
 
 def _get_filemetadata(filename):
     try:
-        return os.path.getsize(filename), os.path.getmtime(filename)
+        metadata = os.stat(filename)
+        return metadata.st_size, metadata.st_mtime
     except OSError as error:
         if error.errno != errno.ENOENT:
             raise
 
 
-def _store_in_buffer(id, backend_kwargs, cache, metadata=None):
+def _store_in_buffer(_id, data, backend, cache, metadata=None):
     assert _BUFFERED_MODE > 0
-    _BUFFER[id] = (backend_kwargs, cache)
+    _BUFFER[_id] = (data, backend, cache)
+    # if force mode we ignore metadata
     if not _BUFFERED_MODE_FORCE_WRITE:
-        _FILEMETA[id] = metadata
+        _FILEMETA[_id] = metadata
 
 
 def flush_all():
-    """Execute all deferred JSONDict write operations."""
+    """Execute all deferred write operations.
+    
+    Raises
+    ------
+    BufferedFileError
+    """
     logger.debug("Flushing buffer...")
     issues = dict()
     while _BUFFER:
-        id, (backend_kwargs, cache) = _BUFFER.popitem()
-        if not _BUFFERED_MODE_FORCE_WRITE:
-            meta = _FILEMETA.pop(id)
-            # extract the data from cache
-            backend_class = SyncedCollection.from_backend(backend_kwargs['backend'])
-            data = backend_class._read_from_cache(id, cache)
+        _id, (data, backend, cache) = _BUFFER.popitem()
+        # metadata is not stored in force mode 
+        metadata = None if _BUFFERED_MODE_FORCE_WRITE else _FILEMETA.pop(_id)
+        
+        backend_class = SyncedCollection.from_backend(backend)
 
-            obj = SyncedCollection.from_base(data, cache=cache, no_sync=True, **backend_kwargs)
-            if obj._get_metadata() != meta:
-                issues[id] = 'File appears to have been externally modified.'
-                continue
-            try:
-                obj._sync()
-            except OSError as error:
-                logger.error(str(error))
-                issues[id] = error
+        try:
+            # try to sync the data to backend
+            metadata_check = backend_class._sync_from_buffer(_id, data, cache, metadata)
+            if not metadata_check:
+                issues[_id] = 'File appears to have been externally modified.'
+        except OSError as error:
+            logger.error(str(error))
+            issues[_id] = error
     if issues:
         raise BufferedFileError(issues)
 
 
 def in_buffered_mode():
-    """Return true if in buffered read/write mode."""
+    """Return True if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 
 
@@ -101,8 +106,7 @@ def buffer_reads_writes(force_write=False):
 
     Parameters
     ----------
-
-    force_mode: bool
+    force_write: bool
         If true, overwrites the metadata check.
 
     Raises
@@ -113,11 +117,11 @@ def buffer_reads_writes(force_write=False):
     global _BUFFERED_MODE_FORCE_WRITE
     assert _BUFFERED_MODE >= 0
 
-    # Can't enter force write mode, if already in non-force write mode:
-    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
+    # Can't switch force modes.
+    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write != _BUFFERED_MODE_FORCE_WRITE):
         raise BufferException(
             "Unable to enter buffered mode with force write enabled, because "
-            "we are already in buffered mode with force write disabled.")
+            "we are already in buffered mode with force write disabled and vise-versa.")
 
     _BUFFERED_MODE_FORCE_WRITE = force_write
     _BUFFERED_MODE += 1
@@ -134,28 +138,53 @@ def buffer_reads_writes(force_write=False):
                 _BUFFERED_MODE_FORCE_WRITE = None
 
 
-class BufferedSyncedCollection(SyncedCollection):
-    """Implement in-memory buffering, which is independent of back-end and data-type."""
+class BufferedSyncedCollection(CachedSyncedCollection):
+    """Implement in-memory buffering, which is independent of backend and data-type."""
 
     def _sync_to_backend(self):
         if _BUFFERED_MODE > 0:
             # Storing in buffer
-            _store_in_buffer(
-                self._id, self.backend_kwargs, self._cache, metadata=self._get_metadata())
+            self._write_to_buffer()
         else:
             # Saving to underlying backend:
             self._sync()
 
     # These methods are used to read the from cache while flushing buffer
-    @classmethod
     @abstractmethod
-    def _write_to_cache(cls, id, data, cache):
+    def _write_to_buffer(self):
+        """Write the data from buffer"""
         pass
 
     @classmethod
     @abstractmethod
-    def _read_from_cache(cls, id, cache):
+    def _sync_from_buffer(cls, id, backend_kwargs, cache, metadata=None):
+        """Sync the data stored in buffer
+        
+        Returns
+        -------
+        bool
+            False if metadata check passes and True otherwise"""
         pass
+
+    @contextmanager
+    def buffered(self):
+        """Context manager for buffering read and write operations.
+
+        This context manager activates the "buffered" mode, which
+        means that all read operations are cached, and all write operations
+        are deferred until the buffered mode is deactivated.
+
+        Yields
+        ------
+        buffered_collection : object
+            Buffered SyncedCollection object of corresponding base type.
+        """
+        buffered_collection = self.from_base(data=self, backend='buffered', parent=self)
+        try:
+            yield buffered_collection
+        finally:
+            buffered_collection.flush()
+            self.refresh_cache()
 
 
 class BufferedCollection(SyncedCollection):
@@ -163,29 +192,28 @@ class BufferedCollection(SyncedCollection):
 
     Saves all changes in memory but does not write them to disk
     until :meth:`~.flush` is called. This backend is used to provide
-    buffering for a instance of `SyncedCollection`.
+    buffering for an instance of :class:`SyncedCollection`.
     """
 
     backend = 'buffered'  # type: ignore
 
-    # overwritting load and sync methods
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self._parent is None:
+            ValueError("Parent argument can't be None.")
+
+    # overwriting load and sync methods
     def load(self):
         pass
 
     def sync(self):
         pass
 
-    # defining abstractmethods
+    # defining abstractmethods 
     def _load(self):
         pass
 
     def _sync(self):
-        pass
-
-    def write_to_cache(self):
-        pass
-
-    def read_from_cache(self):
         pass
 
     def flush(self):
@@ -201,4 +229,4 @@ class BufferedSyncedList(BufferedCollection, SyncedList):
     pass
 
 
-SyncedCollection.register(BufferedSyncedAttrDict, BufferedSyncedList)
+SyncedCollection.register(BufferedCollection, BufferedSyncedAttrDict, BufferedSyncedList)
