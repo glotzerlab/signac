@@ -297,7 +297,7 @@ class TestJSONDict:
         self.store(data)
         if hasattr(synced_dict, '_cache'):
             # refresh the cache
-            synced_list.refresh_cache()
+            synced_dict.refresh_cache()
         assert synced_dict == data
 
         # invalid data
@@ -306,7 +306,7 @@ class TestJSONDict:
         with pytest.raises(ValueError):
             if hasattr(synced_dict, '_cache'):
                 # refresh the cache
-                synced_list.refresh_cache()
+                synced_dict.refresh_cache()
             synced_dict.load()
 
     def test_copy_as_dict(self, synced_dict, testdata):

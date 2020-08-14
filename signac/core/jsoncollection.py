@@ -90,7 +90,7 @@ class JSONCollection(BufferedSyncedCollection):
         # compare the metadata and
         if metadata is not None:
             if metadata != cls._get_metadata(id):
-                return False # if matadat do not match abandon the sync
+                return False  # if matadata do not match abandon the sync
         data = json.loads(cache[id])
         cls.from_base(data=data, **backend_kwargs)._sync()
         return True

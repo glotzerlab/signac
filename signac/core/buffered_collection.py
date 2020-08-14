@@ -63,7 +63,7 @@ def _store_in_buffer(_id, data, backend, cache, metadata=None):
 
 def flush_all():
     """Execute all deferred write operations.
-    
+
     Raises
     ------
     BufferedFileError
@@ -74,7 +74,7 @@ def flush_all():
         _id, (data, backend, cache) = _BUFFER.popitem()
         # metadata is not stored in force mode 
         metadata = None if _BUFFERED_MODE_FORCE_WRITE else _FILEMETA.pop(_id)
-        
+
         backend_class = SyncedCollection.from_backend(backend)
 
         try:
@@ -159,7 +159,7 @@ class BufferedSyncedCollection(CachedSyncedCollection):
     @abstractmethod
     def _sync_from_buffer(cls, id, backend_kwargs, cache, metadata=None):
         """Sync the data stored in buffer
-        
+
         Returns
         -------
         bool
@@ -209,7 +209,7 @@ class BufferedCollection(SyncedCollection):
     def sync(self):
         pass
 
-    # defining abstractmethods 
+    # defining abstractmethods
     def _load(self):
         pass
 

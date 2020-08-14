@@ -144,9 +144,9 @@ class SyncedCollection(Collection):
             else:
                 self._parent.load()
 
-
     # The following methods share a common implementation for
     # all data structures and regardless of backend.
+
     def __getitem__(self, key):
         self.load()
         return self._data[key]

@@ -13,9 +13,7 @@ CACHE = None
 
 
 def get_cache():
-    """Return the refernce to the global cache.
-    
-    """
+    """Return the refernce to the global cache."""
     global CACHE
     if CACHE is None:
         try:
@@ -34,7 +32,7 @@ def get_cache():
         except ImportError as error:
             logger.debug(str(error))
             REDIS_Cache = False
-        if not REDIS_Cache:    
+        if not REDIS_Cache:
             logger.info("Redis not available.")
             CACHE = dict()
         else:
@@ -75,10 +73,10 @@ class CachedSyncedCollection(SyncedCollection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                # fetch data from cache 
+                # fetch data from cache
                 data = self._read_from_cache()
                 if data is None:
-                    # if no data in cache load the data from backend 
+                    # if no data in cache load the data from backend
                     # and update the cache
                     data = self._load()
                     self._write_to_cache(data)
