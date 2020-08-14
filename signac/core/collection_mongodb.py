@@ -40,7 +40,7 @@ class MongoDBCollection(SyncedCollection):
         except self._errors.InvalidDocument as err:
             raise TypeError(str(err))
 
-    def __deepcopy__(self, memo):
+    def _pseudo_deepcopy(self, memo=None):
         return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
 

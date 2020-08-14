@@ -32,7 +32,7 @@ class RedisCollection(SyncedCollection):
         """Write the data from Redis-database."""
         self._client.set(self._name, json.dumps(self.to_base()).encode())
 
-    def __deepcopy__(self, memo):
+    def _pseudo_deepcopy(self, memo=None):
         return type(self)(client=self._client, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent, memo))
 

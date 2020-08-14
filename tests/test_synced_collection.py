@@ -273,7 +273,11 @@ class TestJSONDict:
     def test_reopen(self, synced_dict, testdata):
         key = 'reopen'
         synced_dict[key] = testdata
-        synced_dict2 = deepcopy(synced_dict)
+        try:
+            synced_dict2 = deepcopy(synced_dict)
+        except TypeError:
+            # Use fallback implementation, deepcopy not supported by backend.
+            synced_dict2 = synced_dict._pseudo_deepcopy()
         synced_dict.sync()
         del synced_dict  # possibly unsafe
         synced_dict2.load()
@@ -521,7 +525,11 @@ class TestJSONList:
             synced_list.load()
 
     def test_reopen(self, synced_list, testdata):
-        synced_list2 = deepcopy(synced_list)
+        try:
+            synced_list2 = deepcopy(synced_list)
+        except TypeError:
+            # Use fallback implementation, deepcopy not supported by backend.
+            synced_list2 = synced_list._pseudo_deepcopy()
         synced_list.append(testdata)
         synced_list.sync()
         del synced_list  # possibly unsafe
