@@ -56,9 +56,9 @@ def _get_filemetadata(filename):
 def _store_in_buffer(_id, backend, backend_kwargs, cache, metadata=None):
     """Store the backend data to the buffer"""
     assert _BUFFERED_MODE > 0
-    if _id in buffer:
-        _, _, stored_cache= _BUFFER[_id]
-        if not stored_cache is cache:
+    if _id in _BUFFER:
+        _, _, stored_cache = _BUFFER[_id]
+        if  stored_cache is not cache:
             raise BufferException(f'Found multiple cache linked to {_id}')
     else:
         _BUFFER[_id] = (backend, backend_kwargs, cache)
@@ -78,7 +78,7 @@ def flush_all():
     issues = dict()
     while _BUFFER:
         _id, (backend, backend_kwargs, cache) = _BUFFER.popitem()
-        # metadata is not stored in force mode 
+        # metadata is not stored in force mode
         metadata = None if _BUFFERED_MODE_FORCE_WRITE else _FILEMETA.pop(_id)
 
         backend_class = SyncedCollection.from_backend(backend)

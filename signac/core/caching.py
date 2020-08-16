@@ -18,8 +18,8 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
     This mehtod returns Redis client if availalbe else return instance of :class:`MemCache`.
     Redis client only accepts data as bytes, strings or numbers (ints, longs and floats).
     Attempting to specify a key or a value as any other type will raise a exception.
-    All responses are returned as bytes in Python 3 and str in Python 2. If all string 
-    responses from a client should be decoded, the user can specify 
+    All responses are returned as bytes in Python 3 and str in Python 2. If all string
+    responses from a client should be decoded, the user can specify.
     `decode_responses=True` in `redis_kwargs`.
 
     Parameters
@@ -28,7 +28,7 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
         Kwargs passed to `redis.Redis` (Default value = None).
     mem_cache_kwargs: dict
         Kwargs passed to :class:`MemCache` (Default value = None).
-    
+
     Returns
     -------
     CACHE
