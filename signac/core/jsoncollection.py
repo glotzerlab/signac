@@ -66,13 +66,15 @@ class JSONCollection(BufferedSyncedCollection):
             with open(self._filename, 'wb') as file:
                 file.write(blob)
 
-    def _write_to_cache(self, data=None):
+    def _write_to_cache(self, cache=None, data=None):
         data = self.to_base() if data is None else data
-        self._cache[self._filename] = json.dumps(self.to_base())
+        cache = self._cache if cache is None else cache
+        cache[self._filename] = json.dumps(data)
 
-    def _read_from_cache(self):
+    def _read_from_cache(self, cache=None):
+        cache = self._cache if cache is None else cache
         try:
-            data = self._cache[self._filename]
+            data = cache[self._filename]
         except KeyError:
             data = None
         return json.loads(data) if data is not None else None

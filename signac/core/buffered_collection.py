@@ -53,12 +53,18 @@ def _get_filemetadata(filename):
             raise
 
 
-def _store_in_buffer(_id, data, backend, cache, metadata=None):
+def _store_in_buffer(_id, backend, backend_kwargs, cache, metadata=None):
+    """Store the backend data to the buffer"""
     assert _BUFFERED_MODE > 0
-    _BUFFER[_id] = (data, backend, cache)
-    # if force mode we ignore metadata
-    if not _BUFFERED_MODE_FORCE_WRITE:
-        _FILEMETA[_id] = metadata
+    if _id in buffer:
+        _, _, stored_cache= _BUFFER[_id]
+        if not stored_cache is cache:
+            raise BufferException(f'Found multiple cache linked to {_id}')
+    else:
+        _BUFFER[_id] = (backend, backend_kwargs, cache)
+        # if force mode we ignore metadata
+        if not _BUFFERED_MODE_FORCE_WRITE:
+            _FILEMETA[_id] = metadata
 
 
 def flush_all():
@@ -71,7 +77,7 @@ def flush_all():
     logger.debug("Flushing buffer...")
     issues = dict()
     while _BUFFER:
-        _id, (data, backend, cache) = _BUFFER.popitem()
+        _id, (backend, backend_kwargs, cache) = _BUFFER.popitem()
         # metadata is not stored in force mode 
         metadata = None if _BUFFERED_MODE_FORCE_WRITE else _FILEMETA.pop(_id)
 
@@ -79,7 +85,7 @@ def flush_all():
 
         try:
             # try to sync the data to backend
-            metadata_check = backend_class._sync_from_buffer(_id, data, cache, metadata)
+            metadata_check = backend_class._sync_from_buffer(_id, backend_kwargs, cache, metadata)
             if not metadata_check:
                 issues[_id] = 'File appears to have been externally modified.'
         except OSError as error:
@@ -162,7 +168,7 @@ class BufferedSyncedCollection(CachedSyncedCollection):
 
         Returns
         -------
-        bool
+        metacheck: bool
             False if metadata check passes and True otherwise"""
         pass
 
