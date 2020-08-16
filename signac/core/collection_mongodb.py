@@ -40,9 +40,14 @@ class MongoDBCollection(SyncedCollection):
         except self._errors.InvalidDocument as err:
             raise TypeError(str(err))
 
-    def _pseudo_deepcopy(self, memo=None):
+    def _pseudo_deepcopy(self):
+        """Return a copy of instance.
+
+        It is a psuedo implementation for `deepcopy` because 
+        `pymongo.Collection` do not support `deepcopy`. 
+        """
         return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
-                          parent=deepcopy(self._parent, memo))
+                          parent=deepcopy(self._parent))
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):

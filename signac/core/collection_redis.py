@@ -32,9 +32,14 @@ class RedisCollection(SyncedCollection):
         """Write the data from Redis-database."""
         self._client.set(self._name, json.dumps(self.to_base()).encode())
 
-    def _pseudo_deepcopy(self, memo=None):
+    def _pseudo_deepcopy(self):
+        """Return a copy of instance.
+
+        It is a psuedo implementation for `deepcopy` because
+        `redis.Redis` do not support `deepcopy`.
+        """
         return type(self)(client=self._client, name=self._name, data=self.to_base(),
-                          parent=deepcopy(self._parent, memo))
+                          parent=deepcopy(self._parent))
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
