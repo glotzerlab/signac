@@ -44,7 +44,7 @@ class MongoDBCollection(SyncedCollection):
         """Return a copy of instance.
 
         It is a psuedo implementation for `deepcopy` because
-        `pymongo.Collection` do not support `deepcopy`.
+        `pymongo.Collection` does not support `deepcopy` method.
         """
         return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent))

@@ -36,7 +36,7 @@ class RedisCollection(SyncedCollection):
         """Return a copy of instance.
 
         It is a psuedo implementation for `deepcopy` because
-        `redis.Redis` do not support `deepcopy`.
+        `redis.Redis` does not support `deepcopy` method.
         """
         return type(self)(client=self._client, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent))
