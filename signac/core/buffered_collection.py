@@ -2,8 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implement the buffering feature to  SyncedCollection API."""
-import os
-import errno
 import logging
 from contextlib import contextmanager
 from abc import abstractmethod
@@ -58,7 +56,7 @@ def flush_all():
     logger.debug("Flushing buffer...")
     issues = dict()
     while _BUFFER_BACKEND:
-        backend = _BUFFER.popitem()
+        backend = _BUFFER_BACKEND.popitem()
         backend_class = SyncedCollection.from_backend(backend)
 
         try:
@@ -67,12 +65,12 @@ def flush_all():
             issues.update(issue)
         except OSError as error:
             logger.error(str(error))
-            issues[_id] = error
+            issues[backend] = error
     if issues:
         raise BufferedFileError(issues)
 
 
-def  get_buffer_force_mode():
+def get_buffer_force_mode():
     """Return True if buffer force mode enabled."""
     return _BUFFERED_MODE_FORCE_WRITE
 
@@ -138,7 +136,7 @@ class BufferedSyncedCollection(SyncedCollection):
             self._sync()
 
     def _load_from_backend(self):
-        if _BUFFERED_MODE> 0 and not self._is_cached:
+        if _BUFFERED_MODE > 0 and not self._is_cached:
             # Loading for buffer
             data = self._read_from_buffer()
             if data is None:
@@ -155,7 +153,7 @@ class BufferedSyncedCollection(SyncedCollection):
     @abstractmethod
     def _write_to_buffer(self, data=None, synced_data=False):
         """Write the data from buffer
-        
+
         Parameters
         ----------
         data:

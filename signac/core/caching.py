@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
     """Return the cache.
-    
+
     This mehtod returns Redis client if availalbe else return instance of :class:`MemCache`.
     Redis client only accepts data as bytes, strings or numbers (ints, longs and floats).
     Attempting to specify a key or a value as any other type will raise a exception.

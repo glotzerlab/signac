@@ -25,6 +25,7 @@ _JSON_BUFFER_BACKEND_DATA = None
 _JSON_META = None
 _JSON_HASH = None
 
+
 def get_json_cache(self):
     global _JSON_CACHE
     if not _JSON_CACHE:
@@ -109,21 +110,19 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         logger.debug("Flushing buffer...")
         issues = dict()
         while _JSON_BUFFER_BACKEND_DATA:
-            filename, backend_kwargs= _JSON_BUFFER_BACKEND_DATA.popitem()
+            filename, backend_kwargs = _JSON_BUFFER_BACKEND_DATA.popitem()
             if not get_buffer_force_mode():
                 meta = _JSONDICT_META.pop(filename)
-            if _hash(blob) != _JSONDICT_HASHES.pop(filename):
-                try:
-                    if not get_buffer_force_mode():
-                        if _get_filemetadata(filename) != meta:
-                            issues[filename] = 'File appears to have been externally modified.'
-                            continue
-                    try:
-                        data = _JSON_CACHE[filename]
-                        cls.from_base(data=data, **backend_kwargs)._sync()
-                except OSError as error:
-                    logger.error(str(error))
-                    issues[filename] = error
+            if not get_buffer_force_mode():
+                if _get_filemetadata(filename) != meta:
+                    issues[filename] = 'File appears to have been externally modified.'
+                    continue
+            try:
+                data = _JSON_CACHE[filename]
+                cls.from_base(data=data, **backend_kwargs)._sync()
+            except OSError as error:
+                logger.error(str(error))
+                issues[filename] = error
         return issues
 
 
