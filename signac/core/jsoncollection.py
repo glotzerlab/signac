@@ -13,13 +13,33 @@ import uuid
 
 from .synced_collection import SyncedCollection
 from .buffered_collection import BufferedSyncedCollection
+from .caching import CachedSyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .buffered_collection import _store_in_buffer
+from .caching import get_cache
 from .buffered_collection import _get_filemetadata
+from .buffered_collection import get_buffer_force_mode
+
+_JSON_CACHE = None
+_JSON_BUFFER_BACKEND_DATA = None
+_JSON_META = None
+_JSON_HASH = None
+
+def get_json_cache(self):
+    global _JSON_CACHE
+    if not _JSON_CACHE:
+        _JSON_CACHE = get_cache()
+    return _JSON_CACHE
 
 
-class JSONCollection(BufferedSyncedCollection):
+def _store_in_buffer(self, filename, backend_kwargs):
+    """Store the data to the buffer"""
+    _JSON_BUFFER_BACKEND_DATA[filename] = backend_kwargs
+    if not get_buffer_force_mode():
+        _JSONDICT_META[filename] = _get_filemetadata(filename)
+
+
+class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
     """Implement sync and load using a JSON back end."""
 
     backend = __name__  # type: ignore
@@ -32,7 +52,6 @@ class JSONCollection(BufferedSyncedCollection):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or filename must be None, but not both.")
-        self._backend_kwargs['filename'] = self._filename
         self._backend_kwargs['write_concern'] = write_concern
         if data is not None:
             self.sync()
@@ -66,36 +85,46 @@ class JSONCollection(BufferedSyncedCollection):
             with open(self._filename, 'wb') as file:
                 file.write(blob)
 
-    def _write_to_cache(self, cache=None, data=None):
+    def _write_to_cache(self, data=None):
         data = self.to_base() if data is None else data
-        cache = self._cache if cache is None else cache
         cache[self._filename] = json.dumps(data)
 
-    def _read_from_cache(self, cache=None):
-        cache = self._cache if cache is None else cache
+    def _read_from_cache(self):
         try:
-            data = cache[self._filename]
+            data = self._cache[self._filename]
         except KeyError:
             data = None
         return json.loads(data) if data is not None else None
 
-    @staticmethod
-    def _get_metadata(filename):
-        return _get_filemetadata(filename)
+    def _write_to_buffer(self, data=None, synced_data=None):
+        data = self.to_base() if data is None else data
+        self._write_to_cache(data)
+        _store_in_buffer(self._filename, self._backend_kwargs)
 
-    def _write_to_buffer(self):
-        _store_in_buffer(self._filename, self._backend_kwargs, self.backend,
-                         cache=self._cache, metadata=self._get_metadata(self._filename))
+    def _read_from_buffer(self):
+        return self._read_from_cache()
 
     @classmethod
-    def _sync_from_buffer(cls, id, backend_kwargs, cache, metadata=None):
-        # compare the metadata and
-        if metadata is not None:
-            if metadata != cls._get_metadata(id):
-                return False  # if matadata do not match abandon the sync
-        data = json.loads(cache[id])
-        cls.from_base(data=data, **backend_kwargs)._sync()
-        return True
+    def flush_buffer(cls):
+        logger.debug("Flushing buffer...")
+        issues = dict()
+        while _JSON_BUFFER_BACKEND_DATA:
+            filename, backend_kwargs= _JSON_BUFFER_BACKEND_DATA.popitem()
+            if not get_buffer_force_mode():
+                meta = _JSONDICT_META.pop(filename)
+            if _hash(blob) != _JSONDICT_HASHES.pop(filename):
+                try:
+                    if not get_buffer_force_mode():
+                        if _get_filemetadata(filename) != meta:
+                            issues[filename] = 'File appears to have been externally modified.'
+                            continue
+                    try:
+                        data = _JSON_CACHE[filename]
+                        cls.from_base(data=data, **backend_kwargs)._sync()
+                except OSError as error:
+                    logger.error(str(error))
+                    issues[filename] = error
+        return issues
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

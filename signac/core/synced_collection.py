@@ -36,6 +36,7 @@ class SyncedCollection(Collection):
         self._parent = parent
         self._backend_kwargs = {}
         self._suspend_sync_ = 0
+        self._is_cached = False
 
     @classmethod
     def register(cls, *args):

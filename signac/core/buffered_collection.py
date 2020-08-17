@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from abc import abstractmethod
 
 from .synced_collection import SyncedCollection
-from .caching import CachedSyncedCollection
 from .synced_list import SyncedList
 from .syncedattrdict import SyncedAttrDict
 from .errors import Error
@@ -18,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFER = dict()
-_FILEMETA = dict()
+_BUFFER_BACKEND = list()
 
 
 class BufferException(Error):
@@ -44,27 +42,10 @@ class BufferedFileError(BufferException):
         return "{}({})".format(type(self).__name__, self.files)
 
 
-def _get_filemetadata(filename):
-    try:
-        metadata = os.stat(filename)
-        return metadata.st_size, metadata.st_mtime
-    except OSError as error:
-        if error.errno != errno.ENOENT:
-            raise
-
-
-def _store_in_buffer(_id, backend, backend_kwargs, cache, metadata=None):
+def _store_backend_in_buffer(backend):
     """Store the backend data to the buffer"""
-    assert _BUFFERED_MODE > 0
-    if _id in _BUFFER:
-        _, _, stored_cache = _BUFFER[_id]
-        if  stored_cache is not cache:
-            raise BufferException(f'Found multiple cache linked to {_id}')
-    else:
-        _BUFFER[_id] = (backend, backend_kwargs, cache)
-        # if force mode we ignore metadata
-        if not _BUFFERED_MODE_FORCE_WRITE:
-            _FILEMETA[_id] = metadata
+    if backend not in _BUFFER_BACKEND:
+        _BUFFER_BACKEND.append(backend)
 
 
 def flush_all():
@@ -76,23 +57,24 @@ def flush_all():
     """
     logger.debug("Flushing buffer...")
     issues = dict()
-    while _BUFFER:
-        _id, (backend, backend_kwargs, cache) = _BUFFER.popitem()
-        # metadata is not stored in force mode
-        metadata = None if _BUFFERED_MODE_FORCE_WRITE else _FILEMETA.pop(_id)
-
+    while _BUFFER_BACKEND:
+        backend = _BUFFER.popitem()
         backend_class = SyncedCollection.from_backend(backend)
 
         try:
             # try to sync the data to backend
-            metadata_check = backend_class._sync_from_buffer(_id, backend_kwargs, cache, metadata)
-            if not metadata_check:
-                issues[_id] = 'File appears to have been externally modified.'
+            issue = backend_class.flush_buffer()
+            issues.update(issue)
         except OSError as error:
             logger.error(str(error))
             issues[_id] = error
     if issues:
         raise BufferedFileError(issues)
+
+
+def  get_buffer_force_mode():
+    """Return True if buffer force mode enabled."""
+    return _BUFFERED_MODE_FORCE_WRITE
 
 
 def in_buffered_mode():
@@ -139,37 +121,56 @@ def buffer_reads_writes(force_write=False):
             try:
                 flush_all()
             finally:
-                assert not _BUFFER
-                assert not _FILEMETA
                 _BUFFERED_MODE_FORCE_WRITE = None
+                assert _BUFFER_BACKEND
 
 
-class BufferedSyncedCollection(CachedSyncedCollection):
+class BufferedSyncedCollection(SyncedCollection):
     """Implement in-memory buffering, which is independent of backend and data-type."""
 
     def _sync_to_backend(self):
         if _BUFFERED_MODE > 0:
             # Storing in buffer
+            _store_backend_in_buffer(self.backend)
             self._write_to_buffer()
         else:
             # Saving to underlying backend:
             self._sync()
 
+    def _load_from_backend(self):
+        if _BUFFERED_MODE> 0 and not self._is_cached:
+            # Loading for buffer
+            data = self._read_from_buffer()
+            if data is None:
+                # No data in buffer
+                data = self._load()
+                _store_backend_in_buffer(self.backend)
+                self._write_to_buffer(data=data, synced_data=True)
+            return data
+        else:
+            # load from underlying backend
+            return self._load()
+
     # These methods are used to read the from cache while flushing buffer
     @abstractmethod
-    def _write_to_buffer(self):
-        """Write the data from buffer"""
+    def _write_to_buffer(self, data=None, synced_data=False):
+        """Write the data from buffer
+        
+        Parameters
+        ----------
+        data:
+            Data write to buffer.
+        synced_data: bool
+
+        """
         pass
 
     @classmethod
     @abstractmethod
-    def _sync_from_buffer(cls, id, backend_kwargs, cache, metadata=None):
-        """Sync the data stored in buffer
+    def flush_buffer(cls):
+        pass
 
-        Returns
-        -------
-        metacheck: bool
-            False if metadata check passes and True otherwise"""
+    def _read_from_buffer(self):
         pass
 
     @contextmanager
@@ -190,7 +191,8 @@ class BufferedSyncedCollection(CachedSyncedCollection):
             yield buffered_collection
         finally:
             buffered_collection.flush()
-            self.refresh_cache()
+            if self._is_cached:
+                self.refresh_cache()
 
 
 class BufferedCollection(SyncedCollection):

@@ -9,11 +9,9 @@ from abc import abstractmethod
 from .synced_collection import SyncedCollection
 logger = logging.getLogger(__name__)
 
-CACHE = None
-
 
 def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
-    """Return the refernce to the global cache.
+    """Return the cache.
     
     This mehtod returns Redis client if availalbe else return instance of :class:`MemCache`.
     Redis client only accepts data as bytes, strings or numbers (ints, longs and floats).
@@ -33,31 +31,29 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
     -------
     CACHE
     """
-    global CACHE
-    if CACHE is None:
+    try:
+        import redis
         try:
-            import redis
-            try:
-                # try to connect to server
-                redis_kwargs = {} if redis_kwargs is None else redis_kwargs
-                CACHE = redis.Redis()
-                test_key = str(uuid.uuid4())
-                CACHE.set(test_key, 0)
-                assert CACHE.get(test_key) == b'0'  # redis store data as bytes
-                CACHE.delete(test_key)
-                REDIS_Cache = True
-            except (redis.exceptions.ConnectionError, AssertionError) as error:
-                logger.debug(str(error))
-                REDIS_Cache = False
-        except ImportError as error:
+            # try to connect to server
+            redis_kwargs = {} if redis_kwargs is None else redis_kwargs
+            CACHE = redis.Redis()
+            test_key = str(uuid.uuid4())
+            CACHE.set(test_key, 0)
+            assert CACHE.get(test_key) == b'0'  # redis store data as bytes
+            CACHE.delete(test_key)
+            REDIS_Cache = True
+        except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
             REDIS_Cache = False
-        if not REDIS_Cache:
-            logger.info("Redis not available.")
-            mem_cache_kwargs = {} if mem_cache_kwargs is None else mem_cache_kwargs
-            CACHE = MemCache(**mem_cache_kwargs)
-        else:
-            logger.info("Using redis cache.")
+    except ImportError as error:
+        logger.debug(str(error))
+        REDIS_Cache = False
+    if not REDIS_Cache:
+        logger.info("Redis not available.")
+        mem_cache_kwargs = {} if mem_cache_kwargs is None else mem_cache_kwargs
+        CACHE = MemCache(**mem_cache_kwargs)
+    else:
+        logger.info("Using redis cache.")
     return CACHE
 
 
@@ -90,15 +86,16 @@ class CachedSyncedCollection(SyncedCollection):
     def __init__(self, cache=None, **kwargs):
         self._cache = get_cache() if cache is None else cache
         super().__init__(**kwargs)
+        self._is_cached = True
 
     # methods required for cache implementation
     @abstractmethod
-    def _read_from_cache(self, cache=None):
+    def _read_from_cache(self):
         """Read the data from cache."""
         pass
 
     @abstractmethod
-    def _write_to_cache(self, cache=None, data=None):
+    def _write_to_cache(self, data=None):
         """Write the data to cache."""
         pass
 
