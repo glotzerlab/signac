@@ -10,6 +10,7 @@ import os
 import json
 import errno
 import uuid
+import logging
 
 from .synced_collection import SyncedCollection
 from .buffered_collection import BufferedSyncedCollection
@@ -19,6 +20,8 @@ from .synced_list import SyncedList
 from .caching import get_cache
 from .buffered_collection import _get_filemetadata
 from .buffered_collection import get_buffer_force_mode
+
+logger = logging.getLogger(__name__)
 
 _JSON_CACHE = None
 _JSON_BUFFER_BACKEND_DATA = None
@@ -37,7 +40,7 @@ def _store_in_buffer(self, filename, backend_kwargs):
     """Store the data to the buffer"""
     _JSON_BUFFER_BACKEND_DATA[filename] = backend_kwargs
     if not get_buffer_force_mode():
-        _JSONDICT_META[filename] = _get_filemetadata(filename)
+        _JSON_META[filename] = _get_filemetadata(filename)
 
 
 class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
@@ -88,7 +91,7 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
 
     def _write_to_cache(self, data=None):
         data = self.to_base() if data is None else data
-        cache[self._filename] = json.dumps(data)
+        self._cache[self._filename] = json.dumps(data)
 
     def _read_from_cache(self):
         try:
@@ -112,7 +115,7 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         while _JSON_BUFFER_BACKEND_DATA:
             filename, backend_kwargs = _JSON_BUFFER_BACKEND_DATA.popitem()
             if not get_buffer_force_mode():
-                meta = _JSONDICT_META.pop(filename)
+                meta = _JSON_META.pop(filename)
             if not get_buffer_force_mode():
                 if _get_filemetadata(filename) != meta:
                     issues[filename] = 'File appears to have been externally modified.'
