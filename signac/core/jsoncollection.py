@@ -125,7 +125,7 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         return self._read_from_cache()
 
     @classmethod
-    def flush_buffer(cls):
+    def _flush_buffer(cls):
         """Flush the data in JSON-buffer.
 
         Returns
