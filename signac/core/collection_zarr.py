@@ -78,12 +78,12 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 
     Parameters
     ----------
-    name: str, optional
-        The name of the  collection (Default value = None).
+    group: object, optional
+        A zarr.hierarchy.Group instance (Default value = None).
     data: mapping, optional
         The intial data pass to ZarrDict. Defaults to `dict()`.
-    group: object
-        A zarr.hierarchy.Group instance
+    name: str, optional
+        The name of the  collection (Default value = None).
     parent: object, optional
         A parent instance of ZarrDict or None (Default value = None).
     """
@@ -92,7 +92,7 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 class ZarrList(ZarrCollection, SyncedList):
     """A non-string sequence interface to a persistent Zarr file.
 
-    The ZarrDict inherits from :class:`~core.collection_api.ZarrCollection`
+    The ZarrList inherits from :class:`~core.collection_api.ZarrCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
@@ -115,12 +115,13 @@ class ZarrList(ZarrCollection, SyncedList):
 
     Parameters
     ----------
-    name: str
-        The name of the  collection.
-    data: mapping, optional
+
+    group: object, optional
+        A zarr.hierarchy.Group instance (Default value = None).
+    data: non-str Sequence, optional
         The intial data pass to ZarrList. Defaults to `list()`.
-    group: object
-        A zarr.hierarchy.Group instance
+    name: str, optional
+        The name of the  collection (Default value = None).
     parent: object, optional
         A parent instance of ZarrList or None (Default value = None).
     """

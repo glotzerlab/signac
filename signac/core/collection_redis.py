@@ -76,21 +76,21 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 
     Parameters
     ----------
-    name: str
-        The name of the  collection (Default value = None).
-    client: object
-        A redis client.
+    client: object, optional
+        A redis client (Default value = None).
     data: mapping, optional
         The intial data pass to RedisDict. Defaults to `dict()`
+    name: str, optional
+        The name of the  collection (Default value = None).
     parent: object, optional
-        A parent instance of RedisDict or None (Default value = None).
+        A parent instance of RedisDict (Default value = None).
     """
 
 
 class RedisList(RedisCollection, SyncedList):
     """A non-string sequence interface to a persistent Redis file.
 
-    The RedisDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The RedisList inherits from :class:`~core.collection_api.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
@@ -113,14 +113,14 @@ class RedisList(RedisCollection, SyncedList):
 
     Parameters
     ----------
-    name: str
-        The name of the  collection (Default value = None).
-    client: object
-        A redis client.
-    data: mapping, optional
+    client: object, optional
+        A redis client (Default value = None).
+    data: non-str Sequence, optional
         The intial data pass to RedisList. Defaults to `list()`
+    name: str, optional
+        The name of the  collection (Default value = None).
     parent: object, optional
-        A parent instance of RedisList or None (Default value = None).
+        A parent instance of RedisList (Default value = None).
     """
 
 

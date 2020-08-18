@@ -93,20 +93,20 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     ----------
     filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
+    write_concern: bool, optional
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value = None).
     data: mapping, optional
         The intial data pass to JSONDict. Defaults to `list()`
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool, optional
-        Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None).
     """
 
 
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
@@ -129,15 +129,15 @@ class JSONList(JSONCollection, SyncedList):
 
     Parameters
     ----------
-    filename: str
+    filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    data: non-str Sequence
-        The intial data pass to JSONDict
-    parent: object
-        A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool
+    write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
+    data: non-str Sequence, optional
+        The intial data pass to JSONList
+    parent: object, optional
+        A parent instance of JSONList or None (Default value = None).
     """
 
 

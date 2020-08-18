@@ -53,12 +53,12 @@ class MongoDBCollection(SyncedCollection):
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Mongo-database.
 
-    The MongoDict inherits from :class:`~core.collection_api.MongoCollection`
+    The MongoDBDict inherits from :class:`~core.collection_api.MongoCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
 
-        doc = MongoDict('data')
+        doc = MongoDBDict('data')
         doc['foo'] = "bar"
         assert doc.foo == doc['foo'] == "bar"
         assert 'foo' in doc
@@ -74,36 +74,36 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
 
     .. warning::
 
-        While the MongoDict object behaves like a dictionary, there are
+        While the MongoDBDict object behaves like a dictionary, there are
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
-        copying) a MongoDict instance may exhibit unexpected behavior. If a
+        copying) a MongoDBDict instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new MongoDict
-        instance: `new_dict = MongoDict(old_dict.to_base())`.
+        dictionary representation, and if necessary construct a new MongoDBDict
+        instance: `new_dict = MongoDBDict(old_dict.to_base())`.
 
     Parameters
     ----------
-    name: str
-        The name of the  collection (Default value = None).
-    collection : object
-        A pymongo.Collection instance
+    collection : object, optional
+        A pymongo.Collection instance.
     data: mapping, optional
-        The intial data pass to MongoDict. Defaults to `dict()`
+        The intial data pass to MongoDBDict. Defaults to `dict()`.
+    name: str, optional
+        The name of the  collection (Default value = None).
     parent: object, optional
-        A parent instance of MongoDict or None (Default value = None).
+        A parent instance of MongoDBDict (Default value = None).
     """
 
 
 class MongoDBList(MongoDBCollection, SyncedList):
     """A non-string sequence interface to a persistent Mongo file.
 
-    The MongoDict inherits from :class:`~core.synced_collection.SyncedCollection`
+    The MongoDBList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
 
-        synced_list = MongoList('data')
+        synced_list = MongoDBList('data')
         synced_list.append("bar")
         assert synced_list[0] == "bar"
         assert len(synced_list) == 1
@@ -111,24 +111,24 @@ class MongoDBList(MongoDBCollection, SyncedList):
 
     .. warning::
 
-        While the MongoList object behaves like a list, there are
+        While the MongoDBList object behaves like a list, there are
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
-        copying) a MongoList instance may exhibit unexpected behavior. If a
+        copying) a MongoDBList instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new MongoList
-        instance: `new_list = MongoList(old_list.to_base())`.
+        dictionary representation, and if necessary construct a new MongoDBList
+        instance: `new_list = MongoDBList(old_list.to_base())`.
 
     Parameters
     ----------
-    name: str
+    collection : object, optional
+        A pymongo.Collection instance (Default value = None).
+    data: non-str Sequence, optional
+        The intial data pass to MongoDBList. Defaults to `list()`.
+    name: str, optional
         The name of the  collection (Default value = None).
-    collection : object
-        A pymongo.Collection instance
-    data: mapping, optional
-        The intial data pass to MongoList. Defaults to `list()`
     parent: object, optional
-        A parent instance of MongoList or None (Default value = None).
+        A parent instance of MongoDBList (Default value = None).
     """
 
 
