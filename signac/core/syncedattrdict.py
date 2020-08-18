@@ -36,7 +36,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     """
 
     _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent', '_cache',
-                       '_backend_kwargs', '_is_cached')
+                       '_is_cached')
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 

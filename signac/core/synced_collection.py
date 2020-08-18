@@ -34,7 +34,6 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None):
         self._data = None
         self._parent = parent
-        self._backend_kwargs = {}
         self._suspend_sync_ = 0
         self._is_cached = False
 
@@ -94,7 +93,7 @@ class SyncedCollection(Collection):
         for _cls in cls.backend_registry:
             if _cls.backend == backend:
                 return _cls
-        raise ValueError("{backend} backend not found.".format(backend=backend))
+        raise ValueError(f"{backend} backend not found.")
 
     @abstractmethod
     def to_base(self):

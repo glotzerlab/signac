@@ -295,7 +295,7 @@ class TestJSONDict:
         assert 'c' in synced_dict
         data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
         self.store(data)
-        if hasattr(synced_dict, '_cache'):
+        if synced_dict._is_cached:
             # refresh the cache
             synced_dict.refresh_cache()
         assert synced_dict == data
@@ -304,7 +304,7 @@ class TestJSONDict:
         data = [1, 2, 3]
         self.store(data)
         with pytest.raises(ValueError):
-            if hasattr(synced_dict, '_cache'):
+            if synced_dict._is_cached:
                 # refresh the cache
                 synced_dict.refresh_cache()
             synced_dict.load()
@@ -316,33 +316,6 @@ class TestJSONDict:
         del synced_dict
         assert key in copy
         assert copy[key] == testdata
-
-    def test_buffered_read_write(self, synced_dict, testdata):
-        synced_dict2 = deepcopy(synced_dict)
-        assert synced_dict == synced_dict2
-        key = 'buffered_read_write'
-        d2 = 'testdata'
-        assert len(synced_dict) == 0
-        assert len(synced_dict2) == 0
-        with synced_dict.buffered() as b:
-            b[key] = testdata
-            assert b[key] == testdata
-            assert len(b) == 1
-            assert len(synced_dict2) == 0
-        assert len(synced_dict) == 1
-        assert len(synced_dict2) == 1
-        with synced_dict2.buffered() as b2:
-            b2[key] = d2
-            assert len(synced_dict) == 1
-            assert len(b2) == 1
-            assert synced_dict[key] == testdata
-            assert b2[key] == d2
-        assert synced_dict[key] == d2
-        assert synced_dict2[key] == d2
-        with synced_dict.buffered() as b:
-            del b[key]
-            assert key not in b
-        assert key not in synced_dict
 
     def test_nested_dict(self, synced_dict):
         synced_dict['a'] = dict(a=dict())
@@ -548,13 +521,13 @@ class TestJSONList:
         assert synced_list == [{'a': 1}, 'b', [1, 2, 3]]
         data = ['a', 'b', [1, 2, 4], 'd']
         self.store(data)
-        if hasattr(synced_list, '_cache'):
+        if synced_list._is_cached:
             # refresh the cache
             synced_list.refresh_cache()
         assert synced_list == data
         data1 = ['a', 'b']
         self.store(data1)
-        if hasattr(synced_list, '_cache'):
+        if synced_list._is_cached:
             # refresh the cache
             synced_list.refresh_cache()
         assert synced_list == data1
@@ -563,35 +536,10 @@ class TestJSONList:
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
-            if hasattr(synced_list, '_cache'):
+            if synced_list._is_cached:
                 # refresh the cache
                 synced_list.refresh_cache()
             synced_list.load()
-
-    def test_buffered_read_write(self, synced_list, testdata):
-        synced_list2 = deepcopy(synced_list)
-        assert synced_list == synced_list2
-        assert len(synced_list) == 0
-        assert len(synced_list2) == 0
-        with synced_list.buffered() as b:
-            b.append(testdata)
-            assert b[0] == testdata
-            assert len(b) == 1
-            assert len(synced_list2) == 0
-        assert len(synced_list) == 1
-        assert len(synced_list2) == 1
-        with synced_list2.buffered() as b2:
-            b2[0] = 'test'
-            assert len(synced_list) == 1
-            assert len(b2) == 1
-            assert synced_list[0] == testdata
-            assert b2[0] == 'test'
-        assert synced_list[0] == 'test'
-        assert synced_list2[0] == 'test'
-        with synced_list.buffered() as b:
-            del b[0]
-            assert len(b) == 0
-        assert len(synced_list) == 0
 
     def test_reopen(self, synced_list, testdata):
         synced_list2 = deepcopy(synced_list)
@@ -648,8 +596,42 @@ class TestJSONList:
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
 
+class TestBufferedJSONDict(TestJSONDict):
 
-class TestJSONDictWriteConcern(TestJSONDict):
+    def test_buffered_read_write(self, synced_dict, testdata):
+        key = 'buffered_read_write'
+        d2 = 'testdata'
+        assert len(synced_dict) == 0
+        with synced_dict.buffered() as b:
+            b[key] = testdata
+            assert b[key] == testdata
+            assert len(b) == 1
+            assert len(synced_dict) == 0
+        assert len(synced_dict) == 1
+        assert synced_dict[key] == testdata
+        with synced_dict.buffered() as b:
+            del b[key]
+            assert key not in b
+            assert len(synced_dict) == 1 
+        assert key not in synced_dict
+
+class TestBufferedJSONList(TestJSONList):
+
+    def test_buffered_read_write(self, synced_list, testdata):
+        assert len(synced_list) == 0
+        with synced_list.buffered() as b:
+            b.append(testdata)
+            assert b[0] == testdata
+            assert len(b) == 1
+            assert len(synced_list) == 0
+        assert len(synced_list) == 1
+        with synced_list.buffered() as b:
+            del b[0]
+            assert len(b) == 0
+            assert len(synced_list) == 1
+        assert len(synced_list) == 0
+
+class TestJSONDictWriteConcern(TestBufferedJSONDict):
 
     @pytest.fixture
     def synced_dict(self):
@@ -660,7 +642,7 @@ class TestJSONDictWriteConcern(TestJSONDict):
         self._tmp_dir.cleanup()
 
 
-class TestJSONListWriteConcern(TestJSONList):
+class TestJSONListWriteConcern(TestBufferedJSONList):
 
     @pytest.fixture
     def synced_list(self):

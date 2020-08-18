@@ -27,8 +27,8 @@ class BufferedFileError(BufferException):
 
     Attribute
     ---------
-    files:
-        A dictionary of files that caused issues during the flush operation,
+    names:
+        A dictionary of names that caused issues during the flush operation,
         mapped to a possible reason for the issue or None in case that it
         cannot be determined.
     """
@@ -56,7 +56,7 @@ def flush_all():
     logger.debug("Flushing buffer...")
     issues = dict()
     while _BUFFER_BACKEND:
-        backend = _BUFFER_BACKEND.popitem()
+        backend = _BUFFER_BACKEND.pop()
         backend_class = SyncedCollection.from_backend(backend)
 
         try:
@@ -120,7 +120,7 @@ def buffer_reads_writes(force_write=False):
                 flush_all()
             finally:
                 _BUFFERED_MODE_FORCE_WRITE = None
-                assert _BUFFER_BACKEND
+                assert not _BUFFER_BACKEND
 
 
 class BufferedSyncedCollection(SyncedCollection):
@@ -136,14 +136,14 @@ class BufferedSyncedCollection(SyncedCollection):
             self._sync()
 
     def _load_from_backend(self):
-        if _BUFFERED_MODE > 0 and not self._is_cached:
+        if _BUFFERED_MODE > 0:
             # Loading for buffer
             data = self._read_from_buffer()
             if data is None:
                 # No data in buffer
                 data = self._load()
                 _store_backend_in_buffer(self.backend)
-                self._write_to_buffer(data=data, synced_data=True)
+                self._write_to_buffer(data=data)
             return data
         else:
             # load from underlying backend
@@ -151,23 +151,30 @@ class BufferedSyncedCollection(SyncedCollection):
 
     # These methods are used to read the from cache while flushing buffer
     @abstractmethod
-    def _write_to_buffer(self, data=None, synced_data=False):
+    def _write_to_buffer(self, data=None):
         """Write the data from buffer
 
         Parameters
         ----------
         data:
             Data write to buffer.
-        synced_data: bool
-
         """
         pass
 
     @classmethod
     @abstractmethod
-    def flush_buffer(cls):
+    def _flush_buffer(cls):
+        """Flush the data from buffer
+        
+        Returns
+        -------
+        issues: dict
+            Dictionary of names that caused issues during the flushing 
+            mapped to possible reason of error.
+        """
         pass
 
+    @abstractmethod
     def _read_from_buffer(self):
         pass
 

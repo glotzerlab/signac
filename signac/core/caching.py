@@ -57,18 +57,18 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
     return CACHE
 
 
-class MemCache:
+class MemCache(dict):
     "Implements the in-memory cache"
 
-    def __init__(self, cache_miss_warning_threshold=500):
-        self._data = dict()
+    def __init__(self, *args, cache_miss_warning_threshold=500, **kwargs):
         self._misses = 0
         self._warned = False
         self._miss_warning_threshold = cache_miss_warning_threshold
+        super().__init__(*args, **kwargs)
 
     def __getitem__(self, key):
         try:
-            self._data[key]
+            super().__getitem__(key)
         except KeyError:
             self._misses += 1
             if not self._warned and self._misses > self._miss_warning_threshold:
@@ -76,15 +76,13 @@ class MemCache:
             self._warned = True
             raise
 
-    def __setitem__(self, key, value):
-        self._data[key] = value
 
 
 class CachedSyncedCollection(SyncedCollection):
     """Implement caching for SyncedCollection API."""
 
-    def __init__(self, cache=None, **kwargs):
-        self._cache = get_cache() if cache is None else cache
+    def __init__(self, cache, **kwargs):
+        self._cache = cache
         super().__init__(**kwargs)
         self._is_cached = True
 
@@ -105,9 +103,8 @@ class CachedSyncedCollection(SyncedCollection):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 # write the data to backend and update the cache
-                data = self.to_base()
-                self._sync_to_backend(data)
-                self._write_to_cache(data)
+                self._sync_to_backend()
+                self._write_to_cache()
             else:
                 self._parent.sync()
 
