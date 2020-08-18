@@ -596,11 +596,11 @@ class TestJSONList:
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
 
+
 class TestBufferedJSONDict(TestJSONDict):
 
     def test_buffered_read_write(self, synced_dict, testdata):
         key = 'buffered_read_write'
-        d2 = 'testdata'
         assert len(synced_dict) == 0
         with synced_dict.buffered() as b:
             b[key] = testdata
@@ -612,8 +612,9 @@ class TestBufferedJSONDict(TestJSONDict):
         with synced_dict.buffered() as b:
             del b[key]
             assert key not in b
-            assert len(synced_dict) == 1 
+            assert len(synced_dict) == 1
         assert key not in synced_dict
+
 
 class TestBufferedJSONList(TestJSONList):
 
@@ -630,6 +631,7 @@ class TestBufferedJSONList(TestJSONList):
             assert len(b) == 0
             assert len(synced_list) == 1
         assert len(synced_list) == 0
+
 
 class TestJSONDictWriteConcern(TestBufferedJSONDict):
 

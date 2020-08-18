@@ -37,7 +37,7 @@ def get_json_cache():
 def _store_in_buffer(filename, metadata=None):
     """Store the data to the buffer"""
     _JSON_BUFFER_FILENAMES.add(filename)
-    if not  get_buffer_force_mode() and filename not in _JSON_META:
+    if (not get_buffer_force_mode()) and (filename not in _JSON_META):
         _JSON_META[filename] = metadata
 
 
@@ -115,7 +115,7 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         """Write filename to buffer."""
         data = self.to_base() if data is None else data
 
-        # Using cache to store the data and 
+        # Using cache to store the data and
         # storing filename and metadata in buffer
         self._write_to_cache(data)
         metadata = self._get_metadata(self._filename)

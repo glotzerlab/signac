@@ -77,7 +77,6 @@ class MemCache(dict):
             raise
 
 
-
 class CachedSyncedCollection(SyncedCollection):
     """Implement caching for SyncedCollection API."""
 

@@ -165,11 +165,11 @@ class BufferedSyncedCollection(SyncedCollection):
     @abstractmethod
     def _flush_buffer(cls):
         """Flush the data from buffer
-        
+
         Returns
         -------
         issues: dict
-            Dictionary of names that caused issues during the flushing 
+            Dictionary of names that caused issues during the flushing
             mapped to possible reason of error.
         """
         pass
