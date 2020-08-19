@@ -141,7 +141,7 @@ class SyncedCollection(Collection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                data = self._load()
+                data = self._load_from_backend()
                 with self._suspend_sync():
                     self._update(data)
             else:
