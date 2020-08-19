@@ -126,6 +126,9 @@ class SyncedCollection(Collection):
     def _sync_to_backend(self):
         self._sync()
 
+    def _load_from_backend(self):
+        self._load()
+
     def sync(self):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
