@@ -116,14 +116,18 @@ class CachedSyncedCollection(SyncedCollection):
                 if data is None:
                     # if no data in cache load the data from backend
                     # and update the cache
-                    data = self._load()
+                    data = self._load_from_backend()
                     self._write_to_cache(data)
                 with self._suspend_sync():
                     self._update(data)
             else:
                 self._parent.load()
 
+    # Cache invalidation
     def refresh_cache(self):
-        """Load the data from backend and update the cache"""
-        data = self._load()
-        self._write_to_cache(data)
+        """Load the data from backend and update the cache."""
+        if self._parent is None:
+            data = self._load()
+            self._write_to_cache(data)
+        else:
+            self._parent.refresh_cache()
