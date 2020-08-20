@@ -39,11 +39,10 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             self._data = []
         else:
-            if NUMPY and isinstance(data, numpy.ndarray):
-                data = data.tolist()
             with self._suspend_sync():
+                data = self._validate(data)
                 self._data = [self.from_base(data=value, parent=self) for value in data]
-            self.sync()
+        self.sync()
 
     @classmethod
     def is_base_type(cls, data):
@@ -85,6 +84,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         """Update the instance of SyncedList with data using depth-first traversal."""
         if data is None:
             data = []
+        data = self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
                 # This loop avoids rebuilding existing synced collections for performance.
@@ -123,8 +123,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         """
         if data is None:
             data = []
-        if NUMPY and isinstance(data, numpy.ndarray):
-            data = data.tolist()
+        data = self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
                 self._data = [self.from_base(data=value, parent=self) for value in data]
@@ -136,6 +135,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __setitem__(self, key, value):
         self.load()
+        value = self._validate(value)
         with self._suspend_sync():
             self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
@@ -147,25 +147,29 @@ class SyncedList(SyncedCollection, MutableSequence):
     def __iadd__(self, iterable):
         self.load()
         with self._suspend_sync():
-            self._data += [self.from_base(data=value, parent=self) for value in iterable]
+            data = self._validate(list(iterable))
+            self._data += [self.from_base(data=value, parent=self) for value in data]
         self.sync()
         return self
 
     def insert(self, index, item):
         self.load()
         with self._suspend_sync():
+            item = self._validate(item)
             self._data.insert(index, self.from_base(data=item, parent=self))
         self.sync()
 
     def append(self, item):
         self.load()
         with self._suspend_sync():
+            item = self._validate(item)
             self._data.append(self.from_base(data=item, parent=self))
         self.sync()
 
     def extend(self, iterable):
         self.load()
         with self._suspend_sync():
+            data = self._validate(list(iterable))
             self._data.extend([self.from_base(data=value, parent=self) for value in iterable])
         self.sync()
 

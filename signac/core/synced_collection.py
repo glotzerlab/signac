@@ -34,6 +34,7 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None):
         self._data = None
         self._parent = parent
+        self._validators = list()
         self._suspend_sync_ = 0
 
     @classmethod
@@ -127,6 +128,12 @@ class SyncedCollection(Collection):
                     self._update(data)
             else:
                 self._parent.load()
+
+    def _validate(self, data):
+        """Validate the input data"""
+        for validator in self._validators:
+            data = validator.validate(data)
+        return data
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

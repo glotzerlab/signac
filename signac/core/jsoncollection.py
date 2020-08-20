@@ -11,24 +11,53 @@ import os
 import json
 import errno
 import uuid
+import warnings
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from collections.abc import Mapping
+from collections.abc import Sequence
+from .synced_collection import NUMPY
+from ..errors import KeyTypeError
+
+if NUMPY:
+    import numpy
 
 
 class JSONFormatValidator:
+    """Implement the validation for :class:`JSONCollection`."""
 
     @classmethod
     def validate(cls, data):
-        if isinstance(data, (str, int, float, bool, type(None))):
+        """Emit a warning or raise an exception if data is invalid.
+
+        Parameters
+        ----------
+        data:
+            Data to validate.
+
+        Returns
+        -------
+        data
+
+        Raises
+        ------
+        KeyTypeError:
+            If keys of mapping have unsupported data type.
+        TypeError
+            If data type is not supported.
+        """
+
+        if isinstance(data, (str, int, float, bool, bytes, type(None))):
             return data
         elif isinstance(data, Mapping):
             ret = {}
-            for key, value in data:
+            for key, value in data.items():
                 if isinstance(key, (int, bool, type(None))):
                     warnings.warn(
-                        "Use of {} as key is deprecated and will be removed in version 2.0")
+                        "Use of {} as key is deprecated and will be removed in version 2.0"
+                        .format(type(key)), DeprecationWarning)
                     new_key = str(key)
                 elif isinstance(key, str):
                     new_key = key
@@ -41,14 +70,14 @@ class JSONFormatValidator:
         elif isinstance(data, Sequence):
             for i in range(len(data)):
                 data[i] = cls.validate(data[i])
+            return data
         elif NUMPY:
             if isinstance(data, numpy.ndarray):
                 data = data.tolist()
                 return cls.validate(data)
             if isinstance(data, numpy.number):
                 return data.item()
-        else:
-            raise TypeError("object of {} is not ......".format(type(data))
+        raise TypeError("Object of {} is not JSON-serializable".format(type(data)))
 
 
 class JSONCollection(SyncedCollection):
@@ -60,6 +89,7 @@ class JSONCollection(SyncedCollection):
         self._filename = os.path.realpath(filename) if filename is not None else None
         self._write_concern = write_concern
         super().__init__(**kwargs)
+        self._validators.append(JSONFormatValidator)
         if (filename is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
@@ -94,7 +124,7 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
-class JSONDict(JSONCollection, SyncedAttrDict):
+class JSONDict(SyncedAttrDict, JSONCollection):
     """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
@@ -142,7 +172,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     pass
 
 
-class JSONList(JSONCollection, SyncedList):
+class JSONList(SyncedList, JSONCollection):
     """A non-string sequence interface to a persistent JSON file.
 
     The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
