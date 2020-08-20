@@ -352,10 +352,7 @@ class TestJSONDict:
         class MyStr(str):
             pass
         for key in ('key', MyStr('key'), 0, None, True):
-            if isinstance(key, (int, bool, type(None))):
-                synced_dict[key] = testdata
-            else:
-                synced_dict[key] = testdata
+            synced_dict[key] = testdata
             assert str(key) in synced_dict
             assert synced_dict[str(key)] == testdata
 
