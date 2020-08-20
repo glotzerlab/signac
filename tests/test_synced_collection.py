@@ -9,7 +9,6 @@ from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from copy import deepcopy
-from conftest import deprecated_in_version
 
 from signac.core.synced_list import SyncedCollection
 from signac.core.jsoncollection import JSONDict
@@ -354,7 +353,7 @@ class TestJSONDict:
             pass
         for key in ('key', MyStr('key'), 0, None, True):
             if isinstance(key, (int, bool, type(None))):
-                    synced_dict[key] = testdata
+                synced_dict[key] = testdata
             else:
                 synced_dict[key] = testdata
             assert str(key) in synced_dict

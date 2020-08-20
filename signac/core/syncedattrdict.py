@@ -150,7 +150,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             raise ValueError(
                 "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
-
     def __setitem__(self, key, value):
         self.load()
         with self._suspend_sync():

@@ -170,7 +170,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         self.load()
         with self._suspend_sync():
             data = self._validate(list(iterable))
-            self._data.extend([self.from_base(data=value, parent=self) for value in iterable])
+            self._data.extend([self.from_base(data=value, parent=self) for value in data])
         self.sync()
 
     def remove(self, item):
