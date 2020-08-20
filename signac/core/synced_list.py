@@ -42,7 +42,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             with self._suspend_sync():
                 data = self._validate(data)
                 self._data = [self.from_base(data=value, parent=self) for value in data]
-        self.sync()
+            self.sync()
 
     @classmethod
     def is_base_type(cls, data):
