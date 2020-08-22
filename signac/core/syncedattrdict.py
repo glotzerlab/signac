@@ -73,7 +73,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         dictionary representation, and if necessary construct a new SyncedAttrDict.
     """
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_sync', '_parent', '_validators')
+    _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent', 
+                       '_validators')
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)

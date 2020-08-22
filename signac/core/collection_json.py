@@ -86,14 +86,11 @@ class JSONCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
-        self._filename = os.path.realpath(filename) if filename is not None else None
+        self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
+        kwargs['name'] = filename
         super().__init__(**kwargs)
         self._validators.append(JSONFormatValidator)
-        if (filename is None) == (self._parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
 
     def _load(self):
         """Load the data from a JSON-file."""
@@ -160,22 +157,20 @@ class JSONDict(SyncedAttrDict, JSONCollection):
     ----------
     filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
+    write_concern: bool, optional
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value = None).
     data: mapping, optional
         The intial data pass to JSONDict. Defaults to `list()`
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool, optional
-        Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None).
     """
-
-    pass
 
 
 class JSONList(SyncedList, JSONCollection):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
@@ -198,18 +193,16 @@ class JSONList(SyncedList, JSONCollection):
 
     Parameters
     ----------
-    filename: str
+    filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    data: non-str Sequence
-        The intial data pass to JSONDict
-    parent: object
-        A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool
+    write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
+    data: non-str Sequence, optional
+        The intial data pass to JSONList
+    parent: object, optional
+        A parent instance of JSONList or None (Default value = None).
     """
-
-    pass
 
 
 SyncedCollection.register(JSONDict, JSONList)
