@@ -11,6 +11,7 @@ from copy import deepcopy
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from .collection_json import JSONFormatValidator
 
 
 class MongoDBCollection(SyncedCollection):
@@ -19,12 +20,10 @@ class MongoDBCollection(SyncedCollection):
     backend = __name__  # type: ignore
 
     def __init__(self, collection=None, **kwargs):
-        import bson  # for InvalidDocument
-
         self._collection = collection
-        self._errors = bson.errors
         self._key = type(self).__name__ + '::name'
         super().__init__(**kwargs)
+        self._validators.append(JSONFormatValidator)
 
     def _load(self):
         """Load the data from a MongoDB."""
@@ -35,10 +34,7 @@ class MongoDBCollection(SyncedCollection):
         """Write the data from MongoDB."""
         data = self.to_base()
         data_to_insert = {self._key: self._name, 'data': data}
-        try:
-            self._collection.replace_one({self._key: self._name}, data_to_insert, True)
-        except self._errors.InvalidDocument as err:
-            raise TypeError(str(err))
+        self._collection.replace_one({self._key: self._name}, data_to_insert, True)
 
     def _pseudo_deepcopy(self):
         """Return a copy of instance.
