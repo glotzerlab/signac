@@ -14,6 +14,7 @@ from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 from .collection_json import JSONFormatValidator
 
+
 class RedisCollection(SyncedCollection):
     """Implement sync and load using a Redis backend."""
 
