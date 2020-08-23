@@ -68,66 +68,10 @@ class MemCache(dict):
 
     def __getitem__(self, key):
         try:
-            super().__getitem__(key)
+            return super().__getitem__(key)
         except KeyError:
             self._misses += 1
             if not self._warned and self._misses > self._miss_warning_threshold:
                 logger.debug("High number of cache misses.")
             self._warned = True
             raise
-
-
-class CachedSyncedCollection(SyncedCollection):
-    """Implement caching for SyncedCollection API."""
-
-    def __init__(self, cache, **kwargs):
-        self._cache = cache
-        super().__init__(**kwargs)
-        self._is_cached = True
-
-    # methods required for cache implementation
-    @abstractmethod
-    def _read_from_cache(self):
-        """Read the data from cache."""
-        pass
-
-    @abstractmethod
-    def _write_to_cache(self, data=None):
-        """Write the data to cache."""
-        pass
-
-    # overwriting sync and load methods to add caching mechanism
-    def sync(self):
-        """Synchronize the data with the underlying backend."""
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                # write the data to backend and update the cache
-                self._sync_to_backend()
-                self._write_to_cache()
-            else:
-                self._parent.sync()
-
-    def load(self):
-        """Load the data from the underlying backend."""
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
-                # fetch data from cache
-                data = self._read_from_cache()
-                if data is None:
-                    # if no data in cache load the data from backend
-                    # and update the cache
-                    data = self._load_from_backend()
-                    self._write_to_cache(data)
-                with self._suspend_sync():
-                    self._update(data)
-            else:
-                self._parent.load()
-
-    # Cache invalidation
-    def refresh_cache(self):
-        """Load the data from backend and update the cache."""
-        if self._parent is None:
-            data = self._load()
-            self._write_to_cache(data)
-        else:
-            self._parent.refresh_cache()

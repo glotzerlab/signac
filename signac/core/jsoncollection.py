@@ -14,7 +14,6 @@ import logging
 
 from .synced_collection import SyncedCollection
 from .buffered_collection import BufferedSyncedCollection
-from .caching import CachedSyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 from .caching import get_cache
@@ -41,17 +40,18 @@ def _store_in_buffer(filename, metadata=None):
         _JSON_META[filename] = metadata
 
 
-class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
+class JSONCollection(BufferedSyncedCollection):
     """Implement sync and load using a JSON back end."""
 
     backend = __name__  # type: ignore
+    _cache = get_json_cache()
 
     def __init__(self, filename=None, data=None, write_concern=False, **kwargs):
         kwargs['data'] = data
-        kwargs['cache'] = get_json_cache()
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         super().__init__(**kwargs)
+        self._is_cached = True
         if (filename is None) == (self._parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
@@ -59,15 +59,29 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         if data is not None:
             self.sync()
 
-    def _load(self):
-        """Load the data from a JSON-file."""
+    def _load_from_file(self):
+        """Return Serialized data loaded from file."""
         try:
             with open(self._filename, 'rb') as file:
-                blob = file.read()
-                return json.loads(blob)
+                return file.read()
         except IOError as error:
             if error.errno == errno.ENOENT:
-                return None
+                return json.dumps(None).encode()
+
+    def _load(self):
+        """Load the data from a JSON-file."""
+        # Reading from cache
+        try:
+            data = json.loads(self._cache[self._filename])
+        except KeyError:
+            data = None
+        # if no data in cache or cache contain None then load from file 
+        if data is None:
+            blob = self._load_from_file()
+            self._cache[self._filename] = blob
+            return json.loads(blob)
+        else:
+            return data
 
     def _sync(self, data=None):
         """Write the data to JSON-file."""
@@ -87,6 +101,8 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
         else:
             with open(self._filename, 'wb') as file:
                 file.write(blob)
+        # Writing to cache
+        self._cache[self._filename] = blob
 
     @staticmethod
     def _get_metadata(filename):
@@ -98,31 +114,21 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
             if error.errno != errno.ENOENT:
                 raise
 
-    def _write_to_cache(self, data=None):
-        """Write data to Cache"""
-        data = self.to_base() if data is None else data
-        self._cache[self._filename] = json.dumps(data)
-
-    def _read_from_cache(self):
-        """Read data from cache."""
-        try:
-            data = self._cache[self._filename]
-        except KeyError:
-            data = None
-        return json.loads(data) if data is not None else None
-
     def _write_to_buffer(self, data=None):
         """Write filename to buffer."""
         data = self.to_base() if data is None else data
 
         # Using cache to store the data and
         # storing filename and metadata in buffer
-        self._write_to_cache(data)
+        self._cache[self._filename] = json.dumps(data).encode()
         metadata = self._get_metadata(self._filename)
         _store_in_buffer(self._filename, metadata)
 
     def _read_from_buffer(self):
-        return self._read_from_cache()
+        try:
+            return json.loads(self._cache[self._filename])
+        except KeyError:
+            return None
 
     @classmethod
     def _flush_buffer(cls):
@@ -143,12 +149,12 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
                 meta = _JSON_META.pop(filename)
                 if cls._get_metadata(filename) != meta:
                     issues[filename] = 'File appears to have been externally modified.'
-                    _JSON_CACHE[filename] = json.dumps(None)  # redis does not support None
+                    cls._cache[filename] = json.dumps(None)  # redis does not support None
                     continue
 
             # Sync the data to underlying backend
             try:
-                blob = _JSON_CACHE[filename]
+                blob = cls._cache[filename]
                 dirname, fn = os.path.split(filename)
                 fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(uid=uuid.uuid4(), fn=fn))
                 with open(fn_tmp, 'wb') as tmpfile:
@@ -158,9 +164,20 @@ class JSONCollection(BufferedSyncedCollection, CachedSyncedCollection):
                 # if sync fails add filename to issues
                 # and remove data from cache
                 logger.error(str(error))
-                _JSON_CACHE[filename] = json.dumps(None)  # redis does not support None
+                cls._cache[filename] = json.dumps(None)  # redis does not support None
                 issues[filename] = error
         return issues
+
+
+    # Cache invalidation
+    def refresh_cache(self):
+        """Load the data from backend and update the cache."""
+        if self._parent is None:
+            blob = self._load_from_file()
+            # Writing to cache
+            self._cache[self._filename] = blob
+        else:
+            self._parent.refresh_cache()
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

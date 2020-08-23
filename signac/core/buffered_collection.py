@@ -61,7 +61,7 @@ def flush_all():
 
         try:
             # try to sync the data to backend
-            issue = backend_class.flush_buffer()
+            issue = backend_class._flush_buffer()
             issues.update(issue)
         except OSError as error:
             logger.error(str(error))
