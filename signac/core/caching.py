@@ -4,9 +4,7 @@
 """Implement the caching feature to  SyncedCollection API."""
 import uuid
 import logging
-from abc import abstractmethod
 
-from .synced_collection import SyncedCollection
 logger = logging.getLogger(__name__)
 
 

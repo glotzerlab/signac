@@ -75,7 +75,7 @@ class JSONCollection(BufferedSyncedCollection):
             data = json.loads(self._cache[self._filename])
         except KeyError:
             data = None
-        # if no data in cache or cache contain None then load from file 
+        # if no data in cache or cache contain None then load from file
         if data is None:
             blob = self._load_from_file()
             self._cache[self._filename] = blob
@@ -168,8 +168,8 @@ class JSONCollection(BufferedSyncedCollection):
                 issues[filename] = error
         return issues
 
-
     # Cache invalidation
+
     def refresh_cache(self):
         """Load the data from backend and update the cache."""
         if self._parent is None:
