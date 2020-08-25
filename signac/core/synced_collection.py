@@ -9,6 +9,7 @@ backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
 
+from typing import List
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
