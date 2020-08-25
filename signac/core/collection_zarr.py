@@ -11,7 +11,6 @@ from copy import deepcopy
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .collection_json import JSONFormatValidator
 
 
 class ZarrCollection(SyncedCollection):
@@ -25,7 +24,6 @@ class ZarrCollection(SyncedCollection):
         self._root = group
         self._object_codec = numcodecs.JSON()
         super().__init__(**kwargs)
-        self._validators.append(JSONFormatValidator)
 
     def _load(self):
         """Load the data from zarr-store."""

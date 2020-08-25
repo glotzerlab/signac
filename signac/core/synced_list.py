@@ -39,6 +39,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             self._data = []
         else:
+            if NUMPY and isinstance(data, numpy.ndarray):
+                data = data.tolist()
             with self._suspend_sync():
                 data = self._validate(data)
                 self._data = [self.from_base(data=value, parent=self) for value in data]

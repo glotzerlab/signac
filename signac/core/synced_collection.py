@@ -30,11 +30,11 @@ class SyncedCollection(Collection):
     """
 
     backend = None
+    _validators = list()
 
     def __init__(self, name=None, parent=None):
         self._data = None
         self._parent = parent
-        self._validators = list()
         self._name = name
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):
@@ -58,6 +58,17 @@ class SyncedCollection(Collection):
             cls.registry = defaultdict(list)
         for _cls in args:
             cls.registry[_cls.backend].append(_cls)
+
+    @classmethod
+    def add_validator(cls, *args):
+        """Register validator.
+
+        Parameters
+        ----------
+        *args
+            Validator to register
+        """
+        cls._validators.extend(args)
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
@@ -137,7 +148,7 @@ class SyncedCollection(Collection):
     def _validate(self, data):
         """Validate the input data"""
         for validator in self._validators:
-            data = validator.validate(data)
+            data = validator(data)
         return data
 
     # The following methods share a common implementation for

@@ -13,47 +13,7 @@ from collections.abc import Mapping
 from collections.abc import MutableMapping
 
 from .synced_collection import SyncedCollection
-from ..errors import InvalidKeyError
-from ..errors import KeyTypeError
-
-
-class AttrDictFormatValidator:
-    """Implement the validation for :class:`SyncedAttrDict`."""
-
-    VALID_KEY_TYPES = (str, int, bool, type(None))
-
-    @classmethod
-    def validate(cls, data):
-        """Raise an exception if data is invalid.
-
-        Parameters
-        ----------
-        data:
-            Data to validate.
-
-        Returns
-        -------
-        data
-
-        Raises
-        ------
-        KeyTypeError:
-            If keys have unsupported data type.
-        InvalidKeyError
-            If key is not supported.
-        """
-        if isinstance(data, Mapping):
-            for key in data.keys():
-                if isinstance(key, str):
-                    if '.' in key:
-                        raise InvalidKeyError(
-                            "SyncedAttrDict keys may not contain dots ('.'): {}".format(key))
-                elif not isinstance(key, cls.VALID_KEY_TYPES):
-                    raise KeyTypeError(
-                        "SyncedAttrDict keys must be str, int, bool or None, not {}"
-                        .format(type(key).__name__))
-        return data
-
+from .validators import NoDotInKey
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implement the dict data structure along with values access through attributes named as keys.
@@ -78,7 +38,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
-        self._validators.append(AttrDictFormatValidator)
         if data is None:
             self._data = {}
         else:
@@ -261,3 +220,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             super().__delattr__(key)
         else:
             self.__delitem__(key)
+
+
+SyncedAttrDict.add_validator(NoDotInKey())
