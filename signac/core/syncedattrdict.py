@@ -58,7 +58,7 @@ class AttrDictFormatValidator:
 class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implement the dict data structure along with values access through attributes named as keys.
 
-    The SyncedAttrDict inherits from :class:`~core.synced_colletion.SyncedCollection`
+    The SyncedAttrDict inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
     a :class:`dict`. This class also allows access to values through key indexing or
     attributes named by keys, including nested keys.
