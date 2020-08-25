@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
+def get_cache(redis_kwargs=None):
     """Return the cache.
 
     This mehtod returns Redis client if availalbe else return instance of :class:`MemCache`.
@@ -22,8 +22,6 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
     ----------
     redis_kwargs: dict
         Kwargs passed to `redis.Redis` (Default value = None).
-    mem_cache_kwargs: dict
-        Kwargs passed to :class:`MemCache` (Default value = None).
 
     Returns
     -------
@@ -48,28 +46,7 @@ def get_cache(redis_kwargs=None, mem_cache_kwargs=None):
         REDIS_Cache = False
     if not REDIS_Cache:
         logger.info("Redis not available.")
-        mem_cache_kwargs = {} if mem_cache_kwargs is None else mem_cache_kwargs
-        CACHE = MemCache(**mem_cache_kwargs)
+        CACHE = dict()
     else:
         logger.info("Using redis cache.")
     return CACHE
-
-
-class MemCache(dict):
-    "Implements the in-memory cache"
-
-    def __init__(self, *args, cache_miss_warning_threshold=500, **kwargs):
-        self._misses = 0
-        self._warned = False
-        self._miss_warning_threshold = cache_miss_warning_threshold
-        super().__init__(*args, **kwargs)
-
-    def __getitem__(self, key):
-        try:
-            return super().__getitem__(key)
-        except KeyError:
-            self._misses += 1
-            if not self._warned and self._misses > self._miss_warning_threshold:
-                logger.debug("High number of cache misses.")
-            self._warned = True
-            raise
