@@ -30,7 +30,7 @@ class SyncedCollection(Collection):
     """
 
     backend = None
-    _validators = list()
+    _validators: List[object] = list()  # list of callable objects
 
     def __init__(self, name=None, parent=None):
         self._data = None
