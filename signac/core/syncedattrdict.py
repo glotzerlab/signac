@@ -15,6 +15,7 @@ from collections.abc import MutableMapping
 from .synced_collection import SyncedCollection
 from .validators import NoDotInKey
 
+
 class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implement the dict data structure along with values access through attributes named as keys.
 
