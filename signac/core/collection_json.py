@@ -58,7 +58,7 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
-JSONCollection.add_validator(JSONFormatValidator())
+JSONCollection.add_validator(JSONFormatValidator)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

@@ -223,4 +223,4 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self.__delitem__(key)
 
 
-SyncedAttrDict.add_validator(NoDotInKey())
+SyncedAttrDict.add_validator(NoDotInKey)
