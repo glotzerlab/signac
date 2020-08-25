@@ -125,6 +125,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         """
         if data is None:
             data = []
+        elif NUMPY and isinstance(data, numpy.ndarray):
+            data = data.tolist()
         data = self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
