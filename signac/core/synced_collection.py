@@ -31,7 +31,7 @@ class SyncedCollection(Collection):
     """
 
     backend = None
-    _validators: List[object] = list()  # list of callable objects
+    _validators: List[object] = list()  # list of callable objects  
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -42,6 +42,15 @@ class SyncedCollection(Collection):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
                 "parent or name must be None, but not both.")
+
+    @classmethod
+    def __init_subclass__(cls):
+        """Add  `_validator` attribute to every subsclass.
+
+        Every subclass contain list of validators that are applied
+        to the input of the instance of subclass.
+        """
+        cls._validators = list()
 
     @classmethod
     def register(cls, *args):
@@ -69,7 +78,9 @@ class SyncedCollection(Collection):
         *args
             Validator to register
         """
-        cls._validators.extend(args)
+        for validator in args:
+            if validator not in cls._validators: 
+                cls._validators.append(validator)
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
@@ -146,10 +157,14 @@ class SyncedCollection(Collection):
             else:
                 self._parent.load()
 
-    def _validate(self, data):
+    @classmethod
+    def _validate(cls, data):
         """Validate the input data"""
-        for validator in self._validators:
-            data = validator(data)
+        for _cls in cls.mro():
+            if not hasattr(_cls, '_validators'):
+                break
+            for validator in _cls._validators:
+                data = validator(data)
         return data
 
     # The following methods share a common implementation for
