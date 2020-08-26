@@ -95,7 +95,7 @@ class SyncedCollection(Collection):
     @classmethod
     def from_backend(cls, backend_name):
         """Return backend class corresponding to backend name.
-        
+
         Parameters
         ----------
         backend_name: str

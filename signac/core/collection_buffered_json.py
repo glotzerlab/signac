@@ -42,7 +42,6 @@ def _hash(blob):
 
 class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
 
-
     backend = __name__  # type: ignore
 
     _cache = get_json_cache()
@@ -164,7 +163,7 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """
 
 
-class BufferedJSONList(JSONCollection, SyncedList):
+class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
     The JSONList inherits from :class:`~core.collection_api.SyncedCollection`

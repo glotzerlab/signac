@@ -12,6 +12,7 @@ from test_synced_collection import TestJSONList
 
 FN_JSON = 'test_buffered.json'
 
+
 class TestBufferedJSONDict(TestJSONDict):
 
     @pytest.fixture
