@@ -1514,7 +1514,9 @@ class TestProjectRepresentation(TestProjectBase):
     @pytest.mark.parametrize("project_generator,num_jobs", project_repr_generators)
     def test_project_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
-        str(self.project)
+        assert len(str(self.project)) > 0
+        assert 'project' in str(self.project)
+        assert len(repr(self.project)) > 0
         assert eval(repr(self.project)) == self.project
         for use_pandas in (True, False):
             type(self.project)._use_pandas_for_html_repr = use_pandas
@@ -1526,7 +1528,8 @@ class TestProjectRepresentation(TestProjectBase):
     def test_JobsCursor_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
         for filter_ in (None, ):
-            str(self.project.find_jobs(filter_))
+            assert len(str(self.project.find_jobs(filter_))) > 0
+            assert len(repr(self.project.find_jobs(filter_))) > 0
             q = self.project.find_jobs(filter_)
             assert eval(repr(q)) == q
             for use_pandas in (True, False):
@@ -1539,8 +1542,8 @@ class TestProjectRepresentation(TestProjectBase):
     def test_Schema_repr_methods(self, project_generator, num_jobs):
         project_generator(self.project, num_jobs)
         schema = self.project.detect_schema()
-        str(schema)
-        repr(schema)
+        assert len(str(schema)) > 0
+        assert len(repr(schema)) > 0
         schema._repr_html_()
 
 
