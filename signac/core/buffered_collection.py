@@ -17,6 +17,7 @@ _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFER_BACKEND = list()
 
+
 class BufferException(Error):
     """An exception occured in buffered mode."""
 

@@ -23,12 +23,14 @@ _JSON_CACHE = None
 _JSON_META = dict()
 _JSON_HASHES = dict()
 
+
 def get_json_cache():
     """Return reference to JSON-Cache """
     global _JSON_CACHE
     if _JSON_CACHE is None:
         _JSON_CACHE = get_cache()
     return _JSON_CACHE
+
 
 def _hash(blob):
     """Calculate and return the md5 hash value for the file data."""
@@ -55,7 +57,7 @@ class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
     def _write_to_buffer(self, data=None, synced_data=True):
         """Write filename to buffer."""
         data = self.to_base() if data is None else data
-        # Using cache to store the data 
+        # Using cache to store the data
         blob = json.dumps(data).encode()
         self._cache[self._filename] = blob
         # storing metadata and hash
@@ -91,7 +93,7 @@ class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
                 if cls._get_metadata(filename) != meta:
                     issues[filename] = 'File appears to have been externally modified.'
                     continue
-            
+
             blob = cls._cache[filename]
             del cls._cache[filename]  # Redis client does not have `pop`.
 
@@ -115,7 +117,7 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedattrdict.SyncedAttrDict`.This class also supports the 
+    and :class:`~core.syncedattrdict.SyncedAttrDict`.This class also supports the
     "buffered" mode where all the reads and writes are deferred.
 
     .. code-block:: python
@@ -163,7 +165,7 @@ class BufferedJSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
     The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
-    and :class:`~core.syncedlist.SyncedList`. This class also supports the 
+    and :class:`~core.syncedlist.SyncedList`. This class also supports the
     "buffered" mode where all the reads and writes are deferred.
 
     .. code-block:: python
@@ -194,5 +196,6 @@ class BufferedJSONList(JSONCollection, SyncedList):
     parent: object, optional
         A parent instance of JSONList or None (Default value = None).
     """
+
 
 SyncedCollection.register(BufferedJSONCollection, BufferedJSONDict, BufferedJSONList)
