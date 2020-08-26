@@ -31,7 +31,7 @@ class SyncedCollection(Collection):
     """
 
     backend = None
-    _validators: List[object] = list()  # list of callable objects  
+    _validators: List[object] = list()  # list of callable objects
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -79,7 +79,7 @@ class SyncedCollection(Collection):
             Validator to register
         """
         for validator in args:
-            if validator not in cls._validators: 
+            if validator not in cls._validators:
                 cls._validators.append(validator)
 
     @classmethod
