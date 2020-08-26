@@ -37,14 +37,12 @@ def get_cache(redis_kwargs=None):
             CACHE.set(test_key, 0)
             assert CACHE.get(test_key) == b'0'  # redis store data as bytes
             CACHE.delete(test_key)
-            REDIS_Cache = True
         except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
-            REDIS_Cache = False
+            CACHE = None
     except ImportError as error:
         logger.debug(str(error))
-        REDIS_Cache = False
-    if not REDIS_Cache:
+    if CACHE is None:
         logger.info("Redis not available.")
         CACHE = dict()
     else:

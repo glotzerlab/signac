@@ -17,7 +17,6 @@ _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFER_BACKEND = list()
 
-
 class BufferException(Error):
     """An exception occured in buffered mode."""
 
@@ -130,7 +129,7 @@ class BufferedSyncedCollection(SyncedCollection):
         if _BUFFERED_MODE > 0:
             # Storing in buffer
             _store_backend_in_buffer(self.backend)
-            self._write_to_buffer()
+            self._write_to_buffer(synced_data=False)
         else:
             # Saving to underlying backend:
             self._sync()
@@ -143,7 +142,7 @@ class BufferedSyncedCollection(SyncedCollection):
                 # No data in buffer
                 data = self._load()
                 _store_backend_in_buffer(self.backend)
-                self._write_to_buffer(data=data)
+                self._write_to_buffer(data=data, synced_data=True)
             return data
         else:
             # load from underlying backend
@@ -151,13 +150,15 @@ class BufferedSyncedCollection(SyncedCollection):
 
     # These methods are used to read the from cache while flushing buffer
     @abstractmethod
-    def _write_to_buffer(self, data=None):
-        """Write the data from buffer
+    def _write_to_buffer(self, data=None, synced_data=False):
+        """Write the data to the buffer
 
         Parameters
         ----------
         data:
-            Data write to buffer.
+            Data write to the buffer.
+        synced_data:
+            True if the data is synchronized with backend, otherwise False.
         """
         pass
 
@@ -176,6 +177,7 @@ class BufferedSyncedCollection(SyncedCollection):
 
     @abstractmethod
     def _read_from_buffer(self):
+        """Read the data from the buffer."""
         pass
 
     @contextmanager
@@ -196,8 +198,6 @@ class BufferedSyncedCollection(SyncedCollection):
             yield buffered_collection
         finally:
             buffered_collection.flush()
-            if self._is_cached:
-                self.refresh_cache()
 
 
 class BufferedCollection(SyncedCollection):
@@ -231,7 +231,7 @@ class BufferedCollection(SyncedCollection):
 
     def flush(self):
         """Save buffered changes to the underlying file."""
-        self._parent._sync(self.to_base())
+        self._parent.reset(self.to_base())
 
 
 class BufferedSyncedAttrDict(BufferedCollection, SyncedAttrDict):

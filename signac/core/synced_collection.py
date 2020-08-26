@@ -89,11 +89,27 @@ class SyncedCollection(Collection):
         return data
 
     @classmethod
-    def from_backend(cls, backend):
+    def from_backend(cls, backend_name):
+        """Return backend class corresponding to backend name.
+        
+        Parameters
+        ----------
+        backend_name: str
+            Name of the backend.
+
+        Returns
+        -------
+        _cls
+            Class corresponding to name.
+
+        Raises:
+        -------
+        ValueError
+        """
         for _cls in cls.backend_registry:
-            if _cls.backend == backend:
+            if _cls.backend == backend_name:
                 return _cls
-        raise ValueError(f"{backend} backend not found.")
+        raise ValueError(f"{backend_name} backend not found.")
 
     @abstractmethod
     def to_base(self):

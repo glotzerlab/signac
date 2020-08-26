@@ -2,67 +2,43 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements JSON-backend.
-
 This implements the JSON-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+
 import os
 import json
 import errno
 import uuid
-import logging
 
 from .synced_collection import SyncedCollection
-from .buffered_collection import BufferedSyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 
 
-class JSONCollection(BufferedSyncedCollection):
+class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
     backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, data=None, write_concern=False, **kwargs):
-        kwargs['data'] = data
+    def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         super().__init__(**kwargs)
-        if (filename is None) == (self._parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
-        if data is not None:
-            self.sync()
-
-    def _load_from_file(self):
-        """Return Serialized data loaded from file."""
-        try:
-            with open(self._filename, 'rb') as file:
-                return file.read()
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                return json.dumps(None).encode()
 
     def _load(self):
         """Load the data from a JSON-file."""
-        # Reading from cache
         try:
-            data = json.loads(self._cache[self._filename])
-        except KeyError:
-            data = None
-        # if no data in cache or cache contain None then load from file
-        if data is None:
-            blob = self._load_from_file()
-            self._cache[self._filename] = blob
-            return json.loads(blob)
-        else:
-            return data
+            with open(self._filename, 'rb') as file:
+                blob = file.read()
+                return json.loads(blob)
+        except IOError as error:
+            if error.errno == errno.ENOENT:
+                return None
 
-    def _sync(self, data=None):
-        """Write the data to JSON-file."""
-        if data is None:
-            data = self.to_base()
+    def _sync(self):
+        """Write the data to json file."""
+        data = self.to_base()
         # Serialize data:
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
@@ -77,10 +53,6 @@ class JSONCollection(BufferedSyncedCollection):
         else:
             with open(self._filename, 'wb') as file:
                 file.write(blob)
-        # Writing to cache
-        self._cache[self._filename] = blob
-
-
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
@@ -119,22 +91,20 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     ----------
     filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
+    write_concern: bool, optional
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value = None).
     data: mapping, optional
         The intial data pass to JSONDict. Defaults to `list()`
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool, optional
-        Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None).
     """
-
-    pass
 
 
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
@@ -157,18 +127,16 @@ class JSONList(JSONCollection, SyncedList):
 
     Parameters
     ----------
-    filename: str
+    filename: str, optional
         The filename of the associated JSON file on disk (Default value = None).
-    data: non-str Sequence
-        The intial data pass to JSONDict
-    parent: object
-        A parent instance of JSONDict or None (Default value = None).
-    write_concern: bool
+    write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
+    data: non-str Sequence, optional
+        The intial data pass to JSONList
+    parent: object, optional
+        A parent instance of JSONList or None (Default value = None).
     """
 
-    pass
 
-
-SyncedCollection.register(JSONCollection, JSONDict, JSONList)
+SyncedCollection.register(JSONDict, JSONList)
