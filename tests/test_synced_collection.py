@@ -2,7 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import pytest
-import uuid
 import os
 import json
 from tempfile import TemporaryDirectory
@@ -11,8 +10,8 @@ from collections.abc import MutableSequence
 from copy import deepcopy
 
 from signac.core.synced_list import SyncedCollection
-from signac.core.jsoncollection import JSONDict
-from signac.core.jsoncollection import JSONList
+from signac.core.collection_json import JSONDict
+from signac.core.collection_json import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -25,31 +24,26 @@ except ImportError:
 FN_JSON = 'test.json'
 
 
-@pytest.fixture
-def testdata():
-    return str(uuid.uuid4())
+class TestJSONCollectionBase:
 
-
-class TestSyncedCollectionBase:
-
-    # this fixture sets temprary directory for tests
+    # this fixture sets temporary directory for tests
     @pytest.fixture(autouse=True)
     def synced_collection(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='synced_collection_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         yield
         self._tmp_dir.cleanup()
 
-    def test_from_base(self):
+    def test_from_base_json(self):
         sd = SyncedCollection.from_base(filename=self._fn_,
-                                        data={'a': 0}, backend='signac.core.jsoncollection')
+                                        data={'a': 0}, backend='signac.core.collection_json')
         assert isinstance(sd, JSONDict)
         assert 'a' in sd
         assert sd['a'] == 0
 
-        # invalid input
+    def test_from_base_no_backend(self):
         with pytest.raises(ValueError):
-            SyncedCollection.from_base(data={'a': 0}, filename=self._fn_)
+            SyncedCollection.from_base(data={'a': 0})
 
 
 class TestJSONDict:
@@ -279,7 +273,11 @@ class TestJSONDict:
     def test_reopen(self, synced_dict, testdata):
         key = 'reopen'
         synced_dict[key] = testdata
-        synced_dict2 = deepcopy(synced_dict)
+        try:
+            synced_dict2 = deepcopy(synced_dict)
+        except TypeError:
+            # Use fallback implementation, deepcopy not supported by backend.
+            synced_dict2 = synced_dict._pseudo_deepcopy()
         synced_dict.sync()
         del synced_dict  # possibly unsafe
         synced_dict2.load()
@@ -295,18 +293,12 @@ class TestJSONDict:
         assert 'c' in synced_dict
         data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
         self.store(data)
-        if synced_dict._is_cached:
-            # refresh the cache
-            synced_dict.refresh_cache()
         assert synced_dict == data
 
         # invalid data
         data = [1, 2, 3]
         self.store(data)
         with pytest.raises(ValueError):
-            if synced_dict._is_cached:
-                # refresh the cache
-                synced_dict.refresh_cache()
             synced_dict.load()
 
     def test_copy_as_dict(self, synced_dict, testdata):
@@ -380,7 +372,7 @@ class TestJSONList:
 
     @pytest.fixture
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': self._write_concern}
         yield JSONList(**self._backend_kwargs)
@@ -521,28 +513,23 @@ class TestJSONList:
         assert synced_list == [{'a': 1}, 'b', [1, 2, 3]]
         data = ['a', 'b', [1, 2, 4], 'd']
         self.store(data)
-        if synced_list._is_cached:
-            # refresh the cache
-            synced_list.refresh_cache()
         assert synced_list == data
         data1 = ['a', 'b']
         self.store(data1)
-        if synced_list._is_cached:
-            # refresh the cache
-            synced_list.refresh_cache()
         assert synced_list == data1
 
-        # inavlid data in file
+        # invalid data in file
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
-            if synced_list._is_cached:
-                # refresh the cache
-                synced_list.refresh_cache()
             synced_list.load()
 
     def test_reopen(self, synced_list, testdata):
-        synced_list2 = deepcopy(synced_list)
+        try:
+            synced_list2 = deepcopy(synced_list)
+        except TypeError:
+            # Use fallback implementation, deepcopy not supported by backend.
+            synced_list2 = synced_list._pseudo_deepcopy()
         synced_list.append(testdata)
         synced_list.sync()
         del synced_list  # possibly unsafe
@@ -597,7 +584,7 @@ class TestJSONList:
         assert isinstance(child1, SyncedCollection)
 
 
-class TestJSONDictWriteConcern(TestBufferedJSONDict):
+class TestJSONDictWriteConcern(TestJSONDict):
 
     @pytest.fixture
     def synced_dict(self):
@@ -608,7 +595,7 @@ class TestJSONDictWriteConcern(TestBufferedJSONDict):
         self._tmp_dir.cleanup()
 
 
-class TestJSONListWriteConcern(TestBufferedJSONList):
+class TestJSONListWriteConcern(TestJSONList):
 
     @pytest.fixture
     def synced_list(self):

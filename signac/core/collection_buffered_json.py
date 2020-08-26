@@ -11,7 +11,7 @@ import hashlib
 
 from .synced_collection import SyncedCollection
 from .buffered_collection import BufferedSyncedCollection
-from .jsoncollection import JSONCollection
+from .collection_json import JSONCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
 from .caching import get_cache
@@ -41,6 +41,9 @@ def _hash(blob):
 
 
 class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
+
+
+    backend = __name__  # type: ignore
 
     _cache = get_json_cache()
 

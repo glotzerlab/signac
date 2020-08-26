@@ -24,6 +24,7 @@ class JSONCollection(SyncedCollection):
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
+        kwargs['name'] = filename
         super().__init__(**kwargs)
 
     def _load(self):
@@ -58,7 +59,7 @@ class JSONCollection(SyncedCollection):
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
@@ -104,7 +105,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python

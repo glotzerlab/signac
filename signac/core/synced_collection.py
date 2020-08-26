@@ -31,11 +31,15 @@ class SyncedCollection(Collection):
 
     backend = None
 
-    def __init__(self, parent=None):
+    def __init__(self, name=None, parent=None):
         self._data = None
         self._parent = parent
+        self._name = name
         self._suspend_sync_ = 0
-        self._is_cached = False
+        if (name is None) == (parent is None):
+            raise ValueError(
+                "Illegal argument combination, one of the two arguments, "
+                "parent or name must be None, but not both.")
 
     @classmethod
     def register(cls, *args):
@@ -143,7 +147,7 @@ class SyncedCollection(Collection):
         self._sync()
 
     def _load_from_backend(self):
-        self._load()
+        return self._load()
 
     def sync(self):
         """Synchronize the data with the underlying backend."""
