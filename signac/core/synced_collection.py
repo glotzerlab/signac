@@ -54,14 +54,14 @@ class SyncedCollection(Collection):
 
     @classmethod
     def register(cls, *args):
-        """Register the synced data structures.
+        r"""Register the synced data structures.
 
         Registry is used when recursively converting synced data structures to determine
         what to convert their children into.
 
         Parameters
         ----------
-        *args
+        \*args
             Classes to register
         """
         if not hasattr(cls, 'registry'):
@@ -84,7 +84,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
-        """Dynamically resolve the type of object to the corresponding synced collection.
+        r"""Dynamically resolve the type of object to the corresponding synced collection.
 
         Parameters
         ----------
@@ -92,7 +92,7 @@ class SyncedCollection(Collection):
             Data to be converted from base class.
         backend: str
             Name of backend for synchronization. Default to backend of class.
-        **kwargs:
+        \*\*kwargs:
             Kwargs passed to instance of synced collection.
 
         Returns
@@ -160,6 +160,7 @@ class SyncedCollection(Collection):
     @classmethod
     def _validate(cls, data):
         """Validate the input data."""
+        # Validate for every parent class which have _validators
         for _cls in cls.mro():
             if not hasattr(_cls, '_validators'):
                 break

@@ -58,17 +58,17 @@ def JSONFormatValidator(data):
 
     Returns
     -------
-    data
+    Validated data.
 
     Raises
     ------
-    KeyTypeError:
+    KeyTypeError
         If keys of mapping have unsupported data type.
     TypeError
         If data type is not supported.
     """
 
-    if isinstance(data, (str, int, float, bool, bytes, type(None))):
+    if isinstance(data, (str, int, float, bool, type(None))):
         return data
     elif isinstance(data, Mapping):
         ret = {}
@@ -91,9 +91,6 @@ def JSONFormatValidator(data):
             data[i] = JSONFormatValidator(data[i])
         return data
     elif NUMPY:
-        if isinstance(data, numpy.ndarray):
-            data = data.tolist()
-            return JSONFormatValidator(data)
-        if isinstance(data, numpy.number):
-            return data.item()
+        if isinstance(data, (numpy.ndarray, numpy.number)):
+            return data
     raise TypeError("Object of {} is not JSON-serializable".format(type(data)))
