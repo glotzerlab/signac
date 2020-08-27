@@ -92,4 +92,4 @@ def JSONFormatValidator(data):
     elif NUMPY:
         if isinstance(data, (numpy.ndarray, numpy.number)):
             return data
-    raise TypeError("Object of {} is not JSON-serializable".format(type(data)))
+    raise TypeError(f"Object of {type(data)} is not JSON-serializable")
