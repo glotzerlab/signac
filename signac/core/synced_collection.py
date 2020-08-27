@@ -45,10 +45,9 @@ class SyncedCollection(Collection):
 
     @classmethod
     def __init_subclass__(cls):
-        """Add  `_validator` attribute to every subsclass.
+        """Add  `_validator` attribute to every subclass.
 
-        Every subclass contain list of validators that are applied
-        to the input of the instance of subclass.
+        Subclasses contain a list of validators that are applied to collection input data.
         """
         cls._validators = list()
 
@@ -161,7 +160,7 @@ class SyncedCollection(Collection):
     def _validate(cls, data):
         """Validate the input data."""
         # Validate for every parent class which have _validators
-        for _cls in cls.mro():
+        for _cls in cls.__mro__:
             if not hasattr(_cls, '_validators'):
                 break
             for validator in _cls._validators:
