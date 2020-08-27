@@ -40,7 +40,7 @@ def NoDotInKey(data):
             if isinstance(key, str):
                 if '.' in key:
                     raise InvalidKeyError(
-                        f"Mapping keys may not contain dots ('.'): {key}"
+                        f"Mapping keys may not contain dots ('.'): {key}")
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}")
