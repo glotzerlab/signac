@@ -9,7 +9,7 @@ backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
 
-from typing import List
+from typing import List, Any
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
@@ -31,7 +31,7 @@ class SyncedCollection(Collection):
     """
 
     backend = None
-    _validators: List[object] = list()  # list of callable objects
+    _validators: List[Any] = list()  # list of callable objects
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -71,11 +71,11 @@ class SyncedCollection(Collection):
 
     @classmethod
     def add_validator(cls, *args):
-        """Register validator.
+        r"""Register validator.
 
         Parameters
         ----------
-        *args
+        \*args
             Validator to register
         """
         for validator in args:
@@ -159,7 +159,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def _validate(cls, data):
-        """Validate the input data"""
+        """Validate the input data."""
         for _cls in cls.mro():
             if not hasattr(_cls, '_validators'):
                 break

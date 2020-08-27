@@ -19,16 +19,16 @@ def NoDotInKey(data):
 
     Parameters
     ----------
-    data:
+    data
         Data to validate.
 
     Returns
     -------
-    data
+    Validated data.
 
     Raises
     ------
-    KeyTypeError:
+    KeyTypeError
         If keys have unsupported data type.
     InvalidKeyError
         If key is not supported.
@@ -53,7 +53,7 @@ def JSONFormatValidator(data):
 
     Parameters
     ----------
-    data:
+    data
         Data to validate.
 
     Returns
