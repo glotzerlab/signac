@@ -354,16 +354,15 @@ class TestJSONDict:
             assert key in synced_dict
             assert synced_dict[key] == testdata
 
+    # The following test tests the support for non-str keys
+    # for JSON backend which will be removed in version 2.0.
+    # see issue #316.
     def test_keys_non_str_valid_type(self, synced_dict, testdata):
-
-        def check_key(key):
-            if key in synced_dict and synced_dict[key] == testdata:
-                return True
-            return False
-
-        for key in (0, None, True):
-            synced_dict[key] = testdata
-            assert check_key(key) or check_key(str(key))  # JSON backend convert keys to str
+        if synced_dict.backend == 'signac.core.collection_json':
+            for key in (0, None, True):
+                synced_dict[key] = testdata
+                assert str(key) in synced_dict
+                assert synced_dict[str(key)] == testdata
 
     def test_keys_invalid_type(self, synced_dict, testdata):
 
