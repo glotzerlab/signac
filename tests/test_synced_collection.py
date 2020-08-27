@@ -355,7 +355,7 @@ class TestJSONDict:
             assert synced_dict[key] == testdata
 
     def test_keys_non_str_valid_type(self, synced_dict, testdata):
-        
+
         def check_key(key):
             if key in synced_dict and synced_dict[key] == testdata:
                 return True

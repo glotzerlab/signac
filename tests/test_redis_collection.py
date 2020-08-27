@@ -39,7 +39,7 @@ class TestRedisDict(TestJSONDict):
     def store(self, data):
         self._client.set(self._name, json.dumps(data).encode())
 
-    @pytest.mark.skip(reason='zarr does not support non-str key type.')
+    @pytest.mark.skip(reason='redis does not support non-str key type.')
     def test_keys_non_str_valid_type():
         pass
 
