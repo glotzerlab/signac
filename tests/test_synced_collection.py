@@ -345,14 +345,25 @@ class TestJSONDict:
         with pytest.raises(InvalidKeyError):
             synced_dict['a.b'] = None
 
-    def test_keys_valid_type(self, synced_dict, testdata):
+    def test_keys_str_type(self, synced_dict, testdata):
 
         class MyStr(str):
             pass
-        for key in ('key', MyStr('key'), 0, None, True):
+        for key in ('key', MyStr('key')):
             synced_dict[key] = testdata
-            assert str(key) in synced_dict
-            assert synced_dict[str(key)] == testdata
+            assert key in synced_dict
+            assert synced_dict[key] == testdata
+
+    def test_keys_non_str_valid_type(self, synced_dict, testdata):
+        
+        def check_key(key):
+            if key in synced_dict and synced_dict[key] == testdata:
+                return True
+            return False
+
+        for key in (0, None, True):
+            synced_dict[key] = testdata
+            assert check_key(key) or check_key(str(key))  # JSON backend convert keys to str
 
     def test_keys_invalid_type(self, synced_dict, testdata):
 

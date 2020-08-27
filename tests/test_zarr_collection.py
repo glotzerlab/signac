@@ -33,6 +33,10 @@ class TestZarrDict(TestJSONDict):
             'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
         dataset[0] = data
 
+    @pytest.mark.skip(reason='zarr does not support non-str key type.')
+    def test_keys_non_str_valid_type():
+        pass
+
 
 @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrList(TestJSONList):
