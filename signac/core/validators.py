@@ -8,10 +8,12 @@ from collections.abc import Sequence
 
 from ..errors import InvalidKeyError
 from ..errors import KeyTypeError
-from .synced_collection import NUMPY
 
-if NUMPY:
+try:
     import numpy
+    NUMPY = True
+except Import:
+    NUMPY = False
 
 
 def NoDotInKey(data):

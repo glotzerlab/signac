@@ -42,8 +42,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             self._data = {}
         else:
+            data = self._validate(data)
             with self._suspend_sync():
-                data = self._validate(data)
                 self._data = {
                     key: self.from_base(data=value, parent=self) for key, value in data.items()
                 }
@@ -87,8 +87,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             data = {}
         if isinstance(data, Mapping):
+            data = self._validate(data)
             with self._suspend_sync():
-                data = self._validate(data)
                 # This loop avoids rebuilding existing synced collections for performance.
                 for key in data:
                     if key in self._data:
@@ -112,9 +112,9 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
     def __setitem__(self, key, value):
+        data = self._validate({key: value})
         self.load()
         with self._suspend_sync():
-            data = self._validate({key: value})
             for key, value in data.items():
                 self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
@@ -136,7 +136,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             data = {}
 
         if isinstance(data, Mapping):
-            self.load()
             data = self._validate(data)
             with self._suspend_sync():
                 self._data = {
@@ -181,17 +180,17 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self.sync()
 
     def update(self, mapping):
-        self.load()
         mapping = self._validate(mapping)
+        self.load()
         with self._suspend_sync():
             for key, value in mapping.items():
                 self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
 
     def setdefault(self, key, default=None):
+        data = self._validate({key: default})
         self.load()
         with self._suspend_sync():
-            data = self._validate({key: default})
             for key, value in data.items():
                 ret = self._data.setdefault(key, self.from_base(data=default, parent=self))
         self.sync()

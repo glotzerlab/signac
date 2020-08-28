@@ -39,10 +39,10 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             self._data = []
         else:
+            data = self._validate(data)
             if NUMPY and isinstance(data, numpy.ndarray):
                 data = data.tolist()
             with self._suspend_sync():
-                data = self._validate(data)
                 self._data = [self.from_base(data=value, parent=self) for value in data]
             self.sync()
 
@@ -138,8 +138,8 @@ class SyncedList(SyncedCollection, MutableSequence):
                 .format(type(data)))
 
     def __setitem__(self, key, value):
-        self.load()
         value = self._validate(value)
+        self.load()
         with self._suspend_sync():
             self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
@@ -149,31 +149,31 @@ class SyncedList(SyncedCollection, MutableSequence):
         return reversed(self._data)
 
     def __iadd__(self, iterable):
+        data = self._validate(list(iterable))
         self.load()
         with self._suspend_sync():
-            data = self._validate(list(iterable))
             self._data += [self.from_base(data=value, parent=self) for value in data]
         self.sync()
         return self
 
     def insert(self, index, item):
+        item = self._validate(item)
         self.load()
         with self._suspend_sync():
-            item = self._validate(item)
             self._data.insert(index, self.from_base(data=item, parent=self))
         self.sync()
 
     def append(self, item):
+        item = self._validate(item)
         self.load()
         with self._suspend_sync():
-            item = self._validate(item)
             self._data.append(self.from_base(data=item, parent=self))
         self.sync()
 
     def extend(self, iterable):
+        data = self._validate(list(iterable))
         self.load()
         with self._suspend_sync():
-            data = self._validate(list(iterable))
             self._data.extend([self.from_base(data=value, parent=self) for value in data])
         self.sync()
 

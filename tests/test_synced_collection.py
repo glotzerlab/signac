@@ -358,7 +358,7 @@ class TestJSONDict:
     # for JSON backend which will be removed in version 2.0.
     # see issue #316.
     def test_keys_non_str_valid_type(self, synced_dict, testdata):
-        if synced_dict.backend == 'signac.core.collection_json':
+        if isinstance(synced_dict, JSONDict):
             for key in (0, None, True):
                 synced_dict[key] = testdata
                 assert str(key) in synced_dict

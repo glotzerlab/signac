@@ -30,7 +30,7 @@ class SyncedCollection(Collection):
     in the underlying backend. The backend name wil be same as the module name.
     """
 
-    backend = None
+    _backend = None
     _validators: List[Any] = list()  # list of callable objects
 
     def __init__(self, name=None, parent=None):
@@ -66,7 +66,19 @@ class SyncedCollection(Collection):
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
         for _cls in args:
-            cls.registry[_cls.backend].append(_cls)
+            cls.registry[_cls._backend].append(_cls)
+
+    @property
+    def validators(self):
+        """Return the list of validators applied to the instance."""
+        validators = []
+        # Instance also inherite the validators of parent class.
+        for _cls in type(self).__mro__:
+            if not hasattr(_cls, '_validators'):
+                return validators
+            for validator in _cls._validators:
+                if validator not in validators:
+                    validators.append(validator)
 
     @classmethod
     def add_validator(cls, *args):
@@ -99,7 +111,7 @@ class SyncedCollection(Collection):
         data : object
             Synced object of corresponding base type.
         """
-        backend = cls.backend if backend is None else backend
+        backend = cls._backend if backend is None else backend
         if backend is None:
             raise ValueError("No backend found.")
         for _cls in cls.registry[backend]:
@@ -156,15 +168,10 @@ class SyncedCollection(Collection):
             else:
                 self._parent.load()
 
-    @classmethod
-    def _validate(cls, data):
+    def _validate(self, data):
         """Validate the input data."""
-        # Validate for every parent class which have _validators
-        for _cls in cls.__mro__:
-            if not hasattr(_cls, '_validators'):
-                break
-            for validator in _cls._validators:
-                data = validator(data)
+        for validator in self.validators:
+            data = validator(data)
         return data
 
     # The following methods share a common implementation for

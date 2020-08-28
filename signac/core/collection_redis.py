@@ -17,7 +17,7 @@ from .synced_list import SyncedList
 class RedisCollection(SyncedCollection):
     """Implement sync and load using a Redis backend."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, client=None, **kwargs):
         self._client = client

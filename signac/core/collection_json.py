@@ -21,7 +21,7 @@ from .validators import JSONFormatValidator
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)

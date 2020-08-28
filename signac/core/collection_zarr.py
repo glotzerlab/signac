@@ -16,7 +16,7 @@ from .synced_list import SyncedList
 class ZarrCollection(SyncedCollection):
     """Implement sync and load using a Zarr backend."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, group=None, **kwargs):
         import numcodecs  # zarr depends on numcodecs

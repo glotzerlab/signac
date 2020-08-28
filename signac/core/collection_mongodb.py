@@ -16,7 +16,7 @@ from .synced_list import SyncedList
 class MongoDBCollection(SyncedCollection):
     """Implement sync and load using a MongoDB backend."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, collection=None, **kwargs):
         import bson  # for InvalidDocument error
