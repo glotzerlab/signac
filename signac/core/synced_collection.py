@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
+from typing import List, DefaultDict, Any
 
 try:
     import numpy
@@ -30,6 +31,8 @@ class SyncedCollection(Collection):
     """
 
     backend = None
+    registry: DefaultDict[str, List[Any]] = defaultdict(list)
+    backend_registry: List[Any] = []
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -53,14 +56,10 @@ class SyncedCollection(Collection):
         *args
             Classes to register
         """
-        if not hasattr(cls, 'registry'):
-            cls.registry = defaultdict(list)
-        if not hasattr(cls, 'backend_registry'):
-            cls.backend_registry = []
         for _cls in args:
             if not inspect.isabstract(_cls):
                 cls.registry[_cls.backend].append(_cls)
-            elif _cls.backend:
+            elif _cls.backend and _cls.backend not in cls.backend_registry:
                 cls.backend_registry.append(_cls)
 
     @classmethod
@@ -73,7 +72,7 @@ class SyncedCollection(Collection):
             Data to be converted from base class.
         backend: str
             Name of backend for synchronization. Default to backend of class.
-        **kwargs:
+        **kwargs
             Kwargs passed to instance of synced collection.
 
         Returns

@@ -19,17 +19,9 @@ from .buffered_collection import get_buffer_force_mode
 
 logger = logging.getLogger(__name__)
 
-_JSON_CACHE = None
+_JSON_CACHE = get_cache()
 _JSON_META = dict()
 _JSON_HASHES = dict()
-
-
-def get_json_cache():
-    """Return reference to JSON-Cache """
-    global _JSON_CACHE
-    if _JSON_CACHE is None:
-        _JSON_CACHE = get_cache()
-    return _JSON_CACHE
 
 
 def _hash(blob):
@@ -43,8 +35,6 @@ def _hash(blob):
 class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
 
     backend = __name__  # type: ignore
-
-    _cache = get_json_cache()
 
     @staticmethod
     def _get_metadata(filename):
@@ -61,7 +51,7 @@ class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
         data = self.to_base() if data is None else data
         # Using cache to store the data
         blob = json.dumps(data).encode()
-        self._cache[self._filename] = blob
+        _JSON_CACHE[self._filename] = blob
         # storing metadata and hash
         if self._filename not in _JSON_META:
             _JSON_META[self._filename] = None if get_buffer_force_mode() else \
@@ -72,7 +62,7 @@ class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
     def _read_from_buffer(self):
         """Read the data from the buffer."""
         try:
-            return json.loads(self._cache[self._filename])
+            return json.loads(_JSON_CACHE[self._filename])
         except KeyError:
             return None
 
@@ -96,8 +86,8 @@ class BufferedJSONCollection(BufferedSyncedCollection, JSONCollection):
                     issues[filename] = 'File appears to have been externally modified.'
                     continue
 
-            blob = cls._cache[filename]
-            del cls._cache[filename]  # Redis client does not have `pop`.
+            blob = _JSON_CACHE[filename]
+            del _JSON_CACHE[filename]  # Redis client does not have `pop`.
 
             # if hash match then data is same in flie and buffer
             if _hash(blob) != _JSON_HASHES.pop(filename):
