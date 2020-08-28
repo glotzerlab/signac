@@ -12,7 +12,7 @@ from ..errors import KeyTypeError
 try:
     import numpy
     NUMPY = True
-except Import:
+except ImportError:
     NUMPY = False
 
 
