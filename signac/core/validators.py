@@ -24,10 +24,6 @@ def NoDotInKey(data):
     data
         Data to validate.
 
-    Returns
-    -------
-    Validated data.
-
     Raises
     ------
     KeyTypeError
@@ -46,7 +42,6 @@ def NoDotInKey(data):
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}")
-    return data
 
 
 def JSONFormatValidator(data):
@@ -57,10 +52,6 @@ def JSONFormatValidator(data):
     data
         Data to validate.
 
-    Returns
-    -------
-    Validated data.
-
     Raises
     ------
     KeyTypeError
@@ -70,28 +61,23 @@ def JSONFormatValidator(data):
     """
 
     if isinstance(data, (str, int, float, bool, type(None))):
-        return data
-    elif isinstance(data, Mapping):
-        ret = {}
+        return
+    if isinstance(data, Mapping):
         for key, value in data.items():
             if isinstance(key, (int, bool, type(None))):
                 warnings.warn(
-                    f"Use of {type(key)} as key is deprecated and will be removed in version 2.0",
+                    f"Use of {type(key).__name__} as key is deprecated "
+                    "and will be removed in version 2.0",
                     DeprecationWarning)
-                new_key = str(key)
-            elif isinstance(key, str):
-                new_key = key
-            else:
+            elif not isinstance(key, str):
                 raise KeyTypeError(
                     f"Keys must be str, int, bool or None, not {type(key).__name__}")
-            new_value = JSONFormatValidator(value)
-            ret[new_key] = new_value
-        return ret
-    elif isinstance(data, Sequence):
+            JSONFormatValidator(value)
+        return
+    if isinstance(data, Sequence):
         for i in range(len(data)):
-            data[i] = JSONFormatValidator(data[i])
-        return data
-    elif NUMPY:
-        if isinstance(data, (numpy.ndarray, numpy.number)):
-            return data
-    raise TypeError(f"Object of {type(data)} is not JSON-serializable")
+            JSONFormatValidator(data[i])
+        return
+    if NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
+        return
+    raise TypeError(f"Object of {type(data).__name__} type is not JSON-serializable")

@@ -39,10 +39,23 @@ class JSONCollection(SyncedCollection):
             if error.errno == errno.ENOENT:
                 return None
 
+    def _convert_non_str_key_to_str(self, data):
+        if isinstance(data, dict):
+            ret = {}
+            for key, value in data.items():
+                ret[str(key)] = self._convert_non_str_key_to_str(value)
+            return ret
+        elif isinstance(data, list):
+            for i in range(len(data)):
+                data[i] = self._convert_non_str_key_to_str(data[i])
+        return data
+
     def _sync(self):
         """Write the data to json file."""
         data = self.to_base()
-        # Serialize data:
+        # Converting non-string keys to string
+        data = self._convert_non_str_key_to_str(data)
+        # Serialize data
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.

@@ -177,8 +177,7 @@ class SyncedCollection(Collection):
     def _validate(self, data):
         """Validate the input data."""
         for validator in self.validators:
-            data = validator(data)
-        return data
+            validator(data)
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.
