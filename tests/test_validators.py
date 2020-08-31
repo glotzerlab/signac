@@ -46,7 +46,6 @@ class TestJSONFormatValidator:
             JSONFormatValidator({'test_key': data})  # should not raise any error
         JSONFormatValidator(('foo', 1, 1.0, True, None, {}, []))  # should not raise any error
 
-
     def test_dict_data(self, testdata):
         for data in ('foo', 1, 1.0, True, None):
             JSONFormatValidator({'test_key': data})  # should not raise any error
@@ -80,7 +79,7 @@ class TestJSONFormatValidator:
         for data in invalid_data:
             with pytest.raises(TypeError):
                 JSONFormatValidator(data)
-        
+
         # invalid data as dict value
         for data in invalid_data:
             with pytest.raises(TypeError):
@@ -89,5 +88,3 @@ class TestJSONFormatValidator:
         # invalid data in tuple
         with pytest.raises(TypeError):
             JSONFormatValidator(invalid_data)
-
-
