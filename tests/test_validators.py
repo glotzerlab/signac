@@ -30,7 +30,6 @@ class TestNoDotInKey:
         # dict containig dot
         with pytest.raises(InvalidKeyError):
             NoDotInKey({'a.b': testdata})
-
         # invalid key types
         for key in (0.0, 1.0 + 2.0j, (1, 2, 3)):
             with pytest.raises(KeyTypeError):
@@ -49,11 +48,9 @@ class TestJSONFormatValidator:
     def test_dict_data(self, testdata):
         for data in ('foo', 1, 1.0, True, None):
             JSONFormatValidator({'test_key': data})  # should not raise any error
-
         for key in (1, True, None):
             with pytest.deprecated_call(match="Use of.+as key is deprecated"):
                 JSONFormatValidator({key: 'test_data'})
-
         for key in (0.0, (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 JSONFormatValidator({key: testdata})
@@ -63,11 +60,9 @@ class TestJSONFormatValidator:
         data = numpy.random.rand(3, 4)
         JSONFormatValidator(data)  # should not raise any error
         JSONFormatValidator(numpy.float_(3.14))  # should not raise any error
-
         # numpy data as dict value
         JSONFormatValidator({'test': data})
         JSONFormatValidator({'test': numpy.float_(1.0)})
-
         # numpy data in list
         JSONFormatValidator([data, numpy.float_(1.0), 1, 'test'])
 
@@ -79,12 +74,10 @@ class TestJSONFormatValidator:
         for data in invalid_data:
             with pytest.raises(TypeError):
                 JSONFormatValidator(data)
-
         # invalid data as dict value
         for data in invalid_data:
             with pytest.raises(TypeError):
                 JSONFormatValidator({'test': data})
-
         # invalid data in tuple
         with pytest.raises(TypeError):
             JSONFormatValidator(invalid_data)
