@@ -45,9 +45,11 @@ class SyncedCollection(Collection):
 
     @classmethod
     def __init_subclass__(cls):
-        """Add  `_validator` attribute to every subclass.
+        """Add  ``_validator`` attribute to every subclass.
 
         Subclasses contain a list of validators that are applied to collection input data.
+        Every subclass must have a separate list so that distinct sets of validators can
+        be registered to each of them.
         """
         cls._validators = list()
 
@@ -55,8 +57,12 @@ class SyncedCollection(Collection):
     def register(cls, *args):
         r"""Register the synced data structures.
 
-        Registry is used when recursively converting synced data structures to determine
-        what to convert their children into.
+        The registry is used by :meth:`from_base` to determine the appropriate subclass
+        of :class:`SyncedCollection` that should be constructed from a particular object.
+        This functionality is necessary for converting nested data structures because
+        given, for instance, a dict of lists, it must be possible to map the nested lists to
+        the appropriate subclass of :class:`SyncedList` corresponding to the desired
+        backend.
 
         Parameters
         ----------
@@ -72,13 +78,13 @@ class SyncedCollection(Collection):
     def validators(self):
         """Return the list of validators applied to the instance."""
         validators = []
-        # Instance also inherite the validators of parent class.
+        # Classes inherit the validators of their parent classes.
         for _cls in type(self).__mro__:
-            if not hasattr(_cls, '_validators'):
-                return validators
-            for validator in _cls._validators:
-                if validator not in validators:
-                    validators.append(validator)
+            if hasattr(_cls, '_validators'):
+                for validator in _cls._validators:
+                    if validator not in validators:
+                        validators.append(validator)
+        return validators
 
     @classmethod
     def add_validator(cls, *args):
