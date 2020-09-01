@@ -154,6 +154,15 @@ class TestJSONDict:
         synced_dict.update(d)
         assert len(synced_dict) == 1
         assert synced_dict[key] == d[key]
+        synced_dict.update()
+        assert len(synced_dict) == 1
+        assert synced_dict[key] == d[key]
+        synced_dict.update(update2=testdata)
+        assert len(synced_dict) == 2
+        assert synced_dict['update2'] == testdata
+        synced_dict.update({key: 1}, update=2)
+        assert len(synced_dict) == 2
+        assert synced_dict[key] == 2
 
     def test_pop(self, synced_dict, testdata):
         key = 'pop'

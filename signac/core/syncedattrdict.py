@@ -177,11 +177,20 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self._data = {}
         self.sync()
 
-    def update(self, other):
-        self._validate(other)
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            # Convert sequence of key, value pairs to dict before validation
+            if not isinstance(other, Mapping):
+                other = dict(other)
+            self._validate(other)
+        if kwargs:
+            self._validate(kwargs)
         self.load()
         with self._suspend_sync():
-            for key, value in other.items():
+            if other:
+                for key, value in other.items():
+                    self._data[key] = self.from_base(data=value, parent=self)
+            for key, value in kwargs.items():
                 self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
 

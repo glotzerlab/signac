@@ -7,7 +7,6 @@ Validators should be callable. They should act recursively for nested data and
 they should not return any values, only raise errors.
 """
 
-import warnings
 from collections.abc import Mapping
 from collections.abc import Sequence
 
