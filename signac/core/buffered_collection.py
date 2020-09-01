@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFER_BACKEND = list()
 
 
 class BufferException(Error):
@@ -70,12 +69,12 @@ def flush_all():
         raise BufferedFileError(issues)
 
 
-def get_buffer_force_mode():
+def _get_buffer_force_mode():
     """Return True if buffer force mode enabled."""
     return _BUFFERED_MODE_FORCE_WRITE
 
 
-def in_buffered_mode():
+def _in_buffered_mode():
     """Return True if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 

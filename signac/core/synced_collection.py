@@ -21,6 +21,112 @@ try:
 except ImportError:
     NUMPY = False
 
+logger = logging.getLogger(__name__)
+
+_BUFFERED_MODE = 0
+_BUFFERED_MODE_FORCE_WRITE = None
+_BUFFERED_BACKNDS = list()
+
+class BufferException(Error):
+    """An exception occured in buffered mode."""
+
+
+class BufferedFileError(BufferException):
+    """Raised when an error occured while flushing one or more buffered files.
+
+    Attribute
+    ---------
+    names:
+        A dictionary of names that caused issues during the flush operation,
+        mapped to a possible reason for the issue or None in case that it
+        cannot be determined.
+    """
+
+    def __init__(self, files):
+        self.files = files
+
+    def __str__(self):
+        return "{}({})".format(type(self).__name__, self.files)
+
+
+def _store_backend_in_buffer(backend):
+    """Store the backend data to the buffer"""
+    if backend not in _BUFFER_BACKEND:
+        _BUFFER_BACKEND.append(backend)
+
+
+def flush_all():
+    """Execute all deferred write operations.
+
+    Raises
+    ------
+    BufferedFileError
+    """
+    logger.debug("Flushing buffer...")
+    issues = dict()
+    for backend in _BUFFERED_BACKNDS:
+        try:
+            # try to sync the data to backend
+            issue = backend._flush_buffer()
+            issues.update(issue)
+        except OSError as error:
+            logger.error(str(error))
+            issues[backend] = error
+    if issues:
+        raise BufferedFileError(issues)
+
+
+def _get_buffer_force_mode():
+    """Return True if buffer force mode enabled."""
+    return _BUFFERED_MODE_FORCE_WRITE
+
+
+def _in_buffered_mode():
+    """Return True if in buffered read/write mode."""
+    return _BUFFERED_MODE > 0
+
+
+@contextmanager
+def buffer_reads_writes(force_write=False):
+    """Enter a global buffer mode for all SyncedCollection instances.
+
+    All future write operations are written to the buffer, read
+    operations are performed from the buffer whenever possible.
+
+    All write operations are deferred until the flush_all() function
+    is called, the buffer overflows, or upon exiting the buffer mode.
+
+    Parameters
+    ----------
+    force_write: bool
+        If true, overwrites the metadata check.
+
+    Raises
+    ------
+    BufferException
+    """
+    global _BUFFERED_MODE
+    global _BUFFERED_MODE_FORCE_WRITE
+    assert _BUFFERED_MODE >= 0
+
+    # Can't switch force modes.
+    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write != _BUFFERED_MODE_FORCE_WRITE):
+        raise BufferException(
+            "Unable to enter buffered mode with force write enabled, because "
+            "we are already in buffered mode with force write disabled and vise-versa.")
+
+    _BUFFERED_MODE_FORCE_WRITE = force_write
+    _BUFFERED_MODE += 1
+    try:
+        yield
+    finally:
+        _BUFFERED_MODE -= 1
+        if _BUFFERED_MODE == 0:
+            try:
+                flush_all()
+            finally:
+                _BUFFERED_MODE_FORCE_WRITE = None
+
 
 class SyncedCollection(Collection):
     """The base synced collection represents a collection that is synced with a backend.
@@ -32,12 +138,12 @@ class SyncedCollection(Collection):
 
     backend = None
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
-    backend_registry: List[Any] = []
 
     def __init__(self, name=None, parent=None):
         self._data = None
         self._parent = parent
         self._name = name
+        self._buffered = 0
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):
             raise ValueError(
@@ -59,8 +165,6 @@ class SyncedCollection(Collection):
         for _cls in args:
             if not inspect.isabstract(_cls):
                 cls.registry[_cls.backend].append(_cls)
-            elif _cls.backend and _cls.backend not in cls.backend_registry:
-                cls.backend_registry.append(_cls)
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
@@ -91,29 +195,6 @@ class SyncedCollection(Collection):
                 return data.item()
         return data
 
-    @classmethod
-    def from_backend(cls, backend_name):
-        """Return backend class corresponding to backend name.
-
-        Parameters
-        ----------
-        backend_name: str
-            Name of the backend.
-
-        Returns
-        -------
-        _cls
-            Class corresponding to name.
-
-        Raises:
-        -------
-        ValueError
-        """
-        for _cls in cls.backend_registry:
-            if _cls.backend == backend_name:
-                return _cls
-        raise ValueError(f"{backend_name} backend not found.")
-
     @abstractmethod
     def to_base(self):
         """Dynamically resolve the synced collection to the corresponding base type."""
@@ -141,12 +222,6 @@ class SyncedCollection(Collection):
     def _sync(self, data):
         """Write data to underlying backend."""
         pass
-
-    def _sync_to_backend(self):
-        self._sync()
-
-    def _load_from_backend(self):
-        return self._load()
 
     def sync(self):
         """Synchronize the data with the underlying backend."""

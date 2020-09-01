@@ -27,7 +27,7 @@ class JSONCollection(SyncedCollection):
         kwargs['name'] = filename
         super().__init__(**kwargs)
 
-    def _load(self):
+    def _load_from_backend(self):
         """Load the data from a JSON-file."""
         try:
             with open(self._filename, 'rb') as file:
