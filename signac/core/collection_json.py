@@ -11,11 +11,33 @@ import os
 import json
 import errno
 import uuid
+import warnings
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .validators import JSONFormatValidator
+from .validators import JSON_format_validator
+
+
+def _convert_key_to_str(data):
+    """Recursively convert non-string keys to strings for (potentially nested) input collections.
+
+    This retains compatibility with auto-casting keys to strings, and will be
+    removed in signac 2.0.
+    Input collections must be of "base type" (dict or list).
+    """
+    if isinstance(data, dict):
+        def _str_key(key):
+            if not isinstance(key, str):
+                warnings.warn(f"Use of {type(key).__name__} as key is deprecated "
+                              "and will be removed in version 2.0",
+                              DeprecationWarning)
+                key = str(key)
+            return key
+        return {_str_key(key): _convert_key_to_str(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [_convert_key_to_str(value) for value in data]
+    return data
 
 
 class JSONCollection(SyncedCollection):
@@ -30,7 +52,7 @@ class JSONCollection(SyncedCollection):
         super().__init__(**kwargs)
 
     def _load(self):
-        """Load the data from a JSON-file."""
+        """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()
@@ -39,23 +61,11 @@ class JSONCollection(SyncedCollection):
             if error.errno == errno.ENOENT:
                 return None
 
-    def _convert_non_str_key_to_str(self, data):
-        if isinstance(data, dict):
-            def _str_key(key):
-                if not isinstance(key, str):
-                    # raise DeprecationWarning here
-                    key = str(key)
-                return key
-            return {_str_key(key): self._convert_non_str_key_to_str(value) for key, value in data.items()}
-        elif isinstance(data, list):
-            return [self._convert_non_str_key_to_str(value) for value in data]
-        return data
-
     def _sync(self):
         """Write the data to JSON file."""
         data = self.to_base()
         # Converting non-string keys to string
-        data = self._convert_non_str_key_to_str(data)
+        data = _convert_key_to_str(data)
         # Serialize data
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
@@ -72,7 +82,7 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
-JSONCollection.add_validator(JSONFormatValidator)
+JSONCollection.add_validator(JSON_format_validator)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

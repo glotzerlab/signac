@@ -360,7 +360,8 @@ class TestJSONDict:
     def test_keys_non_str_valid_type(self, synced_dict, testdata):
         if isinstance(synced_dict, JSONDict):
             for key in (0, None, True):
-                synced_dict[key] = testdata
+                with pytest.deprecated_call(match="Use of.+as key is deprecated"):
+                    synced_dict[key] = testdata
                 assert str(key) in synced_dict
                 assert synced_dict[str(key)] == testdata
 

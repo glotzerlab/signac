@@ -71,8 +71,8 @@ class SyncedCollection(Collection):
         """
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
-        for _cls in args:
-            cls.registry[_cls._backend].append(_cls)
+        for base_cls in args:
+            cls.registry[base_cls._backend].append(base_cls)
 
     @property
     def validators(self):
@@ -116,9 +116,9 @@ class SyncedCollection(Collection):
         backend = cls._backend if backend is None else backend
         if backend is None:
             raise ValueError("No backend found.")
-        for _cls in cls.registry[backend]:
-            if _cls.is_base_type(data):
-                return _cls(data=data, **kwargs)
+        for base_cls in cls.registry[backend]:
+            if base_cls.is_base_type(data):
+                return base_cls(data=data, **kwargs)
         if NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()

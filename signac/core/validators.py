@@ -1,7 +1,12 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Validators for SyncedCollection API."""
+"""Validators for SyncedCollection API.
+
+Validators should be callable. They should act recursively for nested data and
+they should not return any values, only raise errors.
+"""
+
 import warnings
 from collections.abc import Mapping
 from collections.abc import Sequence
@@ -16,7 +21,7 @@ except ImportError:
     NUMPY = False
 
 
-def NoDotInKey(data):
+def no_dot_in_key(data):
     """Raise an exception if there is a dot (``.``) in a mapping's key.
 
     Parameters
@@ -34,7 +39,7 @@ def NoDotInKey(data):
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
     if isinstance(data, Mapping):
-        for key in data.keys():
+        for key, value in data.items():
             if isinstance(key, str):
                 if '.' in key:
                     raise InvalidKeyError(
@@ -42,9 +47,15 @@ def NoDotInKey(data):
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}")
+            no_dot_in_key(value)
+        return
+    if isinstance(data, Sequence) and not isinstance(data, str):
+        for value in data:
+            no_dot_in_key(value)
+        return
 
 
-def JSONFormatValidator(data):
+def JSON_format_validator(data):
     """Implement the validation for JSON serializable data.
 
     Parameters
@@ -64,22 +75,17 @@ def JSONFormatValidator(data):
         return
     if isinstance(data, Mapping):
         for key, value in data.items():
-            if isinstance(key, (int, bool, type(None))):
-                warnings.warn(
-                    f"Use of {type(key).__name__} as key is deprecated "
-                    "and will be removed in version 2.0",
-                    DeprecationWarning)
-            elif not isinstance(key, str):
+            if not isinstance(key, (str, int, bool, type(None))):
                 raise KeyTypeError(
                     f"Keys must be str, int, bool or None, not {type(key).__name__}")
-            JSONFormatValidator(value)
+            JSON_format_validator(value)
         return
     if isinstance(data, Sequence):
         for value in data:
-            JSONFormatValidator(value)
+            JSON_format_validator(value)
         return
     if NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
-        if np.iscomplex(data).any():
+        if numpy.iscomplex(data).any():
             raise TypeError("NumPy object with complex value(s) is not JSON serializable")
         else:
             return

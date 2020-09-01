@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from collections.abc import MutableMapping
 
 from .synced_collection import SyncedCollection
-from .validators import NoDotInKey
+from .validators import no_dot_in_key
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
@@ -177,11 +177,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self._data = {}
         self.sync()
 
-    def update(self, mapping):
-        self._validate(mapping)
+    def update(self, other):
+        self._validate(other)
         self.load()
         with self._suspend_sync():
-            for key, value in mapping.items():
+            for key, value in other.items():
                 self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
 
@@ -219,4 +219,4 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self.__delitem__(key)
 
 
-SyncedAttrDict.add_validator(NoDotInKey)
+SyncedAttrDict.add_validator(no_dot_in_key)
