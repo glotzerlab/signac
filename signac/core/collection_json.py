@@ -41,17 +41,18 @@ class JSONCollection(SyncedCollection):
 
     def _convert_non_str_key_to_str(self, data):
         if isinstance(data, dict):
-            ret = {}
-            for key, value in data.items():
-                ret[str(key)] = self._convert_non_str_key_to_str(value)
-            return ret
+            def _str_key(key):
+                if not isinstance(key, str):
+                    # raise DeprecationWarning here
+                    key = str(key)
+                return key
+            return {_str_key(key): self._convert_non_str_key_to_str(value) for key, value in data.items()}
         elif isinstance(data, list):
-            for i in range(len(data)):
-                data[i] = self._convert_non_str_key_to_str(data[i])
+            return [self._convert_non_str_key_to_str(value) for value in data]
         return data
 
     def _sync(self):
-        """Write the data to json file."""
+        """Write the data to JSON file."""
         data = self.to_base()
         # Converting non-string keys to string
         data = self._convert_non_str_key_to_str(data)

@@ -75,9 +75,12 @@ def JSONFormatValidator(data):
             JSONFormatValidator(value)
         return
     if isinstance(data, Sequence):
-        for i in range(len(data)):
-            JSONFormatValidator(data[i])
+        for value in data:
+            JSONFormatValidator(value)
         return
     if NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
-        return
-    raise TypeError(f"Object of {type(data).__name__} type is not JSON-serializable")
+        if np.iscomplex(data).any():
+            raise TypeError("NumPy object with complex value(s) is not JSON serializable")
+        else:
+            return
+    raise TypeError(f"Object of type {type(data).__name__} is not JSON serializable")

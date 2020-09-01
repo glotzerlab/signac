@@ -9,7 +9,7 @@ backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
 
-from typing import List, Any
+from typing import List, Callable
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
@@ -31,7 +31,7 @@ class SyncedCollection(Collection):
     """
 
     _backend = None
-    _validators: List[Any] = list()  # list of callable objects
+    _validators: List[Callable] = []
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -51,7 +51,7 @@ class SyncedCollection(Collection):
         Every subclass must have a separate list so that distinct sets of validators can
         be registered to each of them.
         """
-        cls._validators = list()
+        cls._validators = []
 
     @classmethod
     def register(cls, *args):
@@ -79,11 +79,9 @@ class SyncedCollection(Collection):
         """Return the list of validators applied to the instance."""
         validators = []
         # Classes inherit the validators of their parent classes.
-        for _cls in type(self).__mro__:
-            if hasattr(_cls, '_validators'):
-                for validator in _cls._validators:
-                    if validator not in validators:
-                        validators.append(validator)
+        for base_cls in type(self).__mro__:
+            if hasattr(base_cls, '_validators'):
+                validators.extend([v for v in base_cls._validators if v not in validators])
         return validators
 
     @classmethod
@@ -93,11 +91,9 @@ class SyncedCollection(Collection):
         Parameters
         ----------
         \*args
-            Validator to register
+            Validator(s) to register.
         """
-        for validator in args:
-            if validator not in cls._validators:
-                cls._validators.append(validator)
+        cls._validators.extend([v for v in args if v not in cls._validators])
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
