@@ -15,7 +15,7 @@ def get_cache(redis_kwargs=None):
 
     Redis client only accepts data as bytes, strings or numbers (ints, longs and floats).
     Attempting to specify a key or a value as any other type will raise a exception.
-    All responses are returned as bytes. 
+    All responses are returned as bytes.
 
     Returns
     -------

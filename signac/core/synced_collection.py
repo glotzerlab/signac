@@ -30,6 +30,7 @@ _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFERED_BACKNDS = list()
 
+
 class BufferException(Error):
     """An exception occured in buffered mode."""
 
@@ -50,12 +51,6 @@ class BufferedError(BufferException):
 
     def __str__(self):
         return "{}({})".format(type(self).__name__, self.files)
-
-
-def _store_backend_in_buffer(backend):
-    """Store the backend data to the buffer"""
-    if backend not in _BUFFER_BACKEND:
-        _BUFFER_BACKEND.append(backend)
 
 
 def flush_all():
@@ -88,9 +83,10 @@ def _in_buffered_mode():
     """Return True if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
 
+
 def _register_buffered_backend(backend):
     """Register the backend.
-    
+
     The registry is used in the :meth:`flush_all`.
     It call the ``_flush_buffer`` method for all the backends.
     """

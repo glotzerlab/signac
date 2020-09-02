@@ -22,7 +22,6 @@ from .synced_collection import _get_buffer_force_mode
 from .synced_collection import _register_buffered_backend
 from .caching import get_cache
 from .synced_collection import BufferedError
-from .errors import Error
 
 
 logger = logging.getLogger(__name__)
@@ -120,7 +119,7 @@ class JSONCollection(SyncedCollection):
             # write in buffer
             _store_to_buffer(self._filename, blob)
         else:
-            # write to file 
+            # write to file
             self._write_to_file(self._filename, blob, self._write_concern)
 
     @classmethod
@@ -140,7 +139,7 @@ class JSONCollection(SyncedCollection):
             blob = _JSON_CACHE[filename]
             del _JSON_CACHE[filename]  # Redis client does not have `pop`.
 
-            if not get_buffer_force_mode():
+            if not _get_buffer_force_mode():
                 # compare the metadata
                 if cls._get_metadata(filename) != meta:
                     issues[filename] = 'File appears to have been externally modified.'
@@ -160,7 +159,7 @@ class JSONCollection(SyncedCollection):
     def flush(self):
         if not _in_buffered_mode():
             if _get_metadata(self._filename) != _JSON_META.pop(self._filename):
-                raise BufferError({
+                raise BufferedError({
                     self._filename: 'File appears to have been externally modified.'})
             blob = _JSON_CACHE[self._filename]
             del _JSON_CACHE[self._filename]
