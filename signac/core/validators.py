@@ -47,15 +47,13 @@ def no_dot_in_key(data):
                 raise KeyTypeError(
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}")
             no_dot_in_key(value)
-        return
-    if isinstance(data, Sequence) and not isinstance(data, str):
+    elif isinstance(data, Sequence) and not isinstance(data, str):
         for value in data:
             no_dot_in_key(value)
-        return
 
 
 def JSON_format_validator(data):
-    """Implement the validation for JSON serializable data.
+    """Validate input data can be serialized to JSON.
 
     Parameters
     ----------

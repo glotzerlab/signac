@@ -27,10 +27,10 @@ class TestNoDotInKey:
             assert test_dict[key] == testdata
 
     def test_invalid_data(self, testdata):
-        # dict key containig dot
+        # dict key containing dot
         with pytest.raises(InvalidKeyError):
             no_dot_in_key({'a.b': testdata})
-        # nested dict key contaning dot
+        # nested dict key containing dot
         with pytest.raises(InvalidKeyError):
             no_dot_in_key({'nested': {'a.b': 1}})
         # list containing dict
