@@ -20,7 +20,7 @@ from ..errors import KeyTypeError
 class SyncedAttrDict(SyncedCollection, MutableMapping):
     """Implement the dict data structure along with values access through attributes named as keys.
 
-    The SyncedAttrDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The SyncedAttrDict inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableMapping`. Therefore, it behaves similar to
     a :class:`dict`. This class also allows access to values through key indexing or
     attributes named by keys, including nested keys.
@@ -35,7 +35,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         dictionary representation, and if necessary construct a new SyncedAttrDict.
     """
 
-    _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent', '_buffered')
+    _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
+                       '_buffered', '_supports_buffering')
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 

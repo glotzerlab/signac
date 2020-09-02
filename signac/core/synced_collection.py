@@ -9,11 +9,14 @@ backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
 import inspect
+import logging
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
 from typing import List, DefaultDict, Any
+
+from .errors import Error
 
 try:
     import numpy
@@ -31,7 +34,7 @@ class BufferException(Error):
     """An exception occured in buffered mode."""
 
 
-class BufferedFileError(BufferException):
+class BufferedError(BufferException):
     """Raised when an error occured while flushing one or more buffered files.
 
     Attribute
@@ -73,7 +76,7 @@ def flush_all():
             logger.error(str(error))
             issues[backend] = error
     if issues:
-        raise BufferedFileError(issues)
+        raise BufferedError(issues)
 
 
 def _get_buffer_force_mode():
@@ -84,6 +87,14 @@ def _get_buffer_force_mode():
 def _in_buffered_mode():
     """Return True if in buffered read/write mode."""
     return _BUFFERED_MODE > 0
+
+def _register_buffered_backend(backend):
+    """Register the backend.
+    
+    The registry is used in the :meth:`flush_all`.
+    It call the ``_flush_buffer`` method for all the backends.
+    """
+    _BUFFERED_BACKNDS.append(backend)
 
 
 @contextmanager
@@ -143,6 +154,7 @@ class SyncedCollection(Collection):
         self._data = None
         self._parent = parent
         self._name = name
+        self._supports_buffering = False
         self._buffered = 0
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):
@@ -227,7 +239,7 @@ class SyncedCollection(Collection):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                self._sync_to_backend()
+                self._sync()
             else:
                 self._parent.sync()
 
@@ -235,11 +247,30 @@ class SyncedCollection(Collection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                data = self._load_from_backend()
+                data = self._load()
                 with self._suspend_sync():
                     self._update(data)
             else:
                 self._parent.load()
+
+    @contextmanager
+    def buffered(self):
+        """Context manager for buffering read and write operations.
+
+        This context manager activates the "buffered" mode, which
+        means that all read operations are cached, and all write operations
+        are deferred until the buffered mode is deactivated.
+        """
+        if self._supports_buffering:
+            self._buffered += 1
+            try:
+                yield
+            finally:
+                self._buffered -= 1
+                if self._buffered == 0:
+                    self.flush()
+        else:
+            raise AttributeError(f"{type(self)} do not support buffering.")
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

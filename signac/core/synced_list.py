@@ -20,7 +20,7 @@ if NUMPY:
 class SyncedList(SyncedCollection, MutableSequence):
     """Implementation of list data structure.
 
-    The SyncedList inherits from :class:`~core.collection_api.SyncedCollection`
+    The SyncedList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
     to a :class:`list`.
 

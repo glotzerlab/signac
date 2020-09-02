@@ -90,7 +90,7 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 class RedisList(RedisCollection, SyncedList):
     """A non-string sequence interface to a persistent Redis file.
 
-    The RedisList inherits from :class:`~core.collection_api.SyncedCollection`
+    The RedisList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python

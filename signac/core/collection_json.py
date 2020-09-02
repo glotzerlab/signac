@@ -2,6 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements JSON-backend.
+
 This implements the JSON-backend for SyncedCollection API by
 implementing sync and load methods.
 """
@@ -10,10 +11,51 @@ import os
 import json
 import errno
 import uuid
+import hashlib
+import logging
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from .synced_collection import _in_buffered_mode
+from .synced_collection import _get_buffer_force_mode
+from .synced_collection import _register_buffered_backend
+from .caching import get_cache
+from .synced_collection import BufferedError
+from .errors import Error
+
+
+logger = logging.getLogger(__name__)
+
+_JSON_CACHE = get_cache()
+_JSON_META = dict()
+_JSON_HASHES = dict()
+
+
+def _get_metadata(filename):
+    """Return metadata of JSON-file"""
+    try:
+        metadata = os.stat(filename)
+        return metadata.st_size, metadata.st_mtime
+    except OSError as error:
+        if error.errno != errno.ENOENT:
+            raise
+
+
+def _hash(blob):
+    """Calculate and return the md5 hash value for the file data."""
+    if blob is not None:
+        m = hashlib.md5()
+        m.update(blob)
+        return m.hexdigest()
+
+
+def _store_to_buffer(filename, blob, store_hash=False):
+    _JSON_CACHE[filename] = blob
+    if store_hash:
+        _JSON_HASHES[filename] = _hash(blob)
+    if filename not in _JSON_META and not (_in_buffered_mode and _get_buffer_force_mode()):
+        _JSON_META[filename] = _get_metadata(filename)
 
 
 class JSONCollection(SyncedCollection):
@@ -26,34 +68,106 @@ class JSONCollection(SyncedCollection):
         self._write_concern = write_concern
         kwargs['name'] = filename
         super().__init__(**kwargs)
+        self._supports_buffering = True
 
-    def _load_from_backend(self):
-        """Load the data from a JSON-file."""
+    def _load_from_file(self):
+        """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:
-                blob = file.read()
-                return json.loads(blob)
+                return file.read()
         except IOError as error:
             if error.errno == errno.ENOENT:
                 return None
 
-    def _sync(self):
-        """Write the data to json file."""
-        data = self.to_base()
-        # Serialize data:
-        blob = json.dumps(data).encode()
-        # When write_concern flag is set, we write the data into dummy file and then
-        # replace that file with original file.
-        if self._write_concern:
-            dirname, filename = os.path.split(self._filename)
-            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                uid=uuid.uuid4(), fn=filename))
+    def _load(self):
+        """Load the data from buffer or JSON file."""
+        if _in_buffered_mode() or self._buffered:
+            if self._filename in _JSON_CACHE:
+                # Load from buffer
+                blob = _JSON_CACHE[self._filename]
+            else:
+                # Load from file and store in buffer
+                blob = self._load_from_file()
+                if blob:
+                    _store_to_buffer(self._filename, blob, store_hash=True)
+        else:
+            # Load from file
+            blob = self._load_from_file()
+        return None if blob is None else json.loads(blob)
+
+    @staticmethod
+    def _write_to_file(filename, blob, write_concern=False):
+        """Write the data to JSON file."""
+        # When write_concern flag is set, we write the data into dummy file and
+        # then replace that file with original file.
+        if write_concern:
+            dirname, fn = os.path.split(filename)
+            fn_tmp = os.path.join(dirname, f'._{uuid.uuid4()}_{fn}')
             with open(fn_tmp, 'wb') as tmpfile:
                 tmpfile.write(blob)
-            os.replace(fn_tmp, self._filename)
+            os.replace(fn_tmp, filename)
         else:
-            with open(self._filename, 'wb') as file:
+            with open(filename, 'wb') as file:
                 file.write(blob)
+
+    def _sync(self):
+        """Write the data to file or buffer."""
+        data = self.to_base()
+        # Serialize data
+        blob = json.dumps(data).encode()
+
+        if _in_buffered_mode() or self._buffered > 0:
+            # write in buffer
+            _store_to_buffer(self._filename, blob)
+        else:
+            # write to file 
+            self._write_to_file(self._filename, blob, self._write_concern)
+
+    @classmethod
+    def _flush_buffer(cls):
+        """Flush the data in JSON-buffer.
+
+        Returns
+        -------
+        issues: dict
+            Mapping of filename and errors occured during flushing data.
+        """
+        issues = dict()
+
+        while _JSON_META:
+            filename, meta = _JSON_META.popitem()
+
+            blob = _JSON_CACHE[filename]
+            del _JSON_CACHE[filename]  # Redis client does not have `pop`.
+
+            if not get_buffer_force_mode():
+                # compare the metadata
+                if cls._get_metadata(filename) != meta:
+                    issues[filename] = 'File appears to have been externally modified.'
+                    continue
+
+            # if hash match then data is same in flie and buffer
+            if _hash(blob) != _JSON_HASHES.pop(filename):
+                # Sync the data to underlying backend
+                try:
+                    cls._write_to_file(filename, blob, write_concern=True)
+                except OSError as error:
+                    # if sync fails add filename to issues
+                    logger.error(str(error))
+                    issues[filename] = error
+        return issues
+
+    def flush(self):
+        if not _in_buffered_mode():
+            if _get_metadata(self._filename) != _JSON_META.pop(self._filename):
+                raise BufferError({
+                    self._filename: 'File appears to have been externally modified.'})
+            blob = _JSON_CACHE[self._filename]
+            del _JSON_CACHE[self._filename]
+            self._write_to_file(self._filename, blob, self._write_concern)
+
+
+_register_buffered_backend(JSONCollection)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):

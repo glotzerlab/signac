@@ -156,7 +156,7 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`. This class also supports the
     "buffered" mode where all the reads and writes are deferred.
 

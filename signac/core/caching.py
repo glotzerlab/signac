@@ -19,27 +19,27 @@ def get_cache(redis_kwargs=None):
 
     Returns
     -------
-    Cache
-        Redis client if available, otherwise instance of dict.
+    cache
+        Redis client if available, otherwise dictionary.
     """
     try:
         import redis
         try:
             # try to connect to server
-            Cache = redis.Redis()
+            cache = redis.Redis()
             test_key = str(uuid.uuid4())
-            Cache.set(test_key, 0)
-            assert Cache.get(test_key) == b'0'  # redis store data as bytes
-            Cache.delete(test_key)
+            cache.set(test_key, 0)
+            assert cache.get(test_key) == b'0'  # redis store data as bytes
+            cache.delete(test_key)
         except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
-            Cache = None
+            cache = None
     except ImportError as error:
         logger.debug(str(error))
-        Cache = None
-    if Cache is None:
+        cache = None
+    if cache is None:
         logger.info("Redis not available.")
-        Cache = dict()
+        cache = dict()
     else:
         logger.info("Using redis cache.")
-    return Cache
+    return cache
