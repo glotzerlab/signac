@@ -266,7 +266,7 @@ class SyncedCollection(Collection):
                 if self._buffered == 0:
                     self.flush()
         else:
-            raise AttributeError(f"{type(self)} do not support buffering.")
+            raise BufferException(f"{type(self).__name__} does not support buffering.")
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

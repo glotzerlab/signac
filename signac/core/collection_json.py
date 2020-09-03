@@ -146,7 +146,7 @@ class JSONCollection(SyncedCollection):
                     continue
 
             # if hash match then data is same in flie and buffer
-            if _hash(blob) != _JSON_HASHES.pop(filename):
+            if filename not in _JSON_HASHES or _hash(blob) != _JSON_HASHES.pop(filename):
                 # Sync the data to underlying backend
                 try:
                     cls._write_to_file(filename, blob, write_concern=True)
