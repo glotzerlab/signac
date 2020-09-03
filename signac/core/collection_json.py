@@ -53,8 +53,9 @@ def _store_to_buffer(filename, blob, store_hash=False):
     _JSON_CACHE[filename] = blob
     if store_hash:
         _JSON_HASHES[filename] = _hash(blob)
-    if filename not in _JSON_META and not (_in_buffered_mode and _get_buffer_force_mode()):
-        _JSON_META[filename] = _get_metadata(filename)
+    if filename not in _JSON_META:
+        _JSON_META[filename] = None if _in_buffered_mode() and _get_buffer_force_mode() \
+                                else _get_metadata(filename)
 
 
 class JSONCollection(SyncedCollection):
@@ -76,7 +77,7 @@ class JSONCollection(SyncedCollection):
                 return file.read()
         except IOError as error:
             if error.errno == errno.ENOENT:
-                return None
+                return json.dumps(None).encode()  # Redis requires data to be string or bytes.
 
     def _load(self):
         """Load the data from buffer or JSON file."""
@@ -87,12 +88,11 @@ class JSONCollection(SyncedCollection):
             else:
                 # Load from file and store in buffer
                 blob = self._load_from_file()
-                if blob:
-                    _store_to_buffer(self._filename, blob, store_hash=True)
+                _store_to_buffer(self._filename, blob, store_hash=True)
         else:
             # Load from file
             blob = self._load_from_file()
-        return None if blob is None else json.loads(blob)
+        return json.loads(blob)
 
     @staticmethod
     def _write_to_file(filename, blob, write_concern=False):
@@ -141,7 +141,7 @@ class JSONCollection(SyncedCollection):
 
             if not _get_buffer_force_mode():
                 # compare the metadata
-                if cls._get_metadata(filename) != meta:
+                if _get_metadata(filename) != meta:
                     issues[filename] = 'File appears to have been externally modified.'
                     continue
 
@@ -157,6 +157,7 @@ class JSONCollection(SyncedCollection):
         return issues
 
     def flush(self):
+        """Save buffered changes to the underlying file."""
         if not _in_buffered_mode():
             if _get_metadata(self._filename) != _JSON_META.pop(self._filename):
                 raise BufferedError({

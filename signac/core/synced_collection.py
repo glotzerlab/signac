@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFERED_BACKNDS = list()
+_BUFFERED_BACKNDS :List[Any] = list()
 
 
 class BufferException(Error):
@@ -88,7 +88,7 @@ def _register_buffered_backend(backend):
     """Register the backend.
 
     The registry is used in the :meth:`flush_all`.
-    It call the ``_flush_buffer`` method for all the backends.
+    Every backend to register should have ``_flush_buffer`` method.
     """
     _BUFFERED_BACKNDS.append(backend)
 
