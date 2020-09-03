@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFERED_BACKNDS :List[Any] = list()
+_BUFFERED_BACKNDS: List[Any] = list()
 
 
 class BufferException(Error):
