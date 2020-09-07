@@ -534,7 +534,7 @@ class TestJobSync(TestJobBase):
         assert job_dst.document['a'] == job_src.document['a']
 
 
-class ProjectSyncTest():
+class TestProjectSync():
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
