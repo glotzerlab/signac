@@ -4,7 +4,7 @@
 import pytest
 
 from signac.core.validators import no_dot_in_key
-from signac.core.validators import JSON_format_validator
+from signac.core.validators import json_format_validator
 from signac.errors import KeyTypeError
 from signac.errors import InvalidKeyError
 
@@ -46,28 +46,28 @@ class TestJSONFormatValidator:
 
     def test_valid_data(self):
         for data in ('foo', 1, 1.0, True, None, {}, []):
-            JSON_format_validator(data)  # should not raise any error
+            json_format_validator(data)  # should not raise any error
         for data in ('foo', 1, 1.0, True, None, {}, []):
-            JSON_format_validator({'test_key': data})  # should not raise any error
-        JSON_format_validator(('foo', 1, 1.0, True, None, {}, []))  # should not raise any error
+            json_format_validator({'test_key': data})  # should not raise any error
+        json_format_validator(('foo', 1, 1.0, True, None, {}, []))  # should not raise any error
 
     def test_dict_data(self, testdata):
         for data in ('foo', 1, 1.0, True, None):
-            JSON_format_validator({'test_key': data})  # should not raise any error
+            json_format_validator({'test_key': data})  # should not raise any error
         for key in (0.0, (1, 2, 3)):
             with pytest.raises(KeyTypeError):
-                JSON_format_validator({key: testdata})
+                json_format_validator({key: testdata})
 
     @pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
     def test_numpy_data(self):
         data = numpy.random.rand(3, 4)
-        JSON_format_validator(data)  # should not raise any error
-        JSON_format_validator(numpy.float_(3.14))  # should not raise any error
+        json_format_validator(data)  # should not raise any error
+        json_format_validator(numpy.float_(3.14))  # should not raise any error
         # numpy data as dict value
-        JSON_format_validator({'test': data})
-        JSON_format_validator({'test': numpy.float_(1.0)})
+        json_format_validator({'test': data})
+        json_format_validator({'test': numpy.float_(1.0)})
         # numpy data in list
-        JSON_format_validator([data, numpy.float_(1.0), 1, 'test'])
+        json_format_validator([data, numpy.float_(1.0), 1, 'test'])
 
     def test_invalid_data(self):
 
@@ -76,22 +76,22 @@ class TestJSONFormatValidator:
         invalid_data = (1.0 + 2.0j, A())
         for data in invalid_data:
             with pytest.raises(TypeError):
-                JSON_format_validator(data)
+                json_format_validator(data)
         # invalid data as dict value
         for data in invalid_data:
             with pytest.raises(TypeError):
-                JSON_format_validator({'test': data})
+                json_format_validator({'test': data})
         # invalid data in tuple
         with pytest.raises(TypeError):
-            JSON_format_validator(invalid_data)
+            json_format_validator(invalid_data)
 
     @pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
     def test_numpy_invalid_data(self):
         # complex data
         data = numpy.complex(1 + 2j)
         with pytest.raises(TypeError):
-            JSON_format_validator(data)
+            json_format_validator(data)
         # complex data in ndarray
         data = numpy.asarray([1, 2, 1j, 1 + 2j])
         with pytest.raises(TypeError):
-            JSON_format_validator(data)
+            json_format_validator(data)

@@ -52,7 +52,7 @@ def no_dot_in_key(data):
             no_dot_in_key(value)
 
 
-def JSON_format_validator(data):
+def json_format_validator(data):
     """Validate input data can be serialized to JSON.
 
     Parameters
@@ -77,11 +77,11 @@ def JSON_format_validator(data):
             if not isinstance(key, (str, int, bool, type(None))):
                 raise KeyTypeError(
                     f"Keys must be str, int, bool or None, not {type(key).__name__}")
-            JSON_format_validator(value)
+            json_format_validator(value)
         return
     if isinstance(data, Sequence):
         for value in data:
-            JSON_format_validator(value)
+            json_format_validator(value)
         return
     if NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
         if numpy.iscomplex(data).any():

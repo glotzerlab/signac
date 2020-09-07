@@ -16,7 +16,7 @@ import warnings
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .validators import JSON_format_validator
+from .validators import json_format_validator
 
 
 def _convert_key_to_str(data):
@@ -82,7 +82,7 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
-JSONCollection.add_validator(JSON_format_validator)
+JSONCollection.add_validator(json_format_validator)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
