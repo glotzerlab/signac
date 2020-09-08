@@ -71,7 +71,7 @@ def json_format_validator(data):
 
     if isinstance(data, (str, int, float, bool, type(None))):
         return
-    if isinstance(data, Mapping):
+    elif isinstance(data, Mapping):
         for key, value in data.items():
             # Support for non-str keys will be removed in version 2.0.
             # See issue: https://github.com/glotzerlab/signac/issues/316.
@@ -79,14 +79,11 @@ def json_format_validator(data):
                 raise KeyTypeError(
                     f"Keys must be str, int, bool or None, not {type(key).__name__}")
             json_format_validator(value)
-        return
-    if isinstance(data, Sequence):
+    elif isinstance(data, Sequence):
         for value in data:
             json_format_validator(value)
-        return
-    if NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
+    elif NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
         if numpy.iscomplex(data).any():
             raise TypeError("NumPy object with complex value(s) is not JSON serializable")
-        else:
-            return
-    raise TypeError(f"Object of type {type(data).__name__} is not JSON serializable")
+    else:
+        raise TypeError(f"Object of type {type(data).__name__} is not JSON serializable")
