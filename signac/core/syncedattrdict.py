@@ -194,13 +194,17 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
 
-    def setdefault(self, key, default=None):
+def setdefault(self, key, default=None):
+    self.load()
+    if key in self._data:
+        ret = self._data[key]
+    else:
         self._validate({key: default})
-        self.load()
+        ret = self.from_base(default, parent=self))
         with self._suspend_sync():
-            ret = self._data.setdefault(key, self.from_base(default, parent=self))
+            self._data[key] = ret
         self.sync()
-        return ret
+    return ret
 
     def __getattr__(self, name):
         if name.startswith('__'):
