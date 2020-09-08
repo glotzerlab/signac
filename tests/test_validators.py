@@ -47,7 +47,6 @@ class TestJSONFormatValidator:
     def test_valid_data(self):
         for data in ('foo', 1, 1.0, True, None, {}, []):
             json_format_validator(data)  # should not raise any error
-        for data in ('foo', 1, 1.0, True, None, {}, []):
             json_format_validator({'test_key': data})  # should not raise any error
         json_format_validator(('foo', 1, 1.0, True, None, {}, []))  # should not raise any error
 

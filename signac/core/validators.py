@@ -73,7 +73,7 @@ def json_format_validator(data):
     if isinstance(data, Mapping):
         for key, value in data.items():
             # Support for non-str keys will be removed in version 2.0.
-            # See issue #316.
+            # See issue: https://github.com/glotzerlab/signac/issues/316.
             if not isinstance(key, (str, int, bool, type(None))):
                 raise KeyTypeError(
                     f"Keys must be str, int, bool or None, not {type(key).__name__}")

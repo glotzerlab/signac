@@ -200,7 +200,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             ret = self._data[key]
         else:
             self._validate({key: default})
-            ret = self.from_base(default, parent=self))
+            ret = self.from_base(default, parent=self)
             with self._suspend_sync():
                 self._data[key] = ret
             self.sync()
