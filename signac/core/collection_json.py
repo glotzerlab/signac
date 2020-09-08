@@ -88,7 +88,7 @@ JSONCollection.add_validator(json_format_validator)
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
@@ -134,7 +134,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python

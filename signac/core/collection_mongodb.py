@@ -53,7 +53,7 @@ class MongoDBCollection(SyncedCollection):
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Mongo-database.
 
-    The MongoDBDict inherits from :class:`~core.collection_api.MongoCollection`
+    The MongoDBDict inherits from :class:`~core.synced_collection.MongoCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python

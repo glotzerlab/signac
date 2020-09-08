@@ -4,7 +4,7 @@
 """Implements the SyncedList class.
 
 This implements the list data-structure for SyncedCollection API by
-implementing the convert methods (`to_base`, `from_base`) for lists.
+implementing the convert method (`to_base`) for lists.
 """
 
 from collections.abc import Sequence
@@ -20,7 +20,7 @@ if NUMPY:
 class SyncedList(SyncedCollection, MutableSequence):
     """Implementation of list data structure.
 
-    The SyncedList inherits from :class:`~core.collection_api.SyncedCollection`
+    The SyncedList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
     to a :class:`list`.
 

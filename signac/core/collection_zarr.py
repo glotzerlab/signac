@@ -47,7 +47,7 @@ class ZarrCollection(SyncedCollection):
 class ZarrDict(ZarrCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Zarr-database.
 
-    The ZarrDict inherits from :class:`~core.collection_api.ZarrCollection`
+    The ZarrDict inherits from :class:`~core.synced_collection.ZarrCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
@@ -92,7 +92,7 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 class ZarrList(ZarrCollection, SyncedList):
     """A non-string sequence interface to a persistent Zarr file.
 
-    The ZarrList inherits from :class:`~core.collection_api.ZarrCollection`
+    The ZarrList inherits from :class:`~core.synced_collection.ZarrCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
