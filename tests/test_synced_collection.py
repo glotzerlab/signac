@@ -474,6 +474,15 @@ class TestJSONList:
         assert synced_list[0] == d[0]
         assert synced_list[1] == d1
 
+        # Ensure generators are exhausted only once
+        def data_generator():
+            yield testdata
+        synced_list.extend(data_generator())
+        assert len(synced_list) == 3
+        assert synced_list[0] == d[0]
+        assert synced_list[1] == d1
+        assert synced_list[2] == testdata
+
     def test_clear(self, synced_list, testdata):
         synced_list.append(testdata)
         assert len(synced_list) == 1
