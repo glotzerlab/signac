@@ -26,12 +26,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     .. warning::
 
-        While the SyncedAttrDict object behaves like a dictionary, there are
+        While the SyncedAttrDict object behaves like a :class:`dict`, there are
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new SyncedAttrDict.
+        :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
     """
 
     _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
