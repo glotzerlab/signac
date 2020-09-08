@@ -3,8 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 """Validators for SyncedCollection API.
 
-Validators should be callable. They should act recursively for nested data and
-they should not return any values, only raise errors.
+A validator is any callable that raises Exceptions when called with invalid data.
+Validators should act recursively for nested data structures and should not
+return any values, only raise errors.
 """
 
 from collections.abc import Mapping
