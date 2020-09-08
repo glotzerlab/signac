@@ -150,10 +150,12 @@ class SyncedList(SyncedCollection, MutableSequence):
         return reversed(self._data)
 
     def __iadd__(self, iterable):
-        self._validate(list(iterable))
+        # Convert iterable to a list to ensure generators are exhausted only once
+        iterable_data = list(iterable)
+        self._validate(iterable_data)
         self.load()
         with self._suspend_sync():
-            self._data += [self.from_base(data=value, parent=self) for value in iterable]
+            self._data += [self.from_base(data=value, parent=self) for value in iterable_data]
         self.sync()
         return self
 
@@ -172,10 +174,12 @@ class SyncedList(SyncedCollection, MutableSequence):
         self.sync()
 
     def extend(self, iterable):
-        self._validate(list(iterable))
+        # Convert iterable to a list to ensure generators are exhausted only once
+        iterable_data = list(iterable)
+        self._validate(iterable_data)
         self.load()
         with self._suspend_sync():
-            self._data.extend([self.from_base(data=value, parent=self) for value in iterable])
+            self._data.extend([self.from_base(data=value, parent=self) for value in iterable_data])
         self.sync()
 
     def remove(self, item):
