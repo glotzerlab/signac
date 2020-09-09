@@ -17,7 +17,7 @@ from .synced_list import SyncedList
 class RedisCollection(SyncedCollection):
     """Implement sync and load using a Redis backend."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, client=None, **kwargs):
         self._client = client
@@ -90,7 +90,7 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 class RedisList(RedisCollection, SyncedList):
     """A non-string sequence interface to a persistent Redis file.
 
-    The RedisList inherits from :class:`~core.collection_api.SyncedCollection`
+    The RedisList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python

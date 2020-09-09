@@ -16,10 +16,10 @@ from .synced_list import SyncedList
 class MongoDBCollection(SyncedCollection):
     """Implement sync and load using a MongoDB backend."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, collection=None, **kwargs):
-        import bson  # for InvalidDocument
+        import bson  # for InvalidDocument error
 
         self._collection = collection
         self._errors = bson.errors
@@ -53,7 +53,7 @@ class MongoDBCollection(SyncedCollection):
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Mongo-database.
 
-    The MongoDBDict inherits from :class:`~core.collection_api.MongoCollection`
+    The MongoDBDict inherits from :class:`~core.synced_collection.MongoCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python

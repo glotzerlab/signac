@@ -11,16 +11,39 @@ import os
 import json
 import errno
 import uuid
+import warnings
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
+from .validators import json_format_validator
+
+
+def _convert_key_to_str(data):
+    """Recursively convert non-string keys to strings for (potentially nested) input collections.
+
+    This retains compatibility with auto-casting keys to strings, and will be
+    removed in signac 2.0.
+    Input collections must be of "base type" (dict or list).
+    """
+    if isinstance(data, dict):
+        def _str_key(key):
+            if not isinstance(key, str):
+                warnings.warn(f"Use of {type(key).__name__} as key is deprecated "
+                              "and will be removed in version 2.0",
+                              DeprecationWarning)
+                key = str(key)
+            return key
+        return {_str_key(key): _convert_key_to_str(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [_convert_key_to_str(value) for value in data]
+    return data
 
 
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)
@@ -29,7 +52,7 @@ class JSONCollection(SyncedCollection):
         super().__init__(**kwargs)
 
     def _load(self):
-        """Load the data from a JSON-file."""
+        """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:
                 blob = file.read()
@@ -39,9 +62,11 @@ class JSONCollection(SyncedCollection):
                 return None
 
     def _sync(self):
-        """Write the data to json file."""
+        """Write the data to JSON file."""
         data = self.to_base()
-        # Serialize data:
+        # Converting non-string keys to string
+        data = _convert_key_to_str(data)
+        # Serialize data
         blob = json.dumps(data).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.
@@ -57,10 +82,13 @@ class JSONCollection(SyncedCollection):
                 file.write(blob)
 
 
+JSONCollection.add_validator(json_format_validator)
+
+
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
@@ -106,7 +134,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~core.collection_api.SyncedCollection`
+    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
     and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python

@@ -9,6 +9,7 @@ backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
 
+from typing import List, Callable
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
@@ -29,7 +30,8 @@ class SyncedCollection(Collection):
     in the underlying backend. The backend name wil be same as the module name.
     """
 
-    backend = None
+    _backend = None
+    _validators: List[Callable] = []
 
     def __init__(self, name=None, parent=None):
         self._data = None
@@ -42,25 +44,60 @@ class SyncedCollection(Collection):
                 "parent or name must be None, but not both.")
 
     @classmethod
-    def register(cls, *args):
-        """Register the synced data structures.
+    def __init_subclass__(cls):
+        """Add  ``_validator`` attribute to every subclass.
 
-        Registry is used when recursively converting synced data structures to determine
-        what to convert their children into.
+        Subclasses contain a list of validators that are applied to collection input data.
+        Every subclass must have a separate list so that distinct sets of validators can
+        be registered to each of them.
+        """
+        cls._validators = []
+
+    @classmethod
+    def register(cls, *args):
+        r"""Register the synced data structures.
+
+        The registry is used by :meth:`from_base` to determine the appropriate subclass
+        of :class:`SyncedCollection` that should be constructed from a particular object.
+        This functionality is necessary for converting nested data structures because
+        given, for instance, a dict of lists, it must be possible to map the nested lists to
+        the appropriate subclass of :class:`SyncedList` corresponding to the desired
+        backend.
 
         Parameters
         ----------
-        *args
+        \*args
             Classes to register
         """
         if not hasattr(cls, 'registry'):
             cls.registry = defaultdict(list)
-        for _cls in args:
-            cls.registry[_cls.backend].append(_cls)
+        for base_cls in args:
+            cls.registry[base_cls._backend].append(base_cls)
+
+    @property
+    def validators(self):
+        """Return the list of validators applied to the instance."""
+        validators = []
+        # Classes inherit the validators of their parent classes.
+        for base_cls in type(self).__mro__:
+            if hasattr(base_cls, '_validators'):
+                validators.extend([v for v in base_cls._validators if v not in validators])
+        return validators
+
+    @classmethod
+    def add_validator(cls, *args):
+        r"""Register validator.
+
+        Parameters
+        ----------
+        \*args
+            Validator(s) to register.
+        """
+        cls._validators.extend([v for v in args if v not in cls._validators])
 
     @classmethod
     def from_base(cls, data, backend=None, **kwargs):
-        """Dynamically resolve the type of object to the corresponding synced collection.
+        r"""Dynamically resolve the type of object to the corresponding synced collection.
 
         Parameters
         ----------
@@ -68,7 +105,7 @@ class SyncedCollection(Collection):
             Data to be converted from base class.
         backend: str
             Name of backend for synchronization. Default to backend of class.
-        **kwargs:
+        \*\*kwargs:
             Kwargs passed to instance of synced collection.
 
         Returns
@@ -76,12 +113,12 @@ class SyncedCollection(Collection):
         data : object
             Synced object of corresponding base type.
         """
-        backend = cls.backend if backend is None else backend
+        backend = cls._backend if backend is None else backend
         if backend is None:
             raise ValueError("No backend found.")
-        for _cls in cls.registry[backend]:
-            if _cls.is_base_type(data):
-                return _cls(data=data, **kwargs)
+        for base_cls in cls.registry[backend]:
+            if base_cls.is_base_type(data):
+                return base_cls(data=data, **kwargs)
         if NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
@@ -132,6 +169,11 @@ class SyncedCollection(Collection):
                     self._update(data)
             else:
                 self._parent.load()
+
+    def _validate(self, data):
+        """Validate the input data."""
+        for validator in self.validators:
+            validator(data)
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

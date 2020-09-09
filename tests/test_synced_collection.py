@@ -154,6 +154,23 @@ class TestJSONDict:
         synced_dict.update(d)
         assert len(synced_dict) == 1
         assert synced_dict[key] == d[key]
+        # upadte with no argument
+        synced_dict.update()
+        assert len(synced_dict) == 1
+        assert synced_dict[key] == d[key]
+        # update using key as kwarg
+        synced_dict.update(update2=testdata)
+        assert len(synced_dict) == 2
+        assert synced_dict['update2'] == testdata
+        # same key in other dict and as kwarg with different values
+        synced_dict.update({key: 1}, update=2)  # here key is 'update'
+        assert len(synced_dict) == 2
+        assert synced_dict[key] == 2
+        # update using list of key and value pair
+        synced_dict.update([('update2', 1), ('update3', 2)])
+        assert len(synced_dict) == 3
+        assert synced_dict['update2'] == 1
+        assert synced_dict['update3'] == 2
 
     def test_pop(self, synced_dict, testdata):
         key = 'pop'
@@ -199,6 +216,16 @@ class TestJSONDict:
             assert synced_dict[key] == data[key]
             assert not isinstance(val, type(synced_dict))
             assert (key, val) in data.items()
+
+    def test_setdefault(self, synced_dict, testdata):
+        key = 'setdefault'
+        ret = synced_dict.setdefault(key, testdata)
+        assert ret == testdata
+        assert key in synced_dict
+        assert synced_dict[key] == testdata
+        ret = synced_dict.setdefault(key, 1)
+        assert ret == testdata
+        assert synced_dict[key] == testdata
 
     def test_reset(self, synced_dict, testdata):
         key = 'reset'
@@ -345,14 +372,25 @@ class TestJSONDict:
         with pytest.raises(InvalidKeyError):
             synced_dict['a.b'] = None
 
-    def test_keys_valid_type(self, synced_dict, testdata):
+    def test_keys_str_type(self, synced_dict, testdata):
 
         class MyStr(str):
             pass
-        for key in ('key', MyStr('key'), 0, None, True):
+        for key in ('key', MyStr('key')):
             synced_dict[key] = testdata
-            assert str(key) in synced_dict
-            assert synced_dict[str(key)] == testdata
+            assert key in synced_dict
+            assert synced_dict[key] == testdata
+
+    # The following test tests the support for non-str keys
+    # for JSON backend which will be removed in version 2.0.
+    # See issue: https://github.com/glotzerlab/signac/issues/316.
+    def test_keys_non_str_valid_type(self, synced_dict, testdata):
+        if isinstance(synced_dict, JSONDict):
+            for key in (0, None, True):
+                with pytest.deprecated_call(match="Use of.+as key is deprecated"):
+                    synced_dict[key] = testdata
+                assert str(key) in synced_dict
+                assert synced_dict[str(key)] == testdata
 
     def test_keys_invalid_type(self, synced_dict, testdata):
 
@@ -449,6 +487,25 @@ class TestJSONList:
         assert len(synced_list) == 2
         assert synced_list[0] == d[0]
         assert synced_list[1] == d1
+
+        # Ensure generators are exhausted only once by extend
+        def data_generator():
+            yield testdata
+        synced_list.extend(data_generator())
+        assert len(synced_list) == 3
+        assert synced_list[0] == d[0]
+        assert synced_list[1] == d1
+        assert synced_list[2] == testdata
+
+        # Ensure generators are exhausted only once by __iadd__
+        def data_generator():
+            yield testdata
+        synced_list += data_generator()
+        assert len(synced_list) == 4
+        assert synced_list[0] == d[0]
+        assert synced_list[1] == d1
+        assert synced_list[2] == testdata
+        assert synced_list[3] == testdata
 
     def test_clear(self, synced_list, testdata):
         synced_list.append(testdata)
