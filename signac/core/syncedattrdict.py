@@ -4,7 +4,7 @@
 """Implements the SyncedAttrDict class.
 
 This implements the dict data-structure for SyncedCollection API by
-implementing the convert method (`to_base`) for dictionaries.
+implementing the convert method `to_base` for dictionaries.
 This class also allows access to values through key indexing or attributes
 named by keys, including nested keys.
 """

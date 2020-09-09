@@ -32,9 +32,9 @@ def no_dot_in_key(data):
     Raises
     ------
     KeyTypeError
-        If keys have unsupported data type.
+        If key data type is not supported.
     InvalidKeyError
-        If key is not supported.
+        If the key contains invalid characters or is otherwise malformed.
     """
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
@@ -64,9 +64,9 @@ def json_format_validator(data):
     Raises
     ------
     KeyTypeError
-        If keys of mapping have unsupported data type.
+        If key data type is not supported.
     TypeError
-        If data type is not supported.
+        If the data type of ``data`` is not supported.
     """
 
     if isinstance(data, (str, int, float, bool, type(None))):

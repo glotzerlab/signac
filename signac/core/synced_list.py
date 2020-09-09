@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements the SyncedList class.
 
-This implements the list data-structure for SyncedCollection API by
-implementing the convert method (`to_base`) for lists.
+This implements the list data structure for SyncedCollection API by
+implementing the convert method `to_base` for lists.
 """
 
 from collections.abc import Sequence
@@ -150,7 +150,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         return reversed(self._data)
 
     def __iadd__(self, iterable):
-        # Convert iterable to a list to ensure generators are exhausted only once
+        # Convert input to a list so that iterators work as well as iterables.
         iterable_data = list(iterable)
         self._validate(iterable_data)
         self.load()
