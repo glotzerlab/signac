@@ -1480,20 +1480,21 @@ class TestProjectExportImport(TestProjectBase):
             assert len(tmp_project) == len(self.project)
 
 
+VALID_SP_VALUES = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
+
+
 def add_jobs_homogeneous(project, num_jobs):
     # Add jobs with many different state points
-    valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
     for i in range(num_jobs):
         project.open_job(
             {'{}_{}'.format(i, j): v
-                for j, v in enumerate(valid_sp_values)}).init()
+                for j, v in enumerate(VALID_SP_VALUES)}).init()
 
 
 def add_jobs_heterogeneous(project, num_jobs):
     # Add jobs with many different state points
-    valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
     for i in range(num_jobs):
-        for v in valid_sp_values:
+        for v in VALID_SP_VALUES:
             project.open_job(dict(a=v)).init()
 
 
