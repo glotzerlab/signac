@@ -4,7 +4,7 @@
 """Implements the SyncedAttrDict class.
 
 This implements the dict data-structure for SyncedCollection API by
-implementing the convert methods (`to_base`, `from_base`) for dictionaries.
+implementing the convert method `to_base` for dictionaries.
 This class also allows access to values through key indexing or attributes
 named by keys, including nested keys.
 """
@@ -13,8 +13,7 @@ from collections.abc import Mapping
 from collections.abc import MutableMapping
 
 from .synced_collection import SyncedCollection
-from ..errors import InvalidKeyError
-from ..errors import KeyTypeError
+from .validators import no_dot_in_key
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
@@ -27,28 +26,26 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     .. warning::
 
-        While the SyncedAttrDict object behaves like a dictionary, there are
+        While the SyncedAttrDict object behaves like a :class:`dict`, there are
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
         true copy is required, you should use the `to_base()` method to get a
-        dictionary representation, and if necessary construct a new SyncedAttrDict.
+        :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
     """
 
     _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
-                       '_buffered', '_supports_buffering')
-
-    VALID_KEY_TYPES = (str, int, bool, type(None))
+                       '_buffered', '_supports_buffering', '_validators')
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
         if data is None:
             self._data = {}
         else:
+            self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    self._validate_key(key): self.from_base(data=value, parent=self)
-                    for key, value in data.items()
+                    key: self.from_base(data=value, parent=self) for key, value in data.items()
                 }
             self.sync()
 
@@ -90,6 +87,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             data = {}
         if isinstance(data, Mapping):
+            self._validate(data)
             with self._suspend_sync():
                 # This loop avoids rebuilding existing synced collections for performance.
                 for key in data:
@@ -102,7 +100,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                                 continue
                             except ValueError:
                                 pass
-                    self._data[self._validate_key(key)] = self.from_base(data[key], parent=self)
+                    self._data[key] = self.from_base(data[key], parent=self)
                 remove = set()
                 for key in self._data:
                     if key not in data:
@@ -113,24 +111,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             raise ValueError(
                 "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
-    @staticmethod
-    def _validate_key(key):
-        """Raise an exception if key is invalid. Returns key."""
-        if isinstance(key, SyncedAttrDict.VALID_KEY_TYPES):
-            key = str(key)
-            if '.' in key:
-                raise InvalidKeyError(
-                    "SyncedDict keys may not contain dots ('.'): {}".format(key))
-            else:
-                return key
-        else:
-            raise KeyTypeError(
-                "SyncedDict keys must be str, int, bool or None, not {}".format(type(key).__name__))
-
     def __setitem__(self, key, value):
+        self._validate({key: value})
         self.load()
         with self._suspend_sync():
-            self._data[self._validate_key(key)] = self.from_base(data=value, parent=self)
+            self._data[key] = self.from_base(value, parent=self)
         self.sync()
 
     def reset(self, data=None):
@@ -148,13 +133,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         if data is None:
             data = {}
-
         if isinstance(data, Mapping):
-            self.load()
+            self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    self._validate_key(key): self.from_base(data=value, parent=self)
-                    for key, value in data.items()
+                    key: self.from_base(data=value, parent=self) for key, value in data.items()
                 }
             self.sync()
         else:
@@ -194,19 +177,33 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self._data = {}
         self.sync()
 
-    def update(self, mapping):
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            # Convert sequence of key, value pairs to dict before validation
+            if not isinstance(other, Mapping):
+                other = dict(other)
+            self._validate(other)
+        if kwargs:
+            self._validate(kwargs)
         self.load()
         with self._suspend_sync():
-            for key, value in mapping.items():
-                self._data[self._validate_key(key)] = self.from_base(data=value, parent=self)
+            if other:
+                for key, value in other.items():
+                    self._data[key] = self.from_base(data=value, parent=self)
+            for key, value in kwargs.items():
+                self._data[key] = self.from_base(data=value, parent=self)
         self.sync()
 
     def setdefault(self, key, default=None):
         self.load()
-        with self._suspend_sync():
-            ret = self._data.setdefault(self._validate_key(key),
-                                        self.from_base(data=default, parent=self))
-        self.sync()
+        if key in self._data:
+            ret = self._data[key]
+        else:
+            self._validate({key: default})
+            ret = self.from_base(default, parent=self)
+            with self._suspend_sync():
+                self._data[key] = ret
+            self.sync()
         return ret
 
     def __getattr__(self, name):
@@ -233,3 +230,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             super().__delattr__(key)
         else:
             self.__delitem__(key)
+
+
+SyncedAttrDict.add_validator(no_dot_in_key)

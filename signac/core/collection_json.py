@@ -13,6 +13,7 @@ import errno
 import uuid
 import hashlib
 import logging
+import warnings
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
@@ -56,12 +57,34 @@ def _store_to_buffer(filename, blob, store_hash=False):
     if filename not in _JSON_META:
         _JSON_META[filename] = None if _in_buffered_mode() and _get_buffer_force_mode() \
                                 else _get_metadata(filename)
+from .validators import json_format_validator
+
+
+def _convert_key_to_str(data):
+    """Recursively convert non-string keys to strings for (potentially nested) input collections.
+
+    This retains compatibility with auto-casting keys to strings, and will be
+    removed in signac 2.0.
+    Input collections must be of "base type" (dict or list).
+    """
+    if isinstance(data, dict):
+        def _str_key(key):
+            if not isinstance(key, str):
+                warnings.warn(f"Use of {type(key).__name__} as key is deprecated "
+                              "and will be removed in version 2.0",
+                              DeprecationWarning)
+                key = str(key)
+            return key
+        return {_str_key(key): _convert_key_to_str(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [_convert_key_to_str(value) for value in data]
+    return data
 
 
 class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
-    backend = __name__  # type: ignore
+    _backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)
@@ -112,6 +135,8 @@ class JSONCollection(SyncedCollection):
     def _sync(self):
         """Write the data to file or buffer."""
         data = self.to_base()
+        # Converting non-string keys to string
+        data = _convert_key_to_str(data)
         # Serialize data
         blob = json.dumps(data).encode()
 
@@ -167,6 +192,7 @@ class JSONCollection(SyncedCollection):
             self._write_to_file(self._filename, blob, self._write_concern)
 
 
+JSONCollection.add_validator(json_format_validator)
 _register_buffered_backend(JSONCollection)
 
 
