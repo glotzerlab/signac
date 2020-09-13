@@ -12,7 +12,6 @@ from abc import abstractmethod
 
 from .synced_collection import _in_buffered_mode
 from .synced_collection import _get_buffer_force_mode
-from .synced_collection import _register_buffered_backend
 from .caching import get_cache
 from .synced_collection import BufferedError
 
@@ -29,7 +28,7 @@ def _hash(blob):
 
 class FileBuffer:
 
-    _cache =  get_cache()
+    _cache = get_cache()
 
     @staticmethod
     def _get_filemetadata(filename):
@@ -46,9 +45,9 @@ class FileBuffer:
             self._cache['HASHE::' + filename] = _hash(blob)
         if filename not in self._cache:
             if not (_in_buffered_mode() and _get_buffer_force_mode()):
-                # storing serialized metadata for redis-server 
+                # storing serialized metadata for redis-server
                 self._cache['METADATA::' + filename] = json.dumps(self._get_filemetadata(filename))
-            # adding filename to list 
+            # adding filename to list
             if isinstance(self._cache, dict):
                 if 'filenames' not in self._cache:
                     self._cache['filenames'] = []
@@ -72,7 +71,7 @@ class FileBuffer:
     @classmethod
     def _flush(cls, filename):
         """Write the data from buffer to the file. Return error if any."""
-        blob = cls._pop_from_cache(filename) 
+        blob = cls._pop_from_cache(filename)
 
         if not _get_buffer_force_mode():
             meta = json.loads(cls._pop_from_cache('METADATA::' + filename))
@@ -92,7 +91,6 @@ class FileBuffer:
                 # if sync fails return error
                 logger.error(str(error))
                 return error
-
 
     @classmethod
     def _flush_buffer(cls):
