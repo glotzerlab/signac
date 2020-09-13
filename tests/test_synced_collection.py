@@ -460,9 +460,9 @@ class TestJSONDict:
             # metacheck failure
             with pytest.raises(BufferedError):
                 with buffered():
-                    synced_dict['buffered2'] = 1
+                    synced_dict['buffered2'] = 2
                     self.store({'test': 1})
-                    assert synced_dict['buffered2'] == 1
+                    assert synced_dict['buffered2'] == 2
             assert 'test' in synced_dict
             assert synced_dict['test'] == 1
             # skipping metacheck
@@ -793,7 +793,7 @@ class TestJSONListWriteConcern(TestJSONList):
 
     @pytest.fixture
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
         yield JSONList(**self._backend_kwargs)

@@ -8,15 +8,13 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
-import inspect
 import logging
 
-from typing import List, Callable
+from typing import List, Callable, DefaultDict, Any
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
-from typing import List, DefaultDict, Any
 
 from .errors import Error
 

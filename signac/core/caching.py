@@ -6,9 +6,34 @@ import uuid
 import logging
 
 logger = logging.getLogger(__name__)
+REDIS = None
+
+def is_redis_available():
+    """Return True if redis-server is available, False otherwise"""
+    global REDIS
+    if REDIS is None:
+        try:
+            import redis
+            REDIS = True
+        except ImportError as error:
+            logger.debug(str(error))
+            REDIS = False
+        if REDIS:
+            try:
+                # try to connect to server
+                cache = redis.Redis()
+                test_key = str(uuid.uuid4())
+                cache.set(test_key, 0)
+                assert cache.get(test_key) == b'0'  # redis store data as bytes
+                cache.delete(test_key)
+            except (redis.exceptions.ConnectionError, AssertionError) as error:
+                logger.debug(str(error))
+                REDIS = False
+    return REDIS
+        
 
 
-def get_cache(redis_kwargs=None):
+def get_cache():
     """Return the cache.
 
     This method returns Redis client if available else return an instance of ``dict``.
@@ -24,6 +49,11 @@ def get_cache(redis_kwargs=None):
     """
     try:
         import redis
+        REDIS = True
+    except ImportError as error:
+        logger.debug(str(error))
+        REDIS = False
+    if REDIS:
         try:
             # try to connect to server
             cache = redis.Redis()
@@ -31,15 +61,9 @@ def get_cache(redis_kwargs=None):
             cache.set(test_key, 0)
             assert cache.get(test_key) == b'0'  # redis store data as bytes
             cache.delete(test_key)
+            logger.info("Using redis cache.")
+            return cache
         except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
-            cache = None
-    except ImportError as error:
-        logger.debug(str(error))
-        cache = None
-    if cache is None:
-        logger.info("Redis not available.")
-        cache = dict()
-    else:
-        logger.info("Using redis cache.")
-    return cache
+    logger.info("Redis not available.")
+    return dict()

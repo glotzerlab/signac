@@ -35,7 +35,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     """
 
     _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
-                       '_buffered', '_supports_buffering', '_validators')
+                       '_buffered', '_supports_buffering', '_validators', '_cache')
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)

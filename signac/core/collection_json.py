@@ -18,46 +18,13 @@ import warnings
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .synced_collection import _in_buffered_mode
-from .synced_collection import _get_buffer_force_mode
+from .buffers import FileBuffer
 from .synced_collection import _register_buffered_backend
-from .caching import get_cache
-from .synced_collection import BufferedError
+from .synced_collection import _in_buffered_mode
+from .validators import json_format_validator
 
 
 logger = logging.getLogger(__name__)
-
-_JSON_CACHE = get_cache()
-_JSON_META = dict()
-_JSON_HASHES = dict()
-
-
-def _get_metadata(filename):
-    """Return metadata of JSON-file"""
-    try:
-        metadata = os.stat(filename)
-        return metadata.st_size, metadata.st_mtime
-    except OSError as error:
-        if error.errno != errno.ENOENT:
-            raise
-
-
-def _hash(blob):
-    """Calculate and return the md5 hash value for the file data."""
-    if blob is not None:
-        m = hashlib.md5()
-        m.update(blob)
-        return m.hexdigest()
-
-
-def _store_to_buffer(filename, blob, store_hash=False):
-    _JSON_CACHE[filename] = blob
-    if store_hash:
-        _JSON_HASHES[filename] = _hash(blob)
-    if filename not in _JSON_META:
-        _JSON_META[filename] = None if _in_buffered_mode() and _get_buffer_force_mode() \
-                                else _get_metadata(filename)
-from .validators import json_format_validator
 
 
 def _convert_key_to_str(data):
@@ -81,7 +48,7 @@ def _convert_key_to_str(data):
     return data
 
 
-class JSONCollection(SyncedCollection):
+class JSONCollection(SyncedCollection, FileBuffer):
     """Implement sync and load using a JSON back end."""
 
     _backend = __name__  # type: ignore
@@ -105,20 +72,20 @@ class JSONCollection(SyncedCollection):
     def _load(self):
         """Load the data from buffer or JSON file."""
         if _in_buffered_mode() or self._buffered:
-            if self._filename in _JSON_CACHE:
+            if self._filename in self._cache:
                 # Load from buffer
-                blob = _JSON_CACHE[self._filename]
+                blob = self._cache[self._filename]
             else:
                 # Load from file and store in buffer
                 blob = self._load_from_file()
-                _store_to_buffer(self._filename, blob, store_hash=True)
+                self._store_to_buffer(self._filename, blob, store_hash=True)
         else:
             # Load from file
             blob = self._load_from_file()
         return json.loads(blob)
 
     @staticmethod
-    def _write_to_file(filename, blob, write_concern=False):
+    def _write_to_file(filename, blob, write_concern=True):
         """Write the data to JSON file."""
         # When write_concern flag is set, we write the data into dummy file and
         # then replace that file with original file.
@@ -142,53 +109,9 @@ class JSONCollection(SyncedCollection):
 
         if _in_buffered_mode() or self._buffered > 0:
             # write in buffer
-            _store_to_buffer(self._filename, blob)
+            self._store_to_buffer(self._filename, blob)
         else:
             # write to file
-            self._write_to_file(self._filename, blob, self._write_concern)
-
-    @classmethod
-    def _flush_buffer(cls):
-        """Flush the data in JSON-buffer.
-
-        Returns
-        -------
-        issues: dict
-            Mapping of filename and errors occured during flushing data.
-        """
-        issues = dict()
-
-        while _JSON_META:
-            filename, meta = _JSON_META.popitem()
-
-            blob = _JSON_CACHE[filename]
-            del _JSON_CACHE[filename]  # Redis client does not have `pop`.
-
-            if not _get_buffer_force_mode():
-                # compare the metadata
-                if _get_metadata(filename) != meta:
-                    issues[filename] = 'File appears to have been externally modified.'
-                    continue
-
-            # if hash match then data is same in flie and buffer
-            if filename not in _JSON_HASHES or _hash(blob) != _JSON_HASHES.pop(filename):
-                # Sync the data to underlying backend
-                try:
-                    cls._write_to_file(filename, blob, write_concern=True)
-                except OSError as error:
-                    # if sync fails add filename to issues
-                    logger.error(str(error))
-                    issues[filename] = error
-        return issues
-
-    def flush(self):
-        """Save buffered changes to the underlying file."""
-        if not _in_buffered_mode():
-            if _get_metadata(self._filename) != _JSON_META.pop(self._filename):
-                raise BufferedError({
-                    self._filename: 'File appears to have been externally modified.'})
-            blob = _JSON_CACHE[self._filename]
-            del _JSON_CACHE[self._filename]
             self._write_to_file(self._filename, blob, self._write_concern)
 
 
