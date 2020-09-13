@@ -11,7 +11,6 @@ import os
 import json
 import errno
 import uuid
-import hashlib
 import logging
 import warnings
 
