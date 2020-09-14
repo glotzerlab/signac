@@ -109,10 +109,10 @@ class FileBuffer:
         else:
             filenames = cls._cache.getset('filenames', []).decode()
 
-        while filenames:
-            filename = filenames.pop()
-            err = cls._flush(filename)
-            if err is not None:
+        for filename in filenames:
+            try:
+                cls._flush(filename)
+            except OSError as err:
                 issues[filename] = err
         return issues
 
