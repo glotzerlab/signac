@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def get_cache():
     """Return the cache.
 
-    This method returns Redis client if available else return an instance of ``dict``.
+    This method returns a Redis client if available, or otherwise an instance of ``dict`` for an in-memory cache.
 
     Redis client only accepts data as bytes, strings or numbers (ints, longs and floats).
     Attempting to specify a key or a value as any other type will raise a exception.
@@ -34,11 +34,11 @@ def get_cache():
             cache = redis.Redis()
             test_key = str(uuid.uuid4())
             cache.set(test_key, 0)
-            assert cache.get(test_key) == b'0'  # redis store data as bytes
+            assert cache.get(test_key) == b'0'  # Redis store data as bytes
             cache.delete(test_key)
-            logger.info("Using redis cache.")
+            logger.info("Using Redis cache.")
             return cache
         except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
     logger.info("Redis not available.")
-    return dict()
+    return {}

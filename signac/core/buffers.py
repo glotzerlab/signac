@@ -42,7 +42,7 @@ class FileBuffer:
 
     def _store_to_buffer(self, filename, blob, store_hash=False):
         if store_hash:
-            self._cache['HASHE::' + filename] = _hash(blob)
+            self._cache['HASH::' + filename] = _hash(blob)
         if filename not in self._cache:
             if not (_in_buffered_mode() and _get_buffer_force_mode()):
                 # storing serialized metadata for redis-server
@@ -77,7 +77,7 @@ class FileBuffer:
             meta = json.loads(cls._pop_from_cache('METADATA::' + filename))
 
         # if hash stored and hash of data is same then we skip the sync
-        hash_key = 'HASHE::' + filename
+        hash_key = 'HASH::' + filename
         if not (hash_key in cls._cache and _hash(blob) == cls._pop_from_cache(hash_key,
                                                                               decode=True)):
             # compare the metadata
@@ -101,15 +101,13 @@ class FileBuffer:
         issues: dict
             Mapping of filename and errors occured during flushing data.
         """
-        issues = dict()
+        issues = {}
 
         # files stored in buffer
         if isinstance(cls._cache, dict):
             filenames = cls._cache.pop('filenames')
         else:
-            filenames = []
-            while cls._cache.llen('filenames'):
-                filenames.append(cls._cache.lpop('filenames').decode())
+            filenames = cls._cache.getset('filenames', []).decode()
 
         while filenames:
             filename = filenames.pop()
