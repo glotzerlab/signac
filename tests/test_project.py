@@ -987,11 +987,12 @@ class TestProjectExportImport(TestProjectBase):
 
     def test_export_custom_path_string_modify_tree_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1004,23 +1005,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'a',
-                                                          str(i), 'b', str(j),
-                                                          'c_%d_d_%d' % (k, l)))
+                                                          str(a_value), 'b', str(b_value),
+                                                          'c_%d_d_%d' % (c_value, d_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_tree_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1033,23 +1035,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 1
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(prefix_data, 'c',
-                                                          str(k), 'b', str(j), 'd',
-                                                          str(l), 'a', str(i)))
+                                                          str(c_value), 'b', str(b_value),
+                                                          'd', str(d_value), 'a', str(a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_flat_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1061,22 +1064,24 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 4
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d' % (k, j), 'd_%d_a_%d' % (l, i)))
+                            prefix_data, 'c_%d_b_%d' % (c_value, b_value),
+                            'd_%d_a_%d' % (d_value, a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
     def test_export_custom_path_string_modify_flat_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
-                        self.project.open_job(dict(a=i, b=j, c=k, d=l)).init()
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
+                        self.project.open_job(dict(a=a_value, b=b_value,
+                                                   c=c_value, d=d_value)).init()
         with pytest.deprecated_call():
             ids_before_export = list(sorted(self.project.find_job_ids()))
 
@@ -1089,12 +1094,13 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 80
         assert len(os.listdir(prefix_data)) == 4
         # self.assertEqual(len(os.listdir(os.path.join(prefix_data, 'a'))), 10)
-        for i in range(10):
-            for j in range(2):
-                for k in range(2):
-                    for l in range(2):
+        for a_value in range(10):
+            for b_value in range(2):
+                for c_value in range(2):
+                    for d_value in range(2):
                         assert os.path.isdir(os.path.join(
-                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (k, j, l, i)))
+                            prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (c_value, b_value,
+                                                                  d_value, a_value)))
         with pytest.deprecated_call():
             assert ids_before_export == list(sorted(self.project.find_job_ids()))
 
@@ -1474,85 +1480,72 @@ class TestProjectExportImport(TestProjectBase):
             assert len(tmp_project) == len(self.project)
 
 
-class TestProjectRepresentation(TestProjectBase):
+VALID_SP_VALUES = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
 
-    valid_sp_values = [None, 0, 1, 0.0, 1.0, True, False, [0, 1, 2], [0, 1.0, False]]
+
+def add_jobs_homogeneous(project, num_jobs):
+    # Add jobs with many different state points
+    for i in range(num_jobs):
+        project.open_job(
+            {'{}_{}'.format(i, j): v
+                for j, v in enumerate(VALID_SP_VALUES)}).init()
+
+
+def add_jobs_heterogeneous(project, num_jobs):
+    # Add jobs with many different state points
+    for i in range(num_jobs):
+        for v in VALID_SP_VALUES:
+            project.open_job(dict(a=v)).init()
+
+
+project_repr_generators = [
+    (add_jobs_homogeneous, 0),
+    (add_jobs_homogeneous, 10),
+    (add_jobs_homogeneous, 200),
+    (add_jobs_heterogeneous, 0),
+    (add_jobs_heterogeneous, 10),
+    (add_jobs_heterogeneous, 200)]
+
+
+class TestProjectRepresentation(TestProjectBase):
 
     num_few_jobs = 10
     num_many_jobs = 200
 
-    def call_repr_methods(self, subtests):
+    @pytest.mark.parametrize("project_generator,num_jobs", project_repr_generators)
+    def test_project_repr_methods(self, project_generator, num_jobs):
+        project_generator(self.project, num_jobs)
+        assert len(str(self.project)) > 0
+        assert 'project' in str(self.project)
+        assert len(repr(self.project)) > 0
+        assert eval(repr(self.project)) == self.project
+        for use_pandas in (True, False):
+            type(self.project)._use_pandas_for_html_repr = use_pandas
+            if use_pandas and not PANDAS:
+                raise pytest.skip('requires use_pandas')
+            self.project._repr_html_()
 
-        with subtests.test(of='project'):
-            with subtests.test(type='str'):
-                str(self.project)
-            with subtests.test(type='repr'):
-                assert eval(repr(self.project)) == self.project
-            with subtests.test(type='html'):
-                for use_pandas in (True, False):
-                    type(self.project)._use_pandas_for_html_repr = use_pandas
-                    with subtests.test(use_pandas=use_pandas):
-                        if use_pandas and not PANDAS:
-                            raise pytest.skip('requires use_pandas')
-                        self.project._repr_html_()
+    @pytest.mark.parametrize("project_generator,num_jobs", project_repr_generators)
+    def test_JobsCursor_repr_methods(self, project_generator, num_jobs):
+        project_generator(self.project, num_jobs)
+        for filter_ in (None, ):
+            assert len(str(self.project.find_jobs(filter_))) > 0
+            assert len(repr(self.project.find_jobs(filter_))) > 0
+            q = self.project.find_jobs(filter_)
+            assert eval(repr(q)) == q
+            for use_pandas in (True, False):
+                type(self.project)._use_pandas_for_html_repr = use_pandas
+                if use_pandas and not PANDAS:
+                    raise pytest.skip('requires use_pandas')
+                self.project.find_jobs(filter_)._repr_html_()
 
-        with subtests.test(of='JobsCursor'):
-            for filter_ in (None, ):
-                with subtests.test(filter=filter_):
-                    with subtests.test(type='str'):
-                        str(self.project.find_jobs(filter_))
-                    with subtests.test(type='repr'):
-                        q = self.project.find_jobs(filter_)
-                        assert eval(repr(q)) == q
-                    with subtests.test(type='html'):
-                        for use_pandas in (True, False):
-                            type(self.project)._use_pandas_for_html_repr = use_pandas
-                            with subtests.test(use_pandas=use_pandas):
-                                if use_pandas and not PANDAS:
-                                    raise pytest.skip('requires use_pandas')
-                                self.project.find_jobs(filter_)._repr_html_()
-
-        with subtests.test(of='Schema'):
-            schema = self.project.detect_schema()
-            with subtests.test(type='str'):
-                str(schema)
-            with subtests.test(type='repr'):
-                repr(schema)
-            with subtests.test(type='html'):
-                schema._repr_html_()
-
-    def test_repr_no_jobs(self, subtests):
-        self.call_repr_methods(subtests)
-
-    def test_repr_few_jobs_homogeneous(self, subtests):
-        # Many jobs with many different state points
-        for i in range(self.num_few_jobs):
-            self.project.open_job(
-                {'{}_{}'.format(i, j): v
-                 for j, v in enumerate(self.valid_sp_values)}).init()
-        self.call_repr_methods(subtests)
-
-    def test_repr_many_jobs_homogeneous(self, subtests):
-        # Many jobs with many different state points
-        for i in range(self.num_many_jobs):
-            self.project.open_job(
-                {'{}_{}'.format(i, j): v
-                 for j, v in enumerate(self.valid_sp_values)}).init()
-        self.call_repr_methods(subtests)
-
-    def test_repr_few_jobs_heterogeneous(self, subtests):
-        # Many jobs with many different state points
-        for i in range(self.num_few_jobs):
-            for v in self.valid_sp_values:
-                self.project.open_job(dict(a=v)).init()
-        self.call_repr_methods(subtests)
-
-    def test_repr_many_jobs_heterogeneous(self, subtests):
-        # Many jobs with many different state points
-        for i in range(self.num_many_jobs):
-            for v in self.valid_sp_values:
-                self.project.open_job(dict(a=v)).init()
-        self.call_repr_methods(subtests)
+    @pytest.mark.parametrize("project_generator,num_jobs", project_repr_generators)
+    def test_Schema_repr_methods(self, project_generator, num_jobs):
+        project_generator(self.project, num_jobs)
+        schema = self.project.detect_schema()
+        assert len(str(schema)) > 0
+        assert len(repr(schema)) > 0
+        schema._repr_html_()
 
 
 class TestLinkedViewProject(TestProjectBase):
@@ -2274,6 +2267,7 @@ class TestProjectStore(TestProjectStoreBase, test_h5store.TestH5Store):
     the project data interface opens one instance of H5Store.
     This test will (and should) fail using the project data interface.
     """
+
     def test_assign_valid_types_within_same_file(self):
         pass
 
@@ -2285,6 +2279,7 @@ class TestProjectStoreOpen(TestProjectStoreBase, test_h5store.TestH5StoreOpen):
     the project data interface opens one instance of H5Store.
     This test will (and should) fail using the project data interface.
     """
+
     def test_open_write_and_read_only(self):
         pass
 

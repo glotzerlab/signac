@@ -17,24 +17,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install-dependencies
+          name: Install pre-check dependencies
           command: |
-            pip install --progress-bar off --user -U flake8==3.7.1 pydocstyle==5.0.2 mypy==0.770
+            pip install --progress-bar off --user -U -r requirements-precommit.txt
 
       - run:
-          name: check-style
+          name: Run pre-checks
           command: |
-            python -m flake8 --show-source .
-
-      - run:
-          name: check-docstyle
-          command: |
-            pydocstyle
-
-      - run:
-          name: check-type-hints
-          command: |
-            mypy .
+            pre-commit run --all-files
 
   linux-python-38: &linux-template
     docker:
@@ -51,34 +41,34 @@ jobs:
 
       - restore_cache:
           keys:
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}
             - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
             - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
             - python-env-v7-{{ arch }}
             - python-env-v7
 
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
             virtualenv ./venv --clear
             . venv/bin/activate
-            if [[ "$CIRCLE_JOB" != *"pypy"* ]]; then
+            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
             fi
-            ${PYTHON} -m pip install --progress-bar off -U pip==18
+            ${PYTHON} -m pip install --progress-bar off -U pip==20.2
             ${PYTHON} -m pip install --progress-bar off -U codecov
             ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}
+          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{checksum "requirements-precommit.txt" }}
           paths:
             - "venv"
 
       - run:
-          name: run tests
+          name: Run tests
           command: |
             . venv/bin/activate
             ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
@@ -89,17 +79,20 @@ jobs:
           destination: test-reports
 
       - run:
-          name: benchmark
+          name: Run benchmarks
           command: |
-            . venv/bin/activate
-            ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
-            ${PYTHON} -m pip freeze
-            ${PYTHON} benchmark.py run -N 100 1000  # this revision
-            ${PYTHON} benchmark.py report
-            git reset --hard origin/master
-            git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
-            ${PYTHON} benchmark.py run -N 100 1000 --force
-            ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+            # Benchmarks depend on pandas, which takes a long time to install on pypy.
+            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
+              . venv/bin/activate
+              ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
+              ${PYTHON} -m pip freeze
+              ${PYTHON} benchmark.py run -N 100 1000  # this revision
+              ${PYTHON} benchmark.py report
+              git reset --hard origin/master
+              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+              ${PYTHON} benchmark.py run -N 100 1000 --force
+              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+            fi
 
   linux-python-37:
     <<: *linux-template
@@ -123,17 +116,17 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install python
+          name: Install Python
           command: |
             choco install python --version 3.8.1 --limit-output --no-progress
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             python --version
             python -m pip install --progress-bar off certifi
             python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
-          name: run tests
+          name: Run tests
           command: |
             python -m pytest tests/ -v
 
@@ -192,7 +185,7 @@ workflows:
             - pre-checks
       - linux-pypy-3:
           requires:
-            - linux-python-36
+            - pre-checks
       - windows-python-38:
           requires:
             - pre-checks
