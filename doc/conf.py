@@ -19,14 +19,16 @@ import shlex
 import sphinx_rtd_theme
 from unittest.mock import MagicMock
 
+
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         if name == '_mock_methods':
             return []
         if name == 'version_tuple':
-            return (3,0)
+            return (3, 0)
         return Mock()
+
 
 MOCK_MODULES = ['pymongo', 'gridfs', 'mpi4py']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -69,9 +71,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'signac'
+project = 'signac'
 copyright = 'The Regents of the University of Michigan'
-author = u'Carl S. Adorf, Vyas Ramasubramani, Bradley D. Dice, Michael M. Henry, Paul M. Dodd, Sharon C. Glotzer'
+author = 'Carl S. Adorf, Vyas Ramasubramani, Bradley D. Dice, Michael M. Henry, Brandon Butler, Paul M. Dodd, Sharon C. Glotzer'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -234,25 +236,25 @@ htmlhelp_basename = 'signacdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements: dict = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    # 'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    # 'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'signac.tex', u'signac Documentation',
-   u'Carl Simon Adorf', 'manual'),
+    (master_doc, 'signac.tex', 'signac Documentation',
+     'Carl Simon Adorf', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -281,7 +283,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'signac', u'signac Documentation',
+    (master_doc, 'signac', 'signac Documentation',
      [author], 1)
 ]
 
@@ -295,9 +297,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'signac', u'signac Documentation',
-   author, 'signac', 'A simple data management framework.',
-   'Miscellaneous'),
+    (master_doc, 'signac', 'signac Documentation',
+     author, 'signac', 'A simple data management framework.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
