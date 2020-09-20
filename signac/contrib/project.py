@@ -958,16 +958,17 @@ class Project(object):
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+        default
+            A default value to be used when a given state point key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         Returns
         -------
         key : str
             Grouped key.
         group : iterable of Jobs
-            Iterable of `Job`s matching this group key.
+            Iterable of `Job` instances matching this group key.
 
         """
         return self.find_jobs().groupby(key, default=default)
