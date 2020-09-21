@@ -764,9 +764,12 @@ class TestJSONList:
             # metacheck failure
             with pytest.raises(BufferedError):
                 with buffered():
+                    print(synced_list._cache)
                     synced_list.reset([1])
+                    print(synced_list._cache)
                     assert synced_list == [1]
                     self.store([1, 2])
+                    print(synced_list._get_filemetadata(synced_list._filename))
                     assert synced_list == [1]
             assert len(synced_list) == 2
             assert synced_list == [1, 2]
