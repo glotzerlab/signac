@@ -2,7 +2,7 @@
 ---
 cff-version: "1.0.3"
 title: signac
-version: 1.4.0
+version: 1.5.0
 abstract: |
     The signac framework helps users manage and scale file-based workflows, facilitating data
     reuse, sharing, and reproducibility. It provides a simple and robust data model to create
@@ -31,6 +31,11 @@ authors:
     given-names: Mike
     affiliation: "Boise State University"
     orcid: "https://orcid.org/0000-0002-3870-9993"
+  -
+    family-names: Butler
+    given-names: Brandon
+    affiliation: "University of Michigan"
+    orcid: "https://orcid.org/0000-0001-7739-7796"
   -
     family-names: Dodd
     given-names: "Paul M."

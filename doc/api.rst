@@ -13,8 +13,6 @@ The Project
 
 .. currentmodule:: signac
 
-.. autoclass:: Project
-
 .. rubric:: Attributes
 
 .. autosummary::
@@ -69,8 +67,6 @@ The Job class
 .. _python-api-job:
 
 .. currentmodule:: signac.contrib.job
-
-.. autoclass:: Job
 
 .. rubric:: Attributes
 

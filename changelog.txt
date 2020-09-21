@@ -7,8 +7,8 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
-next
-----
+[1.5.0] -- 2020-09-20
+---------------------
 
 Added
 +++++
@@ -16,19 +16,27 @@ Added
  - Type annotations are validated during continuous integration (#313).
  - Added ``_repr_html_`` method in ``ProjectSchema`` class (#314, #324).
  - Allow grouping by variables that are not present in all jobs in the project in ``JobsCursor.groupby`` (#321, #323).
+ - Added parameters ``usecols`` and ``flatten`` to allow selection of columns and flattening of nested data when converting signac data into a pandas DataFrame (#327, #330).
  - Added support for `pre-commit hooks <https://pre-commit.com/>`__ (#355, #358).
+ - Expanded CLI documentation (#187, #359, #377).
+
+Changed
++++++++
+
+ - Docstrings are now written in `numpydoc style <https://numpydoc.readthedocs.io/en/latest/format.html>`__.
 
 Fixed
 +++++
 
  - Fix the ``signac config verify`` command (previously broken) (#301, #302).
  - Warnings now appear when raised by the ``signac`` CLI (#317, #308).
+ - Fix dots in synchronization error messages (#375, #376).
 
 Deprecated
 ++++++++++
 
  - Deprecate the ``create_access_modules`` method in ``Project``, to be removed in 2.0 (#303, #308).
- - The ``MainCrawler`` class has replaced the ``MasterCrawler`` class. Both classes are deprecated.
+ - The ``MainCrawler`` class has replaced the ``MasterCrawler`` class. Both classes are deprecated (#342).
 
 Removed
 +++++++

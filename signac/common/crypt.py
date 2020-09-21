@@ -26,7 +26,19 @@ except ImportError:
 else:
     def get_keyring():
         "Return the system user keyring."
-        return keyring.get_keyring()
+        # In some newer versions of keyring (probably >=21.2.0), no backend is
+        # available, which causes problems for signac's implementation. This
+        # signac feature is already deprecated so this is only enough of a fix
+        # to prevent tests from failing for users with new versions of keyring
+        # installed.
+        try:
+            kr = keyring.get_keyring()
+        except RuntimeError:
+            return None
+        if kr.priority <= 0 or isinstance(kr, keyring.backends.fail.Keyring):
+            return None
+        else:
+            return kr
 
 """
 THIS MODULE IS DEPRECATED!
