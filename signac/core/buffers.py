@@ -4,7 +4,6 @@
 """Buffers for SyncedCollection API."""
 
 import os
-import json
 import hashlib
 import logging
 import errno
@@ -13,7 +12,6 @@ from abc import abstractmethod
 from .synced_collection import _in_buffered_mode
 from .synced_collection import _get_buffer_force_mode
 from .caching import get_cache
-from .synced_collection import BufferedError
 from .synced_collection import BufferException
 
 logger = logging.getLogger(__name__)
@@ -58,7 +56,7 @@ class FileBuffer:
 
     def _store_to_buffer(self, filename, blob, store_hash=False):
         """Store the data to the file buffer.
-        
+
         This method stores the serialized data and metadata of the file to the buffer.
         It also stores the hash of the data if the ``store_hash`` flag is set.
         Hash is stored when the data is being loaded from the file and stored in buffer.
@@ -129,7 +127,4 @@ class FileBuffer:
             # remove the filename from the list of files to flush
             self._cache['filenames'].remove(self._filename)
             # flush the data
-            try:
-                self._flush(self._filename)
-            except (OSError, MetadataError) as err:
-                issues[filename] = err
+            self._flush(self._filename)
