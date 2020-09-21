@@ -28,7 +28,7 @@ except (IOError, OSError):
 
 setup(
     name='signac',
-    version='1.4.0',
+    version='1.5.0',
     packages=find_packages(),
     zip_safe=True,
     maintainer='signac Developers',

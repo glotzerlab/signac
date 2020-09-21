@@ -2,7 +2,7 @@
 ---
 cff-version: "1.0.3"
 title: signac
-version: 1.4.0
+version: 1.5.0
 abstract: |
     The signac framework helps users manage and scale file-based workflows, facilitating data
     reuse, sharing, and reproducibility. It provides a simple and robust data model to create
