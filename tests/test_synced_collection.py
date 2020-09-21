@@ -15,6 +15,7 @@ from signac.core.collection_json import JSONDict
 from signac.core.collection_json import JSONList
 from signac.core.synced_collection import BufferException
 from signac.core.synced_collection import BufferedError
+from signac.core.buffers import FileBuffer
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -456,7 +457,7 @@ class TestJSONDict:
         assert 'buffered' not in synced_dict
         assert 'buffered2' in synced_dict
         assert synced_dict['buffered2'] == 1
-        if synced_dict._supports_buffering:
+        if isinstance(synced_dict, FileBuffer):
             # metacheck failure
             with pytest.raises(BufferedError):
                 with buffered():
@@ -759,7 +760,7 @@ class TestJSONList:
             assert synced_list == [2, 3]
         assert len(synced_list) == 2
         assert synced_list == [2, 3]
-        if synced_list._supports_buffering:
+        if isinstance(synced_list, FileBuffer):
             # metacheck failure
             with pytest.raises(BufferedError):
                 with buffered():
