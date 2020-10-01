@@ -1,5 +1,5 @@
 click==7.1.2
-coverage==5.2.1
+coverage==5.3
 h5py==2.10; implementation_name=='cpython'
 numpy==1.19.1
 pandas==1.1.1; implementation_name=='cpython'
