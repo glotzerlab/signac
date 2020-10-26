@@ -107,7 +107,7 @@ The Collection
 ==============
 
 .. autoclass:: Collection
-   :members:
+    :members:
 
 
 The JSONDict
@@ -116,7 +116,8 @@ The JSONDict
 This class implements the interface for the job's :attr:`~signac.contrib.job.Job.statepoint` and :attr:`~signac.contrib.job.Job.document` attributes, but can also be used stand-alone:
 
 .. autoclass:: JSONDict
-   :members:
+    :members:
+    :inherited-members:
 
 
 The H5Store
@@ -126,6 +127,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 
 .. autoclass:: H5Store
     :members:
+    :inherited-members:
 
 
 The H5StoreManager
@@ -135,6 +137,7 @@ This class implements the interface to the job's :attr:`~signac.contrib.job.Job.
 
 .. autoclass:: H5StoreManager
     :members:
+    :inherited-members:
     :show-inheritance:
 
 
