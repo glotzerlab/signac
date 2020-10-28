@@ -544,13 +544,13 @@ class TestBasicShell():
 
         for i in range(10):
             project.open_job({'a': i}).init()
-        job_ids = list(project.find_job_ids())
+        jobs = list(project.find_jobs())
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         assert len(project) == 0
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
-        assert list(project.find_job_ids()) == job_ids
+        assert project.find_jobs.__eq__(jobs)
 
         # invalid combination
         with pytest.raises(ExitCodeError):
