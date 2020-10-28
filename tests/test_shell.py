@@ -226,11 +226,11 @@ class TestBasicShell():
         for sp in sps:
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
-        job_ids = out.split(os.linesep)[:-1]
+        jobs = list(project.find_jobs())
         with pytest.deprecated_call():
-            assert set(job_ids) == set(project.find_job_ids())
+            assert project.find_jobs.__eq__(jobs)
             assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-                list(project.find_job_ids({'a': 0}))[0]
+                project.find_jobs({'a': 0}).next().id
 
         job = project.open_job({'a': 0})
         out = self.call('python -m signac find a 0 --sp'.split()).strip()
@@ -259,7 +259,7 @@ class TestBasicShell():
             for i in range(3):
                 assert self.call('python -m signac find --doc-filter'.split() +
                                  ['{"a": ' + str(i) + '}']).strip() == \
-                    list(project.find_job_ids(doc_filter={'a': i}))[0]
+                    project.find_jobs(doc_filter={'a': i}).next().id
 
     def test_diff(self):
         self.call('python -m signac init ProjectA'.split())
