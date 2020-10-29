@@ -226,11 +226,11 @@ class TestBasicShell():
         for sp in sps:
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
-        jobs = list(project.find_jobs())
+        job_ids = out.split(os.linesep)[:-1]
         with pytest.deprecated_call():
-            assert project.find_jobs.__eq__(jobs)
+            assert set(job_ids) == set(project.find_job_ids())
             assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-                project.find_jobs({'a': 0}).next().id
+                list(project.find_job_ids({'a': 0}))[0]
 
         job = project.open_job({'a': 0})
         out = self.call('python -m signac find a 0 --sp'.split()).strip()
@@ -259,7 +259,7 @@ class TestBasicShell():
             for i in range(3):
                 assert self.call('python -m signac find --doc-filter'.split() +
                                  ['{"a": ' + str(i) + '}']).strip() == \
-                    project.find_jobs(doc_filter={'a': i}).next().id
+                    list(project.find_job_ids(doc_filter={'a': i}))[0]
 
     def test_diff(self):
         self.call('python -m signac init ProjectA'.split())
@@ -544,13 +544,13 @@ class TestBasicShell():
 
         for i in range(10):
             project.open_job({'a': i}).init()
-        jobs = list(project.find_jobs())
+        job_ids = list(project.find_job_ids())
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         assert len(project) == 0
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
-        assert project.find_jobs.__eq__(jobs)
+        assert list(project.find_job_ids()) == job_ids
 
         # invalid combination
         with pytest.raises(ExitCodeError):
