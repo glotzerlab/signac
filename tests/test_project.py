@@ -941,35 +941,31 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        jobs_before_export = self.project.find_jobs()
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 10
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, 'a', str(i)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_single_job(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(1):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = self.project.find_jobs()
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 1
         assert len(os.listdir(prefix_data)) == 1
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_function(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = self.project.find_jobs()
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path=lambda job: 'non_unique')
@@ -982,8 +978,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(os.listdir(os.path.join(prefix_data, 'my_a'))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, 'my_a', str(i)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_string_modify_tree_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
@@ -993,8 +988,7 @@ class TestProjectExportImport(TestProjectBase):
                     for d_value in range(2):
                         self.project.open_job(dict(a=a_value, b=b_value,
                                                    c=c_value, d=d_value)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = self.project.find_jobs()
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path='non_unique')
@@ -1012,8 +1006,8 @@ class TestProjectExportImport(TestProjectBase):
                         assert os.path.isdir(os.path.join(prefix_data, 'a',
                                                           str(a_value), 'b', str(b_value),
                                                           'c_%d_d_%d' % (c_value, d_value)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_string_modify_tree_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
@@ -1023,8 +1017,8 @@ class TestProjectExportImport(TestProjectBase):
                     for d_value in range(2):
                         self.project.open_job(dict(a=a_value, b=b_value,
                                                    c=c_value, d=d_value)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        jobs_before_export = self.project.find_jobs()
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path='non_unique')
@@ -1042,8 +1036,7 @@ class TestProjectExportImport(TestProjectBase):
                         assert os.path.isdir(os.path.join(prefix_data, 'c',
                                                           str(c_value), 'b', str(b_value),
                                                           'd', str(d_value), 'a', str(a_value)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_string_modify_flat_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
@@ -1053,8 +1046,8 @@ class TestProjectExportImport(TestProjectBase):
                     for d_value in range(2):
                         self.project.open_job(dict(a=a_value, b=b_value,
                                                    c=c_value, d=d_value)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        jobs_before_export = self.project.find_jobs()
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path='non_unique')
@@ -1071,8 +1064,8 @@ class TestProjectExportImport(TestProjectBase):
                         assert os.path.isdir(os.path.join(
                             prefix_data, 'c_%d_b_%d' % (c_value, b_value),
                             'd_%d_a_%d' % (d_value, a_value)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_string_modify_flat_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
@@ -1082,8 +1075,7 @@ class TestProjectExportImport(TestProjectBase):
                     for d_value in range(2):
                         self.project.open_job(dict(a=a_value, b=b_value,
                                                    c=c_value, d=d_value)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = self.project.find_jobs()
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path='non_unique')
@@ -1101,8 +1093,8 @@ class TestProjectExportImport(TestProjectBase):
                         assert os.path.isdir(os.path.join(
                             prefix_data, 'c_%d_b_%d/d/%d/a/%d' % (c_value, b_value,
                                                                   d_value, a_value)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+
+        assert self.project.find_jobs().__eq__(jobs_before_export)
 
     def test_export_custom_path_string(self):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
