@@ -229,7 +229,7 @@ class TestBasicShell():
         job_ids = out.split(os.linesep)[:-1]
         assert set(job_ids) == set([job.id for job in project.find_jobs()])
         assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-            list(project.find_job_ids({'a': 0}))[0]
+            next(iter(project.find_jobs({"a": 0}))).id
 
         job = project.open_job({'a': 0})
         out = self.call('python -m signac find a 0 --sp'.split()).strip()
@@ -254,11 +254,11 @@ class TestBasicShell():
         # Test the doc_filter
         for job in project.find_jobs():
             job.document['a'] = job.statepoint()['a']
-        with pytest.deprecated_call():
-            for i in range(3):
-                assert self.call('python -m signac find --doc-filter'.split() +
-                                 ['{"a": ' + str(i) + '}']).strip() == \
-                    list(project.find_job_ids(doc_filter={'a': i}))[0]
+
+        for i in range(3):
+            assert self.call('python -m signac find --doc-filter'.split() +
+                             ['{"a": ' + str(i) + '}']).strip() == \
+                             next(iter(project.find_jobs({"a": i}))).id
 
     def test_diff(self):
         self.call('python -m signac init ProjectA'.split())
@@ -543,13 +543,13 @@ class TestBasicShell():
 
         for i in range(10):
             project.open_job({'a': i}).init()
-        job_ids = list(project.find_job_ids())
+        jobs_before_export = set(project.find_jobs())
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         assert len(project) == 0
         self.call("python -m signac import {}".format(prefix_data).split())
         assert len(project) == 10
-        assert list(project.find_job_ids()) == job_ids
+        assert set(project.find_jobs()) == jobs_before_export
 
         # invalid combination
         with pytest.raises(ExitCodeError):
