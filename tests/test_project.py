@@ -1420,15 +1420,12 @@ class TestProjectExportImport(TestProjectBase):
     def test_import_own_project(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = set(self.project.find_jobs())
         self.project.import_from(origin=self.project.workspace())
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert jobs_before_export == set(self.project.find_jobs())
         with self.project.temporary_project() as tmp_project:
             tmp_project.import_from(origin=self.project.workspace())
-            with pytest.deprecated_call():
-                assert ids_before_export == list(sorted(tmp_project.find_job_ids()))
+            assert jobs_before_export == set(tmp_project.find_jobs())
             assert len(tmp_project) == len(self.project)
 
 
