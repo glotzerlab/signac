@@ -512,6 +512,8 @@ class Job(object):
         This function will do nothing if the job was not previously
         initialized.
 
+        See :ref:`signac-cli-rm` [-c] for the command line equivalent.
+
         """
         try:
             for fn in os.listdir(self._wd):

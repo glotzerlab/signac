@@ -1995,6 +1995,8 @@ class Project(object):
         configuration would conflict with the provided initialization
         parameters.
 
+        See :ref:`cli-init` for the command line equivalent.
+
         Parameters
         ----------
         name : str
