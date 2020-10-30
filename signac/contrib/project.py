@@ -320,6 +320,8 @@ class Project(object):
             The configuration will respect environment variables,
             such as ``$HOME``.
 
+        See :ref:`signac-cli-project`  ``--workspace`` for the command line equivalent.
+
         Returns
         -------
         str
@@ -1838,6 +1840,8 @@ class Project(object):
         workspace until the specified `depth`.
         The job document if it exists, is always indexed, other
         files need to be specified with the formats argument.
+
+        See :ref:`signac-cli-project`  ``--index`` for the command line equivalent.
 
         .. code-block:: python
 
