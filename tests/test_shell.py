@@ -227,10 +227,9 @@ class TestBasicShell():
             project.open_job(sp).init()
         out = self.call('python -m signac find'.split())
         job_ids = out.split(os.linesep)[:-1]
-        with pytest.deprecated_call():
-            assert set(job_ids) == set(project.find_job_ids())
-            assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
-                list(project.find_job_ids({'a': 0}))[0]
+        assert set(job_ids) == set([job.id for job in project.find_jobs()])
+        assert self.call('python -m signac find'.split() + ['{"a": 0}']).strip() == \
+            list(project.find_job_ids({'a': 0}))[0]
 
         job = project.open_job({'a': 0})
         out = self.call('python -m signac find a 0 --sp'.split()).strip()
