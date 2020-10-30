@@ -2271,7 +2271,7 @@ class JobsCursor(object):
 
         """
         warnings.warn("Calling next() directly on a JobsCursor is deprecated!"
-                      "Use iter(..).next() instead.", DeprecationWarning)
+                      "Use next(iter(JobsCursor)) instead.", DeprecationWarning)
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:
