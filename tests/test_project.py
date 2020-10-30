@@ -1263,8 +1263,7 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, 'data')
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        jobs_before_export = set(self.project.find_jobs())
         self.project.export_to(target=prefix_data)
         with pytest.raises(DestinationExistsError):
             assert len(self.project.import_from(prefix_data)) == 10
@@ -1276,8 +1275,7 @@ class TestProjectExportImport(TestProjectBase):
                                             sync=dict(selection=selection))) == 10
         assert len(self.project) == 1
         assert len(self.project.find_jobs(dict(a=0))) == 1
-        with pytest.deprecated_call():
-            assert list(self.project.find_job_ids())[0] in ids_before_export
+        assert next(iter(self.project.find_jobs())) in jobs_before_export
 
     def test_export_import_schema_callable(self):
 
@@ -1539,17 +1537,16 @@ class TestLinkedViewProject(TestProjectBase):
         src = set(map(lambda j: os.path.realpath(j.workspace()), self.project.find_jobs()))
         assert src == dst
         # update with subset
-        with pytest.deprecated_call():
-            subset = list(self.project.find_job_ids({'b': 0}))
-        job_subset = [self.project.open_job(id=id) for id in subset]
+        job_subset = self.project.find_jobs({'b': 0})
+        id_subset = [job.id for job in job_subset]
 
         bad_index = [dict(_id=i) for i in range(3)]
         with pytest.raises(ValueError):
-            self.project.create_linked_view(prefix=view_prefix, job_ids=subset, index=bad_index)
+            self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset, index=bad_index)
 
-        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
+        self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset)
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == len(subset)
+        assert len(all_links) == len(id_subset)
         dst = set(map(lambda l: os.path.realpath(os.path.join(view_prefix, l, 'job')), all_links))
         src = set(map(lambda j: os.path.realpath(j.workspace()), job_subset))
         assert src == dst
