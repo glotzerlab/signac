@@ -799,7 +799,9 @@ class Project(object):
         return ProjectSchema.detect(statepoint_index)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use [job.id for job in project.find_jobs()] for the same result.")
+                details=("Use find_jobs() instead, then access ids with job.id."
+                         "Replicate the original behavior with "
+                         "[job.id for job in project.find_jobs()]"))
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
