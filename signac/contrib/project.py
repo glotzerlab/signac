@@ -320,7 +320,6 @@ class Project(object):
             The configuration will respect environment variables,
             such as ``$HOME``.
 
-
         See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
 
         Returns
