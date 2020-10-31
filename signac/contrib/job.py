@@ -143,7 +143,7 @@ class Job(object):
         return hash(self) == hash(other)
 
     def workspace(self):
-        """Each job is associated with a unique workspace directory.
+        """Return the job's unique workspace directory.
 
         See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
 
