@@ -313,6 +313,8 @@ class Job(object):
             persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
             For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
 
+        See :ref:`signac-cli-document` for the command line equivalent.
+
         Returns
         -------
         :class:`~signac.JSONDict`
@@ -551,6 +553,8 @@ class Job(object):
         This function will do nothing if the workspace directory
         does not exist.
 
+        See :ref:`signac-cli-rm` for the command line equivalent.
+
         """
         try:
             shutil.rmtree(self.workspace())
@@ -572,6 +576,8 @@ class Job(object):
 
         This function will attempt to move this instance of job from
         its original project to a different project.
+
+        See :ref:`signac-cli-move` for the command line equivalent.
 
         Parameters
         ----------
