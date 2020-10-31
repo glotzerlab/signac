@@ -145,7 +145,7 @@ class Job(object):
     def workspace(self):
         """Each job is associated with a unique workspace directory.
 
-        See :ref: `signac-cli-job` ``--workspace`` for the command line equivalent.
+        See :ref:`signac-cli-job` ``--workspace`` for the command line equivalent.
 
         Returns
         -------
@@ -271,7 +271,7 @@ class Job(object):
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see : :class:`~signac.JSONDict`.
 
-        See :ref: `signac-cli-statepoint` for the command line equivalent.
+        See :ref:`signac-cli-statepoint` for the command line equivalent.
 
         Returns
         -------
@@ -490,7 +490,7 @@ class Job(object):
 
         Returns the calling job.
 
-        See :ref: `signac-cli-job` ``--init`` for the command line equivalent.
+        See :ref:`signac-cli-job` ``--init`` for the command line equivalent.
 
         Parameters
         ----------

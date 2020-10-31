@@ -15,7 +15,7 @@ def diff_jobs(*jobs):
     jobs' state points. The comparison is performed over the combined set of
     keys and values.
 
-    See :ref: `signac-cli-diff` for the command line equivalent.
+    See :ref:`signac-cli-diff` for the command line equivalent.
 
     Parameters
     ----------
