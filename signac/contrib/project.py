@@ -320,7 +320,8 @@ class Project(object):
             The configuration will respect environment variables,
             such as ``$HOME``.
 
-        See :ref:`signac-cli-project`  ``--workspace`` for the command line equivalent.
+
+        See :ref:`signac project -w <signac-cli-project>` for the command line equivalent.
 
         Returns
         -------
@@ -774,6 +775,8 @@ class Project(object):
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
 
+        See :ref:`signac-cli-schema` for the command line equivalent.
+
         Parameters
         ----------
         exclude_const : bool
@@ -895,6 +898,8 @@ class Project(object):
         JSON serializable. The `filter` argument is used to search against job
         state points, whereas the `doc_filter` argument compares against job
         document keys.
+
+        See :ref:`signac-cli-find` for the command line equivalent.
 
         Parameters
         ----------
@@ -1277,6 +1282,8 @@ class Project(object):
             major difference that view hierarchies are actually *updated*,
             meaning that invalid links are automatically removed.
 
+        See :ref:`signac-cli-view` for the command line equivalent.
+
         Parameters
         ----------
         prefix : str
@@ -1371,6 +1378,8 @@ class Project(object):
 
         Create an identical copy of job within this project.
 
+        See :ref:`signac-cli-clone` for the command line equivalent.
+
         Parameters
         ----------
         job : :class:`~signac.contrib.job.Job`
@@ -1408,6 +1417,8 @@ class Project(object):
         Try to clone all jobs from the other project to this project.
         If a job is already part of this project, try to synchronize the job
         using the optionally specified strategies.
+
+        See :ref:`signac-cli-sync` for the command line equivalent.
 
         Parameters
         ----------
@@ -1495,8 +1506,10 @@ class Project(object):
 
         See Also
         --------
-        :meth:`~signac.Project.import_from` : Previously exported or non-signac
-            data spaces can be imported with.
+        :meth:`~signac.Project.import_from` :
+            Previously exported or non-signac data spaces can be imported.
+
+        See :ref:`signac-cli-export` for the command line equivalent.
 
         Parameters
         ----------
@@ -1553,6 +1566,8 @@ class Project(object):
         See Also
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
+
+        See :ref:`signac-cli-import` for the command line equivalent.
 
         Parameters
         ----------
