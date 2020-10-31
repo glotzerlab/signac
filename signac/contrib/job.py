@@ -271,6 +271,8 @@ class Job(object):
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see : :class:`~signac.JSONDict`.
 
+        See :ref: `signac-cli-statepoint` for the command line equivalent.
+
         Returns
         -------
         dict
