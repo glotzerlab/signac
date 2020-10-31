@@ -145,6 +145,8 @@ class Job(object):
     def workspace(self):
         """Each job is associated with a unique workspace directory.
 
+        See :ref: `signac-cli-job` ``--workspace`` for the command line equivalent.
+
         Returns
         -------
         str
@@ -485,6 +487,8 @@ class Job(object):
         the job manifest already exist.
 
         Returns the calling job.
+
+        See :ref: `signac-cli-job` ``--init`` for the command line equivalent.
 
         Parameters
         ----------
