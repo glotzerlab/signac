@@ -1509,6 +1509,7 @@ class Project(object):
         :meth:`~signac.Project.import_from` :
             Previously exported or non-signac data spaces can be imported.
 
+
         See :ref:`signac export <signac-cli-export>` for the command line equivalent.
 
         Parameters
@@ -1566,6 +1567,7 @@ class Project(object):
         See Also
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
+
 
         See :ref:`signac import <signac-cli-import>` for the command line equivalent.
 
