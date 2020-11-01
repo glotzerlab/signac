@@ -1,4 +1,4 @@
-flake8==3.8.3
+flake8==3.8.4
 mypy==0.782
 pre-commit==2.7.1
 pydocstyle==5.1.1
