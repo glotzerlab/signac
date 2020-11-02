@@ -10,7 +10,7 @@ The following core **signac** functions are---in addition to the Python interfac
 directly via the ``$ signac`` command.
 
 
-.. _cli-init:
+.. _signac-cli-init:
 
 init
 ====

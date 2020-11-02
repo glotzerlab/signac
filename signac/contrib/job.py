@@ -143,7 +143,9 @@ class Job(object):
         return hash(self) == hash(other)
 
     def workspace(self):
-        """Each job is associated with a unique workspace directory.
+        """Return the job's unique workspace directory.
+
+        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
 
         Returns
         -------
@@ -269,6 +271,8 @@ class Job(object):
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see : :class:`~signac.JSONDict`.
 
+        See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
+
         Returns
         -------
         dict
@@ -308,6 +312,8 @@ class Job(object):
             If you need a deep copy that will not modify the underlying
             persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
             For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+
+        See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
         Returns
         -------
@@ -486,6 +492,8 @@ class Job(object):
 
         Returns the calling job.
 
+        See :ref:`signac job -c <signac-cli-job>` for the command line equivalent.
+
         Parameters
         ----------
         force : bool
@@ -511,6 +519,8 @@ class Job(object):
 
         This function will do nothing if the job was not previously
         initialized.
+
+        See :ref:`signac rm -c <signac-cli-rm>` for the command line equivalent.
 
         """
         try:
@@ -543,6 +553,8 @@ class Job(object):
         This function will do nothing if the workspace directory
         does not exist.
 
+        See :ref:`signac rm <signac-cli-rm>` for the command line equivalent.
+
         """
         try:
             shutil.rmtree(self.workspace())
@@ -564,6 +576,8 @@ class Job(object):
 
         This function will attempt to move this instance of job from
         its original project to a different project.
+
+        See :ref:`signac move <signac-cli-move>` for the command line equivalent.
 
         Parameters
         ----------
