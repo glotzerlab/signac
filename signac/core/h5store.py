@@ -130,6 +130,7 @@ def _h5set(store, grp, key, value, path=None):
 
 def _h5get(store, grp, key, path=None):
     """Retrieve the underlying data for a key from its h5py container."""
+    import h5py
     path = path + '/' + key if path else key
     result = grp[key]
 
@@ -153,6 +154,11 @@ def _h5get(store, grp, key, path=None):
             return None
         elif shape:
             return result
+        elif h5py.version.version_tuple.major >= 3 and \
+                h5py.check_dtype(vlen=result.dtype) is str:
+            # h5py >=3.0.0 returns strings as bytes. This returns str for
+            # consistency with past behavior in signac.
+            return result.asstr()[()]
         else:
             return result[()]
     except AttributeError:
