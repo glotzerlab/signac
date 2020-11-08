@@ -7,6 +7,13 @@ repos:
     -   id: trailing-whitespace
         exclude: 'setup.cfg'
     -   id: debug-statements
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.7.3
+    hooks:
+    -   id: pyupgrade
+        exclude: '(?:configobj/.*)'
+        args:
+        - --py36-plus
 -   repo: local
     hooks:
     -   id: flake8
