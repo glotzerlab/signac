@@ -132,9 +132,9 @@ def _fmt_bytes(nbytes, suffix='B'):
     """
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(nbytes) < 1024.0:
-            return "%3.1f %s%s" % (nbytes, unit, suffix)
+            return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
-    return "%.1f %s%s" % (nbytes, 'Yi', suffix)
+    return "{:.1f} {}{}".format(nbytes, 'Yi', suffix)
 
 
 def _passlib_available():
@@ -188,7 +188,7 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
 
 def _read_index(project, fn_index=None):
     if fn_index is not None:
-        _print_err("Reading index from file '{}'...".format(fn_index))
+        _print_err(f"Reading index from file '{fn_index}'...")
         file_descriptor = open(fn_index)
         return (json.loads(line) for line in file_descriptor)
 
@@ -200,7 +200,7 @@ def _open_job_by_id(project, job_id):
     except KeyError:
         close_matches = difflib.get_close_matches(
             job_id, [jid[:len(job_id)] for jid in project.find_job_ids()])
-        msg = "Did not find job corresponding to id '{}'.".format(job_id)
+        msg = f"Did not find job corresponding to id '{job_id}'."
         if len(close_matches) == 1:
             msg += " Did you mean '{}'?".format(close_matches[0])
         elif len(close_matches) > 1:
@@ -245,7 +245,7 @@ def main_project(args):
     project = get_project()
     if args.access:
         fn = project.create_access_module()
-        _print_err("Created access module '{}'.".format(fn))
+        _print_err(f"Created access module '{fn}'.")
         return
     if args.index:
         for doc in project.index():
@@ -267,7 +267,7 @@ def main_job(args):
     try:
         statepoint = json.loads(sp)
     except ValueError:
-        _print_err("Error while reading statepoint: '{}'".format(sp))
+        _print_err(f"Error while reading statepoint: '{sp}'")
         raise
     job = project.open_job(statepoint)
     if args.create:
@@ -331,9 +331,9 @@ def main_move(args):
             job.move(dst_project)
         except DestinationExistsError:
             _print_err(
-                "Destination already exists: '{}' in '{}'.".format(job, dst_project))
+                f"Destination already exists: '{job}' in '{dst_project}'.")
         else:
-            _print_err("Moved '{}' to '{}'.".format(job, dst_project))
+            _print_err(f"Moved '{job}' to '{dst_project}'.")
 
 
 def main_clone(args):
@@ -345,9 +345,9 @@ def main_clone(args):
             job = _open_job_by_id(project, job_id)
             dst_project.clone(job)
         except DestinationExistsError:
-            _print_err("Destination already exists: '{}' in '{}'.".format(job, dst_project))
+            _print_err(f"Destination already exists: '{job}' in '{dst_project}'.")
         else:
-            _print_err("Cloned '{}' to '{}'.".format(job, dst_project))
+            _print_err(f"Cloned '{job}' to '{dst_project}'.")
 
 
 def main_index(args):
@@ -399,7 +399,7 @@ def main_find(args):
                 if len(args.doc) != 0:
                     doc = {key: doc[key] for key in args.doc if key in doc}
                 print(format_lines('sp ', job_id, doc))
-    except IOError as error:
+    except OSError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
         else:
@@ -436,7 +436,7 @@ def main_init(args):
         name=args.project_id,
         root=os.getcwd(),
         workspace=args.workspace)
-    _print_err("Initialized project '{}'.".format(project))
+    _print_err(f"Initialized project '{project}'.")
 
 
 def main_schema(args):
@@ -530,13 +530,13 @@ def main_sync(args):
             re.compile(args.key)
         except re.error as e:
             raise RuntimeError(
-                "Illegal regular expression '{}': '{}'.".format(args.key, e))
+                f"Illegal regular expression '{args.key}': '{e}'.")
         doc_sync = DocSync.ByKey(lambda key: re.match(args.key, key))
     else:
         doc_sync = DocSync.ByKey()
 
     try:
-        _print_err("Synchronizing '{}' -> '{}'...".format(source, destination))
+        _print_err(f"Synchronizing '{source}' -> '{destination}'...")
         stats = destination.sync(
             other=source,
             strategy=strategy,
@@ -645,11 +645,11 @@ def _main_import_non_interactive(project, origin, args):
                 for src, copy_executor in tqdm(dict(data_mapping).items(), 'Importing'):
                     paths[src] = copy_executor(copytree=shutil.move if args.move else None)
     except DestinationExistsError as error:
-        _print_err("Destination '{}' already exists.".format(error.destination))
+        _print_err(f"Destination '{error.destination}' already exists.")
         if not args.sync:
             _print_err("Consider using '--sync' or '--sync-interactive'!")
     except SyncConflict as error:
-        _print_err("Synchronization failed with error: {}".format(error))
+        _print_err(f"Synchronization failed with error: {error}")
         _print_err("Consider using '--sync-interactive'!")
     else:
         return paths
@@ -700,7 +700,7 @@ def main_export(args):
                 pbar.update(1)
         except _SchemaPathEvaluationError as error:
             raise RuntimeWarning(
-                "An error occurred while evaluating the schema path: {}".format(error))
+                f"An error occurred while evaluating the schema path: {error}")
 
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
@@ -716,7 +716,7 @@ def main_update_cache(args):
     if n is None:
         _print_err("Cache is up to date.")
     else:
-        _print_err("Updated cache (size={}).".format(n))
+        _print_err(f"Updated cache (size={n}).")
 
 
 # UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
@@ -791,7 +791,7 @@ def main_config_show(args):
             mode = ' global '
         else:
             mode = ''
-        _print_err("Did not find a{}configuration file.".format(mode))
+        _print_err(f"Did not find a{mode}configuration file.")
         return
     for key in args.key:
         for kt in key.split('.'):
@@ -832,9 +832,9 @@ def main_config_verify(args):
         else:
             mode = ''
         raise RuntimeWarning(
-            "Did not find a{}configuration file.".format(mode))
+            f"Did not find a{mode}configuration file.")
     if cfg.filename is not None:
-        _print_err("Verifcation of config file '{}'.".format(cfg.filename))
+        _print_err(f"Verifcation of config file '{cfg.filename}'.")
     verify_config(cfg)
 
 
@@ -875,7 +875,7 @@ def main_config_set(args):
         sec = sec.setdefault(key, dict())
     try:
         sec[keys[-1]] = args.value
-        _print_err("Updated value '{}'='{}'.".format(args.key, args.value))
+        _print_err(f"Updated value '{args.key}'='{args.value}'.")
     except TypeError:
         raise KeyError(args.key)
     _print_err("Writing configuration to '{}'.".format(
@@ -922,7 +922,7 @@ def main_config_host(args):
 
     if args.test:
         if hostcfg():
-            _print_err("Trying to connect to host '{}'...".format(args.hostname))
+            _print_err(f"Trying to connect to host '{args.hostname}'...")
             try:
                 client = get_client(hostcfg())
                 client.address
@@ -931,9 +931,9 @@ def main_config_host(args):
                            "connect to host '{}'.".format(args.hostname))
                 raise
             else:
-                print("Successfully connected to host '{}'.".format(args.hostname))
+                print(f"Successfully connected to host '{args.hostname}'.")
         else:
-            _print_err("Host '{}' is not configured.".format(args.hostname))
+            _print_err(f"Host '{args.hostname}' is not configured.")
         return
 
     if args.remove:
@@ -959,9 +959,9 @@ def main_config_host(args):
             return
 
     if hostcfg():
-        _print_err("Configuring host '{}'.".format(args.hostname))
+        _print_err(f"Configuring host '{args.hostname}'.")
     else:
-        _print_err("Configuring new host '{}'.".format(args.hostname))
+        _print_err(f"Configuring new host '{args.hostname}'.")
 
     def hide_password(k, v):
         """Hide all fields containing sensitive information."""
@@ -973,7 +973,7 @@ def main_config_host(args):
         for k, v in update.items():
             if v is None:
                 if k in hostcfg():
-                    logging.info("Deleting key {}".format(k))
+                    logging.info(f"Deleting key {k}")
                     del cfg['hosts'][args.hostname][k]
                     store = True
             elif k not in hostcfg() or v != hostcfg()[k]:
@@ -1025,7 +1025,7 @@ def main_config_host(args):
             new_pw = args.password
         update_hostcfg(password=new_pw, password_config=None)
 
-    _print_err("Configured host '{}':".format(args.hostname))
+    _print_err(f"Configured host '{args.hostname}':")
     print("[hosts]")
     for line in config.Config({args.hostname: hostcfg()}).write():
         print(_hide_password(line))
@@ -1105,7 +1105,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.id,
-                    job_banner='\nJob:\t\t{job._id}'.format(job=job) if job is not None else '',
+                    job_banner=f'\nJob:\t\t{job._id}' if job is not None else '',
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project)))
@@ -1873,12 +1873,12 @@ This feature is still experimental and may be removed in future versions.""")
             raise
         sys.exit(1)
     except RuntimeWarning as warning:
-        _print_err("Warning: {}".format(warning))
+        _print_err(f"Warning: {warning}")
         if args.debug:
             raise
         sys.exit(1)
     except Exception as error:
-        _print_err('Error: {}'.format(error))
+        _print_err(f'Error: {error}')
         if args.debug:
             raise
         sys.exit(1)

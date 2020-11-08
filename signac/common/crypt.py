@@ -47,7 +47,7 @@ THIS MODULE IS DEPRECATED!
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The crypt module is deprecated.")
-class SimpleKeyring(object):
+class SimpleKeyring:
     """Simple in-memory keyring for caching."""
 
     def __init__(self):

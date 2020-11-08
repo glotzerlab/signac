@@ -393,7 +393,7 @@ class TestCollection():
             self.c.replace_one(doc, doc_)
         assert len(self.c) == len(docs_)
         assert len(self.c.find()) == len(docs_)
-        assert set((doc['a'] for doc in docs_)) == set((doc['a'] for doc in self.c.find()))
+        assert {doc['a'] for doc in docs_} == {doc['a'] for doc in self.c.find()}
 
     def test_delete(self):
         self.c.delete_many({})
@@ -430,8 +430,8 @@ class TestCollection():
         for key in data:
             assert len(self.c.find({key: {'$exists': False}})) == len(self.c)
             assert len(self.c.find({key: {'$exists': True}})) == 0
-            assert len(self.c.find({'{}.$exists'.format(key): False})) == len(self.c)
-            assert len(self.c.find({'{}.$exists'.format(key): True})) == 0
+            assert len(self.c.find({f'{key}.$exists': False})) == len(self.c)
+            assert len(self.c.find({f'{key}.$exists': True})) == 0
 
         # Test for nested cases
         assert len(self.c.find({'e.a.$exists': True})) == 0
@@ -452,8 +452,8 @@ class TestCollection():
             n = 2 if key == 'e' else 1
             assert len(self.c.find({key: {'$exists': False}})) == len(self.c) - n
             assert len(self.c.find({key: {'$exists': True}})) == n
-            assert len(self.c.find({'{}.$exists'.format(key): False})) == len(self.c) - n
-            assert len(self.c.find({'{}.$exists'.format(key): True})) == n
+            assert len(self.c.find({f'{key}.$exists': False})) == len(self.c) - n
+            assert len(self.c.find({f'{key}.$exists': True})) == n
 
         # Test for nested cases
         assert len(self.c.find({'e.$exists': True})) == 2

@@ -34,7 +34,7 @@ class CustomJSONEncoder(JSONEncoder):
         except AttributeError:
             # Call the super method, which raises a TypeError if it cannot
             # encode the object.
-            return super(CustomJSONEncoder, self).default(o)
+            return super().default(o)
 
 
 def dumps(o: Any, sort_keys: bool = False, indent: Optional[int] = None) -> str:

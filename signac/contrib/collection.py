@@ -65,13 +65,12 @@ def _flatten(container):
     """
     for i in container:
         if isinstance(i, (list, tuple)):
-            for j in _flatten(i):
-                yield j
+            yield from _flatten(i)
         else:
             yield i
 
 
-class _DictPlaceholder(object):
+class _DictPlaceholder:
     pass
 
 
@@ -111,7 +110,7 @@ class _float(float):
     # There is no risk of accidentally equating ints and floats with different values, since the
     # hash equality is only a necessary, not a sufficient condition for equality.
     def __hash__(self):
-        return super(_float, self).__hash__() + 1
+        return super().__hash__() + 1
 
 
 class _TypedSetDefaultDict(dict):
@@ -273,7 +272,7 @@ def _find_with_index_operator(index, op, argument):
             if argument in _TYPES:
                 t = _TYPES[argument]
             else:
-                raise ValueError("Unknown argument for $type operator: '{}'.".format(argument))
+                raise ValueError(f"Unknown argument for $type operator: '{argument}'.")
             return isinstance(value, t)
     elif op == '$where':
         def op(value, argument):
@@ -323,12 +322,12 @@ def _check_logical_operator_argument(op, argument):
 
     """
     if not isinstance(argument, list):
-        raise ValueError("The argument of logical-operator '{}' must be a list!".format(op))
+        raise ValueError(f"The argument of logical-operator '{op}' must be a list!")
     if not len(argument):
-        raise ValueError("The argument of logical-operator '{}' cannot be empty!".format(op))
+        raise ValueError(f"The argument of logical-operator '{op}' cannot be empty!")
 
 
-class _CollectionSearchResults(object):
+class _CollectionSearchResults:
     """Iterator for a Collection result vector."""
     def __init__(self, collection, _ids):
         self._collection = collection
@@ -348,7 +347,7 @@ class JSONParseError(ValueError):
     pass
 
 
-class Collection(object):
+class Collection:
     """A collection of documents.
 
     The Collection class manages a collection of documents in memory
@@ -508,9 +507,9 @@ class Collection(object):
             The key to build index for.
 
         """
-        logger.debug("Building index for key '{}'...".format(key))
+        logger.debug(f"Building index for key '{key}'...")
         self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
-        logger.debug("Built index for key '{}'.".format(key))
+        logger.debug(f"Built index for key '{key}'.")
 
     def index(self, key, build=False):
         """Get (and optionally build) the index for a given key.
@@ -567,7 +566,7 @@ class Collection(object):
             if build:
                 self._build_index(key)
             else:
-                raise KeyError("No index for key '{}'.".format(key))
+                raise KeyError(f"No index for key '{key}'.")
         return self._indexes[key]
 
     def __str__(self):
@@ -676,7 +675,7 @@ class Collection(object):
                 doc_ = json.loads(json.dumps(doc))
             except TypeError as error:
                 raise TypeError(
-                    "Serialization of document '{}' failed with error: {}".format(doc, error))
+                    f"Serialization of document '{doc}' failed with error: {error}")
             self._docs[_id] = self._validate_doc(doc_)
         self._dirty.add(_id)
         self._requires_flush = True
@@ -778,14 +777,14 @@ class Collection(object):
             The value is not bool when operator for '$exists' operator.
 
         """
-        logger.debug("Find documents for expression '{}: {}'.".format(key, value))
+        logger.debug(f"Find documents for expression '{key}: {value}'.")
         if '$' in key:
             if key.count('$') > 1:
-                raise KeyError("Bad operator expression '{}'.".format(key))
+                raise KeyError(f"Bad operator expression '{key}'.")
             nodes = key.split('.')
             op = nodes[-1]
             if not op.startswith('$'):
-                raise KeyError("Bad operator placement '{}'.".format(key))
+                raise KeyError(f"Bad operator placement '{key}'.")
             key = '.'.join(nodes[:-1])
             if op in _INDEX_OPERATORS:
                 index = self.index(key, build=True)
@@ -797,7 +796,7 @@ class Collection(object):
                 match = {elem for elems in index.values() for elem in elems}
                 return match if value else set(self.ids).difference(match)
             else:
-                raise KeyError("Unknown expression-operator '{}'.".format(op))
+                raise KeyError(f"Unknown expression-operator '{op}'.")
         else:
             index = self.index(key, build=True)
             # Check to see if 'value' is a floating point type but an
@@ -1171,7 +1170,7 @@ class Collection(object):
 
         """
         for doc in self._docs.values():
-            text_buffer.write((json.dumps(doc) + '\n'))
+            text_buffer.write(json.dumps(doc) + '\n')
 
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
@@ -1247,7 +1246,7 @@ class Collection(object):
 
         """
         if isinstance(file, str):
-            with open(file, 'r') as json_file:
+            with open(file) as json_file:
                 json_data = json.load(json_file)
         else:
             json_data = json.load(file)
@@ -1281,7 +1280,7 @@ class Collection(object):
                     text_io.detach()
             else:
                 collection = cls(docs=(json.loads(line) for line in file))
-        except (IOError, io.UnsupportedOperation) as error:
+        except (OSError, io.UnsupportedOperation) as error:
             if str(error) in ('not readable', 'read'):
                 collection = cls()
             else:
@@ -1290,10 +1289,10 @@ class Collection(object):
             file.close()
             if hasattr(file, 'name'):
                 raise JSONParseError(
-                    "Error while trying to parse file '{}': {}.".format(file.name, error))
+                    f"Error while trying to parse file '{file.name}': {error}.")
             else:
                 raise JSONParseError(
-                    "Error while trying to parse '{}': {}.".format(file, error))
+                    f"Error while trying to parse '{file}': {error}.")
         except AttributeError as e:
             # This error occurs in python27 and has been evaluated as being
             # fine to accept in this manner
@@ -1368,7 +1367,7 @@ class Collection(object):
         if compresslevel is None:
             compresslevel = 9 if filename.endswith('.gz') else 0
 
-        logger.debug("Open collection '{}'.".format(filename))
+        logger.debug(f"Open collection '{filename}'.")
         if filename == ':memory:':
             if mode is not None:
                 raise RuntimeError("File open-mode must be None for in-memory collection.")
@@ -1378,7 +1377,7 @@ class Collection(object):
             if mode is None:
                 mode = 'ab+'
 
-            file = io.open(filename, mode)
+            file = open(filename, mode)
             file.seek(0)
 
             if 'b' in mode:
@@ -1408,7 +1407,7 @@ class Collection(object):
             if self._file is None:
                 logger.debug("Flushed collection.")
             else:
-                logger.debug("Flush collection to file '{}'.".format(self._file))
+                logger.debug(f"Flush collection to file '{self._file}'.")
                 try:
                     self._file.truncate(0)
                 except ValueError as error:

@@ -178,7 +178,7 @@ class TestJSONDict(TestJSONDictBase):
         assert jsd2[key] == d
 
     def test_write_invalid_type(self):
-        class Foo(object):
+        class Foo:
             pass
 
         jsd = self.get_json_dict()
@@ -259,7 +259,7 @@ class TestJSONDictWriteConcern(TestJSONDict):
 class TestJSONDictNestedData(TestJSONDict):
 
     def get_testdata(self):
-        return dict(a=super(TestJSONDictNestedData, self).get_testdata())
+        return dict(a=super().get_testdata())
 
 
 class TestJSONDictNestedDataWriteConcern(TestJSONDictNestedData, TestJSONDictWriteConcern):

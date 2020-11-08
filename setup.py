@@ -23,7 +23,7 @@ try:
     fn_readme = os.path.join(this_path, 'README.md')
     with open(fn_readme) as fh:
         long_description = fh.read()
-except (IOError, OSError):
+except OSError:
     long_description = description
 
 setup(

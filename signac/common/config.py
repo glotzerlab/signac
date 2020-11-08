@@ -44,8 +44,7 @@ def search_tree(root=None):
     if root is None:
         root = os.getcwd()
     while(True):
-        for fn in _search_local(root):
-            yield fn
+        yield from _search_local(root)
         up = os.path.abspath(os.path.join(root, '..'))
         if up == root:
             msg = "Reached filesystem root."
@@ -58,8 +57,7 @@ def search_tree(root=None):
 def search_standard_dirs():
     """Locates signac configuration files in standard directories."""
     for path in CONFIG_PATH:
-        for fn in _search_local(path):
-            yield fn
+        yield from _search_local(path)
 
 
 def check_permissions(filename):
@@ -83,12 +81,12 @@ def check_and_fix_permissions(filename):
         check_permissions(filename)
     except PermissionsError as permissions_error:
         logger.debug(
-            "{} Attempting to fix permissions.".format(permissions_error))
+            f"{permissions_error} Attempting to fix permissions.")
         try:
             fix_permissions(filename)
         except Exception as error:
             logger.error(
-                "Failed to fix permissions with error: {}".format(error))
+                f"Failed to fix permissions with error: {error}")
             raise permissions_error
         else:
             logger.debug("Fixed permissions.")
@@ -96,10 +94,10 @@ def check_and_fix_permissions(filename):
 
 def read_config_file(filename):
     """Read a configuration file."""
-    logger.debug("Reading config file '{}'.".format(filename))
+    logger.debug(f"Reading config file '{filename}'.")
     try:
         config = Config(filename, configspec=cfg.split('\n'))
-    except (IOError, OSError, ConfigObjError) as error:
+    except (OSError, ConfigObjError) as error:
         msg = "Failed to read configuration file '{}':\n{}"
         raise ConfigError(msg.format(filename, error))
     verification = config.verify()
@@ -150,7 +148,7 @@ class Config(ConfigObj):
         """Validate the contents of this configuration."""
         if validator is None:
             validator = get_validator()
-        return super(Config, self).validate(validator, *args, **kwargs)
+        return super().validate(validator, *args, **kwargs)
 
     def has_password(self):
         """Check if this configuration contains a password."""
@@ -167,4 +165,4 @@ class Config(ConfigObj):
         if outfile is not None:
             if self.has_password():
                 check_and_fix_permissions(outfile)
-        return super(Config, self).write(outfile=outfile, section=section)
+        return super().write(outfile=outfile, section=section)

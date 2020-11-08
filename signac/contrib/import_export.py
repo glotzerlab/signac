@@ -142,7 +142,7 @@ class _AutoPathFormatter(Formatter):
         if isinstance(value, Job):
             return self.paths(value, format_spec)
         else:
-            return super(_AutoPathFormatter, self).format_field(value, format_spec)
+            return super().format_field(value, format_spec)
 
 
 class _SchemaPathEvaluationError(RuntimeError):
@@ -234,7 +234,7 @@ def _make_path_function(jobs, path):
             except AttributeError as error:
                 raise _SchemaPathEvaluationError(error)
             except KeyError as error:
-                raise _SchemaPathEvaluationError("Unknown key: {}".format(error))
+                raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
     else:
@@ -262,7 +262,7 @@ def _check_directory_structure_validity(paths):
     for dst in paths:
         if dst in check:
             raise RuntimeError(
-                "The path '{}' is both a leaf and node in the path structure.".format(dst))
+                f"The path '{dst}' is both a leaf and node in the path structure.")
         tokens = dst.split(os.path.sep)
         for i in range(1, len(tokens)):
             check.add(os.path.sep.join(tokens[:i]))
@@ -472,13 +472,11 @@ def export_jobs(jobs, target, path=None, copytree=None):
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
                 yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         else:
-            raise TypeError("Unknown extension '{}'.".format(ext))
+            raise TypeError(f"Unknown extension '{ext}'.")
     elif isinstance(target, ZipFile):
-        for src_dst in export_to_zipfile(jobs=jobs, zipfile=target, path=path):
-            yield src_dst
+        yield from export_to_zipfile(jobs=jobs, zipfile=target, path=path)
     elif isinstance(target, tarfile.TarFile):
-        for src_dst in export_to_tarfile(jobs=jobs, tarfile=target, path=path):
-            yield src_dst
+        yield from export_to_tarfile(jobs=jobs, tarfile=target, path=path)
     else:
         raise TypeError("Unknown target type", target)
 
@@ -683,7 +681,7 @@ def _parse_workspaces(fn_manifest):
         try:
             with open(os.path.join(path, fn_manifest), 'rb') as file:
                 return json.loads(file.read().decode())
-        except (IOError, OSError) as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
 
@@ -748,7 +746,7 @@ def _copy_to_job_workspace(src, job, copytree):
     dst = job.workspace()
     try:
         copytree(src, dst)
-    except (IOError, OSError) as error:
+    except OSError as error:
         if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
             raise DestinationExistsError(job)
         raise
@@ -757,7 +755,7 @@ def _copy_to_job_workspace(src, job, copytree):
     return dst
 
 
-class _CopyFromDirectoryExecutor(object):
+class _CopyFromDirectoryExecutor:
     """Copy the source to job's workspace when the source is a directory.
 
     Parameters
@@ -833,7 +831,7 @@ def _analyze_directory_for_import(root, project, schema):
             yield src, copy_executor
 
 
-class _CopyFromZipFileExecutor(object):
+class _CopyFromZipFileExecutor:
     """Copy the source to job's workspace when the source is a zipfile.
 
     Parameters
@@ -962,7 +960,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         yield src, copy_executor
 
 
-class _CopyFromTarFileExecutor(object):
+class _CopyFromTarFileExecutor:
     """Copy the source to job's workspace when the source is a tarfile.
 
     Parameters
@@ -1147,11 +1145,11 @@ def _prepare_import_into_project(origin, project, schema=None):
                 with tarfile.open(origin) as file:
                     yield _analyze_tarfile_for_import(file, project, schema, tmpdir)
         else:
-            raise RuntimeError("Unknown file type: '{}'.".format(origin))
+            raise RuntimeError(f"Unknown file type: '{origin}'.")
     elif os.path.isdir(origin):
         yield _analyze_directory_for_import(root=origin, project=project, schema=schema)
     else:
-        raise ValueError("Unable to import from '{}'. Does the origin exist?".format(origin))
+        raise ValueError(f"Unable to import from '{origin}'. Does the origin exist?")
 
 
 def import_into_project(origin, project, schema=None, copytree=None):

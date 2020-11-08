@@ -63,7 +63,7 @@ def get_crawlers(root):
 """
 
 
-class TestFormat(object):
+class TestFormat:
 
     def read(self):
         assert 0
@@ -72,7 +72,7 @@ class TestFormat(object):
         assert 0
 
 
-class _TestFS(object):
+class _TestFS:
     name = 'inmemorytestgrid'
     files: Dict[str, Dict] = dict()
 
@@ -281,7 +281,7 @@ class TestIndexingBase():
         for i, doc in enumerate(docs):
             assert doc['a'] == i
             assert doc['format'] is None
-        ids = set(doc['_id'] for doc in docs)
+        ids = {doc['_id'] for doc in docs}
         assert len(ids) == len(docs)
 
     def test_main_crawler(self):

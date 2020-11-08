@@ -34,7 +34,7 @@ class FileSyncConflict(SyncConflict):
         "The filename of the file that caused the conflict."
 
     def __str__(self):
-        return "The file with filename '{}' caused a conflict.".format(self.filename)
+        return f"The file with filename '{self.filename}' caused a conflict."
 
 
 class DocumentSyncConflict(SyncConflict):
