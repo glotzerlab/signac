@@ -197,11 +197,9 @@ class ProjectSchema:
             if len(values) <= max_num_range:
                 values_string = ', '.join(_fmt_value(v) for v in sorted_values)
             else:
-                values_string = ', '.join(_fmt_value(v)
-                                           for v in sorted_values[:max_num_range - 2])
+                values_string = ', '.join(_fmt_value(v) for v in sorted_values[:max_num_range - 2])
                 values_string += ', ..., '
-                values_string += ', '.join(_fmt_value(v)
-                                            for v in sorted_values[-2:])
+                values_string += ', '.join(_fmt_value(v) for v in sorted_values[-2:])
             return '{type_name}([{values_string}], {length})'.format(
                 type_name=type_.__name__, values_string=values_string, length=len(values))
 

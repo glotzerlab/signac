@@ -1692,8 +1692,8 @@ class TestLinkedViewProject(TestProjectBase):
                 for c in c_vals:
                     sp = {'a': a, 'b': b, 'c': c}
                     assert os.path.isdir(os.path.join(
-                        view_prefix, 'a_{}/c_{}_b_{}'.format(str(sp['a']), str(sp['c']), str(sp['b'])),
-                        'job'))
+                        view_prefix, 'a_{}/c_{}_b_{}'.format(
+                            str(sp['a']), str(sp['c']), str(sp['b'])), 'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_tree(self):

@@ -32,9 +32,8 @@ class Version(dict):
                  postrelease='', prerelease='final'):
         if prerelease > 'final':
             raise ValueError('illegal pre-release tag', prerelease)
-        super().__init__(major=major, minor=minor,
-                                      change=change, postrelease=postrelease,
-                                      prerelease=prerelease)
+        super().__init__(major=major, minor=minor, change=change,
+                         postrelease=postrelease, prerelease=prerelease)
 
     def to_tuple(self):
         """Return version details as tuple."""
