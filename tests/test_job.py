@@ -1,30 +1,29 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import pytest
-import os
-import io
-import warnings
-import logging
-import uuid
 import copy
-import random
+import io
 import json
+import logging
+import os
+import random
+import uuid
+import warnings
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 
-import signac.contrib
+import pytest
+
 import signac.common.config
+import signac.contrib
 from signac import Project  # noqa: F401
 from signac.contrib.job import Job  # noqa: F401
-from signac.errors import DestinationExistsError
-from signac.errors import JobsCorruptedError
-from signac.errors import InvalidKeyError
-from signac.errors import KeyTypeError
-
+from signac.errors import (DestinationExistsError, InvalidKeyError,
+                           JobsCorruptedError, KeyTypeError)
 
 try:
-    import h5py    # noqa
+    import h5py  # noqa
+
     H5PY = True
 except ImportError:
     H5PY = False
@@ -64,7 +63,7 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class TestJobBase():
+class TestJobBase:
 
     project_class = signac.Project
 
@@ -77,9 +76,8 @@ class TestJobBase():
         os.mkdir(self._tmp_pr)
         self.config = signac.common.config.load_config()
         self.project = self.project_class.init_project(
-            name='testing_test_project',
-            root=self._tmp_pr,
-            workspace=self._tmp_wd)
+            name='testing_test_project', root=self._tmp_pr, workspace=self._tmp_wd
+        )
 
         warnings.filterwarnings('ignore', category=DeprecationWarning, module='signac')
 
@@ -98,7 +96,6 @@ class TestJobBase():
 
 
 class TestJobID(TestJobBase):
-
     def test_builtins(self):
         for p, h in BUILTINS:
             assert str(self.project.open_job(p)) == h
@@ -120,7 +117,6 @@ class TestJobID(TestJobBase):
 
 
 class TestJob(TestJobBase):
-
     def test_repr(self):
         job = self.project.open_job({'a': 0})
         job2 = self.project.open_job({'a': 0})
@@ -217,8 +213,7 @@ class TestJob(TestJobBase):
         assert copied_job in self.project
 
 
-class TestJobSPInterface(TestJobBase):
-
+class TestJobSpInterface(TestJobBase):
     def test_interface_read_only(self):
         sp = self.nested_dict()
         job = self.open_job(sp)
@@ -304,6 +299,7 @@ class TestJobSPInterface(TestJobBase):
 
         class Foo:
             pass
+
         with pytest.raises(TypeError):
             job.sp.a = Foo()
 
@@ -392,13 +388,13 @@ class TestJobSPInterface(TestJobBase):
             assert job.id == id0
             assert job.sp == sp0
 
-            job.sp.a = - job.sp.a
+            job.sp.a = -job.sp.a
             assert id(job) == obj_id
             assert job.sp.a < 0
             assert job.id != id0
             assert job.sp != sp0
 
-            job.sp.a = - job.sp.a
+            job.sp.a = -job.sp.a
             assert id(job) == obj_id
             assert job.sp.a > 0
             assert job.id == id0
@@ -412,6 +408,7 @@ class TestJobSPInterface(TestJobBase):
 
         class A:
             pass
+
         for key in ('0', 0, True, False, None):
             job.sp[key] = 'test'
             assert str(key) in job.sp
@@ -421,6 +418,7 @@ class TestJobSPInterface(TestJobBase):
 
         class A:
             pass
+
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.sp[key] = 'test'
@@ -437,6 +435,7 @@ class TestJobSPInterface(TestJobBase):
 
         class A:
             pass
+
         for key in ('0', 0, True, False, None):
             job.doc[key] = 'test'
             assert str(key) in job.doc
@@ -446,6 +445,7 @@ class TestJobSPInterface(TestJobBase):
 
         class A:
             pass
+
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 job.doc[key] = 'test'
@@ -459,7 +459,6 @@ class TestJobSPInterface(TestJobBase):
 
 
 class TestConfig(TestJobBase):
-
     def test_set_get_delete(self):
         key, value = list(test_token.items())[0]
         key, value = 'author_name', list(test_token.values())[0]
@@ -487,7 +486,6 @@ class TestConfig(TestJobBase):
 
 
 class TestJobOpenAndClosing(TestJobBase):
-
     def test_init(self):
         job = self.open_job(test_token)
         assert not os.path.isdir(job.workspace())
@@ -527,6 +525,7 @@ class TestJobOpenAndClosing(TestJobBase):
 
         class TestError(Exception):
             pass
+
         with pytest.raises(TestError):
             with job:
                 raise TestError()
@@ -605,7 +604,6 @@ class TestJobOpenAndClosing(TestJobBase):
 
 
 class TestJobDocument(TestJobBase):
-
     def test_get_set(self):
         key = 'get_set'
         d = testdata()
@@ -1057,7 +1055,6 @@ class TestJobDocument(TestJobBase):
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 class TestJobOpenData(TestJobBase):
-
     @staticmethod
     @contextmanager
     def open_data(job):
@@ -1331,8 +1328,8 @@ class TestJobOpenData(TestJobBase):
         job = self.open_job(test_token).init()
         project_a = self.project
         project_b = self.project_class.init_project(
-            name='project_b',
-            root=os.path.join(self._tmp_pr, 'project_b'))
+            name='project_b', root=os.path.join(self._tmp_pr, 'project_b')
+        )
         job.move(project_b)
         job.move(project_a)
         project_b.clone(job)
@@ -1544,7 +1541,6 @@ class TestJobOpenData(TestJobBase):
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 class TestJobClosedData(TestJobOpenData):
-
     @staticmethod
     @contextmanager
     def open_data(job):
@@ -1566,7 +1562,6 @@ class TestJobClosedData(TestJobOpenData):
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 class TestJobOpenCustomData(TestJobBase):
-
     @staticmethod
     @contextmanager
     def open_data(job):
@@ -1921,7 +1916,6 @@ class TestJobOpenCustomData(TestJobBase):
 
 
 class TestJobClosedCustomData(TestJobOpenCustomData):
-
     @staticmethod
     @contextmanager
     def open_data(job):

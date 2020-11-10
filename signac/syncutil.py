@@ -3,14 +3,13 @@
 # This software is licensed under the BSD 3-Clause License.
 """Utilities for synchronization."""
 
-import os
-import shutil
 import filecmp
 import logging
-from copy import deepcopy
+import os
+import shutil
 from contextlib import contextmanager
+from copy import deepcopy
 from filecmp import dircmp
-
 
 LEVEL_MORE = logging.INFO - 5
 
@@ -70,6 +69,7 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
 
 class dircmp_deep(dircmp):
     """Deep directory comparator."""
+
     def phase3(self):
         """Find out differences between common files."""
         xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
@@ -170,9 +170,17 @@ class _FileModifyProxy:
 
     """
 
-    def __init__(self, root=None, follow_symlinks=True, permissions=False,
-                 times=False, owner=False, group=False, dry_run=False,
-                 collect_stats=False):
+    def __init__(
+        self,
+        root=None,
+        follow_symlinks=True,
+        permissions=False,
+        times=False,
+        owner=False,
+        group=False,
+        dry_run=False,
+        collect_stats=False,
+    ):
         self.root = root
         self.follow_symlinks = follow_symlinks
         self.permissions = permissions
@@ -218,8 +226,11 @@ class _FileModifyProxy:
             print(os.path.relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
             link_target = os.readlink(src)
-            logger.more("Creating link '{}' -> '{}'.".format(
-                os.path.relpath(dst), os.path.relpath(link_target)))
+            logger.more(
+                "Creating link '{}' -> '{}'.".format(
+                    os.path.relpath(dst), os.path.relpath(link_target)
+                )
+            )
             if os.path.isfile(dst):
                 self.remove(dst)
             if not self.dry_run:
@@ -243,12 +254,17 @@ class _FileModifyProxy:
                     self.stats['num_files'] += 1
                     self.stats['volume'] += stat.st_size
                 if self.owner or self.group:
-                    logger.more("Copy owner/group '{}' -> '{}'".format(
-                        os.path.relpath(src), os.path.relpath(dst)))
+                    logger.more(
+                        "Copy owner/group '{}' -> '{}'".format(
+                            os.path.relpath(src), os.path.relpath(dst)
+                        )
+                    )
                     if not self.dry_run:
-                        os.chown(dst,
-                                 uid=stat.st_uid if self.owner else -1,
-                                 gid=stat.st_gid if self.group else -1)
+                        os.chown(
+                            dst,
+                            uid=stat.st_uid if self.owner else -1,
+                            gid=stat.st_gid if self.group else -1,
+                        )
 
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
@@ -263,11 +279,13 @@ class _FileModifyProxy:
         if os.path.isfile(path_backup):
             raise RuntimeError(
                 "Failed to create backup, file already exists: '{}'.".format(
-                    os.path.relpath(path_backup)))
+                    os.path.relpath(path_backup)
+                )
+            )
         try:
             self._copy2(path, path_backup)
             yield path_backup
-        except:     # noqa roll-back
+        except:  # noqa roll-back
             logger.more("Error occured, restoring backup...")
             self._copy2(path_backup, path)
             raise
@@ -284,7 +302,7 @@ class _FileModifyProxy:
             backup = deepcopy(doc)  # use in-memory backup
             try:
                 yield proxy
-            except:     # noqa roll-back
+            except:  # noqa roll-back
                 proxy.clear()
                 proxy.update(backup)
                 raise

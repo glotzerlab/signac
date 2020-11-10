@@ -3,14 +3,14 @@
 # This software is licensed under the BSD 3-Clause License.
 """Synchronized dictionary."""
 import logging
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
-from functools import wraps
 from copy import deepcopy
-from collections.abc import Mapping
-from collections.abc import MutableMapping
+from functools import wraps
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class _SyncedList(list):
-
     def __init__(self, iterable, parent):
         self._parent = parent
         super().__init__(iterable)
@@ -50,8 +49,7 @@ class _SyncedList(list):
     def __getattribute__(self, name):
         outer = super().__getattribute__(name)
 
-        if name in ('append', 'clear', 'extend', 'insert', 'pop',
-                    'remove', 'reverse', 'sort'):
+        if name in ('append', 'clear', 'extend', 'insert', 'pop', 'remove', 'reverse', 'sort'):
 
             @wraps(outer)
             def outer_wrapped_in_load_and_save(*args, **kwargs):
@@ -80,8 +78,7 @@ class _SyncedDict(MutableMapping):
             self._data = dict()
         else:
             self._data = {
-                self._validate_key(k): self._dfs_convert(v)
-                for k, v in initialdata.items()
+                self._validate_key(k): self._dfs_convert(v) for k, v in initialdata.items()
             }
         self._suspend_sync_ = 0
 
@@ -91,16 +88,18 @@ class _SyncedDict(MutableMapping):
         if isinstance(key, str):
             if '.' in key:
                 from ..errors import InvalidKeyError
-                raise InvalidKeyError(
-                    f"keys may not contain dots ('.'): {key}")
+
+                raise InvalidKeyError(f"keys may not contain dots ('.'): {key}")
             else:
                 return key
         elif isinstance(key, cls.VALID_KEY_TYPES):
             return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
+
             raise KeyTypeError(
-                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__)
+            )
 
     def _dfs_convert(self, root):
         if type(root) is type(self):

@@ -3,23 +3,23 @@
 # This software is licensed under the BSD 3-Clause License.
 """Job class defined here."""
 
-import os
 import errno
 import logging
+import os
 import shutil
 from copy import deepcopy
+
 from deprecation import deprecated
 
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
-from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
-from .hashing import calc_id
-from .utility import _mkdir_p
-from .errors import DestinationExistsError, JobsCorruptedError
+from ..core.jsondict import JSONDict
 from ..sync import sync_jobs
 from ..version import __version__
-
+from .errors import DestinationExistsError, JobsCorruptedError
+from .hashing import calc_id
+from .utility import _mkdir_p
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,7 @@ class _sp_save_hook:
         List of jobs(instance of `Job`).
 
     """
+
     def __init__(self, *jobs):
         self.jobs = list(jobs)
 
@@ -69,6 +70,7 @@ class Job:
         A file-like object to write to.
 
     """
+
     FN_MANIFEST = 'signac_statepoint.json'
     """The job's manifest filename.
 
@@ -102,8 +104,12 @@ class Job:
         # Prepare current working directory for context management
         self._cwd = list()
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use job.id instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.id instead.",
+    )
     def get_id(self):
         """Job's state point unique identifier.
 
@@ -136,8 +142,8 @@ class Job:
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__name__,
-            repr(self._project), self._statepoint)
+            self.__class__.__name__, repr(self._project), self._statepoint
+        )
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -447,8 +453,10 @@ class Job:
         try:
             _mkdir_p(self._wd)
         except OSError:
-            logger.error("Error occured while trying to create "
-                         "workspace directory for job '{}'.".format(self))
+            logger.error(
+                "Error occured while trying to create "
+                "workspace directory for job '{}'.".format(self)
+            )
             raise
 
         try:
@@ -509,8 +517,7 @@ class Job:
         try:
             self._init(force=force)
         except Exception:
-            logger.error(
-                f"State point manifest file of job '{self._id}' appears to be corrupted.")
+            logger.error(f"State point manifest file of job '{self._id}' appears to be corrupted.")
             raise
         return self
 
@@ -591,13 +598,11 @@ class Job:
             os.replace(self.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.ENOENT:
-                raise RuntimeError(
-                    f"Cannot move job '{self}', because it is not initialized!")
+                raise RuntimeError(f"Cannot move job '{self}', because it is not initialized!")
             elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
-                raise RuntimeError(
-                    "Cannot move jobs across different devices (file systems).")
+                raise RuntimeError("Cannot move jobs across different devices (file systems).")
             else:
                 raise error
         self.__dict__.update(dst.__dict__)
@@ -649,12 +654,8 @@ class Job:
 
         """
         sync_jobs(
-            src=other,
-            dst=self,
-            strategy=strategy,
-            exclude=exclude,
-            doc_sync=doc_sync,
-            **kwargs)
+            src=other, dst=self, strategy=strategy, exclude=exclude, doc_sync=doc_sync, **kwargs
+        )
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.

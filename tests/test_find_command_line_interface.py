@@ -1,17 +1,17 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import json
 import os
 import sys
-import json
-import pytest
+from contextlib import contextmanager
 from io import StringIO
 from itertools import chain
-from contextlib import contextmanager
+
+import pytest
 
 from signac.contrib.filterparse import parse_filter_arg
 from signac.core.json import JSONDecodeError
-
 
 FILTERS = [
     {'a': 0},
@@ -41,14 +41,7 @@ FILTERS = [
 ]
 
 
-VALUES = {
-    '1': 1,
-    '1.0': 1.0,
-    'abc': 'abc',
-    'true': True,
-    'false': False,
-    'null': None
-}
+VALUES = {'1': 1, '1.0': 1.0, 'abc': 'abc', 'true': True, 'false': False, 'null': None}
 
 ARITHMETIC_EXPRESSIONS = [
     {'$eq': 0},
@@ -83,8 +76,7 @@ def redirect_stderr(new_target=None):
         sys.stderr = old_target
 
 
-class TestFindCommandLineInterface():
-
+class TestFindCommandLineInterface:
     @staticmethod
     def _parse(args):
         with open(os.devnull, 'w') as null:
@@ -93,6 +85,7 @@ class TestFindCommandLineInterface():
     def test_interpret_json(self):
         def _assert_equal(q):
             assert q == self._parse([json.dumps(q)])
+
         for f in FILTERS:
             _assert_equal(f)
 

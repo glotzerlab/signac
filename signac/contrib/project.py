@@ -3,41 +3,40 @@
 # This software is licensed under the BSD 3-Clause License.
 """The signac Project and JobsCursor classes."""
 
-import os
-import stat
-import re
-import logging
-import warnings
 import errno
-import uuid
 import gzip
+import logging
+import os
+import re
+import stat
 import time
+import uuid
+import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
-from deprecation import deprecated
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
+
+from deprecation import deprecated
 from packaging import version
 
-from ..version import __version__, SCHEMA_VERSION
 from .. import syncutil
+from ..common.config import Config, get_config, load_config
 from ..core import json
-from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
-from .collection import Collection
-from ..common.config import get_config, load_config, Config
+from ..core.jsondict import JSONDict
 from ..sync import sync_projects
-from .job import Job
+from ..version import SCHEMA_VERSION, __version__
+from .collection import Collection
+from .errors import (DestinationExistsError, IncompatibleSchemaVersion,
+                     JobsCorruptedError, WorkspaceError)
 from .hashing import calc_id
-from .indexing import SignacProjectCrawler
-from .indexing import MainCrawler
-from .utility import _mkdir_p, split_and_print_progress, _nested_dicts_to_dotted_keys
+from .indexing import MainCrawler, SignacProjectCrawler
+from .job import Job
 from .schema import ProjectSchema
-from .errors import WorkspaceError
-from .errors import DestinationExistsError
-from .errors import JobsCorruptedError
-from .errors import IncompatibleSchemaVersion
+from .utility import (_mkdir_p, _nested_dicts_to_dotted_keys,
+                      split_and_print_progress)
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +77,7 @@ class JobSearchIndex:
         Collection (Default value = False).
 
     """
+
     def __init__(self, index, _trust=False):
         self._collection = Collection(index, _trust=_trust)
 
@@ -102,7 +102,8 @@ class JobSearchIndex:
             if k in ('$and', '$or'):
                 if not isinstance(v, list) or isinstance(v, tuple):
                     raise ValueError(
-                        "The argument to a logical operator must be a sequence (e.g. a list)!")
+                        "The argument to a logical operator must be a sequence (e.g. a list)!"
+                    )
                 yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
             else:
                 yield f'statepoint.{k}', v
@@ -136,6 +137,7 @@ class JobSearchIndex:
 
 class _ProjectConfig(Config):
     """Extends the project config to make it immutable."""
+
     def __init__(self, *args, **kwargs):
         self._mutable = True
         super().__init__(*args, **kwargs)
@@ -143,10 +145,12 @@ class _ProjectConfig(Config):
 
     def __setitem__(self, key, value):
         if not self._mutable:
-            warnings.warn("Modifying the project configuration after project "
-                          "initialization is deprecated as of version 1.3 and "
-                          "will be removed in version 2.0.",
-                          DeprecationWarning)
+            warnings.warn(
+                "Modifying the project configuration after project "
+                "initialization is deprecated as of version 1.3 and "
+                "will be removed in version 2.0.",
+                DeprecationWarning,
+            )
 
             assert version.parse(__version__) < version.parse("2.0")
         return super().__setitem__(key, value)
@@ -169,6 +173,7 @@ class Project:
         (Default value = False).
 
     """
+
     Job = Job
 
     FN_DOCUMENT = 'signac_project_document.json'
@@ -195,7 +200,9 @@ class Project:
             raise LookupError(
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get('project_dir', os.getcwd()))))
+                    os.path.abspath(self.config.get('project_dir', os.getcwd()))
+                )
+            )
 
         # Ensure that the project's data schema is supported.
         if not _ignore_schema_version:
@@ -215,7 +222,8 @@ class Project:
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
-                    "workspace directory for project {}.".format(self.id))
+                    "workspace directory for project {}.".format(self.id)
+                )
                 raise
 
         # Internal caches
@@ -224,7 +232,8 @@ class Project:
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
-            'statepoint_cache_miss_warning_threshold', 500)
+            'statepoint_cache_miss_warning_threshold', 500
+        )
 
     def __str__(self):
         """Return the project's id."""
@@ -232,8 +241,8 @@ class Project:
 
     def __repr__(self):
         return "{type}.get_project({root})".format(
-                   type=self.__class__.__name__,
-                   root=repr(self.root_directory()))
+            type=self.__class__.__name__, root=repr(self.root_directory())
+        )
 
     def _repr_html_(self):
         """Project details in HTML format for use in IPython environment.
@@ -244,13 +253,15 @@ class Project:
             HTML containing project details.
 
         """
-        return "<p>" + \
-            f'<strong>Project:</strong> {self.id}<br>' + \
-            f"<strong>Root:</strong> {self.root_directory()}<br>" + \
-            f"<strong>Workspace:</strong> {self.workspace()}<br>" + \
-            "<strong>Size:</strong> {}".format(len(self)) + \
-            "</p>" + \
-            self.find_jobs()._repr_html_jobs()
+        return (
+            "<p>"
+            + f'<strong>Project:</strong> {self.id}<br>'
+            + f"<strong>Root:</strong> {self.root_directory()}<br>"
+            + f"<strong>Workspace:</strong> {self.workspace()}<br>"
+            + "<strong>Size:</strong> {}".format(len(self))
+            + "</p>"
+            + self.find_jobs()._repr_html_jobs()
+        )
 
     def __eq__(self, other):
         return repr(self) == repr(other)
@@ -330,8 +341,12 @@ class Project:
         """
         return self._wd
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use project.id instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use project.id instead.",
+    )
     def get_id(self):
         """Get the project identifier.
 
@@ -374,18 +389,18 @@ class Project:
             raise IncompatibleSchemaVersion(
                 "The signac schema version used by this project is '{}', but signac {} "
                 "only supports up to schema version '{}'. Try updating signac.".format(
-                    config_schema_version, __version__, schema_version))
+                    config_schema_version, __version__, schema_version
+                )
+            )
         elif config_schema_version < schema_version:
             raise IncompatibleSchemaVersion(
                 "The signac schema version used by this project is '{}', but signac {} "
                 "requires schema version '{}'. Please use '$ signac migrate' to "
                 "irreversibly migrate this project's schema to the supported "
-                "version.".format(
-                    config_schema_version, __version__, schema_version))
-        else:   # identical and therefore compatible
-            logger.debug(
-                "The project's schema version {} is supported.".format(
-                    config_schema_version))
+                "version.".format(config_schema_version, __version__, schema_version)
+            )
+        else:  # identical and therefore compatible
+            logger.debug(f"The project's schema version {config_schema_version} is supported.")
 
     def min_len_unique_id(self):
         """Determine the minimum length required for a job id to be unique.
@@ -610,8 +625,7 @@ class Project:
 
         """
         if (id is None) == (statepoint is None):
-            raise ValueError(
-                "You need to either provide the state point or the id.")
+            raise ValueError("You need to either provide the state point or the id.")
         if id is None:
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
@@ -649,11 +663,13 @@ class Project:
             if error.errno == errno.ENOENT:
                 if os.path.islink(self._wd):
                     raise WorkspaceError(
-                        f"The link '{self._wd}' pointing to the workspace is broken.")
+                        f"The link '{self._wd}' pointing to the workspace is broken."
+                    )
                 elif not os.path.isdir(os.path.dirname(self._wd)):
                     logger.warning(
                         "The path to the workspace directory "
-                        "('{}') does not exist.".format(os.path.dirname(self._wd)))
+                        "('{}') does not exist.".format(os.path.dirname(self._wd))
+                    )
                 else:
                     logger.info(f"The workspace directory '{self._wd}' does not exist!")
             else:
@@ -713,8 +729,12 @@ class Project:
         """
         return JobSearchIndex(index=index, _trust=_trust)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use the detect_schema() function instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use the detect_schema() function instead.",
+    )
     def build_job_statepoint_index(self, exclude_const=False, index=None):
         """Build a state point index to identify jobs with specific parameters.
 
@@ -766,6 +786,7 @@ class Project:
 
         """
         from .schema import _build_job_statepoint_index
+
         if index is None:
             index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
         for x, y in _build_job_statepoint_index(exclude_const=exclude_const, index=index):
@@ -794,6 +815,7 @@ class Project:
 
         """
         from .schema import _build_job_statepoint_index
+
         if index is None:
             index = self.index(include_job_document=False)
         if subset is not None:
@@ -802,8 +824,12 @@ class Project:
         statepoint_index = _build_job_statepoint_index(exclude_const=exclude_const, index=index)
         return ProjectSchema.detect(statepoint_index)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use find_jobs().ids instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use find_jobs().ids instead.",
+    )
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
 
@@ -1156,7 +1182,8 @@ class Project:
             if os.path.isdir(os.path.join(self._wd, jobid)):
                 logger.error(
                     "Error while trying to access state "
-                    "point manifest file of job '{}': '{}'.".format(jobid, error))
+                    "point manifest file of job '{}': '{}'.".format(jobid, error)
+                )
                 raise JobsCorruptedError([jobid])
             raise KeyError(jobid)
 
@@ -1195,11 +1222,14 @@ class Project:
                 return self._sp_cache[jobid]
             else:
                 self._sp_cache_misses += 1
-                if not self._sp_cache_warned and\
-                        self._sp_cache_misses > self._sp_cache_miss_warning_threshold:
+                if (
+                    not self._sp_cache_warned
+                    and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
+                ):
                     logger.debug(
                         "High number of state point cache misses. Consider "
-                        "to update cache with the Project.update_cache() method.")
+                        "to update cache with the Project.update_cache() method."
+                    )
                     self._sp_cache_warned = True
                 sp = self._get_statepoint_from_workspace(jobid)
         except KeyError as error:
@@ -1213,8 +1243,12 @@ class Project:
         self._sp_cache[jobid] = sp
         return sp
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use open_job(id=jobid).statepoint() function instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use open_job(id=jobid).statepoint() function instead.",
+    )
     def get_statepoint(self, jobid, fn=None):
         """Get the state point associated with a job id.
 
@@ -1303,14 +1337,24 @@ class Project:
 
         """
         if index is not None:
-            warnings.warn(("The `index` argument is deprecated as of version 1.3 and will be "
-                           "removed in version 2.0."), DeprecationWarning)
+            warnings.warn(
+                (
+                    "The `index` argument is deprecated as of version 1.3 and will be "
+                    "removed in version 2.0."
+                ),
+                DeprecationWarning,
+            )
 
         from .linked_view import create_linked_view
+
         return create_linked_view(self, prefix, job_ids, index, path)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use job.reset_statepoint() instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.reset_statepoint() instead.",
+    )
     def reset_statepoint(self, job, new_statepoint):
         """Reset the state point of job.
 
@@ -1337,8 +1381,12 @@ class Project:
         """
         job.reset_statepoint(new_statepoint=new_statepoint)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use job.update_statepoint() instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.update_statepoint() instead.",
+    )
     def update_statepoint(self, job, update, overwrite=False):
         """Update the state point of this job.
 
@@ -1456,7 +1504,8 @@ class Project:
             exclude=exclude,
             doc_sync=doc_sync,
             selection=selection,
-            **kwargs)
+            **kwargs,
+        )
 
     def export_to(self, target, path=None, copytree=None):
         """Export all jobs to a target location, such as a directory or a (compressed) archive file.
@@ -1594,6 +1643,7 @@ class Project:
 
         """
         from .import_export import import_into_project
+
         if sync:
             with self.temporary_project() as tmp_project:
                 ret = tmp_project.import_from(origin=origin, schema=schema)
@@ -1603,8 +1653,9 @@ class Project:
                     self.sync(other=tmp_project, **sync)
                 return ret
 
-        paths = dict(import_into_project(
-            origin=origin, project=self, schema=schema, copytree=copytree))
+        paths = dict(
+            import_into_project(origin=origin, project=self, schema=schema, copytree=copytree)
+        )
         return paths
 
     def check(self):
@@ -1630,7 +1681,8 @@ class Project:
         if corrupted:
             logger.error(
                 "At least one job appears to be corrupted. Call Project.repair() "
-                "to try to fix errors.")
+                "to try to fix errors."
+            )
             raise JobsCorruptedError(corrupted)
 
     def repair(self, fn_statepoints=None, index=None, job_ids=None):
@@ -1679,7 +1731,8 @@ class Project:
                 if correct_id != job_id:
                     logger.warning(
                         "The job id of job '{}' is incorrect; "
-                        "it should be '{}'.".format(job_id, correct_id))
+                        "it should be '{}'.".format(job_id, correct_id)
+                    )
                     invalid_wd = os.path.join(self.workspace(), job_id)
                     correct_wd = os.path.join(self.workspace(), correct_id)
                     try:
@@ -1687,7 +1740,8 @@ class Project:
                     except OSError as error:
                         logger.critical(
                             "Unable to fix location of job with "
-                            " id '{}': '{}'.".format(job_id, error))
+                            " id '{}': '{}'.".format(job_id, error)
+                        )
                         corrupted.append(job_id)
                         continue
                     else:
@@ -1704,13 +1758,14 @@ class Project:
                 except Exception as error:
                     logger.error(
                         "Error during initalization of job with "
-                        "id '{}': '{}'.".format(job_id, error))
-                    try:    # Attempt to fix the job manifest file.
+                        "id '{}': '{}'.".format(job_id, error)
+                    )
+                    try:  # Attempt to fix the job manifest file.
                         job.init(force=True)
                     except Exception as error2:
                         logger.critical(
-                            "Unable to force init job with id "
-                            "'{}': '{}'.".format(job_id, error2))
+                            f"Unable to force init job with id '{job_id}': '{error2}'."
+                        )
                         corrupted.append(job_id)
         if corrupted:
             raise JobsCorruptedError(corrupted)
@@ -1749,7 +1804,7 @@ class Project:
             if include_job_document:
                 if wd is None:
                     doc.update(self.open_job(id=_id).document)
-                else:   # use optimized path
+                else:  # use optimized path
                     try:
                         with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
                             doc.update(json.loads(file.read().decode()))
@@ -1777,7 +1832,8 @@ class Project:
                 iterable=list(to_add),
                 num_chunks=max(1, min(100, int(len(to_add) / 1000))),
                 write=logger.info,
-                desc="Read metadata: ")
+                desc="Read metadata: ",
+            )
 
             with ThreadPool() as pool:
                 for chunk in to_add_chunks:
@@ -1848,8 +1904,7 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
-    def index(self, formats=None, depth=0,
-              skip_errors=False, include_job_document=True):
+    def index(self, formats=None, depth=0, skip_errors=False, include_job_document=True):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -1915,6 +1970,7 @@ class Project:
 
             class Crawler(SignacProjectCrawler):
                 pass
+
             for pattern, fmt in formats.items():
                 Crawler.define(pattern, fmt)
             crawler = Crawler(self.root_directory())
@@ -1924,8 +1980,12 @@ class Project:
         for doc in docs:
             yield doc
 
-    @deprecated(deprecated_in="1.5", removed_in="2.0", current_version=__version__,
-                details="Access modules are deprecated.")
+    @deprecated(
+        deprecated_in="1.5",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Access modules are deprecated.",
+    )
     def create_access_module(self, filename=None, main=True, master=None):
         """Create the access module for indexing.
 
@@ -1954,9 +2014,7 @@ class Project:
             main = master
 
         if filename is None:
-            filename = os.path.join(
-                self.root_directory(),
-                MainCrawler.FN_ACCESS_MODULE)
+            filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
         with open(filename, 'x') as file:
             if main:
                 file.write(ACCESS_MODULE_MAIN)
@@ -2064,14 +2122,15 @@ class Project:
             try:
                 assert project.id == str(name)
                 if workspace is not None:
-                    assert os.path.realpath(workspace) \
-                        == os.path.realpath(project.workspace())
+                    assert os.path.realpath(workspace) == os.path.realpath(project.workspace())
                 return project
             except AssertionError:
                 raise RuntimeError(
                     "Failed to initialize project '{}'. Path '{}' already "
                     "contains a conflicting project configuration.".format(
-                        name, os.path.abspath(root)))
+                        name, os.path.abspath(root)
+                    )
+                )
 
     @classmethod
     def get_project(cls, root=None, search=True, **kwargs):
@@ -2105,10 +2164,12 @@ class Project:
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if 'project' not in config or \
-                (not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)):
+        if 'project' not in config or (
+            not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)
+        ):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(os.path.abspath(root)))
+                "Unable to determine project id for path '{}'.".format(os.path.abspath(root))
+            )
 
         return cls(config=config, **kwargs)
 
@@ -2148,7 +2209,7 @@ class Project:
             raise LookupError(f"Could not find a job id in path '{root}'.")
         match = results[-1]
         job_id = match.group(0)
-        job_root = root[:match.end()]
+        job_root = root[: match.end()]
 
         # Find a project *above* the root directory (avoid finding nested projects)
         project = cls.get_project(os.path.join(job_root, os.pardir))
@@ -2251,6 +2312,7 @@ class JobsCursor:
         compared against (Default value = None).
 
     """
+
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
 
     def __init__(self, project, filter, doc_filter):
@@ -2263,8 +2325,11 @@ class JobsCursor:
         self._next_iter = None
 
     def __eq__(self, other):
-        return self._project == other._project and self._filter == other._filter\
+        return (
+            self._project == other._project
+            and self._filter == other._filter
             and self._doc_filter == other._doc_filter
+        )
 
     def __len__(self):
         # Highly performance critical code path!!
@@ -2281,7 +2346,7 @@ class JobsCursor:
         return _JobsCursorIterator(
             self._project,
             self._project._find_job_ids(self._filter, self._doc_filter),
-            )
+        )
 
     def next(self):
         """Return the next element.
@@ -2360,7 +2425,9 @@ class JobsCursor:
 
                     """
                     return job.sp[key]
+
             else:
+
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
 
@@ -2379,6 +2446,7 @@ class JobsCursor:
 
                     """
                     return job.sp.get(key, default)
+
         elif isinstance(key, Iterable):
             if default is None:
                 if _filter is None:
@@ -2403,7 +2471,9 @@ class JobsCursor:
 
                     """
                     return tuple(job.sp[k] for k in key)
+
             else:
+
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
 
@@ -2422,6 +2492,7 @@ class JobsCursor:
 
                     """
                     return tuple(job.sp.get(k, default) for k in key)
+
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
@@ -2439,12 +2510,15 @@ class JobsCursor:
 
                 """
                 return str(job)
+
         else:
             # Pass the job document to a callable
             keyfunction = key
 
-        return groupby(sorted(iter(JobsCursor(self._project, _filter, self._doc_filter)),
-                              key=keyfunction), key=keyfunction)
+        return groupby(
+            sorted(iter(JobsCursor(self._project, _filter, self._doc_filter)), key=keyfunction),
+            key=keyfunction,
+        )
 
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
@@ -2486,6 +2560,7 @@ class JobsCursor:
         """
         if isinstance(key, str):
             if default is None:
+
                 def keyfunction(job):
                     """Return job's document value corresponding to the key.
 
@@ -2501,7 +2576,9 @@ class JobsCursor:
 
                     """
                     return job.document[key]
+
             else:
+
                 def keyfunction(job):
                     """Return job's document value corresponding to the key.
 
@@ -2520,8 +2597,10 @@ class JobsCursor:
 
                     """
                     return job.document.get(key, default)
+
         elif isinstance(key, Iterable):
             if default is None:
+
                 def keyfunction(job):
                     """Return job's document value corresponding to the key.
 
@@ -2538,7 +2617,9 @@ class JobsCursor:
 
                     """
                     return tuple(job.document[k] for k in key)
+
             else:
+
                 def keyfunction(job):
                     """Return job's document value corresponding to the key.
 
@@ -2557,6 +2638,7 @@ class JobsCursor:
 
                     """
                     return tuple(job.document.get(k, default) for k in key)
+
         elif key is None:
             # Must return a type that can be ordered with <, >
             def keyfunction(job):
@@ -2574,6 +2656,7 @@ class JobsCursor:
 
                 """
                 return str(job)
+
         else:
             # Pass the job document to a callable
             def keyfunction(job):
@@ -2590,6 +2673,7 @@ class JobsCursor:
 
                 """
                 return key(job.document)
+
         return groupby(sorted(iter(self), key=keyfunction), key=keyfunction)
 
     def export_to(self, target, path=None, copytree=None):
@@ -2619,11 +2703,10 @@ class JobsCursor:
 
         """
         from .import_export import export_jobs
-        return dict(export_jobs(jobs=list(self), target=target,
-                                path=path, copytree=copytree))
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None,
-                     flatten=False):
+        return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
+
+    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None, flatten=False):
         """Convert the selection of jobs to a pandas dataframe.
 
         This function exports the job metadata to a
@@ -2660,8 +2743,10 @@ class JobsCursor:
         import pandas
 
         if usecols is None:
+
             def usecols(column):
                 return True
+
         elif not callable(usecols):
             included_columns = set(usecols)
 
@@ -2695,15 +2780,16 @@ class JobsCursor:
                     yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
-            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
-            orient='index').infer_objects()
+            data={job._id: dict(_export_sp_and_doc(job)) for job in self}, orient='index'
+        ).infer_objects()
 
     def __repr__(self):
         return '{type}(project={project}, filter={filter}, doc_filter={doc_filter})'.format(
-                   type=self.__class__.__name__,
-                   project=repr(self._project),
-                   filter=repr(self._filter),
-                   doc_filter=repr(self._doc_filter))
+            type=self.__class__.__name__,
+            project=repr(self._project),
+            filter=repr(self._filter),
+            doc_filter=repr(self._doc_filter),
+        )
 
     def _repr_html_jobs(self):
         """Jobs representation as HTML.

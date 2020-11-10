@@ -2,8 +2,8 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
-from setuptools import setup, find_packages
 
+from setuptools import find_packages, setup
 
 requirements = [
     # Deprecation management
@@ -41,7 +41,6 @@ setup(
     url="https://signac.io",
     download_url="https://pypi.org/project/signac/",
     keywords='simulation database index collaboration workflow',
-
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
@@ -55,26 +54,17 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
-
     project_urls={
         'Homepage': 'https://signac.io',
         'Documentation': 'https://docs.signac.io',
         'Source Code': 'https://github.com/glotzerlab/signac',
         'Issue Tracker': 'https://github.com/glotzerlab/signac/issues',
     },
-
     install_requires=requirements,
-
     # Supported versions are determined according to NEP 29.
     # https://numpy.org/neps/nep-0029-deprecation_policy.html
     python_requires='>=3.6, <4',
-
-    extras_require={
-        'db': ['pymongo>=3.0'],
-        'mpi': ['mpi4py'],
-        'h5': ['h5py']
-    },
-
+    extras_require={'db': ['pymongo>=3.0'], 'mpi': ['mpi4py'], 'h5': ['h5py']},
     entry_points={
         'console_scripts': [
             'signac = signac.__main__:main',

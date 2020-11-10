@@ -1,22 +1,19 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
-import pytest
 import json
 import logging
+import os
 import platform
-from time import sleep
 from stat import S_IREAD
 from tempfile import TemporaryDirectory
+from time import sleep
 
-import signac
-from signac.errors import Error
-from signac.errors import BufferException
-from signac.errors import BufferedFileError
-
+import pytest
 from test_project import TestProjectBase
 
+import signac
+from signac.errors import BufferedFileError, BufferException, Error
 
 PYPY = 'PyPy' in platform.python_implementation()
 
@@ -40,7 +37,6 @@ with TemporaryDirectory() as tmp_dir:
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestBufferedMode(TestProjectBase):
-
     def test_enter_exit_buffered_mode(self):
         assert not signac.is_buffered()
         with signac.buffered():
@@ -175,12 +171,12 @@ class TestBufferedMode(TestProjectBase):
 
             for job in self.project:
                 assert job.sp.a > 0
-                job.sp.a = - job.sp.a
+                job.sp.a = -job.sp.a
                 assert job.sp.a < 0
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
                 assert job2.sp.a < 0
-                job.sp.a = - job.sp.a
+                job.sp.a = -job.sp.a
                 assert job.sp.a > 0
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
@@ -246,4 +242,4 @@ class TestBufferedMode(TestProjectBase):
                         file.write(json.dumps({'a': not x}).encode())
             assert job.doc._filename in cm.value.files
 
-            break    # only test for one job
+            break  # only test for one job

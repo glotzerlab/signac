@@ -2,25 +2,24 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Dict implementation with backend JSON file."""
-import os
-import sys
 import errno
-import uuid
 import hashlib
 import logging
-from tempfile import mkstemp
+import os
+import sys
+import uuid
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import copy
-from collections.abc import Mapping
+from tempfile import mkstemp
 
-from .errors import Error
 from . import json
 from .attrdict import SyncedAttrDict
-
+from .errors import Error
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BUFFER_SIZE = 32 * 2**20    # 32 MB
+DEFAULT_BUFFER_SIZE = 32 * 2 ** 20  # 32 MB
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
@@ -160,15 +159,17 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     assert _BUFFERED_MODE >= 0
 
     # Basic type check (to prevent common user error)
-    if not isinstance(buffer_size, int) or \
-            buffer_size is True or buffer_size is False:    # explicit check against boolean
+    if (
+        not isinstance(buffer_size, int) or buffer_size is True or buffer_size is False
+    ):  # explicit check against boolean
         raise TypeError("The buffer size must be an integer!")
 
     # Can't enter force write mode, if already in non-force write mode:
     if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
         raise BufferException(
             "Unable to enter buffered mode with force write enabled, because "
-            "we are already in buffered mode with force write disabled.")
+            "we are already in buffered mode with force write disabled."
+        )
 
     # Check whether we can adjust the buffer size and warn otherwise:
     if _BUFFER_SIZE is not None and _BUFFER_SIZE != buffer_size:
@@ -242,7 +243,8 @@ class JSONDict(SyncedAttrDict):
         if (filename is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
+                "parent or filename must be None, but not both."
+            )
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         super().__init__(parent=parent)
@@ -283,11 +285,10 @@ class JSONDict(SyncedAttrDict):
 
         if _BUFFERED_MODE > 0:
             _store_in_buffer(self._filename, blob)
-        else:   # Saving to disk:
+        else:  # Saving to disk:
             if self._write_concern:
                 dirname, filename = os.path.split(self._filename)
-                fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                    uid=uuid.uuid4(), fn=filename))
+                fn_tmp = os.path.join(dirname, f'._{uuid.uuid4()}_{filename}')
                 with open(fn_tmp, 'wb') as tmpfile:
                     tmpfile.write(blob)
                 os.replace(fn_tmp, self._filename)
@@ -302,8 +303,7 @@ class JSONDict(SyncedAttrDict):
                 backup = copy(self._data)
                 try:
                     self._data = {
-                        self._validate_key(k): self._dfs_convert(v)
-                        for k, v in data.items()
+                        self._validate_key(k): self._dfs_convert(v) for k, v in data.items()
                     }
                     self._save()
                 except BaseException:  # rollback

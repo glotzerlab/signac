@@ -2,23 +2,24 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Data store implementation with backend HDF5 file."""
+import array
+import errno
 import logging
 import os
-import errno
 import warnings
-import array
+from collections.abc import Mapping, MutableMapping
 from threading import RLock
-from collections.abc import Mapping
-from collections.abc import MutableMapping
 
 from ..errors import InvalidKeyError
 from .dict_manager import DictManager
 
-
 __all__ = [
-    'H5Store', 'H5Group', 'H5StoreManager',
-    'H5StoreClosedError', 'H5StoreAlreadyOpenError',
-    ]
+    'H5Store',
+    'H5Group',
+    'H5StoreManager',
+    'H5StoreClosedError',
+    'H5StoreAlreadyOpenError',
+]
 
 
 def _group_is_pandas_type(group):
@@ -40,9 +41,12 @@ def _load_pandas():
 
             def _is_pandas_type(value):
                 return isinstance(value, pandas.core.generic.PandasObject)
+
         except ImportError:
+
             def _is_pandas_type(value):
-                return False    # Must be False when pandas is not available.
+                return False  # Must be False when pandas is not available.
+
         else:
             _pandas = pandas
 
@@ -51,8 +55,7 @@ def _requires_tables():
     try:
         import tables  # noqa
     except ImportError:
-        raise ImportError(
-            "Storing and loading pandas objects requires the PyTables package.")
+        raise ImportError("Storing and loading pandas objects requires the PyTables package.")
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +76,8 @@ def _h5set(store, grp, key, value, path=None):
     handles None values.
     """
     import h5py
-    import numpy    # h5py depends on numpy, so this is safe.
+    import numpy  # h5py depends on numpy, so this is safe.
+
     path = path + '/' + key if path else key
 
     # Guard against assigning a group to itself, e.g., `h5s[key] = h5s[key]`,
@@ -114,7 +118,7 @@ def _h5set(store, grp, key, value, path=None):
 
     # Other types
     else:
-        _load_pandas()   # might be a pandas type
+        _load_pandas()  # might be a pandas type
         if _is_pandas_type(value):
             _requires_tables()
             store.close()
@@ -125,12 +129,14 @@ def _h5set(store, grp, key, value, path=None):
             grp[key] = value
             warnings.warn(
                 "Storage for object of type '{}' appears to have succeeded, but this "
-                "type is not officially supported!".format(type(value)))
+                "type is not officially supported!".format(type(value))
+            )
 
 
 def _h5get(store, grp, key, path=None):
     """Retrieve the underlying data for a key from its h5py container."""
     import h5py
+
     path = path + '/' + key if path else key
     result = grp[key]
 
@@ -154,8 +160,7 @@ def _h5get(store, grp, key, path=None):
             return None
         elif shape:
             return result
-        elif h5py.version.version_tuple.major >= 3 and \
-                h5py.check_dtype(vlen=result.dtype) is str:
+        elif h5py.version.version_tuple.major >= 3 and h5py.check_dtype(vlen=result.dtype) is str:
             # h5py >=3.0.0 returns strings as bytes. This returns str for
             # consistency with past behavior in signac.
             return result.asstr()[()]
@@ -179,7 +184,7 @@ class _ensure_open:
 
     def __enter__(self):
         if self.file._file is None:
-            self.file._open(** self.kwargs)
+            self.file._open(**self.kwargs)
             self.open = True
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
@@ -199,7 +204,8 @@ class H5Group(MutableMapping):
 
     def __repr__(self):
         return '{}(store={}, path={})'.format(
-            type(self).__name__, repr(self._store), repr(self._path))
+            type(self).__name__, repr(self._store), repr(self._path)
+        )
 
     @property
     def _group(self):
@@ -342,6 +348,7 @@ class H5Store(MutableMapping):
         if self._file is not None:
             raise H5StoreAlreadyOpenError(self)
         import h5py
+
         # We use the default file parameters, which can optionally be overridden
         # by additional keyword arguments (kwargs). This option is intentionally
         # not exposed to the public API.
@@ -480,7 +487,7 @@ class H5Store(MutableMapping):
                 return len(self._file)
         except OSError as error:
             if f'errno = {errno.ENOENT}' in str(error):
-                return 0     # file does not exist
+                return 0  # file does not exist
             else:
                 raise
 
@@ -490,7 +497,7 @@ class H5Store(MutableMapping):
                 return key in self._file
         except OSError as error:
             if f'errno = {errno.ENOENT}' in str(error):
-                return False     # file does not exist
+                return False  # file does not exist
             else:
                 raise
 
@@ -521,6 +528,7 @@ class H5StoreManager(DictManager):
     :param prefix:
         The directory prefix shared by all stores managed by this class.
     """
+
     cls = H5Store  # type: ignore
     suffix = '.h5'  # type: ignore
 

@@ -17,6 +17,7 @@ class SyncedAttrDict(_SyncedDict):
         ad = SyncedAttrDict(nested_dict)
         assert ad.a.b == 0
     """
+
     _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_save')
 
     def __getattr__(self, name):

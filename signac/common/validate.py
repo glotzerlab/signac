@@ -5,9 +5,7 @@
 
 import logging
 
-from .configobj.validate import Validator
-from .configobj.validate import VdtValueError
-
+from .configobj.validate import Validator, VdtValueError
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +33,12 @@ def password(value, *args, **kwargs):  # noqa: D103
 
 
 def get_validator():  # noqa: D103
-    return Validator({
-        'mongodb_uri': mongodb_uri,
-        'password': password,
-    })
+    return Validator(
+        {
+            'mongodb_uri': mongodb_uri,
+            'password': password,
+        }
+    )
 
 
 cfg = """

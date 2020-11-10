@@ -1,14 +1,15 @@
-import os
-import io
 import array
+import io
+import os
 from collections import OrderedDict
 from itertools import islice
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from signac import Collection
 from signac.contrib.collection import JSONParseError
 from signac.errors import InvalidKeyError
-import pytest
 
 n = 42
 N = 100
@@ -51,8 +52,7 @@ LOGICAL_EXPRESSIONS = [
 ]
 
 
-class TestCollection():
-
+class TestCollection:
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.c = Collection()
@@ -75,7 +75,7 @@ class TestCollection():
             assert doc['_id'] in self.c
 
     def test_init_with_list_with_ids_non_sequential(self):
-        docs = [{'a': i, '_id': '{:032d}'.format(i**3)} for i in range(10)]
+        docs = [{'a': i, '_id': '{:032d}'.format(i ** 3)} for i in range(10)]
         self.c = Collection(docs)
         assert len(self.c) == len(docs)
         for doc in docs:
@@ -417,14 +417,17 @@ class TestCollection():
 
     def test_find_exists_operator(self):
         assert len(self.c) == 0
-        data = OrderedDict((
-            ('a', True),
-            ('b', 'b'),
-            ('c', 0),
-            ('d', 0.1),
-            ('e', dict(a=0)),
-            ('f', dict(a='b')),
-            ('g', [0, 'a', True])))
+        data = OrderedDict(
+            (
+                ('a', True),
+                ('b', 'b'),
+                ('c', 0),
+                ('d', 0.1),
+                ('e', dict(a=0)),
+                ('f', dict(a='b')),
+                ('g', [0, 'a', True]),
+            )
+        )
 
         # Test without data
         for key in data:
@@ -489,17 +492,22 @@ class TestCollection():
         # test known cases with lists and tuples
         assert self.c.find({'a': {'$near': [10]}}).count() == 1
         assert self.c.find({'a': {'$near': (10)}}).count() == 1
-        assert self.c.find({'a': {'$near': [10]}}).count() == \
-            self.c.find({'a': {'$near': (10)}}).count()
-        assert self.c.find({'a': {'$near': [10]}}).count() == \
-            self.c.find({'a': {'$near': 10}}).count()
+        assert (
+            self.c.find({'a': {'$near': [10]}}).count()
+            == self.c.find({'a': {'$near': (10)}}).count()
+        )
+        assert (
+            self.c.find({'a': {'$near': [10]}}).count() == self.c.find({'a': {'$near': 10}}).count()
+        )
         assert self.c.find({'a': {'$near': [10, 0.5]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5)}}).count() == 16
         assert self.c.find({'a': {'$near': [10, 0.5, 0.0]}}).count() == 16
         assert self.c.find({'a': {'$near': (10, 0.5, 0.0)}}).count() == 16
         # increasing abs_tol should increase # of jobs found
-        assert self.c.find({'a': {'$near': [10, 0.5, 11]}}).count() > \
-            self.c.find({'a': {'$near': [10, 0.5]}}).count()
+        assert (
+            self.c.find({'a': {'$near': [10, 0.5, 11]}}).count()
+            > self.c.find({'a': {'$near': [10, 0.5]}}).count()
+        )
         assert self.c.find({'a': {'$near': [10.5, 0.005]}}).count() == 0
         assert self.c.find({'a': {'$near': (10.5, 0.005)}}).count() == 0
         # test with lists that are too long
@@ -574,7 +582,6 @@ class TestCollection():
 
 
 class TestCompressedCollection(TestCollection):
-
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.c = Collection.open(filename=':memory:', compresslevel=9)
@@ -598,8 +605,7 @@ class TestCompressedCollection(TestCollection):
         assert compresslevel > 1.0
 
 
-class TestFileCollectionBadJson():
-
+class TestFileCollectionBadJson:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
@@ -613,14 +619,13 @@ class TestFileCollectionBadJson():
         with Collection.open(self._fn_collection, mode='r') as c:
             assert len(list(c)) == 3
         with open(self._fn_collection, 'a') as file:
-            file.write("{'a': 0}\n")      # ill-formed JSON (single quotes instead of double quotes)
+            file.write("{'a': 0}\n")  # ill-formed JSON (single quotes instead of double quotes)
         with pytest.raises(JSONParseError):
             with Collection.open(self._fn_collection, mode='r') as c:
                 pass
 
 
-class TestCollectionToFromJson():
-
+class TestCollectionToFromJson:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')
@@ -640,8 +645,7 @@ class TestCollectionToFromJson():
         c.close()
 
 
-class TestFileCollectionReadOnly():
-
+class TestFileCollectionReadOnly:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_collection_')

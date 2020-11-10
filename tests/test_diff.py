@@ -1,12 +1,14 @@
 # Copyright (c) 2019 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import pytest
-import signac
 from tempfile import TemporaryDirectory
 
+import pytest
 
-class TestDiffBase():
+import signac
+
+
+class TestDiffBase:
 
     project_class = signac.Project
 
@@ -15,12 +17,11 @@ class TestDiffBase():
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         request.addfinalizer(self._tmp_dir.cleanup)
         self.project = self.project_class.init_project(
-            name='diff_test_project',
-            root=self._tmp_dir.name)
+            name='diff_test_project', root=self._tmp_dir.name
+        )
 
 
 class TestDiff(TestDiffBase):
-
     def test_two_jobs(self):
         job1 = self.project.open_job({'a': 0, 'b': 1})
         job2 = self.project.open_job({'a': 0})

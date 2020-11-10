@@ -4,6 +4,7 @@
 """Parse the filter arguments."""
 
 import sys
+
 from ..core import json
 
 
@@ -112,8 +113,7 @@ def _parse_json(q):
     try:
         return json.loads(q)
     except json.JSONDecodeError:
-        _print_err("Failed to parse query argument. "
-                   "Ensure that '{}' is valid JSON!".format(q))
+        _print_err(f"Failed to parse query argument. Ensure that '{q}' is valid JSON!")
         raise
 
 
@@ -190,7 +190,8 @@ def _parse_simple(key, value=None):
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "
-            "Using a JSON expression as a key is not allowed: '{}'.".format(key))
+            "Using a JSON expression as a key is not allowed: '{}'.".format(key)
+        )
     else:
         return {key: _cast(value)}
 
@@ -222,8 +223,8 @@ def parse_filter_arg(args, file=sys.stderr):
         q = dict()
         for i in range(0, len(args), 2):
             key = args[i]
-            if i+1 < len(args):
-                value = args[i+1]
+            if i + 1 < len(args):
+                value = args[i + 1]
             else:
                 value = None
             q.update(_parse_simple(key, value))

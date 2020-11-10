@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 """Compute diffs of state points."""
 
-from .contrib.utility import _dotted_dict_to_nested_dicts
-from .contrib.utility import _nested_dicts_to_dotted_keys
+from .contrib.utility import (_dotted_dict_to_nested_dicts,
+                              _nested_dicts_to_dotted_keys)
 
 
 def diff_jobs(*jobs):
@@ -62,7 +62,7 @@ def diff_jobs(*jobs):
 
         diffs = {}
         for job in jobs:
-            unique_sps = sps[job]-intersection
+            unique_sps = sps[job] - intersection
             diffs[job.id] = _dotted_dict_to_nested_dicts(dict(unique_sps))
 
         return diffs

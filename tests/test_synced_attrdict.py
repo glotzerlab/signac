@@ -1,18 +1,18 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import pytest
 import uuid
+from collections.abc import MutableMapping
 from copy import copy, deepcopy
 from itertools import chain
-from collections.abc import MutableMapping
+
+import pytest
 
 from signac.core.attrdict import SyncedAttrDict as SAD
 from signac.core.synceddict import _SyncedDict
 
 
 class _SyncPoint:
-
     def __init__(self):
         self.reset()
 
@@ -39,8 +39,7 @@ class _SyncPoint:
         self._saved += 1
 
 
-class TestSyncedAttrDict():
-
+class TestSyncedAttrDict:
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.sync_point = _SyncPoint()

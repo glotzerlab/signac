@@ -5,7 +5,6 @@ import pytest
 
 import signac.db
 
-
 try:
     with pytest.deprecated_call():
         signac.db.get_database('testing', hostname='testing')
@@ -19,8 +18,7 @@ else:
 
 
 @pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
-class TestDB():
-
+class TestDB:
     def get_test_db(self):
         with pytest.deprecated_call():
             signac.db.get_database('testing', hostname='testing')

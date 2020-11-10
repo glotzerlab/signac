@@ -3,26 +3,22 @@
 # This software is licensed under the BSD 3-Clause License.
 """Provides features for importing and exporting data."""
 
+import errno
+import logging
 import os
 import re
-import errno
 import shutil
-import zipfile
 import tarfile
-from zipfile import ZipFile, ZIP_DEFLATED
+import zipfile
 from collections import OrderedDict
-from contextlib import contextmanager, closing
+from contextlib import closing, contextmanager
 from string import Formatter
 from tempfile import TemporaryDirectory
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from ..core import json
-from .errors import StatepointParsingError
-from .errors import DestinationExistsError
-from .utility import _mkdir_p
-from .utility import _dotted_dict_to_nested_dicts
-
-import logging
-
+from .errors import DestinationExistsError, StatepointParsingError
+from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +56,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
 
     """
     from .schema import _build_job_statepoint_index
+
     if len(jobs) <= 1:
         # The lambda must (optionally) take a format spec argument to match the
         # signature of the path function below.
@@ -110,7 +107,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
             raise RuntimeError(
                 "Unable to determine path for job '{}'.\nThis is usually caused by a "
                 "heterogeneous schema, where some keys are only present in some jobs. "
-                "Try providing a custom path.".format(job))
+                "Try providing a custom path.".format(job)
+            )
+
     return path
 
 
@@ -139,6 +138,7 @@ class _AutoPathFormatter(Formatter):
 
         """
         from .job import Job
+
         if isinstance(value, Job):
             return self.paths(value, format_spec)
         else:
@@ -147,6 +147,7 @@ class _AutoPathFormatter(Formatter):
 
 class _SchemaPathEvaluationError(RuntimeError):
     """Raised for errors in schema path evaluation."""
+
     pass
 
 
@@ -228,7 +229,8 @@ def _make_path_function(jobs, path):
                             raise _SchemaPathEvaluationError(
                                 "You must use fully qualified fields for this path, because the "
                                 "state point contains a key called 'job', e.g.: '{job.sp.job}' "
-                                "instead of '{job}'.")
+                                "instead of '{job}'."
+                            )
                     ret = path.format(job=job)
                 return _AutoPathFormatter(paths).format(ret, auto=job)
             except AttributeError as error:
@@ -237,9 +239,9 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(f"Unknown key: {error}")
             except Exception as error:
                 raise _SchemaPathEvaluationError(error)
+
     else:
-        raise ValueError(
-            "The path argument must either be `None`, `False`, or of type `str`.")
+        raise ValueError("The path argument must either be `None`, `False`, or of type `str`.")
 
     return path_function
 
@@ -261,8 +263,7 @@ def _check_directory_structure_validity(paths):
     check = set()
     for dst in paths:
         if dst in check:
-            raise RuntimeError(
-                f"The path '{dst}' is both a leaf and node in the path structure.")
+            raise RuntimeError(f"The path '{dst}' is both a leaf and node in the path structure.")
         tokens = dst.split(os.path.sep)
         for i in range(1, len(tokens)):
             check.add(os.path.sep.join(tokens[:i]))
@@ -412,7 +413,8 @@ def export_to_zipfile(jobs, zipfile, path=None):
             for fn in filenames:
                 zipfile.write(
                     filename=os.path.join(root, fn),
-                    arcname=os.path.join(dst, os.path.relpath(root, src), fn))
+                    arcname=os.path.join(dst, os.path.relpath(root, src), fn),
+                )
 
     return _export_jobs(jobs=jobs, path=path, copytree=copytree_to_zip)
 
@@ -455,20 +457,20 @@ def export_jobs(jobs, target, path=None, copytree=None):
         if not (isinstance(target, str) and os.path.splitext(target)[1] == ''):
             raise ValueError(
                 "The copytree argument can only be used in combination "
-                "with directories as targets.")
+                "with directories as targets."
+            )
 
     if isinstance(target, str):
         ext = os.path.splitext(target)[1]
         if ext == '':  # target is directory
-            yield from export_to_directory(
-                jobs=jobs, target=target, path=path, copytree=copytree)
-        elif ext == '.zip':     # target is zipfile
+            yield from export_to_directory(jobs=jobs, target=target, path=path, copytree=copytree)
+        elif ext == '.zip':  # target is zipfile
             with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as zipfile:
                 yield from export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path)
-        elif ext == '.tar':     # target is uncompressed tarball
+        elif ext == '.tar':  # target is uncompressed tarball
             with tarfile.open(name=target, mode='a') as file:
                 yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
-        elif ext in ('.gz', '.bz2', '.xz'):    # target is compressed tarball
+        elif ext in ('.gz', '.bz2', '.xz'):  # target is compressed tarball
             with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
                 yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         else:
@@ -482,6 +484,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
 
 
 # ### Import related ###
+
 
 def _convert_bool(value):
     """Convert a boolean value encoded as string to corresponding bool.
@@ -498,8 +501,10 @@ def _convert_bool(value):
 
     """
     return {
-        'true': True,   '1': True,
-        'false': False, '0': False,
+        'true': True,
+        '1': True,
+        'false': False,
+        '0': False,
     }.get(value.lower(), bool(value))
 
 
@@ -536,8 +541,8 @@ def _convert_schema_path_to_regex(schema_path):
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
     re_key_type_field = r'\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}'
-    schema_regex = ''    # the return value
-    types = dict()       # maps values to their designated types
+    schema_regex = ''  # the return value
+    types = dict()  # maps values to their designated types
     index = 0
     while True:
         m = re.search(re_key_type_field, schema_path[index:])
@@ -545,7 +550,7 @@ def _convert_schema_path_to_regex(schema_path):
             key = m.groupdict()['key'].replace('.', _DOT_MAGIC_WORD)
             types[key] = m.groupdict()['type'] or 'str'
             start, stop = m.span()
-            schema_regex += schema_path[index:index+start].replace('.', r'\.')
+            schema_regex += schema_path[index : index + start].replace('.', r'\.')
             schema_regex += r'(?P<{}>{})'.format(key, RE_TYPES[types[key]])
             index += stop
             continue
@@ -619,6 +624,7 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
         Schema checking function.
 
     """
+
     def _check(path):
         """Check if the schema-detected state point matches the manifest file.
 
@@ -645,8 +651,10 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
             sp_default = read_sp_manifest_file(path)
             if sp and sp_default and sp_default != sp:
                 raise StatepointParsingError(
-                    "Identified state point conflicts with state point in job manifest file!")
+                    "Identified state point conflicts with state point in job manifest file!"
+                )
             return sp
+
     return _check
 
 
@@ -664,6 +672,7 @@ def _parse_workspaces(fn_manifest):
         Function to parse a manifest, given a path.
 
     """
+
     def _parse_workspace(path):
         """Parse a manifest, given a path.
 
@@ -714,13 +723,13 @@ def _crawl_directory_data_space(root, project, schema_function):
     for path, dirs, _ in os.walk(root):
         sp = schema_function(path)
         if sp is not None:
-            del dirs[:]         # skip sub-directories
+            del dirs[:]  # skip sub-directories
             job = project.open_job(sp)
             dst = job.workspace()
             if os.path.realpath(path) == os.path.realpath(dst):
-                continue     # skip (already part of the data space)
+                continue  # skip (already part of the data space)
             elif os.path.realpath(path).startswith(workspace_real_path):
-                continue     # skip (part of the project's workspace)
+                continue  # skip (part of the project's workspace)
             yield path, job
 
 
@@ -766,6 +775,7 @@ class _CopyFromDirectoryExecutor:
         An instance of :class:`~signac.contrib.job.Job`.
 
     """
+
     def __init__(self, src, job):
         self.src = src
         self.job = job
@@ -815,7 +825,8 @@ def _analyze_directory_for_import(root, project, schema):
         if not schema.startswith(root):
             schema = os.path.normpath(os.path.join(root, schema))
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file)
+            _make_path_based_schema_function(schema), read_sp_manifest_file
+        )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
@@ -824,7 +835,8 @@ def _analyze_directory_for_import(root, project, schema):
     for src, job in _crawl_directory_data_space(root, project, schema_function):
         if job in jobs:
             raise StatepointParsingError(
-                "The jobs identified with the given schema function are not unique!")
+                "The jobs identified with the given schema function are not unique!"
+            )
         else:
             jobs.add(job)
             copy_executor = _CopyFromDirectoryExecutor(src, job)
@@ -846,6 +858,7 @@ class _CopyFromZipFileExecutor:
         File names to copy.
 
     """
+
     def __init__(self, zipfile, root, job, names):
         self.zipfile = zipfile
         self.root = root
@@ -924,7 +937,8 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file)
+            _make_path_based_schema_function(schema), read_sp_manifest_file
+        )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
@@ -952,7 +966,8 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     # Check uniqueness
     if len(set(mappings.values())) != len(mappings):
         raise StatepointParsingError(
-            "The jobs identified with the given schema function are not unique!")
+            "The jobs identified with the given schema function are not unique!"
+        )
 
     for src, job in mappings.items():
         _names = [name for name in names if name.startswith(src)]
@@ -1071,7 +1086,8 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
         schema_function = _with_consistency_check(schema, read_sp_manifest_file)
     elif isinstance(schema, str):
         schema_function = _with_consistency_check(
-            _make_path_based_schema_function(schema), read_sp_manifest_file)
+            _make_path_based_schema_function(schema), read_sp_manifest_file
+        )
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
@@ -1080,7 +1096,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     dirs = [member.name for member in tarfile.getmembers() if member.isdir()]
     for name in sorted(dirs):
-        if os.path.dirname(name) in skip_subdirs:   # skip all sub-dirs of identified dirs
+        if os.path.dirname(name) in skip_subdirs:  # skip all sub-dirs of identified dirs
             skip_subdirs.add(name)
             continue
 
@@ -1095,7 +1111,8 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
     # Check uniqueness
     if len(set(mappings.values())) != len(mappings):
         raise StatepointParsingError(
-            "The jobs identified with the given schema function are not unique!")
+            "The jobs identified with the given schema function are not unique!"
+        )
 
     tarfile.extractall(path=tmpdir)
     for path, job in mappings.items():

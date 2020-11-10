@@ -2,44 +2,47 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
-import sys
-import pytest
+import platform
 import random
 import string
 import subprocess
-import platform
-from itertools import chain
+import sys
 from array import array
-from contextlib import contextmanager
-from time import time
-from functools import partial
-from platform import python_implementation
-from multiprocessing.pool import ThreadPool
-from contextlib import closing
-from tempfile import TemporaryDirectory
 from collections.abc import Mapping
+from contextlib import closing, contextmanager
+from functools import partial
+from itertools import chain
+from multiprocessing.pool import ThreadPool
+from platform import python_implementation
+from tempfile import TemporaryDirectory
+from time import time
 
-from signac.core.h5store import H5Store, H5StoreClosedError, H5StoreAlreadyOpenError
+import pytest
+
+from signac.core.h5store import (H5Store, H5StoreAlreadyOpenError,
+                                 H5StoreClosedError)
 from signac.errors import InvalidKeyError
-
 
 PYPY = 'PyPy' in platform.python_implementation()
 
 try:
-    import h5py    # noqa
+    import h5py  # noqa
+
     H5PY = True
 except ImportError:
     H5PY = False
 
 try:
-    import pandas   # noqa
-    import tables   # noqa
+    import pandas  # noqa
+    import tables  # noqa
+
     PANDAS_AND_TABLES = True
 except ImportError:
     PANDAS_AND_TABLES = False
 
 try:
-    import numpy    # noqa
+    import numpy  # noqa
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -47,13 +50,12 @@ except ImportError:
 FN_STORE = 'signac_test_h5store.h5'
 
 
-WINDOWS = (sys.platform == 'win32')
+WINDOWS = sys.platform == 'win32'
 
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
 @pytest.mark.skipif(PYPY, reason='h5py not reliable on PyPy platform')
-class TestH5StoreBase():
-
+class TestH5StoreBase:
     @pytest.fixture(autouse=True)
     def setUp_base_h5Store(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_test_h5store_')
@@ -92,7 +94,6 @@ class TestH5StoreBase():
 
 
 class TestH5StoreOpen(TestH5StoreBase):
-
     def test_open(self):
         h5s = self.get_h5store()
         h5s.open()
@@ -144,10 +145,12 @@ class TestH5Store(TestH5StoreBase):
     }
 
     if NUMPY:
-        valid_types.update({
-            'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
-            'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
-        })
+        valid_types.update(
+            {
+                'numpy_float_array': numpy.array([-1.5, 0, 1.5], dtype=float),
+                'numpy_int_array': numpy.array([-1, 0, 1], dtype=int),
+            }
+        )
 
     def test_init(self):
         self.get_h5store()
@@ -214,8 +217,8 @@ class TestH5Store(TestH5StoreBase):
         with self.open_h5store() as h5s:
             key = 'test_repr'
             h5s[key] = self.get_testdata()
-            str(h5s)    # open
-        str(h5s)    # closed
+            str(h5s)  # open
+        str(h5s)  # closed
 
     def test_len(self):
         h5s = self.get_h5store()
@@ -390,8 +393,10 @@ class TestH5Store(TestH5StoreBase):
                         other_h5s[k] = h5s[k]
                     except (OSError, RuntimeError) as error:
                         # Type of error may depend on platform or software versions
-                        assert str(
-                            error) == "Unable to create link (interfile hard links are not allowed)"
+                        assert (
+                            str(error)
+                            == "Unable to create link (interfile hard links are not allowed)"
+                        )
                         assert isinstance(v, (array, numpy.ndarray))
                         other_h5s[k] = h5s[k][()]
                     self.assertEqual(h5s[k], v)
@@ -539,12 +544,12 @@ class TestH5Store(TestH5StoreBase):
 
 
 class TestH5StoreNestedData(TestH5Store):
-
     def get_testdata(self, size=None):
         return dict(a=super().get_testdata(size))
 
     def test_repr(self):
-        from signac.core.h5store import H5Store, H5Group  # noqa:F401
+        from signac.core.h5store import H5Group, H5Store  # noqa:F401
+
         with self.open_h5store() as h5s:
             key = 'test_repr'
             assert repr(h5s) == repr(eval(repr(h5s)))
@@ -554,7 +559,6 @@ class TestH5StoreNestedData(TestH5Store):
 
 
 class TestH5StoreBytesData(TestH5Store):
-
     def get_testdata(self, size=None):
         return super().get_testdata(size=size).encode()
 
@@ -585,12 +589,12 @@ class TestH5StoreNestedDataClosed(TestH5StoreNestedData, TestH5StoreClosed):
 @pytest.mark.skipif(not PANDAS_AND_TABLES, reason='requires pandas and pytables')
 @pytest.mark.skipif(not NUMPY, reason='requires numpy package')
 class TestH5StorePandasData(TestH5Store):
-
     def get_testdata(self, size=None):
         if size is None:
             size = 1024
         return pandas.DataFrame(
-            numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)])
+            numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]
+        )
 
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
@@ -610,20 +614,22 @@ class TestH5StorePandasData(TestH5Store):
 @pytest.mark.skipif(not PANDAS_AND_TABLES, reason='requires pandas and pytables')
 @pytest.mark.skipif(not NUMPY, reason='requires numpy package')
 class TestH5StoreNestedPandasData(TestH5StorePandasData):
-
     def get_testdata(self, size=None):
         if size is None:
             size = 1024
-        return dict(df=pandas.DataFrame(
-            numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]))
+        return dict(
+            df=pandas.DataFrame(
+                numpy.random.rand(8, size), index=[string.ascii_letters[i] for i in range(8)]
+            )
+        )
 
 
 class TestH5StoreMultiThreading(TestH5StoreBase):
-
-    @pytest.mark.skip(reason="This test fails randomly on CI. "
-                             "See https://github.com/glotzerlab/signac/pull/307")
+    @pytest.mark.skip(
+        reason="This test fails randomly on CI. "
+        "See https://github.com/glotzerlab/signac/pull/307"
+    )
     def test_multithreading(self):
-
         def set_x(x):
             self.get_h5store()['x'] = x
 
@@ -633,10 +639,11 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
 
         assert self.get_h5store()['x'] in set(range(100))
 
-    @pytest.mark.skip(reason="This test fails randomly on CI. "
-                             "See https://github.com/glotzerlab/signac/pull/307")
+    @pytest.mark.skip(
+        reason="This test fails randomly on CI. "
+        "See https://github.com/glotzerlab/signac/pull/307"
+    )
     def test_multithreading_with_error(self):
-
         def set_x(x):
             self.get_h5store()['x'] = x
             if x == 50:
@@ -652,15 +659,15 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
 
 def _read_from_h5store(filename, **kwargs):
     from signac.core.h5store import H5Store
+
     with H5Store(filename, **kwargs) as h5s:
         list(h5s)
 
 
 class TestH5StoreMultiProcessing(TestH5StoreBase):
-
     def test_single_writer_multiple_reader_same_process(self):
         with self.open_h5store() as writer:
-            with self.open_h5store():   # second writer
+            with self.open_h5store():  # second writer
                 with self.open_h5store(mode='r') as reader1:
                     with self.open_h5store(mode='r') as reader2:
                         writer['test'] = True
@@ -686,15 +693,17 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
 
     def test_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
-                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
-                    r'h5s.close()"').format(repr(self._fn_store))
+        read_cmd = (
+            r'python -c "from signac.core.h5store import H5Store; '
+            r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+            r'h5s.close()"'
+        ).format(repr(self._fn_store))
 
         with self.open_h5store():
-            pass    # create file
+            pass  # create file
 
         try:
-            with self.open_h5store(mode='r'):    # single reader
+            with self.open_h5store(mode='r'):  # single reader
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as error:
             print('\n', error.output.decode(), file=sys.stderr)
@@ -702,20 +711,24 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
 
     def test_single_writer_multiple_reader_different_process_no_swmr(self):
 
-        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
-                    r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
-                    r'h5s.close()"').format(repr(self._fn_store))
+        read_cmd = (
+            r'python -c "from signac.core.h5store import H5Store; '
+            r'h5s = H5Store({}, mode=\"r\"); list(h5s); '
+            r'h5s.close()"'
+        ).format(repr(self._fn_store))
 
-        with self.open_h5store():   # single writer
+        with self.open_h5store():  # single writer
             with pytest.raises(subprocess.CalledProcessError):
                 subprocess.check_output(read_cmd, shell=True, stderr=subprocess.DEVNULL)
 
     @pytest.mark.skipif(python_implementation() != 'CPython', reason='SWMR mode not available.')
     def test_single_writer_multiple_reader_different_process_swmr(self):
 
-        read_cmd = (r'python -c "from signac.core.h5store import H5Store; '
-                    r'h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); '
-                    r'h5s.close()"').format(repr(self._fn_store))
+        read_cmd = (
+            r'python -c "from signac.core.h5store import H5Store; '
+            r'h5s = H5Store({}, mode=\"r\", swmr=True); list(h5s); '
+            r'h5s.close()"'
+        ).format(repr(self._fn_store))
 
         with self.open_h5store(libver='latest') as writer:
             with pytest.raises(subprocess.CalledProcessError):
@@ -755,18 +768,26 @@ class TestH5StorePerformance(TestH5StoreBase):
 
         def format_row(text, reducer):
             return "{:<10}\t{:.2e}\t{:.2e}\t{:.3}\n".format(
-                text, reducer(times), reducer(self.baseline_time),
-                reducer(times) / reducer(self.baseline_time))
+                text,
+                reducer(times),
+                reducer(self.baseline_time),
+                reducer(times) / reducer(self.baseline_time),
+            )
+
         msg += format_row('mean', numpy.mean)
         msg += format_row('median', numpy.median)
         msg += format_row('25 percentile', partial(numpy.percentile, q=25))
         msg += format_row('75 percentile', partial(numpy.percentile, q=75))
-        assert numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75) < \
-            self.max_slowdown_vs_native_factor, msg
+        assert (
+            numpy.percentile(times, 25) / numpy.percentile(self.baseline_time, 75)
+            < self.max_slowdown_vs_native_factor
+        ), msg
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
-    @pytest.mark.skip(reason="This test fails randomly on CI. "
-                             "See https://github.com/glotzerlab/signac/pull/307")
+    @pytest.mark.skip(
+        reason="This test fails randomly on CI. "
+        "See https://github.com/glotzerlab/signac/pull/307"
+    )
     def test_speed_get(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_get'
@@ -780,8 +801,10 @@ class TestH5StorePerformance(TestH5StoreBase):
         self.assertSpeed(times)
 
     @pytest.mark.skipif(WINDOWS, reason='This test fails for an unknown reason on Windows.')
-    @pytest.mark.skip(reason="This test fails randomly on CI. "
-                             "See https://github.com/glotzerlab/signac/pull/307")
+    @pytest.mark.skip(
+        reason="This test fails randomly on CI. "
+        "See https://github.com/glotzerlab/signac/pull/307"
+    )
     def test_speed_set(self, setUp):
         times = numpy.zeros(200)
         key = 'test_speed_set'
@@ -810,6 +833,7 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
                 if i:
                     del h5file['_basegroup']
                 h5file.create_group('_basegroup').create_dataset(
-                    '_baseline', data=value, shape=None)
+                    '_baseline', data=value, shape=None
+                )
             times[i] = time() - start
         self.baseline_time = times

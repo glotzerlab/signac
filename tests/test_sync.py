@@ -1,23 +1,22 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
-import pytest
 import logging
-from time import sleep
+import os
 from tempfile import TemporaryDirectory
+from time import sleep
+
+import pytest
+from test_job import TestJobBase
 
 import signac
 from signac import sync
-from signac.core.jsondict import JSONDict
-from signac.syncutil import _DocProxy
-from signac.sync import _FileModifyProxy
-from signac.errors import FileSyncConflict
-from signac.errors import DocumentSyncConflict
-from signac.errors import SchemaSyncConflict
 from signac.contrib.utility import _mkdir_p
-
-from test_job import TestJobBase
+from signac.core.jsondict import JSONDict
+from signac.errors import (DocumentSyncConflict, FileSyncConflict,
+                           SchemaSyncConflict)
+from signac.sync import _FileModifyProxy
+from signac.syncutil import _DocProxy
 
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
@@ -28,12 +27,14 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     """
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
-        os.utime(f.fileno() if os.utime in os.supports_fd else fname,
-                 dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+        os.utime(
+            f.fileno() if os.utime in os.supports_fd else fname,
+            dir_fd=None if os.supports_fd else dir_fd,
+            **kwargs,
+        )
 
 
-class TestDocProxy():
-
+class TestDocProxy:
     def test_basic(self):
         doc = dict(a=0)
         proxy = _DocProxy(doc)
@@ -78,8 +79,7 @@ class TestDocProxy():
         assert proxy == doc
 
 
-class TestFileModifyProxy():
-
+class TestFileModifyProxy:
     def test_copy(self):
         proxy = _FileModifyProxy()
         with TemporaryDirectory(prefix='signac_') as tmp:
@@ -202,8 +202,7 @@ class TestFileModifyProxy():
                 assert file.read() == 'b'
 
 
-class TestFileModifyProxyDocBackup():
-
+class TestFileModifyProxyDocBackup:
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.doc = dict()
@@ -243,17 +242,14 @@ class TestFileModifyProxyDocBackup():
 
 
 class TestFileModifyProxyJSONDocBackup(TestFileModifyProxyDocBackup):
-
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
         request.addfinalizer(self._tmp_dir.cleanup)
-        self.doc = JSONDict(
-            filename=os.path.join(self._tmp_dir.name, 'doc.json'))
+        self.doc = JSONDict(filename=os.path.join(self._tmp_dir.name, 'doc.json'))
 
 
 class TestJobSync(TestJobBase):
-
     def test_sync_no_implicit_init(self):
         job_dst = self.open_job({'a': 0})
         job_src = self.open_job({'a': 1})
@@ -358,8 +354,9 @@ class TestJobSync(TestJobBase):
         job_dst.sync(job_src, sync.FileSync.always, exclude='test', recursive=True)
         assert differs('test')
         assert differs('subdir/test2')
-        job_dst.sync(job_src, sync.FileSync.always,
-                     exclude=['test', 'non-existent-key'], recursive=True)
+        job_dst.sync(
+            job_src, sync.FileSync.always, exclude=['test', 'non-existent-key'], recursive=True
+        )
         assert differs('test')
         assert differs('subdir/test2')
         sleep(1)
@@ -502,12 +499,12 @@ class TestJobSync(TestJobBase):
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
         assert job_dst.document['nested'] != job_src.document['nested']
-        reset()     # only sync a
+        reset()  # only sync a
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('a'))
         assert job_dst.document != job_src.document
         assert job_dst.document['nested'] != job_src.document['nested']
         assert job_dst.document['a'] == job_src.document['a']
-        reset()     # only sync nested
+        reset()  # only sync nested
         job_dst.sync(job_src, doc_sync=sync.DocSync.ByKey('nested'))
         assert job_dst.document != job_src.document
         assert job_dst.document['a'] != job_src.document['a']
@@ -534,8 +531,7 @@ class TestJobSync(TestJobBase):
         assert job_dst.document['a'] == job_src.document['a']
 
 
-class TestProjectSync():
-
+class TestProjectSync:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='signac_')
@@ -544,10 +540,8 @@ class TestProjectSync():
         self._tmp_pr_b = os.path.join(self._tmp_dir.name, 'pr_b')
         os.mkdir(self._tmp_pr_a)
         os.mkdir(self._tmp_pr_b)
-        self.project_a = signac.Project.init_project(
-            name='test-project-a', root=self._tmp_pr_a)
-        self.project_b = signac.Project.init_project(
-            name='test-project-b', root=self._tmp_pr_b)
+        self.project_a = signac.Project.init_project(name='test-project-a', root=self._tmp_pr_a)
+        self.project_b = signac.Project.init_project(name='test-project-b', root=self._tmp_pr_b)
 
     def _init_job(self, job, data='data'):
         with job:

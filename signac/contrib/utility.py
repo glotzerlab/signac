@@ -3,20 +3,21 @@
 # This software is licensed under the BSD 3-Clause License.
 """Utilities for signac."""
 
-import logging
-import sys
-import os
-import getpass
 import argparse
 import errno
-import zipfile
+import getpass
+import logging
+import os
+import sys
 import tarfile
-from time import time
-from datetime import timedelta
-from contextlib import contextmanager
-from deprecation import deprecated
-from tempfile import TemporaryDirectory
+import zipfile
 from collections.abc import Mapping
+from contextlib import contextmanager
+from datetime import timedelta
+from tempfile import TemporaryDirectory
+from time import time
+
+from deprecation import deprecated
 
 from ..version import __version__
 
@@ -69,8 +70,7 @@ def query_yes_no(question, default="yes"):
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "
-                             "(or 'y' or 'n').\n")
+            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
 def prompt_password(prompt='Password: '):
@@ -108,15 +108,20 @@ def add_verbosity_argument(parser, default=0):
 
     """
     parser.add_argument(
-        '-v', '--verbosity',
+        '-v',
+        '--verbosity',
         help="Set level of verbosity.",
         action='count',
         default=default,
     )
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This function is obsolete.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="This function is obsolete.",
+)
 def add_verbosity_action_argument(parser, default=0):
     """Add a verbosity argument to parser.
 
@@ -143,8 +148,12 @@ def add_verbosity_action_argument(parser, default=0):
     )
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="This function is obsolete.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="This function is obsolete.",
+)
 def set_verbosity_level(verbosity, default=None, increment=10):
     """Set the verbosity level as a function of an integer level.
 
@@ -160,15 +169,18 @@ def set_verbosity_level(verbosity, default=None, increment=10):
     """
     if default is None:
         default = logging.ERROR
-    logging.basicConfig(
-        level=default - increment * verbosity)
+    logging.basicConfig(level=default - increment * verbosity)
 
 
 # this class is deprecated
-class VerbosityAction(argparse.Action): # noqa: D101, E261
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="This class is obsolete")
-    def __call__(self, parser, args, values, option_string=None): # noqa: D102, E261
+class VerbosityAction(argparse.Action):  # noqa: D101, E261
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="This class is obsolete",
+    )
+    def __call__(self, parser, args, values, option_string=None):  # noqa: D102, E261
         if values is None:
             values = '1'
         try:
@@ -178,29 +190,39 @@ class VerbosityAction(argparse.Action): # noqa: D101, E261
         setattr(args, self.dest, values)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The VerbosityLoggingConfigAction class is obsolete.")
-class VerbosityLoggingConfigAction(VerbosityAction): # noqa: D101, E261
-    def __call__(self, parser, args, values, option_string=None): # noqa:D102, E261
-        super().__call__(
-            parser, args, values, option_string)
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The VerbosityLoggingConfigAction class is obsolete.",
+)
+class VerbosityLoggingConfigAction(VerbosityAction):  # noqa: D101, E261
+    def __call__(self, parser, args, values, option_string=None):  # noqa:D102, E261
+        super().__call__(parser, args, values, option_string)
         v_level = getattr(args, self.dest)
         set_verbosity_level(v_level)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The EmptyIsTrue class is obsolete.")
-class EmptyIsTrue(argparse.Action): # noqa: D101, E261
-    def __call__(self, parser, namespace, values, option_string=None): # noqa: D102, E261
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The EmptyIsTrue class is obsolete.",
+)
+class EmptyIsTrue(argparse.Action):  # noqa: D101, E261
+    def __call__(self, parser, namespace, values, option_string=None):  # noqa: D102, E261
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The SmartFormatter class is obsolete.")
-class SmartFormatter(argparse.HelpFormatter): # noqa: D101, E261
-
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The SmartFormatter class is obsolete.",
+)
+class SmartFormatter(argparse.HelpFormatter):  # noqa: D101, E261
     def _split_lines(self, text, width):
 
         if text.startswith('R|'):
@@ -297,7 +319,7 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
         len_chunk = int(N / num_chunks)
         intervals = []
         show_est = False
-        for i in range(num_chunks-1):
+        for i in range(num_chunks - 1):
             if i:
                 msg = "{}{:3.0f}%".format(desc, 100 * i / num_chunks)
                 if intervals:
@@ -308,9 +330,9 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
                         msg += " (ETR: {}h)".format(timedelta(seconds=est_remaining))
                 write(msg)
             start = time()
-            yield iterable[i * len_chunk:(i+1) * len_chunk]
+            yield iterable[i * len_chunk : (i + 1) * len_chunk]
             intervals.append(time() - start)
-        yield iterable[(i+1) * len_chunk:]
+        yield iterable[(i + 1) * len_chunk :]
         write(f"{desc}100%")
     else:
         yield iterable

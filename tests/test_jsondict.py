@@ -2,14 +2,13 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 import os
-import pytest
 import uuid
 from tempfile import TemporaryDirectory
 
-from signac.core.jsondict import JSONDict
-from signac.errors import InvalidKeyError
-from signac.errors import KeyTypeError
+import pytest
 
+from signac.core.jsondict import JSONDict
+from signac.errors import InvalidKeyError, KeyTypeError
 
 FN_DICT = 'jsondict.json'
 
@@ -18,8 +17,7 @@ def testdata():
     return str(uuid.uuid4())
 
 
-class TestJSONDictBase():
-
+class TestJSONDictBase:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
@@ -28,7 +26,6 @@ class TestJSONDictBase():
 
 
 class TestJSONDict(TestJSONDictBase):
-
     def get_json_dict(self):
         return JSONDict(filename=self._fn_dict)
 
@@ -232,6 +229,7 @@ class TestJSONDict(TestJSONDictBase):
 
         class MyStr(str):
             pass
+
         for key in ('key', MyStr('key'), 0, None, True):
             d = jsd[key] = self.get_testdata()
             assert str(key) in jsd
@@ -242,6 +240,7 @@ class TestJSONDict(TestJSONDictBase):
 
         class A:
             pass
+
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 jsd[key] = self.get_testdata()
@@ -251,13 +250,11 @@ class TestJSONDict(TestJSONDictBase):
 
 
 class TestJSONDictWriteConcern(TestJSONDict):
-
     def get_json_dict(self):
         return JSONDict(filename=self._fn_dict, write_concern=True)
 
 
 class TestJSONDictNestedData(TestJSONDict):
-
     def get_testdata(self):
         return dict(a=super().get_testdata())
 

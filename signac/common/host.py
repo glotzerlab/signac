@@ -1,17 +1,18 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import getpass
 import logging
 import warnings
-import getpass
 
 from deprecation import deprecated
-from ..version import __version__
+
 from ..core import json
+from ..version import __version__
 from .config import load_config
-from .errors import ConfigError, AuthenticationError
 from .connection import DBClientConnector
-from .crypt import get_crypt_context, SimpleKeyring, get_keyring
+from .crypt import SimpleKeyring, get_crypt_context, get_keyring
+from .errors import AuthenticationError, ConfigError
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,12 @@ THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_default_host(config=None):
     if config is None:
         config = load_config()
@@ -45,8 +50,12 @@ def _get_host_config(hostname, config):
         raise ConfigError(f"Host '{hostname}' not configured.")
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_host_config(hostname=None, config=None):
     if config is None:
         config = load_config()
@@ -59,12 +68,16 @@ def _host_id(hostcfg):
     return json.dumps(hostcfg, sort_keys=True)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def make_uri(hostcfg):
     ret = hostcfg['url']
     if ret.startswith('mongodb://'):
-        ret = ret[len('mongodb://'):]
+        ret = ret[len('mongodb://') :]
     if 'username' in hostcfg:
         assert '@' not in ret
         ret = hostcfg['username'] + '@' + ret
@@ -90,8 +103,7 @@ def _get_keyring_credentials(hostcfg):
     kr = get_keyring()
     if kr is None:
         if pwcfg and 'keyring' in pwcfg:
-            warnings.warn(
-                "Password stored in keyring, but keyring is not available!")
+            warnings.warn("Password stored in keyring, but keyring is not available!")
     elif pwcfg and 'keyring' in pwcfg:
         return kr.get_password('signac', pwcfg['keyring'])
     else:
@@ -113,6 +125,7 @@ def _get_stored_credentials(hostcfg):
         if pw is None:
             pw = _get_config_credentials(hostcfg)
         return pw
+
     return _get_cached_credentials(hostcfg, default)
 
 
@@ -124,11 +137,16 @@ def _get_credentials(hostcfg):
             if pw is None:
                 pw = _request_credentials(hostcfg)
         return pw
+
     return _get_cached_credentials(hostcfg, default)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_credentials(hostcfg, ask=True):
     if ask:
         return _get_credentials(hostcfg)
@@ -147,10 +165,15 @@ def _input(prompt, default=''):
         return default
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def check_credentials(hostcfg):
     from pymongo.uri_parser import parse_uri
+
     auth_m = hostcfg.get('auth_mechanism', 'none')
     if auth_m == 'SCRAM-SHA-1':
         uri = hostcfg['url']
@@ -161,23 +184,30 @@ def check_credentials(hostcfg):
             if username:
                 hostcfg['username'] = username
             else:
-                SESSION_USERNAME_CACHE[_host_id(hostcfg)] = \
-                    hostcfg['username'] = _input(
-                        f"Username ({getpass.getuser()}): ",
-                        getpass.getuser())
+                SESSION_USERNAME_CACHE[_host_id(hostcfg)] = hostcfg['username'] = _input(
+                    f"Username ({getpass.getuser()}): ", getpass.getuser()
+                )
         if 'password' not in hostcfg and not parse_uri(uri)['password']:
             hostcfg['password'] = get_credentials(hostcfg)
     return hostcfg
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_connector(hostcfg, **kwargs):
     return DBClientConnector(hostcfg, **kwargs)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_client(hostcfg, **kwargs):
     connector = get_connector(hostcfg, **kwargs)
     connector.connect()
@@ -185,16 +215,23 @@ def get_client(hostcfg, **kwargs):
     return connector.client
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The host module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The host module is deprecated.",
+)
 def get_database(name, hostname=None, config=None, **kwargs):
     if hostname is None:
         hostname = get_default_host(config)
     if config is None:
         config = load_config()
     hostcfg = check_credentials(get_host_config(hostname, config))
-    logger.debug("Connecting with host config: {}".format(
-        {k: '***' if 'password' in k else v for k, v in hostcfg.items()}))
+    logger.debug(
+        "Connecting with host config: {}".format(
+            {k: '***' if 'password' in k else v for k, v in hostcfg.items()}
+        )
+    )
     try:
         client = get_client(hostcfg, **kwargs)
     except Exception as error:

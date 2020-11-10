@@ -3,11 +3,11 @@
 # This software is licensed under the BSD 3-Clause License.
 """Project Schema."""
 
-from pprint import pformat
-from collections import defaultdict as ddict
-from numbers import Number
 import itertools
+from collections import defaultdict as ddict
 from collections.abc import Mapping
+from numbers import Number
+from pprint import pformat
 
 
 class _Vividict(dict):
@@ -16,6 +16,7 @@ class _Vividict(dict):
     Useful for automatically nesting keys with ``vividict['a']['b']['c'] = 'd'``.
 
     """
+
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value
@@ -60,9 +61,9 @@ def _build_job_statepoint_index(exclude_const, index):
         with that state point value.
 
     """
-    from .collection import Collection
-    from .collection import _DictPlaceholder
+    from .collection import Collection, _DictPlaceholder
     from .utility import _nested_dicts_to_dotted_keys
+
     collection = Collection(index, _trust=True)
     for doc in collection.find():
         for key, _ in _nested_dicts_to_dotted_keys(doc):
@@ -71,7 +72,8 @@ def _build_job_statepoint_index(exclude_const, index):
             collection.index(key, build=True)
     tmp = collection._indexes
 
-    def strip_prefix(key): return k[len('statepoint.'):]
+    def strip_prefix(key):
+        return k[len('statepoint.') :]
 
     def remove_dict_placeholder(x):
         """Remove _DictPlaceholder elements from a mapping.
@@ -90,8 +92,11 @@ def _build_job_statepoint_index(exclude_const, index):
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
 
     for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
-        if exclude_const and len(tmp[k]) == 1 \
-                and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
+        if (
+            exclude_const
+            and len(tmp[k]) == 1
+            and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection)
+        ):
             continue
         statepoint_key = strip_prefix(k)
         statepoint_values = remove_dict_placeholder(tmp[k])
@@ -107,6 +112,7 @@ class ProjectSchema:
         Project schema.
 
     """
+
     def __init__(self, schema=None):
         if schema is None:
             schema = dict()
@@ -197,11 +203,12 @@ class ProjectSchema:
             if len(values) <= max_num_range:
                 values_string = ', '.join(_fmt_value(v) for v in sorted_values)
             else:
-                values_string = ', '.join(_fmt_value(v) for v in sorted_values[:max_num_range - 2])
+                values_string = ', '.join(_fmt_value(v) for v in sorted_values[: max_num_range - 2])
                 values_string += ', ..., '
                 values_string += ', '.join(_fmt_value(v) for v in sorted_values[-2:])
             return '{type_name}([{values_string}], {length})'.format(
-                type_name=type_.__name__, values_string=values_string, length=len(values))
+                type_name=type_.__name__, values_string=values_string, length=len(values)
+            )
 
         def _fmt_values(values):
             """Convert values into a single string.
@@ -251,6 +258,7 @@ class ProjectSchema:
 
     def _repr_html_(self):
         import html
+
         output = "<strong>" + html.escape(repr(self)) + "</strong>"
         output += "<pre>" + str(self) + "</pre>"
         return output

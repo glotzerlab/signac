@@ -77,19 +77,13 @@ import os
 import re
 from collections import defaultdict as ddict
 from collections import namedtuple
-from multiprocessing.pool import ThreadPool
 from collections.abc import Mapping
+from multiprocessing.pool import ThreadPool
 
-from .errors import DestinationExistsError
-from .errors import FileSyncConflict
-from .errors import DocumentSyncConflict
-from .errors import SchemaSyncConflict
 from .contrib.utility import query_yes_no
-from .syncutil import dircmp
-from .syncutil import dircmp_deep
-from .syncutil import _FileModifyProxy
-from .syncutil import logger
-
+from .errors import (DestinationExistsError, DocumentSyncConflict,
+                     FileSyncConflict, SchemaSyncConflict)
+from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
 
 __all__ = [
     'FileSync',
@@ -100,6 +94,7 @@ __all__ = [
 
 
 # Definition of default sync strategies
+
 
 class FileSync:
     """Collection of file synchronization strategies."""
@@ -205,8 +200,9 @@ class DocSync:
                     logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
 
 
-def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
-                         recursive=True, deep=False, subdir=''):
+def _sync_job_workspaces(
+    src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=''
+):
     """Synchronize two job workspaces file by file, following the provided strategy."""
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
@@ -241,8 +237,16 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
     for _subdir in diff.subdirs:
         if recursive:
             _sync_job_workspaces(
-                src=src, dst=dst, strategy=strategy, exclude=exclude, copy=copy, copytree=copytree,
-                recursive=recursive, deep=deep, subdir=os.path.join(subdir, _subdir))
+                src=src,
+                dst=dst,
+                strategy=strategy,
+                exclude=exclude,
+                copy=copy,
+                copytree=copytree,
+                recursive=recursive,
+                deep=deep,
+                subdir=os.path.join(subdir, _subdir),
+            )
         else:
             logger.warning("Skip directory '{}'.".format(os.path.join(subdir, _subdir)))
 
@@ -252,11 +256,21 @@ def _identical_path(a, b):
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
-def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=False,
-              follow_symlinks=True,
-              preserve_permissions=False, preserve_times=False,
-              preserve_owner=False, preserve_group=False,
-              deep=False, dry_run=False):
+def sync_jobs(
+    src,
+    dst,
+    strategy=None,
+    exclude=None,
+    doc_sync=None,
+    recursive=False,
+    follow_symlinks=True,
+    preserve_permissions=False,
+    preserve_times=False,
+    preserve_owner=False,
+    preserve_group=False,
+    deep=False,
+    dry_run=False,
+):
     """Synchronize the dst job with the src job.
 
     By default, this method will synchronize all files and document data
@@ -351,7 +365,8 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             times=preserve_times,
             owner=preserve_owner,
             group=preserve_group,
-            dry_run=bool(dry_run))
+            dry_run=bool(dry_run),
+        )
     if proxy.dry_run:
         logger.debug(f"Synchronizing job '{src}' (dry run)...")
     else:
@@ -368,7 +383,8 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             copy=proxy.copy,
             copytree=proxy.copytree,
             recursive=recursive,
-            deep=deep)
+            deep=deep,
+        )
 
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
         if src.document != dst.document:
@@ -379,13 +395,25 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
 FileTransferStats = namedtuple('_FileTransferStats', ['num_files', 'volume'])
 
 
-def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
-                  selection=None, check_schema=True, recursive=False,
-                  follow_symlinks=True,
-                  preserve_permissions=False, preserve_times=False,
-                  preserve_owner=False, preserve_group=False,
-                  deep=False, dry_run=False, parallel=False,
-                  collect_stats=False):
+def sync_projects(
+    source,
+    destination,
+    strategy=None,
+    exclude=None,
+    doc_sync=None,
+    selection=None,
+    check_schema=True,
+    recursive=False,
+    follow_symlinks=True,
+    preserve_permissions=False,
+    preserve_times=False,
+    preserve_owner=False,
+    preserve_group=False,
+    deep=False,
+    dry_run=False,
+    parallel=False,
+    collect_stats=False,
+):
     """Synchronize the destination project with the source project.
 
     Try to clone all jobs from the source to the destination.
@@ -475,7 +503,8 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         owner=preserve_owner,
         group=preserve_group,
         dry_run=dry_run,
-        collect_stats=collect_stats)
+        collect_stats=collect_stats,
+    )
 
     # Perform a schema check in an attempt to avoid bad sync operations.
     if check_schema:
@@ -495,8 +524,11 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
 
     # Provide some information about this sync process.
     if selection:
-        logger.info("Synchronizing selection ({}) of project '{}' to '{}'.".format(
-            len(selection), source, destination))
+        logger.info(
+            "Synchronizing selection ({}) of project '{}' to '{}'.".format(
+                len(selection), source, destination
+            )
+        )
     else:
         logger.info(f"Synchronizing project '{source}' to '{destination}'.")
     logger.more(f"'{source.root_directory()}' -> '{destination.root_directory()}'")
@@ -539,25 +571,28 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
                 exclude=exclude,
                 doc_sync=doc_sync,
                 recursive=recursive,
-                dry_run=proxy,   # used as internal argument to forward the proxy
-                )
+                dry_run=proxy,  # used as internal argument to forward the proxy
+            )
             logger.more(f"Synchonized job '{src_job}'.")
             return 2
 
     if parallel:
         num_processes = None if parallel is True else parallel
-        logger.more("Parallelizing over {} threads for synchronization.".format(
-            'multiple' if num_processes is None else num_processes))
+        logger.more(
+            "Parallelizing over {} threads for synchronization.".format(
+                'multiple' if num_processes is None else num_processes
+            )
+        )
         with ThreadPool(None if parallel is True else parallel) as pool:
             for i, ret in enumerate(pool.imap(_clone_or_sync, jobs_to_sync)):
                 count[ret] += 1
-                logger.info("Project sync progress: {}/{}".format(i+1, N))
+                logger.info("Project sync progress: {}/{}".format(i + 1, N))
     else:
         for i, src_job in enumerate(jobs_to_sync):
             count[_clone_or_sync(src_job)] += 1
-            logger.info("Project sync progress: {}/{}".format(i+1, N))
+            logger.info("Project sync progress: {}/{}".format(i + 1, N))
 
     num_cloned, num_synchronized = count[1], count[2]
     logger.info(f"Cloned {num_cloned} and synchronized {num_synchronized} job(s).")
     if collect_stats:
-        return FileTransferStats(** proxy.stats)
+        return FileTransferStats(**proxy.stats)

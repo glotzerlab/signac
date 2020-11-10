@@ -3,8 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 from test_project import TestProjectBase
+
 try:
-    import pandas    # noqa
+    import pandas  # noqa
+
     PANDAS = True
 except ImportError:
     PANDAS = False
@@ -12,7 +14,6 @@ except ImportError:
 
 @pytest.mark.skipif(not PANDAS, reason='test requires the pandas package')
 class TestPandasIntegration(TestProjectBase):
-
     def test_to_dataframe(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
@@ -47,9 +48,9 @@ class TestPandasIntegration(TestProjectBase):
 
     def test_usecols(self):
         for i in range(10):
-            job = self.project.open_job(dict(a=i, b=i*2))
+            job = self.project.open_job(dict(a=i, b=i * 2))
             job.doc.c = float(i)
-            job.doc.d = float(i*3)
+            job.doc.d = float(i * 3)
 
         # Including no keys should return an empty DataFrame
         df = self.project.to_dataframe(usecols=[])
@@ -59,6 +60,7 @@ class TestPandasIntegration(TestProjectBase):
         # Excluding all keys should return an empty DataFrame
         def usecols(column):
             return column not in ['sp.a', 'sp.b', 'doc.c', 'doc.d']
+
         df = self.project.to_dataframe(usecols=usecols)
         assert len(df.columns) == 0
         assert len(df) == 0
@@ -72,6 +74,7 @@ class TestPandasIntegration(TestProjectBase):
         # Exclude one state point column
         def usecols(column):
             return column != 'sp.b'
+
         df = self.project.to_dataframe(usecols=usecols)
         assert 'sp.a' in df.columns
         assert 'sp.b' not in df.columns
@@ -89,6 +92,7 @@ class TestPandasIntegration(TestProjectBase):
         # Exclude one document column
         def usecols(column):
             return column != 'doc.d'
+
         df = self.project.to_dataframe(usecols=usecols)
         assert 'sp.a' in df.columns
         assert 'sp.b' in df.columns
@@ -99,7 +103,7 @@ class TestPandasIntegration(TestProjectBase):
 
     def test_flatten(self):
         for i in range(10):
-            job = self.project.open_job(dict(a=dict(b=i*2, c=i*3), d=i))
+            job = self.project.open_job(dict(a=dict(b=i * 2, c=i * 3), d=i))
             job.doc.e = dict(f=float(i))
 
         # Including no keys should return an empty DataFrame

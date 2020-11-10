@@ -3,9 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 """Basic wrapper to access multiple different data stores."""
 
+import errno
 import os
 import re
-import errno
 import uuid
 
 
@@ -33,8 +33,10 @@ class DictManager:
         return self._prefix
 
     def __eq__(self, other):
-        return os.path.realpath(self.prefix) == os.path.realpath(other.prefix) and \
-            self.suffix == other.suffix
+        return (
+            os.path.realpath(self.prefix) == os.path.realpath(other.prefix)
+            and self.suffix == other.suffix
+        )
 
     def __repr__(self):
         return "{}(prefix={})".format(type(self).__name__, repr(os.path.relpath(self.prefix)))

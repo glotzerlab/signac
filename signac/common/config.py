@@ -3,13 +3,13 @@
 # This software is licensed under the BSD 3-Clause License.
 """Parses signac config files."""
 
+import logging
 import os
 import stat
-import logging
 
 from .configobj import ConfigObj, ConfigObjError
-from .validate import get_validator, cfg
 from .errors import ConfigError
+from .validate import cfg, get_validator
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ FN_CONFIG = os.path.expanduser('~/.signacrc')
 
 class PermissionsError(ConfigError):
     """Indicates an error in file permissions."""
+
     pass
 
 
@@ -43,7 +44,7 @@ def search_tree(root=None):
     """
     if root is None:
         root = os.getcwd()
-    while(True):
+    while True:
         yield from _search_local(root)
         up = os.path.abspath(os.path.join(root, '..'))
         if up == root:
@@ -64,10 +65,11 @@ def check_permissions(filename):
     """Verify that saved passwords are only readable by the current user."""
     st = os.stat(filename)
     if st.st_mode & stat.S_IROTH or st.st_mode & stat.S_IRGRP:
-        raise PermissionsError("Permissions of configuration file '{fn}'"
-                               "allow it to be read by others than the user. "
-                               "Unable to read/write password.".format(
-                                   fn=filename))
+        raise PermissionsError(
+            "Permissions of configuration file '{fn}'"
+            "allow it to be read by others than the user. "
+            "Unable to read/write password.".format(fn=filename)
+        )
 
 
 def fix_permissions(filename):
@@ -80,13 +82,11 @@ def check_and_fix_permissions(filename):
     try:
         check_permissions(filename)
     except PermissionsError as permissions_error:
-        logger.debug(
-            f"{permissions_error} Attempting to fix permissions.")
+        logger.debug(f"{permissions_error} Attempting to fix permissions.")
         try:
             fix_permissions(filename)
         except Exception as error:
-            logger.error(
-                f"Failed to fix permissions with error: {error}")
+            logger.error(f"Failed to fix permissions with error: {error}")
             raise permissions_error
         else:
             logger.debug("Fixed permissions.")
@@ -102,8 +102,9 @@ def read_config_file(filename):
         raise ConfigError(msg.format(filename, error))
     verification = config.verify()
     if verification is not True:
-        logger.debug("Config file '{}' may contain invalid values.".format(
-            os.path.abspath(filename)))
+        logger.debug(
+            "Config file '{}' may contain invalid values.".format(os.path.abspath(filename))
+        )
     if config.has_password():
         check_and_fix_permissions(filename)
     return config
@@ -142,6 +143,7 @@ def load_config(root=None, local=False):
 
 class Config(ConfigObj):
     """Manages configuration for a signac project."""
+
     encoding = 'utf-8'
 
     def verify(self, validator=None, *args, **kwargs):
@@ -152,8 +154,10 @@ class Config(ConfigObj):
 
     def has_password(self):
         """Check if this configuration contains a password."""
+
         def is_pw(section, key):
             assert not key.endswith('password')
+
         try:
             self.walk(is_pw)
             return False

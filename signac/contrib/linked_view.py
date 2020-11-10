@@ -3,9 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 """Linked view classes."""
 
-import os
 import errno
 import logging
+import os
 import sys
 from itertools import chain
 
@@ -46,13 +46,15 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         When state points contain one of ``[os.sep, " ", "*"]``.
 
     """
-    from .import_export import _make_path_function
-    from .import_export import _check_directory_structure_validity
+    from .import_export import (_check_directory_structure_validity,
+                                _make_path_function)
 
     # Windows does not support the creation of symbolic links.
     if sys.platform == 'win32':
-        raise OSError("signac cannot create linked views on Windows, because "
-                      "symbolic links are not supported by the platform.")
+        raise OSError(
+            "signac cannot create linked views on Windows, because "
+            "symbolic links are not supported by the platform."
+        )
 
     if prefix is None:
         prefix = 'view'
@@ -62,8 +64,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
             index = [{'_id': job._id, 'statepoint': job.sp()} for job in project]
             jobs = list(project)
         else:
-            index = [{'_id': job_id, 'statepoint': project.open_job(id=job_id).sp()}
-                     for job_id in job_ids]
+            index = [
+                {'_id': job_id, 'statepoint': project.open_job(id=job_id).sp()}
+                for job_id in job_ids
+            ]
             jobs = list(project.open_job(id=job_id) for job_id in job_ids)
     elif job_ids is not None:
         if not isinstance(job_ids, set):
@@ -73,26 +77,21 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         if not job_ids.issubset({doc['_id'] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
 
-    key_list = [
-            k for job in jobs for k in job.statepoint().keys()
-            ]
-    value_list = [
-            v for job in jobs for v in job.statepoint().values()
-            ]
+    key_list = [k for job in jobs for k in job.statepoint().keys()]
+    value_list = [v for job in jobs for v in job.statepoint().values()]
     item_list = key_list + value_list
     bad_chars = [os.sep, " ", "*"]
     bad_items = [
-            item for item in item_list for char in bad_chars
-            if isinstance(item, str) and char in item
-            ]
+        item for item in item_list for char in bad_chars if isinstance(item, str) and char in item
+    ]
 
     if any(bad_items):
-        err_msg = " ".join([
-            "In order to use view, statepoints should not contain {}:".format(
-                bad_chars
-            ),
-            *bad_items
-        ])
+        err_msg = " ".join(
+            [
+                f"In order to use view, statepoints should not contain {bad_chars}:",
+                *bad_items,
+            ]
+        )
         raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
@@ -101,7 +100,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     for job in jobs:
         paths = os.path.join(path_function(job), 'job')
         links[paths] = job.workspace()
-    if not links:   # data space contains less than two elements
+    if not links:  # data space contains less than two elements
         for job in project.find_jobs():
             links['./job'] = job.workspace()
         assert len(links) < 2
@@ -128,8 +127,7 @@ def _update_view(prefix, links, leaf='job'):
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
     if num_ops:
-        logger.info("Generating current view in '{}' ({} operations)...".format(
-            prefix, num_ops))
+        logger.info(f"Generating current view in '{prefix}' ({num_ops} operations)...")
     else:
         logger.info(f"View in '{prefix}' is up to date.")
         return
@@ -140,8 +138,7 @@ def _update_view(prefix, links, leaf='job'):
             os.unlink(p)
         except OSError:
             os.rmdir(p)
-    logger.debug("Creating {} new and updating {} existing links.".format(
-        len(new), len(to_update)))
+    logger.debug("Creating {} new and updating {} existing links.".format(len(new), len(to_update)))
     for path in to_update:
         os.unlink(os.path.join(prefix, path))
     for path in chain(new, to_update):
@@ -178,13 +175,12 @@ def _analyze_view(prefix, links, leaf='job'):
     dead_branches = _find_dead_branches(existing_tree)
     for branch in reversed(sorted(dead_branches, key=len)):
         if branch:
-            obsolete.append(os.path.join(* (n.name for n in branch)))
+            obsolete.append(os.path.join(*(n.name for n in branch)))
     if '.' in obsolete:
         obsolete.remove('.')
     keep_or_update = existing_paths.intersection(links.keys())
     new = set(links.keys()).difference(keep_or_update)
-    to_update = [p for p in keep_or_update if
-                 os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
     return obsolete, to_update, new
 
 
@@ -244,6 +240,7 @@ def _find_all_links(root, leaf='job'):
 
 class _Node:
     """Generic graph-node class."""
+
     def __init__(self, name=None, value=None):
         self.name = name
         self.value = value

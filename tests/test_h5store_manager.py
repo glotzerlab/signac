@@ -3,22 +3,22 @@
 # This software is licensed under the BSD 3-Clause License.
 import os
 import pickle
-import pytest
 from tempfile import TemporaryDirectory
+
+import pytest
 
 from signac.core.h5store import H5StoreManager
 
-
 try:
-    import h5py    # noqa
+    import h5py  # noqa
+
     H5PY = True
 except ImportError:
     H5PY = False
 
 
 @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')
-class TestH5StoreManager():
-
+class TestH5StoreManager:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self._tmp_dir = TemporaryDirectory(prefix='h5store_')
@@ -42,7 +42,7 @@ class TestH5StoreManager():
         for value in (True, 0, 0.0, 1, 1.0, None):
             with pytest.raises(TypeError):
                 self.store['test'] = value
-        for value in ('abc'):
+        for value in 'abc':
             with pytest.raises(ValueError):
                 self.store['test'] = value
 

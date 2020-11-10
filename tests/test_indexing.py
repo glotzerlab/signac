@@ -1,18 +1,19 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import pytest
-import os
 import io
-import re
 import json
+import os
+import re
 from typing import Dict
+
+import pytest
 
 import signac
 import signac.db
 from signac import Collection
-from signac.contrib import indexing
 from signac.common import errors
+from signac.contrib import indexing
 
 try:
     with pytest.deprecated_call():
@@ -26,7 +27,6 @@ else:
 
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
-
 
 SIGNAC_ACCESS_MODULE_LEGACY = r"""import os
 import re
@@ -64,7 +64,6 @@ def get_crawlers(root):
 
 
 class TestFormat:
-
     def read(self):
         assert 0
 
@@ -78,10 +77,10 @@ class _TestFS:
 
     class FileExistsError(IOError):
         pass
+
     FileNotFoundError = KeyError
 
     class _Writer(io.BytesIO):
-
         def __init__(self, cache, file_id):
             self.cache = cache
             self.file_id = file_id
@@ -121,7 +120,7 @@ class _TestFS:
             raise ValueError(mode)
 
 
-class TestIndexingBase():
+class TestIndexingBase:
 
     access_module = SIGNAC_ACCESS_MODULE
 
@@ -133,6 +132,7 @@ class TestIndexingBase():
     def setup_project(self):
         def fn(name):
             return os.path.join(self._tmp_dir.name, name)
+
         with open(fn('a_0.txt'), 'w') as file:
             file.write('{"a": 0}')
         with open(fn('a_1.txt'), 'w') as file:
@@ -453,7 +453,6 @@ class TestIndexingBase():
 
 @pytest.mark.skipif(SKIP_REASON != "None", reason=SKIP_REASON)
 class TestIndexingPyMongo(TestIndexingBase):
-
     def get_index_collection(self):
         db = signac.db.get_database('testing', hostname='testing')
         db.test_index.drop()

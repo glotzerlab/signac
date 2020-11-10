@@ -1,16 +1,15 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import subprocess
 import logging
+import subprocess
 from os.path import expanduser
-from deprecation import deprecated
 
 import pymongo
+from deprecation import deprecated
 
-from .errors import ConfigError
 from ..version import __version__
-
+from .errors import ConfigError
 
 PYMONGO_2 = pymongo.version_tuple[0] == 2
 
@@ -26,33 +25,54 @@ THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The connection module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The connection module is deprecated.",
+)
 def get_subject_from_certificate(fn_certificate):  # pragma no cover
     try:
         cert_txt = subprocess.check_output(
-            ['openssl', 'x509', '-in', fn_certificate,
-             '-inform', 'PEM', '-subject', '-nameopt', 'RFC2253']).decode()
+            [
+                'openssl',
+                'x509',
+                '-in',
+                fn_certificate,
+                '-inform',
+                'PEM',
+                '-subject',
+                '-nameopt',
+                'RFC2253',
+            ]
+        ).decode()
     except subprocess.CalledProcessError:
         msg = "Unable to retrieve subject from certificate '{}'."
         raise RuntimeError(msg.format(fn_certificate))
     else:
         lines = cert_txt.split('\n')
         assert lines[0].startswith('subject=')
-        return lines[0][len('subject='):].strip()
+        return lines[0][len('subject=') :].strip()
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The connection module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The connection module is deprecated.",
+)
 def raise_unsupported_auth_mechanism(mechanism):
     msg = "Auth mechanism '{}' not supported."
     raise ValueError(msg.format(mechanism))
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The connection module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The connection module is deprecated.",
+)
 class DBClientConnector:
-
     def __init__(self, host_config, **kwargs):
         self._config = host_config
         self._client = None
@@ -85,8 +105,13 @@ class DBClientConnector:
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
         forwarded_parameters = (
-            'socketTimeoutMS', 'connectTimeoutMS', 'serverSelectionTimeoutMS',
-            'w', 'wtimeout', 'replicaSet')
+            'socketTimeoutMS',
+            'connectTimeoutMS',
+            'serverSelectionTimeoutMS',
+            'w',
+            'wtimeout',
+            'replicaSet',
+        )
         parameters = self._kwargs
         for parameter in forwarded_parameters:
             if parameter in self._config:
@@ -98,8 +123,10 @@ class DBClientConnector:
                 host,
                 read_preference=getattr(
                     pymongo.read_preferences.ReadPreference,
-                    self._config_get('read_preference', 'PRIMARY')),
-                ** parameters)
+                    self._config_get('read_preference', 'PRIMARY'),
+                ),
+                **parameters,
+            )
         else:
             raise_unsupported_auth_mechanism(auth_mechanism)
         self._client = client
@@ -107,8 +134,7 @@ class DBClientConnector:
     def connect(self, host=None):
         if host is None:
             host = self._config_get_required('url')
-        logger.debug("Connecting to host '{host}'.".format(
-            host=self._config_get_required('url')))
+        logger.debug("Connecting to host '{host}'.".format(host=self._config_get_required('url')))
 
         if PYMONGO_2:
             raise RuntimeError("pymongo version 2.x is no longer supported.")
@@ -124,16 +150,15 @@ class DBClientConnector:
             msg = "Authenticating user '{user}' with database '{db}'."
             logger.debug(msg.format(user=username, db=db_auth))
             db_auth.authenticate(
-                username,
-                self._config_get_required('password'),
-                mechanism=AUTH_SCRAM_SHA_1)
+                username, self._config_get_required('password'), mechanism=AUTH_SCRAM_SHA_1
+            )
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma no cover
             certificate_subject = get_subject_from_certificate(
-                expanduser(self._config_get_required('ssl_certfile')))
+                expanduser(self._config_get_required('ssl_certfile'))
+            )
             logger.debug(f"Authenticating: user={certificate_subject}")
             db_external = self.client['$external']
-            db_external.authenticate(
-                certificate_subject, mechanism='MONGODB-X509')
+            db_external.authenticate(certificate_subject, mechanism='MONGODB-X509')
         elif auth_mechanism == AUTH_NONE:
             pass
         else:

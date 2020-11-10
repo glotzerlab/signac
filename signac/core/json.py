@@ -3,7 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Wrapper around json parsing library."""
 import logging
-from json import load, loads, JSONEncoder
+from json import JSONEncoder, load, loads
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -23,6 +24,7 @@ class CustomJSONEncoder(JSONEncoder):
     an object that is otherwise not serializable, by calling the object's
     `_as_dict()` method.
     """
+
     def default(self, o: Any) -> Dict[str, Any]:
         if NUMPY:
             if isinstance(o, numpy.number):
