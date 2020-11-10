@@ -54,6 +54,8 @@ jobs:
             export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
+    macos:
+      xcode: 11.7
             virtualenv ./venv --clear
             . venv/bin/activate
             if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
@@ -132,14 +134,14 @@ jobs:
             python -m pytest tests/ -v
 
   macos-python38:
-    macos:
+    mac:
       xcode: 11.7
-      steps:
-        - checkout
-        - run: echo 'chruby ruby-2.7' >> ~/.bash_profile
-        - macos/add-uitest-permissions
-        - run: bundle install
-        - run: bundle exec fastlane testandbuild
+    steps:
+      - checkout
+      - run: echo 'chruby ruby-2.7' >> ~/.bash_profile
+      - macos/add-uitest-permissions
+      - run: bundle install
+      - run: bundle exec fastlane testandbuild
 
   check-metadata:
     docker:
