@@ -95,7 +95,7 @@ jobs:
       xcode: 11.3.0
     steps:
       - checkout
-      - run: 
+      - run:
           name: Install Python
           command: |
             brew install python --version 3.8.1
@@ -109,7 +109,6 @@ jobs:
           name: Run tests
           command: |
             python -m pytest tests/ -v
-
 
   check-metadata:
     docker:
