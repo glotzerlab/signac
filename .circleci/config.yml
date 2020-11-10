@@ -131,6 +131,16 @@ jobs:
           command: |
             python -m pytest tests/ -v
 
+  macos-python38:
+    macos:
+      xcode: 11.7
+      steps:
+        - checkout
+        - run: echo 'chruby ruby-2.7' >> ~/.bash_profile
+        - macos/add-uitest-permissions
+        - run: bundle install
+        - run: bundle exec fastlane testandbuild
+
   check-metadata:
     docker:
       - image: circleci/python:3.8
