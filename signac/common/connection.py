@@ -51,7 +51,7 @@ def raise_unsupported_auth_mechanism(mechanism):
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The connection module is deprecated.")
-class DBClientConnector(object):
+class DBClientConnector:
 
     def __init__(self, host_config, **kwargs):
         self._config = host_config
@@ -80,7 +80,7 @@ class DBClientConnector(object):
         try:
             return self._config[key]
         except KeyError as e:
-            raise ConfigError("Missing required key '{}'.".format(e))
+            raise ConfigError(f"Missing required key '{e}'.")
 
     def _connect_pymongo3(self, host):
         logger.debug("Connecting with pymongo3.")
@@ -117,7 +117,7 @@ class DBClientConnector(object):
 
     def authenticate(self):
         auth_mechanism = self._config_get('auth_mechanism', AUTH_NONE)
-        logger.debug("Authenticating: mechanism={}".format(auth_mechanism))
+        logger.debug(f"Authenticating: mechanism={auth_mechanism}")
         if auth_mechanism == AUTH_SCRAM_SHA_1:
             db_auth = self.client[self._config.get('db_auth', 'admin')]
             username = self._config_get_required('username')
@@ -130,7 +130,7 @@ class DBClientConnector(object):
         elif auth_mechanism in (AUTH_SSL, AUTH_SSL_x509):  # pragma no cover
             certificate_subject = get_subject_from_certificate(
                 expanduser(self._config_get_required('ssl_certfile')))
-            logger.debug("Authenticating: user={}".format(certificate_subject))
+            logger.debug(f"Authenticating: user={certificate_subject}")
             db_external = self.client['$external']
             db_external.authenticate(
                 certificate_subject, mechanism='MONGODB-X509')

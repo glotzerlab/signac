@@ -125,7 +125,7 @@ def get_buffer_size():
 
 def get_buffer_load():
     """Return the current actual size of the read/write buffer."""
-    return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
+    return sum(sys.getsizeof(x) for x in _JSONDICT_BUFFER.values())
 
 
 def in_buffered_mode():
@@ -245,13 +245,13 @@ class JSONDict(SyncedAttrDict):
                 "parent or filename must be None, but not both.")
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
-        super(JSONDict, self).__init__(parent=parent)
+        super().__init__(parent=parent)
 
     def _load_from_disk(self):
         try:
             with open(self._filename, 'rb') as file:
                 return file.read()
-        except IOError as error:
+        except OSError as error:
             if error.errno == errno.ENOENT:
                 return None
 

@@ -9,7 +9,7 @@ import errno
 import uuid
 
 
-class DictManager(object):
+class DictManager:
     """Helper class to manage multiple instances of dict-like classes.
 
     This class is designed to manage multiple dict-like interface classes to files
@@ -57,7 +57,7 @@ class DictManager(object):
         try:
             self[tmp_key].update(value)
             os.replace(self[tmp_key].filename, self[key].filename)
-        except (IOError, OSError) as error:
+        except OSError as error:
             if error.errno == errno.ENOENT and not len(value):
                 raise ValueError("Cannot assign empty value!")
             else:
@@ -74,7 +74,7 @@ class DictManager(object):
     def __delitem__(self, key):
         try:
             os.unlink(self[key].filename)
-        except (IOError, OSError) as error:
+        except OSError as error:
             if error.errno == errno.ENOENT:
                 raise KeyError(key)
             else:
@@ -82,7 +82,7 @@ class DictManager(object):
 
     def __getattr__(self, name):
         try:
-            return super(DictManager, self).__getattribute__(name)
+            return super().__getattribute__(name)
         except AttributeError:
             if name.startswith('__') or name in self.__slots__:
                 raise
@@ -93,19 +93,19 @@ class DictManager(object):
 
     def __setattr__(self, name, value):
         if name.startswith('__') or name in self.__slots__:
-            super(DictManager, self).__setattr__(name, value)
+            super().__setattr__(name, value)
         else:
             self.__setitem__(name, value)
 
     def __delattr__(self, name):
         if name.startswith('__') or name in self.__slots__:
-            super(DictManager, self).__delattr__(name)
+            super().__delattr__(name)
         else:
             self.__delitem__(name)
 
     def __iter__(self):
         for fn in os.listdir(self.prefix):
-            m = re.match('^(.*){}$'.format(self.suffix), fn)
+            m = re.match(f'^(.*){self.suffix}$', fn)
             if m:
                 yield m.groups()[0]
 

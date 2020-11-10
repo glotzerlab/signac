@@ -98,7 +98,7 @@ def _build_job_statepoint_index(exclude_const, index):
         yield statepoint_key, statepoint_values
 
 
-class ProjectSchema(object):
+class ProjectSchema:
     """A description of a project's state point schema.
 
     Parameters
@@ -195,13 +195,11 @@ class ProjectSchema(object):
             except TypeError:
                 sorted_values = sorted(values, key=repr)
             if len(values) <= max_num_range:
-                values_string = ', '.join((_fmt_value(v) for v in sorted_values))
+                values_string = ', '.join(_fmt_value(v) for v in sorted_values)
             else:
-                values_string = ', '.join((_fmt_value(v)
-                                           for v in sorted_values[:max_num_range - 2]))
+                values_string = ', '.join(_fmt_value(v) for v in sorted_values[:max_num_range - 2])
                 values_string += ', ..., '
-                values_string += ', '.join((_fmt_value(v)
-                                            for v in sorted_values[-2:]))
+                values_string += ', '.join(_fmt_value(v) for v in sorted_values[-2:])
             return '{type_name}([{values_string}], {length})'.format(
                 type_name=type_.__name__, values_string=values_string, length=len(values))
 

@@ -62,7 +62,7 @@ COMPLEXITY = {
 def size(fn):
     try:
         return os.path.getsize(fn)
-    except (OSError, IOError):
+    except OSError:
         return 0
 
 
@@ -125,7 +125,7 @@ def _make_doc(i, num_keys=1, data_size=0):
     assert num_keys >= 1
     assert data_size >= 0
 
-    doc = {'b_{}'.format(j): _random_str(data_size) for j in range(num_keys - 1)}
+    doc = {f'b_{j}': _random_str(data_size) for j in range(num_keys - 1)}
     doc['a'] = '{}{}'.format(i, _random_str(max(0, data_size - len(str(i)))))
     return doc
 
@@ -162,7 +162,7 @@ def setup_random_project(N, num_keys=1, num_doc_keys=0,
         raise TypeError("N must be an integer!")
 
     with TemporaryDirectory(dir=root) as tmp:
-        project = signac.init_project('benchmark-N={}'.format(N), root=tmp)
+        project = signac.init_project(f'benchmark-N={N}', root=tmp)
         generate_random_data(project, N, num_keys, num_doc_keys, data_size, data_std)
         yield project
 
@@ -182,7 +182,7 @@ def noop(*args, **kwargs):
 
 def benchmark_project(project, keys=None):
     root = project.root_directory()
-    setup = "import signac; project = signac.get_project(root='{}'); ".format(root)
+    setup = f"import signac; project = signac.get_project(root='{root}'); "
     setup += "from itertools import islice, repeat; import random; "
     setup += "from benchmark import noop; "
 
@@ -190,7 +190,7 @@ def benchmark_project(project, keys=None):
 
     def run(key, timer, repeat=3, number=10):
         if keys is None or key in keys:
-            logger.info("Run '{}'...".format(key))
+            logger.info(f"Run '{key}'...")
             data[key] = timer.repeat(repeat=repeat, number=number)
 
     run('determine_len', Timer('len(project)', setup=setup))
@@ -321,7 +321,7 @@ def tr(s):
         'tool,N': "Tool, N",
     }.get(cat, cat)
     if cplx is not None:
-        t += ' O({})'.format(cplx)
+        t += f' O({cplx})'
     return t
 
 
@@ -351,10 +351,10 @@ def main_compare(args):
     repo = git.Repo(search_parent_directories=True)
     rev_this = str(repo.commit(args.rev_this))
     doc_this = read_benchmark(args.filename, {'meta.versions.git.sha1': rev_this})
-    assert len(doc_this), "Can't find results for '{}'.".format(args.rev_this)
+    assert len(doc_this), f"Can't find results for '{args.rev_this}'."
     rev_other = repo.commit(args.rev_other)
     doc_other = read_benchmark(args.filename, {'meta.versions.git.sha1': str(rev_other)})
-    assert len(doc_other), "Can't find results for '{}'.".format(args.rev_other)
+    assert len(doc_other), f"Can't find results for '{args.rev_other}'."
 
     print("Showing runtime {} ({}) / {} ({}):".format(
         args.rev_this, str(rev_this)[:6],

@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Run pre-checks
           command: |
-            pre-commit run --all-files
+            pre-commit run --all-files --show-diff-on-failure
 
   linux-python-38: &linux-template
     docker:

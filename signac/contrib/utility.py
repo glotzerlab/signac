@@ -182,7 +182,7 @@ class VerbosityAction(argparse.Action): # noqa: D101, E261
             details="The VerbosityLoggingConfigAction class is obsolete.")
 class VerbosityLoggingConfigAction(VerbosityAction): # noqa: D101, E261
     def __call__(self, parser, args, values, option_string=None): # noqa:D102, E261
-        super(VerbosityLoggingConfigAction, self).__call__(
+        super().__call__(
             parser, args, values, option_string)
         v_level = getattr(args, self.dest)
         set_verbosity_level(v_level)
@@ -234,12 +234,11 @@ def walkdepth(path, depth=0):
 
     """
     if depth == 0:
-        for p in os.walk(path):
-            yield p
+        yield from os.walk(path)
     elif depth > 0:
         path = path.rstrip(os.path.sep)
         if not os.path.isdir(path):
-            raise OSError("Not a directory: '{}'.".format(path))
+            raise OSError(f"Not a directory: '{path}'.")
         num_sep = path.count(os.path.sep)
         for root, dirs, files in os.walk(path):
             yield root, dirs, files
@@ -312,7 +311,7 @@ def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress
             yield iterable[i * len_chunk:(i+1) * len_chunk]
             intervals.append(time() - start)
         yield iterable[(i+1) * len_chunk:]
-        write("{}100%".format(desc))
+        write(f"{desc}100%")
     else:
         yield iterable
 
@@ -347,7 +346,7 @@ def _extract(filename):
                 file.extractall(path=tmpdir)
                 yield tmpdir
         else:
-            raise RuntimeError("Unknown file type: '{}'.".format(filename))
+            raise RuntimeError(f"Unknown file type: '{filename}'.")
 
 
 def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
@@ -451,8 +450,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
         if t:
             for k in t:
                 k_ = k if key is None else '.'.join((key, k))
-                for k__, v in _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_):
-                    yield k__, v
+                yield from _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_)
         elif key is not None:
             yield key, t
     else:

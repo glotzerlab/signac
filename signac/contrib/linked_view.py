@@ -131,7 +131,7 @@ def _update_view(prefix, links, leaf='job'):
         logger.info("Generating current view in '{}' ({} operations)...".format(
             prefix, num_ops))
     else:
-        logger.info("View in '{}' is up to date.".format(prefix))
+        logger.info(f"View in '{prefix}' is up to date.")
         return
     logger.debug("Removing {} obsolete links.".format(len(obsolete)))
     for path in obsolete:
@@ -169,7 +169,7 @@ def _analyze_view(prefix, links, leaf='job'):
         tuple that contains: (list of outdated links, list of links to update, set of new links).
 
     """
-    logger.info("Analyzing view prefix '{}'...".format(prefix))
+    logger.info(f"Analyzing view prefix '{prefix}'...")
     existing_paths = {os.path.join(p, leaf) for p in _find_all_links(prefix, leaf)}
     existing_tree = _build_tree(existing_paths)
     for path in links:
@@ -242,7 +242,7 @@ def _find_all_links(root, leaf='job'):
                 break
 
 
-class _Node(object):
+class _Node:
     """Generic graph-node class."""
     def __init__(self, name=None, value=None):
         self.name = name
@@ -266,7 +266,7 @@ class _Node(object):
         return self.children.setdefault(name, type(self)(name))
 
     def __str__(self):
-        return "_Node({}, {})".format(self.name, self.value)
+        return f"_Node({self.name}, {self.value})"
 
     __repr__ = __str__
 
@@ -317,8 +317,7 @@ def _get_branches(root, branch=None):
         branch = list(branch) + [root]
     if root.children:
         for child in root.children.values():
-            for b in _get_branches(child, branch):
-                yield b
+            yield from _get_branches(child, branch)
     else:
         yield branch
 
@@ -364,7 +363,6 @@ def _find_dead_branches(root, branch=None):
         branch = list(branch) + [root]
     if root.children:
         for child in root.children.values():
-            for b in _find_dead_branches(child, branch):
-                yield b
+            yield from _find_dead_branches(child, branch)
     if not root.value:
         yield branch
