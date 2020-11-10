@@ -302,7 +302,7 @@ class TestJobSPInterface(TestJobBase):
         job = self.open_job(dict(a=0))
         assert job.sp.a == 0
 
-        class Foo(object):
+        class Foo:
             pass
         with pytest.raises(TypeError):
             job.sp.a = Foo()
@@ -929,27 +929,27 @@ class TestJobDocument(TestJobBase):
 
     def test_sp_formatting(self):
         job = self.open_job({'a': 0})
-        assert '{job.statepoint.a}'.format(job=job) == str(job.sp.a)
-        assert '{job.sp.a}'.format(job=job) == str(job.sp.a)
+        assert f'{job.statepoint.a}' == str(job.sp.a)
+        assert f'{job.sp.a}' == str(job.sp.a)
         assert '{job.statepoint[a]}'.format(job=job) == str(job.sp.a)
         assert '{job.sp[a]}'.format(job=job) == str(job.sp.a)
         job.sp.a = dict(b=0)
-        assert '{job.statepoint.a.b}'.format(job=job) == str(job.sp.a.b)
-        assert '{job.sp.a.b}'.format(job=job) == str(job.sp.a.b)
+        assert f'{job.statepoint.a.b}' == str(job.sp.a.b)
+        assert f'{job.sp.a.b}' == str(job.sp.a.b)
         assert '{job.statepoint[a][b]}'.format(job=job) == str(job.sp.a.b)
         assert '{job.sp[a][b]}'.format(job=job) == str(job.sp.a.b)
 
     def test_doc_formatting(self):
         job = self.open_job(test_token)
         job.doc.a = 0
-        assert '{job.doc.a}'.format(job=job) == str(job.doc.a)
+        assert f'{job.doc.a}' == str(job.doc.a)
         assert '{job.doc[a]}'.format(job=job) == str(job.doc.a)
-        assert '{job.document.a}'.format(job=job) == str(job.doc.a)
+        assert f'{job.document.a}' == str(job.doc.a)
         assert '{job.document[a]}'.format(job=job) == str(job.doc.a)
         job.doc.a = dict(b=0)
-        assert '{job.doc.a.b}'.format(job=job) == str(job.doc.a.b)
-        assert '{job.doc.a.b}'.format(job=job) == str(job.doc.a.b)
-        assert '{job.document.a.b}'.format(job=job) == str(job.doc.a.b)
+        assert f'{job.doc.a.b}' == str(job.doc.a.b)
+        assert f'{job.doc.a.b}' == str(job.doc.a.b)
+        assert f'{job.document.a.b}' == str(job.doc.a.b)
         assert '{job.document[a][b]}'.format(job=job) == str(job.doc.a.b)
 
     @pytest.mark.skipif(not H5PY, reason='test requires the h5py package')

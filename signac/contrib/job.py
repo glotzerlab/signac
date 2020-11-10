@@ -24,7 +24,7 @@ from ..version import __version__
 logger = logging.getLogger(__name__)
 
 
-class _sp_save_hook(object):
+class _sp_save_hook:
     """Hook to handle job migration when statepoints are changed.
 
     When a job's state point is changed, in addition
@@ -50,7 +50,7 @@ class _sp_save_hook(object):
             job._reset_sp()
 
 
-class Job(object):
+class Job:
     """The job instance is a handle to the data of a unique state point.
 
     Application developers should usually not need to directly
@@ -205,7 +205,7 @@ class Job(object):
         self._document = None
         self._data = None
         self._cwd = list()
-        logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        logger.info(f"Moved '{self}' -> '{dst}'.")
 
     def _reset_sp(self, new_sp=None):
         """Check for new state point requested to assign this job.
@@ -459,7 +459,7 @@ class Job(object):
                 # Open the file for writing only if it does not exist yet.
                 with open(fn_manifest, 'w' if force else 'x') as file:
                     file.write(blob)
-            except (IOError, OSError) as error:
+            except OSError as error:
                 if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise
         except Exception as error:
@@ -478,7 +478,7 @@ class Job(object):
         try:
             with open(fn_manifest, 'rb') as file:
                 assert calc_id(json.loads(file.read().decode())) == self._id
-        except IOError as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
         except (AssertionError, ValueError):
@@ -510,7 +510,7 @@ class Job(object):
             self._init(force=force)
         except Exception:
             logger.error(
-                "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
+                f"State point manifest file of job '{self._id}' appears to be corrupted.")
             raise
         return self
 
@@ -533,7 +533,7 @@ class Job(object):
                 elif os.path.isdir(path):
                     shutil.rmtree(path)
             self.document.clear()
-        except (OSError, IOError) as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
 
@@ -565,7 +565,7 @@ class Job(object):
             if self._document is not None:
                 try:
                     self._document.clear()
-                except IOError as error:
+                except OSError as error:
                     if not error.errno == errno.ENOENT:
                         raise error
                 self._document = None
@@ -592,7 +592,7 @@ class Job(object):
         except OSError as error:
             if error.errno == errno.ENOENT:
                 raise RuntimeError(
-                    "Cannot move job '{}', because it is not initialized!".format(self))
+                    f"Cannot move job '{self}', because it is not initialized!")
             elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
@@ -704,7 +704,7 @@ class Job(object):
         """
         self._cwd.append(os.getcwd())
         self.init()
-        logger.info("Enter workspace '{}'.".format(self._wd))
+        logger.info(f"Enter workspace '{self._wd}'.")
         os.chdir(self._wd)
 
     def close(self):

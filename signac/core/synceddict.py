@@ -23,7 +23,7 @@ class _SyncedList(list):
 
     def __init__(self, iterable, parent):
         self._parent = parent
-        super(_SyncedList, self).__init__(iterable)
+        super().__init__(iterable)
 
     def __deepcopy__(self, memo):
         ret = type(self)([], deepcopy(self._parent, memo))
@@ -33,22 +33,22 @@ class _SyncedList(list):
 
     def __getitem__(self, key):
         self._parent.load()
-        ret = super(_SyncedList, self).__getitem__(key)
+        ret = super().__getitem__(key)
         return ret
 
     def __setitem__(self, key, value):
         self._parent.load()
-        ret = super(_SyncedList, self).__setitem__(key, value)
+        ret = super().__setitem__(key, value)
         self._parent.save()
         return ret
 
     def __delitem__(self, key):
         self._parent.load()
-        super(_SyncedList, self).__delitem__(key)
+        super().__delitem__(key)
         self._parent.save()
 
     def __getattribute__(self, name):
-        outer = super(_SyncedList, self).__getattribute__(name)
+        outer = super().__getattribute__(name)
 
         if name in ('append', 'clear', 'extend', 'insert', 'pop',
                     'remove', 'reverse', 'sort'):
@@ -75,7 +75,7 @@ class _SyncedDict(MutableMapping):
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
-        super(_SyncedDict, self).__init__()
+        super().__init__()
         if initialdata is None:
             self._data = dict()
         else:
@@ -92,7 +92,7 @@ class _SyncedDict(MutableMapping):
             if '.' in key:
                 from ..errors import InvalidKeyError
                 raise InvalidKeyError(
-                    "keys may not contain dots ('.'): {}".format(key))
+                    f"keys may not contain dots ('.'): {key}")
             else:
                 return key
         elif isinstance(key, cls.VALID_KEY_TYPES):

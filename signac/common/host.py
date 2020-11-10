@@ -42,7 +42,7 @@ def _get_host_config(hostname, config):
     try:
         return config['hosts'][hostname]
     except KeyError:
-        raise ConfigError("Host '{}' not configured.".format(hostname))
+        raise ConfigError(f"Host '{hostname}' not configured.")
 
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
@@ -163,7 +163,7 @@ def check_credentials(hostcfg):
             else:
                 SESSION_USERNAME_CACHE[_host_id(hostcfg)] = \
                     hostcfg['username'] = _input(
-                        "Username ({}): ".format(getpass.getuser()),
+                        f"Username ({getpass.getuser()}): ",
                         getpass.getuser())
         if 'password' not in hostcfg and not parse_uri(uri)['password']:
             hostcfg['password'] = get_credentials(hostcfg)

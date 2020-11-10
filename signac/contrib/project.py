@@ -62,7 +62,7 @@ if __name__ == '__main__':
 """
 
 
-class JobSearchIndex(object):
+class JobSearchIndex:
     """Search for specific jobs with filters.
 
     The JobSearchIndex allows to search for job_ids,
@@ -105,7 +105,7 @@ class JobSearchIndex(object):
                         "The argument to a logical operator must be a sequence (e.g. a list)!")
                 yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
             else:
-                yield 'statepoint.{}'.format(k), v
+                yield f'statepoint.{k}', v
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find job ids from a state point or document filter.
@@ -138,7 +138,7 @@ class _ProjectConfig(Config):
     """Extends the project config to make it immutable."""
     def __init__(self, *args, **kwargs):
         self._mutable = True
-        super(_ProjectConfig, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._mutable = False
 
     def __setitem__(self, key, value):
@@ -149,10 +149,10 @@ class _ProjectConfig(Config):
                           DeprecationWarning)
 
             assert version.parse(__version__) < version.parse("2.0")
-        return super(_ProjectConfig, self).__setitem__(key, value)
+        return super().__setitem__(key, value)
 
 
-class Project(object):
+class Project:
     """The handle on a signac project.
 
     Application developers should usually not need to
@@ -245,9 +245,9 @@ class Project(object):
 
         """
         return "<p>" + \
-            '<strong>Project:</strong> {}<br>'.format(self.id) + \
-            "<strong>Root:</strong> {}<br>".format(self.root_directory()) + \
-            "<strong>Workspace:</strong> {}<br>".format(self.workspace()) + \
+            f'<strong>Project:</strong> {self.id}<br>' + \
+            f"<strong>Root:</strong> {self.root_directory()}<br>" + \
+            f"<strong>Workspace:</strong> {self.workspace()}<br>" + \
             "<strong>Size:</strong> {}".format(len(self)) + \
             "</p>" + \
             self.find_jobs()._repr_html_jobs()
@@ -649,15 +649,15 @@ class Project(object):
             if error.errno == errno.ENOENT:
                 if os.path.islink(self._wd):
                     raise WorkspaceError(
-                        "The link '{}' pointing to the workspace is broken.".format(self._wd))
+                        f"The link '{self._wd}' pointing to the workspace is broken.")
                 elif not os.path.isdir(os.path.dirname(self._wd)):
                     logger.warning(
                         "The path to the workspace directory "
                         "('{}') does not exist.".format(os.path.dirname(self._wd)))
                 else:
-                    logger.info("The workspace directory '{}' does not exist!".format(self._wd))
+                    logger.info(f"The workspace directory '{self._wd}' does not exist!")
             else:
-                logger.error("Unable to access the workspace directory '{}'.".format(self._wd))
+                logger.error(f"Unable to access the workspace directory '{self._wd}'.")
                 raise WorkspaceError(error)
 
     def num_jobs(self):
@@ -1061,7 +1061,7 @@ class Project(object):
         if fn is None:
             fn = self.fn(self.FN_STATEPOINTS)
         # See comment in write state points.
-        with open(fn, 'r') as file:
+        with open(fn) as file:
             return json.loads(file.read())
 
     def dump_statepoints(self, statepoints):
@@ -1113,7 +1113,7 @@ class Project(object):
             fn = self.fn(self.FN_STATEPOINTS)
         try:
             tmp = self.read_statepoints(fn=fn)
-        except IOError as error:
+        except OSError as error:
             if not error.errno == errno.ENOENT:
                 raise
             tmp = dict()
@@ -1152,7 +1152,7 @@ class Project(object):
         try:
             with open(fn_manifest, 'rb') as manifest:
                 return json.loads(manifest.read().decode())
-        except (IOError, ValueError) as error:
+        except (OSError, ValueError) as error:
             if os.path.isdir(os.path.join(self._wd, jobid)):
                 logger.error(
                     "Error while trying to access state "
@@ -1205,7 +1205,7 @@ class Project(object):
         except KeyError as error:
             try:
                 sp = self.read_statepoints(fn=fn)[jobid]
-            except IOError as io_error:
+            except OSError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
@@ -1662,7 +1662,7 @@ class Project(object):
         self._read_cache()
         try:
             self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
-        except IOError as error:
+        except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
                 raise
         if index is not None:
@@ -1695,7 +1695,7 @@ class Project(object):
 
                 job = self.open_job(sp)
             except KeyError:
-                logger.critical("Unable to lookup state point for job with id '{}'.".format(job_id))
+                logger.critical(f"Unable to lookup state point for job with id '{job_id}'.")
                 corrupted.append(job_id)
             else:
                 try:
@@ -1753,7 +1753,7 @@ class Project(object):
                     try:
                         with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
                             doc.update(json.loads(file.read().decode()))
-                    except IOError as error:
+                    except OSError as error:
                         if error.errno != errno.ENOENT:
                             raise
             yield doc
@@ -1784,7 +1784,7 @@ class Project(object):
                     pool.map(_add, chunk)
 
             delta = time.time() - start
-            logger.debug("Updated in-memory cache in {:.3f} seconds.".format(delta))
+            logger.debug(f"Updated in-memory cache in {delta:.3f} seconds.")
             return to_add, to_remove
         else:
             logger.debug("In-memory cache is up to date.")
@@ -1793,7 +1793,7 @@ class Project(object):
         """Remove the persistent cache file (if it exists)."""
         try:
             os.remove(self.fn(self.FN_CACHE))
-        except (OSError, IOError) as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
 
@@ -1820,13 +1820,13 @@ class Project(object):
             except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
-                except (OSError, IOError):
+                except OSError:
                     pass
                 raise
             else:
                 os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
-            logger.info("Updated cache in {:.3f} seconds.".format(delta))
+            logger.info(f"Updated cache in {delta:.3f} seconds.")
             return len(self._sp_cache)
         else:
             logger.info("Cache is up to date.")
@@ -1839,13 +1839,13 @@ class Project(object):
             with gzip.open(self.fn(self.FN_CACHE), 'rb') as cachefile:
                 cache = json.loads(cachefile.read().decode())
             self._sp_cache.update(cache)
-        except IOError as error:
+        except OSError as error:
             if not error.errno == errno.ENOENT:
                 raise
             logger.debug("No cache file found.")
         else:
             delta = time.time() - start
-            logger.debug("Read cache in {:.3f} seconds.".format(delta))
+            logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
     def index(self, formats=None, depth=0,
@@ -1965,7 +1965,7 @@ class Project(object):
         if main:
             mode = os.stat(filename).st_mode | stat.S_IEXEC
             os.chmod(filename, mode)
-        logger.info("Created access module file '{}'.".format(filename))
+        logger.info(f"Created access module file '{filename}'.")
         return filename
 
     @contextmanager
@@ -2140,12 +2140,12 @@ class Project(object):
 
         # Ensure the root path exists, which is not guaranteed by the regex match
         if not os.path.exists(root):
-            raise LookupError("Path does not exist: '{}'.".format(root))
+            raise LookupError(f"Path does not exist: '{root}'.")
 
         # Find the last match instance of a job id
         results = list(re.finditer(JOB_ID_REGEX, root))
         if len(results) == 0:
-            raise LookupError("Could not find a job id in path '{}'.".format(root))
+            raise LookupError(f"Could not find a job id in path '{root}'.")
         match = results[-1]
         job_id = match.group(0)
         job_root = root[:match.end()]
@@ -2219,7 +2219,7 @@ def _skip_errors(iterable, log=print):
             log(error)
 
 
-class _JobsCursorIterator(object):
+class _JobsCursorIterator:
     """Iterator for JobsCursor."""
 
     def __init__(self, project, ids):
@@ -2234,7 +2234,7 @@ class _JobsCursorIterator(object):
         return type(self)(self._project, self._ids)
 
 
-class JobsCursor(object):
+class JobsCursor:
     """An iterator over a search query result.
 
     Enables simple iteration and grouping operations.
@@ -2725,9 +2725,9 @@ class JobsCursor(object):
                 raise RuntimeError
         except ImportError:
             warnings.warn('Install pandas for a pretty representation of jobs.')
-            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
+            html += f'<br/><strong>{len_self}</strong> job(s) found'
         except RuntimeError:
-            html += '<br/><strong>{}</strong> job(s) found'.format(len_self)
+            html += f'<br/><strong>{len_self}</strong> job(s) found'
         else:
             with pandas.option_context("display.max_rows", 20):
                 html += self.to_dataframe()._repr_html_()

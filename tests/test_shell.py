@@ -23,7 +23,7 @@ else:
 WINDOWS = (sys.platform == 'win32')
 
 
-class DummyFile(object):
+class DummyFile:
     "We redirect sys stdout into this file during console tests."
 
     def __init__(self):
@@ -71,7 +71,7 @@ class TestBasicShell():
             p.stdin.write(input.encode())
         out, err = p.communicate()
         if p.returncode != 0 and raise_error:
-            raise ExitCodeError("STDOUT='{}' STDERR='{}'".format(out, err))
+            raise ExitCodeError(f"STDOUT='{out}' STDERR='{err}'")
         return err.decode() if error else out.decode()
 
     def test_print_usage(self):
@@ -83,7 +83,7 @@ class TestBasicShell():
 
     def test_version(self):
         out = self.call('python -m signac --version'.split())
-        assert 'signac {}'.format(signac.__version__) in out
+        assert f'signac {signac.__version__}' in out
 
     def test_help(self):
         out = self.call('python -m signac --help'.split())
@@ -139,7 +139,7 @@ class TestBasicShell():
         project = signac.Project()
         assert len(project) == 1
         job = project.open_job({'a': 0})
-        sp = self.call('python -m signac statepoint {}'.format(job.id).split())
+        sp = self.call(f'python -m signac statepoint {job.id}'.split())
         assert project.open_job(json.loads(sp)) == job
         assert len(project) == 1
         sp = self.call('python -m signac statepoint'.split())
@@ -181,7 +181,7 @@ class TestBasicShell():
         doc = json.loads(self.call('python -m signac document'.split()))
         assert 'data' in doc
         assert doc['data'] == 4
-        doc = json.loads(self.call('python -m signac document {}'.format(job_a.id).split()))
+        doc = json.loads(self.call(f'python -m signac document {job_a.id}'.split()))
         assert 'data' in doc
         assert doc['data'] == 4
         out = self.call('python -m signac document --pretty'.split())
@@ -268,7 +268,7 @@ class TestBasicShell():
         job_a.init()
         job_b = project.open_job({"a": 0, "b": 0})
         job_b.init()
-        out = self.call('python -m signac diff {} {}'.format(job_a.id, job_b.id).split())
+        out = self.call(f'python -m signac diff {job_a.id} {job_b.id}'.split())
         expected = [str(job_a.id), "{'b': 1}", str(job_b.id), "{'b': 0}"]
         outputs = out.strip().split(os.linesep)
         assert set(expected) == set(outputs)
@@ -349,15 +349,15 @@ class TestBasicShell():
         assert job_to_remove in project
         assert job_to_remove.doc.a == 0
         assert len(job_to_remove.doc) == 1
-        self.call('python -m signac rm --clear {}'.format(job_to_remove.id).split())
+        self.call(f'python -m signac rm --clear {job_to_remove.id}'.split())
         assert job_to_remove in project
         assert len(job_to_remove.doc) == 0
-        self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
+        self.call(f'python -m signac -v rm {job_to_remove.id}'.split())
         assert job_to_remove not in project
 
         # removing job that does not exist at source
         with pytest.raises(ExitCodeError):
-            self.call('python -m signac -v rm {}'.format(job_to_remove.id).split())
+            self.call(f'python -m signac -v rm {job_to_remove.id}'.split())
         assert job_to_remove not in project
 
     def test_schema(self):
@@ -403,7 +403,7 @@ class TestBasicShell():
         assert 'b' in project_a.document
         assert 'b' not in project_b.document
         with job_dst:
-            with open('test', 'r') as file:
+            with open('test') as file:
                 assert 'x' == file.read()
         # invalid cases
         with pytest.raises(ExitCodeError):
@@ -505,7 +505,7 @@ class TestBasicShell():
                       .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
         self.call('python -m signac sync {} {} --strategy never'
                   .format(os.path.join(self.tmpdir.name, 'b'), self.tmpdir.name).split())
-        with open(job_dst.fn('test'), 'r') as file:
+        with open(job_dst.fn('test')) as file:
             assert file.read() == 'xx'
 
         with pytest.raises(ExitCodeError):
@@ -526,7 +526,7 @@ class TestBasicShell():
         for i in range(10):
             project.open_job({'a': i}).init()
         assert len(project) == 10
-        self.call("python -m signac export {}".format(prefix_data).split())
+        self.call(f"python -m signac export {prefix_data}".split())
         assert len(project) == 10
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, 'a'))) == 10
@@ -548,7 +548,7 @@ class TestBasicShell():
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         assert len(project) == 0
-        self.call("python -m signac import {}".format(prefix_data).split())
+        self.call(f"python -m signac import {prefix_data}".split())
         assert len(project) == 10
         assert list(project.find_job_ids()) == job_ids
 
@@ -569,14 +569,14 @@ class TestBasicShell():
         job_src = project_b.open_job({'a': 0})
         job_src.document['a'] = 0
         project_b.export_to(prefix_data)
-        err = self.call("python -m signac import {}".format(prefix_data).split(), error=True)
+        err = self.call(f"python -m signac import {prefix_data}".split(), error=True)
         assert "Import failed" in err
-        self.call("python -m signac import {} --sync".format(prefix_data).split(), error=True)
+        self.call(f"python -m signac import {prefix_data} --sync".split(), error=True)
         assert len(project_a) == 4
         assert 'a' in job_dst.document
         assert job_dst.document['a'] == 0
         out = self.call(
-            'python -m signac import {} --sync-interactive'.format(prefix_data),
+            f'python -m signac import {prefix_data} --sync-interactive',
             'print(str(tmp_project), len(tmp_project)); exit()', shell=True)
         assert 'ProjectA' in out
         assert '4' in out
@@ -618,7 +618,7 @@ class TestBasicShell():
             python_command,
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         n = len(project.find_jobs({'a': {'$gt': 0}}))
-        assert out.strip() == '>>> {} None {}'.format(project, n)
+        assert out.strip() == f'>>> {project} None {n}'
 
     def test_shell_with_jobs_and_selection_only_one_job(self):
         self.call('python -m signac init my_project'.split())
@@ -630,7 +630,7 @@ class TestBasicShell():
             'python -m signac shell -f a 0',
             'print(str(project), job, len(list(jobs))); exit()', shell=True)
         job = list(project.find_jobs({'a': 0}))[0]
-        assert out.strip() == '>>> {} {} 1'.format(project, job)
+        assert out.strip() == f'>>> {project} {job} 1'
 
     def test_config_show(self):
         err = self.call('python -m signac config --local show'.split(), error=True).strip()

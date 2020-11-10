@@ -11,7 +11,7 @@ from signac.core.attrdict import SyncedAttrDict as SAD
 from signac.core.synceddict import _SyncedDict
 
 
-class _SyncPoint(object):
+class _SyncPoint:
 
     def __init__(self):
         self.reset()

@@ -168,7 +168,7 @@ def _h5get(store, grp, key, path=None):
             return result
 
 
-class _ensure_open(object):
+class _ensure_open:
 
     __slots__ = ['file', 'open', 'kwargs']
 
@@ -227,13 +227,13 @@ class H5Group(MutableMapping):
 
     def __setattr__(self, key, value):
         if key.startswith('__') or key in self.__slots__:
-            super(H5Group, self).__setattr__(key, value)
+            super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
 
     def setdefault(self, key, value):
         """Set a value for a key if that key is not already set."""
-        super(H5Group, self).setdefault(key, value)
+        super().setdefault(key, value)
         return self.__getitem__(key)
 
     def __iter__(self):
@@ -247,11 +247,11 @@ class H5Group(MutableMapping):
     def __eq__(self, other):
         with _ensure_open(self._store):
             if isinstance(self, Mapping) and isinstance(other, Mapping):
-                return super(H5Group, self).__eq__(other)
+                return super().__eq__(other)
             elif type(other) == type(self):
                 return self._group == other._group
             else:
-                return super(H5Group, self).__eq__(other)
+                return super().__eq__(other)
 
 
 class H5Store(MutableMapping):
@@ -444,7 +444,7 @@ class H5Store(MutableMapping):
 
     def __getattr__(self, name):
         try:
-            return super(H5Store, self).__getattribute__(name)
+            return super().__getattribute__(name)
         except AttributeError:
             if name.startswith('__') or name in self.__slots__:
                 raise
@@ -455,19 +455,19 @@ class H5Store(MutableMapping):
 
     def __setattr__(self, key, value):
         if key.startswith('__') or key in self.__slots__:
-            super(H5Store, self).__setattr__(key, value)
+            super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
 
     def __delattr__(self, key):
         if key.startswith('__') or key in self.__slots__:
-            super(H5Store, self).__delattr__(key)
+            super().__delattr__(key)
         else:
             self.__delitem__(key)
 
     def setdefault(self, key, value):
         """Set a value for a key if that key is not already set."""
-        super(H5Store, self).setdefault(key, value)
+        super().setdefault(key, value)
         return self.__getitem__(key)
 
     def __iter__(self):
@@ -478,8 +478,8 @@ class H5Store(MutableMapping):
         try:
             with _ensure_open(self, mode='r'):
                 return len(self._file)
-        except (OSError, IOError) as error:
-            if 'errno = {}'.format(errno.ENOENT) in str(error):
+        except OSError as error:
+            if f'errno = {errno.ENOENT}' in str(error):
                 return 0     # file does not exist
             else:
                 raise
@@ -488,8 +488,8 @@ class H5Store(MutableMapping):
         try:
             with _ensure_open(self, mode='r'):
                 return key in self._file
-        except (OSError, IOError) as error:
-            if 'errno = {}'.format(errno.ENOENT) in str(error):
+        except OSError as error:
+            if f'errno = {errno.ENOENT}' in str(error):
                 return False     # file does not exist
             else:
                 raise

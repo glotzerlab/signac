@@ -552,9 +552,9 @@ class TestProject(TestProjectBase):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        job_ids = set((job.id for job in self.project.find_jobs()))
+        job_ids = {job.id for job in self.project.find_jobs()}
         docs = list(self.project.index())
-        job_ids_cmp = set((doc['_id'] for doc in docs))
+        job_ids_cmp = {doc['_id'] for doc in docs}
         assert job_ids == job_ids_cmp
         assert len(docs) == len(statepoints)
         for sp in statepoints:
@@ -563,13 +563,13 @@ class TestProject(TestProjectBase):
                     pass
         docs = list(self.project.index({'.*' + re.escape(os.path.sep) + r'test\.txt': 'TextFile'}))
         assert len(docs) == 2 * len(statepoints)
-        assert len(set((doc['_id'] for doc in docs))) == len(docs)
+        assert len({doc['_id'] for doc in docs}) == len(docs)
 
     def test_signac_project_crawler(self):
         statepoints = [{'a': i} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).document['test'] = True
-        job_ids = set((job.id for job in self.project.find_jobs()))
+        job_ids = {job.id for job in self.project.find_jobs()}
         index = dict()
         for doc in self.project.index():
             index[doc['_id']] = doc
@@ -597,7 +597,7 @@ class TestProject(TestProjectBase):
 
             def process(self_, doc, dirpath, fn):
                 Crawler.called = True
-                doc = super(Crawler, self_).process(doc=doc, dirpath=dirpath, fn=fn)
+                doc = super().process(doc=doc, dirpath=dirpath, fn=fn)
                 if 'format' in doc and doc['format'] is None:
                     assert doc['_id'] == doc['signac_id']
                 return doc
@@ -623,7 +623,7 @@ class TestProject(TestProjectBase):
 
         class CustomJob(signac.contrib.job.Job):
             def __init__(self, *args, **kwargs):
-                super(CustomJob, self).__init__(*args, **kwargs)
+                super().__init__(*args, **kwargs)
 
         class CustomProject(signac.Project):
             Job = CustomJob
@@ -757,7 +757,7 @@ class TestProject(TestProjectBase):
         assert s == s(self.project)
         assert s == s([job.sp for job in self.project])
         # Check that it works with iterables that can only be consumed once
-        assert s == s((job.sp for job in self.project))
+        assert s == s(job.sp for job in self.project)
 
     def test_schema_difference(self):
         def get_sp(i):
@@ -1177,7 +1177,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 10
         with TarFile(name=target) as tarfile:
             for i in range(10):
-                assert 'a/{}'.format(i) in tarfile.getnames()
+                assert f'a/{i}' in tarfile.getnames()
         os.replace(self.project.workspace(), self.project.workspace() + '~')
         assert len(self.project) == 0
         self.project.import_from(origin=target)
@@ -1212,8 +1212,8 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 10
         with TarFile.open(name=target, mode='r:gz') as tarfile:
             for i in range(10):
-                assert 'a/{}'.format(i) in tarfile.getnames()
-                assert 'a/{}/sub-dir/signac_statepoint.json'.format(i) in tarfile.getnames()
+                assert f'a/{i}' in tarfile.getnames()
+                assert f'a/{i}/sub-dir/signac_statepoint.json' in tarfile.getnames()
         os.replace(self.project.workspace(), self.project.workspace() + '~')
         assert len(self.project) == 0
         self.project.import_from(origin=target)
@@ -1236,8 +1236,8 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 10
         with ZipFile(target) as zipfile:
             for i in range(10):
-                assert 'a/{}/signac_statepoint.json'.format(i) in zipfile.namelist()
-                assert 'a/{}/sub-dir/signac_statepoint.json'.format(i) in zipfile.namelist()
+                assert f'a/{i}/signac_statepoint.json' in zipfile.namelist()
+                assert f'a/{i}/sub-dir/signac_statepoint.json' in zipfile.namelist()
         os.replace(self.project.workspace(), self.project.workspace() + '~')
         assert len(self.project) == 0
         self.project.import_from(origin=target)
@@ -1487,7 +1487,7 @@ def add_jobs_homogeneous(project, num_jobs):
     # Add jobs with many different state points
     for i in range(num_jobs):
         project.open_job(
-            {'{}_{}'.format(i, j): v
+            {f'{i}_{j}': v
                 for j, v in enumerate(VALID_SP_VALUES)}).init()
 
 
@@ -1672,7 +1672,7 @@ class TestLinkedViewProject(TestProjectBase):
                 for c in c_vals:
                     sp = {'a': a, 'b': b, 'c': c}
                     assert os.path.isdir(os.path.join(view_prefix, 'a', str(
-                        sp['a']), 'c_%s_b_%s' % (str(sp['c']), str(sp['b'])), 'job'))
+                        sp['a']), 'c_{}_b_{}'.format(str(sp['c']), str(sp['b'])), 'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_flat(self):
@@ -1692,8 +1692,8 @@ class TestLinkedViewProject(TestProjectBase):
                 for c in c_vals:
                     sp = {'a': a, 'b': b, 'c': c}
                     assert os.path.isdir(os.path.join(
-                        view_prefix, 'a_%s/c_%s_b_%s' % (str(sp['a']), str(sp['c']), str(sp['b'])),
-                        'job'))
+                        view_prefix, 'a_{}/c_{}_b_{}'.format(
+                            str(sp['a']), str(sp['c']), str(sp['b'])), 'job'))
 
     @pytest.mark.skipif(WINDOWS, reason='Linked views unsupported on Windows.')
     def test_create_linked_view_homogeneous_schema_flat_tree(self):
@@ -1913,7 +1913,7 @@ class TestLinkedViewProject(TestProjectBase):
     def test_create_linked_view_with_slash_raises_error(self):
         bad_chars = [os.sep, " ", "*"]
         statepoints = [{
-            'a{}b'.format(i): 0, 'b': 'bad{}val'.format(i)
+            f'a{i}b': 0, 'b': f'bad{i}val'
         } for i in bad_chars]
         view_prefix = os.path.join(self._tmp_pr, 'view')
         for sp in statepoints:
@@ -1925,7 +1925,7 @@ class TestLinkedViewProject(TestProjectBase):
 class UpdateCacheAfterInitJob(signac.contrib.job.Job):
 
     def init(self, *args, **kwargs):
-        super(UpdateCacheAfterInitJob, self).init(*args, **kwargs)
+        super().init(*args, **kwargs)
         self._project.update_cache()
 
 

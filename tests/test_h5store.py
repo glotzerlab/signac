@@ -399,7 +399,7 @@ class TestH5Store(TestH5StoreBase):
                     self.assertEqual(other_h5s[k], h5s[k])
 
     def test_write_invalid_type(self):
-        class Foo(object):
+        class Foo:
             pass
 
         with self.open_h5store() as h5s:
@@ -541,7 +541,7 @@ class TestH5Store(TestH5StoreBase):
 class TestH5StoreNestedData(TestH5Store):
 
     def get_testdata(self, size=None):
-        return dict(a=super(TestH5StoreNestedData, self).get_testdata(size))
+        return dict(a=super().get_testdata(size))
 
     def test_repr(self):
         from signac.core.h5store import H5Store, H5Group  # noqa:F401
@@ -556,7 +556,7 @@ class TestH5StoreNestedData(TestH5Store):
 class TestH5StoreBytesData(TestH5Store):
 
     def get_testdata(self, size=None):
-        return super(TestH5StoreBytesData, self).get_testdata(size=size).encode()
+        return super().get_testdata(size=size).encode()
 
 
 class TestH5StoreClosed(TestH5Store):
@@ -595,14 +595,14 @@ class TestH5StorePandasData(TestH5Store):
     def assertEqual(self, a, b):
         if isinstance(a, Mapping):
             assert isinstance(b, Mapping)
-            super(TestH5StorePandasData, self).assertEqual(a.keys(), b.keys())
+            super().assertEqual(a.keys(), b.keys())
             for key in a:
                 self.assertEqual(a[key], b[key])
         else:
             try:
                 return (a == b).all()
             except (AttributeError, ValueError):
-                return super(TestH5StorePandasData, self).assertEqual(a, b)
+                return super().assertEqual(a, b)
             else:
                 assert isinstance(a, pandas.DataFrame)
 
@@ -798,7 +798,7 @@ class TestH5StorePerformanceNestedData(TestH5StorePerformance):
     max_slowdown_vs_native_factor = 1.75
 
     def get_testdata(self, size=None):
-        return dict(a=super(TestH5StorePerformanceNestedData, self).get_testdata(size))
+        return dict(a=super().get_testdata(size))
 
     @pytest.fixture
     def setUp(self, setUp_base_h5Store):

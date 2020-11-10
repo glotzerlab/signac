@@ -36,7 +36,7 @@ class Contributor:
 
     def as_zenodo_creator(self):
         ret = dict(
-            name='{} {}'.format(self.first_names, self.last_names),
+            name=f'{self.first_names} {self.last_names}',
             affiliation=self.affiliation)
         if self.orcid:
             ret['orcid'] = self.orcid.lstrip('https://orcid.org/')

@@ -81,7 +81,7 @@ class dircmp_deep(dircmp):
     methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
 
 
-class _DocProxy(object):
+class _DocProxy:
     """Proxy object for document (mapping) modifications.
 
     This proxy is used to keep track of changes and ensure that
@@ -111,7 +111,7 @@ class _DocProxy(object):
         return self.doc[key]
 
     def __setitem__(self, key, value):
-        logger.more("Set '{}'='{}'.".format(key, value))
+        logger.more(f"Set '{key}'='{value}'.")
         if not self.dry_run:
             self.doc[key] = value
 
@@ -141,7 +141,7 @@ class _DocProxy(object):
         return len(self.doc)
 
 
-class _FileModifyProxy(object):
+class _FileModifyProxy:
     """Proxy used for data modification.
 
     This proxy is used for all file data modification to keep

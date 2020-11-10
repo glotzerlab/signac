@@ -101,7 +101,7 @@ __all__ = [
 
 # Definition of default sync strategies
 
-class FileSync(object):
+class FileSync:
     """Collection of file synchronization strategies."""
 
     @classmethod
@@ -124,7 +124,7 @@ class FileSync(object):
         """Resolve sync conflicts based on newest modified timestamp."""
         return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
-    class Ask(object):
+    class Ask:
         """Resolve sync conflicts by asking whether a file should be overwritten interactively."""
 
         def __init__(self):
@@ -138,7 +138,7 @@ class FileSync(object):
             elif fn in self.no:
                 return False
             else:
-                overwrite = query_yes_no("Overwrite files named '{}'?".format(fn), 'no')
+                overwrite = query_yes_no(f"Overwrite files named '{fn}'?", 'no')
                 if overwrite:
                     self.yes.add(fn)
                     return True
@@ -147,7 +147,7 @@ class FileSync(object):
                     return False
 
 
-class DocSync(object):
+class DocSync:
     """Collection of document synchronization functions."""
 
     NO_SYNC = False
@@ -162,7 +162,7 @@ class DocSync(object):
         for key in src.keys():
             dst[key] = src[key]
 
-    class ByKey(object):
+    class ByKey:
         """Synchronize documents key by key."""
 
         def __init__(self, key_strategy=None):
@@ -215,7 +215,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
 
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File named '{}' is skipped (excluded).".format(fn))
+            logger.debug(f"File named '{fn}' is skipped (excluded).")
             continue
         fn_src = os.path.join(src.workspace(), subdir, fn)
         fn_dst = os.path.join(dst.workspace(), subdir, fn)
@@ -224,10 +224,10 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
         elif recursive:
             copytree(fn_src, fn_dst)
         else:
-            logger.warning("Skip directory '{}'.".format(fn_src))
+            logger.warning(f"Skip directory '{fn_src}'.")
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File named '{}' is skipped (excluded).".format(fn))
+            logger.debug(f"File named '{fn}' is skipped (excluded).")
             continue
         if strategy is None:
             raise FileSyncConflict(fn)
@@ -237,7 +237,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
             if strategy(src, dst, os.path.join(subdir, fn)):
                 copy(fn_src, fn_dst)
             else:
-                logger.debug("Skip file '{}'.".format(fn))
+                logger.debug(f"Skip file '{fn}'.")
     for _subdir in diff.subdirs:
         if recursive:
             _sync_job_workspaces(
@@ -353,9 +353,9 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             group=preserve_group,
             dry_run=bool(dry_run))
     if proxy.dry_run:
-        logger.debug("Synchronizing job '{}' (dry run)...".format(src))
+        logger.debug(f"Synchronizing job '{src}' (dry run)...")
     else:
-        logger.debug("Synchronizing job '{}'...".format(src))
+        logger.debug(f"Synchronizing job '{src}'...")
 
     if os.path.isdir(src.workspace()):
         if not dry_run:
@@ -498,14 +498,14 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         logger.info("Synchronizing selection ({}) of project '{}' to '{}'.".format(
             len(selection), source, destination))
     else:
-        logger.info("Synchronizing project '{}' to '{}'.".format(source, destination))
-    logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
+        logger.info(f"Synchronizing project '{source}' to '{destination}'.")
+    logger.more(f"'{source.root_directory()}' -> '{destination.root_directory()}'")
     if dry_run:
         logger.info("Performing dry run!")
     if exclude is not None:
-        logger.more("File name exclude pattern: '{}'".format(exclude))
-    logger.more("Sync strategy: '{}'".format(strategy))
-    logger.more("Doc sync strategy: '{}'".format(doc_sync))
+        logger.more(f"File name exclude pattern: '{exclude}'")
+    logger.more(f"Sync strategy: '{strategy}'")
+    logger.more(f"Doc sync strategy: '{doc_sync}'")
 
     # Sync the Project document.
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
@@ -521,14 +521,14 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         jobs_to_sync = [job for job in source if job.get_id() in selection]
 
     N = len(jobs_to_sync)
-    logger.more("Synchronizing {} jobs.".format(N))
+    logger.more(f"Synchronizing {N} jobs.")
     count = ddict(int)
 
     def _clone_or_sync(src_job):
         """Clone a job if it does not exist, or sync if it exists."""
         try:
             destination.clone(src_job, copytree=proxy.copytree)
-            logger.more("Cloned job '{}'.".format(src_job))
+            logger.more(f"Cloned job '{src_job}'.")
             return 1
         except DestinationExistsError:
             dst_job = destination.open_job(id=src_job.get_id())
@@ -541,7 +541,7 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
                 recursive=recursive,
                 dry_run=proxy,   # used as internal argument to forward the proxy
                 )
-            logger.more("Synchonized job '{}'.".format(src_job))
+            logger.more(f"Synchonized job '{src_job}'.")
             return 2
 
     if parallel:
@@ -558,6 +558,6 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
             logger.info("Project sync progress: {}/{}".format(i+1, N))
 
     num_cloned, num_synchronized = count[1], count[2]
-    logger.info("Cloned {} and synchronized {} job(s).".format(num_cloned, num_synchronized))
+    logger.info(f"Cloned {num_cloned} and synchronized {num_synchronized} job(s).")
     if collect_stats:
         return FileTransferStats(** proxy.stats)

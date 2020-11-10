@@ -93,7 +93,7 @@ def apply_migrations(project):
                 migrate(project)
             except Exception as e:
                 raise RuntimeError(
-                    "Failed to apply migration {}.".format(destination)) from e
+                    f"Failed to apply migration {destination}.") from e
             else:
                 _update_project_config(project, schema_version=destination)
                 print("OK", file=sys.stderr)

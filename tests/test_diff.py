@@ -26,13 +26,13 @@ class TestDiff(TestDiffBase):
         job2 = self.project.open_job({'a': 0})
         expected = {str(job1.id): {'b': 1}, str(job2.id): {}}
         result = signac.diff_jobs(job1, job2)
-        assert expected == result, '{} is not {}'.format(result, expected)
+        assert expected == result, f'{result} is not {expected}'
 
     def test_one_job(self):
         job1 = self.project.open_job({'a': 0})
         expected = {str(job1.id): {}}
         result = signac.diff_jobs(job1)
-        assert expected == result, '{} is not {}'.format(result, expected)
+        assert expected == result, f'{result} is not {expected}'
 
     def test_no_jobs(self):
         assert signac.diff_jobs() == {}
@@ -42,10 +42,10 @@ class TestDiff(TestDiffBase):
         job2 = self.project.open_job({'a': 0, 'b': {'c': True, 'd': 4}})
         expected = {str(job1.id): {'b': {'d': 11}}, str(job2.id): {'b': {'d': 4}}}
         result = signac.diff_jobs(job1, job2)
-        assert expected == result, '{} is not {}'.format(result, expected)
+        assert expected == result, f'{result} is not {expected}'
 
     def test_same_job(self):
         job1 = self.project.open_job({'a': 0, 'b': 1})
         expected = {str(job1.id): {}}
         result = signac.diff_jobs(job1, job1)
-        assert expected == result, '{} is not {}'.format(result, expected)
+        assert expected == result, f'{result} is not {expected}'

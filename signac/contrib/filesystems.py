@@ -37,7 +37,7 @@ def _register_fs_class(fs):
 
 @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
             details="The filesystems module is deprecated.")
-class LocalFS(object):
+class LocalFS:
     """A file system handler for the local file system.
 
     This handler will store all files at the specified
@@ -67,7 +67,7 @@ class LocalFS(object):
     def __repr__(self):
         return '{}({})'.format(
             type(self),
-            ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
+            ', '.join(f'{k}={v}' for k, v in self.config().items()))
 
     def _fn(self, _id, n=2, suffix='.dat'):
         fn = os.path.join(
@@ -111,7 +111,7 @@ _register_fs_class(LocalFS)
 
 if GRIDFS:
 
-    class GridFS(object):
+    class GridFS:
         """A file system handler for the MongoDB `GridFS`_ file system.
 
         .. note::
@@ -151,7 +151,7 @@ if GRIDFS:
         def __repr__(self):
             return '{}({})'.format(
                 type(self),
-                ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
+                ', '.join(f'{k}={v}' for k, v in self.config().items()))
 
         @property
         def gridfs(self):
@@ -255,7 +255,6 @@ def filesystems_from_configs(fs_configs):
     """
     for item in fs_configs:
         if isinstance(item, Mapping):
-            for fs in filesystems_from_config(item):
-                yield fs
+            yield from filesystems_from_config(item)
         else:
             yield item
