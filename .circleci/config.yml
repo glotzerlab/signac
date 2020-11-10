@@ -53,6 +53,29 @@ jobs:
             export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
+            virtualenv ./venv --clear
+            . venv/bin/activate
+            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
+              sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
+            fi
+            ${PYTHON} -m pip install --progress-bar off -U pip==20.2
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+
+      - save_cache:
+          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{checksum "requirements-precommit.txt" }}
+          paths:
+            - "venv"
+
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
+
+      - store_artifacts:
+          path: test-reports
 
   linux-python-37:
     <<: *linux-template
