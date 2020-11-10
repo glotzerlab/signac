@@ -136,14 +136,14 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Python
+          name: Create environment
           command: |
-            brew install python@3.8.1
+            python3 -m venv create test_env
+            . test_env/bin/activate
       - run:
           name: Install dependencies
           command: |
             python --version
-            python -m pip install --progress-bar off certifi
             python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
           name: Run tests
