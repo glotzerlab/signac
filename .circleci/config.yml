@@ -138,7 +138,7 @@ jobs:
       - run:
           name: Install Python
           command: |
-            brew install python --version 3.8.1
+            brew install python@3.8.1
       - run:
           name: Install dependencies
           command: |
