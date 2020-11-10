@@ -76,6 +76,23 @@ jobs:
 
       - store_artifacts:
           path: test-reports
+          destination: test-reports
+
+      - run:
+          name: Run benchmarks
+          command: |
+            # Benchmarks depend on pandas, which takes a long time to install on pypy.
+            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
+              . venv/bin/activate
+              ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
+              ${PYTHON} -m pip freeze
+              ${PYTHON} benchmark.py run -N 100 1000  # this revision
+              ${PYTHON} benchmark.py report
+              git reset --hard origin/master
+              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
+              ${PYTHON} benchmark.py run -N 100 1000 --force
+              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
+            fi
 
   linux-python-37:
     <<: *linux-template
