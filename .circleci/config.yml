@@ -189,6 +189,9 @@ workflows:
       - windows-python-38:
           requires:
             - pre-checks
+      - macos-python-38:
+          requires:
+            - pre-checks
       - check-metadata:
           filters:
             branches:
