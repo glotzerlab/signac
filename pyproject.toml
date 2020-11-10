@@ -13,7 +13,7 @@ exclude = '''
     | \.venv
     | build
     | dist
-    | signac/common/configobj
+    | signac/common/configobj/.*
   )/
 )
 '''
