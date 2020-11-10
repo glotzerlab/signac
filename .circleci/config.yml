@@ -6,6 +6,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.2.0  # Enables Windows executors
+  mac: circleci/macos@1.0.0 # Enables Mac executors
 
 jobs:
   pre-checks:
@@ -187,9 +188,6 @@ workflows:
           requires:
             - pre-checks
       - windows-python-38:
-          requires:
-            - pre-checks
-      - macos-python-38:
           requires:
             - pre-checks
       - check-metadata:
