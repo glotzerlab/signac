@@ -6,7 +6,6 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.2.0  # Enables Windows executors
-  mac: circleci/macos@1.0.0 # Enables Mac executors
 
 jobs:
   pre-checks:
@@ -54,48 +53,6 @@ jobs:
             export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
-    macos:
-      xcode: 11.7
-            virtualenv ./venv --clear
-            . venv/bin/activate
-            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
-              sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
-            fi
-            ${PYTHON} -m pip install --progress-bar off -U pip==20.2
-            ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
-
-      - save_cache:
-          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{checksum "requirements-precommit.txt" }}
-          paths:
-            - "venv"
-
-      - run:
-          name: Run tests
-          command: |
-            . venv/bin/activate
-            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
-            codecov
-
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-
-      - run:
-          name: Run benchmarks
-          command: |
-            # Benchmarks depend on pandas, which takes a long time to install on pypy.
-            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
-              . venv/bin/activate
-              ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
-              ${PYTHON} -m pip freeze
-              ${PYTHON} benchmark.py run -N 100 1000  # this revision
-              ${PYTHON} benchmark.py report
-              git reset --hard origin/master
-              git checkout "${CIRCLE_SHA1}" -- benchmark.py  # ensure that we use the same benchmark script
-              ${PYTHON} benchmark.py run -N 100 1000 --force
-              ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
-            fi
 
   linux-python-37:
     <<: *linux-template
@@ -133,15 +90,26 @@ jobs:
           command: |
             python -m pytest tests/ -v
 
-  macos-python38:
-    mac:
-      xcode: 11.7
+  macos-python-38:
+    macos:  # executor type
+      xcode: 11.3.0
     steps:
       - checkout
-      - run: echo 'chruby ruby-2.7' >> ~/.bash_profile
-      - macos/add-uitest-permissions
-      - run: bundle install
-      - run: bundle exec fastlane testandbuild
+      - run: 
+          name: Install Python
+          command: |
+            brew install python --version 3.8.1
+      - run:
+          name: Install dependencies
+          command: |
+            python --version
+            python -m pip install --progress-bar off certifi
+            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+      - run:
+          name: Run tests
+          command: |
+            python -m pytest tests/ -v
+
 
   check-metadata:
     docker:
@@ -200,6 +168,9 @@ workflows:
           requires:
             - pre-checks
       - windows-python-38:
+          requires:
+            - pre-checks
+      - macos-python-38:
           requires:
             - pre-checks
       - check-metadata:
