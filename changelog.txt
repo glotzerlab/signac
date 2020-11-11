@@ -16,6 +16,7 @@ Added
  - Support for h5py version 3 (#411).
  - Added pyupgrade to pre-commit hooks (#413).
  - Code is formatted with ``black`` and ``isort`` pre-commit hooks (#415).
+ - Official support for Python 3.9 (#417).
 
 [1.5.0] -- 2020-09-20
 ---------------------
