@@ -44,4 +44,4 @@ def dumps(o: Any, sort_keys: bool = False, indent: Optional[int] = None) -> str:
     return CustomJSONEncoder(sort_keys=sort_keys, indent=indent).encode(o)
 
 
-__all__ = ['loads', 'load', 'dumps', 'JSONDecodeError']
+__all__ = ["loads", "load", "dumps", "JSONDecodeError"]

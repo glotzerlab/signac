@@ -14,16 +14,16 @@ from ..errors import InvalidKeyError
 from .dict_manager import DictManager
 
 __all__ = [
-    'H5Store',
-    'H5Group',
-    'H5StoreManager',
-    'H5StoreClosedError',
-    'H5StoreAlreadyOpenError',
+    "H5Store",
+    "H5Group",
+    "H5StoreManager",
+    "H5StoreClosedError",
+    "H5StoreAlreadyOpenError",
 ]
 
 
 def _group_is_pandas_type(group):
-    return 'pandas_type' in group.attrs
+    return "pandas_type" in group.attrs
 
 
 _is_pandas_type = None
@@ -55,7 +55,9 @@ def _requires_tables():
     try:
         import tables  # noqa
     except ImportError:
-        raise ImportError("Storing and loading pandas objects requires the PyTables package.")
+        raise ImportError(
+            "Storing and loading pandas objects requires the PyTables package."
+        )
 
 
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ def _h5set(store, grp, key, value, path=None):
     import h5py
     import numpy  # h5py depends on numpy, so this is safe.
 
-    path = path + '/' + key if path else key
+    path = path + "/" + key if path else key
 
     # Guard against assigning a group to itself, e.g., `h5s[key] = h5s[key]`,
     # where h5s[key] is a mapping. This is necessary, because the original
@@ -102,7 +104,7 @@ def _h5set(store, grp, key, value, path=None):
 
     # Regular built-in types:
     elif value is None:
-        grp.create_dataset(key, data=None, shape=None, dtype='f')
+        grp.create_dataset(key, data=None, shape=None, dtype="f")
     elif isinstance(value, (int, float, str, bool, array.array)):
         grp[key] = value
     elif isinstance(value, bytes):
@@ -122,7 +124,7 @@ def _h5set(store, grp, key, value, path=None):
         if _is_pandas_type(value):
             _requires_tables()
             store.close()
-            with _pandas.HDFStore(store._filename, mode='a') as store_:
+            with _pandas.HDFStore(store._filename, mode="a") as store_:
                 store_[path] = value
             store.open()
         else:
@@ -137,7 +139,7 @@ def _h5get(store, grp, key, path=None):
     """Retrieve the underlying data for a key from its h5py container."""
     import h5py
 
-    path = path + '/' + key if path else key
+    path = path + "/" + key if path else key
     result = grp[key]
 
     if _group_is_pandas_type(result):
@@ -150,7 +152,7 @@ def _h5get(store, grp, key, path=None):
         # Then we re-open the store.
         filename = grp.file.filename
         store.close()
-        with _pandas.HDFStore(filename, mode='r') as store_:
+        with _pandas.HDFStore(filename, mode="r") as store_:
             data = store_[path]
         store.open()
         return data
@@ -160,7 +162,10 @@ def _h5get(store, grp, key, path=None):
             return None
         elif shape:
             return result
-        elif h5py.version.version_tuple.major >= 3 and h5py.check_dtype(vlen=result.dtype) is str:
+        elif (
+            h5py.version.version_tuple.major >= 3
+            and h5py.check_dtype(vlen=result.dtype) is str
+        ):
             # h5py >=3.0.0 returns strings as bytes. This returns str for
             # consistency with past behavior in signac.
             return result.asstr()[()]
@@ -175,7 +180,7 @@ def _h5get(store, grp, key, path=None):
 
 class _ensure_open:
 
-    __slots__ = ['file', 'open', 'kwargs']
+    __slots__ = ["file", "open", "kwargs"]
 
     def __init__(self, file, **kwargs):
         self.file = file
@@ -196,14 +201,14 @@ class _ensure_open:
 class H5Group(MutableMapping):
     """An abstraction layer over h5py's Group objects, to manage and return data."""
 
-    __slots__ = ['_store', '_path']
+    __slots__ = ["_store", "_path"]
 
     def __init__(self, store, path):
         self._store = store
         self._path = path
 
     def __repr__(self):
-        return '{}(store={}, path={})'.format(
+        return "{}(store={}, path={})".format(
             type(self).__name__, repr(self._store), repr(self._path)
         )
 
@@ -217,7 +222,13 @@ class H5Group(MutableMapping):
 
     def __setitem__(self, key, value):
         with _ensure_open(self._store):
-            _h5set(self._store, self._group, self._store._validate_key(key), value, self._path)
+            _h5set(
+                self._store,
+                self._group,
+                self._store._validate_key(key),
+                value,
+                self._path,
+            )
             return value
 
     def __delitem__(self, key):
@@ -232,7 +243,7 @@ class H5Group(MutableMapping):
                 return getattr(self._group, name)
 
     def __setattr__(self, key, value):
-        if key.startswith('__') or key in self.__slots__:
+        if key.startswith("__") or key in self.__slots__:
             super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
@@ -309,13 +320,13 @@ class H5Store(MutableMapping):
         information.
 
     """
-    __slots__ = ['_filename', '_file', '_kwargs']
+    __slots__ = ["_filename", "_file", "_kwargs"]
 
     _thread_lock = RLock()
 
     def __init__(self, filename, **kwargs):
         if not (isinstance(filename, str) and len(filename) > 0):
-            raise ValueError('H5Store filename must be a non-empty string.')
+            raise ValueError("H5Store filename must be a non-empty string.")
         self._filename = os.path.realpath(filename)
         self._file = None
         self._kwargs = kwargs
@@ -326,10 +337,14 @@ class H5Store(MutableMapping):
         return self._filename
 
     def __repr__(self):
-        return "{}(filename={})".format(type(self).__name__, repr(os.path.relpath(self._filename)))
+        return "{}(filename={})".format(
+            type(self).__name__, repr(os.path.relpath(self._filename))
+        )
 
     def __str__(self):
-        return "{}(filename={})".format(type(self).__name__, repr(os.path.basename(self._filename)))
+        return "{}(filename={})".format(
+            type(self).__name__, repr(os.path.basename(self._filename))
+        )
 
     def __del__(self):
         self.close()
@@ -354,8 +369,8 @@ class H5Store(MutableMapping):
         # not exposed to the public API.
         parameters = dict(self._kwargs)
         parameters.update(kwargs)
-        if parameters.get('mode', None) is None:
-            parameters['mode'] = 'a'
+        if parameters.get("mode", None) is None:
+            parameters["mode"] = "a"
 
         self._thread_lock.acquire()
         try:
@@ -374,7 +389,7 @@ class H5Store(MutableMapping):
             This H5Store instance.
         """
         if mode is None:
-            mode = self._kwargs.get('mode', 'a')
+            mode = self._kwargs.get("mode", "a")
         return self._open(mode=mode)
 
     def close(self):
@@ -390,7 +405,7 @@ class H5Store(MutableMapping):
                 try:
                     self._thread_lock.release()
                 except RuntimeError as error:
-                    if 'cannot release un-acquired lock' not in str(error):
+                    if "cannot release un-acquired lock" not in str(error):
                         raise
 
     @property
@@ -429,14 +444,14 @@ class H5Store(MutableMapping):
             self._file.flush()
 
     def __getitem__(self, key):
-        key = key if key.startswith('/') else '/' + key
+        key = key if key.startswith("/") else "/" + key
         with _ensure_open(self):
             return _h5get(self, self._file, key)
 
     @staticmethod
     def _validate_key(key):
         """Emit a warning or raise an exception if key is invalid. Returns key."""
-        if '.' in key:
+        if "." in key:
             raise InvalidKeyError("Keys for the H5Store may not contain dots ('.').")
         return key
 
@@ -453,7 +468,7 @@ class H5Store(MutableMapping):
         try:
             return super().__getattribute__(name)
         except AttributeError:
-            if name.startswith('__') or name in self.__slots__:
+            if name.startswith("__") or name in self.__slots__:
                 raise
             try:
                 return self.__getitem__(name)
@@ -461,13 +476,13 @@ class H5Store(MutableMapping):
                 raise AttributeError(e)
 
     def __setattr__(self, key, value):
-        if key.startswith('__') or key in self.__slots__:
+        if key.startswith("__") or key in self.__slots__:
             super().__setattr__(key, value)
         else:
             self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith('__') or key in self.__slots__:
+        if key.startswith("__") or key in self.__slots__:
             super().__delattr__(key)
         else:
             self.__delitem__(key)
@@ -483,20 +498,20 @@ class H5Store(MutableMapping):
 
     def __len__(self):
         try:
-            with _ensure_open(self, mode='r'):
+            with _ensure_open(self, mode="r"):
                 return len(self._file)
         except OSError as error:
-            if f'errno = {errno.ENOENT}' in str(error):
+            if f"errno = {errno.ENOENT}" in str(error):
                 return 0  # file does not exist
             else:
                 raise
 
     def __contains__(self, key):
         try:
-            with _ensure_open(self, mode='r'):
+            with _ensure_open(self, mode="r"):
                 return key in self._file
         except OSError as error:
-            if f'errno = {errno.ENOENT}' in str(error):
+            if f"errno = {errno.ENOENT}" in str(error):
                 return False  # file does not exist
             else:
                 raise
@@ -530,11 +545,13 @@ class H5StoreManager(DictManager):
     """
 
     cls = H5Store  # type: ignore
-    suffix = '.h5'  # type: ignore
+    suffix = ".h5"  # type: ignore
 
     @staticmethod
     def _validate_key(key):
         """Emit a warning or raise an exception if key is invalid. Returns key."""
-        if '.' in key:
-            raise InvalidKeyError("Keys for the H5StoreManager may not contain dots ('.').")
+        if "." in key:
+            raise InvalidKeyError(
+                "Keys for the H5StoreManager may not contain dots ('.')."
+            )
         return key

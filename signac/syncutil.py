@@ -13,8 +13,8 @@ from filecmp import dircmp
 
 LEVEL_MORE = logging.INFO - 5
 
-logger = logging.getLogger('sync')
-logging.addLevelName(LEVEL_MORE, 'MORE')
+logger = logging.getLogger("sync")
+logging.addLevelName(LEVEL_MORE, "MORE")
 logging.MORE = LEVEL_MORE  # type: ignore
 
 
@@ -78,7 +78,7 @@ class dircmp_deep(dircmp):
     methodmap = dict(dircmp.methodmap)
     # The type check for the following line must be ignored.
     # See: https://github.com/python/mypy/issues/708
-    methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
+    methodmap["same_files"] = methodmap["diff_files"] = phase3  # type: ignore
 
 
 class _DocProxy:
@@ -236,23 +236,25 @@ class _FileModifyProxy:
             if not self.dry_run:
                 os.symlink(link_target, dst)
         else:
-            msg = "Copy file{{}} '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
+            msg = "Copy file{{}} '{}' -> '{}'.".format(
+                os.path.relpath(src), os.path.relpath(dst)
+            )
             if self.permissions and self.times:
-                logger.more(msg.format(' (preserving: permissions, times)'))
+                logger.more(msg.format(" (preserving: permissions, times)"))
                 self._copy2(src, dst)
             elif self.permissions:
-                logger.more(msg.format(' (preserving: permissions)'))
+                logger.more(msg.format(" (preserving: permissions)"))
                 self._copy_p(src, dst)
             elif self.times:
                 raise ValueError("Cannot copy timestamps without permissions.")
             else:
-                logger.more(msg.format(''))
+                logger.more(msg.format(""))
                 self._copy(src, dst)
             if self.owner or self.group or self.stats is not None:
                 stat = os.stat(src)
                 if self.stats is not None:
-                    self.stats['num_files'] += 1
-                    self.stats['volume'] += stat.st_size
+                    self.stats["num_files"] += 1
+                    self.stats["volume"] += stat.st_size
                 if self.owner or self.group:
                     logger.more(
                         "Copy owner/group '{}' -> '{}'".format(
@@ -268,14 +270,16 @@ class _FileModifyProxy:
 
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
-        logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
+        logger.more(
+            "Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
+        )
         copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
         """Create a backup of path."""
         logger.debug("Create backup of '{}'.".format(os.path.relpath(path)))
-        path_backup = path + '~'
+        path_backup = path + "~"
         if os.path.isfile(path_backup):
             raise RuntimeError(
                 "Failed to create backup, file already exists: '{}'.".format(
@@ -297,7 +301,7 @@ class _FileModifyProxy:
     def create_doc_backup(self, doc):
         """Create a backup of doc."""
         proxy = _DocProxy(doc, dry_run=self.dry_run)
-        fn = getattr(doc, 'filename', getattr(doc, '_filename', None))
+        fn = getattr(doc, "filename", getattr(doc, "_filename", None))
         if not len(proxy) or fn is None or not os.path.isfile(fn):
             backup = deepcopy(doc)  # use in-memory backup
             try:

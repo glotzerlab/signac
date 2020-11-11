@@ -49,31 +49,31 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     from .import_export import _check_directory_structure_validity, _make_path_function
 
     # Windows does not support the creation of symbolic links.
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         raise OSError(
             "signac cannot create linked views on Windows, because "
             "symbolic links are not supported by the platform."
         )
 
     if prefix is None:
-        prefix = 'view'
+        prefix = "view"
 
     if index is None:
         if job_ids is None:
-            index = [{'_id': job._id, 'statepoint': job.sp()} for job in project]
+            index = [{"_id": job._id, "statepoint": job.sp()} for job in project]
             jobs = list(project)
         else:
             index = [
-                {'_id': job_id, 'statepoint': project.open_job(id=job_id).sp()}
+                {"_id": job_id, "statepoint": project.open_job(id=job_id).sp()}
                 for job_id in job_ids
             ]
             jobs = list(project.open_job(id=job_id) for job_id in job_ids)
     elif job_ids is not None:
         if not isinstance(job_ids, set):
             job_ids = set(job_ids)
-        index = [doc for doc in index if doc['_id'] in job_ids]
+        index = [doc for doc in index if doc["_id"] in job_ids]
         jobs = list(project.open_job(id=job_id) for job_id in job_ids)
-        if not job_ids.issubset({doc['_id'] for doc in index}):
+        if not job_ids.issubset({doc["_id"] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
 
     key_list = [k for job in jobs for k in job.statepoint().keys()]
@@ -81,7 +81,10 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     item_list = key_list + value_list
     bad_chars = [os.sep, " ", "*"]
     bad_items = [
-        item for item in item_list for char in bad_chars if isinstance(item, str) and char in item
+        item
+        for item in item_list
+        for char in bad_chars
+        if isinstance(item, str) and char in item
     ]
 
     if any(bad_items):
@@ -97,11 +100,11 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
     links = dict()
     for job in jobs:
-        paths = os.path.join(path_function(job), 'job')
+        paths = os.path.join(path_function(job), "job")
         links[paths] = job.workspace()
     if not links:  # data space contains less than two elements
         for job in project.find_jobs():
-            links['./job'] = job.workspace()
+            links["./job"] = job.workspace()
         assert len(links) < 2
     _check_directory_structure_validity(links.keys())
 
@@ -109,7 +112,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     return links
 
 
-def _update_view(prefix, links, leaf='job'):
+def _update_view(prefix, links, leaf="job"):
     """Update an existing linked view hierarchy in place.
 
     Parameters
@@ -137,7 +140,11 @@ def _update_view(prefix, links, leaf='job'):
             os.unlink(p)
         except OSError:
             os.rmdir(p)
-    logger.debug("Creating {} new and updating {} existing links.".format(len(new), len(to_update)))
+    logger.debug(
+        "Creating {} new and updating {} existing links.".format(
+            len(new), len(to_update)
+        )
+    )
     for path in to_update:
         os.unlink(os.path.join(prefix, path))
     for path in chain(new, to_update):
@@ -146,7 +153,7 @@ def _update_view(prefix, links, leaf='job'):
         _make_link(src, dst)
 
 
-def _analyze_view(prefix, links, leaf='job'):
+def _analyze_view(prefix, links, leaf="job"):
     """Analyze an existing view to prepare for update.
 
     Parameters
@@ -175,11 +182,15 @@ def _analyze_view(prefix, links, leaf='job'):
     for branch in reversed(sorted(dead_branches, key=len)):
         if branch:
             obsolete.append(os.path.join(*(n.name for n in branch)))
-    if '.' in obsolete:
-        obsolete.remove('.')
+    if "." in obsolete:
+        obsolete.remove(".")
     keep_or_update = existing_paths.intersection(links.keys())
     new = set(links.keys()).difference(keep_or_update)
-    to_update = [p for p in keep_or_update if os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    to_update = [
+        p
+        for p in keep_or_update
+        if os.path.realpath(os.path.join(prefix, p)) != links[p]
+    ]
     return obsolete, to_update, new
 
 
@@ -209,7 +220,7 @@ def _make_link(src, dst):
         raise
 
 
-def _find_all_links(root, leaf='job'):
+def _find_all_links(root, leaf="job"):
     """Find all symbolic links under root.
 
     Parameters

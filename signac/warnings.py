@@ -16,4 +16,4 @@ class SignacDeprecationWarning(UserWarning):
     pass
 
 
-__all__ = ['SignacDeprecationWarning']
+__all__ = ["SignacDeprecationWarning"]

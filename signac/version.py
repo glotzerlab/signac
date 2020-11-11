@@ -10,6 +10,6 @@ SCHEMA_VERSION = "1"
 
 
 __all__ = [
-    '__version__',
-    'SCHEMA_VERSION',
+    "__version__",
+    "SCHEMA_VERSION",
 ]

@@ -67,13 +67,13 @@ def _build_job_statepoint_index(exclude_const, index):
     collection = Collection(index, _trust=True)
     for doc in collection.find():
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == '_id' or key.split('.')[0] != 'statepoint':
+            if key == "_id" or key.split(".")[0] != "statepoint":
                 continue
             collection.index(key, build=True)
     tmp = collection._indexes
 
     def strip_prefix(key):
-        return k[len('statepoint.') :]
+        return k[len("statepoint.") :]
 
     def remove_dict_placeholder(x):
         """Remove _DictPlaceholder elements from a mapping.
@@ -201,13 +201,17 @@ class ProjectSchema:
             except TypeError:
                 sorted_values = sorted(values, key=repr)
             if len(values) <= max_num_range:
-                values_string = ', '.join(_fmt_value(v) for v in sorted_values)
+                values_string = ", ".join(_fmt_value(v) for v in sorted_values)
             else:
-                values_string = ', '.join(_fmt_value(v) for v in sorted_values[: max_num_range - 2])
-                values_string += ', ..., '
-                values_string += ', '.join(_fmt_value(v) for v in sorted_values[-2:])
-            return '{type_name}([{values_string}], {length})'.format(
-                type_name=type_.__name__, values_string=values_string, length=len(values)
+                values_string = ", ".join(
+                    _fmt_value(v) for v in sorted_values[: max_num_range - 2]
+                )
+                values_string += ", ..., "
+                values_string += ", ".join(_fmt_value(v) for v in sorted_values[-2:])
+            return "{type_name}([{values_string}], {length})".format(
+                type_name=type_.__name__,
+                values_string=values_string,
+                length=len(values),
             )
 
         def _fmt_values(values):
@@ -224,12 +228,12 @@ class ProjectSchema:
                 Comma-separated string of the input values.
 
             """
-            return ', '.join(_fmt_range(*v) for v in values.items())
+            return ", ".join(_fmt_range(*v) for v in values.items())
 
         if depth > 0:
             schema_dict = _Vividict()
             for key, values in self._schema.items():
-                keys = key.split('.')
+                keys = key.split(".")
                 if len(keys) > 1:
                     x = schema_dict[keys[0]]
                     for k in keys[1:-1]:
@@ -239,13 +243,13 @@ class ProjectSchema:
                     schema_dict[keys[0]] = _fmt_values(values)
             return pformat(schema_dict, depth=depth)
         else:
-            ret = ['{']
+            ret = ["{"]
             for key in sorted(self._schema):
                 values = self._schema[key]
                 if values:
                     ret.append(" '{}': '{}',".format(key, _fmt_values(values)))
-            ret.append('}')
-            return '\n'.join(ret)
+            ret.append("}")
+            return "\n".join(ret)
 
     def __len__(self):
         return len(self._schema)
@@ -266,13 +270,13 @@ class ProjectSchema:
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
             return key_or_keys in self._schema
-        key_or_keys = '.'.join(key_or_keys)
+        key_or_keys = ".".join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
         if isinstance(key_or_keys, str):
             return self._schema[key_or_keys]
-        return self._schema['.'.join(key_or_keys)]
+        return self._schema[".".join(key_or_keys)]
 
     def __iter__(self):
         return iter(self._schema)
@@ -340,7 +344,7 @@ class ProjectSchema:
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []
-            keys = key.split('.')
+            keys = key.split(".")
             for sp in it:
                 if not isinstance(sp, Mapping):
                     sp = sp.statepoint

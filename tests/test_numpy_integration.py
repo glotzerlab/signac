@@ -13,7 +13,7 @@ except ImportError:
     NUMPY = False
 
 
-@pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
+@pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
 class TestNumpyIntegration(TestProjectBase):
     def test_store_number_in_sp_and_doc(self):
         for i in range(10):

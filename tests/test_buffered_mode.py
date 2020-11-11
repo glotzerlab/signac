@@ -15,17 +15,17 @@ from test_project import TestProjectBase
 import signac
 from signac.errors import BufferedFileError, BufferException, Error
 
-PYPY = 'PyPy' in platform.python_implementation()
+PYPY = "PyPy" in platform.python_implementation()
 
 
 # Determine if we can run permission error tests
 with TemporaryDirectory() as tmp_dir:
-    path = os.path.join(tmp_dir, 'subdir')
+    path = os.path.join(tmp_dir, "subdir")
     os.mkdir(path)
     mode = os.stat(path).st_mode
     try:
         os.chmod(path, S_IREAD)
-        with open(os.path.join(path, 'testfile.txt'), 'w') as file:
+        with open(os.path.join(path, "testfile.txt"), "w") as file:
             pass
     except OSError:
         ABLE_TO_PREVENT_WRITE = True
@@ -54,9 +54,9 @@ class TestBufferedMode(TestProjectBase):
     def test_basic_and_nested(self):
         job = self.project.open_job(dict(a=0))
         job.init()
-        assert 'a' not in job.doc
+        assert "a" not in job.doc
         with signac.buffered():
-            assert 'a' not in job.doc
+            assert "a" not in job.doc
             job.doc.a = 0
             assert job.doc.a == 0
         assert job.doc.a == 0
@@ -100,8 +100,8 @@ class TestBufferedMode(TestProjectBase):
                 job.doc.a = not x
                 assert job.doc.a == (not x)
                 sleep(1.0)
-                with open(job.doc._filename, 'wb') as file:
-                    file.write(json.dumps({'a': x}).encode())
+                with open(job.doc._filename, "wb") as file:
+                    file.write(json.dumps({"a": x}).encode())
         assert not signac.is_buffered()
         assert job.doc.a == x
 
@@ -110,11 +110,13 @@ class TestBufferedMode(TestProjectBase):
             job.doc.a = not x
             assert job.doc.a == (not x)
             sleep(1.0)
-            with open(job.doc._filename, 'wb') as file:
-                file.write(json.dumps({'a': x}).encode())
+            with open(job.doc._filename, "wb") as file:
+                file.write(json.dumps({"a": x}).encode())
         assert job.doc.a == (not x)
 
-    @pytest.mark.skipif(not ABLE_TO_PREVENT_WRITE, reason='unable to trigger permission error')
+    @pytest.mark.skipif(
+        not ABLE_TO_PREVENT_WRITE, reason="unable to trigger permission error"
+    )
     def test_force_write_mode_with_permission_error(self):
         job = self.project.open_job(dict(a=0))
         job.init()
@@ -238,8 +240,8 @@ class TestBufferedMode(TestProjectBase):
                     job.doc.a = x
                     assert job.doc.a == x
                     sleep(1.0)
-                    with open(job.doc._filename, 'wb') as file:
-                        file.write(json.dumps({'a': not x}).encode())
+                    with open(job.doc._filename, "wb") as file:
+                        file.write(json.dumps({"a": not x}).encode())
             assert job.doc._filename in cm.value.files
 
             break  # only test for one job

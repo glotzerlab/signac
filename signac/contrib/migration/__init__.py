@@ -14,11 +14,11 @@ from ...common.config import get_config
 from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import migrate_v0_to_v1
 
-FN_MIGRATION_LOCKFILE = '.SIGNAC_PROJECT_MIGRATION_LOCK'
+FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
 MIGRATIONS = {
-    ('0', '1'): migrate_v0_to_v1,
+    ("0", "1"): migrate_v0_to_v1,
 }
 
 
@@ -31,9 +31,9 @@ def _reload_project_config(project):
 
 def _update_project_config(project, **kwargs):
     """Update the project configuration."""
-    for fn in ('signac.rc', '.signacrc'):
+    for fn in ("signac.rc", ".signacrc"):
         config = get_config(project.fn(fn))
-        if 'project' in config:
+        if "project" in config:
             break
     else:
         raise RuntimeError("Unable to determine project configuration file.")
@@ -59,7 +59,7 @@ def _collect_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
 
     def config_schema_version():
-        return version.parse(project._config['schema_version'])
+        return version.parse(project._config["schema_version"])
 
     if config_schema_version() > schema_version:
         # Project config schema version is newer and therefore not supported.
@@ -91,7 +91,7 @@ def apply_migrations(project):
             try:
                 print(
                     f"Applying migration for version {origin} to {destination}... ",
-                    end='',
+                    end="",
                     file=sys.stderr,
                 )
                 migrate(project)
@@ -104,5 +104,5 @@ def apply_migrations(project):
 
 
 __all__ = [
-    'apply_migrations',
+    "apply_migrations",
 ]

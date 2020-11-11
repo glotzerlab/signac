@@ -71,17 +71,17 @@ class Job:
 
     """
 
-    FN_MANIFEST = 'signac_statepoint.json'
+    FN_MANIFEST = "signac_statepoint.json"
     """The job's manifest filename.
 
     The job manifest, this means a human-readable dump of the job's
     state point is stored in each workspace directory.
     """
 
-    FN_DOCUMENT = 'signac_job_document.json'
+    FN_DOCUMENT = "signac_job_document.json"
     "The job's document filename."
 
-    KEY_DATA = 'signac_data'
+    KEY_DATA = "signac_data"
     "The job's datastore key."
 
     def __init__(self, project, statepoint, _id=None):
@@ -185,7 +185,7 @@ class Job:
         if dst == self:
             return
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
-        fn_manifest_backup = fn_manifest + '~'
+        fn_manifest_backup = fn_manifest + "~"
         try:
             os.replace(fn_manifest, fn_manifest_backup)
             try:
@@ -465,7 +465,7 @@ class Job:
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                with open(fn_manifest, 'w' if force else 'x') as file:
+                with open(fn_manifest, "w" if force else "x") as file:
                     file.write(blob)
             except OSError as error:
                 if error.errno not in (errno.EEXIST, errno.EACCES):
@@ -484,7 +484,7 @@ class Job:
         """Check whether the manifest file is correct (if it exists)."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'rb') as file:
+            with open(fn_manifest, "rb") as file:
                 assert calc_id(json.loads(file.read().decode())) == self._id
         except OSError as error:
             if error.errno != errno.ENOENT:
@@ -517,7 +517,9 @@ class Job:
         try:
             self._init(force=force)
         except Exception:
-            logger.error(f"State point manifest file of job '{self._id}' appears to be corrupted.")
+            logger.error(
+                f"State point manifest file of job '{self._id}' appears to be corrupted."
+            )
             raise
         return self
 
@@ -598,11 +600,15 @@ class Job:
             os.replace(self.workspace(), dst.workspace())
         except OSError as error:
             if error.errno == errno.ENOENT:
-                raise RuntimeError(f"Cannot move job '{self}', because it is not initialized!")
+                raise RuntimeError(
+                    f"Cannot move job '{self}', because it is not initialized!"
+                )
             elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
-                raise RuntimeError("Cannot move jobs across different devices (file systems).")
+                raise RuntimeError(
+                    "Cannot move jobs across different devices (file systems)."
+                )
             else:
                 raise error
         self.__dict__.update(dst.__dict__)
@@ -654,7 +660,12 @@ class Job:
 
         """
         sync_jobs(
-            src=other, dst=self, strategy=strategy, exclude=exclude, doc_sync=doc_sync, **kwargs
+            src=other,
+            dst=self,
+            strategy=strategy,
+            exclude=exclude,
+            doc_sync=doc_sync,
+            **kwargs,
         )
 
     def fn(self, filename):

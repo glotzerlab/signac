@@ -128,14 +128,18 @@ class MPIPool:
             if isinstance(task, _function_wrapper):
                 self.function = task.function
                 if self.debug:
-                    print(f"Worker {self.rank} replaced its task function: {self.function}.")
+                    print(
+                        f"Worker {self.rank} replaced its task function: {self.function}."
+                    )
                 continue
 
             # If not a special message, just run the known function on
             # the input and return it asynchronously.
             result = self.function(task)
             if self.debug:
-                print(f"Worker {self.rank} sending answer {result} with tag {status.tag}.")
+                print(
+                    f"Worker {self.rank} sending answer {result} with tag {status.tag}."
+                )
             self.comm.isend(result, dest=0, tag=status.tag)
 
     def map(self, function, tasks, ntask=None, callback=None):
@@ -229,7 +233,9 @@ class MPIPool:
             for itask in range(ntask):
                 status = MPI.Status()
                 # Receive input from workers.
-                result = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+                result = self.comm.recv(
+                    source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status
+                )
                 worker = status.source
                 i = status.tag
 

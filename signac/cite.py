@@ -41,7 +41,7 @@ def bibtex(file=None):
     if file is None:
         file = sys.stdout
     elif isinstance(file, str):
-        file = open(file, 'w')
+        file = open(file, "w")
     file.write(ARXIV_BIBTEX)
 
 
@@ -64,5 +64,5 @@ def reference(file=None):
     if file is None:
         file = sys.stdout
     elif isinstance(file, str):
-        file = open(file, 'w')
-    file.write(ARXIV_REFERENCE + '\n')
+        file = open(file, "w")
+    file.write(ARXIV_REFERENCE + "\n")

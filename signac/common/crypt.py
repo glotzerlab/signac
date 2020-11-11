@@ -20,7 +20,7 @@ else:
 
     def get_crypt_context():
         "Return the default signac crypto context."
-        return CryptContext(schemes=('bcrypt',))
+        return CryptContext(schemes=("bcrypt",))
 
 
 try:
@@ -101,5 +101,5 @@ class SimpleKeyring:
 )
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
-    if get_crypt_context().identify(pwhash) == 'bcrypt':
-        return dict(rounds=int(pwhash.split('$')[2]), salt=pwhash[-53:-31])
+    if get_crypt_context().identify(pwhash) == "bcrypt":
+        return dict(rounds=int(pwhash.split("$")[2]), salt=pwhash[-53:-31])

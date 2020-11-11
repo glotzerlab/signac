@@ -90,10 +90,10 @@ from .errors import (
 from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
 
 __all__ = [
-    'FileSync',
-    'DocSync',
-    'sync_jobs',
-    'sync_projects',
+    "FileSync",
+    "DocSync",
+    "sync_jobs",
+    "sync_projects",
 ]
 
 
@@ -106,7 +106,7 @@ class FileSync:
     @classmethod
     def keys(cls):
         """Return keys."""
-        return ('always', 'never', 'update', 'Ask')
+        return ("always", "never", "update", "Ask")
 
     @staticmethod
     def always(src, dst, fn):
@@ -137,7 +137,7 @@ class FileSync:
             elif fn in self.no:
                 return False
             else:
-                overwrite = query_yes_no(f"Overwrite files named '{fn}'?", 'no')
+                overwrite = query_yes_no(f"Overwrite files named '{fn}'?", "no")
                 if overwrite:
                     self.yes.add(fn)
                     return True
@@ -152,7 +152,7 @@ class DocSync:
     NO_SYNC = False
     "Do not synchronize documents."
 
-    COPY = 'copy'
+    COPY = "copy"
     "Copy (and potentially overwrite) documents like any other file."
 
     @staticmethod
@@ -179,7 +179,7 @@ class DocSync:
         def __str__(self):
             return "{}({})".format(type(self).__name__, self.key_strategy)
 
-        def __call__(self, src, dst, root=''):
+        def __call__(self, src, dst, root=""):
             """Synchronize src and dst."""
             if src == dst:
                 return
@@ -188,7 +188,7 @@ class DocSync:
                     if dst[key] == value:
                         continue
                     elif isinstance(value, Mapping):
-                        self(src[key], dst[key], key + '.')
+                        self(src[key], dst[key], key + ".")
                         continue
                     elif self.key_strategy is None or not self.key_strategy(root + key):
                         self.skipped_keys.add(root + key)
@@ -201,11 +201,11 @@ class DocSync:
                 if self.key_strategy is None:
                     raise DocumentSyncConflict(self.skipped_keys)
                 else:
-                    logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
+                    logger.more("Skipped keys: {}".format(", ".join(self.skipped_keys)))
 
 
 def _sync_job_workspaces(
-    src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=''
+    src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=""
 ):
     """Synchronize two job workspaces file by file, following the provided strategy."""
     if deep:
@@ -396,7 +396,7 @@ def sync_jobs(
                 doc_sync(src.document, dst_proxy)
 
 
-FileTransferStats = namedtuple('_FileTransferStats', ['num_files', 'volume'])
+FileTransferStats = namedtuple("_FileTransferStats", ["num_files", "volume"])
 
 
 def sync_projects(
@@ -523,7 +523,9 @@ def sync_projects(
     if doc_sync is None:
         doc_sync = DocSync.ByKey()
 
-    if selection is not None:  # The selection argument may be a jobs or job ids sequence.
+    if (
+        selection is not None
+    ):  # The selection argument may be a jobs or job ids sequence.
         selection = {str(j) for j in selection}
 
     # Provide some information about this sync process.
@@ -584,7 +586,7 @@ def sync_projects(
         num_processes = None if parallel is True else parallel
         logger.more(
             "Parallelizing over {} threads for synchronization.".format(
-                'multiple' if num_processes is None else num_processes
+                "multiple" if num_processes is None else num_processes
             )
         )
         with ThreadPool(None if parallel is True else parallel) as pool:

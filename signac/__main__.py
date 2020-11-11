@@ -55,7 +55,7 @@ except ImportError:
 else:
     HOST = True
 
-PW_ENCRYPTION_SCHEMES = ['None']
+PW_ENCRYPTION_SCHEMES = ["None"]
 DEFAULT_PW_ENCRYPTION_SCHEME = PW_ENCRYPTION_SCHEMES[0]
 if get_crypt_context() is not None:
     PW_ENCRYPTION_SCHEMES.extend(get_crypt_context().schemes())
@@ -63,14 +63,14 @@ if get_crypt_context() is not None:
 
 
 CONFIG_HOST_DEFAULTS = {
-    'url': 'mongodb://localhost',
-    'username': getpass.getuser(),
-    'auth_mechanism': 'none',
-    'ssl_cert_reqs': 'required',
+    "url": "mongodb://localhost",
+    "username": getpass.getuser(),
+    "auth_mechanism": "none",
+    "ssl_cert_reqs": "required",
 }
 
 
-CONFIG_HOST_CHOICES = {'auth_mechanism': ('none', 'SCRAM-SHA-1', 'SSL-x509')}
+CONFIG_HOST_CHOICES = {"auth_mechanism": ("none", "SCRAM-SHA-1", "SSL-x509")}
 
 
 MSG_SYNC_SPECIFY_KEY = """
@@ -128,16 +128,16 @@ def _print_err(msg=None, *args):
     print(msg, *args, file=sys.stderr)
 
 
-def _fmt_bytes(nbytes, suffix='B'):
+def _fmt_bytes(nbytes, suffix="B"):
     """Format number of bytes.
 
     Adapted from: https://stackoverflow.com/a/1094933
     """
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(nbytes) < 1024.0:
             return f"{nbytes:3.1f} {unit}{suffix}"
         nbytes /= 1024.0
-    return "{:.1f} {}{}".format(nbytes, 'Yi', suffix)
+    return "{:.1f} {}{}".format(nbytes, "Yi", suffix)
 
 
 def _passlib_available():
@@ -150,8 +150,8 @@ def _passlib_available():
 
 
 def _hide_password(line):
-    if line.strip().startswith('password'):
-        return ' ' * line.index('password') + 'password = ***'
+    if line.strip().startswith("password"):
+        return " " * line.index("password") + "password = ***"
     else:
         return line
 
@@ -160,8 +160,8 @@ def _prompt_for_new_password(attempts=3):
     for i in range(attempts):
         if i > 0:
             _print_err("Attempt {}:".format(i + 1))
-        new_pw = prompt_password('New password: ')
-        new_pw2 = prompt_password('New password (repeat): ')
+        new_pw = prompt_password("New password: ")
+        new_pw2 = prompt_password("New password (repeat): ")
         if new_pw == new_pw2:
             return new_pw
         else:
@@ -177,13 +177,15 @@ def _update_password(config, hostname, scheme=None, new_pw=None):
         else:
             return get_crypt_context().encrypt(pw, scheme=scheme)
 
-    hostcfg = config['hosts'][hostname]
-    hostcfg['password'] = get_credentials(hostcfg)
-    db_auth = get_database(hostcfg.get('db_auth', 'admin'), hostname=hostname, config=config)
+    hostcfg = config["hosts"][hostname]
+    hostcfg["password"] = get_credentials(hostcfg)
+    db_auth = get_database(
+        hostcfg.get("db_auth", "admin"), hostname=hostname, config=config
+    )
     if new_pw is None:
         new_pw = _prompt_for_new_password()
     pwhash = hashpw(new_pw)
-    db_auth.add_user(hostcfg['username'], pwhash)
+    db_auth.add_user(hostcfg["username"], pwhash)
     return pwhash
 
 
@@ -206,7 +208,7 @@ def _open_job_by_id(project, job_id):
         if len(close_matches) == 1:
             msg += " Did you mean '{}'?".format(close_matches[0])
         elif len(close_matches) > 1:
-            msg += " Did you mean any of [{}]?".format('|'.join(close_matches))
+            msg += " Did you mean any of [{}]?".format("|".join(close_matches))
         raise KeyError(msg)
     except LookupError:
         n = project.min_len_unique_id()
@@ -227,14 +229,14 @@ def find_with_filter_or_none(args):
 
 def find_with_filter(args):
     """Return a filtered subset of jobs."""
-    if getattr(args, 'job_id', None):
+    if getattr(args, "job_id", None):
         if args.filter or args.doc_filter:
             raise ValueError("Can't provide both 'job-id' and filter arguments!")
         else:
             return args.job_id
 
     project = get_project()
-    if hasattr(args, 'index'):
+    if hasattr(args, "index"):
         index = _read_index(project, args.index)
     else:
         index = None
@@ -264,7 +266,7 @@ def main_project(args):
 def main_job(args):
     """Handle job subcommand."""
     project = get_project()
-    if args.statepoint == '-':
+    if args.statepoint == "-":
         sp = input()
     else:
         sp = args.statepoint
@@ -314,9 +316,9 @@ def main_remove(args):
         job = _open_job_by_id(project, job_id)
         if args.interactive and not query_yes_no(
             "Are you sure you want to {action} job with id '{job._id}'?".format(
-                action='clear' if args.clear else 'remove', job=job
+                action="clear" if args.clear else "remove", job=job
             ),
-            default='no',
+            default="no",
         ):
             continue
         if args.clear:
@@ -357,10 +359,12 @@ def main_clone(args):
 
 def main_index(args):
     """Handle index subcommand."""
-    _print_err("Compiling main index for path '{}'...".format(os.path.realpath(args.root)))
+    _print_err(
+        "Compiling main index for path '{}'...".format(os.path.realpath(args.root))
+    )
     if args.tags:
         args.tags = set(args.tags)
-        _print_err("Provided tags: {}".format(', '.join(sorted(args.tags))))
+        _print_err("Provided tags: {}".format(", ".join(sorted(args.tags))))
     for doc in index(root=args.root, tags=args.tags, raise_on_error=args.debug):
         print(json.dumps(doc))
 
@@ -383,7 +387,7 @@ def main_find(args):
         if args.one_line:
             if isinstance(s, dict):
                 s = json.dumps(s, sort_keys=True)
-            return _id[:len_id] + ' ' + cat + '\t' + s
+            return _id[:len_id] + " " + cat + "\t" + s
         else:
             return pformat(s, depth=args.pretty)
 
@@ -396,13 +400,13 @@ def main_find(args):
                 sp = job.statepoint()
                 if len(args.sp) != 0:
                     sp = {key: sp[key] for key in args.sp if key in sp}
-                print(format_lines('sp ', job_id, sp))
+                print(format_lines("sp ", job_id, sp))
 
             if args.doc is not None:
                 doc = job.document()
                 if len(args.doc) != 0:
                     doc = {key: doc[key] for key in args.doc if key in doc}
-                print(format_lines('sp ', job_id, doc))
+                print(format_lines("sp ", job_id, doc))
     except OSError as error:
         if error.errno == errno.EPIPE:
             sys.stderr.close()
@@ -415,7 +419,9 @@ def main_diff(args):
     project = get_project()
 
     jobs = find_with_filter_or_none(args)
-    jobs = (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
+    jobs = (
+        (_open_job_by_id(project, job) for job in jobs) if jobs is not None else project
+    )
 
     diff = diff_jobs(*jobs)
 
@@ -437,7 +443,9 @@ def main_view(args):
 
 def main_init(args):
     """Handle init subcommand."""
-    project = init_project(name=args.project_id, root=os.getcwd(), workspace=args.workspace)
+    project = init_project(
+        name=args.project_id, root=os.getcwd(), workspace=args.workspace
+    )
     _print_err(f"Initialized project '{project}'.")
 
 
@@ -447,7 +455,9 @@ def main_schema(args):
     print(
         project.detect_schema(
             exclude_const=args.exclude_const, subset=find_with_filter_or_none(args)
-        ).format(depth=args.depth, precision=args.precision, max_num_range=args.max_num_range)
+        ).format(
+            depth=args.depth, precision=args.precision, max_num_range=args.max_num_range
+        )
     )
 
 
@@ -466,8 +476,10 @@ def main_sync(args):
 
     if args.update:
         if args.strategy is not None:
-            raise ValueError("Can't provide both the '-u/--update' and a '-s/--strategy argument!")
-        args.strategy = 'update'
+            raise ValueError(
+                "Can't provide both the '-u/--update' and a '-s/--strategy argument!"
+            )
+        args.strategy = "update"
 
     if args.times and not args.perms:
         raise NotImplementedError(
@@ -503,9 +515,9 @@ def main_sync(args):
         if args.allow_workspace:
             destination = Project(
                 config={
-                    'project': os.path.relpath(args.destination),
-                    'project_dir': args.destination,
-                    'workspace_dir': '.',
+                    "project": os.path.relpath(args.destination),
+                    "project_dir": args.destination,
+                    "workspace_dir": ".",
                 }
             )
         else:
@@ -563,7 +575,7 @@ def main_sync(args):
         if stats is not None:
             if args.human_readable:
                 stats = stats._replace(volume=_fmt_bytes(stats.volume))
-            print("\n# Transfer statistics", '(dry run)' if args.dry_run else '')
+            print("\n# Transfer statistics", "(dry run)" if args.dry_run else "")
             if args.json:
                 print(json.dumps(stats._asdict()))
             else:
@@ -578,24 +590,30 @@ def main_sync(args):
         only_in_src = diff_src.difference(diff_dst)
         diff_value = diff_src.intersection(diff_dst)
         if only_in_src:
-            _print_err("Keys found only in the source schema: {}".format(', '.join(only_in_src)))
+            _print_err(
+                "Keys found only in the source schema: {}".format(
+                    ", ".join(only_in_src)
+                )
+            )
         if only_in_dst:
             _print_err(
-                "Keys found only in the destination schema: {}".format(', '.join(only_in_dst))
+                "Keys found only in the destination schema: {}".format(
+                    ", ".join(only_in_dst)
+                )
             )
         if diff_value:
             _print_err(
                 "Keys having different values in source and destination: {}".format(
-                    ', '.join(diff_value)
+                    ", ".join(diff_value)
                 )
             )
     except DocumentSyncConflict as error:
-        _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=', '.join(error.keys)))
+        _print_err(MSG_SYNC_SPECIFY_KEY.format(keys=", ".join(error.keys)))
     except FileSyncConflict as error:
         _print_err(MSG_SYNC_FILE_CONFLICT.format(files=error))
     else:
         if doc_sync.skipped_keys:
-            _print_err("Skipped key(s):", ', '.join(sorted(doc_sync.skipped_keys)))
+            _print_err("Skipped key(s):", ", ".join(sorted(doc_sync.skipped_keys)))
         _print_err("Done.")
         return
     raise RuntimeWarning("Synchronization aborted.")
@@ -605,14 +623,18 @@ def _main_import_interactive(project, origin, args):
     from .contrib.import_export import _prepare_import_into_project
 
     if args.move:
-        raise ValueError("Cannot use '--move' in combination with '--sync-interactive'.")
+        raise ValueError(
+            "Cannot use '--move' in combination with '--sync-interactive'."
+        )
 
     with project.temporary_project() as tmp_project:
         _print_err("Prepare data space for import...")
-        with _prepare_import_into_project(origin, tmp_project, args.schema_path) as data_mapping:
+        with _prepare_import_into_project(
+            origin, tmp_project, args.schema_path
+        ) as data_mapping:
             paths = dict()
             for src, copy_executor in tqdm(
-                dict(data_mapping).items(), desc='Import to temporary project'
+                dict(data_mapping).items(), desc="Import to temporary project"
             ):
                 paths[src] = copy_executor()
 
@@ -624,14 +646,14 @@ def _main_import_interactive(project, origin, args):
             )
             if READLINE:
                 readline.set_completer(Completer(local_ns).complete)
-                readline.parse_and_bind('tab: complete')
+                readline.parse_and_bind("tab: complete")
             code.interact(
                 local=local_ns,
                 banner=SHELL_BANNER_INTERACTIVE_IMPORT.format(
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.get_id(),
-                    job_banner='',
+                    job_banner="",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
@@ -650,18 +672,24 @@ def _main_import_non_interactive(project, origin, args):
         if args.sync:
             with project.temporary_project() as tmp_project:
                 _print_err("Prepare data space for import...")
-                with _prepare_import_into_project(origin, tmp_project, args.schema_path) as mapping:
+                with _prepare_import_into_project(
+                    origin, tmp_project, args.schema_path
+                ) as mapping:
                     for src, copy_executor in tqdm(
-                        dict(mapping).items(), desc='Import to temporary project'
+                        dict(mapping).items(), desc="Import to temporary project"
                     ):
                         paths[src] = copy_executor()
                     _print_err("Synchronizing project with temporary project...")
                     project.sync(tmp_project, recursive=True)
         else:
             _print_err("Prepare data space for import...")
-            with _prepare_import_into_project(origin, project, args.schema_path) as data_mapping:
-                for src, copy_executor in tqdm(dict(data_mapping).items(), 'Importing'):
-                    paths[src] = copy_executor(copytree=shutil.move if args.move else None)
+            with _prepare_import_into_project(
+                origin, project, args.schema_path
+            ) as data_mapping:
+                for src, copy_executor in tqdm(dict(data_mapping).items(), "Importing"):
+                    paths[src] = copy_executor(
+                        copytree=shutil.move if args.move else None
+                    )
     except DestinationExistsError as error:
         _print_err(f"Destination '{error.destination}' already exists.")
         if not args.sync:
@@ -698,15 +726,17 @@ def main_import(args):
 
 def main_export(args):
     """Handle export subcommand."""
-    if args.move and os.path.splitext(args.target)[1] != '':
-        raise RuntimeError("The '--move' argument can only be used when exporting to directories.")
+    if args.move and os.path.splitext(args.target)[1] != "":
+        raise RuntimeError(
+            "The '--move' argument can only be used when exporting to directories."
+        )
     copytree = shutil.move if args.move else None
 
     project = get_project()
     jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
 
     paths = dict()
-    with tqdm(total=len(jobs), desc='Export') as pbar:
+    with tqdm(total=len(jobs), desc="Export") as pbar:
         try:
             for src, dst in export_jobs(
                 jobs=jobs, target=args.target, path=args.schema_path, copytree=copytree
@@ -714,7 +744,9 @@ def main_export(args):
                 paths[src] = dst
                 pbar.update(1)
         except _SchemaPathEvaluationError as error:
-            raise RuntimeWarning(f"An error occurred while evaluating the schema path: {error}")
+            raise RuntimeWarning(
+                f"An error occurred while evaluating the schema path: {error}"
+            )
 
     if paths:
         _print_err("Exported {} job(s).".format(len(paths)))
@@ -770,13 +802,13 @@ def verify_config(cfg, preserve_errors=True):
             if key is not None:
                 section_list.append(key)
             else:
-                section_list.append('[missing section]')
-            section_string = '.'.join(section_list)
+                section_list.append("[missing section]")
+            section_string = ".".join(section_list)
             if error is False:
-                error = 'Possibly invalid or missing.'
+                error = "Possibly invalid or missing."
             else:
                 error = type(error).__name__
-            _print_err(' '.join((section_string, ':', error)))
+            _print_err(" ".join((section_string, ":", error)))
 
 
 def main_config_show(args):
@@ -797,17 +829,17 @@ def main_config_show(args):
         cfg = config.load_config()
     if cfg is None:
         if args.local and args.globalcfg:
-            mode = ' local or global '
+            mode = " local or global "
         elif args.local:
-            mode = ' local '
+            mode = " local "
         elif args.globalcfg:
-            mode = ' global '
+            mode = " global "
         else:
-            mode = ''
+            mode = ""
         _print_err(f"Did not find a{mode}configuration file.")
         return
     for key in args.key:
-        for kt in key.split('.'):
+        for kt in key.split("."):
             cfg = cfg.get(kt)
             if cfg is None:
                 break
@@ -836,13 +868,13 @@ def main_config_verify(args):
         cfg = config.load_config()
     if cfg is None:
         if args.local and args.globalcfg:
-            mode = ' local or global '
+            mode = " local or global "
         elif args.local:
-            mode = ' local '
+            mode = " local "
         elif args.globalcfg:
-            mode = ' global '
+            mode = " global "
         else:
-            mode = ''
+            mode = ""
         raise RuntimeWarning(f"Did not find a{mode}configuration file.")
     if cfg.filename is not None:
         _print_err(f"Verifcation of config file '{cfg.filename}'.")
@@ -871,8 +903,8 @@ def main_config_set(args):
         cfg = config.read_config_file(fn_config)
     except OSError:
         cfg = config.get_config(fn_config)
-    keys = args.key.split('.')
-    if keys[-1].endswith('password'):
+    keys = args.key.split(".")
+    if keys[-1].endswith("password"):
         raise RuntimeError(
             "Passwords need to be set with `{} config host "
             "HOSTNAME -p`!".format(os.path.basename(sys.argv[0]))
@@ -924,7 +956,7 @@ def main_config_host(args):
         cfg = config.get_config(fn_config)
 
     def hostcfg():
-        return cfg.setdefault('hosts', dict()).setdefault(args.hostname, dict())
+        return cfg.setdefault("hosts", dict()).setdefault(args.hostname, dict())
 
     if sum((args.test, args.remove, args.show_pw)) > 1:
         raise ValueError(
@@ -953,12 +985,12 @@ def main_config_host(args):
     if args.remove:
         if hostcfg():
             q = "Are you sure you want to remove host '{}'."
-            if args.yes or query_yes_no(q.format(args.hostname), 'no'):
+            if args.yes or query_yes_no(q.format(args.hostname), "no"):
                 kr = get_keyring()
                 if kr:
-                    if kr.get_password('signac', make_uri(hostcfg())):
-                        kr.delete_password('signac', make_uri(hostcfg()))
-                del cfg['hosts'][args.hostname]
+                    if kr.get_password("signac", make_uri(hostcfg())):
+                        kr.delete_password("signac", make_uri(hostcfg()))
+                del cfg["hosts"][args.hostname]
                 cfg.write()
         else:
             _print_err("Nothing to remove.")
@@ -979,7 +1011,7 @@ def main_config_host(args):
 
     def hide_password(k, v):
         """Hide all fields containing sensitive information."""
-        return '***' if k.endswith('password') else v
+        return "***" if k.endswith("password") else v
 
     def update_hostcfg(**update):
         """Update the host configuration."""
@@ -988,27 +1020,27 @@ def main_config_host(args):
             if v is None:
                 if k in hostcfg():
                     logging.info(f"Deleting key {k}")
-                    del cfg['hosts'][args.hostname][k]
+                    del cfg["hosts"][args.hostname][k]
                     store = True
             elif k not in hostcfg() or v != hostcfg()[k]:
                 logging.info("Setting {}={}".format(k, hide_password(k, v)))
-                cfg['hosts'][args.hostname][k] = v
+                cfg["hosts"][args.hostname][k] = v
                 store = True
         if store:
             cfg.write()
 
     def requires_username():
-        if 'username' not in hostcfg():
+        if "username" not in hostcfg():
             raise ValueError("Please specify a username!")
 
     if args.uri:
         parse_uri(args.uri)
         update_hostcfg(url=args.uri)
-    elif 'url' not in hostcfg():
-        update_hostcfg(url='mongodb://localhost')
+    elif "url" not in hostcfg():
+        update_hostcfg(url="mongodb://localhost")
 
     if args.username:
-        update_hostcfg(username=args.username, auth_mechanism='SCRAM-SHA-1')
+        update_hostcfg(username=args.username, auth_mechanism="SCRAM-SHA-1")
 
     if args.update_pw:
         requires_username()
@@ -1019,12 +1051,12 @@ def main_config_host(args):
         pwhash = _update_password(
             cfg,
             args.hostname,
-            scheme=None if args.update_pw == 'None' else args.update_pw,
+            scheme=None if args.update_pw == "None" else args.update_pw,
             new_pw=None if args.password is True else args.password,
         )
         if args.password:
             update_hostcfg(password=pwhash, password_config=None)
-        elif args.update_pw == 'None':
+        elif args.update_pw == "None":
             update_hostcfg(password=None, password_config=None)
         else:
             update_hostcfg(password=None, password_config=parse_pwhash(pwhash))
@@ -1045,7 +1077,9 @@ def main_config_host(args):
 def main_shell(args):
     """Handle shell subcommand."""
     if args.file and args.command:
-        raise ValueError("Cannot provide file and -c/--command argument at the same time!")
+        raise ValueError(
+            "Cannot provide file and -c/--command argument at the same time!"
+        )
 
     try:
         project = get_project()
@@ -1072,26 +1106,34 @@ def main_shell(args):
                 job = None
 
         local_ns = dict(
-            project=project, pr=project, jobs=iter(jobs()), job=job, signac=sys.modules['signac']
+            project=project,
+            pr=project,
+            jobs=iter(jobs()),
+            job=job,
+            signac=sys.modules["signac"],
         )
 
         if args.file or args.command:
             interpreter = code.InteractiveInterpreter(locals=local_ns)
-            if args.file and args.file == '-':
+            if args.file and args.file == "-":
                 try:
                     while True:
-                        interpreter.runsource(input(), filename="<input>", symbol="exec")
+                        interpreter.runsource(
+                            input(), filename="<input>", symbol="exec"
+                        )
                 except EOFError:
                     pass
             elif args.file:
                 with open(args.file) as file:
-                    interpreter.runsource(file.read(), filename=args.file, symbol="exec")
+                    interpreter.runsource(
+                        file.read(), filename=args.file, symbol="exec"
+                    )
             else:
                 interpreter.runsource(args.command, filename="<input>", symbol="exec")
         else:  # interactive
             if READLINE:
-                if 'PyPy' not in platform.python_implementation():
-                    fn_hist = project.fn('.signac_shell_history')
+                if "PyPy" not in platform.python_implementation():
+                    fn_hist = project.fn(".signac_shell_history")
                     try:
                         readline.read_history_file(fn_hist)
                         readline.set_history_length(1000)
@@ -1114,14 +1156,14 @@ def main_shell(args):
 
                     atexit.register(write_history_file)
                 readline.set_completer(Completer(local_ns).complete)
-                readline.parse_and_bind('tab: complete')
+                readline.parse_and_bind("tab: complete")
             code.interact(
                 local=local_ns,
                 banner=SHELL_BANNER.format(
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.id,
-                    job_banner=f'\nJob:\t\t{job._id}' if job is not None else '',
+                    job_banner=f"\nJob:\t\t{job._id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
@@ -1136,303 +1178,330 @@ def main():
         "large-scale computational investigations."
     )
     parser.add_argument(
-        '--debug', action='store_true', help="Show traceback on error for debugging."
+        "--debug", action="store_true", help="Show traceback on error for debugging."
     )
     parser.add_argument(
-        '--version', action='store_true', help="Display the version number and exit."
+        "--version", action="store_true", help="Display the version number and exit."
     )
     add_verbosity_argument(parser, default=2)
     parser.add_argument(
-        '-y',
-        '--yes',
-        action='store_true',
+        "-y",
+        "--yes",
+        action="store_true",
         help="Answer all questions with yes. Useful for scripted interaction.",
     )
     subparsers = parser.add_subparsers()
 
-    parser_init = subparsers.add_parser('init')
+    parser_init = subparsers.add_parser("init")
     parser_init.add_argument(
-        'project_id', type=str, help="Initialize a project with the given project id."
+        "project_id", type=str, help="Initialize a project with the given project id."
     )
     parser_init.add_argument(
-        '-w',
-        '--workspace',
+        "-w",
+        "--workspace",
         type=str,
-        default='workspace',
+        default="workspace",
         help="The path to the workspace directory.",
     )
     parser_init.set_defaults(func=main_init)
 
-    parser_project = subparsers.add_parser('project')
+    parser_project = subparsers.add_parser("project")
     parser_project.add_argument(
-        '-w',
-        '--workspace',
-        action='store_true',
+        "-w",
+        "--workspace",
+        action="store_true",
         help="Print the project's workspace path instead of the project id.",
     )
     parser_project.add_argument(
-        '-i', '--index', action='store_true', help="Generate and print an index for the project."
+        "-i",
+        "--index",
+        action="store_true",
+        help="Generate and print an index for the project.",
     )
     parser_project.add_argument(
-        '-a', '--access', action='store_true', help="Create access module for indexing."
+        "-a", "--access", action="store_true", help="Create access module for indexing."
     )
     parser_project.set_defaults(func=main_project)
 
-    parser_job = subparsers.add_parser('job')
+    parser_job = subparsers.add_parser("job")
     parser_job.add_argument(
-        'statepoint',
-        nargs='?',
-        default='-',
+        "statepoint",
+        nargs="?",
+        default="-",
         type=str,
         help="The job's statepoint in JSON format. Omit this argument to read from STDIN.",
     )
     parser_job.add_argument(
-        '-w',
-        '--workspace',
-        action='store_true',
+        "-w",
+        "--workspace",
+        action="store_true",
         help="Print the job's workspace path instead of the job id.",
     )
     parser_job.add_argument(
-        '-c',
-        '--create',
-        action='store_true',
+        "-c",
+        "--create",
+        action="store_true",
         help="Create the job's workspace directory if necessary.",
     )
     parser_job.set_defaults(func=main_job)
 
     parser_statepoint = subparsers.add_parser(
-        'statepoint', description="Print the statepoint(s) corresponding to one or more job ids."
+        "statepoint",
+        description="Print the statepoint(s) corresponding to one or more job ids.",
     )
     parser_statepoint.add_argument(
-        'job_id',
-        nargs='*',
+        "job_id",
+        nargs="*",
         type=str,
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_statepoint.add_argument(
-        '-p',
-        '--pretty',
+        "-p",
+        "--pretty",
         type=int,
-        nargs='?',
+        nargs="?",
         const=3,
         help="Print state point in pretty format. "
         "An optional argument to this flag specifies the maximal "
         "depth a state point is printed.",
     )
     parser_statepoint.add_argument(
-        '-i',
-        '--indent',
+        "-i",
+        "--indent",
         type=int,
-        nargs='?',
-        const='2',
+        nargs="?",
+        const="2",
         help="Specify the indentation of the JSON formatted state point.",
     )
     parser_statepoint.add_argument(
-        '-s', '--sort', action='store_true', help="Sort the state point keys for output."
+        "-s",
+        "--sort",
+        action="store_true",
+        help="Sort the state point keys for output.",
     )
     parser_statepoint.set_defaults(func=main_statepoint)
 
     parser_diff = subparsers.add_parser(
-        'diff', description="Find the difference among job state points."
+        "diff", description="Find the difference among job state points."
     )
     parser_diff.add_argument(
-        'job_id',
-        nargs='*',
+        "job_id",
+        nargs="*",
         type=str,
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_diff.add_argument(
-        '-p',
-        '--pretty',
+        "-p",
+        "--pretty",
         type=int,
-        nargs='?',
+        nargs="?",
         const=3,
         help="Print state point in pretty format. "
         "An optional argument to this flag specifies the maximal "
         "depth a state point is printed.",
     )
     parser_diff.add_argument(
-        '-i',
-        '--indent',
+        "-i",
+        "--indent",
         type=int,
-        nargs='?',
-        const='2',
+        nargs="?",
+        const="2",
         help="Specify the indentation of the JSON formatted state point.",
     )
     parser_diff.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the diff to jobs matching this state point filter.",
     )
     parser_diff.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Show documents of jobs matching this document filter.",
     )
     parser_diff.set_defaults(func=main_diff)
 
     parser_document = subparsers.add_parser(
-        'document', description="Print the document(s) corresponding to one or more job ids."
+        "document",
+        description="Print the document(s) corresponding to one or more job ids.",
     )
     parser_document.add_argument(
-        'job_id',
-        nargs='*',
+        "job_id",
+        nargs="*",
         type=str,
         help="One or more job ids. The job corresponding to a job id must be initialized.",
     )
     parser_document.add_argument(
-        '-p',
-        '--pretty',
+        "-p",
+        "--pretty",
         type=int,
-        nargs='?',
+        nargs="?",
         const=3,
         help="Print document in pretty format. "
         "An optional argument to this flag specifies the maximal "
         "depth a document is printed.",
     )
     parser_document.add_argument(
-        '-i',
-        '--indent',
+        "-i",
+        "--indent",
         type=int,
-        nargs='?',
-        const='2',
+        nargs="?",
+        const="2",
         help="Specify the indentation of the JSON formatted state point.",
     )
     parser_document.add_argument(
-        '-s',
-        '--sort',
-        action='store_true',
+        "-s",
+        "--sort",
+        action="store_true",
         help="Sort the document keys for output in JSON format.",
     )
     parser_document.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Show documents of jobs matching this state point filter.",
     )
     parser_document.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Show documents of job matching this document filter.",
     )
-    parser_document.add_argument('--index', type=str, help="The filename of an index file.")
+    parser_document.add_argument(
+        "--index", type=str, help="The filename of an index file."
+    )
     parser_document.set_defaults(func=main_document)
 
-    parser_remove = subparsers.add_parser('rm')
+    parser_remove = subparsers.add_parser("rm")
     parser_remove.add_argument(
-        'job_id', type=str, nargs='+', help="One or more job ids of jobs to remove."
+        "job_id", type=str, nargs="+", help="One or more job ids of jobs to remove."
     )
     parser_remove.add_argument(
-        '-c',
-        '--clear',
-        action='store_true',
+        "-c",
+        "--clear",
+        action="store_true",
         help="Do not completely remove, but only clear the job.",
     )
     parser_remove.add_argument(
-        '-i',
-        '--interactive',
-        action='store_true',
+        "-i",
+        "--interactive",
+        action="store_true",
         help="Request confirmation before attempting to remove/clear each job.",
     )
     parser_remove.add_argument(
-        '-v', '--verbose', action='store_true', help="Be verbose when removing/clearing files."
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Be verbose when removing/clearing files.",
     )
     parser_remove.set_defaults(func=main_remove)
 
-    parser_move = subparsers.add_parser('move')
+    parser_move = subparsers.add_parser("move")
     parser_move.add_argument(
-        'project', type=str, help="The root directory of the project to move one or more jobs to."
+        "project",
+        type=str,
+        help="The root directory of the project to move one or more jobs to.",
     )
     parser_move.add_argument(
-        'job_id',
-        nargs='+',
+        "job_id",
+        nargs="+",
         type=str,
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_move.set_defaults(func=main_move)
 
-    parser_clone = subparsers.add_parser('clone')
+    parser_clone = subparsers.add_parser("clone")
     parser_clone.add_argument(
-        'project', type=str, help="The root directory of the project to clone one or more jobs in."
+        "project",
+        type=str,
+        help="The root directory of the project to clone one or more jobs in.",
     )
     parser_clone.add_argument(
-        'job_id',
-        nargs='+',
+        "job_id",
+        nargs="+",
         type=str,
         help="One or more job ids. The corresponding jobs must be initialized.",
     )
     parser_clone.set_defaults(func=main_clone)
 
-    parser_index = subparsers.add_parser('index')
+    parser_index = subparsers.add_parser("index")
     parser_index.add_argument(
-        'root',
-        nargs='?',
-        default='.',
+        "root",
+        nargs="?",
+        default=".",
         help="Specify the root path from where the main index is to be compiled.",
     )
     parser_index.add_argument(
-        '-t', '--tags', nargs='+', help="Specify tags for this main index compilation."
+        "-t", "--tags", nargs="+", help="Specify tags for this main index compilation."
     )
     parser_index.set_defaults(func=main_index)
 
     parser_find = subparsers.add_parser(
-        'find',
+        "find",
         description="""All filter arguments may be provided either directly in JSON
                        encoding or in a simplified form, e.g., -- $ signac find a 42 --
                        is equivalent to -- $ signac find '{"a": 42}'.""",
     )
     parser_find.add_argument(
-        'filter', type=str, nargs='*', help="A JSON encoded state point filter (key-value pairs)."
+        "filter",
+        type=str,
+        nargs="*",
+        help="A JSON encoded state point filter (key-value pairs).",
     )
-    parser_find.add_argument('-d', '--doc-filter', type=str, nargs='+', help="A document filter.")
-    parser_find.add_argument('-i', '--index', type=str, help="The filename of an index file.")
     parser_find.add_argument(
-        '-s',
-        '--show',
+        "-d", "--doc-filter", type=str, nargs="+", help="A document filter."
+    )
+    parser_find.add_argument(
+        "-i", "--index", type=str, help="The filename of an index file."
+    )
+    parser_find.add_argument(
+        "-s",
+        "--show",
         type=int,
-        nargs='?',
+        nargs="?",
         const=3,
         help="Show the state point and document of each job. Equivalent to "
         "--sp --doc --pretty 3.",
     )
     parser_find.add_argument(
-        '--sp',
+        "--sp",
         type=str,
-        nargs='*',
+        nargs="*",
         help="Show the state point of each job. Can be passed the list of "
         "state point keys to print (if they exist for a given job).",
     )
     parser_find.add_argument(
-        '--doc',
+        "--doc",
         type=str,
-        nargs='*',
+        nargs="*",
         help="Show the document of each job. Can be passed the list of "
         "document keys to print (if they exist for a given job).",
     )
     parser_find.add_argument(
-        '-p',
-        '--pretty',
+        "-p",
+        "--pretty",
         type=int,
-        nargs='?',
+        nargs="?",
         const=3,
         default=3,
         help="Pretty print output when using --sp, --doc, or ---show. "
         "Argument is the depth to which keys are printed.",
     )
     parser_find.add_argument(
-        '-1', '--one-line', action='store_true', help="Print output in JSON and on one line."
+        "-1",
+        "--one-line",
+        action="store_true",
+        help="Print output in JSON and on one line.",
     )
     parser_find.set_defaults(func=main_find)
 
     parser_view = subparsers.add_parser(
-        'view',
+        "view",
         description="""Generate a human readable set of paths representing
                            state points in the workspace, e.g.
                            view/param_name_1/param_value_1/param_name_2/param_value_2/job.
@@ -1446,129 +1515,140 @@ def main():
                            FILTERS -d DOC_FILTERS.""",  # noqa:E501
     )
     parser_view.add_argument(
-        'prefix',
+        "prefix",
         type=str,
-        nargs='?',
-        default='view',
+        nargs="?",
+        default="view",
         help="The path where the view is to be created. Defaults to view.",
     )
     parser_view.add_argument(
-        'path',
+        "path",
         type=str,
-        nargs='?',
-        default='{{auto}}',
+        nargs="?",
+        default="{{auto}}",
         help="The path used for the generation of the linked view hierarchy, "
         "defaults to '{{auto}}' (see Project.export_to for information "
         "on how this is expanded).",
     )
-    selection_group = parser_view.add_argument_group('select')
+    selection_group = parser_view.add_argument_group("select")
     selection_group.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the view to jobs matching this state point filter.",
     )
     selection_group.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the view to jobs matching this document filter.",
     )
     selection_group.add_argument(
-        '-j', '--job-id', type=str, nargs='+', help="Limit the view to jobs with these job ids."
+        "-j",
+        "--job-id",
+        type=str,
+        nargs="+",
+        help="Limit the view to jobs with these job ids.",
     )
-    selection_group.add_argument('-i', '--index', type=str, help="The filename of an index file.")
+    selection_group.add_argument(
+        "-i", "--index", type=str, help="The filename of an index file."
+    )
     parser_view.set_defaults(func=main_view)
 
-    parser_schema = subparsers.add_parser('schema')
+    parser_schema = subparsers.add_parser("schema")
     parser_schema.add_argument(
-        '-x',
-        '--exclude-const',
-        action='store_true',
+        "-x",
+        "--exclude-const",
+        action="store_true",
         help="Exclude state point parameters, which are constant over the "
         "complete project data space.",
     )
     parser_schema.add_argument(
-        '-t',
-        '--depth',
+        "-t",
+        "--depth",
         type=int,
         default=0,
         help="A non-zero value will format the schema in a nested representation "
         "up to the specified depth. The default is a flat view (depth=0).",
     )
     parser_schema.add_argument(
-        '-p', '--precision', type=int, help="Round all numerical values up to the given precision."
+        "-p",
+        "--precision",
+        type=int,
+        help="Round all numerical values up to the given precision.",
     )
     parser_schema.add_argument(
-        '-r',
-        '--max-num-range',
+        "-r",
+        "--max-num-range",
         type=int,
         default=5,
         help="The maximum number of entries shown for a value range, defaults to 5.",
     )
-    selection_group = parser_schema.add_argument_group('select')
+    selection_group = parser_schema.add_argument_group("select")
     selection_group.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Detect schema only for jobs that match the state point filter.",
     )
     selection_group.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Detect schema only for jobs that match the document filter.",
     )
     selection_group.add_argument(
-        '-j',
-        '--job-id',
+        "-j",
+        "--job-id",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Detect schema only for jobs with the given job ids.",
     )
     parser_schema.set_defaults(func=main_schema)
 
-    parser_shell = subparsers.add_parser('shell')
-    parser_shell.add_argument('file', type=str, nargs='?', help="Execute Python script in file.")
+    parser_shell = subparsers.add_parser("shell")
     parser_shell.add_argument(
-        '-c', '--command', type=str, help="Execute Python program passed as string."
+        "file", type=str, nargs="?", help="Execute Python script in file."
+    )
+    parser_shell.add_argument(
+        "-c", "--command", type=str, help="Execute Python program passed as string."
     )
     selection_group = parser_shell.add_argument_group(
-        'select',
+        "select",
         description="Specify one or more jobs to preset the `jobs` variable as a generator "
         "over all job handles associated with the given selection. If the selection "
         "contains only one job, an additional `job` variable is referencing that "
         "single job, otherwise it is `None`.",
     )
     selection_group.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Reduce selection to jobs that match the given filter.",
     )
     selection_group.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Reduce selection to jobs that match the given document filter.",
     )
     selection_group.add_argument(
-        '-j',
-        '--job-id',
+        "-j",
+        "--job-id",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Reduce selection to jobs that match the given job ids.",
     )
     parser_shell.set_defaults(func=main_shell)
 
     parser_sync = subparsers.add_parser(
-        'sync',
+        "sync",
         description="""Use this command to synchronize this project with another project;
 similar to the synchronization of two directories with `rsync`.
 Data is always copied from the source to the destination.
@@ -1579,335 +1659,360 @@ job documents."
 """,
     )
     parser_sync.add_argument(
-        'source',
+        "source",
         help="The root directory of the project that this project should be synchronized with.",
     )
     parser_sync.add_argument(
-        'destination',
-        nargs='?',
+        "destination",
+        nargs="?",
         help="Optional: The root directory of the project that should be modified for "
         "synchronization, defaults to the local project.",
     )
     add_verbosity_argument(parser_sync, default=2)
 
-    sync_group = parser_sync.add_argument_group('copy options')
+    sync_group = parser_sync.add_argument_group("copy options")
     sync_group.add_argument(
-        '-a', '--archive', action='store_true', help="archive mode; equivalent to: '-rltpog'"
+        "-a",
+        "--archive",
+        action="store_true",
+        help="archive mode; equivalent to: '-rltpog'",
     )
     sync_group.add_argument(
-        '-r',
-        '--recursive',
-        action='store_true',
+        "-r",
+        "--recursive",
+        action="store_true",
         help="Do not skip sub-directories, but synchronize recursively.",
     )
     sync_group.add_argument(
-        '-l',
-        '--links',
-        action='store_true',
+        "-l",
+        "--links",
+        action="store_true",
         help="Copy symbolic links as symbolic links pointing to the original source.",
     )
-    sync_group.add_argument('-p', '--perms', action='store_true', help="Preserve permissions.")
-    sync_group.add_argument('-o', '--owner', action='store_true', help="Preserve owner.")
-    sync_group.add_argument('-g', '--group', action='store_true', help="Preserve group.")
     sync_group.add_argument(
-        '-t', '--times', action='store_true', help="Preserve file modification times (requires -p)."
+        "-p", "--perms", action="store_true", help="Preserve permissions."
     )
     sync_group.add_argument(
-        '-x',
-        '--exclude',
+        "-o", "--owner", action="store_true", help="Preserve owner."
+    )
+    sync_group.add_argument(
+        "-g", "--group", action="store_true", help="Preserve group."
+    )
+    sync_group.add_argument(
+        "-t",
+        "--times",
+        action="store_true",
+        help="Preserve file modification times (requires -p).",
+    )
+    sync_group.add_argument(
+        "-x",
+        "--exclude",
         type=str,
-        nargs='?',
-        const='.*',
+        nargs="?",
+        const=".*",
         help="Exclude all files matching the given pattern. Exclude all files "
         "if this option is provided without any argument.",
     )
     sync_group.add_argument(
-        '-I',
-        '--ignore-times',
-        action='store_true',
-        dest='deep',
+        "-I",
+        "--ignore-times",
+        action="store_true",
+        dest="deep",
         help="Never rely on file meta data such as the size or the modification time "
         "when determining file differences.",
     )
     sync_group.add_argument(
-        '--size-only',
-        action='store_true',
+        "--size-only",
+        action="store_true",
         help="Ignore modification times during file comparison. Useful when synchronizing "
         "between file systems with different timestamp resolution.",
     )
     sync_group.add_argument(
-        '--round-times',
-        action='store_true',
+        "--round-times",
+        action="store_true",
         help="Round modification times during file comparison. Useful when synchronizing "
         "between file systems with different timestamp resolution.",
     )
     sync_group.add_argument(
-        '-n',
-        '--dry-run',
-        action='store_true',
+        "-n",
+        "--dry-run",
+        action="store_true",
         help="Do not actually execute the synchronization. Increase the output verbosity "
         "to see messages about what would potentially happen.",
     )
     sync_group.add_argument(
-        '-u',
-        '--update',
-        action='store_true',
+        "-u",
+        "--update",
+        action="store_true",
         help="Skip files with newer modification time stamp."
         "This is a short-cut for: --strategy=update.",
     )
 
-    strategy_group = parser_sync.add_argument_group('sync strategy')
+    strategy_group = parser_sync.add_argument_group("sync strategy")
     strategy_group.add_argument(
-        '-s',
-        '--strategy',
+        "-s",
+        "--strategy",
         type=str,
         choices=FileSync.keys(),
         help="Specify a synchronization strategy, for differing files.",
     )
     strategy_group.add_argument(
-        '-k',
-        '--key',
+        "-k",
+        "--key",
         type=str,
         help="Specify a regular expression for keys that should be overwritten "
         "as part of the project and job document synchronization.",
     )
     strategy_group.add_argument(
-        '--all-keys',
-        action='store_true',
+        "--all-keys",
+        action="store_true",
         help="Overwrite all conflicting keys. Equivalent to `--key='.*'`.",
     )
     strategy_group.add_argument(
-        '--no-keys', action='store_true', help="Never overwrite any conflicting keys."
+        "--no-keys", action="store_true", help="Never overwrite any conflicting keys."
     )
 
     parser_sync.add_argument(
-        '-w',
-        '--allow-workspace',
-        action='store_true',
+        "-w",
+        "--allow-workspace",
+        action="store_true",
         help="Allow the specification of a workspace (instead of a project) directory "
         "as the destination path.",
     )
     parser_sync.add_argument(
-        '--force', action='store_true', help="Ignore all warnings, just synchronize."
+        "--force", action="store_true", help="Ignore all warnings, just synchronize."
     )
     parser_sync.add_argument(
-        '-m',
-        '--merge',
-        action='store_true',
+        "-m",
+        "--merge",
+        action="store_true",
         help="Clone all the jobs that are not present in destination from source.",
     )
     parser_sync.add_argument(
-        '--parallel',
+        "--parallel",
         type=int,
-        nargs='?',
+        nargs="?",
         const=True,
         help="Use multiple threads for synchronization."
         "You may optionally specify how many threads to "
         "use, otherwise all available processing units will be utilized.",
     )
     parser_sync.add_argument(
-        '--stats', action='store_true', help="Provide file transfer statistics."
+        "--stats", action="store_true", help="Provide file transfer statistics."
     )
     parser_sync.add_argument(
-        '-H',
-        '--human-readable',
-        action='store_true',
+        "-H",
+        "--human-readable",
+        action="store_true",
         help="Provide statistics with human readable formatting.",
     )
     parser_sync.add_argument(
-        '--json', action='store_true', help="Print statistics in JSON formatting."
+        "--json", action="store_true", help="Print statistics in JSON formatting."
     )
 
-    selection_group = parser_sync.add_argument_group('select')
+    selection_group = parser_sync.add_argument_group("select")
     selection_group.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Only synchronize jobs that match the state point filter.",
     )
     selection_group.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Only synchronize jobs that match the document filter.",
     )
     selection_group.add_argument(
-        '-j', '--job-id', type=str, nargs='+', help="Only synchronize jobs with the given job ids."
+        "-j",
+        "--job-id",
+        type=str,
+        nargs="+",
+        help="Only synchronize jobs with the given job ids.",
     )
     parser_sync.set_defaults(func=main_sync)
 
     parser_import = subparsers.add_parser(
-        'import',
+        "import",
         description="""Import an existing dataset into this project. Optionally provide a file path
  based schema to specify the state point metadata. Providing a path based schema is only necessary
  if the data set was not previously exported from a signac project.""",
     )
     parser_import.add_argument(
-        'origin',
-        default='.',
-        nargs='?',
+        "origin",
+        default=".",
+        nargs="?",
         help="The origin to import from. May be a path to a directory, a zipfile, or a tarball. "
         "Defaults to the current working directory.",
     )
     parser_import.add_argument(
-        'schema_path',
-        nargs='?',
+        "schema_path",
+        nargs="?",
         help="Specify an optional import path, such as 'foo/{foo:int}'. Possible type definitions "
         "include bool, int, float, and str. The type is assumed to be 'str' if no type is "
         "specified.",
     )
     parser_import.add_argument(
-        '--move',
-        action='store_true',
+        "--move",
+        action="store_true",
         help="Move the data upon import instead of copying. Can only be used when importing from "
         "a directory.",
     )
     parser_import.add_argument(
-        '--sync',
-        action='store_true',
+        "--sync",
+        action="store_true",
         help="Attempt recursive synchronization with default arguments.",
     )
     parser_import.add_argument(
-        '--sync-interactive',
-        action='store_true',
+        "--sync-interactive",
+        action="store_true",
         help="Synchronize the project with the origin data space interactively.",
     )
     parser_import.set_defaults(func=main_import)
 
     parser_export = subparsers.add_parser(
-        'export',
+        "export",
         description="""Export the project data space (or a subset) to a directory, a zipfile,
  or a tarball.""",
     )
     parser_export.add_argument(
-        'target',
+        "target",
         help="The target to export to. May be a path to a directory, a zipfile, or a tarball.",
     )
     parser_export.add_argument(
-        'schema_path',
-        nargs='?',
+        "schema_path",
+        nargs="?",
         help="Specify an optional export path, based on the job state point, e.g., "
         "'foo/{job.sp.foo}'.",
     )
     parser_export.add_argument(
-        '--move',
-        action='store_true',
+        "--move",
+        action="store_true",
         help="Move data to export target instead of copying. Can only be used when exporting "
         "to a directory target.",
     )
-    selection_group = parser_export.add_argument_group('select')
+    selection_group = parser_export.add_argument_group("select")
     selection_group.add_argument(
-        '-f',
-        '--filter',
+        "-f",
+        "--filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the jobs to export to those matching the state point filter.",
     )
     selection_group.add_argument(
-        '-d',
-        '--doc-filter',
+        "-d",
+        "--doc-filter",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the jobs to export to those matching this document filter.",
     )
     selection_group.add_argument(
-        '-j',
-        '--job-id',
+        "-j",
+        "--job-id",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Limit the jobs to export to those matching the provided job ids.",
     )
     parser_export.set_defaults(func=main_export)
 
     parser_update_cache = subparsers.add_parser(
-        'update-cache',
+        "update-cache",
         description="""Use this command to update the project's persistent state point cache.
 This feature is still experimental and may be removed in future versions.""",
     )
     parser_update_cache.set_defaults(func=main_update_cache)
 
-    parser_config = subparsers.add_parser('config')
+    parser_config = subparsers.add_parser("config")
     parser_config.add_argument(
-        '-g',
-        '--global',
-        dest='globalcfg',
-        action='store_true',
+        "-g",
+        "--global",
+        dest="globalcfg",
+        action="store_true",
         help="Modify the global configuration.",
     )
     parser_config.add_argument(
-        '-l', '--local', action='store_true', help="Modify the local configuration."
+        "-l", "--local", action="store_true", help="Modify the local configuration."
     )
     parser_config.add_argument(
-        '-f',
-        '--force',
-        action='store_true',
+        "-f",
+        "--force",
+        action="store_true",
         help="Skip sanity checks when modifying the configuration.",
     )
     config_subparsers = parser_config.add_subparsers()
 
-    parser_show = config_subparsers.add_parser('show')
+    parser_show = config_subparsers.add_parser("show")
     parser_show.add_argument(
-        'key', type=str, nargs='*', help="The key(s) to show, omit to show the full configuration."
+        "key",
+        type=str,
+        nargs="*",
+        help="The key(s) to show, omit to show the full configuration.",
     )
     parser_show.set_defaults(func=main_config_show)
 
-    parser_set = config_subparsers.add_parser('set')
-    parser_set.add_argument('key', type=str, help="The key to modify.")
-    parser_set.add_argument('value', type=str, nargs='*', help="The value to set key to.")
+    parser_set = config_subparsers.add_parser("set")
+    parser_set.add_argument("key", type=str, help="The key to modify.")
     parser_set.add_argument(
-        '-f', '--force', action='store_true', help="Override any validation warnings."
+        "value", type=str, nargs="*", help="The value to set key to."
+    )
+    parser_set.add_argument(
+        "-f", "--force", action="store_true", help="Override any validation warnings."
     )
     parser_set.set_defaults(func=main_config_set)
 
-    parser_host = config_subparsers.add_parser('host')
+    parser_host = config_subparsers.add_parser("host")
     parser_host.add_argument(
-        'hostname',
+        "hostname",
         type=str,
         help="The name of the specified resource. Note: The name can be arbitrarily chosen.",
     )
     parser_host.add_argument(
-        'uri',
+        "uri",
         type=str,
-        nargs='?',
+        nargs="?",
         help="Set the URI of the specified resource, for example: 'mongodb://localhost'.",
     )
     parser_host.add_argument(
-        '-u', '--username', type=str, help="Set the username for this resource."
+        "-u", "--username", type=str, help="Set the username for this resource."
     )
     parser_host.add_argument(
-        '-p',
-        '--password',
+        "-p",
+        "--password",
         type=str,
-        nargs='?',
+        nargs="?",
         const=True,
         help="Store a password for the specified resource.",
     )
     parser_host.add_argument(
-        '--update-pw',
+        "--update-pw",
         type=str,
-        nargs='?',
+        nargs="?",
         const=True,
         choices=PW_ENCRYPTION_SCHEMES,
         help="Update the password of the specified resource. "
         "Use in combination with -p/--password to store the "
         "new password. You can optionally specify the hashing "
         "algorithm used for the password encryption. Anything "
-        "else but 'None' requires passlib! (default={})".format(DEFAULT_PW_ENCRYPTION_SCHEME),
+        "else but 'None' requires passlib! (default={})".format(
+            DEFAULT_PW_ENCRYPTION_SCHEME
+        ),
     )
     parser_host.add_argument(
-        '--show-pw', action='store_true', help="Show the password if it was stored and exit."
+        "--show-pw",
+        action="store_true",
+        help="Show the password if it was stored and exit.",
     )
     parser_host.add_argument(
-        '-r', '--remove', action='store_true', help="Remove the specified resource."
+        "-r", "--remove", action="store_true", help="Remove the specified resource."
     )
     parser_host.add_argument(
-        '--test', action='store_true', help="Attempt connecting to the specified host."
+        "--test", action="store_true", help="Attempt connecting to the specified host."
     )
     parser_host.set_defaults(func=main_config_host)
 
-    parser_verify = config_subparsers.add_parser('verify')
+    parser_verify = config_subparsers.add_parser("verify")
     parser_verify.set_defaults(func=main_config_verify)
 
     # UNCOMMENT THE FOLLOWING BLOCK WHEN THE FIRST MIGRATION IS INTRODUCED.
@@ -1920,8 +2025,8 @@ This feature is still experimental and may be removed in future versions.""",
     # This is a hack, as argparse itself does not
     # allow to parse only --version without any
     # of the other required arguments.
-    if '--version' in sys.argv:
-        print('signac', __version__)
+    if "--version" in sys.argv:
+        print("signac", __version__)
         sys.exit(0)
 
     args = parser.parse_args()
@@ -1942,7 +2047,7 @@ This feature is still experimental and may be removed in future versions.""",
         )
         logging.basicConfig(level=log_level)
 
-    if not hasattr(args, 'func'):
+    if not hasattr(args, "func"):
         parser.print_usage()
         sys.exit(2)
     try:
@@ -1959,7 +2064,7 @@ This feature is still experimental and may be removed in future versions.""",
             raise
         sys.exit(1)
     except Exception as error:
-        _print_err(f'Error: {error}')
+        _print_err(f"Error: {error}")
         if args.debug:
             raise
         sys.exit(1)
@@ -1967,5 +2072,5 @@ This feature is still experimental and may be removed in future versions.""",
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

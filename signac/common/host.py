@@ -35,17 +35,17 @@ def get_default_host(config=None):
     if config is None:
         config = load_config()
     try:
-        return config['General']['default_host']
+        return config["General"]["default_host"]
     except KeyError:
         try:
-            return config['hosts'].keys()[0]
+            return config["hosts"].keys()[0]
         except (KeyError, IndexError):
             raise ConfigError("No hosts specified.")
 
 
 def _get_host_config(hostname, config):
     try:
-        return config['hosts'][hostname]
+        return config["hosts"][hostname]
     except KeyError:
         raise ConfigError(f"Host '{hostname}' not configured.")
 
@@ -75,19 +75,19 @@ def _host_id(hostcfg):
     details="The host module is deprecated.",
 )
 def make_uri(hostcfg):
-    ret = hostcfg['url']
-    if ret.startswith('mongodb://'):
-        ret = ret[len('mongodb://') :]
-    if 'username' in hostcfg:
-        assert '@' not in ret
-        ret = hostcfg['username'] + '@' + ret
-    return 'mongodb://' + ret
+    ret = hostcfg["url"]
+    if ret.startswith("mongodb://"):
+        ret = ret[len("mongodb://") :]
+    if "username" in hostcfg:
+        assert "@" not in ret
+        ret = hostcfg["username"] + "@" + ret
+    return "mongodb://" + ret
 
 
 def _request_credentials(hostcfg):
-    pwcfg = hostcfg.get('password_config')
+    pwcfg = hostcfg.get("password_config")
     pw = getpass.getpass("Enter password for {}: ".format(make_uri(hostcfg)))
-    if pwcfg and 'salt' in pwcfg and 'rounds' in pwcfg:
+    if pwcfg and "salt" in pwcfg and "rounds" in pwcfg:
         logger.debug("Using password configuration for hashing.")
         return get_crypt_context().encrypt(pw, **pwcfg)
     else:
@@ -95,19 +95,19 @@ def _request_credentials(hostcfg):
 
 
 def _get_config_credentials(hostcfg):
-    return hostcfg.get('password')
+    return hostcfg.get("password")
 
 
 def _get_keyring_credentials(hostcfg):
-    pwcfg = hostcfg.get('password_config')
+    pwcfg = hostcfg.get("password_config")
     kr = get_keyring()
     if kr is None:
-        if pwcfg and 'keyring' in pwcfg:
+        if pwcfg and "keyring" in pwcfg:
             warnings.warn("Password stored in keyring, but keyring is not available!")
-    elif pwcfg and 'keyring' in pwcfg:
-        return kr.get_password('signac', pwcfg['keyring'])
+    elif pwcfg and "keyring" in pwcfg:
+        return kr.get_password("signac", pwcfg["keyring"])
     else:
-        return kr.get_password('signac', make_uri(hostcfg))
+        return kr.get_password("signac", make_uri(hostcfg))
 
 
 def _get_cached_credentials(hostcfg, default):
@@ -154,7 +154,7 @@ def get_credentials(hostcfg, ask=True):
         return _get_stored_credentials(hostcfg)
 
 
-def _input(prompt, default=''):
+def _input(prompt, default=""):
     try:
         value = input(prompt)
     except SyntaxError:
@@ -174,21 +174,21 @@ def _input(prompt, default=''):
 def check_credentials(hostcfg):
     from pymongo.uri_parser import parse_uri
 
-    auth_m = hostcfg.get('auth_mechanism', 'none')
-    if auth_m == 'SCRAM-SHA-1':
-        uri = hostcfg['url']
+    auth_m = hostcfg.get("auth_mechanism", "none")
+    if auth_m == "SCRAM-SHA-1":
+        uri = hostcfg["url"]
         if isinstance(uri, list):
-            uri = ','.join(uri)
-        if 'username' not in hostcfg and not parse_uri(uri)['username']:
+            uri = ",".join(uri)
+        if "username" not in hostcfg and not parse_uri(uri)["username"]:
             username = SESSION_USERNAME_CACHE.get(_host_id(hostcfg))
             if username:
-                hostcfg['username'] = username
+                hostcfg["username"] = username
             else:
-                SESSION_USERNAME_CACHE[_host_id(hostcfg)] = hostcfg['username'] = _input(
-                    f"Username ({getpass.getuser()}): ", getpass.getuser()
-                )
-        if 'password' not in hostcfg and not parse_uri(uri)['password']:
-            hostcfg['password'] = get_credentials(hostcfg)
+                SESSION_USERNAME_CACHE[_host_id(hostcfg)] = hostcfg[
+                    "username"
+                ] = _input(f"Username ({getpass.getuser()}): ", getpass.getuser())
+        if "password" not in hostcfg and not parse_uri(uri)["password"]:
+            hostcfg["password"] = get_credentials(hostcfg)
     return hostcfg
 
 
@@ -229,7 +229,7 @@ def get_database(name, hostname=None, config=None, **kwargs):
     hostcfg = check_credentials(get_host_config(hostname, config))
     logger.debug(
         "Connecting with host config: {}".format(
-            {k: '***' if 'password' in k else v for k, v in hostcfg.items()}
+            {k: "***" if "password" in k else v for k, v in hostcfg.items()}
         )
     )
     try:

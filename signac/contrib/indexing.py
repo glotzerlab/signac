@@ -22,10 +22,10 @@ from .utility import walkdepth
 
 logger = logging.getLogger(__name__)
 
-KEY_PROJECT = 'project'
-KEY_FILENAME = 'filename'
-KEY_PATH = 'root'
-KEY_PAYLOAD = 'format'
+KEY_PROJECT = "project"
+KEY_FILENAME = "filename"
+KEY_PATH = "root"
+KEY_PAYLOAD = "format"
 
 """
 THIS MODULE IS DEPRECATED!
@@ -41,7 +41,7 @@ THIS MODULE IS DEPRECATED!
 def md5(file):
     "Calculate and return the md5 hash value for the file data."
     m = hashlib.md5()
-    for chunk in iter(lambda: file.read(4096), b''):
+    for chunk in iter(lambda: file.read(4096), b""):
         m.update(chunk)
     return m.hexdigest()
 
@@ -86,7 +86,7 @@ class BaseCrawler:
         raise NotImplementedError()
         yield
 
-    def fetch(self, doc, mode='r'):
+    def fetch(self, doc, mode="r"):
         """Implement this generator method to associate data with a document.
 
         :returns: object associated with doc
@@ -97,9 +97,9 @@ class BaseCrawler:
     def _calculate_hash(cls, doc, dirpath, fn):
         blob = json.dumps(doc, sort_keys=True)
         m = hashlib.md5()
-        m.update(dirpath.encode('utf-8'))
-        m.update(fn.encode('utf-8'))
-        m.update(blob.encode('utf-8'))
+        m.update(dirpath.encode("utf-8"))
+        m.update(fn.encode("utf-8"))
+        m.update(blob.encode("utf-8"))
         return m.hexdigest()
 
     def crawl(self, depth=0):
@@ -117,9 +117,11 @@ class BaseCrawler:
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
                 for doc in self.docs_from_file(dirpath, fn):
-                    logger.debug("doc from file: '{}'.".format(os.path.join(dirpath, fn)))
+                    logger.debug(
+                        "doc from file: '{}'.".format(os.path.join(dirpath, fn))
+                    )
                     doc.setdefault(KEY_PAYLOAD, None)
-                    doc.setdefault('_id', self._calculate_hash(doc, dirpath, fn))
+                    doc.setdefault("_id", self._calculate_hash(doc, dirpath, fn))
                     yield doc
         logger.info(f"Crawl of '{self.root}' done.")
 
@@ -204,7 +206,7 @@ class RegexFileCrawler(BaseCrawler):
         :param file: The associated file
         :returns: The file id.
         """
-        file_id = doc['md5'] = md5(file)
+        file_id = doc["md5"] = md5(file)
         return file_id
 
     @deprecated(
@@ -233,11 +235,13 @@ class RegexFileCrawler(BaseCrawler):
             m = regex.match(os.path.join(dirpath, fn))
             if m:
                 doc = self.process(m.groupdict(), dirpath, fn)
-                doc[KEY_FILENAME] = os.path.relpath(os.path.join(dirpath, fn), self.root)
+                doc[KEY_FILENAME] = os.path.relpath(
+                    os.path.join(dirpath, fn), self.root
+                )
                 doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
-                with open(os.path.join(dirpath, fn), 'rb') as file:
-                    doc['file_id'] = self.compute_file_id(doc, file)
+                with open(os.path.join(dirpath, fn), "rb") as file:
+                    doc["file_id"] = self.compute_file_id(doc, file)
                 yield doc
 
     @deprecated(
@@ -246,7 +250,7 @@ class RegexFileCrawler(BaseCrawler):
         current_version=__version__,
         details="The indexing module is deprecated.",
     )
-    def fetch(self, doc, mode='r'):
+    def fetch(self, doc, mode="r"):
         """Fetch the data associated with `doc`.
 
         :param doc: A index document.
@@ -263,7 +267,7 @@ class RegexFileCrawler(BaseCrawler):
                     if isinstance(format_, str):
                         return open(ffn, mode=mode)
                     else:
-                        for meth in ('read', 'close'):
+                        for meth in ("read", "close"):
                             if not callable(getattr(format_, meth, None)):
                                 msg = f"Format {format_} has no {meth}() method."
                                 warnings.warn(msg)
@@ -336,15 +340,15 @@ class RegexFileCrawler(BaseCrawler):
     details="The indexing module is deprecated.",
 )
 class JSONCrawler(BaseCrawler):
-    encoding = 'utf-8'
-    fn_regex = r'.*\.json'
+    encoding = "utf-8"
+    fn_regex = r".*\.json"
 
     def docs_from_json(self, doc):
         yield doc
 
     def docs_from_file(self, dirpath, fn):
         if re.match(self.fn_regex, os.path.join(dirpath, fn)):
-            with open(os.path.join(dirpath, fn), 'rb') as file:
+            with open(os.path.join(dirpath, fn), "rb") as file:
                 doc = json.loads(file.read().decode(self.encoding))
                 yield from self.docs_from_json(doc)
 
@@ -352,16 +356,16 @@ class JSONCrawler(BaseCrawler):
 def _index_signac_project_workspace(
     root,
     include_job_document=True,
-    fn_statepoint='signac_statepoint.json',
-    fn_job_document='signac_job_document.json',
-    statepoint_index='statepoint',
-    signac_id_alias='_id',
-    encoding='utf-8',
+    fn_statepoint="signac_statepoint.json",
+    fn_job_document="signac_job_document.json",
+    statepoint_index="statepoint",
+    signac_id_alias="_id",
+    encoding="utf-8",
     statepoint_dict=None,
 ):
     "Yields standard index documents for a signac project workspace."
     logger.debug(f"Indexing workspace '{root}'...")
-    m = re.compile(r'[a-f0-9]{32}')
+    m = re.compile(r"[a-f0-9]{32}")
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
     except OSError as error:
@@ -372,11 +376,11 @@ def _index_signac_project_workspace(
     for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
-        doc = {'signac_id': job_id, KEY_PATH: root}
+        doc = {"signac_id": job_id, KEY_PATH: root}
         if signac_id_alias:
             doc[signac_id_alias] = job_id
         fn_sp = os.path.join(root, job_id, fn_statepoint)
-        with open(fn_sp, 'rb') as file:
+        with open(fn_sp, "rb") as file:
             sp = json.loads(file.read().decode(encoding))
             if statepoint_dict is not None:
                 statepoint_dict[job_id] = sp
@@ -387,7 +391,7 @@ def _index_signac_project_workspace(
         if include_job_document:
             fn_doc = os.path.join(root, job_id, fn_job_document)
             try:
-                with open(fn_doc, 'rb') as file:
+                with open(fn_doc, "rb") as file:
                     doc.update(json.loads(file.read().decode(encoding)))
             except OSError as error:
                 if error.errno != errno.ENOENT:
@@ -410,11 +414,11 @@ class SignacProjectCrawler(RegexFileCrawler):
     :param root: The path to the project's root directory.
     :type root: str"""
 
-    encoding = 'utf-8'
-    statepoint_index = 'statepoint'
-    fn_statepoint = 'signac_statepoint.json'
-    fn_job_document = 'signac_job_document.json'
-    signac_id_alias = '_id'
+    encoding = "utf-8"
+    statepoint_index = "statepoint"
+    fn_statepoint = "signac_statepoint.json"
+    fn_job_document = "signac_job_document.json"
+    signac_id_alias = "_id"
 
     @deprecated(
         deprecated_in="1.3",
@@ -430,11 +434,11 @@ class SignacProjectCrawler(RegexFileCrawler):
         return super().__init__(root=root)
 
     def _get_job_id(self, dirpath):
-        return os.path.relpath(dirpath, self.root).split('/')[0]
+        return os.path.relpath(dirpath, self.root).split("/")[0]
 
     def _read_statepoint(self, job_id):
         fn_sp = os.path.join(self.root, job_id, self.fn_statepoint)
-        with open(fn_sp, 'rb') as file:
+        with open(fn_sp, "rb") as file:
             return json.loads(file.read().decode(self.encoding))
 
     def _get_statepoint(self, job_id):
@@ -450,7 +454,7 @@ class SignacProjectCrawler(RegexFileCrawler):
         if dirpath is not None:
             job_id = self._get_job_id(dirpath)
             statepoint = self._get_statepoint(job_id)
-            doc['signac_id'] = job_id
+            doc["signac_id"] = job_id
             if self.statepoint_index:
                 doc[self.statepoint_index] = statepoint
             else:
@@ -531,7 +535,7 @@ class MainCrawler(BaseCrawler):
     :type raise_on_error: bool
     """
 
-    FN_ACCESS_MODULE = 'signac_access.py'
+    FN_ACCESS_MODULE = "signac_access.py"
     "The filename of modules containing crawler definitions."
 
     @deprecated(
@@ -575,16 +579,16 @@ class MainCrawler(BaseCrawler):
             for doc in get_project(root=dirpath).index():
                 yield doc
 
-        if hasattr(module, 'get_indexes'):
-            if _check_tags(getattr(module.get_indexes, 'tags', None)):
+        if hasattr(module, "get_indexes"):
+            if _check_tags(getattr(module.get_indexes, "tags", None)):
                 for index in module.get_indexes(dirpath):
                     for doc in index:
                         yield doc
 
-        if hasattr(module, 'get_crawlers'):
+        if hasattr(module, "get_crawlers"):
             for crawler in module.get_crawlers(dirpath):
                 logger.info(f"Executing subcrawler:\n {crawler}")
-                if _check_tags(getattr(crawler, 'tags', None)):
+                if _check_tags(getattr(crawler, "tags", None)):
                     for doc in crawler.crawl():
                         doc.setdefault(KEY_PROJECT, os.path.relpath(dirpath, self.root))
                         yield doc
@@ -601,12 +605,16 @@ class MainCrawler(BaseCrawler):
                 yield from self._docs_from_module(dirpath, fn)
             except Exception:
                 logger.error(
-                    "Error while indexing from module '{}'.".format(os.path.join(dirpath, fn))
+                    "Error while indexing from module '{}'.".format(
+                        os.path.join(dirpath, fn)
+                    )
                 )
                 if self.raise_on_error:
                     raise
             else:
-                logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
+                logger.debug(
+                    "Completed indexing from '{}'.".format(os.path.join(dirpath, fn))
+                )
 
 
 # Deprecated API
@@ -626,7 +634,9 @@ class MasterCrawler(MainCrawler):
     current_version=__version__,
     details="The indexing module is deprecated.",
 )
-def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_local=False):
+def fetch(
+    doc_or_id, mode="r", mirrors=None, num_tries=3, timeout=60, ignore_local=False
+):
     """Fetch the file associated with this document or file id.
 
     This function retrieves a file associated with the provided
@@ -653,10 +663,10 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
     """
     if doc_or_id is None:
         raise ValueError("Argument 'doc_or_id' must not be None!")
-    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get('file_id')
+    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get("file_id")
     if not ignore_local:
         try:
-            fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
+            fn = os.path.join(doc_or_id["root"], doc_or_id["filename"])
             return open(fn, mode=mode)
         except KeyError:
             raise errors.FetchError("Insufficient file meta data for fetch.", doc_or_id)
@@ -689,7 +699,7 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
 def fetched(docs):
     """Iterate over documents and yield associated files."""
     for doc in docs:
-        if 'file_id' in doc:
+        if "file_id" in doc:
             yield doc, fetch(doc)
 
 
@@ -718,21 +728,27 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     :type timeout: int
     :returns: The file id after successful export.
     """
-    if 'file_id' not in doc:
+    if "file_id" not in doc:
         raise errors.ExportError(f"Doc '{doc}' does not have a file_id entry.")
     for i in range(num_tries):
         try:
-            with fetch(doc, mode='rb') as file:
-                _export_to_mirror(file, doc['file_id'], mirror)
+            with fetch(doc, mode="rb") as file:
+                _export_to_mirror(file, doc["file_id"], mirror)
         except mirror.FileExistsError:
-            logger.debug("File with id '{}' already exported, skipping.".format(doc['file_id']))
+            logger.debug(
+                "File with id '{}' already exported, skipping.".format(doc["file_id"])
+            )
             break
         except mirror.AutoRetry as error:
             logger.warning(f"Error during export: '{error}', retrying...")
             sleep(timeout)
         else:
-            logger.debug("Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
-            return doc['file_id']
+            logger.debug(
+                "Stored file with id '{}' in mirror '{}'.".format(
+                    doc["file_id"], mirror
+                )
+            )
+            return doc["file_id"]
     else:
         raise errors.ExportError(doc)
 
@@ -757,13 +773,13 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     :type timeout: int
     :returns: The id and file id after successful export.
     """
-    index.replace_one({'_id': doc['_id']}, doc, upsert=True)
-    if mirrors and 'file_id' in doc:
+    index.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+    if mirrors and "file_id" in doc:
         for mirror in mirrors:
             export_to_mirror(doc, mirror, num_tries, timeout)
-        return doc['_id'], doc['file_id']
+        return doc["_id"], doc["file_id"]
     else:
-        return doc['_id'], None
+        return doc["_id"], None
 
 
 @deprecated(
@@ -835,21 +851,23 @@ def export(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, **k
     for doc in docs:
         _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
         if update:
-            root = doc.get('root')
+            root = doc.get("root")
             if root is not None:
                 ids[root].append(_id)
     if update:
         if ids:
             stale = set()
             for root in ids:
-                docs_ = index.find({'root': root})
-                all_ = {doc['_id'] for doc in docs_}
+                docs_ = index.find({"root": root})
+                all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info("Removing {} stale documents.".format(len(stale)))
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
-            raise errors.ExportError("The exported docs sequence is empty! Unable to update!")
+            raise errors.ExportError(
+                "The exported docs sequence is empty! Unable to update!"
+            )
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
@@ -859,7 +877,7 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     if mirrors is not None:
         for mirror in mirrors:
             for doc in docs:
-                if 'file_id' in doc:
+                if "file_id" in doc:
                     export_to_mirror(doc, mirror, num_tries, timeout)
     for i in range(num_tries):
         try:
@@ -878,7 +896,9 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     current_version=__version__,
     details="The indexing module is deprecated.",
 )
-def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100):
+def export_pymongo(
+    docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100
+):
     """Optimized :py:func:`~.export` function for pymongo index collections.
 
     The behavior of this function is rougly equivalent to:
@@ -911,11 +931,11 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
     operations = []
     ids = defaultdict(list)
     for doc in docs:
-        f = {'_id': doc['_id']}
+        f = {"_id": doc["_id"]}
         if update:
-            root = doc.get('root')
+            root = doc.get("root")
             if root is not None:
-                ids[root].append(doc['_id'])
+                ids[root].append(doc["_id"])
         chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(chunk) >= chunksize:
@@ -930,14 +950,16 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
         if ids:
             stale = set()
             for root in ids:
-                docs_ = index.find({'root': root})
-                all_ = {doc['_id'] for doc in docs_}
+                docs_ = index.find({"root": root})
+                all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info("Removing {} stale documents.".format(len(stale)))
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
-            raise errors.ExportError("The exported docs sequence is empty! Unable to update!")
+            raise errors.ExportError(
+                "The exported docs sequence is empty! Unable to update!"
+            )
 
 
 @deprecated(
@@ -946,7 +968,7 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
     current_version=__version__,
     details="The indexing module is deprecated.",
 )
-def index_files(root='.', formats=None, depth=0):
+def index_files(root=".", formats=None, depth=0):
     r"""Generate a file index.
 
     This generator function yields file index documents,
@@ -1003,9 +1025,9 @@ def index_files(root='.', formats=None, depth=0):
     :yields: The file index documents as dicts.
     """
     if formats is None:
-        formats = {'.*': 'File'}
+        formats = {".*": "File"}
     if isinstance(formats, str):
-        formats = {formats: 'File'}
+        formats = {formats: "File"}
 
     class Crawler(RegexFileCrawler):
         pass
@@ -1022,7 +1044,7 @@ def index_files(root='.', formats=None, depth=0):
     current_version=__version__,
     details="The indexing module is deprecated.",
 )
-def index(root='.', tags=None, depth=0, **kwargs):
+def index(root=".", tags=None, depth=0, **kwargs):
     r"""Generate a main index.
 
     A main index is compiled from other indexes by searching

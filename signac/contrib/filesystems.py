@@ -52,7 +52,7 @@ class LocalFS:
     :type root: str
     """
 
-    name = 'localfs'
+    name = "localfs"
     "General identifier for this file system handler."
 
     FileExistsError = IOError
@@ -68,13 +68,18 @@ class LocalFS:
 
     def config(self):
         "Return the file system configuration for this handler."
-        return {'root': self.root}
+        return {"root": self.root}
 
     def __repr__(self):
-        return '{}({})'.format(type(self), ', '.join(f'{k}={v}' for k, v in self.config().items()))
+        return "{}({})".format(
+            type(self), ", ".join(f"{k}={v}" for k, v in self.config().items())
+        )
 
-    def _fn(self, _id, n=2, suffix='.dat'):
-        fn = os.path.join(self.root, *[_id[i : i + n] for i in range(0, len(_id), n)]) + suffix
+    def _fn(self, _id, n=2, suffix=".dat"):
+        fn = (
+            os.path.join(self.root, *[_id[i : i + n] for i in range(0, len(_id), n)])
+            + suffix
+        )
         return fn
 
     def new_file(self, _id, mode=None):
@@ -84,8 +89,8 @@ class LocalFS:
         :type _id: str
         :returns: A file-like object to write to."""
         if mode is None:
-            mode = 'xb'
-        if 'x' not in mode:
+            mode = "xb"
+        if "x" not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
         try:
@@ -96,7 +101,7 @@ class LocalFS:
                 raise
         return open(fn, mode=mode)
 
-    def get(self, _id, mode='r'):
+    def get(self, _id, mode="r"):
         """Open the file with the specified id.
 
         :param _id: The file identifier.
@@ -104,7 +109,7 @@ class LocalFS:
         :param mode: The file mode used for opening.
         :returns: A file-like object to read from."""
 
-        if 'r' not in mode:
+        if "r" not in mode:
             raise ValueError(mode)
         return open(self._fn(_id), mode=mode)
 
@@ -128,7 +133,7 @@ if GRIDFS:
         :type db: str or :class:`pymongo.database.Database`
         """
 
-        name = 'gridfs'
+        name = "gridfs"
         "General identifier for this file system handler."
 
         FileExistsError = gridfs.errors.FileExists
@@ -137,7 +142,7 @@ if GRIDFS:
         "A file with the specified id is not found."
         AutoRetry = pymongo.errors.AutoReconnect
 
-        def __init__(self, db, collection='fs'):
+        def __init__(self, db, collection="fs"):
             if isinstance(db, str):
                 self.db = None
                 self.db_name = db
@@ -149,11 +154,11 @@ if GRIDFS:
 
         def config(self):
             "Return the file system configuration for this handler."
-            return {'db': self.db_name, 'collection': self.collection}
+            return {"db": self.db_name, "collection": self.collection}
 
         def __repr__(self):
-            return '{}({})'.format(
-                type(self), ', '.join(f'{k}={v}' for k, v in self.config().items())
+            return "{}({})".format(
+                type(self), ", ".join(f"{k}={v}" for k, v in self.config().items())
             )
 
         @property
@@ -173,7 +178,7 @@ if GRIDFS:
             :returns: A file-like object to write to."""
             return self.gridfs.new_file(_id=_id)
 
-        def get(self, _id, mode='r'):
+        def get(self, _id, mode="r"):
             """Open the file with the specified id.
 
             .. warning::
@@ -187,12 +192,14 @@ if GRIDFS:
             :type _id: str
             :param mode: The file mode used for opening.
             :returns: A file-like object to read from."""
-            if mode == 'r':
+            if mode == "r":
                 file = io.StringIO(self.gridfs.get(_id).read().decode())
                 if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
-                    warnings.warn("Open large GridFS files more efficiently in 'rb' mode.")
+                    warnings.warn(
+                        "Open large GridFS files more efficiently in 'rb' mode."
+                    )
                 return file
-            elif mode == 'rb':
+            elif mode == "rb":
                 return self.gridfs.get(file_id=_id)
             else:
                 raise ValueError(mode)

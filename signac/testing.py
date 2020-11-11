@@ -28,13 +28,13 @@ def init_jobs(project, nested=False, listed=False, heterogeneous=False):
 
     """
     jobs_init = []
-    vals = [1, 1.0, '1', False, True, None]
+    vals = [1, 1.0, "1", False, True, None]
     if nested:
-        vals += [{'b': v, 'c': 0} if heterogeneous else {'b': v} for v in vals]
+        vals += [{"b": v, "c": 0} if heterogeneous else {"b": v} for v in vals]
     if listed:
         vals += [[v, 0] if heterogeneous else [v] for v in vals]
     if heterogeneous:
-        for k, v in zip(cycle('ab'), vals):
+        for k, v in zip(cycle("ab"), vals):
             jobs_init.append(project.open_job({k: v}).init())
     else:
         for v in vals:

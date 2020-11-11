@@ -18,13 +18,13 @@ class SyncedAttrDict(_SyncedDict):
         assert ad.a.b == 0
     """
 
-    _PROTECTED_KEYS = ('_data', '_suspend_sync_', '_load', '_save')
+    _PROTECTED_KEYS = ("_data", "_suspend_sync_", "_load", "_save")
 
     def __getattr__(self, name):
         try:
             return super().__getattribute__(name)
         except AttributeError:
-            if name.startswith('__'):
+            if name.startswith("__"):
                 raise
             try:
                 return self.__getitem__(name)
@@ -33,17 +33,17 @@ class SyncedAttrDict(_SyncedDict):
 
     def __setattr__(self, key, value):
         try:
-            super().__getattribute__('_data')
+            super().__getattribute__("_data")
         except AttributeError:
             super().__setattr__(key, value)
         else:
-            if key.startswith('__') or key in self.__getattribute__('_PROTECTED_KEYS'):
+            if key.startswith("__") or key in self.__getattribute__("_PROTECTED_KEYS"):
                 super().__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith('__') or key in self._PROTECTED_KEYS:
+        if key.startswith("__") or key in self._PROTECTED_KEYS:
             super().__delattr__(key)
         else:
             self.__delitem__(key)

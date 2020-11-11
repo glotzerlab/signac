@@ -76,7 +76,7 @@ def _is_json(q):
         True if q starts with "{" and ends with "}".
 
     """
-    return q.strip().startswith('{') and q.strip().endswith('}')
+    return q.strip().startswith("{") and q.strip().endswith("}")
 
 
 def _is_regex(q):
@@ -93,7 +93,7 @@ def _is_regex(q):
         True if q starts with "/" and ends with "/".
 
     """
-    return q.startswith('/') and q.endswith('/')
+    return q.startswith("/") and q.endswith("/")
 
 
 def _parse_json(q):
@@ -118,16 +118,16 @@ def _parse_json(q):
 
 
 CAST_MAPPING = {
-    'true': True,
-    'false': False,
-    'null': None,
+    "true": True,
+    "false": False,
+    "null": None,
 }
 
 CAST_MAPPING_WARNING = {
-    'True': 'true',
-    'False': 'false',
-    'None': 'null',
-    'none': 'null',
+    "True": "true",
+    "False": "false",
+    "None": "null",
+    "none": "null",
 }
 
 
@@ -181,12 +181,12 @@ def _parse_simple(key, value=None):
         If filter arguments have an invalid key.
 
     """
-    if value is None or value == '!':
-        return {key: {'$exists': True}}
+    if value is None or value == "!":
+        return {key: {"$exists": True}}
     elif _is_json(value):
         return {key: _parse_json(value)}
     elif _is_regex(value):
-        return {key: {'$regex': value[1:-1]}}
+        return {key: {"$regex": value[1:-1]}}
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "

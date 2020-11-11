@@ -7,7 +7,10 @@ import warnings
 try:
     import pymongo  # noqa
 except ImportError:
-    warnings.warn("Failed to import pymongo. " "get_database will not be available.", ImportWarning)
+    warnings.warn(
+        "Failed to import pymongo. " "get_database will not be available.",
+        ImportWarning,
+    )
 
     def get_database(*args, **kwargs):
         """Get a database handle.
@@ -25,4 +28,4 @@ else:
     from .database import get_database
 
 
-__all__ = ['get_database']
+__all__ = ["get_database"]

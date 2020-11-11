@@ -49,11 +49,20 @@ class _SyncedList(list):
     def __getattribute__(self, name):
         outer = super().__getattribute__(name)
 
-        if name in ('append', 'clear', 'extend', 'insert', 'pop', 'remove', 'reverse', 'sort'):
+        if name in (
+            "append",
+            "clear",
+            "extend",
+            "insert",
+            "pop",
+            "remove",
+            "reverse",
+            "sort",
+        ):
 
             @wraps(outer)
             def outer_wrapped_in_load_and_save(*args, **kwargs):
-                if hasattr(self, '_parent'):
+                if hasattr(self, "_parent"):
                     self._parent.load()
                     ret = outer(*args, **kwargs)
                     self._parent.save()
@@ -78,7 +87,8 @@ class _SyncedDict(MutableMapping):
             self._data = dict()
         else:
             self._data = {
-                self._validate_key(k): self._dfs_convert(v) for k, v in initialdata.items()
+                self._validate_key(k): self._dfs_convert(v)
+                for k, v in initialdata.items()
             }
         self._suspend_sync_ = 0
 
@@ -86,7 +96,7 @@ class _SyncedDict(MutableMapping):
     def _validate_key(cls, key):
         """Emit a warning or raise an exception if key is invalid. Returns key."""
         if isinstance(key, str):
-            if '.' in key:
+            if "." in key:
                 from ..errors import InvalidKeyError
 
                 raise InvalidKeyError(f"keys may not contain dots ('.'): {key}")

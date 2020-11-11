@@ -43,7 +43,7 @@ from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_pro
 
 logger = logging.getLogger(__name__)
 
-JOB_ID_REGEX = re.compile('[a-f0-9]{32}')
+JOB_ID_REGEX = re.compile("[a-f0-9]{32}")
 
 ACCESS_MODULE_MINIMAL = """import signac
 
@@ -102,14 +102,14 @@ class JobSearchIndex:
 
         """
         for k, v in q.items():
-            if k in ('$and', '$or'):
+            if k in ("$and", "$or"):
                 if not isinstance(v, list) or isinstance(v, tuple):
                     raise ValueError(
                         "The argument to a logical operator must be a sequence (e.g. a list)!"
                     )
                 yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
             else:
-                yield f'statepoint.{k}', v
+                yield f"statepoint.{k}", v
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find job ids from a state point or document filter.
@@ -179,16 +179,16 @@ class Project:
 
     Job = Job
 
-    FN_DOCUMENT = 'signac_project_document.json'
+    FN_DOCUMENT = "signac_project_document.json"
     "The project's document filename."
 
-    KEY_DATA = 'signac_data'
+    KEY_DATA = "signac_data"
     "The project's datastore key."
 
-    FN_STATEPOINTS = 'signac_statepoints.json'
+    FN_STATEPOINTS = "signac_statepoints.json"
     "The default filename to read from and write state points to."
 
-    FN_CACHE = '.signac_sp_cache.json.gz'
+    FN_CACHE = ".signac_sp_cache.json.gz"
     "The default filename for the state point cache file."
 
     _use_pandas_for_html_repr = True  # toggle use of pandas for html repr
@@ -203,7 +203,7 @@ class Project:
             raise LookupError(
                 "Unable to determine project id. "
                 "Please verify that '{}' is a signac project path.".format(
-                    os.path.abspath(self.config.get('project_dir', os.getcwd()))
+                    os.path.abspath(self.config.get("project_dir", os.getcwd()))
                 )
             )
 
@@ -235,7 +235,7 @@ class Project:
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
-            'statepoint_cache_miss_warning_threshold', 500
+            "statepoint_cache_miss_warning_threshold", 500
         )
 
     def __str__(self):
@@ -258,7 +258,7 @@ class Project:
         """
         return (
             "<p>"
-            + f'<strong>Project:</strong> {self.id}<br>'
+            + f"<strong>Project:</strong> {self.id}<br>"
             + f"<strong>Root:</strong> {self.root_directory()}<br>"
             + f"<strong>Workspace:</strong> {self.workspace()}<br>"
             + "<strong>Size:</strong> {}".format(len(self))
@@ -291,7 +291,7 @@ class Project:
             Path of project directory.
 
         """
-        return self._config['project_dir']
+        return self._config["project_dir"]
 
     @property
     def _wd(self):
@@ -303,7 +303,7 @@ class Project:
             Path of workspace directory.
 
         """
-        wd = os.path.expandvars(self._config.get('workspace_dir', 'workspace'))
+        wd = os.path.expandvars(self._config.get("workspace_dir", "workspace"))
         if os.path.isabs(wd):
             return wd
         else:
@@ -372,7 +372,7 @@ class Project:
 
         """
         try:
-            return str(self.config['project'])
+            return str(self.config["project"])
         except KeyError:
             return None
 
@@ -386,7 +386,7 @@ class Project:
 
         """
         schema_version = version.parse(SCHEMA_VERSION)
-        config_schema_version = version.parse(self.config['schema_version'])
+        config_schema_version = version.parse(self.config["schema_version"])
         if config_schema_version > schema_version:
             # Project config schema version is newer and therefore not supported.
             raise IncompatibleSchemaVersion(
@@ -403,7 +403,9 @@ class Project:
                 "version.".format(config_schema_version, __version__, schema_version)
             )
         else:  # identical and therefore compatible
-            logger.debug(f"The project's schema version {config_schema_version} is supported.")
+            logger.debug(
+                f"The project's schema version {config_schema_version} is supported."
+            )
 
     def min_len_unique_id(self):
         """Determine the minimum length required for a job id to be unique.
@@ -791,9 +793,11 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = [{'_id': job._id, 'statepoint': job.sp()} for job in self]
-        for x, y in _build_job_statepoint_index(exclude_const=exclude_const, index=index):
-            yield tuple(x.split('.')), y
+            index = [{"_id": job._id, "statepoint": job.sp()} for job in self]
+        for x, y in _build_job_statepoint_index(
+            exclude_const=exclude_const, index=index
+        ):
+            yield tuple(x.split(".")), y
 
     def detect_schema(self, exclude_const=False, subset=None, index=None):
         """Detect the project's state point schema.
@@ -823,8 +827,10 @@ class Project:
             index = self.index(include_job_document=False)
         if subset is not None:
             subset = {str(s) for s in subset}
-            index = [doc for doc in index if doc['_id'] in subset]
-        statepoint_index = _build_job_statepoint_index(exclude_const=exclude_const, index=index)
+            index = [doc for doc in index if doc["_id"] in subset]
+        statepoint_index = _build_job_statepoint_index(
+            exclude_const=exclude_const, index=index
+        )
         return ProjectSchema.detect(statepoint_index)
 
     @deprecated(
@@ -1154,7 +1160,7 @@ class Project:
 
         tmp.update(_cache)
         logger.debug("Writing state points file with {} entries.".format(len(tmp)))
-        with open(fn, 'w') as file:
+        with open(fn, "w") as file:
             file.write(json.dumps(tmp, indent=indent))
 
     def _register(self, job):
@@ -1179,7 +1185,7 @@ class Project:
         """
         fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'rb') as manifest:
+            with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
             if os.path.isdir(os.path.join(self._wd, jobid)):
@@ -1461,7 +1467,15 @@ class Project:
                 raise
         return dst
 
-    def sync(self, other, strategy=None, exclude=None, doc_sync=None, selection=None, **kwargs):
+    def sync(
+        self,
+        other,
+        strategy=None,
+        exclude=None,
+        doc_sync=None,
+        selection=None,
+        **kwargs,
+    ):
         """Synchronize this project with the other project.
 
         Try to clone all jobs from the other project to this project.
@@ -1657,7 +1671,9 @@ class Project:
                 return ret
 
         paths = dict(
-            import_into_project(origin=origin, project=self, schema=schema, copytree=copytree)
+            import_into_project(
+                origin=origin, project=self, schema=schema, copytree=copytree
+            )
         )
         return paths
 
@@ -1722,7 +1738,7 @@ class Project:
                 raise
         if index is not None:
             for doc in index:
-                self._sp_cache[doc['signac_id']] = doc['statepoint']
+                self._sp_cache[doc["signac_id"]] = doc["statepoint"]
 
         corrupted = []
         for job_id in job_ids:
@@ -1752,7 +1768,9 @@ class Project:
 
                 job = self.open_job(sp)
             except KeyError:
-                logger.critical(f"Unable to lookup state point for job with id '{job_id}'.")
+                logger.critical(
+                    f"Unable to lookup state point for job with id '{job_id}'."
+                )
                 corrupted.append(job_id)
             else:
                 try:
@@ -1809,7 +1827,9 @@ class Project:
                     doc.update(self.open_job(id=_id).document)
                 else:  # use optimized path
                     try:
-                        with open(os.path.join(wd, _id, self.Job.FN_DOCUMENT), 'rb') as file:
+                        with open(
+                            os.path.join(wd, _id, self.Job.FN_DOCUMENT), "rb"
+                        ) as file:
                             doc.update(json.loads(file.read().decode()))
                     except OSError as error:
                         if error.errno != errno.ENOENT:
@@ -1866,15 +1886,15 @@ class Project:
         for large data spaces.
 
         """
-        logger.info('Update cache...')
+        logger.info("Update cache...")
         start = time.time()
         cache = self._read_cache()
         self._update_in_memory_cache()
         if cache is None or set(cache) != set(self._sp_cache):
             fn_cache = self.fn(self.FN_CACHE)
-            fn_cache_tmp = fn_cache + '~'
+            fn_cache_tmp = fn_cache + "~"
             try:
-                with gzip.open(fn_cache_tmp, 'wb') as cachefile:
+                with gzip.open(fn_cache_tmp, "wb") as cachefile:
                     cachefile.write(json.dumps(self._sp_cache).encode())
             except OSError:  # clean-up
                 try:
@@ -1895,7 +1915,7 @@ class Project:
         logger.debug("Reading cache...")
         start = time.time()
         try:
-            with gzip.open(self.fn(self.FN_CACHE), 'rb') as cachefile:
+            with gzip.open(self.fn(self.FN_CACHE), "rb") as cachefile:
                 cache = json.loads(cachefile.read().decode())
             self._sp_cache.update(cache)
         except OSError as error:
@@ -1907,7 +1927,9 @@ class Project:
             logger.debug(f"Read cache in {delta:.3f} seconds.")
             return cache
 
-    def index(self, formats=None, depth=0, skip_errors=False, include_job_document=True):
+    def index(
+        self, formats=None, depth=0, skip_errors=False, include_job_document=True
+    ):
         r"""Generate an index of the project's workspace.
 
         This generator function indexes every file in the project's
@@ -1961,15 +1983,15 @@ class Project:
                     Modified index document.
 
                 """
-                doc['signac_id'] = doc['_id']
-                doc['root'] = root
+                doc["signac_id"] = doc["_id"]
+                doc["root"] = root
                 return doc
 
             docs = self._build_index(include_job_document=include_job_document)
             docs = map(_full_doc, docs)
         else:
             if isinstance(formats, str):
-                formats = {formats: 'File'}
+                formats = {formats: "File"}
 
             class Crawler(SignacProjectCrawler):
                 pass
@@ -2013,12 +2035,14 @@ class Project:
 
         """
         if master is not None:
-            warnings.warn("The parameter master has been renamed to main.", DeprecationWarning)
+            warnings.warn(
+                "The parameter master has been renamed to main.", DeprecationWarning
+            )
             main = master
 
         if filename is None:
             filename = os.path.join(self.root_directory(), MainCrawler.FN_ACCESS_MODULE)
-        with open(filename, 'x') as file:
+        with open(filename, "x") as file:
             if main:
                 file.write(ACCESS_MODULE_MAIN)
             else:
@@ -2109,14 +2133,14 @@ class Project:
         try:
             project = cls.get_project(root=root, search=False)
         except LookupError:
-            fn_config = os.path.join(root, 'signac.rc')
+            fn_config = os.path.join(root, "signac.rc")
             if make_dir:
                 _mkdir_p(os.path.dirname(fn_config))
             config = get_config(fn_config)
-            config['project'] = name
+            config["project"] = name
             if workspace is not None:
-                config['workspace_dir'] = workspace
-            config['schema_version'] = SCHEMA_VERSION
+                config["workspace_dir"] = workspace
+            config["schema_version"] = SCHEMA_VERSION
             config.write()
             project = cls.get_project(root=root)
             assert project.id == str(name)
@@ -2125,7 +2149,9 @@ class Project:
             try:
                 assert project.id == str(name)
                 if workspace is not None:
-                    assert os.path.realpath(workspace) == os.path.realpath(project.workspace())
+                    assert os.path.realpath(workspace) == os.path.realpath(
+                        project.workspace()
+                    )
                 return project
             except AssertionError:
                 raise RuntimeError(
@@ -2167,11 +2193,14 @@ class Project:
         if root is None:
             root = os.getcwd()
         config = load_config(root=root, local=False)
-        if 'project' not in config or (
-            not search and os.path.realpath(config['project_dir']) != os.path.realpath(root)
+        if "project" not in config or (
+            not search
+            and os.path.realpath(config["project_dir"]) != os.path.realpath(root)
         ):
             raise LookupError(
-                "Unable to determine project id for path '{}'.".format(os.path.abspath(root))
+                "Unable to determine project id for path '{}'.".format(
+                    os.path.abspath(root)
+                )
             )
 
         return cls(config=config, **kwargs)
@@ -2347,8 +2376,7 @@ class JobsCursor:
     def __iter__(self):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
-            self._project,
-            self._project._find_job_ids(self._filter, self._doc_filter),
+            self._project, self._project._find_job_ids(self._filter, self._doc_filter),
         )
 
     def next(self):
@@ -2358,7 +2386,9 @@ class JobsCursor:
         .. deprecated:: 0.9.6
 
         """
-        warnings.warn("Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning)
+        warnings.warn(
+            "Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning
+        )
         if self._next_iter is None:
             self._next_iter = iter(self)
         try:
@@ -2412,7 +2442,7 @@ class JobsCursor:
                 if _filter is None:
                     _filter = {key: {"$exists": True}}
                 else:
-                    _filter = {'$and': [{key: {"$exists": True}}, _filter]}
+                    _filter = {"$and": [{key: {"$exists": True}}, _filter]}
 
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
@@ -2455,7 +2485,7 @@ class JobsCursor:
                 if _filter is None:
                     _filter = {k: {"$exists": True} for k in key}
                 else:
-                    _filter = {'$and': [{k: {"$exists": True} for k in key}, _filter]}
+                    _filter = {"$and": [{k: {"$exists": True} for k in key}, _filter]}
 
                 def keyfunction(job):
                     """Return job's state point value corresponding to the key.
@@ -2519,7 +2549,10 @@ class JobsCursor:
             keyfunction = key
 
         return groupby(
-            sorted(iter(JobsCursor(self._project, _filter, self._doc_filter)), key=keyfunction),
+            sorted(
+                iter(JobsCursor(self._project, _filter, self._doc_filter)),
+                key=keyfunction,
+            ),
             key=keyfunction,
         )
 
@@ -2707,9 +2740,13 @@ class JobsCursor:
         """
         from .import_export import export_jobs
 
-        return dict(export_jobs(jobs=list(self), target=target, path=path, copytree=copytree))
+        return dict(
+            export_jobs(jobs=list(self), target=target, path=path, copytree=copytree)
+        )
 
-    def to_dataframe(self, sp_prefix='sp.', doc_prefix='doc.', usecols=None, flatten=False):
+    def to_dataframe(
+        self, sp_prefix="sp.", doc_prefix="doc.", usecols=None, flatten=False
+    ):
         """Convert the selection of jobs to a pandas dataframe.
 
         This function exports the job metadata to a
@@ -2783,11 +2820,12 @@ class JobsCursor:
                     yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
-            data={job._id: dict(_export_sp_and_doc(job)) for job in self}, orient='index'
+            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            orient="index",
         ).infer_objects()
 
     def __repr__(self):
-        return '{type}(project={project}, filter={filter}, doc_filter={doc_filter})'.format(
+        return "{type}(project={project}, filter={filter}, doc_filter={doc_filter})".format(
             type=self.__class__.__name__,
             project=repr(self._project),
             filter=repr(self._filter),
@@ -2803,7 +2841,7 @@ class JobsCursor:
             HTML representation of jobs.
 
         """
-        html = ''
+        html = ""
         len_self = len(self)
         try:
             if len_self > 100:
@@ -2813,10 +2851,10 @@ class JobsCursor:
             else:
                 raise RuntimeError
         except ImportError:
-            warnings.warn('Install pandas for a pretty representation of jobs.')
-            html += f'<br/><strong>{len_self}</strong> job(s) found'
+            warnings.warn("Install pandas for a pretty representation of jobs.")
+            html += f"<br/><strong>{len_self}</strong> job(s) found"
         except RuntimeError:
-            html += f'<br/><strong>{len_self}</strong> job(s) found'
+            html += f"<br/><strong>{len_self}</strong> job(s) found"
         else:
             with pandas.option_context("display.max_rows", 20):
                 html += self.to_dataframe()._repr_html_()
@@ -2867,7 +2905,9 @@ def init_project(name, root=None, workspace=None, make_dir=True):
         configuration.
 
     """
-    return Project.init_project(name=name, root=root, workspace=workspace, make_dir=make_dir)
+    return Project.init_project(
+        name=name, root=root, workspace=workspace, make_dir=make_dir
+    )
 
 
 def get_project(root=None, search=True, **kwargs):

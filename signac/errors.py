@@ -42,7 +42,7 @@ class DocumentSyncConflict(SyncConflict):
         "The keys that caused the conflict."
 
     def __str__(self):
-        return "The following keys caused a conflict: {}".format(', '.join(self.keys))
+        return "The following keys caused a conflict: {}".format(", ".join(self.keys))
 
 
 class SchemaSyncConflict(SyncConflict):
@@ -65,19 +65,19 @@ class KeyTypeError(TypeError):
 
 
 __all__ = [
-    'Error',
-    'BufferException',
-    'BufferedFileError',
-    'ConfigError',
-    'AuthenticationError',
-    'ExportError',
-    'FetchError',
-    'DestinationExistsError',
-    'JobsCorruptedError',
-    'IncompatibleSchemaVersion',
-    'SyncConflict',
-    'FileSyncConflict',
-    'DocumentSyncConflict',
-    'SchemaSyncConflict',
-    'InvalidKeyError',
+    "Error",
+    "BufferException",
+    "BufferedFileError",
+    "ConfigError",
+    "AuthenticationError",
+    "ExportError",
+    "FetchError",
+    "DestinationExistsError",
+    "JobsCorruptedError",
+    "IncompatibleSchemaVersion",
+    "SyncConflict",
+    "FileSyncConflict",
+    "DocumentSyncConflict",
+    "SchemaSyncConflict",
+    "InvalidKeyError",
 ]

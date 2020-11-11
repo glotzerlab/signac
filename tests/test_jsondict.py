@@ -10,7 +10,7 @@ import pytest
 from signac.core.jsondict import JSONDict
 from signac.errors import InvalidKeyError, KeyTypeError
 
-FN_DICT = 'jsondict.json'
+FN_DICT = "jsondict.json"
 
 
 def testdata():
@@ -20,7 +20,7 @@ def testdata():
 class TestJSONDictBase:
     @pytest.fixture(autouse=True)
     def setUp(self, request):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix="jsondict_")
         request.addfinalizer(self._tmp_dir.cleanup)
         self._fn_dict = os.path.join(self._tmp_dir.name, FN_DICT)
 
@@ -37,7 +37,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_set_get(self):
         jsd = self.get_json_dict()
-        key = 'setget'
+        key = "setget"
         d = self.get_testdata()
         jsd.clear()
         assert not bool(jsd)
@@ -52,11 +52,11 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_set_get_explicit_nested(self):
         jsd = self.get_json_dict()
-        key = 'setgetexplicitnested'
+        key = "setgetexplicitnested"
         d = self.get_testdata()
-        jsd.setdefault('a', dict())
-        child1 = jsd['a']
-        child2 = jsd['a']
+        jsd.setdefault("a", dict())
+        child1 = jsd["a"]
+        child2 = jsd["a"]
         assert child1 == child2
         assert isinstance(child1, type(child2))
         assert child1._parent == child2._parent
@@ -75,8 +75,8 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_copy_value(self):
         jsd = self.get_json_dict()
-        key = 'copy_value'
-        key2 = 'copy_value2'
+        key = "copy_value"
+        key2 = "copy_value2"
         d = self.get_testdata()
         assert key not in jsd
         assert key2 not in jsd
@@ -92,8 +92,8 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_iter(self):
         jsd = self.get_json_dict()
-        key1 = 'iter1'
-        key2 = 'iter2'
+        key1 = "iter1"
+        key2 = "iter2"
         d1 = self.get_testdata()
         d2 = self.get_testdata()
         d = {key1: d1, key2: d2}
@@ -107,7 +107,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_delete(self):
         jsd = self.get_json_dict()
-        key = 'delete'
+        key = "delete"
         d = self.get_testdata()
         jsd[key] = d
         assert len(jsd) == 1
@@ -126,7 +126,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_update(self):
         jsd = self.get_json_dict()
-        key = 'update'
+        key = "update"
         d = {key: self.get_testdata()}
         jsd.update(d)
         assert len(jsd) == 1
@@ -134,7 +134,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_clear(self):
         jsd = self.get_json_dict()
-        key = 'clear'
+        key = "clear"
         d = self.get_testdata()
         jsd[key] = d
         assert len(jsd) == 1
@@ -144,7 +144,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_reopen(self):
         jsd = self.get_json_dict()
-        key = 'reopen'
+        key = "reopen"
         d = self.get_testdata()
         jsd[key] = d
         jsd.save()
@@ -156,7 +156,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_copy_as_dict(self):
         jsd = self.get_json_dict()
-        key = 'copy'
+        key = "copy"
         d = self.get_testdata()
         jsd[key] = d
         copy = dict(jsd)
@@ -166,7 +166,7 @@ class TestJSONDict(TestJSONDictBase):
 
     def test_reopen2(self):
         jsd = self.get_json_dict()
-        key = 'reopen'
+        key = "reopen"
         d = self.get_testdata()
         jsd[key] = d
         del jsd  # possibly unsafe
@@ -179,14 +179,14 @@ class TestJSONDict(TestJSONDictBase):
             pass
 
         jsd = self.get_json_dict()
-        key = 'write_invalid_type'
+        key = "write_invalid_type"
         d = self.get_testdata()
         jsd[key] = d
         assert len(jsd) == 1
         assert jsd[key] == d
         d2 = Foo()
         with pytest.raises(TypeError):
-            jsd[key + '2'] = d2
+            jsd[key + "2"] = d2
         assert len(jsd) == 1
         assert jsd[key] == d
 
@@ -194,7 +194,7 @@ class TestJSONDict(TestJSONDictBase):
         jsd = self.get_json_dict()
         jsd2 = self.get_json_dict()
         assert jsd == jsd2
-        key = 'buffered_read_write'
+        key = "buffered_read_write"
         d = self.get_testdata()
         d2 = self.get_testdata()
         assert len(jsd) == 0
@@ -222,7 +222,7 @@ class TestJSONDict(TestJSONDictBase):
     def test_keys_with_dots(self):
         jsd = self.get_json_dict()
         with pytest.raises(InvalidKeyError):
-            jsd['a.b'] = None
+            jsd["a.b"] = None
 
     def test_keys_valid_type(self):
         jsd = self.get_json_dict()
@@ -230,7 +230,7 @@ class TestJSONDict(TestJSONDictBase):
         class MyStr(str):
             pass
 
-        for key in ('key', MyStr('key'), 0, None, True):
+        for key in ("key", MyStr("key"), 0, None, True):
             d = jsd[key] = self.get_testdata()
             assert str(key) in jsd
             assert jsd[str(key)] == d
@@ -259,6 +259,8 @@ class TestJSONDictNestedData(TestJSONDict):
         return dict(a=super().get_testdata())
 
 
-class TestJSONDictNestedDataWriteConcern(TestJSONDictNestedData, TestJSONDictWriteConcern):
+class TestJSONDictNestedDataWriteConcern(
+    TestJSONDictNestedData, TestJSONDictWriteConcern
+):
 
     pass

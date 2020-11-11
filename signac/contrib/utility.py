@@ -65,7 +65,7 @@ def query_yes_no(question, default="yes"):
     while True:
         sys.stdout.write(question + prompt)
         choice = input().lower()
-        if default is not None and choice == '':
+        if default is not None and choice == "":
             return valid[default]
         elif choice in valid:
             return valid[choice]
@@ -73,7 +73,7 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def prompt_password(prompt='Password: '):
+def prompt_password(prompt="Password: "):
     """Prompt password for user.
 
     Parameters
@@ -108,10 +108,10 @@ def add_verbosity_argument(parser, default=0):
 
     """
     parser.add_argument(
-        '-v',
-        '--verbosity',
+        "-v",
+        "--verbosity",
         help="Set level of verbosity.",
-        action='count',
+        action="count",
         default=default,
     )
 
@@ -140,11 +140,11 @@ def add_verbosity_action_argument(parser, default=0):
 
     """
     parser.add_argument(
-        '-v',
+        "-v",
         default=0,
-        nargs='?',
+        nargs="?",
         action=VerbosityLoggingConfigAction,
-        dest='verbosity',
+        dest="verbosity",
     )
 
 
@@ -182,11 +182,11 @@ class VerbosityAction(argparse.Action):  # noqa: D101, E261
     )
     def __call__(self, parser, args, values, option_string=None):  # noqa: D102, E261
         if values is None:
-            values = '1'
+            values = "1"
         try:
             values = int(values)
         except ValueError:
-            values = values.count('v') + 1
+            values = values.count("v") + 1
         setattr(args, self.dest, values)
 
 
@@ -210,7 +210,9 @@ class VerbosityLoggingConfigAction(VerbosityAction):  # noqa: D101, E261
     details="The EmptyIsTrue class is obsolete.",
 )
 class EmptyIsTrue(argparse.Action):  # noqa: D101, E261
-    def __call__(self, parser, namespace, values, option_string=None):  # noqa: D102, E261
+    def __call__(
+        self, parser, namespace, values, option_string=None
+    ):  # noqa: D102, E261
         if values is None:
             values = True
         setattr(namespace, self.dest, values)
@@ -225,7 +227,7 @@ class EmptyIsTrue(argparse.Action):  # noqa: D101, E261
 class SmartFormatter(argparse.HelpFormatter):  # noqa: D101, E261
     def _split_lines(self, text, width):
 
-        if text.startswith('R|'):
+        if text.startswith("R|"):
             return text[2:].splitlines()
         return argparse.HelpFormatter._split_lines(self, text, width)
 
@@ -287,7 +289,7 @@ def _mkdir_p(path):
             raise
 
 
-def split_and_print_progress(iterable, num_chunks=10, write=None, desc='Progress: '):
+def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):
     """Split the progress and prints it.
 
     Parameters
@@ -371,7 +373,7 @@ def _extract(filename):
             raise RuntimeError(f"Unknown file type: '{filename}'.")
 
 
-def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested='.'):
+def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested="."):
     """Convert dotted keys in the state point dict to a nested dict.
 
     Parameters
@@ -471,7 +473,7 @@ def _nested_dicts_to_dotted_keys(t, encode=_encode_tree, key=None):
     if isinstance(t, Mapping):
         if t:
             for k in t:
-                k_ = k if key is None else '.'.join((key, k))
+                k_ = k if key is None else ".".join((key, k))
                 yield from _nested_dicts_to_dotted_keys(t[k], encode=encode, key=k_)
         elif key is not None:
             yield key, t

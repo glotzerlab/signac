@@ -99,11 +99,15 @@ def flush_all():
             try:
                 if not _BUFFERED_MODE_FORCE_WRITE:
                     if _get_filemetadata(filename) != meta:
-                        issues[filename] = 'File appears to have been externally modified.'
+                        issues[
+                            filename
+                        ] = "File appears to have been externally modified."
                         continue
                 try:
-                    fd_tmp, fn_tmp = mkstemp(dir=os.path.dirname(filename), suffix='.json')
-                    with os.fdopen(fd_tmp, 'wb') as file:
+                    fd_tmp, fn_tmp = mkstemp(
+                        dir=os.path.dirname(filename), suffix=".json"
+                    )
+                    with os.fdopen(fd_tmp, "wb") as file:
                         file.write(blob)
                 except OSError:
                     os.remove(fn_tmp)
@@ -165,7 +169,9 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
         raise TypeError("The buffer size must be an integer!")
 
     # Can't enter force write mode, if already in non-force write mode:
-    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
+    if _BUFFERED_MODE_FORCE_WRITE is not None and (
+        force_write and not _BUFFERED_MODE_FORCE_WRITE
+    ):
         raise BufferException(
             "Unable to enter buffered mode with force write enabled, because "
             "we are already in buffered mode with force write disabled."
@@ -251,7 +257,7 @@ class JSONDict(SyncedAttrDict):
 
     def _load_from_disk(self):
         try:
-            with open(self._filename, 'rb') as file:
+            with open(self._filename, "rb") as file:
                 return file.read()
         except OSError as error:
             if error.errno == errno.ENOENT:
@@ -288,12 +294,12 @@ class JSONDict(SyncedAttrDict):
         else:  # Saving to disk:
             if self._write_concern:
                 dirname, filename = os.path.split(self._filename)
-                fn_tmp = os.path.join(dirname, f'._{uuid.uuid4()}_{filename}')
-                with open(fn_tmp, 'wb') as tmpfile:
+                fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
+                with open(fn_tmp, "wb") as tmpfile:
                     tmpfile.write(blob)
                 os.replace(fn_tmp, self._filename)
             else:
-                with open(self._filename, 'wb') as file:
+                with open(self._filename, "wb") as file:
                     file.write(blob)
 
     def reset(self, data):
@@ -303,7 +309,8 @@ class JSONDict(SyncedAttrDict):
                 backup = copy(self._data)
                 try:
                     self._data = {
-                        self._validate_key(k): self._dfs_convert(v) for k, v in data.items()
+                        self._validate_key(k): self._dfs_convert(v)
+                        for k, v in data.items()
                     }
                     self._save()
                 except BaseException:  # rollback

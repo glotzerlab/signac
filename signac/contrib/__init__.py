@@ -29,27 +29,27 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = [
-    'indexing',
-    'Project',
-    'TemporaryProject',
-    'get_project',
-    'init_project',
-    'get_job',
-    'BaseCrawler',
-    'RegexFileCrawler',
-    'JSONCrawler',
-    'SignacProjectCrawler',
-    'MainCrawler',
-    'MasterCrawler',
-    'fetch',
-    'fetched',
-    'export_one',
-    'export',
-    'export_to_mirror',
-    'export_pymongo',
-    'index_files',
-    'index',
-    'Collection',
+    "indexing",
+    "Project",
+    "TemporaryProject",
+    "get_project",
+    "init_project",
+    "get_job",
+    "BaseCrawler",
+    "RegexFileCrawler",
+    "JSONCrawler",
+    "SignacProjectCrawler",
+    "MainCrawler",
+    "MasterCrawler",
+    "fetch",
+    "fetched",
+    "export_one",
+    "export",
+    "export_to_mirror",
+    "export_pymongo",
+    "index_files",
+    "index",
+    "Collection",
 ]
 
 
@@ -60,4 +60,4 @@ except ImportError:
 else:
     from .mpipool import MPIPool  # noqa
 
-    __all__.extend(['MPIPool'])
+    __all__.extend(["MPIPool"])

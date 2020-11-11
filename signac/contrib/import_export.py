@@ -23,21 +23,21 @@ from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 logger = logging.getLogger(__name__)
 
 
-_DOT_MAGIC_WORD = '__DOT__'
+_DOT_MAGIC_WORD = "__DOT__"
 
 
 RE_TYPES = {
-    'str': r'\w+',
-    'int': r'[+-]?[0-9]+',
-    'float': r'[+-]?([0-9]*[\.])?[0-9]+',
-    'bool': r'\w+',
+    "str": r"\w+",
+    "int": r"[+-]?[0-9]+",
+    "float": r"[+-]?([0-9]*[\.])?[0-9]+",
+    "bool": r"\w+",
 }
 
 
 #  ### Export related  ###
 
 
-def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='.'):
+def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="."):
     """Generate schema-based paths as a function of the given jobs.
 
     Parameters
@@ -60,15 +60,15 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested='
     if len(jobs) <= 1:
         # The lambda must (optionally) take a format spec argument to match the
         # signature of the path function below.
-        return lambda job, sep=None: ''
+        return lambda job, sep=None: ""
 
-    index = [{'_id': job._id, 'statepoint': job.sp()} for job in jobs]
+    index = [{"_id": job._id, "statepoint": job.sp()} for job in jobs]
     jsi = _build_job_statepoint_index(exclude_const=True, index=index)
     sp_index = OrderedDict(jsi)
 
     paths = dict()
     for key_tokens, values in sp_index.items():
-        key = key_tokens.replace('.', delimiter_nested)
+        key = key_tokens.replace(".", delimiter_nested)
         if exclude_keys and key in exclude_keys:
             continue
         for value, group in values.items():
@@ -222,7 +222,10 @@ def _make_path_function(jobs, path):
                 try:
                     ret = path.format(job=job, **job.sp)
                 except TypeError as error:
-                    if str(error) == "format() got multiple values for keyword argument 'job'":
+                    if (
+                        str(error)
+                        == "format() got multiple values for keyword argument 'job'"
+                    ):
                         try:
                             ret = path.format(job=job)
                         except KeyError:
@@ -241,7 +244,9 @@ def _make_path_function(jobs, path):
                 raise _SchemaPathEvaluationError(error)
 
     else:
-        raise ValueError("The path argument must either be `None`, `False`, or of type `str`.")
+        raise ValueError(
+            "The path argument must either be `None`, `False`, or of type `str`."
+        )
 
     return path_function
 
@@ -263,7 +268,9 @@ def _check_directory_structure_validity(paths):
     check = set()
     for dst in paths:
         if dst in check:
-            raise RuntimeError(f"The path '{dst}' is both a leaf and node in the path structure.")
+            raise RuntimeError(
+                f"The path '{dst}' is both a leaf and node in the path structure."
+            )
         tokens = dst.split(os.path.sep)
         for i in range(1, len(tokens)):
             check.add(os.path.sep.join(tokens[:i]))
@@ -454,7 +461,7 @@ def export_jobs(jobs, target, path=None, copytree=None):
 
     """
     if copytree is not None:
-        if not (isinstance(target, str) and os.path.splitext(target)[1] == ''):
+        if not (isinstance(target, str) and os.path.splitext(target)[1] == ""):
             raise ValueError(
                 "The copytree argument can only be used in combination "
                 "with directories as targets."
@@ -462,16 +469,18 @@ def export_jobs(jobs, target, path=None, copytree=None):
 
     if isinstance(target, str):
         ext = os.path.splitext(target)[1]
-        if ext == '':  # target is directory
-            yield from export_to_directory(jobs=jobs, target=target, path=path, copytree=copytree)
-        elif ext == '.zip':  # target is zipfile
-            with ZipFile(target, mode='w', compression=ZIP_DEFLATED) as zipfile:
+        if ext == "":  # target is directory
+            yield from export_to_directory(
+                jobs=jobs, target=target, path=path, copytree=copytree
+            )
+        elif ext == ".zip":  # target is zipfile
+            with ZipFile(target, mode="w", compression=ZIP_DEFLATED) as zipfile:
                 yield from export_to_zipfile(jobs=jobs, zipfile=zipfile, path=path)
-        elif ext == '.tar':  # target is uncompressed tarball
-            with tarfile.open(name=target, mode='a') as file:
+        elif ext == ".tar":  # target is uncompressed tarball
+            with tarfile.open(name=target, mode="a") as file:
                 yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
-        elif ext in ('.gz', '.bz2', '.xz'):  # target is compressed tarball
-            with tarfile.open(name=target, mode='w:' + ext[1:]) as file:
+        elif ext in (".gz", ".bz2", ".xz"):  # target is compressed tarball
+            with tarfile.open(name=target, mode="w:" + ext[1:]) as file:
                 yield from export_to_tarfile(jobs=jobs, tarfile=file, path=path)
         else:
             raise TypeError(f"Unknown extension '{ext}'.")
@@ -500,12 +509,9 @@ def _convert_bool(value):
         Boolean interpreted from string.
 
     """
-    return {
-        'true': True,
-        '1': True,
-        'false': False,
-        '0': False,
-    }.get(value.lower(), bool(value))
+    return {"true": True, "1": True, "false": False, "0": False}.get(
+        value.lower(), bool(value)
+    )
 
 
 def _convert_schema_path_to_regex(schema_path):
@@ -536,31 +542,31 @@ def _convert_schema_path_to_regex(schema_path):
     """
     # First, replace escaped backslashes with double-escaped backslashes.
     # This is needed for compatibility with Windows, which uses backslashes.
-    schema_path = re.sub(r'\\', r'\\\\', schema_path)
+    schema_path = re.sub(r"\\", r"\\\\", schema_path)
 
     # The regular expression below is used to identify the {value:type} specifications
     # in the schema path.
-    re_key_type_field = r'\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}'
-    schema_regex = ''  # the return value
+    re_key_type_field = r"\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}"
+    schema_regex = ""  # the return value
     types = dict()  # maps values to their designated types
     index = 0
     while True:
         m = re.search(re_key_type_field, schema_path[index:])
         if m:
-            key = m.groupdict()['key'].replace('.', _DOT_MAGIC_WORD)
-            types[key] = m.groupdict()['type'] or 'str'
+            key = m.groupdict()["key"].replace(".", _DOT_MAGIC_WORD)
+            types[key] = m.groupdict()["type"] or "str"
             start, stop = m.span()
-            schema_regex += schema_path[index : index + start].replace('.', r'\.')
-            schema_regex += r'(?P<{}>{})'.format(key, RE_TYPES[types[key]])
+            schema_regex += schema_path[index : index + start].replace(".", r"\.")
+            schema_regex += r"(?P<{}>{})".format(key, RE_TYPES[types[key]])
             index += stop
             continue
         break
-    schema_regex += '$'
+    schema_regex += "$"
 
     for key in types:
-        if types[key] in ('int', 'float', 'str'):
+        if types[key] in ("int", "float", "str"):
             types[key] = eval(types[key])
-        elif types[key] == 'bool':
+        elif types[key] == "bool":
             types[key] = _convert_bool
         else:
             raise ValueError("Invalid type '{}'.".format(types[key]))
@@ -688,7 +694,7 @@ def _parse_workspaces(fn_manifest):
 
         """
         try:
-            with open(os.path.join(path, fn_manifest), 'rb') as file:
+            with open(os.path.join(path, fn_manifest), "rb") as file:
                 return json.loads(file.read().decode())
         except OSError as error:
             if error.errno != errno.ENOENT:
@@ -871,7 +877,7 @@ class _CopyFromZipFileExecutor:
         for name in self.names:
             fn_dst = self.job.fn(os.path.relpath(name, self.root))
             _mkdir_p(os.path.dirname(fn_dst))
-            with open(fn_dst, 'wb') as dst:
+            with open(fn_dst, "wb") as dst:
                 dst.write(self.zipfile.read(name))
         return self.job.workspace()
 
@@ -927,7 +933,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
 
         """
         # Must use forward slashes, not os.path.sep.
-        fn_manifest = path + '/' + project.Job.FN_MANIFEST
+        fn_manifest = path + "/" + project.Job.FN_MANIFEST
         if fn_manifest in names:
             return json.loads(zipfile.read(fn_manifest).decode())
 
@@ -1018,8 +1024,8 @@ def _tarfile_path_join(path, fn):
         Path with normalized forward slashes.
 
     """
-    path = path.rstrip('/')
-    return path + '/' + fn
+    path = path.rstrip("/")
+    return path + "/" + fn
 
 
 def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
@@ -1096,7 +1102,9 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
 
     dirs = [member.name for member in tarfile.getmembers() if member.isdir()]
     for name in sorted(dirs):
-        if os.path.dirname(name) in skip_subdirs:  # skip all sub-dirs of identified dirs
+        if (
+            os.path.dirname(name) in skip_subdirs
+        ):  # skip all sub-dirs of identified dirs
             skip_subdirs.add(name)
             continue
 
