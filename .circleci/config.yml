@@ -182,6 +182,9 @@ workflows:
   test:
     jobs:
       - pre-checks
+      - linux-python-39:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
@@ -206,9 +209,10 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - linux-python-36
-            - linux-python-37
+            - linux-python-39
             - linux-python-38
+            - linux-python-37
+            - linux-python-36
             - linux-pypy-3
             - windows-python-38
   deploy:
