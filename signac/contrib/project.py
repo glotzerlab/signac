@@ -2376,7 +2376,8 @@ class JobsCursor:
     def __iter__(self):
         # Code duplication here for improved performance.
         return _JobsCursorIterator(
-            self._project, self._project._find_job_ids(self._filter, self._doc_filter),
+            self._project,
+            self._project._find_job_ids(self._filter, self._doc_filter),
         )
 
     def next(self):
