@@ -15,7 +15,7 @@ Added
 
  - Support for h5py version 3 (#411).
  - Added pyupgrade to pre-commit hooks (#413).
- - Added macOS to CircleCI testing pipeline (#281)
+ - Added macOS to CircleCI testing pipeline (#281, #414).
 
 [1.5.0] -- 2020-09-20
 ---------------------
