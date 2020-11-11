@@ -138,7 +138,7 @@ jobs:
             ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 
-  macos-python-38:
+  macos-python-3:
     macos:  # executor type
       xcode: 11.3.0
     steps:
@@ -154,8 +154,10 @@ jobs:
             python3 -m venv create test_env
             . test_env/bin/activate
             python --version
+            python -m pip install --progress-bar off -U codecov
             python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
-            python -m pytest tests/ -v
+            python -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
@@ -219,7 +221,7 @@ workflows:
       - windows-python-38:
           requires:
             - pre-checks
-      - macos-python-38:
+      - macos-python-3:
           requires:
             - pre-checks
       - check-metadata:
