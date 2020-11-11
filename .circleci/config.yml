@@ -10,7 +10,7 @@ orbs:
 jobs:
   pre-checks:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     working_directory: ~/repo
 
@@ -26,9 +26,9 @@ jobs:
           command: |
             pre-commit run --all-files --show-diff-on-failure
 
-  linux-python-38: &linux-template
+  linux-python-39: &linux-template
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     environment:
       PYTHON: python
@@ -93,6 +93,11 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
+  linux-python-38:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.8
+
   linux-python-37:
     <<: *linux-template
     docker:
@@ -135,7 +140,7 @@ jobs:
 
   check-metadata:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -151,7 +156,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -162,7 +167,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
