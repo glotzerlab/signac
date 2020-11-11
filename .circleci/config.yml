@@ -130,19 +130,23 @@ jobs:
           command: |
             python -m pytest tests/ -v
 
-  macos-python-38:
-    macos:  # executor type
+  macos-python-3:
+    macos:
       xcode: 11.3.0
+    environment:
+      PYTHON: python3
     steps:
       - checkout
       - run:
-          name: Create environment and run tests
+          name: Install dependencies
           command: |
-            python3 -m venv create test_env
-            . test_env/bin/activate
-            python --version
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
-            python -m pytest tests/ -v
+            ${PYTHON} -m pip install --progress-bar off -U --user codecov
+            ${PYTHON} -m pip install --progress-bar off -U --user -e . -r requirements-dev.txt
+      - run:
+          name: Run tests
+          command: |
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
@@ -203,7 +207,7 @@ workflows:
       - windows-python-38:
           requires:
             - pre-checks
-      - macos-python-38:
+      - macos-python-3:
           requires:
             - pre-checks
       - check-metadata:
@@ -220,6 +224,7 @@ workflows:
             - linux-python-38
             - linux-pypy-3
             - windows-python-38
+            - macos-python-3
   deploy:
     jobs:
       - deploy-pypi:
