@@ -3,28 +3,28 @@
 # This software is licensed under the BSD 3-Clause License.
 """Job class defined here."""
 
-import os
 import errno
 import logging
+import os
 import shutil
 from copy import deepcopy
+
 from deprecation import deprecated
 
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
-from ..core.jsondict import JSONDict
 from ..core.h5store import H5StoreManager
-from .hashing import calc_id
-from .utility import _mkdir_p
-from .errors import DestinationExistsError, JobsCorruptedError
+from ..core.jsondict import JSONDict
 from ..sync import sync_jobs
 from ..version import __version__
-
+from .errors import DestinationExistsError, JobsCorruptedError
+from .hashing import calc_id
+from .utility import _mkdir_p
 
 logger = logging.getLogger(__name__)
 
 
-class _sp_save_hook(object):
+class _sp_save_hook:
     """Hook to handle job migration when statepoints are changed.
 
     When a job's state point is changed, in addition
@@ -38,6 +38,7 @@ class _sp_save_hook(object):
         List of jobs(instance of `Job`).
 
     """
+
     def __init__(self, *jobs):
         self.jobs = list(jobs)
 
@@ -50,7 +51,7 @@ class _sp_save_hook(object):
             job._reset_sp()
 
 
-class Job(object):
+class Job:
     """The job instance is a handle to the data of a unique state point.
 
     Application developers should usually not need to directly
@@ -69,17 +70,18 @@ class Job(object):
         A file-like object to write to.
 
     """
-    FN_MANIFEST = 'signac_statepoint.json'
+
+    FN_MANIFEST = "signac_statepoint.json"
     """The job's manifest filename.
 
     The job manifest, this means a human-readable dump of the job's
     state point is stored in each workspace directory.
     """
 
-    FN_DOCUMENT = 'signac_job_document.json'
+    FN_DOCUMENT = "signac_job_document.json"
     "The job's document filename."
 
-    KEY_DATA = 'signac_data'
+    KEY_DATA = "signac_data"
     "The job's datastore key."
 
     def __init__(self, project, statepoint, _id=None):
@@ -102,8 +104,12 @@ class Job(object):
         # Prepare current working directory for context management
         self._cwd = list()
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="Use job.id instead.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="Use job.id instead.",
+    )
     def get_id(self):
         """Job's state point unique identifier.
 
@@ -136,14 +142,16 @@ class Job(object):
 
     def __repr__(self):
         return "{}(project={}, statepoint={})".format(
-            self.__class__.__name__,
-            repr(self._project), self._statepoint)
+            self.__class__.__name__, repr(self._project), self._statepoint
+        )
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def workspace(self):
-        """Each job is associated with a unique workspace directory.
+        """Return the job's unique workspace directory.
+
+        See :ref:`signac job -w <signac-cli-job>` for the command line equivalent.
 
         Returns
         -------
@@ -177,7 +185,7 @@ class Job(object):
         if dst == self:
             return
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
-        fn_manifest_backup = fn_manifest + '~'
+        fn_manifest_backup = fn_manifest + "~"
         try:
             os.replace(fn_manifest, fn_manifest_backup)
             try:
@@ -203,7 +211,7 @@ class Job(object):
         self._document = None
         self._data = None
         self._cwd = list()
-        logger.info("Moved '{}' -> '{}'.".format(self, dst))
+        logger.info(f"Moved '{self}' -> '{dst}'.")
 
     def _reset_sp(self, new_sp=None):
         """Check for new state point requested to assign this job.
@@ -269,6 +277,8 @@ class Job(object):
             ``sp_dict = job.statepoint()`` instead of ``sp = job.statepoint``.
             For more information, see : :class:`~signac.JSONDict`.
 
+        See :ref:`signac statepoint <signac-cli-statepoint>` for the command line equivalent.
+
         Returns
         -------
         dict
@@ -308,6 +318,8 @@ class Job(object):
             If you need a deep copy that will not modify the underlying
             persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
             For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+
+        See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
         Returns
         -------
@@ -441,8 +453,10 @@ class Job(object):
         try:
             _mkdir_p(self._wd)
         except OSError:
-            logger.error("Error occured while trying to create "
-                         "workspace directory for job '{}'.".format(self))
+            logger.error(
+                "Error occured while trying to create "
+                "workspace directory for job '{}'.".format(self)
+            )
             raise
 
         try:
@@ -451,9 +465,9 @@ class Job(object):
 
             try:
                 # Open the file for writing only if it does not exist yet.
-                with open(fn_manifest, 'w' if force else 'x') as file:
+                with open(fn_manifest, "w" if force else "x") as file:
                     file.write(blob)
-            except (IOError, OSError) as error:
+            except OSError as error:
                 if error.errno not in (errno.EEXIST, errno.EACCES):
                     raise
         except Exception as error:
@@ -470,9 +484,9 @@ class Job(object):
         """Check whether the manifest file is correct (if it exists)."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
-            with open(fn_manifest, 'rb') as file:
+            with open(fn_manifest, "rb") as file:
                 assert calc_id(json.loads(file.read().decode())) == self._id
-        except IOError as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
         except (AssertionError, ValueError):
@@ -485,6 +499,8 @@ class Job(object):
         the job manifest already exist.
 
         Returns the calling job.
+
+        See :ref:`signac job -c <signac-cli-job>` for the command line equivalent.
 
         Parameters
         ----------
@@ -502,7 +518,8 @@ class Job(object):
             self._init(force=force)
         except Exception:
             logger.error(
-                "State point manifest file of job '{}' appears to be corrupted.".format(self._id))
+                f"State point manifest file of job '{self._id}' appears to be corrupted."
+            )
             raise
         return self
 
@@ -511,6 +528,8 @@ class Job(object):
 
         This function will do nothing if the job was not previously
         initialized.
+
+        See :ref:`signac rm -c <signac-cli-rm>` for the command line equivalent.
 
         """
         try:
@@ -523,7 +542,7 @@ class Job(object):
                 elif os.path.isdir(path):
                     shutil.rmtree(path)
             self.document.clear()
-        except (OSError, IOError) as error:
+        except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
 
@@ -543,6 +562,8 @@ class Job(object):
         This function will do nothing if the workspace directory
         does not exist.
 
+        See :ref:`signac rm <signac-cli-rm>` for the command line equivalent.
+
         """
         try:
             shutil.rmtree(self.workspace())
@@ -553,7 +574,7 @@ class Job(object):
             if self._document is not None:
                 try:
                     self._document.clear()
-                except IOError as error:
+                except OSError as error:
                     if not error.errno == errno.ENOENT:
                         raise error
                 self._document = None
@@ -564,6 +585,8 @@ class Job(object):
 
         This function will attempt to move this instance of job from
         its original project to a different project.
+
+        See :ref:`signac move <signac-cli-move>` for the command line equivalent.
 
         Parameters
         ----------
@@ -578,12 +601,14 @@ class Job(object):
         except OSError as error:
             if error.errno == errno.ENOENT:
                 raise RuntimeError(
-                    "Cannot move job '{}', because it is not initialized!".format(self))
+                    f"Cannot move job '{self}', because it is not initialized!"
+                )
             elif error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                 raise DestinationExistsError(dst)
             elif error.errno == errno.EXDEV:
                 raise RuntimeError(
-                    "Cannot move jobs across different devices (file systems).")
+                    "Cannot move jobs across different devices (file systems)."
+                )
             else:
                 raise error
         self.__dict__.update(dst.__dict__)
@@ -640,7 +665,8 @@ class Job(object):
             strategy=strategy,
             exclude=exclude,
             doc_sync=doc_sync,
-            **kwargs)
+            **kwargs,
+        )
 
     def fn(self, filename):
         """Prepend a filename with the job's workspace directory path.
@@ -690,7 +716,7 @@ class Job(object):
         """
         self._cwd.append(os.getcwd())
         self.init()
-        logger.info("Enter workspace '{}'.".format(self._wd))
+        logger.info(f"Enter workspace '{self._wd}'.")
         os.chdir(self._wd)
 
     def close(self):

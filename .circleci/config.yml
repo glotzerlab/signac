@@ -7,15 +7,27 @@ version: 2.1
 orbs:
   win: circleci/windows@2.2.0  # Enables Windows executors
 
+references:
+  restore_keys: &restore_keys
+    keys:
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+
+  save_key: &save_key
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+
 jobs:
   pre-checks:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     working_directory: ~/repo
 
     steps:
       - checkout
+
+      - restore_cache:
+          <<: *restore_keys
+
       - run:
           name: Install pre-check dependencies
           command: |
@@ -24,11 +36,17 @@ jobs:
       - run:
           name: Run pre-checks
           command: |
-            pre-commit run --all-files
+            PRE_COMMIT_HOME=.pre-commit-cache pre-commit run --all-files --show-diff-on-failure
 
-  linux-python-38: &linux-template
+      - save_cache:
+          <<: *save_key
+          paths:
+            - ".pre-commit-cache"
+
+
+  linux-python-39: &linux-template
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     environment:
       PYTHON: python
@@ -40,20 +58,14 @@ jobs:
       - checkout
 
       - restore_cache:
-          keys:
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}
-            - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}
-            - python-env-v7-{{ arch }}
-            - python-env-v7
+          <<: *restore_keys
 
       - run:
           name: Install dependencies
           command: |
-            export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
-            virtualenv ./venv --clear
+            ${PYTHON} -m virtualenv ./venv --clear
             . venv/bin/activate
             if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
@@ -63,7 +75,7 @@ jobs:
             ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
 
       - save_cache:
-          key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{checksum "requirements-precommit.txt" }}
+          <<: *save_key
           paths:
             - "venv"
 
@@ -94,6 +106,11 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
+  linux-python-38:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.8
+
   linux-python-37:
     <<: *linux-template
     docker:
@@ -112,7 +129,11 @@ jobs:
       PYTHON: pypy3
 
   windows-python-38:
-    executor: win/default
+    executor:
+      name: win/default
+      shell: bash.exe
+    environment:
+      PYTHON: python
     steps:
       - checkout
       - run:
@@ -122,17 +143,38 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            python --version
-            python -m pip install --progress-bar off certifi
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
           name: Run tests
           command: |
-            python -m pytest tests/ -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
+
+  macos-python-3:
+    macos:  # executor type
+      xcode: 11.3.0
+    steps:
+      - checkout
+      - run:
+          name: Create environment and run tests
+          command: |
+            # The default Python on OS X is still Python2, so we must specify
+            # python3. We create a virtual environment so that the python
+            # command line executable is python3. This change is necessary
+            # because the tests of signac's CLI call `python`, so they'll use
+            # the python2 executable by default.
+            python3 -m venv create test_env
+            . test_env/bin/activate
+            python --version
+            python -m pip install --progress-bar off -U codecov
+            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            python -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -148,7 +190,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -159,7 +201,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -174,6 +216,9 @@ workflows:
   test:
     jobs:
       - pre-checks
+      - linux-python-39:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
@@ -189,6 +234,9 @@ workflows:
       - windows-python-38:
           requires:
             - pre-checks
+      - macos-python-3:
+          requires:
+            - pre-checks
       - check-metadata:
           filters:
             branches:
@@ -198,9 +246,10 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - linux-python-36
-            - linux-python-37
+            - linux-python-39
             - linux-python-38
+            - linux-python-37
+            - linux-python-36
             - linux-pypy-3
             - windows-python-38
   deploy:

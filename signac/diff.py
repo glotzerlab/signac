@@ -3,8 +3,7 @@
 # This software is licensed under the BSD 3-Clause License.
 """Compute diffs of state points."""
 
-from .contrib.utility import _dotted_dict_to_nested_dicts
-from .contrib.utility import _nested_dicts_to_dotted_keys
+from .contrib.utility import _dotted_dict_to_nested_dicts, _nested_dicts_to_dotted_keys
 
 
 def diff_jobs(*jobs):
@@ -14,6 +13,8 @@ def diff_jobs(*jobs):
     values are each job's state point minus the intersection of all provided
     jobs' state points. The comparison is performed over the combined set of
     keys and values.
+
+    See :ref:`signac diff <signac-cli-diff>` for the command line equivalent.
 
     Parameters
     ----------
@@ -60,7 +61,7 @@ def diff_jobs(*jobs):
 
         diffs = {}
         for job in jobs:
-            unique_sps = sps[job]-intersection
+            unique_sps = sps[job] - intersection
             diffs[job.id] = _dotted_dict_to_nested_dicts(dict(unique_sps))
 
         return diffs

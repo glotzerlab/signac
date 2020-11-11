@@ -41,9 +41,7 @@ Please see the [Support](https://docs.signac.io/projects/signac-core/en/latest/s
 
 ### Code Style
 
-Code must adhere to the [PEP8 style guide](https://www.python.org/dev/peps/pep-0008/) with the exception that lines may have up to 100 characters.
-
-We recommend to use [flake8](http://flake8.pycqa.org/en/latest/) and [autopep8](https://pypi.org/project/autopep8/) to find and fix any code style issues prior to committing and pushing.
+The [pre-commit tool](https://pre-commit.com/) is used to enforce code style guidelines. Use `pip install pre-commit` to install the tool and `pre-commit install` to configure pre-commit hooks.
 
 ## Reviewing Pull Requests
 

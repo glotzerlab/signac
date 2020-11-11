@@ -6,4 +6,5 @@
 
 class Error(Exception):
     """Base class used for signac Errors."""
+
     pass

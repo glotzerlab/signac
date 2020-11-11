@@ -15,6 +15,7 @@ class WorkspaceError(Error, OSError):
         The underlying error causing this issue.
 
     """
+
     def __init__(self, error):
         self.error = error
 
@@ -31,6 +32,7 @@ class DestinationExistsError(Error, RuntimeError):
         The destination object causing the error.
 
     """
+
     def __init__(self, destination):
         self.destination = destination
 
@@ -44,15 +46,18 @@ class JobsCorruptedError(Error, RuntimeError):
         The job id(s) of the corrupted job(s).
 
     """
+
     def __init__(self, job_ids):
         self.job_ids = job_ids
 
 
 class StatepointParsingError(Error, RuntimeError):
     """Indicates an error that occurred while trying to identify a state point."""
+
     pass
 
 
 class IncompatibleSchemaVersion(Error):
     """The project's schema version is incompatible with this version of signac."""
+
     pass

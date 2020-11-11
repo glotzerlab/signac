@@ -3,9 +3,9 @@
 # This software is licensed under the BSD 3-Clause License.
 """Linked view classes."""
 
-import os
 import errno
 import logging
+import os
 import sys
 from itertools import chain
 
@@ -46,64 +46,65 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
         When state points contain one of ``[os.sep, " ", "*"]``.
 
     """
-    from .import_export import _make_path_function
-    from .import_export import _check_directory_structure_validity
+    from .import_export import _check_directory_structure_validity, _make_path_function
 
     # Windows does not support the creation of symbolic links.
-    if sys.platform == 'win32':
-        raise OSError("signac cannot create linked views on Windows, because "
-                      "symbolic links are not supported by the platform.")
+    if sys.platform == "win32":
+        raise OSError(
+            "signac cannot create linked views on Windows, because "
+            "symbolic links are not supported by the platform."
+        )
 
     if prefix is None:
-        prefix = 'view'
+        prefix = "view"
 
     if index is None:
         if job_ids is None:
-            index = [{'_id': job._id, 'statepoint': job.sp()} for job in project]
+            index = [{"_id": job._id, "statepoint": job.sp()} for job in project]
             jobs = list(project)
         else:
-            index = [{'_id': job_id, 'statepoint': project.open_job(id=job_id).sp()}
-                     for job_id in job_ids]
+            index = [
+                {"_id": job_id, "statepoint": project.open_job(id=job_id).sp()}
+                for job_id in job_ids
+            ]
             jobs = list(project.open_job(id=job_id) for job_id in job_ids)
     elif job_ids is not None:
         if not isinstance(job_ids, set):
             job_ids = set(job_ids)
-        index = [doc for doc in index if doc['_id'] in job_ids]
+        index = [doc for doc in index if doc["_id"] in job_ids]
         jobs = list(project.open_job(id=job_id) for job_id in job_ids)
-        if not job_ids.issubset({doc['_id'] for doc in index}):
+        if not job_ids.issubset({doc["_id"] for doc in index}):
             raise ValueError("Insufficient index for selected data space.")
 
-    key_list = [
-            k for job in jobs for k in job.statepoint().keys()
-            ]
-    value_list = [
-            v for job in jobs for v in job.statepoint().values()
-            ]
+    key_list = [k for job in jobs for k in job.statepoint().keys()]
+    value_list = [v for job in jobs for v in job.statepoint().values()]
     item_list = key_list + value_list
     bad_chars = [os.sep, " ", "*"]
     bad_items = [
-            item for item in item_list for char in bad_chars
-            if isinstance(item, str) and char in item
-            ]
+        item
+        for item in item_list
+        for char in bad_chars
+        if isinstance(item, str) and char in item
+    ]
 
     if any(bad_items):
-        err_msg = " ".join([
-            "In order to use view, statepoints should not contain {}:".format(
-                bad_chars
-            ),
-            *bad_items
-        ])
+        err_msg = " ".join(
+            [
+                f"In order to use view, statepoints should not contain {bad_chars}:",
+                *bad_items,
+            ]
+        )
         raise RuntimeError(err_msg)
 
     path_function = _make_path_function(jobs, path)
 
     links = dict()
     for job in jobs:
-        paths = os.path.join(path_function(job), 'job')
+        paths = os.path.join(path_function(job), "job")
         links[paths] = job.workspace()
-    if not links:   # data space contains less than two elements
+    if not links:  # data space contains less than two elements
         for job in project.find_jobs():
-            links['./job'] = job.workspace()
+            links["./job"] = job.workspace()
         assert len(links) < 2
     _check_directory_structure_validity(links.keys())
 
@@ -111,7 +112,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
     return links
 
 
-def _update_view(prefix, links, leaf='job'):
+def _update_view(prefix, links, leaf="job"):
     """Update an existing linked view hierarchy in place.
 
     Parameters
@@ -128,10 +129,9 @@ def _update_view(prefix, links, leaf='job'):
     obsolete, to_update, new = _analyze_view(prefix, links)
     num_ops = len(obsolete) + 2 * len(to_update) + len(new)
     if num_ops:
-        logger.info("Generating current view in '{}' ({} operations)...".format(
-            prefix, num_ops))
+        logger.info(f"Generating current view in '{prefix}' ({num_ops} operations)...")
     else:
-        logger.info("View in '{}' is up to date.".format(prefix))
+        logger.info(f"View in '{prefix}' is up to date.")
         return
     logger.debug("Removing {} obsolete links.".format(len(obsolete)))
     for path in obsolete:
@@ -140,8 +140,11 @@ def _update_view(prefix, links, leaf='job'):
             os.unlink(p)
         except OSError:
             os.rmdir(p)
-    logger.debug("Creating {} new and updating {} existing links.".format(
-        len(new), len(to_update)))
+    logger.debug(
+        "Creating {} new and updating {} existing links.".format(
+            len(new), len(to_update)
+        )
+    )
     for path in to_update:
         os.unlink(os.path.join(prefix, path))
     for path in chain(new, to_update):
@@ -150,7 +153,7 @@ def _update_view(prefix, links, leaf='job'):
         _make_link(src, dst)
 
 
-def _analyze_view(prefix, links, leaf='job'):
+def _analyze_view(prefix, links, leaf="job"):
     """Analyze an existing view to prepare for update.
 
     Parameters
@@ -169,7 +172,7 @@ def _analyze_view(prefix, links, leaf='job'):
         tuple that contains: (list of outdated links, list of links to update, set of new links).
 
     """
-    logger.info("Analyzing view prefix '{}'...".format(prefix))
+    logger.info(f"Analyzing view prefix '{prefix}'...")
     existing_paths = {os.path.join(p, leaf) for p in _find_all_links(prefix, leaf)}
     existing_tree = _build_tree(existing_paths)
     for path in links:
@@ -178,13 +181,16 @@ def _analyze_view(prefix, links, leaf='job'):
     dead_branches = _find_dead_branches(existing_tree)
     for branch in reversed(sorted(dead_branches, key=len)):
         if branch:
-            obsolete.append(os.path.join(* (n.name for n in branch)))
-    if '.' in obsolete:
-        obsolete.remove('.')
+            obsolete.append(os.path.join(*(n.name for n in branch)))
+    if "." in obsolete:
+        obsolete.remove(".")
     keep_or_update = existing_paths.intersection(links.keys())
     new = set(links.keys()).difference(keep_or_update)
-    to_update = [p for p in keep_or_update if
-                 os.path.realpath(os.path.join(prefix, p)) != links[p]]
+    to_update = [
+        p
+        for p in keep_or_update
+        if os.path.realpath(os.path.join(prefix, p)) != links[p]
+    ]
     return obsolete, to_update, new
 
 
@@ -214,7 +220,7 @@ def _make_link(src, dst):
         raise
 
 
-def _find_all_links(root, leaf='job'):
+def _find_all_links(root, leaf="job"):
     """Find all symbolic links under root.
 
     Parameters
@@ -242,8 +248,9 @@ def _find_all_links(root, leaf='job'):
                 break
 
 
-class _Node(object):
+class _Node:
     """Generic graph-node class."""
+
     def __init__(self, name=None, value=None):
         self.name = name
         self.value = value
@@ -266,7 +273,7 @@ class _Node(object):
         return self.children.setdefault(name, type(self)(name))
 
     def __str__(self):
-        return "_Node({}, {})".format(self.name, self.value)
+        return f"_Node({self.name}, {self.value})"
 
     __repr__ = __str__
 
@@ -317,8 +324,7 @@ def _get_branches(root, branch=None):
         branch = list(branch) + [root]
     if root.children:
         for child in root.children.values():
-            for b in _get_branches(child, branch):
-                yield b
+            yield from _get_branches(child, branch)
     else:
         yield branch
 
@@ -364,7 +370,6 @@ def _find_dead_branches(root, branch=None):
         branch = list(branch) + [root]
     if root.children:
         for child in root.children.values():
-            for b in _find_dead_branches(child, branch):
-                yield b
+            yield from _find_dead_branches(child, branch)
     if not root.value:
         yield branch

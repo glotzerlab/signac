@@ -1,7 +1,9 @@
 from contextlib import contextmanager
-from packaging import version
-import signac
+
 import pytest
+from packaging import version
+
+import signac
 
 
 @contextmanager

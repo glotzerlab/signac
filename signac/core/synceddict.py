@@ -3,14 +3,14 @@
 # This software is licensed under the BSD 3-Clause License.
 """Synchronized dictionary."""
 import logging
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
-from functools import wraps
 from copy import deepcopy
-from collections.abc import Mapping
-from collections.abc import MutableMapping
+from functools import wraps
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -20,10 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class _SyncedList(list):
-
     def __init__(self, iterable, parent):
         self._parent = parent
-        super(_SyncedList, self).__init__(iterable)
+        super().__init__(iterable)
 
     def __deepcopy__(self, memo):
         ret = type(self)([], deepcopy(self._parent, memo))
@@ -33,29 +32,37 @@ class _SyncedList(list):
 
     def __getitem__(self, key):
         self._parent.load()
-        ret = super(_SyncedList, self).__getitem__(key)
+        ret = super().__getitem__(key)
         return ret
 
     def __setitem__(self, key, value):
         self._parent.load()
-        ret = super(_SyncedList, self).__setitem__(key, value)
+        ret = super().__setitem__(key, value)
         self._parent.save()
         return ret
 
     def __delitem__(self, key):
         self._parent.load()
-        super(_SyncedList, self).__delitem__(key)
+        super().__delitem__(key)
         self._parent.save()
 
     def __getattribute__(self, name):
-        outer = super(_SyncedList, self).__getattribute__(name)
+        outer = super().__getattribute__(name)
 
-        if name in ('append', 'clear', 'extend', 'insert', 'pop',
-                    'remove', 'reverse', 'sort'):
+        if name in (
+            "append",
+            "clear",
+            "extend",
+            "insert",
+            "pop",
+            "remove",
+            "reverse",
+            "sort",
+        ):
 
             @wraps(outer)
             def outer_wrapped_in_load_and_save(*args, **kwargs):
-                if hasattr(self, '_parent'):
+                if hasattr(self, "_parent"):
                     self._parent.load()
                     ret = outer(*args, **kwargs)
                     self._parent.save()
@@ -75,7 +82,7 @@ class _SyncedDict(MutableMapping):
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
-        super(_SyncedDict, self).__init__()
+        super().__init__()
         if initialdata is None:
             self._data = dict()
         else:
@@ -89,18 +96,20 @@ class _SyncedDict(MutableMapping):
     def _validate_key(cls, key):
         """Emit a warning or raise an exception if key is invalid. Returns key."""
         if isinstance(key, str):
-            if '.' in key:
+            if "." in key:
                 from ..errors import InvalidKeyError
-                raise InvalidKeyError(
-                    "keys may not contain dots ('.'): {}".format(key))
+
+                raise InvalidKeyError(f"keys may not contain dots ('.'): {key}")
             else:
                 return key
         elif isinstance(key, cls.VALID_KEY_TYPES):
             return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
+
             raise KeyTypeError(
-                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__)
+            )
 
     def _dfs_convert(self, root):
         if type(root) is type(self):

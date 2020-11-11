@@ -3,19 +3,18 @@
 # This software is licensed under the BSD 3-Clause License.
 """Utilities for synchronization."""
 
-import os
-import shutil
 import filecmp
 import logging
-from copy import deepcopy
+import os
+import shutil
 from contextlib import contextmanager
+from copy import deepcopy
 from filecmp import dircmp
-
 
 LEVEL_MORE = logging.INFO - 5
 
-logger = logging.getLogger('sync')
-logging.addLevelName(LEVEL_MORE, 'MORE')
+logger = logging.getLogger("sync")
+logging.addLevelName(LEVEL_MORE, "MORE")
 logging.MORE = LEVEL_MORE  # type: ignore
 
 
@@ -70,6 +69,7 @@ def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
 
 class dircmp_deep(dircmp):
     """Deep directory comparator."""
+
     def phase3(self):
         """Find out differences between common files."""
         xx = filecmp.cmpfiles(self.left, self.right, self.common_files, shallow=False)
@@ -78,10 +78,10 @@ class dircmp_deep(dircmp):
     methodmap = dict(dircmp.methodmap)
     # The type check for the following line must be ignored.
     # See: https://github.com/python/mypy/issues/708
-    methodmap['same_files'] = methodmap['diff_files'] = phase3  # type: ignore
+    methodmap["same_files"] = methodmap["diff_files"] = phase3  # type: ignore
 
 
-class _DocProxy(object):
+class _DocProxy:
     """Proxy object for document (mapping) modifications.
 
     This proxy is used to keep track of changes and ensure that
@@ -111,7 +111,7 @@ class _DocProxy(object):
         return self.doc[key]
 
     def __setitem__(self, key, value):
-        logger.more("Set '{}'='{}'.".format(key, value))
+        logger.more(f"Set '{key}'='{value}'.")
         if not self.dry_run:
             self.doc[key] = value
 
@@ -141,7 +141,7 @@ class _DocProxy(object):
         return len(self.doc)
 
 
-class _FileModifyProxy(object):
+class _FileModifyProxy:
     """Proxy used for data modification.
 
     This proxy is used for all file data modification to keep
@@ -170,9 +170,17 @@ class _FileModifyProxy(object):
 
     """
 
-    def __init__(self, root=None, follow_symlinks=True, permissions=False,
-                 times=False, owner=False, group=False, dry_run=False,
-                 collect_stats=False):
+    def __init__(
+        self,
+        root=None,
+        follow_symlinks=True,
+        permissions=False,
+        times=False,
+        owner=False,
+        group=False,
+        dry_run=False,
+        collect_stats=False,
+    ):
         self.root = root
         self.follow_symlinks = follow_symlinks
         self.permissions = permissions
@@ -218,56 +226,70 @@ class _FileModifyProxy(object):
             print(os.path.relpath(src, self.root))
         if os.path.islink(src) and not self.follow_symlinks:
             link_target = os.readlink(src)
-            logger.more("Creating link '{}' -> '{}'.".format(
-                os.path.relpath(dst), os.path.relpath(link_target)))
+            logger.more(
+                "Creating link '{}' -> '{}'.".format(
+                    os.path.relpath(dst), os.path.relpath(link_target)
+                )
+            )
             if os.path.isfile(dst):
                 self.remove(dst)
             if not self.dry_run:
                 os.symlink(link_target, dst)
         else:
-            msg = "Copy file{{}} '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
+            msg = "Copy file{{}} '{}' -> '{}'.".format(
+                os.path.relpath(src), os.path.relpath(dst)
+            )
             if self.permissions and self.times:
-                logger.more(msg.format(' (preserving: permissions, times)'))
+                logger.more(msg.format(" (preserving: permissions, times)"))
                 self._copy2(src, dst)
             elif self.permissions:
-                logger.more(msg.format(' (preserving: permissions)'))
+                logger.more(msg.format(" (preserving: permissions)"))
                 self._copy_p(src, dst)
             elif self.times:
                 raise ValueError("Cannot copy timestamps without permissions.")
             else:
-                logger.more(msg.format(''))
+                logger.more(msg.format(""))
                 self._copy(src, dst)
             if self.owner or self.group or self.stats is not None:
                 stat = os.stat(src)
                 if self.stats is not None:
-                    self.stats['num_files'] += 1
-                    self.stats['volume'] += stat.st_size
+                    self.stats["num_files"] += 1
+                    self.stats["volume"] += stat.st_size
                 if self.owner or self.group:
-                    logger.more("Copy owner/group '{}' -> '{}'".format(
-                        os.path.relpath(src), os.path.relpath(dst)))
+                    logger.more(
+                        "Copy owner/group '{}' -> '{}'".format(
+                            os.path.relpath(src), os.path.relpath(dst)
+                        )
+                    )
                     if not self.dry_run:
-                        os.chown(dst,
-                                 uid=stat.st_uid if self.owner else -1,
-                                 gid=stat.st_gid if self.group else -1)
+                        os.chown(
+                            dst,
+                            uid=stat.st_uid if self.owner else -1,
+                            gid=stat.st_gid if self.group else -1,
+                        )
 
     def copytree(self, src, dst, **kwargs):
         """Copy tree src to dst."""
-        logger.more("Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst)))
+        logger.more(
+            "Copy tree '{}' -> '{}'.".format(os.path.relpath(src), os.path.relpath(dst))
+        )
         copytree(src, dst, copy_function=self.copy, **kwargs)
 
     @contextmanager
     def create_backup(self, path):
         """Create a backup of path."""
         logger.debug("Create backup of '{}'.".format(os.path.relpath(path)))
-        path_backup = path + '~'
+        path_backup = path + "~"
         if os.path.isfile(path_backup):
             raise RuntimeError(
                 "Failed to create backup, file already exists: '{}'.".format(
-                    os.path.relpath(path_backup)))
+                    os.path.relpath(path_backup)
+                )
+            )
         try:
             self._copy2(path, path_backup)
             yield path_backup
-        except:     # noqa roll-back
+        except:  # noqa roll-back
             logger.more("Error occured, restoring backup...")
             self._copy2(path_backup, path)
             raise
@@ -279,12 +301,12 @@ class _FileModifyProxy(object):
     def create_doc_backup(self, doc):
         """Create a backup of doc."""
         proxy = _DocProxy(doc, dry_run=self.dry_run)
-        fn = getattr(doc, 'filename', getattr(doc, '_filename', None))
+        fn = getattr(doc, "filename", getattr(doc, "_filename", None))
         if not len(proxy) or fn is None or not os.path.isfile(fn):
             backup = deepcopy(doc)  # use in-memory backup
             try:
                 yield proxy
-            except:     # noqa roll-back
+            except:  # noqa roll-back
                 proxy.clear()
                 proxy.update(backup)
                 raise

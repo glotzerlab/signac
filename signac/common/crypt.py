@@ -4,26 +4,36 @@
 import base64
 
 from deprecation import deprecated
+
 from ..version import __version__
 
 try:
     from passlib.context import CryptContext
 except ImportError:
+
     def get_crypt_context():
         "This function requires passlib!"
         return None
+
+
 else:
+
     def get_crypt_context():
         "Return the default signac crypto context."
-        return CryptContext(schemes=('bcrypt', ))
+        return CryptContext(schemes=("bcrypt",))
+
 
 try:
     import keyring
 except ImportError:
+
     def get_keyring():
         "This function requires keyring!"
         return None
+
+
 else:
+
     def get_keyring():
         "Return the system user keyring."
         # In some newer versions of keyring (probably >=21.2.0), no backend is
@@ -40,14 +50,19 @@ else:
         else:
             return kr
 
+
 """
 THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The crypt module is deprecated.")
-class SimpleKeyring(object):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The crypt module is deprecated.",
+)
+class SimpleKeyring:
     """Simple in-memory keyring for caching."""
 
     def __init__(self):
@@ -78,11 +93,13 @@ class SimpleKeyring(object):
         return self._decode(self._cache.setdefault(key, self._encode(value)))
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The crypt module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The crypt module is deprecated.",
+)
 def parse_pwhash(pwhash):
     "Extract hash configuration from hash string."
-    if get_crypt_context().identify(pwhash) == 'bcrypt':
-        return dict(
-            rounds=int(pwhash.split('$')[2]),
-            salt=pwhash[-53:-31])
+    if get_crypt_context().identify(pwhash) == "bcrypt":
+        return dict(rounds=int(pwhash.split("$")[2]), salt=pwhash[-53:-31])

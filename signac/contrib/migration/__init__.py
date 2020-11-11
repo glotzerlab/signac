@@ -5,37 +5,35 @@
 
 import os
 import sys
-from packaging import version
 from contextlib import contextmanager
 
 from filelock import FileLock
+from packaging import version
 
 from ...common.config import get_config
-from ...version import __version__, SCHEMA_VERSION
-
-
+from ...version import SCHEMA_VERSION, __version__
 from .v0_to_v1 import migrate_v0_to_v1
 
-
-FN_MIGRATION_LOCKFILE = '.SIGNAC_PROJECT_MIGRATION_LOCK'
+FN_MIGRATION_LOCKFILE = ".SIGNAC_PROJECT_MIGRATION_LOCK"
 
 
 MIGRATIONS = {
-    ('0', '1'):    migrate_v0_to_v1,
+    ("0", "1"): migrate_v0_to_v1,
 }
 
 
 def _reload_project_config(project):
     project_reloaded = project.get_project(
-        root=project._rd, search=False, _ignore_schema_version=True)
+        root=project._rd, search=False, _ignore_schema_version=True
+    )
     project._config = project_reloaded._config
 
 
 def _update_project_config(project, **kwargs):
     """Update the project configuration."""
-    for fn in ('signac.rc', '.signacrc'):
+    for fn in ("signac.rc", ".signacrc"):
         config = get_config(project.fn(fn))
-        if 'project' in config:
+        if "project" in config:
             break
     else:
         raise RuntimeError("Unable to determine project configuration file.")
@@ -61,14 +59,16 @@ def _collect_migrations(project):
     schema_version = version.parse(SCHEMA_VERSION)
 
     def config_schema_version():
-        return version.parse(project._config['schema_version'])
+        return version.parse(project._config["schema_version"])
 
     if config_schema_version() > schema_version:
         # Project config schema version is newer and therefore not supported.
         raise RuntimeError(
             "The signac schema version used by this project is {}, but signac {} "
             "only supports up to schema version {}. Try updating signac.".format(
-                config_schema_version, __version__, SCHEMA_VERSION))
+                config_schema_version, __version__, SCHEMA_VERSION
+            )
+        )
 
     while config_schema_version() < schema_version:
         for (origin, destination), migration in MIGRATIONS.items():
@@ -79,7 +79,9 @@ def _collect_migrations(project):
             raise RuntimeError(
                 "The signac schema version used by this project is {}, but signac {} "
                 "uses schema version {} and does not know how to migrate.".format(
-                    config_schema_version(), __version__, schema_version))
+                    config_schema_version(), __version__, schema_version
+                )
+            )
 
 
 def apply_migrations(project):
@@ -87,13 +89,14 @@ def apply_migrations(project):
     with _lock_for_migration(project):
         for (origin, destination), migrate in _collect_migrations(project):
             try:
-                print("Applying migration for "
-                      "version {} to {}... ".format(origin, destination), end='',
-                      file=sys.stderr)
+                print(
+                    f"Applying migration for version {origin} to {destination}... ",
+                    end="",
+                    file=sys.stderr,
+                )
                 migrate(project)
             except Exception as e:
-                raise RuntimeError(
-                    "Failed to apply migration {}.".format(destination)) from e
+                raise RuntimeError(f"Failed to apply migration {destination}.") from e
             else:
                 _update_project_config(project, schema_version=destination)
                 print("OK", file=sys.stderr)
@@ -101,5 +104,5 @@ def apply_migrations(project):
 
 
 __all__ = [
-    'apply_migrations',
-    ]
+    "apply_migrations",
+]

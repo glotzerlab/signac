@@ -26,6 +26,7 @@ pip-log.txt
 .noseids
 .coverage
 .tox
+.mypy_cache
 nosetests.xml
 .pytest_cache
 

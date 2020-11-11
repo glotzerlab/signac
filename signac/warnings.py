@@ -12,7 +12,8 @@ class SignacDeprecationWarning(UserWarning):
     This class indicates a user-relevant deprecation and is therefore
     a UserWarning, not a DeprecationWarning which is hidden by default.
     """
+
     pass
 
 
-__all__ = ['SignacDeprecationWarning']
+__all__ = ["SignacDeprecationWarning"]

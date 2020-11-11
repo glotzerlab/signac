@@ -32,14 +32,14 @@ for example with `venv <https://docs.python.org/3/library/venv.html>`_:
 
     ~ $ python -m venv ~/envs/signac-dev
     ~ $ source ~/envs/signac-dev/bin/activate
-    (signac-dev) ~ $ pip install flake8
+    (signac-dev) ~ $ pip install pre-commit
 
 or alternatively with `conda <https://conda.io/docs/>`_:
 
 .. code-block:: bash
 
-    ~ $ conda create -n signac-dev python=3 flake8
-    ~ $ activate signac-dev
+    ~ $ conda create -n signac-dev -c conda-forge python=3 pre-commit
+    ~ $ conda activate signac-dev
 
 Then clone your fork and install the package from source with:
 
@@ -51,14 +51,15 @@ Then clone your fork and install the package from source with:
 The ``-e`` option stands for *editable*, which means that the package is directly loaded from the source code repository.
 That means any changes made to the source code are immediately reflected upon reloading the Python interpreter.
 
-Finally, we recommend to setup a `Flake8 <http://flake8.pycqa.org/en/latest/>`_ git commit hook with:
+The `pre-commit tool <https://pre-commit.com/>`__ is used to enforce code style guidelines.
+To install the tool and configure pre-commit hooks, execute:
 
 .. code-block:: bash
 
-    (signac-dev) signac $ flake8 --install-hook git
-    (signac-dev) signac $ git config --bool flake8.strict true
+    (signac-dev) signac $ pip install pre-commit
+    (signac-dev) signac $ pre-commit install
 
-With the *flake8* hook, your code will be checked for syntax and style before you make a commit.
+With the pre-commit hook, your code will be checked for syntax and style before you make a commit.
 The continuous integration pipeline for the package will perform these checks as well, so running these tests before committing / pushing will prevent the pipeline from failing due to style-related issues.
 
 The development workflow

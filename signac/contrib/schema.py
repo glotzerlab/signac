@@ -3,11 +3,11 @@
 # This software is licensed under the BSD 3-Clause License.
 """Project Schema."""
 
-from pprint import pformat
-from collections import defaultdict as ddict
-from numbers import Number
 import itertools
+from collections import defaultdict as ddict
 from collections.abc import Mapping
+from numbers import Number
+from pprint import pformat
 
 
 class _Vividict(dict):
@@ -16,6 +16,7 @@ class _Vividict(dict):
     Useful for automatically nesting keys with ``vividict['a']['b']['c'] = 'd'``.
 
     """
+
     def __missing__(self, key):
         value = self[key] = type(self)()
         return value
@@ -60,18 +61,19 @@ def _build_job_statepoint_index(exclude_const, index):
         with that state point value.
 
     """
-    from .collection import Collection
-    from .collection import _DictPlaceholder
+    from .collection import Collection, _DictPlaceholder
     from .utility import _nested_dicts_to_dotted_keys
+
     collection = Collection(index, _trust=True)
     for doc in collection.find():
         for key, _ in _nested_dicts_to_dotted_keys(doc):
-            if key == '_id' or key.split('.')[0] != 'statepoint':
+            if key == "_id" or key.split(".")[0] != "statepoint":
                 continue
             collection.index(key, build=True)
     tmp = collection._indexes
 
-    def strip_prefix(key): return k[len('statepoint.'):]
+    def strip_prefix(key):
+        return k[len("statepoint.") :]
 
     def remove_dict_placeholder(x):
         """Remove _DictPlaceholder elements from a mapping.
@@ -90,15 +92,18 @@ def _build_job_statepoint_index(exclude_const, index):
         return {k: v for k, v in x.items() if k is not _DictPlaceholder}
 
     for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
-        if exclude_const and len(tmp[k]) == 1 \
-                and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection):
+        if (
+            exclude_const
+            and len(tmp[k]) == 1
+            and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection)
+        ):
             continue
         statepoint_key = strip_prefix(k)
         statepoint_values = remove_dict_placeholder(tmp[k])
         yield statepoint_key, statepoint_values
 
 
-class ProjectSchema(object):
+class ProjectSchema:
     """A description of a project's state point schema.
 
     Parameters
@@ -107,6 +112,7 @@ class ProjectSchema(object):
         Project schema.
 
     """
+
     def __init__(self, schema=None):
         if schema is None:
             schema = dict()
@@ -195,15 +201,18 @@ class ProjectSchema(object):
             except TypeError:
                 sorted_values = sorted(values, key=repr)
             if len(values) <= max_num_range:
-                values_string = ', '.join((_fmt_value(v) for v in sorted_values))
+                values_string = ", ".join(_fmt_value(v) for v in sorted_values)
             else:
-                values_string = ', '.join((_fmt_value(v)
-                                           for v in sorted_values[:max_num_range - 2]))
-                values_string += ', ..., '
-                values_string += ', '.join((_fmt_value(v)
-                                            for v in sorted_values[-2:]))
-            return '{type_name}([{values_string}], {length})'.format(
-                type_name=type_.__name__, values_string=values_string, length=len(values))
+                values_string = ", ".join(
+                    _fmt_value(v) for v in sorted_values[: max_num_range - 2]
+                )
+                values_string += ", ..., "
+                values_string += ", ".join(_fmt_value(v) for v in sorted_values[-2:])
+            return "{type_name}([{values_string}], {length})".format(
+                type_name=type_.__name__,
+                values_string=values_string,
+                length=len(values),
+            )
 
         def _fmt_values(values):
             """Convert values into a single string.
@@ -219,12 +228,12 @@ class ProjectSchema(object):
                 Comma-separated string of the input values.
 
             """
-            return ', '.join(_fmt_range(*v) for v in values.items())
+            return ", ".join(_fmt_range(*v) for v in values.items())
 
         if depth > 0:
             schema_dict = _Vividict()
             for key, values in self._schema.items():
-                keys = key.split('.')
+                keys = key.split(".")
                 if len(keys) > 1:
                     x = schema_dict[keys[0]]
                     for k in keys[1:-1]:
@@ -234,13 +243,13 @@ class ProjectSchema(object):
                     schema_dict[keys[0]] = _fmt_values(values)
             return pformat(schema_dict, depth=depth)
         else:
-            ret = ['{']
+            ret = ["{"]
             for key in sorted(self._schema):
                 values = self._schema[key]
                 if values:
                     ret.append(" '{}': '{}',".format(key, _fmt_values(values)))
-            ret.append('}')
-            return '\n'.join(ret)
+            ret.append("}")
+            return "\n".join(ret)
 
     def __len__(self):
         return len(self._schema)
@@ -253,6 +262,7 @@ class ProjectSchema(object):
 
     def _repr_html_(self):
         import html
+
         output = "<strong>" + html.escape(repr(self)) + "</strong>"
         output += "<pre>" + str(self) + "</pre>"
         return output
@@ -260,13 +270,13 @@ class ProjectSchema(object):
     def __contains__(self, key_or_keys):
         if isinstance(key_or_keys, str):
             return key_or_keys in self._schema
-        key_or_keys = '.'.join(key_or_keys)
+        key_or_keys = ".".join(key_or_keys)
         return key_or_keys in self._schema
 
     def __getitem__(self, key_or_keys):
         if isinstance(key_or_keys, str):
             return self._schema[key_or_keys]
-        return self._schema['.'.join(key_or_keys)]
+        return self._schema[".".join(key_or_keys)]
 
     def __iter__(self):
         return iter(self._schema)
@@ -334,7 +344,7 @@ class ProjectSchema(object):
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []
-            keys = key.split('.')
+            keys = key.split(".")
             for sp in it:
                 if not isinstance(sp, Mapping):
                     sp = sp.statepoint

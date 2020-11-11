@@ -77,37 +77,36 @@ import os
 import re
 from collections import defaultdict as ddict
 from collections import namedtuple
-from multiprocessing.pool import ThreadPool
 from collections.abc import Mapping
+from multiprocessing.pool import ThreadPool
 
-from .errors import DestinationExistsError
-from .errors import FileSyncConflict
-from .errors import DocumentSyncConflict
-from .errors import SchemaSyncConflict
 from .contrib.utility import query_yes_no
-from .syncutil import dircmp
-from .syncutil import dircmp_deep
-from .syncutil import _FileModifyProxy
-from .syncutil import logger
-
+from .errors import (
+    DestinationExistsError,
+    DocumentSyncConflict,
+    FileSyncConflict,
+    SchemaSyncConflict,
+)
+from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
 
 __all__ = [
-    'FileSync',
-    'DocSync',
-    'sync_jobs',
-    'sync_projects',
+    "FileSync",
+    "DocSync",
+    "sync_jobs",
+    "sync_projects",
 ]
 
 
 # Definition of default sync strategies
 
-class FileSync(object):
+
+class FileSync:
     """Collection of file synchronization strategies."""
 
     @classmethod
     def keys(cls):
         """Return keys."""
-        return ('always', 'never', 'update', 'Ask')
+        return ("always", "never", "update", "Ask")
 
     @staticmethod
     def always(src, dst, fn):
@@ -124,7 +123,7 @@ class FileSync(object):
         """Resolve sync conflicts based on newest modified timestamp."""
         return os.path.getmtime(src.fn(fn)) > os.path.getmtime(dst.fn(fn))
 
-    class Ask(object):
+    class Ask:
         """Resolve sync conflicts by asking whether a file should be overwritten interactively."""
 
         def __init__(self):
@@ -138,7 +137,7 @@ class FileSync(object):
             elif fn in self.no:
                 return False
             else:
-                overwrite = query_yes_no("Overwrite files named '{}'?".format(fn), 'no')
+                overwrite = query_yes_no(f"Overwrite files named '{fn}'?", "no")
                 if overwrite:
                     self.yes.add(fn)
                     return True
@@ -147,13 +146,13 @@ class FileSync(object):
                     return False
 
 
-class DocSync(object):
+class DocSync:
     """Collection of document synchronization functions."""
 
     NO_SYNC = False
     "Do not synchronize documents."
 
-    COPY = 'copy'
+    COPY = "copy"
     "Copy (and potentially overwrite) documents like any other file."
 
     @staticmethod
@@ -162,7 +161,7 @@ class DocSync(object):
         for key in src.keys():
             dst[key] = src[key]
 
-    class ByKey(object):
+    class ByKey:
         """Synchronize documents key by key."""
 
         def __init__(self, key_strategy=None):
@@ -180,7 +179,7 @@ class DocSync(object):
         def __str__(self):
             return "{}({})".format(type(self).__name__, self.key_strategy)
 
-        def __call__(self, src, dst, root=''):
+        def __call__(self, src, dst, root=""):
             """Synchronize src and dst."""
             if src == dst:
                 return
@@ -189,7 +188,7 @@ class DocSync(object):
                     if dst[key] == value:
                         continue
                     elif isinstance(value, Mapping):
-                        self(src[key], dst[key], key + '.')
+                        self(src[key], dst[key], key + ".")
                         continue
                     elif self.key_strategy is None or not self.key_strategy(root + key):
                         self.skipped_keys.add(root + key)
@@ -202,11 +201,12 @@ class DocSync(object):
                 if self.key_strategy is None:
                     raise DocumentSyncConflict(self.skipped_keys)
                 else:
-                    logger.more("Skipped keys: {}".format(', '.join(self.skipped_keys)))
+                    logger.more("Skipped keys: {}".format(", ".join(self.skipped_keys)))
 
 
-def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
-                         recursive=True, deep=False, subdir=''):
+def _sync_job_workspaces(
+    src, dst, strategy, exclude, copy, copytree, recursive=True, deep=False, subdir=""
+):
     """Synchronize two job workspaces file by file, following the provided strategy."""
     if deep:
         diff = dircmp_deep(src.fn(subdir), dst.fn(subdir))
@@ -215,7 +215,7 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
 
     for fn in diff.left_only:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File named '{}' is skipped (excluded).".format(fn))
+            logger.debug(f"File named '{fn}' is skipped (excluded).")
             continue
         fn_src = os.path.join(src.workspace(), subdir, fn)
         fn_dst = os.path.join(dst.workspace(), subdir, fn)
@@ -224,10 +224,10 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
         elif recursive:
             copytree(fn_src, fn_dst)
         else:
-            logger.warning("Skip directory '{}'.".format(fn_src))
+            logger.warning(f"Skip directory '{fn_src}'.")
     for fn in diff.diff_files:
         if exclude and any([re.match(p, fn) for p in exclude]):
-            logger.debug("File named '{}' is skipped (excluded).".format(fn))
+            logger.debug(f"File named '{fn}' is skipped (excluded).")
             continue
         if strategy is None:
             raise FileSyncConflict(fn)
@@ -237,12 +237,20 @@ def _sync_job_workspaces(src, dst, strategy, exclude, copy, copytree,
             if strategy(src, dst, os.path.join(subdir, fn)):
                 copy(fn_src, fn_dst)
             else:
-                logger.debug("Skip file '{}'.".format(fn))
+                logger.debug(f"Skip file '{fn}'.")
     for _subdir in diff.subdirs:
         if recursive:
             _sync_job_workspaces(
-                src=src, dst=dst, strategy=strategy, exclude=exclude, copy=copy, copytree=copytree,
-                recursive=recursive, deep=deep, subdir=os.path.join(subdir, _subdir))
+                src=src,
+                dst=dst,
+                strategy=strategy,
+                exclude=exclude,
+                copy=copy,
+                copytree=copytree,
+                recursive=recursive,
+                deep=deep,
+                subdir=os.path.join(subdir, _subdir),
+            )
         else:
             logger.warning("Skip directory '{}'.".format(os.path.join(subdir, _subdir)))
 
@@ -252,11 +260,21 @@ def _identical_path(a, b):
     return os.path.abspath(os.path.realpath(a)) == os.path.abspath(os.path.realpath(b))
 
 
-def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=False,
-              follow_symlinks=True,
-              preserve_permissions=False, preserve_times=False,
-              preserve_owner=False, preserve_group=False,
-              deep=False, dry_run=False):
+def sync_jobs(
+    src,
+    dst,
+    strategy=None,
+    exclude=None,
+    doc_sync=None,
+    recursive=False,
+    follow_symlinks=True,
+    preserve_permissions=False,
+    preserve_times=False,
+    preserve_owner=False,
+    preserve_group=False,
+    deep=False,
+    dry_run=False,
+):
     """Synchronize the dst job with the src job.
 
     By default, this method will synchronize all files and document data
@@ -351,11 +369,12 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             times=preserve_times,
             owner=preserve_owner,
             group=preserve_group,
-            dry_run=bool(dry_run))
+            dry_run=bool(dry_run),
+        )
     if proxy.dry_run:
-        logger.debug("Synchronizing job '{}' (dry run)...".format(src))
+        logger.debug(f"Synchronizing job '{src}' (dry run)...")
     else:
-        logger.debug("Synchronizing job '{}'...".format(src))
+        logger.debug(f"Synchronizing job '{src}'...")
 
     if os.path.isdir(src.workspace()):
         if not dry_run:
@@ -368,7 +387,8 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
             copy=proxy.copy,
             copytree=proxy.copytree,
             recursive=recursive,
-            deep=deep)
+            deep=deep,
+        )
 
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
         if src.document != dst.document:
@@ -376,16 +396,28 @@ def sync_jobs(src, dst, strategy=None, exclude=None, doc_sync=None, recursive=Fa
                 doc_sync(src.document, dst_proxy)
 
 
-FileTransferStats = namedtuple('_FileTransferStats', ['num_files', 'volume'])
+FileTransferStats = namedtuple("_FileTransferStats", ["num_files", "volume"])
 
 
-def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=None,
-                  selection=None, check_schema=True, recursive=False,
-                  follow_symlinks=True,
-                  preserve_permissions=False, preserve_times=False,
-                  preserve_owner=False, preserve_group=False,
-                  deep=False, dry_run=False, parallel=False,
-                  collect_stats=False):
+def sync_projects(
+    source,
+    destination,
+    strategy=None,
+    exclude=None,
+    doc_sync=None,
+    selection=None,
+    check_schema=True,
+    recursive=False,
+    follow_symlinks=True,
+    preserve_permissions=False,
+    preserve_times=False,
+    preserve_owner=False,
+    preserve_group=False,
+    deep=False,
+    dry_run=False,
+    parallel=False,
+    collect_stats=False,
+):
     """Synchronize the destination project with the source project.
 
     Try to clone all jobs from the source to the destination.
@@ -475,7 +507,8 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         owner=preserve_owner,
         group=preserve_group,
         dry_run=dry_run,
-        collect_stats=collect_stats)
+        collect_stats=collect_stats,
+    )
 
     # Perform a schema check in an attempt to avoid bad sync operations.
     if check_schema:
@@ -490,22 +523,27 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
     if doc_sync is None:
         doc_sync = DocSync.ByKey()
 
-    if selection is not None:  # The selection argument may be a jobs or job ids sequence.
+    if (
+        selection is not None
+    ):  # The selection argument may be a jobs or job ids sequence.
         selection = {str(j) for j in selection}
 
     # Provide some information about this sync process.
     if selection:
-        logger.info("Synchronizing selection ({}) of project '{}' to '{}'.".format(
-            len(selection), source, destination))
+        logger.info(
+            "Synchronizing selection ({}) of project '{}' to '{}'.".format(
+                len(selection), source, destination
+            )
+        )
     else:
-        logger.info("Synchronizing project '{}' to '{}'.".format(source, destination))
-    logger.more("'{}' -> '{}'".format(source.root_directory(), destination.root_directory()))
+        logger.info(f"Synchronizing project '{source}' to '{destination}'.")
+    logger.more(f"'{source.root_directory()}' -> '{destination.root_directory()}'")
     if dry_run:
         logger.info("Performing dry run!")
     if exclude is not None:
-        logger.more("File name exclude pattern: '{}'".format(exclude))
-    logger.more("Sync strategy: '{}'".format(strategy))
-    logger.more("Doc sync strategy: '{}'".format(doc_sync))
+        logger.more(f"File name exclude pattern: '{exclude}'")
+    logger.more(f"Sync strategy: '{strategy}'")
+    logger.more(f"Doc sync strategy: '{doc_sync}'")
 
     # Sync the Project document.
     if not (doc_sync is DocSync.NO_SYNC or doc_sync == DocSync.COPY):
@@ -521,14 +559,14 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
         jobs_to_sync = [job for job in source if job.get_id() in selection]
 
     N = len(jobs_to_sync)
-    logger.more("Synchronizing {} jobs.".format(N))
+    logger.more(f"Synchronizing {N} jobs.")
     count = ddict(int)
 
     def _clone_or_sync(src_job):
         """Clone a job if it does not exist, or sync if it exists."""
         try:
             destination.clone(src_job, copytree=proxy.copytree)
-            logger.more("Cloned job '{}'.".format(src_job))
+            logger.more(f"Cloned job '{src_job}'.")
             return 1
         except DestinationExistsError:
             dst_job = destination.open_job(id=src_job.get_id())
@@ -539,25 +577,28 @@ def sync_projects(source, destination, strategy=None, exclude=None, doc_sync=Non
                 exclude=exclude,
                 doc_sync=doc_sync,
                 recursive=recursive,
-                dry_run=proxy,   # used as internal argument to forward the proxy
-                )
-            logger.more("Synchonized job '{}'.".format(src_job))
+                dry_run=proxy,  # used as internal argument to forward the proxy
+            )
+            logger.more(f"Synchonized job '{src_job}'.")
             return 2
 
     if parallel:
         num_processes = None if parallel is True else parallel
-        logger.more("Parallelizing over {} threads for synchronization.".format(
-            'multiple' if num_processes is None else num_processes))
+        logger.more(
+            "Parallelizing over {} threads for synchronization.".format(
+                "multiple" if num_processes is None else num_processes
+            )
+        )
         with ThreadPool(None if parallel is True else parallel) as pool:
             for i, ret in enumerate(pool.imap(_clone_or_sync, jobs_to_sync)):
                 count[ret] += 1
-                logger.info("Project sync progress: {}/{}".format(i+1, N))
+                logger.info("Project sync progress: {}/{}".format(i + 1, N))
     else:
         for i, src_job in enumerate(jobs_to_sync):
             count[_clone_or_sync(src_job)] += 1
-            logger.info("Project sync progress: {}/{}".format(i+1, N))
+            logger.info("Project sync progress: {}/{}".format(i + 1, N))
 
     num_cloned, num_synchronized = count[1], count[2]
-    logger.info("Cloned {} and synchronized {} job(s).".format(num_cloned, num_synchronized))
+    logger.info(f"Cloned {num_cloned} and synchronized {num_synchronized} job(s).")
     if collect_stats:
-        return FileTransferStats(** proxy.stats)
+        return FileTransferStats(**proxy.stats)

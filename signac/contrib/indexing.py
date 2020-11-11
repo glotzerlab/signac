@@ -1,43 +1,47 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import errno
+import hashlib
+import importlib.machinery
+import logging
+import math
 import os
 import re
-import math
-import hashlib
-import logging
 import warnings
-import errno
-from time import sleep
 from collections import defaultdict
+from time import sleep
+
 from deprecation import deprecated
-import importlib.machinery
 
-from ..version import __version__
-from ..core import json
 from ..common import errors
-from .utility import walkdepth
+from ..core import json
+from ..version import __version__
 from .hashing import calc_id
-
+from .utility import walkdepth
 
 logger = logging.getLogger(__name__)
 
-KEY_PROJECT = 'project'
-KEY_FILENAME = 'filename'
-KEY_PATH = 'root'
-KEY_PAYLOAD = 'format'
+KEY_PROJECT = "project"
+KEY_FILENAME = "filename"
+KEY_PATH = "root"
+KEY_PAYLOAD = "format"
 
 """
 THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
 def md5(file):
     "Calculate and return the md5 hash value for the file data."
     m = hashlib.md5()
-    for chunk in iter(lambda: file.read(4096), b''):
+    for chunk in iter(lambda: file.read(4096), b""):
         m.update(chunk)
     return m.hexdigest()
 
@@ -48,15 +52,20 @@ def _is_blank_module(module):
 
 
 # this class is deprecated
-class BaseCrawler(object):
+class BaseCrawler:
     """Crawl through `root` and index all files.
 
     The crawler creates an index on data, which can be exported
     to a database for easier access."""
+
     tags = None
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def __init__(self, root):
         """Initialize a BaseCrawler instance.
 
@@ -77,20 +86,20 @@ class BaseCrawler(object):
         raise NotImplementedError()
         yield
 
-    def fetch(self, doc, mode='r'):
+    def fetch(self, doc, mode="r"):
         """Implement this generator method to associate data with a document.
 
         :returns: object associated with doc
         """
-        raise errors.FetchError("Unable to fetch object for '{}'.".format(doc))
+        raise errors.FetchError(f"Unable to fetch object for '{doc}'.")
 
     @classmethod
     def _calculate_hash(cls, doc, dirpath, fn):
         blob = json.dumps(doc, sort_keys=True)
         m = hashlib.md5()
-        m.update(dirpath.encode('utf-8'))
-        m.update(fn.encode('utf-8'))
-        m.update(blob.encode('utf-8'))
+        m.update(dirpath.encode("utf-8"))
+        m.update(fn.encode("utf-8"))
+        m.update(blob.encode("utf-8"))
         return m.hexdigest()
 
     def crawl(self, depth=0):
@@ -104,17 +113,17 @@ class BaseCrawler(object):
                       A value of 0 specifies no limit.
         :type dept: int
         :yields: (id, doc)-tuples"""
-        logger.info("Crawling '{}' (depth={})...".format(self.root, depth))
+        logger.info(f"Crawling '{self.root}' (depth={depth})...")
         for dirpath, dirnames, filenames in walkdepth(self.root, depth):
             for fn in filenames:
                 for doc in self.docs_from_file(dirpath, fn):
-                    logger.debug("doc from file: '{}'.".format(
-                        os.path.join(dirpath, fn)))
+                    logger.debug(
+                        "doc from file: '{}'.".format(os.path.join(dirpath, fn))
+                    )
                     doc.setdefault(KEY_PAYLOAD, None)
-                    doc.setdefault(
-                        '_id', self._calculate_hash(doc, dirpath, fn))
+                    doc.setdefault("_id", self._calculate_hash(doc, dirpath, fn))
                     yield doc
-        logger.info("Crawl of '{}' done.".format(self.root))
+        logger.info(f"Crawl of '{self.root}' done.")
 
     def process(self, doc, dirpath, fn):
         """Implement this method for additional processing of generated docs.
@@ -162,8 +171,12 @@ class RegexFileCrawler(BaseCrawler):
     definitions = dict()  # type: ignore
 
     @classmethod
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def define(cls, regex, format_=None):
         """Define a format for a particular regular expression.
 
@@ -180,8 +193,12 @@ class RegexFileCrawler(BaseCrawler):
         cls.definitions = definitions
 
     @classmethod
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def compute_file_id(cls, doc, file):
         """Compute the file id for a given doc and the associated file.
 
@@ -189,11 +206,15 @@ class RegexFileCrawler(BaseCrawler):
         :param file: The associated file
         :returns: The file id.
         """
-        file_id = doc['md5'] = md5(file)
+        file_id = doc["md5"] = md5(file)
         return file_id
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def docs_from_file(self, dirpath, fn):
         """Generate documents from filenames.
 
@@ -215,16 +236,21 @@ class RegexFileCrawler(BaseCrawler):
             if m:
                 doc = self.process(m.groupdict(), dirpath, fn)
                 doc[KEY_FILENAME] = os.path.relpath(
-                    os.path.join(dirpath, fn), self.root)
+                    os.path.join(dirpath, fn), self.root
+                )
                 doc[KEY_PATH] = os.path.abspath(self.root)
                 doc[KEY_PAYLOAD] = str(format_)
-                with open(os.path.join(dirpath, fn), 'rb') as file:
-                    doc['file_id'] = self.compute_file_id(doc, file)
+                with open(os.path.join(dirpath, fn), "rb") as file:
+                    doc["file_id"] = self.compute_file_id(doc, file)
                 yield doc
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
-    def fetch(self, doc, mode='r'):
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
+    def fetch(self, doc, mode="r"):
         """Fetch the data associated with `doc`.
 
         :param doc: A index document.
@@ -241,19 +267,24 @@ class RegexFileCrawler(BaseCrawler):
                     if isinstance(format_, str):
                         return open(ffn, mode=mode)
                     else:
-                        for meth in ('read', 'close'):
+                        for meth in ("read", "close"):
                             if not callable(getattr(format_, meth, None)):
-                                msg = "Format {} has no {}() method.".format(format_, meth)
+                                msg = f"Format {format_} has no {meth}() method."
                                 warnings.warn(msg)
                         return format_(open(ffn, mode=mode))
             else:
-                raise errors.FetchError("Unable to match file path of doc '{}' "
-                                        "to format definition.".format(doc))
+                raise errors.FetchError(
+                    f"Unable to match file path of doc '{doc}' to format definition."
+                )
         else:
-            raise errors.FetchError("Insufficient meta data in doc '{}'.".format(doc))
+            raise errors.FetchError(f"Insufficient meta data in doc '{doc}'.")
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def process(self, doc, dirpath, fn):
         """Post-process documents generated from filenames.
 
@@ -287,46 +318,54 @@ class RegexFileCrawler(BaseCrawler):
                         result[key] = int(value)
                     else:
                         result[key] = float(value)
-        return super(RegexFileCrawler, self).process(result, dirpath, fn)
+        return super().process(result, dirpath, fn)
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def crawl(self, depth=0):
         if self.definitions:
-            for doc in super(RegexFileCrawler, self).crawl(depth=depth):
-                yield doc
+            yield from super().crawl(depth=depth)
         else:
             return
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
 class JSONCrawler(BaseCrawler):
-    encoding = 'utf-8'
-    fn_regex = r'.*\.json'
+    encoding = "utf-8"
+    fn_regex = r".*\.json"
 
     def docs_from_json(self, doc):
         yield doc
 
     def docs_from_file(self, dirpath, fn):
         if re.match(self.fn_regex, os.path.join(dirpath, fn)):
-            with open(os.path.join(dirpath, fn), 'rb') as file:
+            with open(os.path.join(dirpath, fn), "rb") as file:
                 doc = json.loads(file.read().decode(self.encoding))
-                for d in self.docs_from_json(doc):
-                    yield d
+                yield from self.docs_from_json(doc)
 
 
-def _index_signac_project_workspace(root,
-                                    include_job_document=True,
-                                    fn_statepoint='signac_statepoint.json',
-                                    fn_job_document='signac_job_document.json',
-                                    statepoint_index='statepoint',
-                                    signac_id_alias='_id',
-                                    encoding='utf-8',
-                                    statepoint_dict=None):
+def _index_signac_project_workspace(
+    root,
+    include_job_document=True,
+    fn_statepoint="signac_statepoint.json",
+    fn_job_document="signac_job_document.json",
+    statepoint_index="statepoint",
+    signac_id_alias="_id",
+    encoding="utf-8",
+    statepoint_dict=None,
+):
     "Yields standard index documents for a signac project workspace."
-    logger.debug("Indexing workspace '{}'...".format(root))
-    m = re.compile(r'[a-f0-9]{32}')
+    logger.debug(f"Indexing workspace '{root}'...")
+    m = re.compile(r"[a-f0-9]{32}")
     try:
         job_ids = [jid for jid in os.listdir(root) if m.match(jid)]
     except OSError as error:
@@ -337,11 +376,11 @@ def _index_signac_project_workspace(root,
     for i, job_id in enumerate(job_ids):
         if not m.match(job_id):
             continue
-        doc = {'signac_id': job_id, KEY_PATH: root}
+        doc = {"signac_id": job_id, KEY_PATH: root}
         if signac_id_alias:
             doc[signac_id_alias] = job_id
         fn_sp = os.path.join(root, job_id, fn_statepoint)
-        with open(fn_sp, 'rb') as file:
+        with open(fn_sp, "rb") as file:
             sp = json.loads(file.read().decode(encoding))
             if statepoint_dict is not None:
                 statepoint_dict[job_id] = sp
@@ -352,14 +391,14 @@ def _index_signac_project_workspace(root,
         if include_job_document:
             fn_doc = os.path.join(root, job_id, fn_job_document)
             try:
-                with open(fn_doc, 'rb') as file:
+                with open(fn_doc, "rb") as file:
                     doc.update(json.loads(file.read().decode(encoding)))
-            except IOError as error:
+            except OSError as error:
                 if error.errno != errno.ENOENT:
                     raise
         yield doc
     if job_ids:
-        logger.debug("Indexed workspace '{}', {} entries.".format(root, i+1))
+        logger.debug("Indexed workspace '{}', {} entries.".format(root, i + 1))
 
 
 # this class is deprecated
@@ -374,26 +413,32 @@ class SignacProjectCrawler(RegexFileCrawler):
 
     :param root: The path to the project's root directory.
     :type root: str"""
-    encoding = 'utf-8'
-    statepoint_index = 'statepoint'
-    fn_statepoint = 'signac_statepoint.json'
-    fn_job_document = 'signac_job_document.json'
-    signac_id_alias = '_id'
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    encoding = "utf-8"
+    statepoint_index = "statepoint"
+    fn_statepoint = "signac_statepoint.json"
+    fn_job_document = "signac_job_document.json"
+    signac_id_alias = "_id"
+
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def __init__(self, root):
         from .project import get_project
+
         root = get_project(root=root).workspace()
         self._statepoints = dict()
-        return super(SignacProjectCrawler, self).__init__(root=root)
+        return super().__init__(root=root)
 
     def _get_job_id(self, dirpath):
-        return os.path.relpath(dirpath, self.root).split('/')[0]
+        return os.path.relpath(dirpath, self.root).split("/")[0]
 
     def _read_statepoint(self, job_id):
         fn_sp = os.path.join(self.root, job_id, self.fn_statepoint)
-        with open(fn_sp, 'rb') as file:
+        with open(fn_sp, "rb") as file:
             return json.loads(file.read().decode(self.encoding))
 
     def _get_statepoint(self, job_id):
@@ -409,24 +454,25 @@ class SignacProjectCrawler(RegexFileCrawler):
         if dirpath is not None:
             job_id = self._get_job_id(dirpath)
             statepoint = self._get_statepoint(job_id)
-            doc['signac_id'] = job_id
+            doc["signac_id"] = job_id
             if self.statepoint_index:
                 doc[self.statepoint_index] = statepoint
             else:
                 doc.update(statepoint)
-        return super(SignacProjectCrawler, self).process(doc, dirpath, fn)
+        return super().process(doc, dirpath, fn)
 
     def crawl(self, depth=0):
         for doc in _index_signac_project_workspace(
-                root=self.root,
-                fn_statepoint=self.fn_statepoint,
-                fn_job_document=self.fn_job_document,
-                statepoint_index=self.statepoint_index,
-                signac_id_alias=self.signac_id_alias,
-                encoding=self.encoding,
-                statepoint_dict=self._statepoints):
+            root=self.root,
+            fn_statepoint=self.fn_statepoint,
+            fn_job_document=self.fn_job_document,
+            statepoint_index=self.statepoint_index,
+            signac_id_alias=self.signac_id_alias,
+            encoding=self.encoding,
+            statepoint_dict=self._statepoints,
+        ):
             yield self.process(doc, None, None)
-        for doc in super(SignacProjectCrawler, self).crawl(depth=depth):
+        for doc in super().crawl(depth=depth):
             yield doc
 
 
@@ -489,20 +535,24 @@ class MainCrawler(BaseCrawler):
     :type raise_on_error: bool
     """
 
-    FN_ACCESS_MODULE = 'signac_access.py'
+    FN_ACCESS_MODULE = "signac_access.py"
     "The filename of modules containing crawler definitions."
 
-    @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-                details="The indexing module is deprecated.")
+    @deprecated(
+        deprecated_in="1.3",
+        removed_in="2.0",
+        current_version=__version__,
+        details="The indexing module is deprecated.",
+    )
     def __init__(self, root, raise_on_error=False):
         self.raise_on_error = raise_on_error
-        super(MainCrawler, self).__init__(root=root)
+        super().__init__(root=root)
 
     def _docs_from_module(self, dirpath, fn):
         name = os.path.join(dirpath, fn)
         module = importlib.machinery.SourceFileLoader(name, name).load_module()
 
-        logger.info("Crawling from module '{}'.".format(module.__file__))
+        logger.info(f"Crawling from module '{module.__file__}'.")
 
         has_tags = self.tags is not None and len(set(self.tags))
 
@@ -518,29 +568,29 @@ class MainCrawler(BaseCrawler):
                     logger.info("Skipping, index requires tags.")
                     return False
                 elif set(self.tags).intersection(set(tags)):
-                    return True   # at least one tag matches!
+                    return True  # at least one tag matches!
                 else:
                     logger.info("Skipping, tag mismatch.")
                     return False
 
         if not has_tags and _is_blank_module(module):
             from .project import get_project
+
             for doc in get_project(root=dirpath).index():
                 yield doc
 
-        if hasattr(module, 'get_indexes'):
-            if _check_tags(getattr(module.get_indexes, 'tags', None)):
+        if hasattr(module, "get_indexes"):
+            if _check_tags(getattr(module.get_indexes, "tags", None)):
                 for index in module.get_indexes(dirpath):
                     for doc in index:
                         yield doc
 
-        if hasattr(module, 'get_crawlers'):
+        if hasattr(module, "get_crawlers"):
             for crawler in module.get_crawlers(dirpath):
-                logger.info("Executing subcrawler:\n {}".format(crawler))
-                if _check_tags(getattr(crawler, 'tags', None)):
+                logger.info(f"Executing subcrawler:\n {crawler}")
+                if _check_tags(getattr(crawler, "tags", None)):
                     for doc in crawler.crawl():
-                        doc.setdefault(
-                            KEY_PROJECT, os.path.relpath(dirpath, self.root))
+                        doc.setdefault(KEY_PROJECT, os.path.relpath(dirpath, self.root))
                         yield doc
 
     def docs_from_file(self, dirpath, fn):
@@ -552,15 +602,19 @@ class MainCrawler(BaseCrawler):
         """
         if fn == self.FN_ACCESS_MODULE:
             try:
-                for doc in self._docs_from_module(dirpath, fn):
-                    yield doc
+                yield from self._docs_from_module(dirpath, fn)
             except Exception:
-                logger.error("Error while indexing from module '{}'.".format(
-                    os.path.join(dirpath, fn)))
+                logger.error(
+                    "Error while indexing from module '{}'.".format(
+                        os.path.join(dirpath, fn)
+                    )
+                )
                 if self.raise_on_error:
                     raise
             else:
-                logger.debug("Completed indexing from '{}'.".format(os.path.join(dirpath, fn)))
+                logger.debug(
+                    "Completed indexing from '{}'.".format(os.path.join(dirpath, fn))
+                )
 
 
 # Deprecated API
@@ -569,13 +623,20 @@ class MasterCrawler(MainCrawler):
         warnings.warn(
             "The MasterCrawler class has been replaced by the MainCrawler class. "
             "Both classes are deprecated and will be removed in a future release.",
-            DeprecationWarning)
-        super(MasterCrawler, self).__init__(*args, **kwargs)
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
-def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_local=False):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
+def fetch(
+    doc_or_id, mode="r", mirrors=None, num_tries=3, timeout=60, ignore_local=False
+):
     """Fetch the file associated with this document or file id.
 
     This function retrieves a file associated with the provided
@@ -602,17 +663,17 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
     """
     if doc_or_id is None:
         raise ValueError("Argument 'doc_or_id' must not be None!")
-    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get('file_id')
+    file_id = doc_or_id if isinstance(doc_or_id, str) else doc_or_id.get("file_id")
     if not ignore_local:
         try:
-            fn = os.path.join(doc_or_id['root'], doc_or_id['filename'])
+            fn = os.path.join(doc_or_id["root"], doc_or_id["filename"])
             return open(fn, mode=mode)
         except KeyError:
             raise errors.FetchError("Insufficient file meta data for fetch.", doc_or_id)
         except OSError as error:
             if error.errno == errno.ENOENT:
                 if file_id is None:
-                    raise errors.FetchError("Failed to fetch '{}'.".format(doc_or_id))
+                    raise errors.FetchError(f"Failed to fetch '{doc_or_id}'.")
     if mirrors is None:
         raise errors.FetchError("No mirrors provided!")
     else:
@@ -626,15 +687,19 @@ def fetch(doc_or_id, mode='r', mirrors=None, num_tries=3, timeout=60, ignore_loc
                 except mirror.FileNotFoundError as error:
                     logger.debug(error)
             else:
-                raise errors.FetchError("Unable to fetch object for '{}'.".format(file_id))
+                raise errors.FetchError(f"Unable to fetch object for '{file_id}'.")
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
 def fetched(docs):
     """Iterate over documents and yield associated files."""
     for doc in docs:
-        if 'file_id' in doc:
+        if "file_id" in doc:
             yield doc, fetch(doc)
 
 
@@ -644,8 +709,12 @@ def _export_to_mirror(file, file_id, mirror):
         dst.write(file.read())
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
 def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     """Export a file associated with doc to mirror.
 
@@ -659,29 +728,37 @@ def export_to_mirror(doc, mirror, num_tries=3, timeout=60):
     :type timeout: int
     :returns: The file id after successful export.
     """
-    if 'file_id' not in doc:
-        raise errors.ExportError("Doc '{}' does not have a file_id entry.".format(doc))
+    if "file_id" not in doc:
+        raise errors.ExportError(f"Doc '{doc}' does not have a file_id entry.")
     for i in range(num_tries):
         try:
-            with fetch(doc, mode='rb') as file:
-                _export_to_mirror(file, doc['file_id'], mirror)
+            with fetch(doc, mode="rb") as file:
+                _export_to_mirror(file, doc["file_id"], mirror)
         except mirror.FileExistsError:
             logger.debug(
-                "File with id '{}' already exported, skipping.".format(doc['file_id']))
+                "File with id '{}' already exported, skipping.".format(doc["file_id"])
+            )
             break
         except mirror.AutoRetry as error:
-            logger.warning("Error during export: '{}', retrying...".format(error))
+            logger.warning(f"Error during export: '{error}', retrying...")
             sleep(timeout)
         else:
             logger.debug(
-                "Stored file with id '{}' in mirror '{}'.".format(doc['file_id'], mirror))
-            return doc['file_id']
+                "Stored file with id '{}' in mirror '{}'.".format(
+                    doc["file_id"], mirror
+                )
+            )
+            return doc["file_id"]
     else:
         raise errors.ExportError(doc)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
 def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     """Export one document to index and an optionally associated file to mirrors.
 
@@ -696,19 +773,22 @@ def export_one(doc, index, mirrors=None, num_tries=3, timeout=60):
     :type timeout: int
     :returns: The id and file id after successful export.
     """
-    index.replace_one({'_id': doc['_id']}, doc, upsert=True)
-    if mirrors and 'file_id' in doc:
+    index.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+    if mirrors and "file_id" in doc:
         for mirror in mirrors:
             export_to_mirror(doc, mirror, num_tries, timeout)
-        return doc['_id'], doc['file_id']
+        return doc["_id"], doc["file_id"]
     else:
-        return doc['_id'], None
+        return doc["_id"], None
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
-def export(docs, index, mirrors=None, update=False,
-           num_tries=3, timeout=60, **kwargs):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
+def export(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, **kwargs):
     """Export docs to index and optionally associated files to mirrors.
 
     The behavior of this function is equivalent to:
@@ -758,37 +838,46 @@ def export(docs, index, mirrors=None, update=False,
     else:
         if isinstance(index, pymongo.collection.Collection):
             logger.info("Using optimized export function export_pymongo().")
-            return export_pymongo(docs=docs, index=index, mirrors=mirrors,
-                                  update=update, num_tries=num_tries, timeout=timeout, **kwargs)
+            return export_pymongo(
+                docs=docs,
+                index=index,
+                mirrors=mirrors,
+                update=update,
+                num_tries=num_tries,
+                timeout=timeout,
+                **kwargs,
+            )
     ids = defaultdict(list)
     for doc in docs:
         _id, _ = export_one(doc, index, mirrors, num_tries, timeout, **kwargs)
         if update:
-            root = doc.get('root')
+            root = doc.get("root")
             if root is not None:
                 ids[root].append(_id)
     if update:
         if ids:
             stale = set()
             for root in ids:
-                docs_ = index.find({'root': root})
-                all_ = {doc['_id'] for doc in docs_}
+                docs_ = index.find({"root": root})
+                all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info("Removing {} stale documents.".format(len(stale)))
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
             raise errors.ExportError(
-                "The exported docs sequence is empty! Unable to update!")
+                "The exported docs sequence is empty! Unable to update!"
+            )
 
 
 def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
     """Export docs via operations to index and files to mirrors."""
     import pymongo
+
     if mirrors is not None:
         for mirror in mirrors:
             for doc in docs:
-                if 'file_id' in doc:
+                if "file_id" in doc:
                     export_to_mirror(doc, mirror, num_tries, timeout)
     for i in range(num_tries):
         try:
@@ -801,9 +890,15 @@ def _export_pymongo(docs, operations, index, mirrors, num_tries, timeout):
         raise errors.ExportError()
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
-def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
+def export_pymongo(
+    docs, index, mirrors=None, update=False, num_tries=3, timeout=60, chunksize=100
+):
     """Optimized :py:func:`~.export` function for pymongo index collections.
 
     The behavior of this function is rougly equivalent to:
@@ -830,16 +925,17 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
     :param chunksize: The buffer size for export operations.
     :type chunksize: int"""
     import pymongo
-    logger.info("Exporting to pymongo database collection index '{}'.".format(index))
+
+    logger.info(f"Exporting to pymongo database collection index '{index}'.")
     chunk = []
     operations = []
     ids = defaultdict(list)
     for doc in docs:
-        f = {'_id': doc['_id']}
+        f = {"_id": doc["_id"]}
         if update:
-            root = doc.get('root')
+            root = doc.get("root")
             if root is not None:
-                ids[root].append(doc['_id'])
+                ids[root].append(doc["_id"])
         chunk.append(doc)
         operations.append(pymongo.ReplaceOne(f, doc, upsert=True))
         if len(chunk) >= chunksize:
@@ -854,20 +950,25 @@ def export_pymongo(docs, index, mirrors=None, update=False, num_tries=3, timeout
         if ids:
             stale = set()
             for root in ids:
-                docs_ = index.find({'root': root})
-                all_ = {doc['_id'] for doc in docs_}
+                docs_ = index.find({"root": root})
+                all_ = {doc["_id"] for doc in docs_}
                 stale.update(all_.difference(ids[root]))
             logger.info("Removing {} stale documents.".format(len(stale)))
             for _id in set(stale):
                 index.delete_one(dict(_id=_id))
         else:
             raise errors.ExportError(
-                "The exported docs sequence is empty! Unable to update!")
+                "The exported docs sequence is empty! Unable to update!"
+            )
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
-def index_files(root='.', formats=None, depth=0):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
+def index_files(root=".", formats=None, depth=0):
     r"""Generate a file index.
 
     This generator function yields file index documents,
@@ -924,9 +1025,9 @@ def index_files(root='.', formats=None, depth=0):
     :yields: The file index documents as dicts.
     """
     if formats is None:
-        formats = {'.*': 'File'}
+        formats = {".*": "File"}
     if isinstance(formats, str):
-        formats = {formats: 'File'}
+        formats = {formats: "File"}
 
     class Crawler(RegexFileCrawler):
         pass
@@ -934,13 +1035,16 @@ def index_files(root='.', formats=None, depth=0):
     for regex, fmt in formats.items():
         Crawler.define(regex, fmt)
 
-    for doc in Crawler(root).crawl(depth=depth):
-        yield doc
+    yield from Crawler(root).crawl(depth=depth)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The indexing module is deprecated.")
-def index(root='.', tags=None, depth=0, **kwargs):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The indexing module is deprecated.",
+)
+def index(root=".", tags=None, depth=0, **kwargs):
     r"""Generate a main index.
 
     A main index is compiled from other indexes by searching
@@ -980,5 +1084,4 @@ def index(root='.', tags=None, depth=0, **kwargs):
     if tags is not None:
         Crawler.tags = tags
 
-    for doc in Crawler(root, **kwargs).crawl(depth=depth):
-        yield doc
+    yield from Crawler(root, **kwargs).crawl(depth=depth)

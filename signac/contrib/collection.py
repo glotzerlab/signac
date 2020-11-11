@@ -21,33 +21,42 @@ import operator
 import re
 import sys
 from itertools import islice
-from numbers import Number
 from math import isclose
+from numbers import Number
 
 from ..core import json
-from .utility import _nested_dicts_to_dotted_keys
-from .utility import _to_hashable
 from .filterparse import parse_filter_arg
-
+from .utility import _nested_dicts_to_dotted_keys, _to_hashable
 
 logger = logging.getLogger(__name__)
 
 
-_INDEX_OPERATORS = ('$eq', '$gt', '$gte', '$lt', '$lte', '$ne',
-                    '$in', '$nin', '$regex', '$type', '$where',
-                    '$near')
+_INDEX_OPERATORS = (
+    "$eq",
+    "$gt",
+    "$gte",
+    "$lt",
+    "$lte",
+    "$ne",
+    "$in",
+    "$nin",
+    "$regex",
+    "$type",
+    "$where",
+    "$near",
+)
 
 _TYPES = {
-    'int': int,
-    'float': float,
-    'bool': bool,
-    'str': str,
-    'list': tuple,
-    'null': type(None),
+    "int": int,
+    "float": float,
+    "bool": bool,
+    "str": str,
+    "list": tuple,
+    "null": type(None),
 }
 
 
-MAX_DEFAULT_ID = int('F' * 32, 16)
+MAX_DEFAULT_ID = int("F" * 32, 16)
 
 
 def _flatten(container):
@@ -65,13 +74,12 @@ def _flatten(container):
     """
     for i in container:
         if isinstance(i, (list, tuple)):
-            for j in _flatten(i):
-                yield j
+            yield from _flatten(i)
         else:
             yield i
 
 
-class _DictPlaceholder(object):
+class _DictPlaceholder:
     pass
 
 
@@ -111,7 +119,7 @@ class _float(float):
     # There is no risk of accidentally equating ints and floats with different values, since the
     # hash equality is only a necessary, not a sufficient condition for equality.
     def __hash__(self):
-        return super(_float, self).__hash__() + 1
+        return super().__hash__() + 1
 
 
 class _TypedSetDefaultDict(dict):
@@ -139,16 +147,13 @@ class _TypedSetDefaultDict(dict):
         return value
 
     def __getitem__(self, key):
-        return dict.__getitem__(self,
-                                _float(key) if type(key) is float else key)
+        return dict.__getitem__(self, _float(key) if type(key) is float else key)
 
     def __setitem__(self, key, value):
-        return dict.__setitem__(self,
-                                _float(key) if type(key) is float else key, value)
+        return dict.__setitem__(self, _float(key) if type(key) is float else key, value)
 
     def __delitem__(self, key):
-        dict.__delitem__(self,
-                         _float(key) if type(key) is float else key)
+        dict.__delitem__(self, _float(key) if type(key) is float else key)
 
     def get(self, key, default=None):
         """Get the value for given key.
@@ -165,8 +170,7 @@ class _TypedSetDefaultDict(dict):
         The value for given key.
 
         """
-        return dict.get(self,
-                        _float(key) if type(key) is float else key, default)
+        return dict.get(self, _float(key) if type(key) is float else key, default)
 
 
 def _build_index(docs, key, primary_key):
@@ -192,7 +196,7 @@ def _build_index(docs, key, primary_key):
         The document contains invalid keys.
 
     """
-    nodes = key.split('.')
+    nodes = key.split(".")
     index = _TypedSetDefaultDict()
 
     for doc in docs:
@@ -206,29 +210,31 @@ def _build_index(docs, key, primary_key):
             pass
         except Exception as error:
             raise RuntimeError(
-                "An unexpected error occured while processing "
-                "doc '{}': {}.".format(doc, error))
+                f"An unexpected error occured while processing doc '{doc}': {error}."
+            )
         else:
             # inlined for performance
             if type(v) is dict:
                 continue
-            elif type(v) is list:   # performance
+            elif type(v) is list:  # performance
                 index[_to_hashable(v)].add(doc[primary_key])
             else:
                 index[v].add(doc[primary_key])
 
         if len(nodes) > 1:
             try:
-                v = doc['.'.join(nodes)]
+                v = doc[".".join(nodes)]
             except KeyError:
                 pass
             else:
                 from ..errors import InvalidKeyError
+
                 raise InvalidKeyError(
                     "\nThe document contains invalid keys. "
                     "Specifically keys with dots ('.').\n\n"
                     "See https://signac.io/document-wide-migration/ "
-                    "for a recipe on how to replace dots in existing keys.")
+                    "for a recipe on how to replace dots in existing keys."
+                )
     return index
 
 
@@ -256,29 +262,39 @@ def _find_with_index_operator(index, op, argument):
         When unknown argument is given for $type operator (When the operator is $type).
 
     """
-    if op == '$in':
+    if op == "$in":
+
         def op(value, argument):
             return value in argument
-    elif op == '$nin':
+
+    elif op == "$nin":
+
         def op(value, argument):
             return value not in argument
-    elif op == '$regex':
+
+    elif op == "$regex":
+
         def op(value, argument):
             if isinstance(value, str):
                 return re.search(argument, value)
             else:
                 return False
-    elif op == '$type':
+
+    elif op == "$type":
+
         def op(value, argument):
             if argument in _TYPES:
                 t = _TYPES[argument]
             else:
-                raise ValueError("Unknown argument for $type operator: '{}'.".format(argument))
+                raise ValueError(f"Unknown argument for $type operator: '{argument}'.")
             return isinstance(value, t)
-    elif op == '$where':
+
+    elif op == "$where":
+
         def op(value, argument):
             return eval(argument)(value)
-    elif op == '$near':
+
+    elif op == "$near":
         rel_tol, abs_tol = 1e-9, 0.0  # default values
         if isinstance(argument, (list, tuple)):
             if len(argument) == 1:
@@ -288,8 +304,8 @@ def _find_with_index_operator(index, op, argument):
             elif len(argument) == 3:
                 argument, rel_tol, abs_tol = argument
             else:
-                err_msg = 'The argument of the $near operator must be a float '
-                err_msg += 'or a list of floats with length 1, 2, or 3.'
+                err_msg = "The argument of the $near operator must be a float "
+                err_msg += "or a list of floats with length 1, 2, or 3."
                 raise ValueError(err_msg)
         argument = float(argument)
         rel_tol = float(rel_tol)
@@ -297,8 +313,9 @@ def _find_with_index_operator(index, op, argument):
 
         def op(value, argument):
             return isclose(value, argument, rel_tol=rel_tol, abs_tol=abs_tol)
+
     else:
-        op = getattr(operator, {'$gte': '$ge', '$lte': '$le'}.get(op, op)[1:])
+        op = getattr(operator, {"$gte": "$ge", "$lte": "$le"}.get(op, op)[1:])
     matches = set()
     for value in index:
         if op(value, argument):
@@ -323,13 +340,14 @@ def _check_logical_operator_argument(op, argument):
 
     """
     if not isinstance(argument, list):
-        raise ValueError("The argument of logical-operator '{}' must be a list!".format(op))
+        raise ValueError(f"The argument of logical-operator '{op}' must be a list!")
     if not len(argument):
-        raise ValueError("The argument of logical-operator '{}' cannot be empty!".format(op))
+        raise ValueError(f"The argument of logical-operator '{op}' cannot be empty!")
 
 
-class _CollectionSearchResults(object):
+class _CollectionSearchResults:
     """Iterator for a Collection result vector."""
+
     def __init__(self, collection, _ids):
         self._collection = collection
         self._ids = _ids
@@ -345,10 +363,11 @@ class _CollectionSearchResults(object):
 
 class JSONParseError(ValueError):
     """Error class for JSON Parse."""
+
     pass
 
 
-class Collection(object):
+class Collection:
     """A collection of documents.
 
     The Collection class manages a collection of documents in memory
@@ -415,11 +434,13 @@ class Collection(object):
         When first argument is a string.
 
     """
-    def __init__(self, docs=None, primary_key='_id', compresslevel=0, _trust=False):
+
+    def __init__(self, docs=None, primary_key="_id", compresslevel=0, _trust=False):
         if isinstance(docs, str):
             raise ValueError(
                 "First argument cannot be of str type. "
-                "Did you mean to use {}.open()?".format(type(self).__name__))
+                "Did you mean to use {}.open()?".format(type(self).__name__)
+            )
         self.index_rebuild_threshold = 0.1
         self._primary_key = primary_key
         if compresslevel > 0:
@@ -441,8 +462,9 @@ class Collection(object):
 
     def _assert_open(self):
         if self._docs is None:
-            raise RuntimeError("Trying to access closed {}.".format(
-                type(self).__name__))
+            raise RuntimeError(
+                "Trying to access closed {}.".format(type(self).__name__)
+            )
 
     def _next_default_id(self):
         """Return next default id.
@@ -460,9 +482,9 @@ class Collection(object):
         """
         if self._next_default_id_ is None:
             self._next_default_id_ = len(self)
-        for i in range(len(self)+1):
+        for i in range(len(self) + 1):
             assert self._next_default_id_ < MAX_DEFAULT_ID
-            _id = str(hex(self._next_default_id_))[2:].rjust(32, '0')
+            _id = str(hex(self._next_default_id_))[2:].rjust(32, "0")
             self._next_default_id_ += 1
             if _id not in self:
                 return _id
@@ -480,7 +502,7 @@ class Collection(object):
         for index in self._indexes.values():
             remove_keys = set()
             for key, group in index.items():
-                if _id in group:    # faster than exception handling (performance)
+                if _id in group:  # faster than exception handling (performance)
                     group.remove(_id)
                 if not len(group):
                     remove_keys.add(key)
@@ -508,9 +530,9 @@ class Collection(object):
             The key to build index for.
 
         """
-        logger.debug("Building index for key '{}'...".format(key))
+        logger.debug(f"Building index for key '{key}'...")
         self._indexes[key] = _build_index(self._docs.values(), key, self._primary_key)
-        logger.debug("Built index for key '{}'.".format(key))
+        logger.debug(f"Built index for key '{key}'.")
 
     def index(self, key, build=False):
         """Get (and optionally build) the index for a given key.
@@ -567,7 +589,7 @@ class Collection(object):
             if build:
                 self._build_index(key)
             else:
-                raise KeyError("No index for key '{}'.".format(key))
+                raise KeyError(f"No index for key '{key}'.")
         return self._indexes[key]
 
     def __str__(self):
@@ -577,8 +599,9 @@ class Collection(object):
         try:
             return iter(self._docs.values())
         except AttributeError:
-            raise RuntimeError("Trying to access closed {}.".format(
-                type(self).__name__))
+            raise RuntimeError(
+                "Trying to access closed {}.".format(type(self).__name__)
+            )
 
     @property
     def ids(self):
@@ -635,8 +658,9 @@ class Collection(object):
             When key given is invalid.
 
         """
-        if '.' in key:
+        if "." in key:
             from ..errors import InvalidKeyError
+
             raise InvalidKeyError("Keys may not contain dots ('.').")
         return key
 
@@ -676,7 +700,8 @@ class Collection(object):
                 doc_ = json.loads(json.dumps(doc))
             except TypeError as error:
                 raise TypeError(
-                    "Serialization of document '{}' failed with error: {}".format(doc, error))
+                    f"Serialization of document '{doc}' failed with error: {error}"
+                )
             self._docs[_id] = self._validate_doc(doc_)
         self._dirty.add(_id)
         self._requires_flush = True
@@ -714,7 +739,7 @@ class Collection(object):
         else:
             _id = doc[self._primary_key] = self._next_default_id()
         if _id in self:
-            raise KeyError('Primary key collision!')
+            raise KeyError("Primary key collision!")
         self[_id] = doc
         return _id
 
@@ -778,26 +803,28 @@ class Collection(object):
             The value is not bool when operator for '$exists' operator.
 
         """
-        logger.debug("Find documents for expression '{}: {}'.".format(key, value))
-        if '$' in key:
-            if key.count('$') > 1:
-                raise KeyError("Bad operator expression '{}'.".format(key))
-            nodes = key.split('.')
+        logger.debug(f"Find documents for expression '{key}: {value}'.")
+        if "$" in key:
+            if key.count("$") > 1:
+                raise KeyError(f"Bad operator expression '{key}'.")
+            nodes = key.split(".")
             op = nodes[-1]
-            if not op.startswith('$'):
-                raise KeyError("Bad operator placement '{}'.".format(key))
-            key = '.'.join(nodes[:-1])
+            if not op.startswith("$"):
+                raise KeyError(f"Bad operator placement '{key}'.")
+            key = ".".join(nodes[:-1])
             if op in _INDEX_OPERATORS:
                 index = self.index(key, build=True)
                 return _find_with_index_operator(index, op, value)
-            elif op == '$exists':
+            elif op == "$exists":
                 if not isinstance(value, bool):
-                    raise ValueError("The value of the '$exists' operator must be boolean.")
+                    raise ValueError(
+                        "The value of the '$exists' operator must be boolean."
+                    )
                 index = self.index(key, build=True)
                 match = {elem for elems in index.values() for elem in elems}
                 return match if value else set(self.ids).difference(match)
             else:
-                raise KeyError("Unknown expression-operator '{}'.".format(op))
+                raise KeyError(f"Unknown expression-operator '{op}'.")
         else:
             index = self.index(key, build=True)
             # Check to see if 'value' is a floating point type but an
@@ -831,7 +858,7 @@ class Collection(object):
 
         """
         if not len(expr):
-            return set(self.ids)    # Empty expression yields all ids...
+            return set(self.ids)  # Empty expression yields all ids...
 
         result_ids = None
 
@@ -847,7 +874,7 @@ class Collection(object):
             nonlocal result_ids
             if result_ids is None:  # First match
                 result_ids = match
-            else:               # Update previous match
+            else:  # Update previous match
                 result_ids = result_ids.intersection(match)
 
         # Check if filter contains primary key, in which case we can
@@ -857,14 +884,14 @@ class Collection(object):
             reduce_results({_id})
 
         # Extract all logical-operator expressions for now.
-        or_expressions = expr.pop('$or', None)
-        and_expressions = expr.pop('$and', None)
-        not_expression = expr.pop('$not', None)
+        or_expressions = expr.pop("$or", None)
+        and_expressions = expr.pop("$and", None)
+        not_expression = expr.pop("$not", None)
 
         # Reduce the result based on the remaining non-logical expression:
         for key, value in _nested_dicts_to_dotted_keys(expr):
             reduce_results(self._find_expression(key, value))
-            if not result_ids:          # No match, no need to continue...
+            if not result_ids:  # No match, no need to continue...
                 return set()
 
         # Reduce the result based on the logical-operator expressions:
@@ -873,12 +900,12 @@ class Collection(object):
             reduce_results(set(self.ids).difference(not_match))
 
         if and_expressions is not None:
-            _check_logical_operator_argument('$and', and_expressions)
+            _check_logical_operator_argument("$and", and_expressions)
             for expr_ in and_expressions:
                 reduce_results(self._find_result(expr_))
 
         if or_expressions is not None:
-            _check_logical_operator_argument('$or', or_expressions)
+            _check_logical_operator_argument("$or", or_expressions)
             or_results = set()
             for expr_ in or_expressions:
                 or_results.update(self._find_result(expr_))
@@ -1171,7 +1198,7 @@ class Collection(object):
 
         """
         for doc in self._docs.values():
-            text_buffer.write((json.dumps(doc) + '\n'))
+            text_buffer.write(json.dumps(doc) + "\n")
 
     def dump(self, file=sys.stdout):
         """Dump the collection in JSON-encoding to file.
@@ -1196,9 +1223,11 @@ class Collection(object):
         self._assert_open()
         if self._compresslevel > 0:
             import gzip
+
             with gzip.GzipFile(
-                    compresslevel=self._compresslevel, fileobj=file, mode='wb') as gzipfile:
-                text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
+                compresslevel=self._compresslevel, fileobj=file, mode="wb"
+            ) as gzipfile:
+                text_io = io.TextIOWrapper(gzipfile, encoding="utf-8")
                 self._dump(text_io)
                 text_io.flush()
         else:
@@ -1225,7 +1254,7 @@ class Collection(object):
         if file is None:
             return json_string
         elif isinstance(file, str):
-            with open(file, 'w') as json_file:
+            with open(file, "w") as json_file:
                 json_file.write(json_string)
         else:
             file.write(json_string)
@@ -1247,7 +1276,7 @@ class Collection(object):
 
         """
         if isinstance(file, str):
-            with open(file, 'r') as json_file:
+            with open(file) as json_file:
                 json_data = json.load(json_file)
         else:
             json_data = json.load(file)
@@ -1275,25 +1304,26 @@ class Collection(object):
         try:
             if compresslevel > 0:
                 import gzip
-                with gzip.GzipFile(fileobj=file, mode='rb') as gzipfile:
-                    text_io = io.TextIOWrapper(gzipfile, encoding='utf-8')
+
+                with gzip.GzipFile(fileobj=file, mode="rb") as gzipfile:
+                    text_io = io.TextIOWrapper(gzipfile, encoding="utf-8")
                     collection = cls(docs=(json.loads(line) for line in text_io))
                     text_io.detach()
             else:
                 collection = cls(docs=(json.loads(line) for line in file))
-        except (IOError, io.UnsupportedOperation) as error:
-            if str(error) in ('not readable', 'read'):
+        except (OSError, io.UnsupportedOperation) as error:
+            if str(error) in ("not readable", "read"):
                 collection = cls()
             else:
                 raise error
         except ValueError as error:
             file.close()
-            if hasattr(file, 'name'):
+            if hasattr(file, "name"):
                 raise JSONParseError(
-                    "Error while trying to parse file '{}': {}.".format(file.name, error))
+                    f"Error while trying to parse file '{file.name}': {error}."
+                )
             else:
-                raise JSONParseError(
-                    "Error while trying to parse '{}': {}.".format(file, error))
+                raise JSONParseError(f"Error while trying to parse '{file}': {error}.")
         except AttributeError as e:
             # This error occurs in python27 and has been evaluated as being
             # fine to accept in this manner
@@ -1366,29 +1396,32 @@ class Collection(object):
 
         """
         if compresslevel is None:
-            compresslevel = 9 if filename.endswith('.gz') else 0
+            compresslevel = 9 if filename.endswith(".gz") else 0
 
-        logger.debug("Open collection '{}'.".format(filename))
-        if filename == ':memory:':
+        logger.debug(f"Open collection '{filename}'.")
+        if filename == ":memory:":
             if mode is not None:
-                raise RuntimeError("File open-mode must be None for in-memory collection.")
-            return cls(compresslevel=compresslevel)    # That's the default open mode.
+                raise RuntimeError(
+                    "File open-mode must be None for in-memory collection."
+                )
+            return cls(compresslevel=compresslevel)  # That's the default open mode.
         else:
             # Set default mode
             if mode is None:
-                mode = 'ab+'
+                mode = "ab+"
 
-            file = io.open(filename, mode)
+            file = open(filename, mode)
             file.seek(0)
 
-            if 'b' in mode:
+            if "b" in mode:
                 if compresslevel > 0:
                     return cls._open(file, compresslevel=compresslevel)
                 else:
-                    return cls._open(io.TextIOWrapper(file, encoding='utf-8'))
+                    return cls._open(io.TextIOWrapper(file, encoding="utf-8"))
             elif compresslevel > 0:
                 raise RuntimeError(
-                    "Compressed collections must be opened in binary mode, for example: 'ab+'.")
+                    "Compressed collections must be opened in binary mode, for example: 'ab+'."
+                )
             else:
                 return cls._open(file)
 
@@ -1408,7 +1441,7 @@ class Collection(object):
             if self._file is None:
                 logger.debug("Flushed collection.")
             else:
-                logger.debug("Flush collection to file '{}'.".format(self._file))
+                logger.debug(f"Flush collection to file '{self._file}'.")
                 try:
                     self._file.truncate(0)
                 except ValueError as error:
@@ -1472,28 +1505,35 @@ class Collection(object):
 
         """
         parser = argparse.ArgumentParser(
-            "Command line interface for instances of Collection.")
+            "Command line interface for instances of Collection."
+        )
         parser.add_argument(
-            'filter',
-            nargs='*',
+            "filter",
+            nargs="*",
             help="The search filter provided in JSON encoding. "
-                 "Leave empty to return all documents.")
+            "Leave empty to return all documents.",
+        )
         parser.add_argument(
-            '-l', '--limit',
+            "-l",
+            "--limit",
             type=int,
             default=0,
             help="Limit the number of search results that are "
-                 "maximally returned. A value of 0 (the default) "
-                 "means no limit.")
+            "maximally returned. A value of 0 (the default) "
+            "means no limit.",
+        )
         parser.add_argument(
-            '--id',
-            dest='_id',
-            action='store_true',
-            help="Print a document's primary key instead of the whole document.")
+            "--id",
+            dest="_id",
+            action="store_true",
+            help="Print a document's primary key instead of the whole document.",
+        )
         parser.add_argument(
-            '-i', '--indent',
-            action='store_true',
-            help="Print results in indented format.")
+            "-i",
+            "--indent",
+            action="store_true",
+            help="Print results in indented format.",
+        )
         args = parser.parse_args()
         if args._id and args.indent:
             raise ValueError("Select either `--id` or `--indent`, not both.")

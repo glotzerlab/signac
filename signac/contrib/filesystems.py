@@ -4,19 +4,20 @@
 """The file system handlers defined in this module
 encapsulate the I/O operations required to store
 and fetch data from different file systems."""
-import os
 import errno
 import io
+import os
 import warnings
+from collections.abc import Iterable, Mapping
+
+from deprecation import deprecated
 
 from ..db import get_database
 from ..version import __version__
-from collections.abc import Mapping, Iterable
-from deprecation import deprecated
 
 try:
-    import pymongo
     import gridfs
+    import pymongo
 except ImportError:
     GRIDFS = False
 else:
@@ -35,9 +36,13 @@ def _register_fs_class(fs):
     FILESYSTEM_REGISTRY[fs.name] = fs
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The filesystems module is deprecated.")
-class LocalFS(object):
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The filesystems module is deprecated.",
+)
+class LocalFS:
     """A file system handler for the local file system.
 
     This handler will store all files at the specified
@@ -46,7 +51,8 @@ class LocalFS(object):
     :param root: The path to the root directory.
     :type root: str
     """
-    name = 'localfs'
+
+    name = "localfs"
     "General identifier for this file system handler."
 
     FileExistsError = IOError
@@ -62,17 +68,18 @@ class LocalFS(object):
 
     def config(self):
         "Return the file system configuration for this handler."
-        return {'root': self.root}
+        return {"root": self.root}
 
     def __repr__(self):
-        return '{}({})'.format(
-            type(self),
-            ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
+        return "{}({})".format(
+            type(self), ", ".join(f"{k}={v}" for k, v in self.config().items())
+        )
 
-    def _fn(self, _id, n=2, suffix='.dat'):
-        fn = os.path.join(
-            self.root,
-            * [_id[i:i + n] for i in range(0, len(_id), n)]) + suffix
+    def _fn(self, _id, n=2, suffix=".dat"):
+        fn = (
+            os.path.join(self.root, *[_id[i : i + n] for i in range(0, len(_id), n)])
+            + suffix
+        )
         return fn
 
     def new_file(self, _id, mode=None):
@@ -82,8 +89,8 @@ class LocalFS(object):
         :type _id: str
         :returns: A file-like object to write to."""
         if mode is None:
-            mode = 'xb'
-        if 'x' not in mode:
+            mode = "xb"
+        if "x" not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
         try:
@@ -94,7 +101,7 @@ class LocalFS(object):
                 raise
         return open(fn, mode=mode)
 
-    def get(self, _id, mode='r'):
+    def get(self, _id, mode="r"):
         """Open the file with the specified id.
 
         :param _id: The file identifier.
@@ -102,7 +109,7 @@ class LocalFS(object):
         :param mode: The file mode used for opening.
         :returns: A file-like object to read from."""
 
-        if 'r' not in mode:
+        if "r" not in mode:
             raise ValueError(mode)
         return open(self._fn(_id), mode=mode)
 
@@ -111,7 +118,7 @@ _register_fs_class(LocalFS)
 
 if GRIDFS:
 
-    class GridFS(object):
+    class GridFS:
         """A file system handler for the MongoDB `GridFS`_ file system.
 
         .. note::
@@ -125,7 +132,8 @@ if GRIDFS:
         :param db: The database used to store the grid.
         :type db: str or :class:`pymongo.database.Database`
         """
-        name = 'gridfs'
+
+        name = "gridfs"
         "General identifier for this file system handler."
 
         FileExistsError = gridfs.errors.FileExists
@@ -134,7 +142,7 @@ if GRIDFS:
         "A file with the specified id is not found."
         AutoRetry = pymongo.errors.AutoReconnect
 
-        def __init__(self, db, collection='fs'):
+        def __init__(self, db, collection="fs"):
             if isinstance(db, str):
                 self.db = None
                 self.db_name = db
@@ -146,12 +154,12 @@ if GRIDFS:
 
         def config(self):
             "Return the file system configuration for this handler."
-            return {'db': self.db_name, 'collection': self.collection}
+            return {"db": self.db_name, "collection": self.collection}
 
         def __repr__(self):
-            return '{}({})'.format(
-                type(self),
-                ', '.join('{}={}'.format(k, v) for k, v in self.config().items()))
+            return "{}({})".format(
+                type(self), ", ".join(f"{k}={v}" for k, v in self.config().items())
+            )
 
         @property
         def gridfs(self):
@@ -159,8 +167,7 @@ if GRIDFS:
             if self._gridfs is None:
                 if self.db is None:
                     self.db = get_database(self.db_name)
-                self._gridfs = gridfs.GridFS(
-                    self.db, collection=self.collection)
+                self._gridfs = gridfs.GridFS(self.db, collection=self.collection)
             return self._gridfs
 
         def new_file(self, _id):
@@ -171,7 +178,7 @@ if GRIDFS:
             :returns: A file-like object to write to."""
             return self.gridfs.new_file(_id=_id)
 
-        def get(self, _id, mode='r'):
+        def get(self, _id, mode="r"):
             """Open the file with the specified id.
 
             .. warning::
@@ -185,21 +192,27 @@ if GRIDFS:
             :type _id: str
             :param mode: The file mode used for opening.
             :returns: A file-like object to read from."""
-            if mode == 'r':
+            if mode == "r":
                 file = io.StringIO(self.gridfs.get(_id).read().decode())
                 if len(file.getvalue()) > GRIDFS_LARGE_FILE_WARNING_THRSHLD:
                     warnings.warn(
-                        "Open large GridFS files more efficiently in 'rb' mode.")
+                        "Open large GridFS files more efficiently in 'rb' mode."
+                    )
                 return file
-            elif mode == 'rb':
+            elif mode == "rb":
                 return self.gridfs.get(file_id=_id)
             else:
                 raise ValueError(mode)
+
     _register_fs_class(GridFS)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The filesystems module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The filesystems module is deprecated.",
+)
 def filesystems_from_config(fs_config):
     """Generate file system handlers from a configuration.
 
@@ -232,15 +245,19 @@ def filesystems_from_config(fs_config):
     for key, args in fs_config.items():
         fs_class = FILESYSTEM_REGISTRY[key]
         if isinstance(args, Mapping):
-            yield fs_class(** args)
+            yield fs_class(**args)
         elif isinstance(args, Iterable) and not isinstance(args, str):
-            yield fs_class(* args)
+            yield fs_class(*args)
         else:
             yield fs_class(args)
 
 
-@deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__,
-            details="The filesystems module is deprecated.")
+@deprecated(
+    deprecated_in="1.3",
+    removed_in="2.0",
+    current_version=__version__,
+    details="The filesystems module is deprecated.",
+)
 def filesystems_from_configs(fs_configs):
     """Generate file system handlers.
 
@@ -255,7 +272,6 @@ def filesystems_from_configs(fs_configs):
     """
     for item in fs_configs:
         if isinstance(item, Mapping):
-            for fs in filesystems_from_config(item):
-                yield fs
+            yield from filesystems_from_config(item)
         else:
             yield item

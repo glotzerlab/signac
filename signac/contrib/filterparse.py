@@ -4,6 +4,7 @@
 """Parse the filter arguments."""
 
 import sys
+
 from ..core import json
 
 
@@ -56,7 +57,7 @@ def _read_index(project, fn_index=None):
 
     """
     if fn_index is not None:
-        _print_err("Reading index from file '{}'...".format(fn_index))
+        _print_err(f"Reading index from file '{fn_index}'...")
         fd = open(fn_index)
         return (json.loads(line) for line in fd)
 
@@ -75,7 +76,7 @@ def _is_json(q):
         True if q starts with "{" and ends with "}".
 
     """
-    return q.strip().startswith('{') and q.strip().endswith('}')
+    return q.strip().startswith("{") and q.strip().endswith("}")
 
 
 def _is_regex(q):
@@ -92,7 +93,7 @@ def _is_regex(q):
         True if q starts with "/" and ends with "/".
 
     """
-    return q.startswith('/') and q.endswith('/')
+    return q.startswith("/") and q.endswith("/")
 
 
 def _parse_json(q):
@@ -112,22 +113,21 @@ def _parse_json(q):
     try:
         return json.loads(q)
     except json.JSONDecodeError:
-        _print_err("Failed to parse query argument. "
-                   "Ensure that '{}' is valid JSON!".format(q))
+        _print_err(f"Failed to parse query argument. Ensure that '{q}' is valid JSON!")
         raise
 
 
 CAST_MAPPING = {
-    'true': True,
-    'false': False,
-    'null': None,
+    "true": True,
+    "false": False,
+    "null": None,
 }
 
 CAST_MAPPING_WARNING = {
-    'True': 'true',
-    'False': 'false',
-    'None': 'null',
-    'none': 'null',
+    "True": "true",
+    "False": "false",
+    "None": "null",
+    "none": "null",
 }
 
 
@@ -181,16 +181,17 @@ def _parse_simple(key, value=None):
         If filter arguments have an invalid key.
 
     """
-    if value is None or value == '!':
-        return {key: {'$exists': True}}
+    if value is None or value == "!":
+        return {key: {"$exists": True}}
     elif _is_json(value):
         return {key: _parse_json(value)}
     elif _is_regex(value):
-        return {key: {'$regex': value[1:-1]}}
+        return {key: {"$regex": value[1:-1]}}
     elif _is_json(key):
         raise ValueError(
             "Please check your filter arguments. "
-            "Using a JSON expression as a key is not allowed: '{}'.".format(key))
+            "Using a JSON expression as a key is not allowed: '{}'.".format(key)
+        )
     else:
         return {key: _cast(value)}
 
@@ -222,8 +223,8 @@ def parse_filter_arg(args, file=sys.stderr):
         q = dict()
         for i in range(0, len(args), 2):
             key = args[i]
-            if i+1 < len(args):
-                value = args[i+1]
+            if i + 1 < len(args):
+                value = args[i + 1]
             else:
                 value = None
             q.update(_parse_simple(key, value))
