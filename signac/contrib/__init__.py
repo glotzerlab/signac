@@ -7,12 +7,23 @@ import logging
 
 from . import indexing
 from .collection import Collection
-from .indexing import (BaseCrawler, JSONCrawler, MainCrawler, MasterCrawler,
-                       RegexFileCrawler, SignacProjectCrawler, export,
-                       export_one, export_pymongo, export_to_mirror, fetch,
-                       fetched, index, index_files)
-from .project import (Project, TemporaryProject, get_job, get_project,
-                      init_project)
+from .indexing import (
+    BaseCrawler,
+    JSONCrawler,
+    MainCrawler,
+    MasterCrawler,
+    RegexFileCrawler,
+    SignacProjectCrawler,
+    export,
+    export_one,
+    export_pymongo,
+    export_to_mirror,
+    fetch,
+    fetched,
+    index,
+    index_files,
+)
+from .project import Project, TemporaryProject, get_job, get_project, init_project
 
 logger = logging.getLogger(__name__)
 

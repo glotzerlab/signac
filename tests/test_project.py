@@ -26,9 +26,12 @@ from test_job import TestJobBase
 
 import signac
 from signac.common.config import get_config
-from signac.contrib.errors import (IncompatibleSchemaVersion,
-                                   JobsCorruptedError, StatepointParsingError,
-                                   WorkspaceError)
+from signac.contrib.errors import (
+    IncompatibleSchemaVersion,
+    JobsCorruptedError,
+    StatepointParsingError,
+    WorkspaceError,
+)
 from signac.contrib.linked_view import _find_all_links
 from signac.contrib.project import JobsCursor, Project  # noqa: F401
 from signac.contrib.schema import ProjectSchema

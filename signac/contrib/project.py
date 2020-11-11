@@ -29,14 +29,17 @@ from ..core.jsondict import JSONDict
 from ..sync import sync_projects
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
-from .errors import (DestinationExistsError, IncompatibleSchemaVersion,
-                     JobsCorruptedError, WorkspaceError)
+from .errors import (
+    DestinationExistsError,
+    IncompatibleSchemaVersion,
+    JobsCorruptedError,
+    WorkspaceError,
+)
 from .hashing import calc_id
 from .indexing import MainCrawler, SignacProjectCrawler
 from .job import Job
 from .schema import ProjectSchema
-from .utility import (_mkdir_p, _nested_dicts_to_dotted_keys,
-                      split_and_print_progress)
+from .utility import _mkdir_p, _nested_dicts_to_dotted_keys, split_and_print_progress
 
 logger = logging.getLogger(__name__)
 

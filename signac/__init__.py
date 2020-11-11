@@ -10,10 +10,20 @@ collectively accessible.
 """
 
 from . import cite, contrib, db, errors, sync, testing, warnings
-from .contrib import (Collection, MainCrawler, MasterCrawler, Project,
-                      RegexFileCrawler, SignacProjectCrawler, TemporaryProject,
-                      export, export_one, export_pymongo, export_to_mirror,
-                      fetch)
+from .contrib import (
+    Collection,
+    MainCrawler,
+    MasterCrawler,
+    Project,
+    RegexFileCrawler,
+    SignacProjectCrawler,
+    TemporaryProject,
+    export,
+    export_one,
+    export_pymongo,
+    export_to_mirror,
+    fetch,
+)
 from .contrib import filesystems as fs
 from .contrib import get_job, get_project, index, index_files, init_project
 from .core.h5store import H5Store, H5StoreManager

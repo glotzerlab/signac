@@ -81,8 +81,12 @@ from collections.abc import Mapping
 from multiprocessing.pool import ThreadPool
 
 from .contrib.utility import query_yes_no
-from .errors import (DestinationExistsError, DocumentSyncConflict,
-                     FileSyncConflict, SchemaSyncConflict)
+from .errors import (
+    DestinationExistsError,
+    DocumentSyncConflict,
+    FileSyncConflict,
+    SchemaSyncConflict,
+)
 from .syncutil import _FileModifyProxy, dircmp, dircmp_deep, logger
 
 __all__ = [

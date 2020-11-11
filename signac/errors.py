@@ -7,10 +7,12 @@
 # exceptions that are relevant beyond a single module. This top-level errors
 # module is used to expose user-facing exception classes.
 
-from .common.errors import (AuthenticationError, ConfigError, ExportError,
-                            FetchError)
-from .contrib.errors import (DestinationExistsError, IncompatibleSchemaVersion,
-                             JobsCorruptedError)
+from .common.errors import AuthenticationError, ConfigError, ExportError, FetchError
+from .contrib.errors import (
+    DestinationExistsError,
+    IncompatibleSchemaVersion,
+    JobsCorruptedError,
+)
 from .core.errors import Error
 from .core.jsondict import BufferedFileError, BufferException
 

@@ -19,8 +19,7 @@ from time import time
 
 import pytest
 
-from signac.core.h5store import (H5Store, H5StoreAlreadyOpenError,
-                                 H5StoreClosedError)
+from signac.core.h5store import H5Store, H5StoreAlreadyOpenError, H5StoreClosedError
 from signac.errors import InvalidKeyError
 
 PYPY = 'PyPy' in platform.python_implementation()

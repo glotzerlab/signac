@@ -36,17 +36,20 @@ from .common.configobj import Section, flatten_errors
 from .common.crypt import get_crypt_context, get_keyring, parse_pwhash
 from .contrib.filterparse import parse_filter_arg
 from .contrib.import_export import _SchemaPathEvaluationError, export_jobs
-from .contrib.utility import (add_verbosity_argument, prompt_password,
-                              query_yes_no)
+from .contrib.utility import add_verbosity_argument, prompt_password, query_yes_no
 from .diff import diff_jobs
-from .errors import (DestinationExistsError, DocumentSyncConflict,
-                     FileSyncConflict, SchemaSyncConflict, SyncConflict)
+from .errors import (
+    DestinationExistsError,
+    DocumentSyncConflict,
+    FileSyncConflict,
+    SchemaSyncConflict,
+    SyncConflict,
+)
 from .sync import DocSync, FileSync
 from .version import __version__
 
 try:
-    from .common.host import (get_client, get_credentials, get_database,
-                              make_uri)
+    from .common.host import get_client, get_credentials, get_database, make_uri
 except ImportError:
     HOST = False
 else:
