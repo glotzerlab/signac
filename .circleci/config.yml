@@ -111,7 +111,11 @@ jobs:
       PYTHON: pypy3
 
   windows-python-38:
-    executor: win/default
+    executor:
+      name: win/default
+      shell: bash.exe
+    environment:
+      PYTHON: python
     steps:
       - checkout
       - run:
@@ -121,13 +125,13 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            python --version
-            python -m pip install --progress-bar off certifi
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
           name: Run tests
           command: |
-            python -m pytest tests/ -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
