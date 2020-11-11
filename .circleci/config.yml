@@ -50,10 +50,9 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
-            virtualenv ./venv --clear
+            ${PYTHON} -m virtualenv ./venv --clear
             . venv/bin/activate
             if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
