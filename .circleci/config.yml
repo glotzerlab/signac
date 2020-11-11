@@ -10,7 +10,7 @@ orbs:
 jobs:
   pre-checks:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     working_directory: ~/repo
 
@@ -26,9 +26,9 @@ jobs:
           command: |
             pre-commit run --all-files --show-diff-on-failure
 
-  linux-python-38: &linux-template
+  linux-python-39: &linux-template
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
 
     environment:
       PYTHON: python
@@ -50,10 +50,9 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            export PATH=$PATH:$HOME/.local/bin
             ${PYTHON} -m pip install --progress-bar off -U virtualenv --user
             mkdir -p ./venv
-            virtualenv ./venv --clear
+            ${PYTHON} -m virtualenv ./venv --clear
             . venv/bin/activate
             if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
@@ -94,6 +93,11 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
+  linux-python-38:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.8
+
   linux-python-37:
     <<: *linux-template
     docker:
@@ -112,7 +116,11 @@ jobs:
       PYTHON: pypy3
 
   windows-python-38:
-    executor: win/default
+    executor:
+      name: win/default
+      shell: bash.exe
+    environment:
+      PYTHON: python
     steps:
       - checkout
       - run:
@@ -122,17 +130,17 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            python --version
-            python -m pip install --progress-bar off certifi
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
       - run:
           name: Run tests
           command: |
-            python -m pytest tests/ -v
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
 
   check-metadata:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -148,7 +156,7 @@ jobs:
 
   test-deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -159,7 +167,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/repo
     steps:
       - checkout
@@ -174,6 +182,9 @@ workflows:
   test:
     jobs:
       - pre-checks
+      - linux-python-39:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
@@ -198,9 +209,10 @@ workflows:
             branches:
               only: /release\/.*/
           requires:
-            - linux-python-36
-            - linux-python-37
+            - linux-python-39
             - linux-python-38
+            - linux-python-37
+            - linux-python-36
             - linux-pypy-3
             - windows-python-38
   deploy:
