@@ -146,6 +146,11 @@ jobs:
       - run:
           name: Create environment and run tests
           command: |
+            # The default Python on OS X is still Python2, so we must specify
+            # python3. We create a virtual environment so that the python
+            # command line executable is python3. This change is necessary
+            # because the tests of signac's CLI call `python`, so they'll use
+            # the python2 executable by default.
             python3 -m venv create test_env
             . test_env/bin/activate
             python --version
