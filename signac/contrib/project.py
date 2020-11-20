@@ -2387,7 +2387,7 @@ class JobsCursor:
     def next(self):
         """Return the next element.
 
-        This function is deprecated, users should use iter(..).next() instead!
+        This function is deprecated. Users should use ``next(iter(..))`` instead.
         .. deprecated:: 0.9.6
 
         """
