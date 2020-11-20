@@ -944,31 +944,31 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        jobs_before_export = set(self.project.find_jobs())
+        jobs_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 10
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, "a"))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "a", str(i)))
-        assert jobs_before_export == set(self.project.find_jobs())
+        assert jobs_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_single_job(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(1):
             self.project.open_job(dict(a=i)).init()
 
-        jobs_before_export = set(self.project.find_jobs())
+        jobs_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 1
         assert len(os.listdir(prefix_data)) == 1
-        assert jobs_before_export == set(self.project.find_jobs())
+        assert jobs_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_function(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        jobs_before_export = set(self.project.find_jobs())
+        jobs_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path=lambda job: "non_unique")
@@ -982,7 +982,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(os.listdir(os.path.join(prefix_data, "my_a"))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "my_a", str(i)))
-        assert jobs_before_export == set(self.project.find_jobs())
+        assert jobs_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string_modify_tree_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -1468,12 +1468,12 @@ class TestProjectExportImport(TestProjectBase):
     def test_import_own_project(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        jobs_before_export = set(self.project.find_jobs())
+        jobs_before_export = {job.id for job in self.project.find_jobs()}
         self.project.import_from(origin=self.project.workspace())
-        assert jobs_before_export == set(self.project.find_jobs())
+        assert jobs_before_export == {job.id for job in self.project.find_jobs()}
         with self.project.temporary_project() as tmp_project:
             tmp_project.import_from(origin=self.project.workspace())
-            assert jobs_before_export == set(tmp_project.find_jobs())
+            assert jobs_before_export == {job.id for job in tmp_project.find_jobs()}
             assert len(tmp_project) == len(self.project)
 
 

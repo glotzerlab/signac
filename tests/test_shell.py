@@ -629,13 +629,13 @@ class TestBasicShell:
 
         for i in range(10):
             project.open_job({"a": i}).init()
-        jobs_before_export = set(project.find_jobs())
+        jobs_before_export = {job.id for job in project.find_jobs()}
         assert len(project) == 10
         project.export_to(target=prefix_data, copytree=os.replace)
         assert len(project) == 0
         self.call(f"python -m signac import {prefix_data}".split())
         assert len(project) == 10
-        assert set(project.find_jobs()) == jobs_before_export
+        assert {job.id for job in project.find_jobs()} == jobs_before_export
 
         # invalid combination
         with pytest.raises(ExitCodeError):
