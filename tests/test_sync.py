@@ -657,11 +657,11 @@ class TestProjectSync:
             )
         with pytest.raises(FileSyncConflict):
             self.project_a.sync(
-                self.project_b, selection=[job.id for job in self.project_a.find_jobs()]
+                self.project_b, selection=[job.id for job in self.project_a.find_jobs({"a": 0})]
             )
         with pytest.raises(FileSyncConflict):
             self.project_a.sync(
-                self.project_b, selection=[job.id for job in self.project_b.find_jobs()]
+                self.project_b, selection=[job.id for job in self.project_b.find_jobs({"a": 0})]
             )
         f = {"a": {"$ne": 0}}
         self.project_a.sync(self.project_b, selection=self.project_a.find_jobs(f))
