@@ -137,6 +137,7 @@ class TestH5Store(TestH5StoreBase):
         "int_array": array("i", [-1, 0, 1]),
         "uint_array": array("I", [0, 1, 2]),
         "dict": {"a": 1, "b": None, "c": "test"},
+        "bytes": b"signac\x00\xf0\x9f\x8e\xa8",
     }
 
     if NUMPY:
