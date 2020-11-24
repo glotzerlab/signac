@@ -4,7 +4,6 @@
 """The file system handlers defined in this module
 encapsulate the I/O operations required to store
 and fetch data from different file systems."""
-import errno
 import io
 import os
 import warnings
@@ -93,12 +92,8 @@ class LocalFS:
         if "x" not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
-        try:
-            path = os.path.dirname(fn)
-            os.makedirs(path)
-        except OSError as error:
-            if not (error.errno == errno.EEXIST and os.path.isdir(path)):
-                raise
+        path = os.path.dirname(fn)
+        os.makedirs(path, exist_ok=True)
         return open(fn, mode=mode)
 
     def get(self, _id, mode="r"):
