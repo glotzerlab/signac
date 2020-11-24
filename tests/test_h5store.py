@@ -130,7 +130,7 @@ class TestH5Store(TestH5StoreBase):
     valid_types = {
         "int": 123,
         "float": 123.456,
-        "string": "foobar",
+        "string": "lorem ipsum including unicõdé 🎨",
         "none": None,
         "float_array": array("f", [-1.5, 0, 1.5]),
         "double_array": array("d", [-1.5, 0, 1.5]),
@@ -142,8 +142,14 @@ class TestH5Store(TestH5StoreBase):
     if NUMPY:
         valid_types.update(
             {
-                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=float),
-                "numpy_int_array": numpy.array([-1, 0, 1], dtype=int),
+                "numpy_int_array": numpy.array([-1, 0, 1], dtype=numpy.int_),
+                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=numpy.float_),
+                "numpy_complex_array": numpy.array(
+                    [-1.5 + 3.14j, 0, 1.5 - 5.67j], dtype=numpy.complex_
+                ),
+                "numpy_bytes_array": numpy.array(
+                    [b"abcde", b"ascii_only"], dtype=numpy.string_
+                ),
             }
         )
 
