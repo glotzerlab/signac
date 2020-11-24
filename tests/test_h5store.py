@@ -154,6 +154,13 @@ class TestH5Store(TestH5StoreBase):
                 "numpy_string_array": numpy.array(
                     [b"abcde", b"ascii_only"], dtype=numpy.string_
                 ),
+                "numpy_void_array": numpy.array(
+                    [
+                        b"abcde",
+                        b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+                    ],
+                    dtype="V",
+                ),
             }
         )
 
