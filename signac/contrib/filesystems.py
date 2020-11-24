@@ -13,6 +13,7 @@ from deprecation import deprecated
 
 from ..db import get_database
 from ..version import __version__
+from .utility import _mkdir_p
 
 try:
     import gridfs
@@ -92,8 +93,7 @@ class LocalFS:
         if "x" not in mode:
             raise ValueError(mode)
         fn = self._fn(_id)
-        path = os.path.dirname(fn)
-        os.makedirs(path, exist_ok=True)
+        _mkdir_p(os.path.dirname(fn))
         return open(fn, mode=mode)
 
     def get(self, _id, mode="r"):

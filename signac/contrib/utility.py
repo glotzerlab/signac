@@ -273,7 +273,7 @@ def walkdepth(path, depth=0):
 
 
 def _mkdir_p(path):
-    """Make a new directory, or do nothing if the path already exists.
+    """Make a new directory, or do nothing if the directory already exists.
 
     Parameters
     ----------
@@ -281,7 +281,12 @@ def _mkdir_p(path):
         New directory name.
 
     """
-    os.makedirs(path, exist_ok=True)
+    # Performance: `isdir` is fast and eliminates the need to check `_mkdir_p`
+    # if the path already exists. Typically this function is called in cases
+    # where the path already exists. If the path is a file, this check returns
+    # False and allows os.makedirs to raise FileExistsError as usual.
+    if not os.path.isdir(path):
+        os.makedirs(path, exist_ok=True)
 
 
 def split_and_print_progress(iterable, num_chunks=10, write=None, desc="Progress: "):

@@ -9,6 +9,8 @@ import os
 import sys
 from itertools import chain
 
+from .utility import _mkdir_p
+
 logger = logging.getLogger(__name__)
 
 
@@ -205,7 +207,7 @@ def _make_link(src, dst):
         Destination symbolic link directory/file name.
 
     """
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    _mkdir_p(os.path.dirname(dst))
     try:
         os.symlink(src, dst, target_is_directory=True)
     except OSError as error:
