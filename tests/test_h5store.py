@@ -137,7 +137,7 @@ class TestH5Store(TestH5StoreBase):
         "int_array": array("i", [-1, 0, 1]),
         "uint_array": array("I", [0, 1, 2]),
         "dict": {"a": 1, "b": None, "c": "test"},
-        "bytes": b"signac\x00\xf0\x9f\x8e\xa8",
+        "bytes": b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
     }
 
     if NUMPY:
@@ -148,7 +148,10 @@ class TestH5Store(TestH5StoreBase):
                 "numpy_complex_array": numpy.array(
                     [-1.5 + 3.14j, 0, 1.5 - 5.67j], dtype=numpy.complex_
                 ),
-                "numpy_bytes_array": numpy.array(
+                # Note that NumPy's string type is handled kind of like a char
+                # array or bytes, not like Python str. numpy.unicode_ uses a
+                # four byte encoding and is explicitly not supported by h5py.
+                "numpy_string_array": numpy.array(
                     [b"abcde", b"ascii_only"], dtype=numpy.string_
                 ),
             }
