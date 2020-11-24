@@ -449,6 +449,16 @@ class Job:
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
 
+        # Attempt early exit if the manifest exists and is valid
+        try:
+            self._check_manifest()
+        except Exception:
+            # Any exception means this method cannot exit early
+            pass
+        else:
+            # The manifest is exists and is valid, exit early
+            return
+
         # Create the workspace directory if it did not exist yet.
         try:
             _mkdir_p(self._wd)
@@ -481,14 +491,13 @@ class Job:
             self._check_manifest()
 
     def _check_manifest(self):
-        """Check whether the manifest file is correct (if it exists)."""
+        """Check whether the manifest file exists and is correct."""
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as file:
                 assert calc_id(json.loads(file.read().decode())) == self._id
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
+        except OSError:
+            raise
         except (AssertionError, ValueError):
             raise JobsCorruptedError([self._id])
 
