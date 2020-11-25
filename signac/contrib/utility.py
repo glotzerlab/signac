@@ -281,7 +281,7 @@ def _mkdir_p(path):
         New directory name.
 
     """
-    # Performance: `isdir` is fast and eliminates the need to check `_mkdir_p`
+    # Performance: `isdir` is fast and eliminates the rest of os.makedirs
     # if the path already exists. Typically this function is called in cases
     # where the path already exists. If the path is a file, this check returns
     # False and allows os.makedirs to raise FileExistsError as usual.
