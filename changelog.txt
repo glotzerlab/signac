@@ -22,7 +22,7 @@ Added
 Changed
 +++++++
 
- - ``Job.init()`` exits early for jobs that are initialized (#422).
+ - Optimized performance of job initialization (#422).
 
 [1.5.0] -- 2020-09-20
 ---------------------
