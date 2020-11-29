@@ -453,42 +453,38 @@ class Job:
         try:
             self._check_manifest()
         except Exception:
-            # Any exception means this method cannot exit early
-            pass
-        else:
-            # The manifest is exists and is valid, exit early
-            return
+            # Any exception means this method cannot exit early.
 
-        # Create the workspace directory if it did not exist yet.
-        try:
-            _mkdir_p(self._wd)
-        except OSError:
-            logger.error(
-                "Error occured while trying to create "
-                "workspace directory for job '{}'.".format(self)
-            )
-            raise
-
-        try:
-            # Ensure to create the binary to write before file creation
-            blob = json.dumps(self._statepoint, indent=2)
+            # Create the workspace directory if it did not exist yet.
+            try:
+                _mkdir_p(self._wd)
+            except OSError:
+                logger.error(
+                    "Error occurred while trying to create "
+                    "workspace directory for job '{}'.".format(self)
+                )
+                raise
 
             try:
-                # Open the file for writing only if it does not exist yet.
-                with open(fn_manifest, "w" if force else "x") as file:
-                    file.write(blob)
-            except OSError as error:
-                if error.errno not in (errno.EEXIST, errno.EACCES):
-                    raise
-        except Exception as error:
-            # Attempt to delete the file on error, to prevent corruption.
-            try:
-                os.remove(fn_manifest)
-            except Exception:  # ignore all errors here
-                pass
-            raise error
-        else:
-            self._check_manifest()
+                # Prepare the data before file creation and writing
+                blob = json.dumps(self._statepoint, indent=2)
+
+                try:
+                    # Open the file for writing only if it does not exist yet.
+                    with open(fn_manifest, "w" if force else "x") as file:
+                        file.write(blob)
+                except OSError as error:
+                    if error.errno not in (errno.EEXIST, errno.EACCES):
+                        raise
+            except Exception as error:
+                # Attempt to delete the file on error, to prevent corruption.
+                try:
+                    os.remove(fn_manifest)
+                except Exception:  # ignore all errors here
+                    pass
+                raise error
+            else:
+                self._check_manifest()
 
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct."""
