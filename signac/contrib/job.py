@@ -492,8 +492,6 @@ class Job:
         try:
             with open(fn_manifest, "rb") as file:
                 assert calc_id(json.loads(file.read().decode())) == self._id
-        except OSError:
-            raise
         except (AssertionError, ValueError):
             raise JobsCorruptedError([self._id])
 
