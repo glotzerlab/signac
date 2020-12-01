@@ -837,7 +837,11 @@ class Project:
         deprecated_in="1.3",
         removed_in="2.0",
         current_version=__version__,
-        details="Use find_jobs().ids instead.",
+        details=(
+            "Use find_jobs() instead, then access ids with job.id."
+            "Replicate the original behavior with "
+            "[job.id for job in project.find_jobs()]"
+        ),
     )
     def find_job_ids(self, filter=None, doc_filter=None, index=None):
         """Find the job_ids of all jobs matching the filters.
@@ -2383,12 +2387,13 @@ class JobsCursor:
     def next(self):
         """Return the next element.
 
-        This function is deprecated, users should use iter(..).next() instead!
+        This function is deprecated. Users should use ``next(iter(..))`` instead.
         .. deprecated:: 0.9.6
 
         """
         warnings.warn(
-            "Calling next() directly on a JobsCursor is deprecated!", DeprecationWarning
+            "Calling next() directly on a JobsCursor is deprecated! Use next(iter(..)) instead.",
+            DeprecationWarning,
         )
         if self._next_iter is None:
             self._next_iter = iter(self)
