@@ -19,6 +19,11 @@ Added
  - Added macOS to CircleCI testing pipeline (#281, #414).
  - Official support for Python 3.9 (#417).
 
+Changed
++++++++
+
+ - Optimized performance of job initialization (#422).
+
 [1.5.0] -- 2020-09-20
 ---------------------
 
