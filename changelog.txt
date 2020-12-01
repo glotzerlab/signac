@@ -22,7 +22,8 @@ Added
 Changed
 +++++++
 
- - Optimized performance of job initialization (#421, #422).
+ - Optimized internal function ``_mkdir_p`` (#421).
+ - Optimized performance of job initialization (#422).
 
 [1.5.0] -- 2020-09-20
 ---------------------
