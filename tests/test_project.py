@@ -754,10 +754,9 @@ class TestProject(TestProjectBase):
         assert s_sub != self.project.detect_schema()
         s = self.project.detect_schema(subset=self.project.find_jobs({"a.$lt": 5}))
         assert s == s_sub
-        with pytest.deprecated_call():
-            s = self.project.detect_schema(
-                subset=self.project.find_job_ids({"a.$lt": 5})
-            )
+        s = self.project.detect_schema(
+            subset=[job.id for job in self.project.find_jobs({"a.$lt": 5})]
+        )
         assert s == s_sub
 
     def test_schema_eval(self):
@@ -945,35 +944,31 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 10
         assert len(os.listdir(prefix_data)) == 1
         assert len(os.listdir(os.path.join(prefix_data, "a"))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "a", str(i)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_single_job(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(1):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         assert len(self.project) == 1
         assert len(os.listdir(prefix_data)) == 1
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_function(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path=lambda job: "non_unique")
@@ -987,8 +982,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(os.listdir(os.path.join(prefix_data, "my_a"))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "my_a", str(i)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string_modify_tree_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -999,8 +993,7 @@ class TestProjectExportImport(TestProjectBase):
                         self.project.open_job(
                             dict(a=a_value, b=b_value, c=c_value, d=d_value)
                         ).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
@@ -1026,8 +1019,7 @@ class TestProjectExportImport(TestProjectBase):
                                 "c_%d_d_%d" % (c_value, d_value),
                             )
                         )
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string_modify_tree_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -1038,8 +1030,7 @@ class TestProjectExportImport(TestProjectBase):
                         self.project.open_job(
                             dict(a=a_value, b=b_value, c=c_value, d=d_value)
                         ).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
@@ -1068,8 +1059,7 @@ class TestProjectExportImport(TestProjectBase):
                                 str(a_value),
                             )
                         )
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string_modify_flat_flat(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -1080,8 +1070,7 @@ class TestProjectExportImport(TestProjectBase):
                         self.project.open_job(
                             dict(a=a_value, b=b_value, c=c_value, d=d_value)
                         ).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
@@ -1102,8 +1091,7 @@ class TestProjectExportImport(TestProjectBase):
                                 "d_%d_a_%d" % (d_value, a_value),
                             )
                         )
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string_modify_flat_tree(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -1114,8 +1102,7 @@ class TestProjectExportImport(TestProjectBase):
                         self.project.open_job(
                             dict(a=a_value, b=b_value, c=c_value, d=d_value)
                         ).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
@@ -1136,15 +1123,13 @@ class TestProjectExportImport(TestProjectBase):
                                 % (c_value, b_value, d_value, a_value),
                             )
                         )
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_string(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(target=prefix_data, path="non_unique")
@@ -1158,15 +1143,14 @@ class TestProjectExportImport(TestProjectBase):
         assert len(os.listdir(os.path.join(prefix_data, "my_a"))) == 10
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "my_a", str(i)))
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_move(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
+
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1174,15 +1158,13 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "a", str(i)))
         assert len(self.project.import_from(origin=prefix_data)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_custom_path_function_move(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
 
         with pytest.raises(RuntimeError):
             self.project.export_to(
@@ -1201,15 +1183,14 @@ class TestProjectExportImport(TestProjectBase):
         for i in range(10):
             assert os.path.isdir(os.path.join(prefix_data, "my_a", str(i)))
         assert len(self.project.import_from(origin=prefix_data)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_tarfile(self):
         target = os.path.join(self._tmp_dir.name, "data.tar")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
+
         self.project.export_to(target=target)
         assert len(self.project) == 10
         with TarFile(name=target) as tarfile:
@@ -1219,8 +1200,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_tarfile_zipped_longname(self):
         """Test the behavior of tarfile export when the path is >100 chars."""
@@ -1245,8 +1225,7 @@ class TestProjectExportImport(TestProjectBase):
                     job.fn(os.path.join("sub-dir", "signac_statepoint.json")), "w"
                 ) as file:
                     file.write(json.dumps({"foo": 0}))
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=target)
         assert len(self.project) == 10
         with TarFile.open(name=target, mode="r:gz") as tarfile:
@@ -1257,8 +1236,8 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
+
         for job in self.project:
             assert job.isfile(os.path.join("sub-dir", "signac_statepoint.json"))
 
@@ -1271,8 +1250,7 @@ class TestProjectExportImport(TestProjectBase):
                     job.fn(os.path.join("sub-dir", "signac_statepoint.json")), "w"
                 ) as file:
                     file.write(json.dumps({"foo": 0}))
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=target)
         assert len(self.project) == 10
         with ZipFile(target) as zipfile:
@@ -1283,8 +1261,7 @@ class TestProjectExportImport(TestProjectBase):
         assert len(self.project) == 0
         self.project.import_from(origin=target)
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
         for job in self.project:
             assert job.isfile(os.path.join("sub-dir", "signac_statepoint.json"))
 
@@ -1292,31 +1269,26 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project.import_from(prefix_data)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_conflict(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         with pytest.raises(DestinationExistsError):
             assert len(self.project.import_from(prefix_data)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_conflict_synced(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         with pytest.raises(DestinationExistsError):
             assert len(self.project.import_from(prefix_data)) == 10
@@ -1324,18 +1296,15 @@ class TestProjectExportImport(TestProjectBase):
             assert len(tmp_project.import_from(prefix_data)) == 10
             assert len(tmp_project) == 10
             self.project.sync(tmp_project)
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
         assert len(self.project.import_from(prefix_data, sync=True)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_conflict_synced_with_args(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data)
         with pytest.raises(DestinationExistsError):
             assert len(self.project.import_from(prefix_data)) == 10
@@ -1349,8 +1318,7 @@ class TestProjectExportImport(TestProjectBase):
         )
         assert len(self.project) == 1
         assert len(self.project.find_jobs(dict(a=0))) == 1
-        with pytest.deprecated_call():
-            assert list(self.project.find_job_ids())[0] in ids_before_export
+        assert next(iter(self.project.find_jobs())).id in ids_before_export
 
     def test_export_import_schema_callable(self):
         def my_schema(path):
@@ -1362,12 +1330,10 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project.import_from(prefix_data, schema=my_schema)) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_schema_callable_non_unique(self):
         def my_schema_non_unique(path):
@@ -1387,8 +1353,7 @@ class TestProjectExportImport(TestProjectBase):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1399,15 +1364,13 @@ class TestProjectExportImport(TestProjectBase):
             self.project.import_from(origin=prefix_data, schema="a/{b:int}")
         assert len(self.project.import_from(prefix_data)) == 10
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_simple_path_nested_with_schema(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=dict(b=dict(c=i)))).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1423,15 +1386,13 @@ class TestProjectExportImport(TestProjectBase):
             == 10
         )
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_simple_path_with_float(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1440,8 +1401,7 @@ class TestProjectExportImport(TestProjectBase):
             assert os.path.isdir(os.path.join(prefix_data, "a", str(float(i))))
         assert len(self.project.import_from(prefix_data)) == 10
         assert len(self.project) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_complex_path(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
@@ -1454,21 +1414,18 @@ class TestProjectExportImport(TestProjectBase):
         statepoints = sp_0 + sp_1 + sp_2
         for sp in statepoints:
             self.project.open_job(sp).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         self.project.import_from(prefix_data)
         assert len(self.project) == len(statepoints)
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_simple_path_schema_from_path(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1477,15 +1434,13 @@ class TestProjectExportImport(TestProjectBase):
             assert os.path.isdir(os.path.join(prefix_data, "a", str(i)))
         ret = self.project.import_from(origin=prefix_data, schema="a/{a:int}")
         assert len(ret) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_simple_path_schema_from_path_float(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         for i in range(10):
             self.project.open_job(dict(a=float(i))).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         assert len(os.listdir(prefix_data)) == 1
@@ -1496,35 +1451,29 @@ class TestProjectExportImport(TestProjectBase):
         assert len(ret) == 0  # should not match
         ret = self.project.import_from(origin=prefix_data, schema="a/{a:float}")
         assert len(ret) == 10
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_export_import_complex_path_nested_schema_from_path(self):
         prefix_data = os.path.join(self._tmp_dir.name, "data")
         statepoints = [{"a": i, "b": {"c": i % 3}} for i in range(5)]
         for sp in statepoints:
             self.project.open_job(sp).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.export_to(target=prefix_data, copytree=os.replace)
         assert len(self.project) == 0
         self.project.import_from(origin=prefix_data, schema="b.c/{b.c:int}/a/{a:int}")
         assert len(self.project) == len(statepoints)
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
 
     def test_import_own_project(self):
         for i in range(10):
             self.project.open_job(dict(a=i)).init()
-        with pytest.deprecated_call():
-            ids_before_export = list(sorted(self.project.find_job_ids()))
+        ids_before_export = {job.id for job in self.project.find_jobs()}
         self.project.import_from(origin=self.project.workspace())
-        with pytest.deprecated_call():
-            assert ids_before_export == list(sorted(self.project.find_job_ids()))
+        assert ids_before_export == {job.id for job in self.project.find_jobs()}
         with self.project.temporary_project() as tmp_project:
             tmp_project.import_from(origin=self.project.workspace())
-            with pytest.deprecated_call():
-                assert ids_before_export == list(sorted(tmp_project.find_job_ids()))
+            assert ids_before_export == {job.id for job in self.project.find_jobs()}
             assert len(tmp_project) == len(self.project)
 
 
@@ -1647,19 +1596,18 @@ class TestLinkedViewProject(TestProjectBase):
         )
         assert src == dst
         # update with subset
-        with pytest.deprecated_call():
-            subset = list(self.project.find_job_ids({"b": 0}))
-        job_subset = [self.project.open_job(id=id) for id in subset]
+        job_subset = self.project.find_jobs({"b": 0})
+        id_subset = [job.id for job in job_subset]
 
         bad_index = [dict(_id=i) for i in range(3)]
         with pytest.raises(ValueError):
             self.project.create_linked_view(
-                prefix=view_prefix, job_ids=subset, index=bad_index
+                prefix=view_prefix, job_ids=id_subset, index=bad_index
             )
 
-        self.project.create_linked_view(prefix=view_prefix, job_ids=subset)
+        self.project.create_linked_view(prefix=view_prefix, job_ids=id_subset)
         all_links = list(_find_all_links(view_prefix))
-        assert len(all_links) == len(subset)
+        assert len(all_links) == len(id_subset)
         dst = set(
             map(
                 lambda l: os.path.realpath(os.path.join(view_prefix, l, "job")),

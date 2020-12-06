@@ -1,9 +1,9 @@
 click==7.1.2
 coverage==5.3
-h5py==3.0.0; implementation_name=='cpython'
-numpy==1.19.3
+h5py==3.1.0; implementation_name=='cpython'
+numpy==1.19.4
 pandas==1.1.4; implementation_name=='cpython'
-pymongo==3.11.0; implementation_name=='cpython'
+pymongo==3.11.1; implementation_name=='cpython'
 pytest-cov==2.10.1
 pytest==6.1.2
 ruamel.yaml==0.16.12

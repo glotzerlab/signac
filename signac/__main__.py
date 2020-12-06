@@ -202,7 +202,7 @@ def _open_job_by_id(project, job_id):
         return project.open_job(id=job_id)
     except KeyError:
         close_matches = difflib.get_close_matches(
-            job_id, [jid[: len(job_id)] for jid in project.find_job_ids()]
+            job_id, [job.id[: len(job_id)] for job in project.find_jobs()]
         )
         msg = f"Did not find job corresponding to id '{job_id}'."
         if len(close_matches) == 1:
