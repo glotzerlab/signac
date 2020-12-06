@@ -130,20 +130,41 @@ class TestH5Store(TestH5StoreBase):
     valid_types = {
         "int": 123,
         "float": 123.456,
-        "string": "foobar",
+        "string": "lorem ipsum including unicõdé 🎨",
         "none": None,
         "float_array": array("f", [-1.5, 0, 1.5]),
         "double_array": array("d", [-1.5, 0, 1.5]),
         "int_array": array("i", [-1, 0, 1]),
         "uint_array": array("I", [0, 1, 2]),
         "dict": {"a": 1, "b": None, "c": "test"},
+        "bytes": b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
     }
 
     if NUMPY:
         valid_types.update(
             {
-                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=float),
-                "numpy_int_array": numpy.array([-1, 0, 1], dtype=int),
+                "numpy_int_array": numpy.array([-1, 0, 1], dtype=numpy.int_),
+                "numpy_float_array": numpy.array([-1.5, 0, 1.5], dtype=numpy.float_),
+                "numpy_complex_array": numpy.array(
+                    [-1.5 + 3.14j, 0, 1.5 - 5.67j], dtype=numpy.complex_
+                ),
+                # Note that NumPy's string type is handled kind of like a char
+                # array or bytes, not like Python str. numpy.unicode_ uses a
+                # four byte encoding and is explicitly not supported by h5py.
+                "numpy_string_array": numpy.array(
+                    [
+                        b"abcde",
+                        b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+                    ],
+                    dtype=numpy.string_,
+                ),
+                "numpy_void_array": numpy.array(
+                    [
+                        b"abcde",
+                        b"\x73\x69\x67\x6E\x61\x63\x00\xF0\x9F\x8E\xA8",
+                    ],
+                    dtype="V",
+                ),
             }
         )
 
