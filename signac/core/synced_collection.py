@@ -16,7 +16,7 @@ from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
 
-from .errors import Error
+from .errors import BufferException, BufferedError
 
 try:
     import numpy
@@ -28,29 +28,7 @@ logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
-_BUFFERED_BACKNDS: List[Any] = list()
-
-
-class BufferException(Error):
-    """An exception occured in buffered mode."""
-
-
-class BufferedError(BufferException):
-    """Raised when an error occured while flushing one or more buffered files.
-
-    Attribute
-    ---------
-    names:
-        A dictionary of names that caused issues during the flush operation,
-        mapped to a possible reason for the issue or None in case that it
-        cannot be determined.
-    """
-
-    def __init__(self, files):
-        self.files = files
-
-    def __str__(self):
-        return "{}({})".format(type(self).__name__, self.files)
+_BUFFERED_BACKENDS: List[Any] = list()
 
 
 def flush_all():
@@ -61,8 +39,8 @@ def flush_all():
     BufferedFileError
     """
     logger.debug("Flushing buffer...")
-    issues = dict()
-    for backend in _BUFFERED_BACKNDS:
+    issues = {}
+    for backend in _BUFFERED_BACKENDS:
         try:
             # try to sync the data to backend
             issue = backend._flush_buffer()
@@ -90,7 +68,7 @@ def _register_buffered_backend(backend):
     The registry is used in the :meth:`flush_all`.
     Every backend to register should have ``_flush_buffer`` method.
     """
-    _BUFFERED_BACKNDS.append(backend)
+    _BUFFERED_BACKENDS.append(backend)
 
 
 @contextmanager
@@ -118,9 +96,11 @@ def buffer_reads_writes(force_write=False):
 
     # Can't switch force modes.
     if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write != _BUFFERED_MODE_FORCE_WRITE):
+        enter_state = 'enabled' if force_write else 'disabled'
+        current_state = 'enabled' if _BUFFERED_MODE_FORCE_WRITE else 'disabled'
         raise BufferException(
-            "Unable to enter buffered mode with force write enabled, because "
-            "we are already in buffered mode with force write disabled and vise-versa.")
+            f"Unable to enter buffered mode with force write {enter_state}, because "
+            f"buffered mode is already active with force write {current_state}.")
 
     _BUFFERED_MODE_FORCE_WRITE = force_write
     _BUFFERED_MODE += 1

@@ -49,7 +49,7 @@ class RedisCache(MutableMapping):
     The RedisCache is a :class:`~collections.abc.MutableMapping`. It uses redis-server
     to store data by using redis client. Redis client only accepts data as bytes, strings
     or numbers (ints, longs and floats) and returns response as bytes. So, this uses pickle
-    serialization to convert data into strings.
+    serialization to convert data into bytes.
     """
 
     def __init__(self, client):
@@ -65,7 +65,7 @@ class RedisCache(MutableMapping):
         self._client.delete(key)
 
     def __contains__(self, key):
-        self._client.__contains__(key)
+        return key in self._client
 
     def __iter__(self):
         for key in self._client.keys():

@@ -12,19 +12,9 @@ from abc import abstractmethod
 from .synced_collection import _in_buffered_mode
 from .synced_collection import _get_buffer_force_mode
 from .caching import get_cache
-from .synced_collection import BufferException
+from .errors import MetadataError
 
 logger = logging.getLogger(__name__)
-
-
-class MetadataError(BufferException):
-    """Raised when metadata check fails."""
-
-    def __init__(self, filename):
-        self.filename = filename
-
-    def __str__(self):
-        return f'{self.filename} appears to have been externally modified.'
 
 
 def _hash(blob):
@@ -45,8 +35,11 @@ class FileBuffer:
     _cache = get_cache()
 
     @staticmethod
-    def _get_filemetadata(filename):
-        """Return metadata of file"""
+    def _get_file_metadata(filename):
+        """Return metadata of file.
+
+        This method returns the size and last modification time of the file.
+        """
         try:
             metadata = os.stat(filename)
             return metadata.st_size, metadata.st_mtime
@@ -67,7 +60,7 @@ class FileBuffer:
         if filename not in self._cache:
             # storing metadata
             if not (_in_buffered_mode() and _get_buffer_force_mode()):
-                self._cache['METADATA::' + filename] = self._get_filemetadata(filename)
+                self._cache['METADATA::' + filename] = self._get_file_metadata(filename)
             # adding filename to list
             self._cache.setdefault('filenames', [])
             self._cache['filenames'].append(filename)
@@ -80,7 +73,7 @@ class FileBuffer:
 
     @classmethod
     def _flush(cls, filename):
-        """Write the data from buffer to the file. Return error if any."""
+        """Write the data from buffer to the file."""
         blob = cls._cache.pop(filename)
 
         if not _get_buffer_force_mode():
@@ -91,7 +84,7 @@ class FileBuffer:
         if not (hash_key in cls._cache and _hash(blob) == cls._cache.pop(hash_key)):
             # compare the metadata
             if not _get_buffer_force_mode():
-                if meta and cls._get_filemetadata(filename) != meta:
+                if meta and cls._get_file_metadata(filename) != meta:
                     raise MetadataError(filename)
             # Sync the data to underlying backend
             try:
@@ -106,13 +99,13 @@ class FileBuffer:
 
         Returns
         -------
-        issues: dict
+        issues : dict
             Mapping of filename and errors occured during flushing data.
         """
         issues = {}
 
         # files stored in buffer
-        filenames = cls._cache.pop('filenames') if 'filenames' in cls._cache else []
+        filenames = cls._cache.pop('filenames', [])
 
         for filename in filenames:
             try:
