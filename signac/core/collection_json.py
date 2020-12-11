@@ -11,19 +11,12 @@ import os
 import json
 import errno
 import uuid
-import logging
 import warnings
 
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
-from .buffers import FileBuffer
-from .synced_collection import _register_buffered_backend
-from .synced_collection import _in_buffered_mode
 from .validators import json_format_validator
-
-
-logger = logging.getLogger(__name__)
 
 
 def _convert_key_to_str(data):
@@ -47,7 +40,7 @@ def _convert_key_to_str(data):
     return data
 
 
-class JSONCollection(SyncedCollection, FileBuffer):
+class JSONCollection(SyncedCollection):
     """Implement sync and load using a JSON back end."""
 
     _backend = __name__  # type: ignore
@@ -57,65 +50,39 @@ class JSONCollection(SyncedCollection, FileBuffer):
         self._write_concern = write_concern
         kwargs['name'] = filename
         super().__init__(**kwargs)
-        self._supports_buffering = True
 
-    def _load_from_file(self):
+    def _load(self):
         """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:
-                return file.read()
+                blob = file.read()
+                return json.loads(blob)
         except IOError as error:
             if error.errno == errno.ENOENT:
-                return json.dumps(None).encode()  # Redis requires data to be string or bytes.
-
-    def _load(self):
-        """Load the data from buffer or JSON file."""
-        if _in_buffered_mode() or self._buffered:
-            if self._filename in self._cache:
-                # Load from buffer
-                blob = self._cache[self._filename]
-            else:
-                # Load from file and store in buffer
-                blob = self._load_from_file()
-                self._store_to_buffer(self._filename, blob, store_hash=True)
-        else:
-            # Load from file
-            blob = self._load_from_file()
-        return json.loads(blob)
-
-    @staticmethod
-    def _write_to_file(filename, blob, write_concern=True):
-        """Write the data to JSON file."""
-        # When write_concern flag is set, we write the data into dummy file and
-        # then replace that file with original file.
-        if write_concern:
-            dirname, fn = os.path.split(filename)
-            fn_tmp = os.path.join(dirname, f'._{uuid.uuid4()}_{fn}')
-            with open(fn_tmp, 'wb') as tmpfile:
-                tmpfile.write(blob)
-            os.replace(fn_tmp, filename)
-        else:
-            with open(filename, 'wb') as file:
-                file.write(blob)
+                return None
 
     def _sync(self):
-        """Write the data to file or buffer."""
+        """Write the data to JSON file."""
         data = self.to_base()
         # Converting non-string keys to string
         data = _convert_key_to_str(data)
         # Serialize data
         blob = json.dumps(data).encode()
-
-        if _in_buffered_mode() or self._buffered > 0:
-            # write in buffer
-            self._store_to_buffer(self._filename, blob)
+        # When write_concern flag is set, we write the data into dummy file and then
+        # replace that file with original file.
+        if self._write_concern:
+            dirname, filename = os.path.split(self._filename)
+            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
+                uid=uuid.uuid4(), fn=filename))
+            with open(fn_tmp, 'wb') as tmpfile:
+                tmpfile.write(blob)
+            os.replace(fn_tmp, self._filename)
         else:
-            # write to file
-            self._write_to_file(self._filename, blob, self._write_concern)
+            with open(self._filename, 'wb') as file:
+                file.write(blob)
 
 
 JSONCollection.add_validator(json_format_validator)
-_register_buffered_backend(JSONCollection)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
