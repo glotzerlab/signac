@@ -39,9 +39,12 @@ class SyncedCollection(Collection):
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
 
-    def __init__(self, name=None, parent=None):
+    def __init__(self, name=None, parent=None, *args, **kwargs):
         self._data = None
         self._parent = parent
+        # TODO: collections shouldn't have to be named. I think it's being used
+        # as a key in some of backend dictionary-like structures, but we should
+        # instead just use something like the hash of the object.
         self._name = name
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):

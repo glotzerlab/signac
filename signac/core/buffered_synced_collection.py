@@ -34,9 +34,15 @@ class BufferedCollection(SyncedCollection):
     since they're not crucial to getting the right structure here.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        # This attribute _must_ be defined prior to calling the superclass
+        # constructors in order to enable subclasses to override setattr and
+        # getattr in nontrivial ways. In particular, if setattr and getattr
+        # need to access the synced data, they may call sync and load, which
+        # depend on this parameter existing and could otherwise end up in an
+        # infinite recursion.
         self._buffered = 0
+        super().__init__(*args, **kwargs)
 
     # We would like to be able to override `_sync` and `_load` rather than
     # `sync` and `load` to avoid having to replicate the "parent" logic.
