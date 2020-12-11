@@ -8,111 +8,18 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
-import logging
-
 from typing import List, Callable, DefaultDict, Any
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
 
-from .errors import BufferException, BufferedError
 
 try:
     import numpy
     NUMPY = True
 except ImportError:
     NUMPY = False
-
-logger = logging.getLogger(__name__)
-
-_BUFFERED_MODE = 0
-_BUFFERED_MODE_FORCE_WRITE = None
-_BUFFERED_BACKENDS: List[Any] = list()
-
-
-def flush_all():
-    """Execute all deferred write operations.
-
-    Raises
-    ------
-    BufferedFileError
-    """
-    logger.debug("Flushing buffer...")
-    issues = {}
-    for backend in _BUFFERED_BACKENDS:
-        try:
-            # try to sync the data to backend
-            issue = backend._flush_buffer()
-            issues.update(issue)
-        except OSError as error:
-            logger.error(str(error))
-            issues[backend] = error
-    if issues:
-        raise BufferedError(issues)
-
-
-def _get_buffer_force_mode():
-    """Return True if buffer force mode enabled."""
-    return _BUFFERED_MODE_FORCE_WRITE
-
-
-def _in_buffered_mode():
-    """Return True if in buffered read/write mode."""
-    return _BUFFERED_MODE > 0
-
-
-def _register_buffered_backend(backend):
-    """Register the backend.
-
-    The registry is used in the :meth:`flush_all`.
-    Every backend to register should have ``_flush_buffer`` method.
-    """
-    _BUFFERED_BACKENDS.append(backend)
-
-
-@contextmanager
-def buffer_reads_writes(force_write=False):
-    """Enter a global buffer mode for all SyncedCollection instances.
-
-    All future write operations are written to the buffer, read
-    operations are performed from the buffer whenever possible.
-
-    All write operations are deferred until the flush_all() function
-    is called, the buffer overflows, or upon exiting the buffer mode.
-
-    Parameters
-    ----------
-    force_write: bool
-        If true, overwrites the metadata check.
-
-    Raises
-    ------
-    BufferException
-    """
-    global _BUFFERED_MODE
-    global _BUFFERED_MODE_FORCE_WRITE
-    assert _BUFFERED_MODE >= 0
-
-    # Can't switch force modes.
-    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write != _BUFFERED_MODE_FORCE_WRITE):
-        enter_state = 'enabled' if force_write else 'disabled'
-        current_state = 'enabled' if _BUFFERED_MODE_FORCE_WRITE else 'disabled'
-        raise BufferException(
-            f"Unable to enter buffered mode with force write {enter_state}, because "
-            f"buffered mode is already active with force write {current_state}.")
-
-    _BUFFERED_MODE_FORCE_WRITE = force_write
-    _BUFFERED_MODE += 1
-    try:
-        yield
-    finally:
-        _BUFFERED_MODE -= 1
-        if _BUFFERED_MODE == 0:
-            try:
-                flush_all()
-            finally:
-                _BUFFERED_MODE_FORCE_WRITE = None
 
 
 class SyncedCollection(Collection):
@@ -123,6 +30,11 @@ class SyncedCollection(Collection):
     in the underlying backend. The backend name wil be same as the module name.
     """
 
+    # TODO: Define clear copy/deepcopy/pickle semantics. In all cases the
+    # resulting SyncedCollection has to point to the same file, so is a
+    # deepcopy meaningfully any different from a shallow copy? The in-memory
+    # representation is a new dict, but you don't really gain anything by it.
+
     _backend = None
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
@@ -131,8 +43,6 @@ class SyncedCollection(Collection):
         self._data = None
         self._parent = parent
         self._name = name
-        self._supports_buffering = False
-        self._buffered = 0
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):
             raise ValueError(
@@ -242,7 +152,7 @@ class SyncedCollection(Collection):
         pass
 
     @abstractmethod
-    def _sync(self, data):
+    def _sync(self):
         """Write data to underlying backend."""
         pass
 
@@ -254,6 +164,9 @@ class SyncedCollection(Collection):
             else:
                 self._parent.sync()
 
+    # TODO: Convert load and sync to private methods, client code should never
+    # have to call them explicitly (synchronization should be transparent).
+    # TODO: Rename sync to save, which is less ambiguous (sync sounds two-way).
     def load(self):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
@@ -263,25 +176,6 @@ class SyncedCollection(Collection):
                     self._update(data)
             else:
                 self._parent.load()
-
-    @contextmanager
-    def buffered(self):
-        """Context manager for buffering read and write operations.
-
-        This context manager activates the "buffered" mode, which
-        means that all read operations are cached, and all write operations
-        are deferred until the buffered mode is deactivated.
-        """
-        if self._supports_buffering:
-            self._buffered += 1
-            try:
-                yield
-            finally:
-                self._buffered -= 1
-                if self._buffered == 0:
-                    self.flush()
-        else:
-            raise BufferException(f"{type(self).__name__} does not support buffering.")
 
     def _validate(self, data):
         """Validate the input data."""
@@ -296,6 +190,8 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
+        # TODO: May need to add a load here because other instances could
+        # modify the object.
         del self._data[item]
         self.sync()
 
@@ -312,6 +208,9 @@ class SyncedCollection(Collection):
         return self.to_base()
 
     def __eq__(self, other):
+        # TODO: Rewrite this check to not require copying to a dict, which
+        # could be slow if called frequently..
+        # TODO: Need to add a load here first.
         if isinstance(other, type(self)):
             return self() == other()
         else:
