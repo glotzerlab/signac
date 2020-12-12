@@ -48,12 +48,12 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().__init_subclass__()
         cls._cache = get_cache()
-        # We store the list of all objects currently storing data in the cache
-        # so that we can call the instance-level flush method. The reason to do
-        # is to ensure that we can check instance-specific buffering so that
-        # there are no inconsistencies caused by nesting global and
-        # instance-level buffering.
-        cls._cached_collections = set()
+#        # We store the list of all objects currently storing data in the cache
+#        # so that we can call the instance-level flush method. The reason to do
+#        # is to ensure that we can check instance-specific buffering so that
+#        # there are no inconsistencies caused by nesting global and
+#        # instance-level buffering.
+#        cls._cached_collections = set()
 
     def _get_file_metadata(self):
         """Return metadata of file."""
@@ -73,30 +73,40 @@ class FileBufferedCollection(BufferedCollection):
         # everywhere that _flush is called, need to be consistent at some
         # point.
         if not self._is_buffered:
+#            try:
+#                self._cached_collections.remove(self)
+#            except AttributeError as e:
+#                raise LookupError(
+#                    "An object attempted to flush from the cache without ever "
+#                    "being loaded. This likely indicates an internal error, "
+#                    "please contact the development team."
+#                ) from e
+            # TODO: Add test for multiple collections referring to the same
+            # file.
             try:
-                self._cached_collections.remove(self)
-            except AttributeError as e:
-                raise LookupError(
-                    "An object attempted to flush from the cache without ever "
-                    "being loaded. This likely indicates an internal error, "
-                    "please contact the development team."
-                ) from e
-            cached_contents = self._cache[self._filename]
+                cached_contents = self._cache[self._filename]
+            except KeyError:
+                # There are valid reasons for nothing to be in the cache (the
+                # object was never actually loaded, multiple collections
+                # pointing to the same file, etc.
+                # TODO: Think through whether there are any truly bad cases
+                # that we can also unambiguously identify and error on.
+                pass
+            else:
+                # TODO: Make sure that calling to_base doesn't just lead to calling
+                # _load (the non-buffered version) and wiping out the data from the
+                # buffer.
+                blob = json.dumps(self.to_base()).encode()
 
-            # TODO: Make sure that calling to_base doesn't just lead to calling
-            # _load (the non-buffered version) and wiping out the data from the
-            # buffer.
-            blob = json.dumps(self.to_base()).encode()
-
-            # If the contents have not been changed since the initial read, we
-            # don't need to rewrite it.
-            if self._hash(cached_contents[blob]) != cached_contents['blob']:
-                # Validate that the file hasn't been changed by something else.
-                if cached_contents['meta'] != self._get_file_metadata():
-                    raise MetadataError
-                self._data = json.loads(cached_contents['contents'])
-                self._sync()
-            del self._cache[self._filename]
+                # If the contents have not been changed since the initial read, we
+                # don't need to rewrite it.
+                if self._hash(blob) != cached_contents['contents']:
+                    # Validate that the file hasn't been changed by something else.
+                    if cached_contents['metadata'] != self._get_file_metadata():
+                        raise MetadataError
+                    self._data = json.loads(cached_contents['contents'])
+                    self._sync()
+                del self._cache[self._filename]
 
     def _sync_buffer(self):
         """Store data in buffer.
@@ -133,7 +143,7 @@ class FileBufferedCollection(BufferedCollection):
             self._cache[self._filename] = {
                 'contents': blob,
                 'hash': blob_hash,
-                'metadata': self._get_file_metadata(self._filename),
+                'metadata': self._get_file_metadata(),
             }
-            self._cached_collections.add(self)
+            # self._cached_collections.add(self)
         return json.loads(blob.decode())

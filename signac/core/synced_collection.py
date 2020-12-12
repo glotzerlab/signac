@@ -193,8 +193,7 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        # TODO: May need to add a load here because other instances could
-        # modify the object.
+        self.load()
         del self._data[item]
         self.sync()
 

@@ -64,33 +64,28 @@ class TestBufferedJSONDict(TestJSONDict):
         yield tmp
         self._tmp_dir.cleanup()
 
-#    def test_buffered(self, synced_dict, testdata):
-#        if synced_dict._supports_buffering:
-#            assert len(synced_dict) == 0
-#            synced_dict['buffered'] = testdata
-#            assert 'buffered' in synced_dict
-#            assert synced_dict['buffered'] == testdata
-#            with synced_dict.buffered():
-#                assert 'buffered' in synced_dict
-#                assert synced_dict['buffered'] == testdata
-#                synced_dict['buffered2'] = 1
-#                assert 'buffered2' in synced_dict
-#                assert synced_dict['buffered2'] == 1
-#            assert len(synced_dict) == 2
-#            assert 'buffered2' in synced_dict
-#            assert synced_dict['buffered2'] == 1
-#            with synced_dict.buffered():
-#                del synced_dict['buffered']
-#                assert len(synced_dict) == 1
-#                assert 'buffered' not in synced_dict
-#            assert len(synced_dict) == 1
-#            assert 'buffered' not in synced_dict
-#            assert 'buffered2' in synced_dict
-#            assert synced_dict['buffered2'] == 1
-#        else:
-#            with pytest.raises(BufferException):
-#                with synced_dict.buffered():
-#                    pass
+    def test_buffered(self, synced_dict, testdata):
+        assert len(synced_dict) == 0
+        synced_dict['buffered'] = testdata
+        assert 'buffered' in synced_dict
+        assert synced_dict['buffered'] == testdata
+        with synced_dict.buffered():
+            assert 'buffered' in synced_dict
+            assert synced_dict['buffered'] == testdata
+            synced_dict['buffered2'] = 1
+            assert 'buffered2' in synced_dict
+            assert synced_dict['buffered2'] == 1
+        assert len(synced_dict) == 2
+        assert 'buffered2' in synced_dict
+        assert synced_dict['buffered2'] == 1
+        with synced_dict.buffered():
+            del synced_dict['buffered']
+            assert len(synced_dict) == 1
+            assert 'buffered' not in synced_dict
+        assert len(synced_dict) == 1
+        assert 'buffered' not in synced_dict
+        assert 'buffered2' in synced_dict
+        assert synced_dict['buffered2'] == 1
 #
 #    def test_global_buffered(self, synced_dict, testdata):
 #        assert len(synced_dict) == 0
@@ -142,32 +137,27 @@ class TestBufferedJSONList(TestJSONList):
         yield BufferedJSONList(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
-#    def test_buffered(self, synced_list):
-#        if synced_list._supports_buffering:
-#            synced_list.extend([1, 2, 3])
-#            assert len(synced_list) == 3
-#            assert synced_list == [1, 2, 3]
-#            with synced_list.buffered():
-#                assert len(synced_list) == 3
-#                assert synced_list == [1, 2, 3]
-#                synced_list[0] = 4
-#                assert len(synced_list) == 3
-#                assert synced_list == [4, 2, 3]
-#            assert len(synced_list) == 3
-#            assert synced_list == [4, 2, 3]
-#            with synced_list.buffered():
-#                assert len(synced_list) == 3
-#                assert synced_list == [4, 2, 3]
-#                del synced_list[0]
-#                assert len(synced_list) == 2
-#                assert synced_list == [2, 3]
-#            assert len(synced_list) == 2
-#            assert synced_list == [2, 3]
-#        else:
-#            with pytest.raises(BufferException):
-#                with synced_list.buffered():
-#                    pass
-#
+    def test_buffered(self, synced_list):
+        synced_list.extend([1, 2, 3])
+        assert len(synced_list) == 3
+        assert synced_list == [1, 2, 3]
+        with synced_list.buffered():
+            assert len(synced_list) == 3
+            assert synced_list == [1, 2, 3]
+            synced_list[0] = 4
+            assert len(synced_list) == 3
+            assert synced_list == [4, 2, 3]
+        assert len(synced_list) == 3
+        assert synced_list == [4, 2, 3]
+        with synced_list.buffered():
+            assert len(synced_list) == 3
+            assert synced_list == [4, 2, 3]
+            del synced_list[0]
+            assert len(synced_list) == 2
+            assert synced_list == [2, 3]
+        assert len(synced_list) == 2
+        assert synced_list == [2, 3]
+
 #    def test_global_buffered(self, synced_list):
 #        assert len(synced_list) == 0
 #        with buffered():
