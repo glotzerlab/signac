@@ -47,6 +47,7 @@ class JSONCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
+        # TODO: Need to expose the filename in some way.
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         kwargs['name'] = filename

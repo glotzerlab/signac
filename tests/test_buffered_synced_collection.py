@@ -86,6 +86,20 @@ class TestBufferedJSONDict(TestJSONDict):
         assert 'buffered' not in synced_dict
         assert 'buffered2' in synced_dict
         assert synced_dict['buffered2'] == 1
+
+        # Explicitly check that the file has not been changed when buffering.
+        raw_dict = synced_dict.to_base()
+        with synced_dict.buffered():
+            synced_dict['buffered3'] = 1
+            with open(synced_dict._filename) as f:
+                on_disk_dict = json.load(f)
+            assert 'buffered3' not in on_disk_dict
+            assert on_disk_dict == raw_dict
+
+        with open(synced_dict._filename) as f:
+            on_disk_dict = json.load(f)
+        assert 'buffered3' in on_disk_dict
+        assert on_disk_dict == synced_dict
 #
 #    def test_global_buffered(self, synced_dict, testdata):
 #        assert len(synced_dict) == 0
@@ -157,6 +171,20 @@ class TestBufferedJSONList(TestJSONList):
             assert synced_list == [2, 3]
         assert len(synced_list) == 2
         assert synced_list == [2, 3]
+
+        # Explicitly check that the file has not been changed when buffering.
+        raw_list = synced_list.to_base()
+        with synced_list.buffered():
+            synced_list.append(10)
+            with open(synced_list._filename) as f:
+                on_disk_list = json.load(f)
+            assert 10 not in on_disk_list
+            assert on_disk_list == raw_list
+
+        with open(synced_list._filename) as f:
+            on_disk_list = json.load(f)
+        assert 10 in on_disk_list
+        assert on_disk_list == synced_list
 
 #    def test_global_buffered(self, synced_list):
 #        assert len(synced_list) == 0
