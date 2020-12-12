@@ -496,7 +496,7 @@ if __name__ == "__main__":
         "--num-keys",
         type=int,
         default=10,
-        help="The numnber of primary metadata keys.",
+        help="The number of primary metadata keys.",
     )
     parser_run.add_argument(
         "--num-doc-keys",
