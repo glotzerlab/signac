@@ -112,7 +112,10 @@ class _SyncedDict(MutableMapping):
             )
 
     def _dfs_convert(self, root):
-        if type(root) is type(self):
+        if isinstance(root, (bool, float, int, type(None), str)):
+            # Allow common types to exit early
+            return root
+        elif type(root) is type(self):
             for k in root:
                 root[k] = self._dfs_convert(root[k])
         elif isinstance(root, Mapping):
