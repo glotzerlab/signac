@@ -290,7 +290,7 @@ class _FileModifyProxy:
             self._copy2(path, path_backup)
             yield path_backup
         except:  # noqa roll-back
-            logger.more("Error occured, restoring backup...")
+            logger.more("Error occurred, restoring backup...")
             self._copy2(path_backup, path)
             raise
         finally:

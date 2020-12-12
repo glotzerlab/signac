@@ -210,7 +210,7 @@ def _build_index(docs, key, primary_key):
             pass
         except Exception as error:
             raise RuntimeError(
-                f"An unexpected error occured while processing doc '{doc}': {error}."
+                f"An unexpected error occurred while processing doc '{doc}': {error}."
             )
         else:
             # inlined for performance
