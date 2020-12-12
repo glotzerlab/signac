@@ -24,19 +24,20 @@ DEFAULT_BUFFER_SIZE = 32 * 2 ** 20  # 32 MB
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFER_SIZE = None
+_BUFFER_LOAD = 0
 _JSONDICT_BUFFER = dict()
 _JSONDICT_HASHES = dict()
 _JSONDICT_META = dict()
 
 
 class BufferException(Error):
-    """An exception occured in buffered mode."""
+    """An exception occurred in buffered mode."""
 
     pass
 
 
 class BufferedFileError(BufferException):
-    """Raised when an error occured while flushing one or more buffered files.
+    """Raised when an error occurred while flushing one or more buffered files.
 
     .. attribute:: files
 
