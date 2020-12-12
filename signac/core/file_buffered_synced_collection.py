@@ -103,7 +103,7 @@ class FileBufferedCollection(BufferedCollection):
                 if self._hash(blob) != cached_contents['contents']:
                     # Validate that the file hasn't been changed by something else.
                     if cached_contents['metadata'] != self._get_file_metadata():
-                        raise MetadataError
+                        raise MetadataError(self._filename)
                     self._data = json.loads(cached_contents['contents'])
                     self._sync()
                 del self._cache[self._filename]

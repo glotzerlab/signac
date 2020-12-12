@@ -5,27 +5,13 @@ import pytest
 import os
 import json
 from tempfile import TemporaryDirectory
-from collections.abc import MutableMapping
-from collections.abc import MutableSequence
-from copy import deepcopy
 
 from signac.core.synced_collection import SyncedCollection
-# from signac.core.synced_collection import buffer_reads_writes as buffered
 from signac.core.collection_json import BufferedJSONDict
 from signac.core.collection_json import BufferedJSONList
-# from signac.core.synced_collection import BufferException
-# from signac.core.synced_collection import BufferedError
-# from signac.core.buffers import FileBuffer
-from signac.errors import InvalidKeyError
-from signac.errors import KeyTypeError
+from signac.core.errors import MetadataError
 
 from test_synced_collection import TestJSONDict, TestJSONList
-
-try:
-    import numpy
-    NUMPY = True
-except ImportError:
-    NUMPY = False
 
 FN_JSON = 'test.json'
 
@@ -54,6 +40,7 @@ class TestJSONCollectionBase:
 
 
 class TestBufferedJSONDict(TestJSONDict):
+    """Tests of buffering JSONDicts."""
 
     @pytest.fixture
     def synced_dict(self):
@@ -65,6 +52,7 @@ class TestBufferedJSONDict(TestJSONDict):
         self._tmp_dir.cleanup()
 
     def test_buffered(self, synced_dict, testdata):
+        """Test basic per-instance buffering behavior."""
         assert len(synced_dict) == 0
         synced_dict['buffered'] = testdata
         assert 'buffered' in synced_dict
@@ -100,6 +88,55 @@ class TestBufferedJSONDict(TestJSONDict):
             on_disk_dict = json.load(f)
         assert 'buffered3' in on_disk_dict
         assert on_disk_dict == synced_dict
+
+    def test_two_buffered(self, synced_dict, testdata):
+        """Test that a non-buffered copy is not modified."""
+        synced_dict['buffered'] = testdata
+        synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
+
+        # Check that the non-buffered object is not modified.
+        with synced_dict.buffered():
+            synced_dict['buffered2'] = 1
+            assert 'buffered2' not in synced_dict2
+
+    def test_two_buffered_modify_unbuffered(self, synced_dict, testdata):
+        """Test that in-memory changes raise errors in buffered mode."""
+        synced_dict['buffered'] = testdata
+        synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
+
+        # Check that the non-buffered object is not modified.
+        # with pytest.raises(
+        with pytest.raises(MetadataError):
+            with synced_dict.buffered():
+                synced_dict['buffered2'] = 1
+                synced_dict2['buffered2'] = 2
+                assert synced_dict['buffered2'] == 1
+                synced_dict['buffered2'] = 3
+                assert synced_dict2['buffered2'] == 2
+                synced_dict2['buffered2'] = 3
+                assert synced_dict['buffered2'] == 3
+
+    def test_two_buffered_modify_unbuffered_first(self, synced_dict, testdata):
+        # TODO: What is the expected behavior in this test? Data is only loaded
+        # into the buffer the first time anything happens, so if we enter the
+        # buffered context for one collection then modify an unbuffered
+        # collection within that context _before_ doing anything with the
+        # buffered collection, the buffered version will overwrite it. This
+        # behavior feels slightly unexpected, but I don't know if there's any
+        # way to fix it. For object-local buffering, we could load into the
+        # buffer when entering the context instead of waiting until the first
+        # call to load, but for global buffering there's no equivalent.
+        synced_dict['buffered'] = testdata
+        synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
+
+        # Check that the non-buffered object is not modified.
+        # with pytest.raises(
+        with synced_dict.buffered():
+            synced_dict2['buffered2'] = 1
+            assert 'buffered2' not in synced_dict
+            synced_dict['buffered2'] = 3
+        assert synced_dict == {'buffered': testdata, 'buffered2': 3}
+
 #
 #    def test_global_buffered(self, synced_dict, testdata):
 #        assert len(synced_dict) == 0
@@ -142,6 +179,7 @@ class TestBufferedJSONDict(TestJSONDict):
 
 
 class TestBufferedJSONList(TestJSONList):
+    """Tests of buffering JSONLists."""
 
     @pytest.fixture
     def synced_list(self):
