@@ -192,19 +192,25 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a
 
         routine()
+        assert signac.get_buffer_load() == 0
         with signac.buffered():
             assert signac.is_buffered()
             routine()
+            assert signac.get_buffer_load() > 0
+        assert signac.get_buffer_load() == 0
 
         for job in self.project:
             x = job.doc.a
             with signac.buffered():
+                assert signac.get_buffer_load() == 0
                 assert job.doc.a == x
+                assert signac.get_buffer_load() > 0
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
                 assert job2.doc.a == (not x)
+            assert signac.get_buffer_load() == 0
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
 
