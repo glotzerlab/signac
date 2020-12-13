@@ -70,28 +70,32 @@ def _get_file_metadata(filename):
 
 
 def _store_in_buffer(filename, blob, store_hash=False):
+    global _BUFFER_LOAD
     assert _BUFFERED_MODE > 0
     blob_size = sys.getsizeof(blob)
-    buffer_load = get_buffer_load()
     if _BUFFER_SIZE > 0:
         if blob_size > _BUFFER_SIZE:
+            # Cannot store blobs larger than the buffer size
             return False
-        elif blob_size + buffer_load > _BUFFER_SIZE:
+        elif blob_size + _BUFFER_LOAD > _BUFFER_SIZE:
             logger.debug("Buffer overflow, flushing...")
             flush_all()
 
     _JSONDICT_BUFFER[filename] = blob
+    _BUFFER_LOAD += blob_size
     if store_hash:
         if not _BUFFERED_MODE_FORCE_WRITE:
             _JSONDICT_META[filename] = _get_file_metadata(filename)
         _JSONDICT_HASHES[filename] = _hash(blob)
+
     return True
 
 
 def flush_all():
     """Execute all deferred JSONDict write operations."""
+    global _BUFFER_LOAD
     logger.debug("Flushing buffer...")
-    issues = dict()
+    issues = {}
     while _JSONDICT_BUFFER:
         filename, blob = _JSONDICT_BUFFER.popitem()
         if not _BUFFERED_MODE_FORCE_WRITE:
@@ -120,6 +124,7 @@ def flush_all():
                 issues[filename] = error
     if issues:
         raise BufferedFileError(issues)
+    _BUFFER_LOAD = 0
 
 
 def get_buffer_size():
@@ -129,7 +134,7 @@ def get_buffer_size():
 
 def get_buffer_load():
     """Return the current actual size of the read/write buffer."""
-    return sum(sys.getsizeof(x) for x in _JSONDICT_BUFFER.values())
+    return _BUFFER_LOAD
 
 
 def in_buffered_mode():
@@ -161,6 +166,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     global _BUFFERED_MODE
     global _BUFFERED_MODE_FORCE_WRITE
     global _BUFFER_SIZE
+    global _BUFFER_LOAD
     assert _BUFFERED_MODE >= 0
 
     # Basic type check (to prevent common user error)
@@ -198,6 +204,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
                 assert not _JSONDICT_HASHES
                 assert not _JSONDICT_META
                 _BUFFER_SIZE = None
+                _BUFFER_LOAD = 0
                 _BUFFERED_MODE_FORCE_WRITE = None
 
 
