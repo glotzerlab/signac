@@ -78,6 +78,7 @@ class SyncedCollection(Collection):
         \*args
             Classes to register
         """
+        # TODO: We can use init_subclass to do this automatically instead.
         for base_cls in args:
             cls.registry[base_cls._backend].append(base_cls)
 

@@ -9,7 +9,8 @@ from tempfile import TemporaryDirectory
 from signac.core.synced_collection import SyncedCollection
 from signac.core.collection_json import BufferedJSONDict
 from signac.core.collection_json import BufferedJSONList
-from signac.core.errors import MetadataError
+from signac.core.buffered_synced_collection import buffer_reads_writes
+from signac.core.errors import MetadataError, BufferedError
 
 from test_synced_collection import TestJSONDict, TestJSONList
 
@@ -105,7 +106,6 @@ class TestBufferedJSONDict(TestJSONDict):
         synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
 
         # Check that the non-buffered object is not modified.
-        # with pytest.raises(
         with pytest.raises(MetadataError):
             with synced_dict.buffered():
                 synced_dict['buffered2'] = 1
@@ -115,6 +115,20 @@ class TestBufferedJSONDict(TestJSONDict):
                 assert synced_dict2['buffered2'] == 2
                 synced_dict2['buffered2'] = 3
                 assert synced_dict['buffered2'] == 3
+
+        # TODO: If client code catches errors raised due to invalid data in the
+        # buffer then attempts to continue, the buffer will be in an invalid
+        # state, and any future attempt to leave buffered mode will trigger
+        # another flush that will error. I'm not sure what the best way to deal
+        # with this problem is. The easiest option is probably to clear the
+        # cache whenever an error occurs so that the buffer is back in a valid
+        # state.
+        from signac.core import buffered_synced_collection
+        for backend in buffered_synced_collection._BUFFERED_BACKENDS:
+            try:
+                backend._cache.clear()
+            except AttributeError:
+                pass
 
     def test_two_buffered_modify_unbuffered_first(self, synced_dict, testdata):
         # TODO: What is the expected behavior in this test? Data is only loaded
@@ -137,45 +151,36 @@ class TestBufferedJSONDict(TestJSONDict):
             synced_dict['buffered2'] = 3
         assert synced_dict == {'buffered': testdata, 'buffered2': 3}
 
-#
-#    def test_global_buffered(self, synced_dict, testdata):
-#        assert len(synced_dict) == 0
-#        synced_dict['buffered'] = testdata
-#        assert 'buffered' in synced_dict
-#        assert synced_dict['buffered'] == testdata
-#        with buffered():
-#            assert 'buffered' in synced_dict
-#            assert synced_dict['buffered'] == testdata
-#            synced_dict['buffered2'] = 1
-#            assert 'buffered2' in synced_dict
-#            assert synced_dict['buffered2'] == 1
-#        assert len(synced_dict) == 2
-#        assert 'buffered2' in synced_dict
-#        assert synced_dict['buffered2'] == 1
-#        with buffered():
-#            del synced_dict['buffered']
-#            assert len(synced_dict) == 1
-#            assert 'buffered' not in synced_dict
-#        assert len(synced_dict) == 1
-#        assert 'buffered' not in synced_dict
-#        assert 'buffered2' in synced_dict
-#        assert synced_dict['buffered2'] == 1
-#        if isinstance(synced_dict, FileBuffer):
-#            # metacheck failure
-#            with pytest.raises(BufferedError):
-#                with buffered():
-#                    synced_dict['buffered2'] = 2
-#                    self.store({'test': 1})
-#                    assert synced_dict['buffered2'] == 2
-#            assert 'test' in synced_dict
-#            assert synced_dict['test'] == 1
-#            # skipping metacheck
-#            with buffered(force_write=True):
-#                synced_dict['test2'] = 1
-#                assert synced_dict['test2'] == 1
-#                self.store({'test': 2})
-#                assert synced_dict['test2'] == 1
-#            assert synced_dict['test2'] == 1
+    def test_global_buffered(self, synced_dict, testdata):
+        assert len(synced_dict) == 0
+        synced_dict['buffered'] = testdata
+        assert 'buffered' in synced_dict
+        assert synced_dict['buffered'] == testdata
+        with buffer_reads_writes():
+            assert 'buffered' in synced_dict
+            assert synced_dict['buffered'] == testdata
+            synced_dict['buffered2'] = 1
+            assert 'buffered2' in synced_dict
+            assert synced_dict['buffered2'] == 1
+        assert len(synced_dict) == 2
+        assert 'buffered2' in synced_dict
+        assert synced_dict['buffered2'] == 1
+        with buffer_reads_writes():
+            del synced_dict['buffered']
+            assert len(synced_dict) == 1
+            assert 'buffered' not in synced_dict
+        assert len(synced_dict) == 1
+        assert 'buffered' not in synced_dict
+        assert 'buffered2' in synced_dict
+        assert synced_dict['buffered2'] == 1
+
+        with pytest.raises(BufferedError):
+            with buffer_reads_writes():
+                synced_dict['buffered2'] = 2
+                self.store({'test': 1})
+                assert synced_dict['buffered2'] == 2
+        assert 'test' in synced_dict
+        assert synced_dict['test'] == 1
 
 
 class TestBufferedJSONList(TestJSONList):
@@ -224,43 +229,28 @@ class TestBufferedJSONList(TestJSONList):
         assert 10 in on_disk_list
         assert on_disk_list == synced_list
 
-#    def test_global_buffered(self, synced_list):
-#        assert len(synced_list) == 0
-#        with buffered():
-#            synced_list.reset([1, 2, 3])
-#            assert len(synced_list) == 3
-#        assert len(synced_list) == 3
-#        assert synced_list == [1, 2, 3]
-#        with buffered():
-#            assert len(synced_list) == 3
-#            assert synced_list == [1, 2, 3]
-#            synced_list[0] = 4
-#            assert len(synced_list) == 3
-#            assert synced_list == [4, 2, 3]
-#        assert len(synced_list) == 3
-#        assert synced_list == [4, 2, 3]
-#        with buffered(force_write=True):
-#            assert len(synced_list) == 3
-#            assert synced_list == [4, 2, 3]
-#            del synced_list[0]
-#            assert len(synced_list) == 2
-#            assert synced_list == [2, 3]
-#        assert len(synced_list) == 2
-#        assert synced_list == [2, 3]
-#        if isinstance(synced_list, FileBuffer):
-#            # metacheck failure
-#            with pytest.raises(BufferedError):
-#                with buffered():
-#                    synced_list.reset([1])
-#                    assert synced_list == [1]
-#                    self.store([1, 2, 3])
-#                    assert synced_list == [1]
-#            assert len(synced_list) == 3
-#            assert synced_list == [1, 2, 3]
-#            # skipping metacheck
-#            with buffered(force_write=True):
-#                synced_list.reset([1])
-#                assert synced_list == [1]
-#                self.store([1, 2])
-#                assert synced_list == [1]
-#            assert synced_list == [1]
+    def test_global_buffered(self, synced_list):
+        assert len(synced_list) == 0
+        with buffer_reads_writes():
+            synced_list.reset([1, 2, 3])
+            assert len(synced_list) == 3
+        assert len(synced_list) == 3
+        assert synced_list == [1, 2, 3]
+        with buffer_reads_writes():
+            assert len(synced_list) == 3
+            assert synced_list == [1, 2, 3]
+            synced_list[0] = 4
+            assert len(synced_list) == 3
+            assert synced_list == [4, 2, 3]
+        assert len(synced_list) == 3
+        assert synced_list == [4, 2, 3]
+
+        # metacheck failure
+        with pytest.raises(BufferedError):
+            with buffer_reads_writes():
+                synced_list.reset([1])
+                assert synced_list == [1]
+                self.store([1, 2, 3])
+                assert synced_list == [1]
+        assert len(synced_list) == 3
+        assert synced_list == [1, 2, 3]

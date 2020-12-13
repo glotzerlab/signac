@@ -28,6 +28,13 @@ class FileBufferedCollection(BufferedCollection):
     buffer flush. This class standardizes that protocol.
     """
 
+    # There should never be anything cached in this class (which is abstract),
+    # only in its subclasses, but the attribute must be defined to keep things
+    # working (otherwise this backend gets registered.
+    # TODO: Decide if there's a better way to deal with this, maybe just
+    # manually remove it from the list?
+    _cached_collections = []
+
     def __init__(self, filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._filename = filename
@@ -48,12 +55,12 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().__init_subclass__()
         cls._cache = get_cache()
-#        # We store the list of all objects currently storing data in the cache
-#        # so that we can call the instance-level flush method. The reason to do
-#        # is to ensure that we can check instance-specific buffering so that
-#        # there are no inconsistencies caused by nesting global and
-#        # instance-level buffering.
-#        cls._cached_collections = set()
+        # We store the list of all objects currently storing data in the cache
+        # so that we can call the instance-level flush method. The reason to do
+        # is to ensure that we can check instance-specific buffering so that
+        # there are no inconsistencies caused by nesting global and
+        # instance-level buffering.
+        cls._cached_collections = []
 
     def _get_file_metadata(self):
         """Return metadata of file."""
@@ -73,18 +80,8 @@ class FileBufferedCollection(BufferedCollection):
         # everywhere that _flush is called, need to be consistent at some
         # point.
         if not self._is_buffered:
-#            try:
-#                self._cached_collections.remove(self)
-#            except AttributeError as e:
-#                raise LookupError(
-#                    "An object attempted to flush from the cache without ever "
-#                    "being loaded. This likely indicates an internal error, "
-#                    "please contact the development team."
-#                ) from e
-            # TODO: Add test for multiple collections referring to the same
-            # file.
             try:
-                cached_contents = self._cache[self._filename]
+                cached_data = self._cache[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
                 # object was never actually loaded, multiple collections
@@ -93,18 +90,19 @@ class FileBufferedCollection(BufferedCollection):
                 # that we can also unambiguously identify and error on.
                 pass
             else:
-                # TODO: Make sure that calling to_base doesn't just lead to calling
-                # _load (the non-buffered version) and wiping out the data from the
-                # buffer.
+                # TODO: Make sure that calling to_base doesn't just lead to
+                # calling _load (the non-buffered version) and wiping out the
+                # data from the buffer.
                 blob = json.dumps(self.to_base()).encode()
 
-                # If the contents have not been changed since the initial read, we
-                # don't need to rewrite it.
-                if self._hash(blob) != cached_contents['contents']:
-                    # Validate that the file hasn't been changed by something else.
-                    if cached_contents['metadata'] != self._get_file_metadata():
+                # If the contents have not been changed since the initial read,
+                # we don't need to rewrite it.
+                if self._hash(blob) != cached_data['contents']:
+                    # Validate that the file hasn't been changed by something
+                    # else.
+                    if cached_data['metadata'] != self._get_file_metadata():
                         raise MetadataError(self._filename)
-                    self._data = json.loads(cached_contents['contents'])
+                    self._data = json.loads(cached_data['contents'])
                     self._sync()
                 del self._cache[self._filename]
 
@@ -136,6 +134,10 @@ class FileBufferedCollection(BufferedCollection):
             # Load from buffer
             blob = self._cache[self._filename]['contents']
         else:
+            # TODO: Add this logic to the buffered context manager. For
+            # instance-level buffering, we should just load immediately (if
+            # data is not in the buffer). For global buffering, this logic here
+            # is necessary.
             data = self.to_base()
             blob = json.dumps(data).encode()
             blob_hash = self._hash(blob)
@@ -145,5 +147,36 @@ class FileBufferedCollection(BufferedCollection):
                 'hash': blob_hash,
                 'metadata': self._get_file_metadata(),
             }
-            # self._cached_collections.add(self)
+            # TODO: This logic means that if two collections are in the global
+            # buffer pointing to the same file, only the first one gets added
+            # to this list (because the second one will see the filename in the
+            # cache even if the object isn't). Make sure this is OK. Also
+            # figure out if anything changes depending on whether I add loading
+            # logic to the buffered context manager. I think that there's no
+            # problem, because the buffer will always end up being up to date.
+            self._cached_collections.append(self)
         return json.loads(blob.decode())
+
+    @classmethod
+    def _flush_buffer(cls):
+        """Flush the data in the file buffer.
+
+        Returns
+        -------
+        issues : dict
+            Mapping of filename and errors occured during flushing data.
+        """
+        issues = {}
+
+        # We need to use the list of buffered objects rather than directly
+        # looping over the local cache so that each collection can
+        # independently decide whether or not to flush based on whether it's
+        # still buffered (if buffered contexts are nested).
+        while cls._cached_collections:
+            collection = cls._cached_collections.pop()
+            # collection._flush()
+            try:
+                collection._flush()
+            except (OSError, MetadataError) as err:
+                issues[collection._filename] = err
+        return issues

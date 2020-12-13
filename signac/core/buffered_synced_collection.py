@@ -14,9 +14,66 @@ otherwise involve, for instance, heavy I/O. The specific buffering mechanism
 must be implemented by each back end since it depends on the nature of the
 underlying data format.
 """
+import logging
+from typing import List, Any
+
 from contextlib import contextmanager
 
+from .errors import BufferedError
 from .synced_collection import SyncedCollection
+
+logger = logging.getLogger(__name__)
+
+_BUFFERED_MODE = 0
+_BUFFERED_BACKENDS: List[Any] = list()
+
+
+@contextmanager
+def buffer_reads_writes():
+    """Enter a global buffer mode for all BufferedCollection instances.
+
+    All future write operations are written to the buffer, read
+    operations are performed from the buffer whenever possible.
+
+    All write operations are deferred until the flush_all() function
+    is called, the buffer overflows, or upon exiting the buffer mode.
+
+    Raises
+    ------
+    BufferException
+    """
+    global _BUFFERED_MODE
+    assert _BUFFERED_MODE >= 0
+
+    _BUFFERED_MODE += 1
+    try:
+        yield
+    finally:
+        _BUFFERED_MODE -= 1
+        if _BUFFERED_MODE == 0:
+            _flush_all()
+
+
+def _flush_all():
+    """Execute all deferred write operations.
+
+    Raises
+    ------
+    BufferedFileError
+    """
+    global _BUFFERED_BACKENDS
+    logger.debug("Flushing buffer...")
+    issues = {}
+    for backend in _BUFFERED_BACKENDS:
+        try:
+            # try to sync the data to backend
+            issue = backend._flush_buffer()
+            issues.update(issue)
+        except OSError as error:
+            logger.error(str(error))
+            issues[backend] = error
+    if issues:
+        raise BufferedError(issues)
 
 
 class BufferedCollection(SyncedCollection):
@@ -43,6 +100,16 @@ class BufferedCollection(SyncedCollection):
         # infinite recursion.
         self._buffered = 0
         super().__init__(*args, **kwargs)
+
+    @classmethod
+    def __init_subclass__(cls):
+        """Register subclasses for the purpose of global buffering.
+
+        Each subclass has its own means of buffering and must be flushed.
+        """
+        super().__init_subclass__()
+        global _BUFFERED_BACKENDS
+        _BUFFERED_BACKENDS.append(cls)
 
     # We would like to be able to override `_sync` and `_load` rather than
     # `sync` and `load` to avoid having to replicate the "parent" logic.
@@ -122,8 +189,14 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self._buffered > 0
+        global _BUFFERED_MODE
+        return self._buffered + _BUFFERED_MODE > 0
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
+        pass
+
+    @classmethod
+    def _flush_buffer(self):
+        """Flush all data in the buffer."""
         pass
