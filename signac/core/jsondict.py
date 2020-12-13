@@ -61,7 +61,7 @@ def _hash(blob):
         return m.hexdigest()
 
 
-def _get_filemetadata(filename):
+def _get_file_metadata(filename):
     try:
         return os.path.getsize(filename), os.path.getmtime(filename)
     except OSError as error:
@@ -83,7 +83,7 @@ def _store_in_buffer(filename, blob, store_hash=False):
     _JSONDICT_BUFFER[filename] = blob
     if store_hash:
         if not _BUFFERED_MODE_FORCE_WRITE:
-            _JSONDICT_META[filename] = _get_filemetadata(filename)
+            _JSONDICT_META[filename] = _get_file_metadata(filename)
         _JSONDICT_HASHES[filename] = _hash(blob)
     return True
 
@@ -99,7 +99,7 @@ def flush_all():
         if _hash(blob) != _JSONDICT_HASHES.pop(filename):
             try:
                 if not _BUFFERED_MODE_FORCE_WRITE:
-                    if _get_filemetadata(filename) != meta:
+                    if _get_file_metadata(filename) != meta:
                         issues[
                             filename
                         ] = "File appears to have been externally modified."
