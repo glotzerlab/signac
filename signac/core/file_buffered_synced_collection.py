@@ -174,7 +174,6 @@ class FileBufferedCollection(BufferedCollection):
         # still buffered (if buffered contexts are nested).
         while cls._cached_collections:
             collection = cls._cached_collections.pop()
-            # collection._flush()
             try:
                 collection._flush()
             except (OSError, MetadataError) as err:
