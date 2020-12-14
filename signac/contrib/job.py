@@ -192,7 +192,7 @@ class Job:
                 os.replace(self.workspace(), dst.workspace())
             except OSError as error:
                 os.replace(fn_manifest_backup, fn_manifest)  # rollback
-                if error.errno in (errno.ENOTEMPTY, errno.EACCES):
+                if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                     raise DestinationExistsError(dst)
                 else:
                     raise
