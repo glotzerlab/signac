@@ -33,7 +33,7 @@ class FileBufferedCollection(BufferedCollection):
     # working (otherwise this backend gets registered.
     # TODO: Decide if there's a better way to deal with this, maybe just
     # manually remove it from the list?
-    _cached_collections = []
+    _cached_collections = {}
 
     def __init__(self, filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -60,7 +60,7 @@ class FileBufferedCollection(BufferedCollection):
         # is to ensure that we can check instance-specific buffering so that
         # there are no inconsistencies caused by nesting global and
         # instance-level buffering.
-        cls._cached_collections = []
+        cls._cached_collections = {}
 
     def _get_file_metadata(self):
         """Return metadata of file."""
@@ -133,6 +133,8 @@ class FileBufferedCollection(BufferedCollection):
         if self._filename in self._cache:
             # Load from buffer
             blob = self._cache[self._filename]['contents']
+            if id(self) not in self._cached_collections:
+                self._cached_collections[id(self)] = self
         else:
             # TODO: Add this logic to the buffered context manager. For
             # instance-level buffering, we should just load immediately (if
@@ -147,14 +149,7 @@ class FileBufferedCollection(BufferedCollection):
                 'hash': blob_hash,
                 'metadata': self._get_file_metadata(),
             }
-            # TODO: This logic means that if two collections are in the global
-            # buffer pointing to the same file, only the first one gets added
-            # to this list (because the second one will see the filename in the
-            # cache even if the object isn't). Make sure this is OK. Also
-            # figure out if anything changes depending on whether I add loading
-            # logic to the buffered context manager. I think that there's no
-            # problem, because the buffer will always end up being up to date.
-            self._cached_collections.append(self)
+            self._cached_collections[id(self)] = self
         return json.loads(blob.decode())
 
     @classmethod
@@ -172,10 +167,15 @@ class FileBufferedCollection(BufferedCollection):
         # looping over the local cache so that each collection can
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
+        remaining_collections = {}
         while cls._cached_collections:
-            collection = cls._cached_collections.pop()
+            col_id, collection = cls._cached_collections.popitem()
+            if collection._is_buffered:
+                remaining_collections[col_id] = collection
+                continue
             try:
                 collection._flush()
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
+        cls._cached_collections = remaining_collections
         return issues

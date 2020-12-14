@@ -65,7 +65,6 @@ def _flush_all():
     logger.debug("Flushing buffer...")
     issues = {}
     for backend in _BUFFERED_BACKENDS:
-        print(f"Flushing backend {backend}")
         try:
             # try to sync the data to backend
             issue = backend._flush_buffer()

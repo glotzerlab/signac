@@ -222,22 +222,6 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
 
         assert self.load(synced_dict) == synced_dict
 
-    """
-    When it comes to nested buffering, there are four different cases to test:
-    1. Global inside global.
-    2. Global inside local.
-    3. Local inside global.
-    4. Local inside local.
-
-    In each of these cases, we need to check:
-    1. Modifying the same collection in each context.
-    2. Modifying different collections in each context.
-    3. Modifying two collections pointing to the same file in each context.
-
-    For the latter two, we have to try both possible orderings of
-    modifications. That leads to 24 possible tests.
-    """
-
     def test_nested_different_collections(self, synced_dict, synced_dict2):
         """Test nested buffering for different collections."""
         assert len(synced_dict) == 0
@@ -290,7 +274,35 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
         assert 'inside_second' in on_disk_dict2
 
     def test_nested_copied_collection(self, synced_dict):
-        """Test nesting global buffering."""
+        """Test modifying two collections pointing to the same data."""
+        synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
+
+        assert len(synced_dict) == 0
+        assert len(synced_dict2) == 0
+
+        synced_dict['outside'] = 1
+        with synced_dict.buffered():
+            synced_dict['inside_first'] = 2
+
+            on_disk_dict = self.load(synced_dict)
+            assert synced_dict['inside_first'] == 2
+            assert 'inside_first' not in on_disk_dict
+
+            with buffer_reads_writes():
+                synced_dict['inside_second'] = 3
+                synced_dict2['inside_second'] = 4
+
+                on_disk_dict = self.load(synced_dict)
+                assert synced_dict['inside_second'] == 4
+                assert synced_dict2['inside_second'] == 4
+                assert 'inside_second' not in on_disk_dict
+
+            on_disk_dict = self.load(synced_dict)
+            assert on_disk_dict['inside_second'] == 4
+
+    @pytest.mark.skip("Not currently sure what the expected behavior is.")
+    def test_nested_copied_collection_invalid(self, synced_dict):
+        """Test the behavior of invalid modifications of copied objects."""
         synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
 
         assert len(synced_dict) == 0
@@ -298,42 +310,43 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
 
         synced_dict['outside'] = 1
         finished = False
-        # with pytest.raises(MetadataError):
-        with synced_dict.buffered():
-            synced_dict['inside_first'] = 2
-            synced_dict2['inside_first'] = 3
-
-            on_disk_dict = self.load(synced_dict)
-            assert synced_dict['inside_first'] == 2
-            assert on_disk_dict['inside_first'] == 3
-
-            with buffer_reads_writes():
-                synced_dict['inside_second'] = 3
-                synced_dict2['inside_second'] = 4
+        with pytest.raises(MetadataError):
+            with synced_dict.buffered():
+                synced_dict['inside_first'] = 2
+                # TODO: Currently, modifying synced_dict2 here causes problems.
+                # It is unbuffered, so it directly writes to file. Then, when
+                # entering global buffering in the context below, synced_dict2
+                # sees that synced_dict has already saved data for this file to
+                # the buffer, so it loads that data, which also means that
+                # synced_dict2 becomes associated with the metadata stored when
+                # synced_dict entered buffered mode. As a result, when the
+                # global buffering exits, we see metadata errors because
+                # synced_dict2 lost track of the fact that it saved changes to
+                # filemade prior to entering the global buffer. We _could_ fix
+                # this by changing the behavior of _load_buffer to not load the
+                # data from the cache if it exists, if the object is new to
+                # cached_collections then we would save a new version. However,
+                # I'm not sure that's the correct answer. Is there a true
+                # canonical source of truth in this scenario?
+                synced_dict2['inside_first'] = 3
 
                 on_disk_dict = self.load(synced_dict)
-                # TODO: Note that this behavior is different from what is
-                # observed in test_two_buffered_modify_unbuffered. In that
-                # test, we modify synced_dict2 in unbuffered mode, which means
-                # that it writes directly to file and never modifies the cache,
-                # so synced_dict still looks the way it did prior to modifying
-                # synced_dict2. Conversely, in this case it is modified in
-                # global buffered mode, so the change is also reflected in
-                # synced_dict.
-                assert synced_dict['inside_second'] == 4
-                assert synced_dict2['inside_second'] == 4
-                assert 'inside_second' not in on_disk_dict
+                assert synced_dict['inside_first'] == 2
+                assert on_disk_dict['inside_first'] == 3
 
-            # Currently the line below fails because, as noted in
-            # FileBufferedSyncedCollection._load_buffer, only the first
-            # collection pointing to a given file is added. Does that make
-            # sense in this context? Ultimately we end up with an invalid case
-            # anyway (once we exit the next context), so what's the best
-            # solution?
-            on_disk_dict = self.load(synced_dict)
-            assert on_disk_dict['inside_second'] == 4
-            # Check that all the checks ran before the assertion failure.
-            finished = True
+                with buffer_reads_writes():
+                    synced_dict['inside_second'] = 3
+                    synced_dict2['inside_second'] = 4
+
+                    on_disk_dict = self.load(synced_dict)
+                    assert synced_dict['inside_second'] == 4
+                    assert synced_dict2['inside_second'] == 4
+                    assert 'inside_second' not in on_disk_dict
+
+                on_disk_dict = self.load(synced_dict)
+                assert on_disk_dict['inside_second'] == 4
+                # Check that all the checks ran before the assertion failure.
+                finished = True
         assert finished
         self._force_flush_backends()
 
