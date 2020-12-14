@@ -27,12 +27,7 @@ class FileBufferedCollection(BufferedCollection):
     All file-based backends can use the same set of integrity checks prior to a
     buffer flush. This class standardizes that protocol.
     """
-
-    # There should never be anything cached in this class (which is abstract),
-    # only in its subclasses, but the attribute must be defined to keep things
-    # working (otherwise this backend gets registered.
-    # TODO: Decide if there's a better way to deal with this, maybe just
-    # manually remove it from the list?
+    _cache = get_cache()
     _cached_collections = {}
 
     def __init__(self, filename, *args, **kwargs):
@@ -46,21 +41,6 @@ class FileBufferedCollection(BufferedCollection):
             m = hashlib.md5()
             m.update(blob)
             return m.hexdigest()
-
-    @classmethod
-    def __init_subclass__(cls):
-        """Add  ``_cache`` attribute to every subclass.
-
-        Each file-based SyncedCollection needs its own local cache.
-        """
-        super().__init_subclass__()
-        cls._cache = get_cache()
-        # We store the list of all objects currently storing data in the cache
-        # so that we can call the instance-level flush method. The reason to do
-        # is to ensure that we can check instance-specific buffering so that
-        # there are no inconsistencies caused by nesting global and
-        # instance-level buffering.
-        cls._cached_collections = {}
 
     def _get_file_metadata(self):
         """Return metadata of file."""
@@ -161,6 +141,11 @@ class FileBufferedCollection(BufferedCollection):
         issues : dict
             Mapping of filename and errors occured during flushing data.
         """
+        # All subclasses share a single cache rather than having separate
+        # caches for each instance, so we can exit early in subclasses.
+        if cls != FileBufferedCollection:
+            return {}
+
         issues = {}
 
         # We need to use the list of buffered objects rather than directly
