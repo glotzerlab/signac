@@ -125,15 +125,13 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = root[k]
             return ret
-        elif type(root) is tuple:
-            return _SyncedList(root, self)
-        elif type(root) is list:
-            return _SyncedList(root, self)
+        elif type(root) in (list, tuple):
+            return _SyncedList(root, parent=self)
         elif NUMPY:
             if isinstance(root, numpy.number):
                 return root.item()
             elif isinstance(root, numpy.ndarray):
-                return _SyncedList(root.tolist(), self)
+                return _SyncedList(root.tolist(), parent=self)
         return root
 
     @classmethod
