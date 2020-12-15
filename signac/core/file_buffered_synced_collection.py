@@ -92,16 +92,19 @@ class FileBufferedCollection(BufferedCollection):
         backends that simply entails storing data to an in-memory cache (which
         could also be a Redis instance, etc).
         """
-        # If we haven't already added this object to the cache, this indicates
-        # either developer error (or possibly concurrency, which we don't
-        # support). TODO Make sure there aren't any other cases.
-        assert self._filename in self._cache
+        if self._filename in self._cache:
+            # TODO: Generalize encode/decode so that we can also use non-JSON
+            # encodable data. Alternatively, add json format validation to this
+            # backend.
+            blob = json.dumps(self.to_base()).encode()
+            self._cache[self._filename]['contents'] = blob
+        else:
+            self._initialize_data_in_cache()
 
-        # TODO: Generalize encode/decode so that we can also use non-JSON
-        # encodable data. Alternatively, add json format validation to this
-        # backend.
-        blob = json.dumps(self.to_base()).encode()
-        self._cache[self._filename]['contents'] = blob
+        # If multiple collections point to the same data, just checking that
+        # the file contents are cached is not a sufficient check.
+        if id(self) not in self._cached_collections:
+            self._cached_collections[id(self)] = self
 
     def _load_buffer(self):
         """Read data from buffer.
@@ -113,24 +116,32 @@ class FileBufferedCollection(BufferedCollection):
         if self._filename in self._cache:
             # Load from buffer
             blob = self._cache[self._filename]['contents']
+
+            # If multiple collections point to the same data, just checking
+            # that the file contents are cached is not a sufficient check.
             if id(self) not in self._cached_collections:
                 self._cached_collections[id(self)] = self
         else:
-            # TODO: Add this logic to the buffered context manager. For
-            # instance-level buffering, we should just load immediately (if
-            # data is not in the buffer). For global buffering, this logic here
-            # is necessary.
-            data = self.to_base()
-            blob = json.dumps(data).encode()
-            blob_hash = self._hash(blob)
-
-            self._cache[self._filename] = {
-                'contents': blob,
-                'hash': blob_hash,
-                'metadata': self._get_file_metadata(),
-            }
-            self._cached_collections[id(self)] = self
+            blob = self._initialize_data_in_cache()
         return json.loads(blob.decode())
+
+    def _initialize_data_in_cache(self):
+        """Create the initial entry for the data in the cache."""
+        # TODO: Add this logic to the buffered context manager. For
+        # instance-level buffering, we should just load immediately (if
+        # data is not in the buffer). For global buffering, this logic here
+        # is necessary.
+        data = self.to_base()
+        blob = json.dumps(data).encode()
+        blob_hash = self._hash(blob)
+
+        self._cache[self._filename] = {
+            'contents': blob,
+            'hash': blob_hash,
+            'metadata': self._get_file_metadata(),
+        }
+        self._cached_collections[id(self)] = self
+        return blob
 
     @classmethod
     def _flush_buffer(cls):

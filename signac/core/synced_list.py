@@ -132,12 +132,6 @@ class SyncedList(SyncedCollection, MutableSequence):
             data = data.tolist()
         self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
-            # TODO: Loading here conceptually shouldn't be necessary, but I
-            # explicitly have a sanity check in the buffered syncs assuming
-            # that a load always occurs before a sync so that items are in the
-            # cache when sync occurs. Not loading here breaks that assumption,
-            # and I'm not sure I want to get rid of that.
-            self.load()
             with self._suspend_sync():
                 self._data = [self.from_base(data=value, parent=self) for value in data]
             self.sync()

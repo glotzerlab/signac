@@ -136,12 +136,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             data = {}
         if isinstance(data, Mapping):
-            # TODO: Loading here conceptually shouldn't be necessary, but I
-            # explicitly have a sanity check in the buffered syncs assuming
-            # that a load always occurs before a sync so that items are in the
-            # cache when sync occurs. Not loading here breaks that assumption,
-            # and I'm not sure I want to get rid of that.
-            self.load()
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
