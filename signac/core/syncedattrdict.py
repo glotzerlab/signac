@@ -11,6 +11,7 @@ named by keys, including nested keys.
 
 from collections.abc import Mapping
 from collections.abc import MutableMapping
+from typing import Tuple
 
 from .synced_collection import SyncedCollection
 from .validators import no_dot_in_key
@@ -34,8 +35,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
     """
 
-    _PROTECTED_KEYS = ('_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
-                       '_validators')
+    # Must specify this as a variable length tuple to allow subclasses to
+    # extend the list of protected keys.
+    _PROTECTED_KEYS: Tuple[str, ...] = (
+        '_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
+        '_validators')
 
     def __init__(self, data=None, **kwargs):
         super().__init__(**kwargs)
