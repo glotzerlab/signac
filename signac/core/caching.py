@@ -13,13 +13,14 @@ logger = logging.getLogger(__name__)
 def get_cache():
     """Return the cache.
 
-    This method returns an instance of :class:`~RedisCache` if redis-server is available,
-    or otherwise an instance of ``dict`` for an in-memory cache.
+    This method returns an instance of :class:`~_RedisCache` if redis-server is
+    available, or otherwise an instance of ``dict`` for an in-memory cache.
 
     Returns
     -------
     cache
-        An instance of :class:`~RedisCache` if redis-server is available, otherwise dictionary.
+        An instance of :class:`~_RedisCache` if redis-server is available,
+        otherwise a dict.
     """
     try:
         import redis
@@ -36,20 +37,21 @@ def get_cache():
             assert cache.get(test_key) == b'0'  # Redis store data as bytes
             cache.delete(test_key)
             logger.info("Using Redis cache.")
-            return RedisCache(cache)
+            return _RedisCache(cache)
         except (redis.exceptions.ConnectionError, AssertionError) as error:
             logger.debug(str(error))
     logger.info("Redis not available.")
     return {}
 
 
-class RedisCache(MutableMapping):
-    """Redis backend based cache.
+class _RedisCache(MutableMapping):
+    """Redis-based cache.
 
-    The RedisCache is a :class:`~collections.abc.MutableMapping`. It uses redis-server
-    to store data by using redis client. Redis client only accepts data as bytes, strings
-    or numbers (ints, longs and floats) and returns response as bytes. So, this uses pickle
-    serialization to convert data into bytes.
+    Redis restricts the types of data it can handle to bytes, strings, or
+    numbers, and it always returns responses as bytes. The RedisCache is a
+    :class:`~collections.abc.MutableMapping` that provides a convenient wrapper
+    around instances of :class:`redis.Redis`, handling conversions to and from
+    the appropriate data types.
     """
 
     def __init__(self, client):
