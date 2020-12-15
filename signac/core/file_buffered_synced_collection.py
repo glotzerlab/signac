@@ -121,7 +121,7 @@ class FileBufferedCollection(BufferedCollection):
         could also be a Redis instance, etc).
         """
         if self._filename in self._cache:
-            blob = self.encode()
+            blob = self._encode()
             cached_data = self._cache[self._filename]
             buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
                 cached_data['contents'])
