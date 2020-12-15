@@ -47,9 +47,6 @@ class JSONCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, filename=None, write_concern=False, **kwargs):
-        # TODO: Right now a lot of the constructors have problems accepting
-        # positional arguments, in large part because of the complexities of
-        # multiple inheritance and super. I need to come back to clean this up.
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         kwargs['name'] = filename

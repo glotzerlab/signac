@@ -162,7 +162,6 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
         synced_dict2 = BufferedJSONDict(filename=synced_dict._filename)
 
         # Check that the non-buffered object is not modified.
-        # with pytest.raises(
         with synced_dict.buffered():
             synced_dict2['buffered2'] = 1
             assert 'buffered2' not in synced_dict

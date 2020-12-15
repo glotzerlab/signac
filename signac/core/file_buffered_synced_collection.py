@@ -69,9 +69,6 @@ class FileBufferedCollection(BufferedCollection):
             if error.errno != errno.ENOENT:
                 raise
 
-    # TODO: Use a better name to differentiate between the flush of the entire
-    # buffer (the classmethod) and just flushing the current item from the
-    # buffer
     def _flush(self, force=False):
         """Save buffered changes to the underlying file."""
         if not self._is_buffered or force:
@@ -98,6 +95,22 @@ class FileBufferedCollection(BufferedCollection):
                 data_size = sys.getsizeof(cached_data)
                 FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
+    def _encode(self):
+        """Encode the data into a serializable form.
+
+        This method assumes JSON-serializable data, but is exposed to allow
+        changing this behavior.
+        """
+        return json.dumps(self.to_base()).encode()
+
+    @staticmethod
+    def _decode(blob):
+        """Decode serialized data.
+
+        Mirroring _encode, this method assumes JSON serialization.
+        """
+        return json.loads(blob.decode())
+
     def _sync_buffer(self):
         """Store data in buffer.
 
@@ -106,10 +119,7 @@ class FileBufferedCollection(BufferedCollection):
         could also be a Redis instance, etc).
         """
         if self._filename in self._cache:
-            # TODO: Generalize encode/decode so that we can also use non-JSON
-            # encodable data. Alternatively, add json format validation to this
-            # backend.
-            blob = json.dumps(self.to_base()).encode()
+            blob = self.encode()
             cached_data = self._cache[self._filename]
             buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
                 cached_data['contents'])
@@ -147,14 +157,10 @@ class FileBufferedCollection(BufferedCollection):
         if (FileBufferedCollection._CURRENT_BUFFER_SIZE
                 > FileBufferedCollection._BUFFER_CAPACITY):
             FileBufferedCollection._flush_buffer(force=True)
-        return json.loads(blob.decode())
+        return self._decode(blob)
 
     def _initialize_data_in_cache(self):
         """Create the initial entry for the data in the cache."""
-        # TODO: Add this logic to the buffered context manager. For
-        # instance-level buffering, we should just load immediately (if
-        # data is not in the buffer). For global buffering, this logic here
-        # is necessary.
         data = self.to_base()
         blob = json.dumps(data).encode()
 

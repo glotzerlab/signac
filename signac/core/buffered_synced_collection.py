@@ -51,10 +51,10 @@ def buffer_reads_writes():
     finally:
         _BUFFERED_MODE -= 1
         if _BUFFERED_MODE == 0:
-            _flush_all()
+            _flush_all_backends()
 
 
-def _flush_all():
+def _flush_all_backends():
     """Execute all deferred write operations.
 
     Raises
