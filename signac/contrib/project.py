@@ -662,9 +662,9 @@ class Project:
         """
         try:
             with os.scandir(self._wd) as dir_iterator:
-                for d in dir_iterator:
-                    if JOB_ID_REGEX.match(d.name):
-                        yield d.name
+                for direntry in dir_iterator:
+                    if JOB_ID_REGEX.match(direntry.name):
+                        yield direntry.name
         except OSError as error:
             if error.errno == errno.ENOENT:
                 if os.path.islink(self._wd):
