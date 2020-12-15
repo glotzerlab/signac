@@ -112,8 +112,9 @@ class _SyncedDict(MutableMapping):
             )
 
     def _dfs_convert(self, root):
-        if isinstance(root, (bool, float, int, type(None), str)):
-            # Allow common types to exit early
+        if type(root) in (bool, float, int, type(None), str):
+            # Allow common types to exit early. This must use type equality
+            # checks instead of isinstance() to avoid catching NumPy values.
             return root
         elif type(root) is type(self):
             for k in root:
