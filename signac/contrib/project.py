@@ -410,6 +410,9 @@ class Project:
     def min_len_unique_id(self):
         """Determine the minimum length required for a job id to be unique.
 
+        This operation's runtime scales with the number of jobs in the
+        workspace.
+
         Returns
         -------
         int
