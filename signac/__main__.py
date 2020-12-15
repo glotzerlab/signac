@@ -373,8 +373,6 @@ def main_find(args):
     """Handle find subcommand."""
     project = get_project()
 
-    len_id = max(6, project.min_len_unique_id())
-
     # --show = --sp --doc --pretty 3
     # if --sp or --doc are also specified, those subsets of keys will be used
     if args.show:
@@ -387,7 +385,7 @@ def main_find(args):
         if args.one_line:
             if isinstance(s, dict):
                 s = json.dumps(s, sort_keys=True)
-            return _id[:len_id] + " " + cat + "\t" + s
+            return f"{_id} {cat}\t{s}"
         else:
             return pformat(s, depth=args.pretty)
 
