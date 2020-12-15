@@ -15,6 +15,7 @@ import errno
 import hashlib
 import json
 import os
+import sys
 
 from .buffered_synced_collection import BufferedCollection
 from .caching import get_cache
@@ -27,13 +28,29 @@ class FileBufferedCollection(BufferedCollection):
     All file-based backends can use the same set of integrity checks prior to a
     buffer flush. This class standardizes that protocol.
     """
-    # TODO: Need to track buffer size to force a flush.
     _cache = get_cache()
     _cached_collections = {}
+    _BUFFER_CAPACITY = 32 * 2**20    # 32 MB
+    _CURRENT_BUFFER_SIZE = 0
 
     def __init__(self, filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._filename = filename
+
+    @classmethod
+    def get_buffer_capacity(cls):
+        """Get the current buffer capacity."""
+        return cls._BUFFER_CAPACITY
+
+    @classmethod
+    def set_buffer_capacity(cls, new_capacity):
+        """Update the buffer capacity."""
+        cls._BUFFER_CAPACITY = new_capacity
+
+    @classmethod
+    def get_current_buffer_size(cls):
+        """Get the total amount of data currently stored in the buffer."""
+        return FileBufferedCollection._CURRENT_BUFFER_SIZE
 
     @staticmethod
     def _hash(blob):
@@ -55,12 +72,9 @@ class FileBufferedCollection(BufferedCollection):
     # TODO: Use a better name to differentiate between the flush of the entire
     # buffer (the classmethod) and just flushing the current item from the
     # buffer
-    def _flush(self):
+    def _flush(self, force=False):
         """Save buffered changes to the underlying file."""
-        # TODO: Currently this check (_is_buffered) may also be happening
-        # everywhere that _flush is called, need to be consistent at some
-        # point.
-        if not self._is_buffered:
+        if not self._is_buffered or force:
             try:
                 cached_data = self._cache[self._filename]
             except KeyError:
@@ -69,9 +83,6 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                # TODO: Make sure that calling to_base doesn't just lead to
-                # calling _load (the non-buffered version) and wiping out the
-                # data from the buffer.
                 blob = json.dumps(self.to_base()).encode()
 
                 # If the contents have not been changed since the initial read,
@@ -84,6 +95,8 @@ class FileBufferedCollection(BufferedCollection):
                     self._data = json.loads(cached_data['contents'])
                     self._sync()
                 del self._cache[self._filename]
+                data_size = sys.getsizeof(cached_data)
+                FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     def _sync_buffer(self):
         """Store data in buffer.
@@ -97,10 +110,17 @@ class FileBufferedCollection(BufferedCollection):
             # encodable data. Alternatively, add json format validation to this
             # backend.
             blob = json.dumps(self.to_base()).encode()
-            self._cache[self._filename]['contents'] = blob
+            cached_data = self._cache[self._filename]
+            buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
+                cached_data['contents'])
+            FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+            cached_data['contents'] = blob
         else:
             self._initialize_data_in_cache()
 
+        if (FileBufferedCollection._CURRENT_BUFFER_SIZE
+                > FileBufferedCollection._BUFFER_CAPACITY):
+            FileBufferedCollection._flush_buffer(force=True)
         # If multiple collections point to the same data, just checking that
         # the file contents are cached is not a sufficient check.
         if id(self) not in self._cached_collections:
@@ -123,6 +143,10 @@ class FileBufferedCollection(BufferedCollection):
                 self._cached_collections[id(self)] = self
         else:
             blob = self._initialize_data_in_cache()
+
+        if (FileBufferedCollection._CURRENT_BUFFER_SIZE
+                > FileBufferedCollection._BUFFER_CAPACITY):
+            FileBufferedCollection._flush_buffer(force=True)
         return json.loads(blob.decode())
 
     def _initialize_data_in_cache(self):
@@ -133,18 +157,19 @@ class FileBufferedCollection(BufferedCollection):
         # is necessary.
         data = self.to_base()
         blob = json.dumps(data).encode()
-        blob_hash = self._hash(blob)
 
         self._cache[self._filename] = {
             'contents': blob,
-            'hash': blob_hash,
+            'hash': self._hash(blob),
             'metadata': self._get_file_metadata(),
         }
+        FileBufferedCollection._CURRENT_BUFFER_SIZE += sys.getsizeof(
+            self._cache[self._filename])
         self._cached_collections[id(self)] = self
         return blob
 
     @classmethod
-    def _flush_buffer(cls):
+    def _flush_buffer(cls, force=False):
         """Flush the data in the file buffer.
 
         Returns
@@ -166,11 +191,11 @@ class FileBufferedCollection(BufferedCollection):
         remaining_collections = {}
         while cls._cached_collections:
             col_id, collection = cls._cached_collections.popitem()
-            if collection._is_buffered:
+            if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue
             try:
-                collection._flush()
+                collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         cls._cached_collections = remaining_collections

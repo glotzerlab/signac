@@ -75,7 +75,6 @@ class SyncedList(SyncedCollection, MutableSequence):
         converted: list
             List containing the conveted SyncedList object.
         """
-        # TODO: Do we have to load here?
         converted = list()
         for value in self._data:
             if isinstance(value, SyncedCollection):
@@ -89,7 +88,6 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             data = []
         self._validate(data)
-        # TODO: Do we need to load?
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
                 # This loop avoids rebuilding existing synced collections for performance.
@@ -191,6 +189,5 @@ class SyncedList(SyncedCollection, MutableSequence):
         self.sync()
 
     def clear(self):
-        # TODO: Same issue as in reset, should I have to load before I sync?
         self._data = []
         self.sync()
