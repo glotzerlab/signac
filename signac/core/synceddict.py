@@ -137,7 +137,11 @@ class _SyncedDict(MutableMapping):
     @classmethod
     def _convert_to_dict(cls, root):
         """Convert (nested) values to dict."""
-        if type(root) == cls:
+        if type(root) in (bool, float, int, type(None), str):
+            # Allow common types to exit early. This must use type equality
+            # checks instead of isinstance() to avoid catching NumPy values.
+            return root
+        elif type(root) is cls:
             ret = dict()
             with root._suspend_sync():
                 for k in root:
@@ -190,7 +194,7 @@ class _SyncedDict(MutableMapping):
                         self._dfs_update(self._data, data)
                     for value in self._data:
                         if isinstance(value, Mapping):
-                            assert type(value) == type(self)
+                            assert type(value) is type(self)
             else:
                 self._parent.load()
 
