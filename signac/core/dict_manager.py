@@ -114,10 +114,11 @@ class DictManager:
             self.__delitem__(name)
 
     def __iter__(self):
-        for fn in os.listdir(self.prefix):
-            m = re.match(f"^(.*){self.suffix}$", fn)
-            if m:
-                yield m.groups()[0]
+        with os.scandir(self.prefix) as dir_iterator:
+            for direntry in dir_iterator:
+                m = re.match(f"^(.*){self.suffix}$", direntry.name)
+                if m:
+                    yield m.groups()[0]
 
     def keys(self):
         """Return an iterable of keys."""

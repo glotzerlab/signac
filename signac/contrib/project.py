@@ -661,9 +661,10 @@ class Project:
 
         """
         try:
-            for d in os.listdir(self._wd):
-                if JOB_ID_REGEX.match(d):
-                    yield d
+            with os.scandir(self._wd) as dir_iterator:
+                for d in dir_iterator:
+                    if JOB_ID_REGEX.match(d.name):
+                        yield d.name
         except OSError as error:
             if error.errno == errno.ENOENT:
                 if os.path.islink(self._wd):

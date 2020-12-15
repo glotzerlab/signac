@@ -536,15 +536,15 @@ class Job:
 
         """
         try:
-            for fn in os.listdir(self._wd):
-                if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
-                    continue
-                path = os.path.join(self._wd, fn)
-                if os.path.isfile(path):
-                    os.remove(path)
-                elif os.path.isdir(path):
-                    shutil.rmtree(path)
-            self.document.clear()
+            with os.scandir(self._wd) as dir_iterator:
+                for direntry in dir_iterator:
+                    if direntry.name in (self.FN_MANIFEST, self.FN_DOCUMENT):
+                        continue
+                    if direntry.is_file():
+                        os.remove(direntry.path)
+                    elif direntry.is_dir():
+                        shutil.rmtree(direntry.path)
+                self.document.clear()
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise error
