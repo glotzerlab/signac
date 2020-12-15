@@ -56,14 +56,31 @@ class FileBufferedCollection(BufferedCollection):
 
     @staticmethod
     def _hash(blob):
-        """Calculate and return the md5 hash value for the file data."""
+        """Calculate and return the md5 hash value for the file data.
+
+        Parameters
+        ----------
+        blob : bytes
+            Byte literal to be hashed.
+
+        Returns
+        -------
+        str
+            The md5 hash of the input bytes.
+        """
         if blob is not None:
             m = hashlib.md5()
             m.update(blob)
             return m.hexdigest()
 
     def _get_file_metadata(self):
-        """Return metadata of file."""
+        """Return metadata of file.
+
+        Returns
+        -------
+        Tuple[int, float]
+            The size and last modification time of the associated file.
+       """
         try:
             metadata = os.stat(self._filename)
             return metadata.st_size, metadata.st_mtime
@@ -72,7 +89,13 @@ class FileBufferedCollection(BufferedCollection):
                 raise
 
     def _flush(self, force=False):
-        """Save buffered changes to the underlying file."""
+        """Save buffered changes to the underlying file.
+
+        Parameters
+        ----------
+        force : bool
+            If True, force a flush even in buffered mode (defaults to False).
+        """
         if not self._is_buffered or force:
             try:
                 cached_data = self._cache[self._filename]
@@ -102,6 +125,11 @@ class FileBufferedCollection(BufferedCollection):
 
         This method assumes JSON-serializable data, but is exposed to allow
         changing this behavior.
+
+        Returns
+        -------
+        bytes
+            The underlying encoded data.
         """
         return json.dumps(self.to_base()).encode()
 
@@ -110,6 +138,11 @@ class FileBufferedCollection(BufferedCollection):
         """Decode serialized data.
 
         Mirroring _encode, this method assumes JSON serialization.
+
+        Parameters
+        ----------
+        blob : bytes
+            Byte literal to be decoded.
         """
         return json.loads(blob.decode())
 
@@ -144,17 +177,24 @@ class FileBufferedCollection(BufferedCollection):
         We can reasonably provide a default implementation for all file-based
         backends that simply entails reading data from an in-memory cache
         (which could also be a Redis instance, etc).
+
+        Returns
+        -------
+        Collection
+            A collection of the same base type as the SyncedCollection this
+            method is called for, corresponding to data loaded from the
+            underlying file.
         """
         if self._filename in self._cache:
-            # Load from buffer
-            blob = self._cache[self._filename]['contents']
-
             # If multiple collections point to the same data, just checking
             # that the file contents are cached is not a sufficient check.
             if id(self) not in self._cached_collections:
                 self._cached_collections[id(self)] = self
         else:
-            blob = self._initialize_data_in_cache()
+            self._initialize_data_in_cache()
+
+        # Load from buffer
+        blob = self._cache[self._filename]['contents']
 
         if (FileBufferedCollection._CURRENT_BUFFER_SIZE
                 > FileBufferedCollection._BUFFER_CAPACITY):
@@ -174,7 +214,6 @@ class FileBufferedCollection(BufferedCollection):
         FileBufferedCollection._CURRENT_BUFFER_SIZE += sys.getsizeof(
             self._cache[self._filename])
         self._cached_collections[id(self)] = self
-        return blob
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -182,7 +221,7 @@ class FileBufferedCollection(BufferedCollection):
 
         Returns
         -------
-        issues : dict
+        dict
             Mapping of filename and errors occured during flushing data.
         """
         # All subclasses share a single cache rather than having separate
