@@ -178,12 +178,15 @@ class JSONList(JSONCollection, SyncedList):
         A parent instance of JSONList or None (Default value = None).
     """
 
+
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A buffered JSONDict."""
     _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
         '_filename', '_buffered', '_is_buffered')
 
+
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A buffered JSONList."""
+
 
 SyncedCollection.register(JSONDict, JSONList, BufferedJSONDict, BufferedJSONList)
