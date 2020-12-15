@@ -45,7 +45,6 @@ class TestJSONCollectionBase:
     def test_from_base_no_backend(self):
         with pytest.raises(ValueError):
             SyncedCollection.from_base(filename=self._fn_, data={'a': 0})
-        # TODO: Add a test using a specific backend.
         JSONCollection.from_base(filename=self._fn_, data={'a': 0})
 
 

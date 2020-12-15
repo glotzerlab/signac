@@ -57,6 +57,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         converted: dict
             Dictionary containing the converted synced dict object.
         """
+        # TODO: Do we need to load?
         converted = {}
         for key, value in self._data.items():
             if isinstance(value, SyncedCollection):
@@ -86,6 +87,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """Update the SyncedDict instance with data using depth-first traversal."""
         if data is None:
             data = {}
+        # TODO: Do we need to load?
         if isinstance(data, Mapping):
             self._validate(data)
             with self._suspend_sync():

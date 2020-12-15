@@ -30,11 +30,6 @@ class SyncedCollection(Collection):
     in the underlying backend. The backend name wil be same as the module name.
     """
 
-    # TODO: Define clear copy/deepcopy/pickle semantics. In all cases the
-    # resulting SyncedCollection has to point to the same file, so is a
-    # deepcopy meaningfully any different from a shallow copy? The in-memory
-    # representation is a new dict, but you don't really gain anything by it.
-
     _backend = None
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
@@ -42,9 +37,6 @@ class SyncedCollection(Collection):
     def __init__(self, name=None, parent=None, *args, **kwargs):
         self._data = None
         self._parent = parent
-        # TODO: collections shouldn't have to be named. I think it's being used
-        # as a key in some of backend dictionary-like structures, but we should
-        # instead just use something like the hash of the object.
         self._name = name
         self._suspend_sync_ = 0
         if (name is None) == (parent is None):
@@ -78,7 +70,6 @@ class SyncedCollection(Collection):
         \*args
             Classes to register
         """
-        # TODO: We can use init_subclass to do this automatically instead.
         for base_cls in args:
             cls.registry[base_cls._backend].append(base_cls)
 
@@ -168,9 +159,6 @@ class SyncedCollection(Collection):
             else:
                 self._parent.sync()
 
-    # TODO: Convert load and sync to private methods, client code should never
-    # have to call them explicitly (synchronization should be transparent).
-    # TODO: Rename sync to save, which is less ambiguous (sync sounds two-way).
     def load(self):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
@@ -211,9 +199,7 @@ class SyncedCollection(Collection):
         return self.to_base()
 
     def __eq__(self, other):
-        # TODO: Rewrite this check to not require copying to a dict, which
-        # could be slow if called frequently..
-        # TODO: Need to add a load here first.
+        self.load()
         if isinstance(other, type(self)):
             return self() == other()
         else:

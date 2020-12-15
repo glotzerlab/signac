@@ -179,10 +179,6 @@ class BufferedCollection(SyncedCollection):
             yield
         finally:
             self._buffered -= 1
-            # TODO: Decide whether it makes the most sense for this check to
-            # live here (and anywhere _flush is called) or inside _flush
-            # itself. In large part this will depend on how it interacts with
-            # global buffering.
             if not self._is_buffered:
                 self._flush()
 

@@ -27,6 +27,7 @@ class FileBufferedCollection(BufferedCollection):
     All file-based backends can use the same set of integrity checks prior to a
     buffer flush. This class standardizes that protocol.
     """
+    # TODO: Need to track buffer size to force a flush.
     _cache = get_cache()
     _cached_collections = {}
 
@@ -64,10 +65,8 @@ class FileBufferedCollection(BufferedCollection):
                 cached_data = self._cache[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
-                # object was never actually loaded, multiple collections
-                # pointing to the same file, etc.
-                # TODO: Think through whether there are any truly bad cases
-                # that we can also unambiguously identify and error on.
+                # object was never actually accessed during global buffering,
+                # multiple collections pointing to the same file, etc).
                 pass
             else:
                 # TODO: Make sure that calling to_base doesn't just lead to
@@ -99,7 +98,8 @@ class FileBufferedCollection(BufferedCollection):
         assert self._filename in self._cache
 
         # TODO: Generalize encode/decode so that we can also use non-JSON
-        # encodable data.
+        # encodable data. Alternatively, add json format validation to this
+        # backend.
         blob = json.dumps(self.to_base()).encode()
         self._cache[self._filename]['contents'] = blob
 
