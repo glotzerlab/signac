@@ -71,8 +71,8 @@ master_doc = "index"
 project = "signac"
 copyright = "The Regents of the University of Michigan"
 author = (
-    "Carl S. Adorf, Vyas Ramasubramani, Bradley D. Dice, ",
-    "Michael M. Henry, Brandon Butler, Paul M. Dodd, Sharon C. Glotzer",
+    "Carl S. Adorf, Vyas Ramasubramani, Bradley D. Dice, "
+    "Michael M. Henry, Brandon Butler, Paul M. Dodd, Sharon C. Glotzer"
 )
 
 # The version info for the project you're documenting, acts as replacement for
