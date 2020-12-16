@@ -762,7 +762,7 @@ def _copy_to_job_workspace(src, job, copytree):
     try:
         copytree(src, dst)
     except OSError as error:
-        if error.errno in (errno.ENOTEMPTY, errno.EEXIST):
+        if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
             raise DestinationExistsError(job)
         raise
     else:
