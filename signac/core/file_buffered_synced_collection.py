@@ -6,7 +6,7 @@
 The FileBufferedSyncedCollection is a concrete implementation of the buffer
 protocol established by the BufferedSyncedCollection class. It uses an
 in-memory cache to store data when in buffered mode. It is suitable for
-use with any file-based back end because it performs integrity checks based on
+use with any file-based backend because it performs integrity checks based on
 whether or not the underlying file has been modified while buffering was
 activated.
 """
@@ -30,9 +30,10 @@ class FileBufferedCollection(BufferedCollection):
     All file-based backends can use the same set of integrity checks prior to a
     buffer flush. This class standardizes that protocol.
     """
+
     _cache = get_cache()
     _cached_collections: Dict[int, BufferedCollection] = {}
-    _BUFFER_CAPACITY = 32 * 2**20    # 32 MB
+    _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
 
     def __init__(self, filename, *args, **kwargs):
@@ -80,7 +81,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         Tuple[int, float]
             The size and last modification time of the associated file.
-       """
+        """
         try:
             metadata = os.stat(self._filename)
             return metadata.st_size, metadata.st_mtime
@@ -109,12 +110,12 @@ class FileBufferedCollection(BufferedCollection):
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
-                if self._hash(blob) != cached_data['contents']:
+                if self._hash(blob) != cached_data["contents"]:
                     # Validate that the file hasn't been changed by something
                     # else.
-                    if cached_data['metadata'] != self._get_file_metadata():
+                    if cached_data["metadata"] != self._get_file_metadata():
                         raise MetadataError(self._filename)
-                    self._data = json.loads(cached_data['contents'])
+                    self._data = json.loads(cached_data["contents"])
                     self._sync()
                 del self._cache[self._filename]
                 data_size = sys.getsizeof(cached_data)
@@ -157,14 +158,17 @@ class FileBufferedCollection(BufferedCollection):
             blob = self._encode()
             cached_data = self._cache[self._filename]
             buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
-                cached_data['contents'])
+                cached_data["contents"]
+            )
             FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-            cached_data['contents'] = blob
+            cached_data["contents"] = blob
         else:
             self._initialize_data_in_cache()
 
-        if (FileBufferedCollection._CURRENT_BUFFER_SIZE
-                > FileBufferedCollection._BUFFER_CAPACITY):
+        if (
+            FileBufferedCollection._CURRENT_BUFFER_SIZE
+            > FileBufferedCollection._BUFFER_CAPACITY
+        ):
             FileBufferedCollection._flush_buffer(force=True)
         # If multiple collections point to the same data, just checking that
         # the file contents are cached is not a sufficient check.
@@ -194,10 +198,12 @@ class FileBufferedCollection(BufferedCollection):
             self._initialize_data_in_cache()
 
         # Load from buffer
-        blob = self._cache[self._filename]['contents']
+        blob = self._cache[self._filename]["contents"]
 
-        if (FileBufferedCollection._CURRENT_BUFFER_SIZE
-                > FileBufferedCollection._BUFFER_CAPACITY):
+        if (
+            FileBufferedCollection._CURRENT_BUFFER_SIZE
+            > FileBufferedCollection._BUFFER_CAPACITY
+        ):
             FileBufferedCollection._flush_buffer(force=True)
         return self._decode(blob)
 
@@ -207,12 +213,13 @@ class FileBufferedCollection(BufferedCollection):
         blob = json.dumps(data).encode()
 
         self._cache[self._filename] = {
-            'contents': blob,
-            'hash': self._hash(blob),
-            'metadata': self._get_file_metadata(),
+            "contents": blob,
+            "hash": self._hash(blob),
+            "metadata": self._get_file_metadata(),
         }
         FileBufferedCollection._CURRENT_BUFFER_SIZE += sys.getsizeof(
-            self._cache[self._filename])
+            self._cache[self._filename]
+        )
         self._cached_collections[id(self)] = self
 
     @classmethod

@@ -1,7 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implement the caching feature to  SyncedCollection API."""
+"""Implement the caching feature to SyncedCollection API."""
 import uuid
 import logging
 import pickle
@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 def get_cache():
     """Return the cache.
 
-    This method returns an instance of :class:`~_RedisCache` if redis-server is
-    available, or otherwise an instance of ``dict`` for an in-memory cache.
+    This method returns an instance of :class:`~RedisCache` if a Redis server
+    is available, or otherwise an instance of :class:`dict` for an in-memory
+    cache.
 
     Returns
     -------
@@ -24,6 +25,7 @@ def get_cache():
     """
     try:
         import redis
+
         REDIS = True
     except ImportError as error:
         logger.debug(str(error))
@@ -34,7 +36,7 @@ def get_cache():
             cache = redis.Redis()
             test_key = str(uuid.uuid4())
             cache.set(test_key, 0)
-            assert cache.get(test_key) == b'0'  # Redis store data as bytes
+            assert cache.get(test_key) == b"0"  # Redis stores data as bytes
             cache.delete(test_key)
             logger.info("Using Redis cache.")
             return _RedisCache(cache)

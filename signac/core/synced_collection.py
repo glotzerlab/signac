@@ -17,6 +17,7 @@ from collections.abc import Collection
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -42,7 +43,8 @@ class SyncedCollection(Collection):
         if (name is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both.")
+                "parent or name must be None, but not both."
+            )
 
     @classmethod
     def __init_subclass__(cls):
@@ -79,8 +81,10 @@ class SyncedCollection(Collection):
         validators = []
         # Classes inherit the validators of their parent classes.
         for base_cls in type(self).__mro__:
-            if hasattr(base_cls, '_validators'):
-                validators.extend([v for v in base_cls._validators if v not in validators])
+            if hasattr(base_cls, "_validators"):
+                validators.extend(
+                    [v for v in base_cls._validators if v not in validators]
+                )
         return validators
 
     @classmethod

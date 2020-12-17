@@ -11,7 +11,7 @@ writes, which usually means guaranteeing that the synchronization destination
 processes concurrently with the set of operations within the buffered block.
 Judicious use of buffering can dramatically speed up code paths that might
 otherwise involve, for instance, heavy I/O. The specific buffering mechanism
-must be implemented by each back end since it depends on the nature of the
+must be implemented by each backend since it depends on the nature of the
 underlying data format.
 """
 import logging
@@ -92,12 +92,12 @@ class BufferedCollection(SyncedCollection):
     """
 
     def __init__(self, *args, **kwargs):
-        # This attribute _must_ be defined prior to calling the superclass
-        # constructors in order to enable subclasses to override setattr and
-        # getattr in nontrivial ways. In particular, if setattr and getattr
-        # need to access the synced data, they may call sync and load, which
-        # depend on this parameter existing and could otherwise end up in an
-        # infinite recursion.
+        # The _buffered attribute _must_ be defined prior to calling the
+        # superclass constructors in order to enable subclasses to override
+        # setattr and getattr in nontrivial ways. In particular, if setattr and
+        # getattr need to access the synced data, they may call sync and load,
+        # which depend on this parameter existing and could otherwise end up in
+        # an infinite recursion.
         self._buffered = 0
         super().__init__(*args, **kwargs)
 
@@ -113,12 +113,12 @@ class BufferedCollection(SyncedCollection):
 
     # We would like to be able to override `_sync` and `_load` rather than
     # `sync` and `load` to avoid having to replicate the "parent" logic.
-    # However, the underscore methods are the hooks for back end-specific
-    # collections to define how synchronization with the back end behaves. What
-    # we need to control in this class is when the synchronization to the back
-    # end actually occurs and when data is simply written to a buffer, and the
-    # only way to unambiguously specific the methods to call is by overriding
-    # `sync` and `load`.
+    # However, the underscore methods are the hooks for backend-specific
+    # collections to define how synchronization with the backend behaves. What
+    # we need to control in this class is when the synchronization to the
+    # backend actually occurs and when data is simply written to a buffer, and
+    # the only way to unambiguously specific the methods to call is by
+    # overriding `sync` and `load`.
     def sync(self):
         """Synchronize data with the backend but buffer if needed.
 
@@ -157,7 +157,7 @@ class BufferedCollection(SyncedCollection):
         """Store data in buffer.
 
         There's little benefit to providing a default means of buffering across
-        all back ends since the process is heavily dependent on the back end
+        all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just sync normally.
         """
         self._sync()
@@ -166,7 +166,7 @@ class BufferedCollection(SyncedCollection):
         """Store data in buffer.
 
         There's little benefit to providing a default means of buffering across
-        all back ends since the process is heavily dependent on the back end
+        all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just load normally.
         """
         self._load()
