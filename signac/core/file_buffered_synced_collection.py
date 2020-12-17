@@ -88,6 +88,11 @@ class FileBufferedCollection(BufferedCollection):
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
+            else:
+                # A return value of None indicates that the file does not
+                # exist and can be reliably compared against for metadata-based
+                # validation checks.
+                return None
 
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
