@@ -17,7 +17,7 @@ import json
 import os
 import sys
 
-from typing import Dict
+from typing import Any, Dict
 
 from .buffered_synced_collection import BufferedCollection
 from .errors import MetadataError
@@ -45,7 +45,7 @@ class FileBufferedCollection(BufferedCollection):
     buffer flush. This class standardizes that protocol.
     """
 
-    _cache = {}
+    _cache: Dict[str, Any] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
