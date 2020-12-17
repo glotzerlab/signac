@@ -92,7 +92,7 @@ class BufferedCollection(SyncedCollection):
     """
 
     def __init__(self, *args, **kwargs):
-        # The _buffered attribute _must_ be defined prior to calling the
+        # The `_buffered` attribute _must_ be defined prior to calling the
         # superclass constructors in order to enable subclasses to override
         # setattr and getattr in nontrivial ways. In particular, if setattr and
         # getattr need to access the synced data, they may call sync and load,

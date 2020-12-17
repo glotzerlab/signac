@@ -20,7 +20,6 @@ import sys
 from typing import Dict
 
 from .buffered_synced_collection import BufferedCollection
-from .caching import get_cache
 from .errors import MetadataError
 
 
@@ -31,7 +30,7 @@ class FileBufferedCollection(BufferedCollection):
     buffer flush. This class standardizes that protocol.
     """
 
-    _cache = get_cache()
+    _cache = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
@@ -79,8 +78,9 @@ class FileBufferedCollection(BufferedCollection):
 
         Returns
         -------
-        Tuple[int, float]
-            The size and last modification time of the associated file.
+        Tuple[int, float] or None
+            The size and last modification time of the associated file. If the
+            file does not exist, returns :code:`None`.
         """
         try:
             metadata = os.stat(self._filename)
@@ -106,16 +106,16 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                blob = json.dumps(self.to_base()).encode()
+                blob = self._encode()
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
-                if self._hash(blob) != cached_data["contents"]:
+                if self._hash(blob) != cached_data["hash"]:
                     # Validate that the file hasn't been changed by something
                     # else.
                     if cached_data["metadata"] != self._get_file_metadata():
                         raise MetadataError(self._filename)
-                    self._data = json.loads(cached_data["contents"])
+                    self._data = self._decode(cached_data["contents"])
                     self._sync()
                 del self._cache[self._filename]
                 data_size = sys.getsizeof(cached_data)
@@ -209,8 +209,7 @@ class FileBufferedCollection(BufferedCollection):
 
     def _initialize_data_in_cache(self):
         """Create the initial entry for the data in the cache."""
-        data = self.to_base()
-        blob = json.dumps(data).encode()
+        blob = self._encode()
 
         self._cache[self._filename] = {
             "contents": blob,
