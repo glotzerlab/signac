@@ -23,6 +23,21 @@ from .buffered_synced_collection import BufferedCollection
 from .errors import MetadataError
 
 
+def get_buffer_capacity():
+    """Get the current buffer capacity."""
+    return FileBufferedCollection._BUFFER_CAPACITY
+
+
+def set_buffer_capacity(new_capacity):
+    """Update the buffer capacity."""
+    FileBufferedCollection._BUFFER_CAPACITY = new_capacity
+
+
+def get_current_buffer_size():
+    """Get the total amount of data currently stored in the buffer."""
+    return FileBufferedCollection._CURRENT_BUFFER_SIZE
+
+
 class FileBufferedCollection(BufferedCollection):
     """Implement buffering for SyncedCollections with file-based backends.
 
@@ -38,21 +53,6 @@ class FileBufferedCollection(BufferedCollection):
     def __init__(self, filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._filename = filename
-
-    @classmethod
-    def get_buffer_capacity(cls):
-        """Get the current buffer capacity."""
-        return cls._BUFFER_CAPACITY
-
-    @classmethod
-    def set_buffer_capacity(cls, new_capacity):
-        """Update the buffer capacity."""
-        cls._BUFFER_CAPACITY = new_capacity
-
-    @classmethod
-    def get_current_buffer_size(cls):
-        """Get the total amount of data currently stored in the buffer."""
-        return FileBufferedCollection._CURRENT_BUFFER_SIZE
 
     @staticmethod
     def _hash(blob):
@@ -247,8 +247,8 @@ class FileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while cls._cached_collections:
-            col_id, collection = cls._cached_collections.popitem()
+        while FileBufferedCollection._cached_collections:
+            col_id, collection = FileBufferedCollection._cached_collections.popitem()
             if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue
@@ -256,5 +256,5 @@ class FileBufferedCollection(BufferedCollection):
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
-        cls._cached_collections = remaining_collections
+        FileBufferedCollection._cached_collections = remaining_collections
         return issues
