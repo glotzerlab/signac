@@ -159,6 +159,22 @@ class FileBufferedCollection(BufferedCollection):
         backends that simply entails storing data to an in-memory cache (which
         could also be a Redis instance, etc).
         """
+        # TODO: Is there any way to not require this? Problems arise that if we
+        # allow initialization of the buffer in _sync_buffer (the else clause
+        # below). Consider a method like _reset where we enter buffered mode
+        # then call reset on a SyncedDict. For a non-buffered SyncedCollection,
+        # there is no need to call load inside reset (unlike for most other
+        # methods) because we are going to overwrite the existing data anyway.
+        # However, when we are buffering, if we don't require a load before a
+        # sync, then the hash stored in the cache will be the value that the
+        # collection was reset to, not the value on disk prior to the reset.
+        # The only alternative that I see is modifying reset in the classes at
+        # the bottom of the hierarchy (i.e. BufferedJSONDict) to be defined as
+        # something like `self.load(); super().reset(data)`. That's somewhat
+        # repetitive, but is perhaps the best solution. I _think_ reset is the
+        # only method with this problem, but I could be wrong.
+        # assert self._filename in self._cache
+
         if self._filename in self._cache:
             blob = self._encode()
             cached_data = self._cache[self._filename]
@@ -215,11 +231,18 @@ class FileBufferedCollection(BufferedCollection):
     def _initialize_data_in_cache(self):
         """Create the initial entry for the data in the cache."""
         blob = self._encode()
+        metadata = self._get_file_metadata()
 
         self._cache[self._filename] = {
             "contents": blob,
+            # TODO: Related to _sync_buffer TODO. Always encoding the hash as
+            # in the line below leads to a problem when reset is called: the
+            # initial value in the cache is identical to the value after reset,
+            # so when the buffer is exited it erroneously believes that the
+            # data has not changed from the original value in the file and
+            # fails to flush.
             "hash": self._hash(blob),
-            "metadata": self._get_file_metadata(),
+            "metadata": metadata,
         }
         FileBufferedCollection._CURRENT_BUFFER_SIZE += sys.getsizeof(
             self._cache[self._filename]
