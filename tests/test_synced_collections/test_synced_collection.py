@@ -36,8 +36,9 @@ class TestJSONCollectionBase:
         self._tmp_dir.cleanup()
 
     def test_from_base_json(self):
-        sd = SyncedCollection.from_base(filename=self._fn_,
-                                        data={'a': 0}, backend='signac.core.synced_collections.collection_json')
+        sd = SyncedCollection.from_base(
+            filename=self._fn_, data={'a': 0},
+            backend='signac.core.synced_collections.collection_json')
         assert isinstance(sd, JSONDict)
         assert 'a' in sd
         assert sd['a'] == 0
