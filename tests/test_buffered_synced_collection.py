@@ -23,6 +23,7 @@ FN_JSON = 'test.json'
 PYPY = 'PyPy' in platform.python_implementation()
 
 
+@pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestJSONCollectionBase:
 
     # this fixture sets temporary directory for tests
