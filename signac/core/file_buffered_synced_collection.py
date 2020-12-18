@@ -128,18 +128,21 @@ class FileBufferedCollection(BufferedCollection):
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
-                if self._hash(blob) != cached_data["hash"]:
-                    # Validate that the file hasn't been changed by something
-                    # else.
-                    if cached_data["metadata"] != self._get_file_metadata():
-                        del self._cache[self._filename]
-                        raise MetadataError(self._filename,
-                                            cached_data['contents'])
-                    self._data = self._decode(cached_data["contents"])
-                    self._sync()
-                del self._cache[self._filename]
-                data_size = sys.getsizeof(cached_data)
-                FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
+                try:
+                    if self._hash(blob) != cached_data["hash"]:
+                        # Validate that the file hasn't been changed by
+                        # something else.
+                        if cached_data["metadata"] != self._get_file_metadata():
+                            raise MetadataError(self._filename,
+                                                cached_data['contents'])
+                        self._data = self._decode(cached_data["contents"])
+                        self._sync()
+                finally:
+                    # Whether or not an error was raised, the cache must be
+                    # cleared to ensure a valid final buffer state.
+                    del self._cache[self._filename]
+                    data_size = sys.getsizeof(cached_data)
+                    FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     def _encode(self):
         """Encode the data into a serializable form.
