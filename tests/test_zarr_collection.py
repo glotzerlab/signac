@@ -4,8 +4,8 @@
 import pytest
 from tempfile import TemporaryDirectory
 
-from signac.core.collection_zarr import ZarrDict
-from signac.core.collection_zarr import ZarrList
+from signac.core.synced_collections.collection_zarr import ZarrDict
+from signac.core.synced_collections.collection_zarr import ZarrList
 from test_synced_collection import TestJSONDict
 from test_synced_collection import TestJSONList
 

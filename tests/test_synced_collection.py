@@ -9,10 +9,10 @@ from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from copy import deepcopy
 
-from signac.core.synced_collection import SyncedCollection
-from signac.core.collection_json import JSONCollection
-from signac.core.collection_json import JSONDict
-from signac.core.collection_json import JSONList
+from signac.core.synced_collections.synced_collection import SyncedCollection
+from signac.core.synced_collections.collection_json import JSONCollection
+from signac.core.synced_collections.collection_json import JSONDict
+from signac.core.synced_collections.collection_json import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
 
@@ -37,7 +37,7 @@ class TestJSONCollectionBase:
 
     def test_from_base_json(self):
         sd = SyncedCollection.from_base(filename=self._fn_,
-                                        data={'a': 0}, backend='signac.core.collection_json')
+                                        data={'a': 0}, backend='signac.core.synced_collections.collection_json')
         assert isinstance(sd, JSONDict)
         assert 'a' in sd
         assert sd['a'] == 0

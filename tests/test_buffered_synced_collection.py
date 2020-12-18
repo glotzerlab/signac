@@ -9,11 +9,11 @@ import time
 import itertools
 import platform
 
-from signac.core.synced_collection import SyncedCollection
-from signac.core.collection_json import BufferedJSONDict
-from signac.core.collection_json import BufferedJSONList
-from signac.core.buffered_synced_collection import buffer_reads_writes
-from signac.core.errors import MetadataError, BufferedError
+from signac.core.synced_collections.synced_collection import SyncedCollection
+from signac.core.synced_collections.collection_json import BufferedJSONDict
+from signac.core.synced_collections.collection_json import BufferedJSONList
+from signac.core.synced_collections.buffered_synced_collection import buffer_reads_writes
+from signac.core.synced_collections.errors import MetadataError, BufferedError
 
 from test_synced_collection import TestJSONDict, TestJSONList
 
@@ -37,7 +37,7 @@ class TestJSONCollectionBase:
     def test_from_base_json(self):
         sd = SyncedCollection.from_base(
             filename=self._fn_,
-            data={'a': 0}, backend='signac.core.collection_json.buffered')
+            data={'a': 0}, backend='signac.core.synced_collections.collection_json.buffered')
         assert isinstance(sd, BufferedJSONDict)
         assert 'a' in sd
         assert sd['a'] == 0
