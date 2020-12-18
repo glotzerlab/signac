@@ -5,6 +5,7 @@ import pytest
 import os
 import json
 from tempfile import TemporaryDirectory
+import time
 import itertools
 import platform
 
@@ -404,6 +405,14 @@ class TestBufferedJSONList(TestJSONList, BufferedJSONCollectionTest):
             with buffer_reads_writes():
                 synced_list.reset([1])
                 assert synced_list == [1]
+                # Unfortunately the resolution of os.stat is
+                # platform dependent and may not always be
+                # high enough for our check to work. Since
+                # this unit test is artificially simple we
+                # must add some amount of minimum waiting time
+                # to ensure that the change in time will be
+                # detected.
+                time.sleep(0.01)
                 self.store([1, 2, 3])
                 assert synced_list == [1]
         assert len(synced_list) == 3

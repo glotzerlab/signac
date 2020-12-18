@@ -79,7 +79,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         try:
             metadata = os.stat(self._filename)
-            return metadata.st_size, metadata.st_mtime
+            return metadata.st_size, metadata.st_mtime_ns
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
