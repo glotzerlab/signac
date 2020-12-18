@@ -10,7 +10,7 @@ import json
 from copy import deepcopy
 
 from .synced_collection import SyncedCollection
-from .syncedattrdict import SyncedAttrDict
+from .synced_attr_dict import SyncedAttrDict
 from .synced_list import SyncedList
 
 

@@ -13,9 +13,9 @@ import errno
 import uuid
 import warnings
 
-from .file_buffered_synced_collection import FileBufferedCollection
+from .file_buffered_collection import FileBufferedCollection
 from .synced_collection import SyncedCollection
-from .syncedattrdict import SyncedAttrDict
+from .synced_attr_dict import SyncedAttrDict
 from .synced_list import SyncedList
 from .validators import json_format_validator
 

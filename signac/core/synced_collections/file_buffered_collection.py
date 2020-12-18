@@ -20,7 +20,7 @@ import sys
 
 from typing import Dict, Tuple, Union
 
-from .buffered_synced_collection import BufferedCollection
+from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 
 PYPY = 'PyPy' in platform.python_implementation()

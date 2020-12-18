@@ -12,7 +12,7 @@ import platform
 from signac.core.synced_collections.synced_collection import SyncedCollection
 from signac.core.synced_collections.collection_json import BufferedJSONDict
 from signac.core.synced_collections.collection_json import BufferedJSONList
-from signac.core.synced_collections.buffered_synced_collection import buffer_reads_writes
+from signac.core.synced_collections.buffered_collection import buffer_reads_writes
 from signac.core.synced_collections.errors import MetadataError, BufferedError
 
 from test_synced_collection import TestJSONDict, TestJSONList
