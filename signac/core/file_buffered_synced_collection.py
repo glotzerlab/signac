@@ -17,35 +17,24 @@ import json
 import os
 import sys
 
-from typing import Any, Dict
+from typing import Dict, Tuple, Union
 
 from .buffered_synced_collection import BufferedCollection
 from .errors import MetadataError
-
-
-def get_buffer_capacity():
-    """Get the current buffer capacity."""
-    return FileBufferedCollection._BUFFER_CAPACITY
-
-
-def set_buffer_capacity(new_capacity):
-    """Update the buffer capacity."""
-    FileBufferedCollection._BUFFER_CAPACITY = new_capacity
-
-
-def get_current_buffer_size():
-    """Get the total amount of data currently stored in the buffer."""
-    return FileBufferedCollection._CURRENT_BUFFER_SIZE
 
 
 class FileBufferedCollection(BufferedCollection):
     """Implement buffering for SyncedCollections with file-based backends.
 
     All file-based backends can use the same set of integrity checks prior to a
-    buffer flush. This class standardizes that protocol.
+    buffer flush. This class standardizes that protocol. This class also
+    centralizes the storage of buffered data, i.e. all subclasses share a
+    single cache. This choice is so that that users can reliably get and set
+    the buffer capacity without worrying about the number of distinct internal
+    data buffers that might be present.
     """
 
-    _cache: Dict[str, Any] = {}
+    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
@@ -88,11 +77,29 @@ class FileBufferedCollection(BufferedCollection):
         except OSError as error:
             if error.errno != errno.ENOENT:
                 raise
-            else:
-                # A return value of None indicates that the file does not
-                # exist and can be reliably compared against for metadata-based
-                # validation checks.
-                return None
+            # A return value of None indicates that the file does not
+            # exist. Since any non-``None`` value will return `False` when
+            # compared to ``None``, returning ``None`` provides a
+            # reasonable value to compare against for metadata-based
+            # validation checks.
+            return None
+
+    @staticmethod
+    def get_buffer_capacity():
+        """Get the current buffer capacity."""
+        return FileBufferedCollection._BUFFER_CAPACITY
+
+    @staticmethod
+    def set_buffer_capacity(new_capacity):
+        """Update the buffer capacity."""
+        FileBufferedCollection._BUFFER_CAPACITY = new_capacity
+        if new_capacity < FileBufferedCollection._CURRENT_BUFFER_SIZE:
+            FileBufferedCollection._flush_buffer()
+
+    @staticmethod
+    def get_current_buffer_size():
+        """Get the total amount of data currently stored in the buffer."""
+        return FileBufferedCollection._CURRENT_BUFFER_SIZE
 
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
@@ -119,7 +126,9 @@ class FileBufferedCollection(BufferedCollection):
                     # Validate that the file hasn't been changed by something
                     # else.
                     if cached_data["metadata"] != self._get_file_metadata():
-                        raise MetadataError(self._filename)
+                        del self._cache[self._filename]
+                        raise MetadataError(self._filename,
+                                            cached_data['contents'])
                     self._data = self._decode(cached_data["contents"])
                     self._sync()
                 del self._cache[self._filename]
@@ -129,8 +138,8 @@ class FileBufferedCollection(BufferedCollection):
     def _encode(self):
         """Encode the data into a serializable form.
 
-        This method assumes JSON-serializable data, but is exposed to allow
-        changing this behavior.
+        This method assumes JSON-serializable data, but subclasses can override
+        this hook method to change the encoding behavior as needed.
 
         Returns
         -------
@@ -143,7 +152,8 @@ class FileBufferedCollection(BufferedCollection):
     def _decode(blob):
         """Decode serialized data.
 
-        Mirroring _encode, this method assumes JSON serialization.
+        This method assumes JSON-serializable data, but subclasses can override
+        this hook method to change the encoding behavior as needed.
 
         Parameters
         ----------
@@ -173,18 +183,20 @@ class FileBufferedCollection(BufferedCollection):
         # something like `self.load(); super().reset(data)`. That's somewhat
         # repetitive, but is perhaps the best solution. I _think_ reset is the
         # only method with this problem, but I could be wrong.
-        # assert self._filename in self._cache
+        assert self._filename in self._cache, (
+            "All SyncedCollection methods must call load prior to calling "
+            "sync in order to remain compatible with buffering. This error "
+            "likely indicates developer error, so please contact the "
+            "developers to address this problem."
+        )
 
-        if self._filename in self._cache:
-            blob = self._encode()
-            cached_data = self._cache[self._filename]
-            buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
-                cached_data["contents"]
-            )
-            FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-            cached_data["contents"] = blob
-        else:
-            self._initialize_data_in_cache()
+        blob = self._encode()
+        cached_data = self._cache[self._filename]
+        buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
+            cached_data["contents"]
+        )
+        FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+        cached_data["contents"] = blob
 
         if (
             FileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -235,12 +247,6 @@ class FileBufferedCollection(BufferedCollection):
 
         self._cache[self._filename] = {
             "contents": blob,
-            # TODO: Related to _sync_buffer TODO. Always encoding the hash as
-            # in the line below leads to a problem when reset is called: the
-            # initial value in the cache is identical to the value after reset,
-            # so when the buffer is exited it erroneously believes that the
-            # data has not changed from the original value in the file and
-            # fails to flush.
             "hash": self._hash(blob),
             "metadata": metadata,
         }

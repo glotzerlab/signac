@@ -30,10 +30,15 @@ class BufferedError(BufferException):
 
 
 class MetadataError(BufferException):
-    """Raised when metadata check fails."""
+    """Raised when metadata check fails.
 
-    def __init__(self, filename):
+    The contents of this file in the buffer can be accessed via the
+    `buffer_contents` attribute of this exception.
+    """
+
+    def __init__(self, filename, contents):
         self.filename = filename
+        self.buffer_contents = contents
 
     def __str__(self):
         return f'{self.filename} appears to have been externally modified.'

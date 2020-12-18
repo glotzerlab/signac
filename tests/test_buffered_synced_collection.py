@@ -131,23 +131,6 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
                 synced_dict2['buffered2'] = 3
                 assert synced_dict['buffered2'] == 3
 
-        self._force_flush_backends()
-
-    def _force_flush_backends(self):
-        # TODO: If client code catches errors raised due to invalid data in the
-        # buffer then attempts to continue, the buffer will be in an invalid
-        # state, and any future attempt to leave buffered mode will trigger
-        # another flush that will error. I'm not sure what the best way to deal
-        # with this problem is. The easiest option is probably to clear the
-        # cache whenever an error occurs so that the buffer is back in a valid
-        # state.
-        from signac.core import buffered_synced_collection
-        for backend in buffered_synced_collection._BUFFERED_BACKENDS:
-            try:
-                backend._cache.clear()
-            except AttributeError:
-                pass
-
     def test_two_buffered_modify_unbuffered_first(self, synced_dict, testdata):
         # TODO: What is the expected behavior in this test? Data is only loaded
         # into the buffer the first time anything happens, so if we enter the
@@ -347,7 +330,6 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
                 # Check that all the checks ran before the assertion failure.
                 finished = True
         assert finished
-        self._force_flush_backends()
 
 
 class TestBufferedJSONList(TestJSONList, BufferedJSONCollectionTest):
