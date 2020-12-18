@@ -124,7 +124,7 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                blob = self._encode()
+                blob = self._encode(self.to_base())
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
@@ -144,7 +144,8 @@ class FileBufferedCollection(BufferedCollection):
                     data_size = sys.getsizeof(cached_data)
                     FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
-    def _encode(self):
+    @staticmethod
+    def _encode(data):
         """Encode the data into a serializable form.
 
         This method assumes JSON-serializable data, but subclasses can override
@@ -155,7 +156,7 @@ class FileBufferedCollection(BufferedCollection):
         bytes
             The underlying encoded data.
         """
-        return json.dumps(self.to_base()).encode()
+        return json.dumps(data).encode()
 
     @staticmethod
     def _decode(blob):
@@ -178,34 +179,27 @@ class FileBufferedCollection(BufferedCollection):
         backends that simply entails storing data to an in-memory cache (which
         could also be a Redis instance, etc).
         """
-        # TODO: Is there any way to not require this? Problems arise that if we
-        # allow initialization of the buffer in _sync_buffer (the else clause
-        # below). Consider a method like _reset where we enter buffered mode
-        # then call reset on a SyncedDict. For a non-buffered SyncedCollection,
-        # there is no need to call load inside reset (unlike for most other
-        # methods) because we are going to overwrite the existing data anyway.
-        # However, when we are buffering, if we don't require a load before a
-        # sync, then the hash stored in the cache will be the value that the
-        # collection was reset to, not the value on disk prior to the reset.
-        # The only alternative that I see is modifying reset in the classes at
-        # the bottom of the hierarchy (i.e. BufferedJSONDict) to be defined as
-        # something like `self.load(); super().reset(data)`. That's somewhat
-        # repetitive, but is perhaps the best solution. I _think_ reset is the
-        # only method with this problem, but I could be wrong.
-        assert self._filename in self._cache, (
-            "All SyncedCollection methods must call load prior to calling "
-            "sync in order to remain compatible with buffering. This error "
-            "likely indicates developer error, so please contact the "
-            "developers to address this problem."
-        )
-
-        blob = self._encode()
-        cached_data = self._cache[self._filename]
-        buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
-            cached_data["contents"]
-        )
-        FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-        cached_data["contents"] = blob
+        if self._filename in self._cache:
+            blob = self._encode(self.to_base())
+            cached_data = self._cache[self._filename]
+            buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
+                cached_data["contents"]
+            )
+            FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+            cached_data["contents"] = blob
+        else:
+            # The only methods that could safely call sync without a load are
+            # destructive operations like `reset` or `clear` that completely
+            # wipe out previously existing data. Therefore, the safest choice
+            # for ensuring consistency of the buffer is to modify the stored
+            # hash (which is used for the consistency check) with the hash of
+            # the current data on disk. _initialize_data_in_cache always uses
+            # the current metadata, so the only extra work here is to modify
+            # the hash after it's called (since it uses self.to_base()) to get
+            # the data to initialize the cache with.
+            self._initialize_data_in_cache()
+            disk_data = self._load()
+            self._cache[self._filename]["hash"] = self._hash(self._encode(disk_data))
 
         if (
             FileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -250,8 +244,13 @@ class FileBufferedCollection(BufferedCollection):
         return self._decode(blob)
 
     def _initialize_data_in_cache(self):
-        """Create the initial entry for the data in the cache."""
-        blob = self._encode()
+        """Create the initial entry for the data in the cache.
+
+        This method always populates the cache with the encoded contents of the
+        provided data, the hash of said data, and the current metadata of the
+        file on disk.
+        """
+        blob = self._encode(self.to_base())
         metadata = self._get_file_metadata()
 
         self._cache[self._filename] = {

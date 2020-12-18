@@ -130,7 +130,6 @@ class SyncedList(SyncedCollection, MutableSequence):
             data = data.tolist()
         self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
-            self.load()
             with self._suspend_sync():
                 self._data = [self.from_base(data=value, parent=self) for value in data]
             self.sync()
@@ -190,6 +189,5 @@ class SyncedList(SyncedCollection, MutableSequence):
         self.sync()
 
     def clear(self):
-        self.load()
         self._data = []
         self.sync()

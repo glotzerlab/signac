@@ -138,7 +138,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             data = {}
         if isinstance(data, Mapping):
-            self.load()
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
@@ -178,7 +177,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return ret
 
     def clear(self):
-        self.load()
         self._data = {}
         self.sync()
 
