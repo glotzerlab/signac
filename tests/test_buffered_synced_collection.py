@@ -6,6 +6,7 @@ import os
 import json
 from tempfile import TemporaryDirectory
 import itertools
+import platform
 
 from signac.core.synced_collection import SyncedCollection
 from signac.core.collection_json import BufferedJSONDict
@@ -16,6 +17,9 @@ from signac.core.errors import MetadataError, BufferedError
 from test_synced_collection import TestJSONDict, TestJSONList
 
 FN_JSON = 'test.json'
+
+
+PYPY = 'PyPy' in platform.python_implementation()
 
 
 class TestJSONCollectionBase:
@@ -41,6 +45,7 @@ class TestJSONCollectionBase:
             SyncedCollection.from_base(data={'a': 0})
 
 
+@pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class BufferedJSONCollectionTest:
     def load(self, collection):
         """Load the data corresopnding to a SyncedCollection from disk."""
@@ -48,6 +53,7 @@ class BufferedJSONCollectionTest:
             return json.load(f)
 
 
+@pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
     """Tests of buffering JSONDicts."""
 
@@ -332,6 +338,7 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
         assert finished
 
 
+@pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestBufferedJSONList(TestJSONList, BufferedJSONCollectionTest):
     """Tests of buffering JSONLists."""
 

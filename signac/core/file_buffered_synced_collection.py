@@ -15,12 +15,15 @@ import errno
 import hashlib
 import json
 import os
+import platform
 import sys
 
 from typing import Dict, Tuple, Union
 
 from .buffered_synced_collection import BufferedCollection
 from .errors import MetadataError
+
+PYPY = 'PyPy' in platform.python_implementation()
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -40,6 +43,9 @@ class FileBufferedCollection(BufferedCollection):
     _CURRENT_BUFFER_SIZE = 0
 
     def __init__(self, filename, *args, **kwargs):
+        if PYPY:
+            raise NotImplementedError(
+                "File-based buffering is not supported on PyPy.")
         super().__init__(*args, **kwargs)
         self._filename = filename
 
