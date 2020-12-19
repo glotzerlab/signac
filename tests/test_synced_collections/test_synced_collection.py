@@ -540,7 +540,7 @@ class SyncedListTest(SyncedCollectionTest):
         assert len(synced_collection) == 3
         assert synced_collection[1] == testdata
 
-    def test_reversed(self,  synced_collection):
+    def test_reversed(self, synced_collection):
         data = [1, 2, 3]
         synced_collection.reset([1, 2, 3])
         assert len(synced_collection) == 3
