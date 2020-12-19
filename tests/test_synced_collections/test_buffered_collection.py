@@ -15,9 +15,7 @@ from signac.core.synced_collections.collection_json import BufferedJSONList
 from signac.core.synced_collections.buffered_collection import buffer_reads_writes
 from signac.core.synced_collections.errors import MetadataError, BufferedError
 
-from test_json_collection import (JSONCollectionTest, TestJSONDict,
-                                  TestJSONList, TestJSONDictWriteConcern,
-                                  TestJSONListWriteConcern)
+from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
 FN_JSON = 'test.json'
 
@@ -91,7 +89,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     def test_two_buffered(self, synced_collection, testdata):
         """Test that a non-buffered copy is not modified."""
         synced_collection['buffered'] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = BufferedJSONDict(
+            filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with synced_collection.buffered():
@@ -101,7 +100,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     def test_two_buffered_modify_unbuffered(self, synced_collection, testdata):
         """Test that in-memory changes raise errors in buffered mode."""
         synced_collection['buffered'] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = BufferedJSONDict(
+            filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with pytest.raises(MetadataError):
@@ -114,7 +114,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 synced_collection2['buffered2'] = 3
                 assert synced_collection['buffered2'] == 3
 
-    def test_two_buffered_modify_unbuffered_first(self, synced_collection, testdata):
+    def test_two_buffered_modify_unbuffered_first(self, synced_collection,
+                                                  testdata):
         # TODO: What is the expected behavior in this test? Data is only loaded
         # into the buffer the first time anything happens, so if we enter the
         # buffered context for one collection then modify an unbuffered
@@ -125,7 +126,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         # buffer when entering the context instead of waiting until the first
         # call to load, but for global buffering there's no equivalent.
         synced_collection['buffered'] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = BufferedJSONDict(
+            filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with synced_collection.buffered():
@@ -187,7 +189,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         assert self.load(synced_collection) == synced_collection
 
-    def test_nested_different_collections(self, synced_collection, synced_collection2):
+    def test_nested_different_collections(self, synced_collection,
+                                          synced_collection2):
         """Test nested buffering for different collections."""
         assert len(synced_collection) == 0
         assert len(synced_collection2) == 0
@@ -240,7 +243,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
     def test_nested_copied_collection(self, synced_collection):
         """Test modifying two collections pointing to the same data."""
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = BufferedJSONDict(
+            filename=synced_collection._filename)
 
         assert len(synced_collection) == 0
         assert len(synced_collection2) == 0
@@ -268,7 +272,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     @pytest.mark.skip("Not currently sure what the expected behavior is.")
     def test_nested_copied_collection_invalid(self, synced_collection):
         """Test the behavior of invalid modifications of copied objects."""
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = BufferedJSONDict(
+            filename=synced_collection._filename)
 
         assert len(synced_collection) == 0
         assert len(synced_collection2) == 0
@@ -278,18 +283,19 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         with pytest.raises(MetadataError):
             with synced_collection.buffered():
                 synced_collection['inside_first'] = 2
-                # TODO: Currently, modifying synced_collection2 here causes problems.
-                # It is unbuffered, so it directly writes to file. Then, when
-                # entering global buffering in the context below, synced_collection2
-                # sees that synced_collection has already saved data for this file to
-                # the buffer, so it loads that data, which also means that
-                # synced_collection2 becomes associated with the metadata stored when
-                # synced_collection entered buffered mode. As a result, when the
-                # global buffering exits, we see metadata errors because
-                # synced_collection2 lost track of the fact that it saved changes to
-                # filemade prior to entering the global buffer. We _could_ fix
-                # this by changing the behavior of _load_buffer to not load the
-                # data from the cache if it exists, if the object is new to
+                # TODO: Currently, modifying synced_collection2 here causes
+                # problems.  It is unbuffered, so it directly writes to file.
+                # Then, when entering global buffering in the context below,
+                # synced_collection2 sees that synced_collection has already
+                # saved data for this file to the buffer, so it loads that
+                # data, which also means that synced_collection2 becomes
+                # associated with the metadata stored when synced_collection
+                # entered buffered mode. As a result, when the global buffering
+                # exits, we see metadata errors because synced_collection2 lost
+                # track of the fact that it saved changes to filemade prior to
+                # entering the global buffer. We _could_ fix this by changing
+                # the behavior of _load_buffer to not load the data from the
+                # cache if it exists, if the object is new to
                 # cached_collections then we would save a new version. However,
                 # I'm not sure that's the correct answer. Is there a true
                 # canonical source of truth in this scenario?

@@ -24,7 +24,8 @@ class ZarrCollectionTest:
 
     def store(self, data):
         dataset = self._group.require_dataset(
-            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
+            'test', overwrite=True, shape=1, dtype='object',
+            object_codec=numcodecs.JSON())
         dataset[0] = data
 
     @pytest.fixture(autouse=True)
@@ -32,7 +33,7 @@ class ZarrCollectionTest:
         self._tmp_dir = TemporaryDirectory(prefix='zarr_')
         self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
         self._name = 'test'
-        self._backend_kwargs = {'name': self._name, 'group' :self._group}
+        self._backend_kwargs = {'name': self._name, 'group': self._group}
         yield self._collection_type(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 

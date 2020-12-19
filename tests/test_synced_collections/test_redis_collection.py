@@ -43,11 +43,15 @@ class RedisCollectionTest:
         yield self._collection_type(**self._backend_kwargs)
 
 
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
+@pytest.mark.skipif(
+    not REDIS,
+    reason='test requires the redis package and running redis-server')
 class TestRedisDict(RedisCollectionTest, SyncedDictTest):
     _collection_type = RedisDict
 
 
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
+@pytest.mark.skipif(
+    not REDIS,
+    reason='test requires the redis package and running redis-server')
 class TestRedisList(RedisCollectionTest, SyncedListTest):
     _collection_type = RedisList

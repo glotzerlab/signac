@@ -32,7 +32,8 @@ class MongoDBCollectionTest:
 
     def store(self, data):
         data_to_insert = {'MongoDBDict::name': self._name, 'data': data}
-        self._collection.replace_one({'MongoDBDict::name': self._name}, data_to_insert)
+        self._collection.replace_one(
+            {'MongoDBDict::name': self._name}, data_to_insert)
 
     @pytest.fixture(autouse=True)
     def synced_collection(self, request):
@@ -46,14 +47,15 @@ class MongoDBCollectionTest:
         self._collection.drop()
 
 
-
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
+@pytest.mark.skipif(
+    not PYMONGO, reason='test requires the pymongo package and mongodb server')
 class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
 
     _collection_type = MongoDBDict
 
 
-@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoDBList(MongoDBCollectionTest, SyncedDictTest):
+@pytest.mark.skipif(
+    not PYMONGO, reason='test requires the pymongo package and mongodb server')
+class TestMongoDBList(MongoDBCollectionTest, SyncedListTest):
 
     _collection_type = MongoDBList

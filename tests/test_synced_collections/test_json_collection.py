@@ -5,24 +5,12 @@ import pytest
 import os
 import json
 from tempfile import TemporaryDirectory
-from collections.abc import MutableMapping
-from collections.abc import MutableSequence
-from copy import deepcopy
 
-from signac.core.synced_collections.synced_collection import SyncedCollection
 from signac.core.synced_collections.collection_json import JSONCollection
 from signac.core.synced_collections.collection_json import JSONDict
 from signac.core.synced_collections.collection_json import JSONList
-from signac.errors import InvalidKeyError
-from signac.errors import KeyTypeError
 
 from test_synced_collection import SyncedDictTest, SyncedListTest
-
-try:
-    import numpy
-    NUMPY = True
-except ImportError:
-    NUMPY = False
 
 
 class JSONCollectionTest:
@@ -54,7 +42,6 @@ class TestJSONDict(JSONCollectionTest, SyncedDictTest):
 class TestJSONList(JSONCollectionTest, SyncedListTest):
 
     _collection_type = JSONList
-
 
 
 class TestJSONDictWriteConcern(TestJSONDict):
