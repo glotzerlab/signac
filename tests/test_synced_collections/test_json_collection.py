@@ -10,7 +10,7 @@ from signac.core.synced_collections.collection_json import JSONCollection
 from signac.core.synced_collections.collection_json import JSONDict
 from signac.core.synced_collections.collection_json import JSONList
 
-from test_synced_collection import SyncedDictTest, SyncedListTest
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 
 class JSONCollectionTest:

@@ -8,7 +8,7 @@ import uuid
 from signac.core.synced_collections.collection_redis import RedisCollection
 from signac.core.synced_collections.collection_redis import RedisDict
 from signac.core.synced_collections.collection_redis import RedisList
-from test_synced_collection import SyncedDictTest, SyncedListTest
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 try:
     import redis

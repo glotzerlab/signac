@@ -6,7 +6,7 @@ import pytest
 from signac.core.synced_collections.collection_mongodb import MongoDBCollection
 from signac.core.synced_collections.collection_mongodb import MongoDBDict
 from signac.core.synced_collections.collection_mongodb import MongoDBList
-from test_synced_collection import SyncedDictTest, SyncedListTest
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 try:
     import pymongo

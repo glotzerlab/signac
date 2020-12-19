@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 from signac.core.synced_collections.collection_zarr import ZarrCollection
 from signac.core.synced_collections.collection_zarr import ZarrDict
 from signac.core.synced_collections.collection_zarr import ZarrList
-from test_synced_collection import SyncedDictTest, SyncedListTest
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 try:
     import zarr
