@@ -302,7 +302,7 @@ class SyncedDictTest(SyncedCollectionTest):
         except TypeError:
             # Use fallback implementation, deepcopy not supported by backend.
             synced_collection2 = synced_collection._pseudo_deepcopy()
-        synced_collection.sync()
+        synced_collection.save()
         del synced_collection  # possibly unsafe
         synced_collection2.load()
         assert len(synced_collection2) == 1
@@ -590,7 +590,7 @@ class SyncedListTest(SyncedCollectionTest):
             # Use fallback implementation, deepcopy not supported by backend.
             synced_collection2 = synced_collection._pseudo_deepcopy()
         synced_collection.append(testdata)
-        synced_collection.sync()
+        synced_collection.save()
         del synced_collection  # possibly unsafe
         synced_collection2.load()
         assert len(synced_collection2) == 1

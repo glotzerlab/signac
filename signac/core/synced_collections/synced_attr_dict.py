@@ -51,7 +51,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 self._data = {
                     key: self.from_base(data=value, parent=self) for key, value in data.items()
                 }
-            self.sync()
+            self.save()
 
     def to_base(self):
         """Convert the SyncedDict object to Dictionary.
@@ -120,7 +120,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self.load()
         with self._suspend_sync():
             self._data[key] = self.from_base(value, parent=self)
-        self.sync()
+        self.save()
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -143,7 +143,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 self._data = {
                     key: self.from_base(data=value, parent=self) for key, value in data.items()
                 }
-            self.sync()
+            self.save()
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
@@ -167,18 +167,18 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     def pop(self, key, default=None):
         self.load()
         ret = self._data.pop(key, default)
-        self.sync()
+        self.save()
         return ret
 
     def popitem(self):
         self.load()
         ret = self._data.popitem()
-        self.sync()
+        self.save()
         return ret
 
     def clear(self):
         self._data = {}
-        self.sync()
+        self.save()
 
     def update(self, other=None, **kwargs):
         if other is not None:
@@ -195,7 +195,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     self._data[key] = self.from_base(data=value, parent=self)
             for key, value in kwargs.items():
                 self._data[key] = self.from_base(data=value, parent=self)
-        self.sync()
+        self.save()
 
     def setdefault(self, key, default=None):
         self.load()
@@ -206,7 +206,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             ret = self.from_base(default, parent=self)
             with self._suspend_sync():
                 self._data[key] = ret
-            self.sync()
+            self.save()
         return ret
 
     def __getattr__(self, name):

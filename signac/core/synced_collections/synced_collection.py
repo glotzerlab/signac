@@ -157,13 +157,13 @@ class SyncedCollection(Collection):
         """Write data to underlying backend."""
         pass
 
-    def sync(self):
+    def save(self):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._sync()
             else:
-                self._parent.sync()
+                self._parent.save()
 
     @abstractmethod
     def _update(self, data):
@@ -206,7 +206,7 @@ class SyncedCollection(Collection):
     def __delitem__(self, item):
         self.load()
         del self._data[item]
-        self.sync()
+        self.save()
 
     def __iter__(self):
         self.load()
