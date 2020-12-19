@@ -9,13 +9,15 @@ import time
 import itertools
 import platform
 
-from signac.core.synced_collections.synced_collection import SyncedCollection
+from signac.core.synced_collections.collection_json import BufferedJSONCollection
 from signac.core.synced_collections.collection_json import BufferedJSONDict
 from signac.core.synced_collections.collection_json import BufferedJSONList
 from signac.core.synced_collections.buffered_collection import buffer_reads_writes
 from signac.core.synced_collections.errors import MetadataError, BufferedError
 
-from test_synced_collection import TestJSONDict, TestJSONList
+from test_json_collection import (JSONCollectionTest, TestJSONDict,
+                                  TestJSONList, TestJSONDictWriteConcern,
+                                  TestJSONListWriteConcern)
 
 FN_JSON = 'test.json'
 
@@ -24,31 +26,11 @@ PYPY = 'PyPy' in platform.python_implementation()
 
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
-class TestJSONCollectionBase:
+class BufferedJSONCollectionTest(JSONCollectionTest):
 
-    # this fixture sets temporary directory for tests
-    @pytest.fixture(autouse=True)
-    def synced_collection(self):
-        self._tmp_dir = TemporaryDirectory(prefix='synced_collection_')
-        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-        yield
-        self._tmp_dir.cleanup()
+    _backend = 'signac.core.synced_collections.collection_json.buffered'
+    _backend_collection = BufferedJSONCollection
 
-    def test_from_base_json(self):
-        sd = SyncedCollection.from_base(
-            filename=self._fn_,
-            data={'a': 0}, backend='signac.core.synced_collections.collection_json.buffered')
-        assert isinstance(sd, BufferedJSONDict)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    def test_from_base_no_backend(self):
-        with pytest.raises(ValueError):
-            SyncedCollection.from_base(data={'a': 0})
-
-
-@pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
-class BufferedJSONCollectionTest:
     def load(self, collection):
         """Load the data corresopnding to a SyncedCollection from disk."""
         with open(collection._filename) as f:
@@ -56,8 +38,10 @@ class BufferedJSONCollectionTest:
 
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
-class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
+class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     """Tests of buffering JSONDicts."""
+
+    _collection_type = BufferedJSONDict
 
     @pytest.fixture
     def synced_dict(self):
@@ -341,8 +325,10 @@ class TestBufferedJSONDict(TestJSONDict, BufferedJSONCollectionTest):
 
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
-class TestBufferedJSONList(TestJSONList, BufferedJSONCollectionTest):
+class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
     """Tests of buffering JSONLists."""
+
+    _collection_type = BufferedJSONList
 
     @pytest.fixture
     def synced_list(self):
