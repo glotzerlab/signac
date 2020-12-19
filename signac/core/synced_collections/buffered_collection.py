@@ -119,7 +119,7 @@ class BufferedCollection(SyncedCollection):
     # backend actually occurs and when data is simply written to a buffer, and
     # the only way to unambiguously specific the methods to call is by
     # overriding `sync` and `load`.
-    def save(self):
+    def _save(self):
         """Synchronize data with the backend but buffer if needed.
 
         This method is identical to the SyncedCollection implementation for
@@ -133,9 +133,9 @@ class BufferedCollection(SyncedCollection):
                 else:
                     self._save_to_resource()
             else:
-                self._parent.save()
+                self._parent._save()
 
-    def load(self):
+    def _load(self):
         """Load data from the backend but buffer if needed.
 
         This method is identical to the SyncedCollection implementation for
@@ -151,7 +151,7 @@ class BufferedCollection(SyncedCollection):
                 with self._suspend_sync():
                     self._update(data)
             else:
-                self._parent.load()
+                self._parent._load()
 
     def _sync_buffer(self):
         """Store data in buffer.

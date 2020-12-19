@@ -157,13 +157,13 @@ class SyncedCollection(Collection):
         """Write data to underlying backend."""
         pass
 
-    def save(self):
+    def _save(self):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._save_to_resource()
             else:
-                self._parent.save()
+                self._parent._save()
 
     @abstractmethod
     def _update(self, data):
@@ -181,7 +181,7 @@ class SyncedCollection(Collection):
         """
         pass
 
-    def load(self):
+    def _load(self):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
@@ -189,7 +189,7 @@ class SyncedCollection(Collection):
                 with self._suspend_sync():
                     self._update(data)
             else:
-                self._parent.load()
+                self._parent._load()
 
     def _validate(self, data):
         """Validate the input data."""
@@ -200,37 +200,37 @@ class SyncedCollection(Collection):
     # all data structures and regardless of backend.
 
     def __getitem__(self, key):
-        self.load()
+        self._load()
         return self._data[key]
 
     def __delitem__(self, item):
-        self.load()
+        self._load()
         del self._data[item]
-        self.save()
+        self._save()
 
     def __iter__(self):
-        self.load()
+        self._load()
         return iter(self._data)
 
     def __len__(self):
-        self.load()
+        self._load()
         return len(self._data)
 
     def __call__(self):
-        self.load()
+        self._load()
         return self.to_base()
 
     def __eq__(self, other):
-        self.load()
+        self._load()
         if isinstance(other, type(self)):
             return self() == other()
         else:
             return self() == other
 
     def __repr__(self):
-        self.load()
+        self._load()
         return repr(self._data)
 
     def __str__(self):
-        self.load()
+        self._load()
         return str(self._data)

@@ -261,12 +261,12 @@ class SyncedDictTest(SyncedCollectionTest):
             synced_collection.not_exist
 
         # deleting a protected attribute
-        synced_collection.load()
+        synced_collection._load()
         del synced_collection._parent
         # deleting _parent will lead to recursion as _parent is treated as key
-        # load() will check for _parent and __getattr__ will call __getitem__ which calls load()
+        # _load() will check for _parent and __getattr__ will call __getitem__ which calls _load()
         with pytest.raises(RecursionError):
-            synced_collection.load()
+            synced_collection._load()
 
     def test_clear(self, synced_collection, testdata):
         key = 'clear'
@@ -302,9 +302,9 @@ class SyncedDictTest(SyncedCollectionTest):
         except TypeError:
             # Use fallback implementation, deepcopy not supported by backend.
             synced_collection2 = synced_collection._pseudo_deepcopy()
-        synced_collection.save()
+        synced_collection._save()
         del synced_collection  # possibly unsafe
-        synced_collection2.load()
+        synced_collection2._load()
         assert len(synced_collection2) == 1
         assert synced_collection2[key] == testdata
 
@@ -323,7 +323,7 @@ class SyncedDictTest(SyncedCollectionTest):
         data = [1, 2, 3]
         self.store(data)
         with pytest.raises(ValueError):
-            synced_collection.load()
+            synced_collection._load()
 
     def test_copy_as_dict(self, synced_collection, testdata):
         key = 'copy'
@@ -581,7 +581,7 @@ class SyncedListTest(SyncedCollectionTest):
         data2 = {'a': 1}
         self.store(data2)
         with pytest.raises(ValueError):
-            synced_collection.load()
+            synced_collection._load()
 
     def test_reopen(self, synced_collection, testdata):
         try:
@@ -590,9 +590,9 @@ class SyncedListTest(SyncedCollectionTest):
             # Use fallback implementation, deepcopy not supported by backend.
             synced_collection2 = synced_collection._pseudo_deepcopy()
         synced_collection.append(testdata)
-        synced_collection.save()
+        synced_collection._save()
         del synced_collection  # possibly unsafe
-        synced_collection2.load()
+        synced_collection2._load()
         assert len(synced_collection2) == 1
         assert synced_collection2[0] == testdata
 
