@@ -3,15 +3,20 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 import os
+import json
 from tempfile import TemporaryDirectory
 from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from copy import deepcopy
 
 from signac.core.synced_collections.synced_collection import SyncedCollection
+from signac.core.synced_collections.collection_json import JSONCollection
 from signac.core.synced_collections.collection_json import JSONDict
+from signac.core.synced_collections.collection_json import JSONList
 from signac.errors import InvalidKeyError
 from signac.errors import KeyTypeError
+
+from test_synced_collection import SyncedDictTest, SyncedListTest
 
 try:
     import numpy
@@ -22,7 +27,10 @@ except ImportError:
 FN_JSON = 'test.json'
 
 
-class SyncedCollectionTest:
+class JSONCollectionTest:
+
+    _backend = 'signac.core.synced_collections.collection_json'
+    _backend_collection = JSONCollection
 
     # this fixture sets temporary directory for tests
     @pytest.fixture(autouse=True)
@@ -32,40 +40,35 @@ class SyncedCollectionTest:
         yield
         self._tmp_dir.cleanup()
 
+    def test_from_base_json(self):
+        sd = SyncedCollection.from_base(
+            filename=self._fn_, data={'a': 0},
+            backend='signac.core.synced_collections.collection_json')
+        assert isinstance(sd, JSONDict)
+        assert 'a' in sd
+        assert sd['a'] == 0
+
     def test_from_base_no_backend(self):
         with pytest.raises(ValueError):
             SyncedCollection.from_base(filename=self._fn_, data={'a': 0})
-
-    def store(self, data):
-        raise NotImplementedError(
-            "Specific backend tests must implement the store method.")
+        JSONCollection.from_base(filename=self._fn_, data={'a': 0})
 
 
-class SyncedDictTest(SyncedCollectionTest):
+class TestJSONDict(JSONCollectionTest, SyncedDictTest):
+
+    _collection_type = JSONDict
 
     @pytest.fixture
     def synced_dict(self):
-        raise NotImplementedError(
-            "Specific backend tests must implement fixtures.")
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': False}
+        yield JSONDict(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
 
-    @pytest.fixture(autouse=True)
-    def base_collection(self):
-        return {'a': 0}
-
-    def test_from_base(self, base_collection):
-        sd = SyncedCollection.from_base(
-            filename=self._fn_, data=base_collection,
-            backend=self._backend)
-        assert isinstance(sd, self._collection_type)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    def test_from_base_explicit(self, base_collection):
-        sd = self._backend_collection.from_base(
-            filename=self._fn_, data=base_collection)
-        assert isinstance(sd, self._collection_type)
-        assert 'a' in sd
-        assert sd['a'] == 0
+    def store(self, data):
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data).encode())
 
     def test_init(self, synced_dict):
         assert len(synced_dict) == 0
@@ -411,31 +414,21 @@ class SyncedDictTest(SyncedCollectionTest):
                 synced_dict[key] = testdata
 
 
-class SyncedListTest(SyncedCollectionTest):
+class TestJSONList(JSONCollectionTest, SyncedListTest):
+
+    _collection_type = JSONList
 
     @pytest.fixture
     def synced_list(self):
-        raise NotImplementedError(
-            "Specific backend tests must implement fixtures.")
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_}
+        yield JSONList(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
 
-    @pytest.fixture(autouse=True)
-    def base_collection(self):
-        return [0]
-
-    def test_from_base(self, base_collection):
-        sd = SyncedCollection.from_base(
-            filename=self._fn_, data=base_collection,
-            backend=self._backend)
-        assert isinstance(sd, self._collection_type)
-        assert 0 in sd
-        assert sd[0] == 0
-
-    def test_from_base_explicit(self, base_collection):
-        sd = self._backend_collection.from_base(
-            filename=self._fn_, data=base_collection)
-        assert isinstance(sd, self._collection_type)
-        assert 0 in sd
-        assert sd[0] == 0
+    def store(self, data):
+        with open(self._fn_, 'wb') as file:
+            file.write(json.dumps(data).encode())
 
     def test_init(self, synced_list):
         assert len(synced_list) == 0
@@ -656,3 +649,25 @@ class SyncedListTest(SyncedCollectionTest):
         child2 = synced_list[0]['a']
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)
+
+
+class TestJSONDictWriteConcern(TestJSONDict):
+
+    @pytest.fixture
+    def synced_dict(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        yield JSONDict(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
+
+
+class TestJSONListWriteConcern(TestJSONList):
+
+    @pytest.fixture
+    def synced_list(self):
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
+        self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
+        self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
+        yield JSONList(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
