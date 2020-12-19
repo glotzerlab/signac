@@ -52,7 +52,7 @@ class JSONCollection(SyncedCollection):
         kwargs['name'] = filename
         super().__init__(filename=filename, **kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:

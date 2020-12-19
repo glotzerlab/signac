@@ -25,7 +25,7 @@ class ZarrCollection(SyncedCollection):
         self._object_codec = numcodecs.JSON()
         super().__init__(**kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from zarr-store."""
         try:
             return self._root[self._name][0]

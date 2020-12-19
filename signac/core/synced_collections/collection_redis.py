@@ -23,7 +23,7 @@ class RedisCollection(SyncedCollection):
         self._client = client
         super().__init__(**kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from a Redis-database."""
         blob = self._client.get(self._name)
         return None if blob is None else json.loads(blob)

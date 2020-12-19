@@ -26,7 +26,7 @@ class MongoDBCollection(SyncedCollection):
         self._key = type(self).__name__ + '::name'
         super().__init__(**kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from a MongoDB."""
         blob = self._collection.find_one({self._key: self._name})
         return blob['data'] if blob is not None else None

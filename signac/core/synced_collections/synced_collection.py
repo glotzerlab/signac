@@ -148,7 +148,7 @@ class SyncedCollection(Collection):
         pass
 
     @abstractmethod
-    def _load(self):
+    def _load_from_resource(self):
         """Load data from underlying backend."""
         pass
 
@@ -185,7 +185,7 @@ class SyncedCollection(Collection):
         """Load the data from the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                data = self._load()
+                data = self._load_from_resource()
                 with self._suspend_sync():
                     self._update(data)
             else:

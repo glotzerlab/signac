@@ -198,7 +198,7 @@ class FileBufferedCollection(BufferedCollection):
             # the hash after it's called (since it uses self.to_base()) to get
             # the data to initialize the cache with.
             self._initialize_data_in_cache()
-            disk_data = self._load()
+            disk_data = self._load_from_resource()
             self._cache[self._filename]["hash"] = self._hash(self._encode(disk_data))
 
         if (

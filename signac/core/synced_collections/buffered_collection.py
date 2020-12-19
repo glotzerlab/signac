@@ -147,7 +147,7 @@ class BufferedCollection(SyncedCollection):
                 if self._is_buffered:
                     data = self._load_buffer()
                 else:
-                    data = self._load()
+                    data = self._load_from_resource()
                 with self._suspend_sync():
                     self._update(data)
             else:
@@ -169,7 +169,7 @@ class BufferedCollection(SyncedCollection):
         all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just load normally.
         """
-        self._load()
+        self._load_from_resource()
 
     @contextmanager
     def buffered(self):
