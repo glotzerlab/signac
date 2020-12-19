@@ -39,7 +39,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
     def test_from_base(self, base_collection):
         sd = SyncedCollection.from_base(
-            filename=self._fn_, data=base_collection,
+            **self._backend_kwargs, data=base_collection,
             backend=self._backend)
         assert isinstance(sd, self._collection_type)
         assert 'a' in sd
@@ -47,7 +47,7 @@ class SyncedDictTest(SyncedCollectionTest):
 
     def test_from_base_explicit(self, base_collection):
         sd = self._backend_collection.from_base(
-            filename=self._fn_, data=base_collection)
+            **self._backend_kwargs, data=base_collection)
         assert isinstance(sd, self._collection_type)
         assert 'a' in sd
         assert sd['a'] == 0
@@ -55,7 +55,7 @@ class SyncedDictTest(SyncedCollectionTest):
     def test_from_base_no_backend(self, base_collection):
         with pytest.raises(ValueError):
             SyncedCollection.from_base(
-                filename=self._fn_, data=base_collection)
+                **self._backend_kwargs, data=base_collection)
 
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
@@ -409,7 +409,7 @@ class SyncedListTest(SyncedCollectionTest):
 
     def test_from_base(self, base_collection):
         sd = SyncedCollection.from_base(
-            filename=self._fn_, data=base_collection,
+            **self._backend_kwargs, data=base_collection,
             backend=self._backend)
         assert isinstance(sd, self._collection_type)
         assert 0 in sd
@@ -417,7 +417,7 @@ class SyncedListTest(SyncedCollectionTest):
 
     def test_from_base_explicit(self, base_collection):
         sd = self._backend_collection.from_base(
-            filename=self._fn_, data=base_collection)
+            **self._backend_kwargs, data=base_collection)
         assert isinstance(sd, self._collection_type)
         assert 0 in sd
         assert sd[0] == 0
