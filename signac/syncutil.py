@@ -13,7 +13,7 @@ from filecmp import dircmp
 
 from deprecation import deprecated
 
-from ..version import __version__
+from .version import __version__
 
 LEVEL_MORE = logging.INFO - 5
 
