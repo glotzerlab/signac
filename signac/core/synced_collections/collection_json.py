@@ -62,7 +62,7 @@ class JSONCollection(SyncedCollection):
             if error.errno == errno.ENOENT:
                 return None
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data to JSON file."""
         data = self.to_base()
         # Converting non-string keys to string

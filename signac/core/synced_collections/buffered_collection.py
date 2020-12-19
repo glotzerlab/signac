@@ -131,7 +131,7 @@ class BufferedCollection(SyncedCollection):
                 if self._is_buffered:
                     self._sync_buffer()
                 else:
-                    self._sync()
+                    self._save_to_resource()
             else:
                 self._parent.save()
 
@@ -160,7 +160,7 @@ class BufferedCollection(SyncedCollection):
         all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just sync normally.
         """
-        self._sync()
+        self._save_to_resource()
 
     def _load_buffer(self):
         """Store data in buffer.

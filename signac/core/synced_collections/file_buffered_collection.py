@@ -136,7 +136,7 @@ class FileBufferedCollection(BufferedCollection):
                             raise MetadataError(self._filename,
                                                 cached_data['contents'])
                         self._data = self._decode(cached_data["contents"])
-                        self._sync()
+                        self._save_to_resource()
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.

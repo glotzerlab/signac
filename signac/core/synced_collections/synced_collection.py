@@ -153,7 +153,7 @@ class SyncedCollection(Collection):
         pass
 
     @abstractmethod
-    def _sync(self):
+    def _save_to_resource(self):
         """Write data to underlying backend."""
         pass
 
@@ -161,7 +161,7 @@ class SyncedCollection(Collection):
         """Synchronize the data with the underlying backend."""
         if self._suspend_sync_ <= 0:
             if self._parent is None:
-                self._sync()
+                self._save_to_resource()
             else:
                 self._parent.save()
 

@@ -31,7 +31,7 @@ class MongoDBCollection(SyncedCollection):
         blob = self._collection.find_one({self._key: self._name})
         return blob['data'] if blob is not None else None
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data from MongoDB."""
         data = self.to_base()
         data_to_insert = {self._key: self._name, 'data': data}

@@ -32,7 +32,7 @@ class ZarrCollection(SyncedCollection):
         except KeyError:
             return None
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data to zarr-store."""
         data = self.to_base()
         dataset = self._root.require_dataset(

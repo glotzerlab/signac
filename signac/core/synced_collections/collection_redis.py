@@ -28,7 +28,7 @@ class RedisCollection(SyncedCollection):
         blob = self._client.get(self._name)
         return None if blob is None else json.loads(blob)
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data from Redis-database."""
         self._client.set(self._name, json.dumps(self.to_base()).encode())
 
