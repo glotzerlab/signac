@@ -125,6 +125,8 @@ class SyncedCollection(Collection):
         if NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
+        # TODO: This return value could be the original object if no match is
+        # found, there should be an error or at least a warning.
         return data
 
     @abstractmethod
@@ -162,6 +164,22 @@ class SyncedCollection(Collection):
                 self._sync()
             else:
                 self._parent.sync()
+
+    @abstractmethod
+    def _update(self, data):
+        """Update the in-memory representation to match the provided data.
+
+        The purpose of this method is to update the SyncedCollection to match
+        the data in the underlying resource.  The result of calling this method
+        should be that ``self == data``. The reason that this method is
+        necessary is that SyncedCollections can be nested, and nested
+        collections must also be instances of SyncedCollection so that
+        synchronization occurs even when nested structures are modified.
+        Recreating the full nested structure every time data is reloaded from
+        file is highly inefficient, so this method performs an in-place update
+        that only changes entries that need to be changed.
+        """
+        pass
 
     def load(self):
         """Load the data from the underlying backend."""
