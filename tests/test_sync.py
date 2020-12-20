@@ -204,7 +204,7 @@ class TestFileModifyProxy:
 class TestFileModifyProxyDocBackup:
     @pytest.fixture(autouse=True)
     def setUp(self):
-        self.doc = dict()
+        self.doc = {}
 
     def test_create_doc_dict(self):
         proxy = _FileModifyProxy()

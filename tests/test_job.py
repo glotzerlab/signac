@@ -47,7 +47,7 @@ BUILTINS = [
 
 def builtins_dict():
     random.shuffle(BUILTINS)
-    d = dict()
+    d = {}
     for b in BUILTINS:
         d.update(b[0])
     return d
@@ -428,7 +428,7 @@ class TestJobSpInterface(TestJobBase):
                 job.sp[key] = "test"
             with pytest.raises(KeyTypeError):
                 job.sp = {key: "test"}
-        for key in ([], {}, dict()):
+        for key in ([], {}):
             with pytest.raises(TypeError):
                 job.sp[key] = "test"
             with pytest.raises(TypeError):
@@ -455,7 +455,7 @@ class TestJobSpInterface(TestJobBase):
                 job.doc[key] = "test"
             with pytest.raises(KeyTypeError):
                 job.doc = {key: "test"}
-        for key in ([], {}, dict()):
+        for key in ([], {}):
             with pytest.raises(TypeError):
                 job.doc[key] = "test"
             with pytest.raises(TypeError):

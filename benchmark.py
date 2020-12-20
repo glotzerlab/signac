@@ -75,7 +75,7 @@ def calc_project_metadata_size(project):
 
 def get_partition(path):
     path = os.path.realpath(path)
-    candidates = dict()
+    candidates = {}
     for partition in psutil.disk_partitions(all=True):
         mp = os.path.realpath(partition.mountpoint)
         if path.startswith(mp):

@@ -102,7 +102,7 @@ class Job:
         self._stores = H5StoreManager(self._wd)
 
         # Prepare current working directory for context management
-        self._cwd = list()
+        self._cwd = []
 
     @deprecated(
         deprecated_in="1.3",
@@ -210,7 +210,7 @@ class Job:
         self._fn_doc = dst._fn_doc
         self._document = None
         self._data = None
-        self._cwd = list()
+        self._cwd = []
         logger.info(f"Moved '{self}' -> '{dst}'.")
 
     def _reset_sp(self, new_sp=None):
