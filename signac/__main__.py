@@ -635,7 +635,7 @@ def _main_import_interactive(project, origin, args):
         with _prepare_import_into_project(
             origin, tmp_project, args.schema_path
         ) as data_mapping:
-            paths = dict()
+            paths = {}
             for src, copy_executor in tqdm(
                 dict(data_mapping).items(), desc="Import to temporary project"
             ):
@@ -671,7 +671,7 @@ def _main_import_non_interactive(project, origin, args):
     from .contrib.import_export import _prepare_import_into_project
 
     try:
-        paths = dict()
+        paths = {}
         if args.sync:
             with project.temporary_project() as tmp_project:
                 _print_err("Prepare data space for import...")
@@ -738,7 +738,7 @@ def main_export(args):
     project = get_project()
     jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
 
-    paths = dict()
+    paths = {}
     with tqdm(total=len(jobs), desc="Export") as pbar:
         try:
             for src, dst in export_jobs(
@@ -919,7 +919,7 @@ def main_config_set(args):
             args.value = args.value[0]
     sec = cfg
     for key in keys[:-1]:
-        sec = sec.setdefault(key, dict())
+        sec = sec.setdefault(key, {})
     try:
         sec[keys[-1]] = args.value
         _print_err(f"Updated value '{args.key}'='{args.value}'.")
@@ -959,7 +959,7 @@ def main_config_host(args):
         cfg = config.get_config(fn_config)
 
     def hostcfg():
-        return cfg.setdefault("hosts", dict()).setdefault(args.hostname, dict())
+        return cfg.setdefault("hosts", {}).setdefault(args.hostname, {})
 
     if sum((args.test, args.remove, args.show_pw)) > 1:
         raise ValueError(

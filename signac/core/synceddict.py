@@ -84,7 +84,7 @@ class _SyncedDict(MutableMapping):
         self._parent = parent
         super().__init__()
         if initialdata is None:
-            self._data = dict()
+            self._data = {}
         else:
             self._data = {
                 self._validate_key(k): self._dfs_convert(v)
@@ -142,7 +142,7 @@ class _SyncedDict(MutableMapping):
             # checks instead of isinstance() to avoid catching NumPy values.
             return root
         elif type(root) is cls:
-            ret = dict()
+            ret = {}
             with root._suspend_sync():
                 for k in root:
                     ret[k] = cls._convert_to_dict(root[k])

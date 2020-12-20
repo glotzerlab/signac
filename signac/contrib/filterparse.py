@@ -220,7 +220,7 @@ def parse_filter_arg(args, file=sys.stderr):
         else:
             return _with_message(_parse_simple(args[0]), file)
     else:
-        q = dict()
+        q = {}
         for i in range(0, len(args), 2):
             key = args[i]
             if i + 1 < len(args):

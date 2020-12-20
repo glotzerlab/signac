@@ -66,7 +66,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
     jsi = _build_job_statepoint_index(exclude_const=True, index=index)
     sp_index = OrderedDict(jsi)
 
-    paths = dict()
+    paths = {}
     for key_tokens, values in sp_index.items():
         key = key_tokens.replace(".", delimiter_nested)
         if exclude_keys and key in exclude_keys:
@@ -548,7 +548,7 @@ def _convert_schema_path_to_regex(schema_path):
     # in the schema path.
     re_key_type_field = r"\{(?P<key>[\.\w]+)(?::(?P<type>[a-z]+))?\}"
     schema_regex = ""  # the return value
-    types = dict()  # maps values to their designated types
+    types = {}  # maps values to their designated types
     index = 0
     while True:
         m = re.search(re_key_type_field, schema_path[index:])
@@ -948,7 +948,7 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
-    mappings = dict()
+    mappings = {}
     skip_subdirs = set()
 
     dirs = {os.path.dirname(name) for name in names}
@@ -1097,7 +1097,7 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
     else:
         raise TypeError("The schema variable must be None, callable, or a string.")
 
-    mappings = dict()
+    mappings = {}
     skip_subdirs = set()
 
     dirs = [member.name for member in tarfile.getmembers() if member.isdir()]

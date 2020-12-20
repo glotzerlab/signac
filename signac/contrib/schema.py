@@ -115,7 +115,7 @@ class ProjectSchema:
 
     def __init__(self, schema=None):
         if schema is None:
-            schema = dict()
+            schema = {}
         self._schema = schema
 
     @classmethod
@@ -340,7 +340,7 @@ class ProjectSchema:
             Schema of the project.
 
         """
-        s = dict()
+        s = {}
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []

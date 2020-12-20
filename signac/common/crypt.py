@@ -66,7 +66,7 @@ class SimpleKeyring:
     """Simple in-memory keyring for caching."""
 
     def __init__(self):
-        self._cache = dict()
+        self._cache = {}
 
     @classmethod
     def _encode(cls, msg):

@@ -578,13 +578,13 @@ class TestProject(TestProjectBase):
         for sp in statepoints:
             self.project.open_job(sp).document["test"] = True
         job_ids = {job.id for job in self.project.find_jobs()}
-        index = dict()
+        index = {}
         for doc in self.project.index():
             index[doc["_id"]] = doc
         assert len(index) == len(job_ids)
         assert set(index.keys()) == set(job_ids)
         crawler = signac.contrib.SignacProjectCrawler(self.project.root_directory())
-        index2 = dict()
+        index2 = {}
         for doc in crawler.crawl():
             index2[doc["_id"]] = doc
         for _id, _id2 in zip(index, index2):
@@ -595,7 +595,7 @@ class TestProject(TestProjectBase):
             with open(job.fn("test.txt"), "w") as file:
                 file.write("test\n")
         formats = {r".*" + re.escape(os.path.sep) + r"test\.txt": "TextFile"}
-        index = dict()
+        index = {}
         for doc in self.project.index(formats):
             index[doc["_id"]] = doc
         assert len(index) == 2 * len(job_ids)
@@ -613,7 +613,7 @@ class TestProject(TestProjectBase):
         for p, fmt in formats.items():
             with pytest.deprecated_call():
                 Crawler.define(p, fmt)
-        index2 = dict()
+        index2 = {}
         for doc in Crawler(root=self.project.root_directory()).crawl():
             index2[doc["_id"]] = doc
         assert index == index2
