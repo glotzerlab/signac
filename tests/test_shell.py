@@ -667,6 +667,7 @@ class TestBasicShell():
             self.call('python -m signac config --global set a.password b'.split())
 
     def test_config_host(self):
+        pytest.importorskip('pymongo')
         self.call('python -m signac init my_project'.split())
         self.call('python -m signac config --local host Mongo -u abc -p 123'.split())
         cfg = self.call('python -m signac config --local show'.split())
@@ -689,6 +690,7 @@ class TestBasicShell():
         assert 'Mongo' not in cfg
 
     def test_config_verify(self):
+        pytest.importorskip('pymongo')
         # no config file
         with pytest.raises(ExitCodeError):
             err = self.call('python -m signac config --local verify'.split(), error=True)
