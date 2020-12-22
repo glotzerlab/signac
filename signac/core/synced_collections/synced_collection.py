@@ -35,16 +35,10 @@ class SyncedCollection(Collection):
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
 
-    def __init__(self, name=None, parent=None, *args, **kwargs):
+    def __init__(self, parent=None, *args, **kwargs):
         self._data = None
         self._parent = parent
-        self._name = name
         self._suspend_sync_ = 0
-        if (name is None) == (parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both."
-            )
 
     @classmethod
     def __init_subclass__(cls):

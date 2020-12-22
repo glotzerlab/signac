@@ -18,13 +18,22 @@ class MongoDBCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, collection=None, **kwargs):
+    # The key used to find a collection's document in the database.
+    _key = 'MongoDBCollection::name'
+
+    def __init__(self, collection=None, name=None, parent=None, **kwargs):
         import bson  # for InvalidDocument error
 
         self._collection = collection
         self._errors = bson.errors
-        self._key = type(self).__name__ + '::name'
-        super().__init__(**kwargs)
+
+        if (name is None) == (parent is None):
+            raise ValueError(
+                "Illegal argument combination, one of the two arguments, "
+                "parent or name must be None, but not both."
+            )
+        self._name = name
+        super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a MongoDB."""

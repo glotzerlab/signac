@@ -49,7 +49,6 @@ class JSONCollection(SyncedCollection):
     def __init__(self, filename=None, write_concern=False, **kwargs):
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
-        kwargs['name'] = filename
         super().__init__(filename=filename, **kwargs)
 
     def _load_from_resource(self):

@@ -19,9 +19,16 @@ class RedisCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, client=None, **kwargs):
+    def __init__(self, client=None, name=None, parent=None, **kwargs):
         self._client = client
-        super().__init__(**kwargs)
+
+        if (name is None) == (parent is None):
+            raise ValueError(
+                "Illegal argument combination, one of the two arguments, "
+                "parent or name must be None, but not both."
+            )
+        self._name = name
+        super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a Redis-database."""
