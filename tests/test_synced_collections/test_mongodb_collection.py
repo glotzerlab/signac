@@ -29,11 +29,14 @@ class MongoDBCollectionTest:
 
     _backend = 'signac.core.synced_collections.collection_mongodb'
     _backend_collection = MongoDBCollection
+    _db_key = None
 
     def store(self, data):
-        data_to_insert = {'MongoDBDict::name': self._name, 'data': data}
+        assert self._db_key, "MongoDB test classes must set _deb_key"
+        key = self._db_key + '::name'
+        data_to_insert = {key: self._name, 'data': data}
         self._collection.replace_one(
-            {'MongoDBDict::name': self._name}, data_to_insert)
+            {key: self._name}, data_to_insert)
 
     @pytest.fixture(autouse=True)
     def synced_collection(self, request):
@@ -52,6 +55,7 @@ class MongoDBCollectionTest:
 class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
 
     _collection_type = MongoDBDict
+    _db_key = 'MongoDBDict'
 
 
 @pytest.mark.skipif(
@@ -59,3 +63,4 @@ class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
 class TestMongoDBList(MongoDBCollectionTest, SyncedListTest):
 
     _collection_type = MongoDBList
+    _db_key = 'MongoDBList'
