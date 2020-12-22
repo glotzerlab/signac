@@ -9,7 +9,8 @@ from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from copy import deepcopy
 
-from signac.core.synced_list import SyncedCollection
+from signac.core.synced_collection import SyncedCollection
+from signac.core.collection_json import JSONCollection
 from signac.core.collection_json import JSONDict
 from signac.core.collection_json import JSONList
 from signac.errors import InvalidKeyError
@@ -43,7 +44,8 @@ class TestJSONCollectionBase:
 
     def test_from_base_no_backend(self):
         with pytest.raises(ValueError):
-            SyncedCollection.from_base(data={'a': 0})
+            SyncedCollection.from_base(filename=self._fn_, data={'a': 0})
+        JSONCollection.from_base(filename=self._fn_, data={'a': 0})
 
 
 class TestJSONDict:
@@ -406,13 +408,11 @@ class TestJSONDict:
 
 class TestJSONList:
 
-    _write_concern = False
-
     @pytest.fixture
     def synced_list(self):
         self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
-        self._backend_kwargs = {'filename': self._fn_, 'write_concern': self._write_concern}
+        self._backend_kwargs = {'filename': self._fn_}
         yield JSONList(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
@@ -656,7 +656,7 @@ class TestJSONListWriteConcern(TestJSONList):
 
     @pytest.fixture
     def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='jsondict_')
+        self._tmp_dir = TemporaryDirectory(prefix='jsonlist_')
         self._fn_ = os.path.join(self._tmp_dir.name, FN_JSON)
         self._backend_kwargs = {'filename': self._fn_, 'write_concern': True}
         yield JSONList(**self._backend_kwargs)

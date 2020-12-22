@@ -13,6 +13,7 @@ import errno
 import uuid
 import warnings
 
+from .file_buffered_synced_collection import FileBufferedCollection
 from .synced_collection import SyncedCollection
 from .syncedattrdict import SyncedAttrDict
 from .synced_list import SyncedList
@@ -49,7 +50,7 @@ class JSONCollection(SyncedCollection):
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
         kwargs['name'] = filename
-        super().__init__(**kwargs)
+        super().__init__(filename=filename, **kwargs)
 
     def _load(self):
         """Load the data from a JSON file."""
@@ -83,6 +84,15 @@ class JSONCollection(SyncedCollection):
 
 
 JSONCollection.add_validator(json_format_validator)
+
+
+class BufferedJSONCollection(JSONCollection, FileBufferedCollection):
+    """A JSONCollection with buffering enabled."""
+
+    _backend = __name__ + '.buffered'  # type: ignore
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
@@ -169,4 +179,14 @@ class JSONList(JSONCollection, SyncedList):
     """
 
 
-SyncedCollection.register(JSONDict, JSONList)
+class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
+    """A buffered JSONDict."""
+    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+        '_filename', '_buffered', '_is_buffered')
+
+
+class BufferedJSONList(BufferedJSONCollection, SyncedList):
+    """A buffered JSONList."""
+
+
+SyncedCollection.register(JSONDict, JSONList, BufferedJSONDict, BufferedJSONList)

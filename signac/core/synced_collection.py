@@ -8,15 +8,16 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
-
-from typing import List, Callable
+from typing import List, Callable, DefaultDict, Any
 from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
 
+
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -31,9 +32,10 @@ class SyncedCollection(Collection):
     """
 
     _backend = None
+    registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
 
-    def __init__(self, name=None, parent=None):
+    def __init__(self, name=None, parent=None, *args, **kwargs):
         self._data = None
         self._parent = parent
         self._name = name
@@ -41,7 +43,8 @@ class SyncedCollection(Collection):
         if (name is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both.")
+                "parent or name must be None, but not both."
+            )
 
     @classmethod
     def __init_subclass__(cls):
@@ -69,8 +72,6 @@ class SyncedCollection(Collection):
         \*args
             Classes to register
         """
-        if not hasattr(cls, 'registry'):
-            cls.registry = defaultdict(list)
         for base_cls in args:
             cls.registry[base_cls._backend].append(base_cls)
 
@@ -80,8 +81,10 @@ class SyncedCollection(Collection):
         validators = []
         # Classes inherit the validators of their parent classes.
         for base_cls in type(self).__mro__:
-            if hasattr(base_cls, '_validators'):
-                validators.extend([v for v in base_cls._validators if v not in validators])
+            if hasattr(base_cls, "_validators"):
+                validators.extend(
+                    [v for v in base_cls._validators if v not in validators]
+                )
         return validators
 
     @classmethod
@@ -177,11 +180,13 @@ class SyncedCollection(Collection):
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.
+
     def __getitem__(self, key):
         self.load()
         return self._data[key]
 
     def __delitem__(self, item):
+        self.load()
         del self._data[item]
         self.sync()
 
@@ -198,6 +203,7 @@ class SyncedCollection(Collection):
         return self.to_base()
 
     def __eq__(self, other):
+        self.load()
         if isinstance(other, type(self)):
             return self() == other()
         else:
