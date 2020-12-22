@@ -134,7 +134,7 @@ class Job:
         return self._id
 
     def __hash__(self):
-        return hash(self._wd)
+        return hash(self.id)
 
     def __str__(self):
         """Return the job's id."""
