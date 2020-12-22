@@ -7,6 +7,15 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
+next
+----
+
+Changed
++++++++
+
+ - Optimized job hash and equality checks (#442).
+
+
 [1.5.1] -- 2020-12-19
 ---------------------
 
