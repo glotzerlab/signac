@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.core.validators import no_dot_in_key
-from signac.core.validators import json_format_validator
+from signac.core.synced_collections.validators import no_dot_in_key
+from signac.core.synced_collections.validators import json_format_validator
 from signac.errors import KeyTypeError
 from signac.errors import InvalidKeyError
 

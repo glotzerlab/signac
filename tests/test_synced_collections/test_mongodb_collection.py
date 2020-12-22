@@ -3,8 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.core.collection_mongodb import MongoDBDict
-from signac.core.collection_mongodb import MongoDBList
+from signac.core.synced_collections.collection_mongodb import MongoDBDict
+from signac.core.synced_collections.collection_mongodb import MongoDBList
 from test_synced_collection import TestJSONDict
 from test_synced_collection import TestJSONList
 

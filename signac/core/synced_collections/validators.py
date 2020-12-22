@@ -11,8 +11,8 @@ return any values, only raise errors.
 from collections.abc import Mapping
 from collections.abc import Sequence
 
-from ..errors import InvalidKeyError
-from ..errors import KeyTypeError
+from ...errors import InvalidKeyError
+from ...errors import KeyTypeError
 
 try:
     import numpy

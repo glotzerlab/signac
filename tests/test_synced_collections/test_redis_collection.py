@@ -5,8 +5,8 @@ import pytest
 import json
 import uuid
 
-from signac.core.collection_redis import RedisDict
-from signac.core.collection_redis import RedisList
+from signac.core.synced_collections.collection_redis import RedisDict
+from signac.core.synced_collections.collection_redis import RedisList
 from test_synced_collection import TestJSONDict
 from test_synced_collection import TestJSONList
 
