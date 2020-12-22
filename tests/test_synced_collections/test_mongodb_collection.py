@@ -3,10 +3,10 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.core.synced_collections.collection_mongodb import MongoDBCollection
 from signac.core.synced_collections.collection_mongodb import MongoDBDict
 from signac.core.synced_collections.collection_mongodb import MongoDBList
-from synced_collection_test import SyncedDictTest, SyncedListTest
+from test_synced_collection import TestJSONDict
+from test_synced_collection import TestJSONList
 
 try:
     import pymongo
@@ -25,37 +25,33 @@ except ImportError:
     PYMONGO = False
 
 
-class MongoDBCollectionTest:
+@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
+class TestMongoDBDict(TestJSONDict):
 
-    _backend = 'signac.core.synced_collections.collection_mongodb'
-    _backend_collection = MongoDBCollection
-
-    def store(self, data):
-        data_to_insert = {'MongoDBDict::name': self._name, 'data': data}
-        self._collection.replace_one(
-            {'MongoDBDict::name': self._name}, data_to_insert)
-
-    @pytest.fixture(autouse=True)
-    def synced_collection(self, request):
+    @pytest.fixture
+    def synced_dict(self, request):
         self._client = MongoClient
         self._name = 'test'
         self._collection = self._client.test_db.test_dict
-        self._backend_kwargs = {
-            'name': self._name, 'collection': self._collection
-        }
-        yield self._collection_type(**self._backend_kwargs)
+        yield MongoDBDict(name=self._name, collection=self._collection)
         self._collection.drop()
 
-
-@pytest.mark.skipif(
-    not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoDBDict(MongoDBCollectionTest, SyncedDictTest):
-
-    _collection_type = MongoDBDict
+    def store(self, data):
+        data_to_insert = {'MongoDBDict::name': self._name, 'data': data}
+        self._collection.replace_one({'MongoDBDict::name': self._name}, data_to_insert)
 
 
-@pytest.mark.skipif(
-    not PYMONGO, reason='test requires the pymongo package and mongodb server')
-class TestMongoDBList(MongoDBCollectionTest, SyncedListTest):
+@pytest.mark.skipif(not PYMONGO, reason='test requires the pymongo package and mongodb server')
+class TestMongoDBList(TestJSONList):
 
-    _collection_type = MongoDBList
+    @pytest.fixture
+    def synced_list(self, request):
+        self._client = MongoClient
+        self._name = 'test'
+        self._collection = self._client.test_db.test_list
+        yield MongoDBList(name=self._name, collection=self._collection)
+        self._collection.drop()
+
+    def store(self, data):
+        data_to_insert = {'MongoDBList::name': self._name, 'data': data}
+        self._collection.replace_one({'MongoDBList::name': self._name}, data_to_insert)
