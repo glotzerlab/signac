@@ -664,13 +664,16 @@ class TestProject(TestProjectBase):
         assert job in project_b
         assert job not in project_a
         assert job == job_b
+        assert hash(job) == hash(job_b)
         with job:
             job.document["a"] = 0
             with open("hello.txt", "w") as file:
                 file.write("world!")
         job_ = project_b.open_job(job.statepoint())
         assert job == job_
+        assert hash(job) == hash(job_)
         assert job_ == job_b
+        assert hash(job_) == hash(job_b)
         assert job_.isfile("hello.txt")
         assert job_.document["a"] == 0
 
