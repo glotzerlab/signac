@@ -26,6 +26,7 @@ pip-log.txt
 .noseids
 .coverage
 .tox
+.mypy_cache
 nosetests.xml
 .pytest_cache
 
@@ -41,7 +42,7 @@ nosetests.xml
 .*.swp
 
 # custom
-_*
+doc/_build
 *.log
 
 .DS_Store

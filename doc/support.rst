@@ -15,7 +15,7 @@ Code contributions
 
 This project is open-source.
 Users are highly encouraged to contribute directly by implementing new features and fixing issues.
-Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <http://docs.signac.io/en/latest/community.html#contributions>`_.
+Development for packages as part of the **signac** framework should follow the general development guidelines outlined `here <http://docs.signac.io/en/latest/community.html#contributions>`__.
 
 A brief summary of contributing guidelines are outlined in the `CONTRIBUTING.md <https://github.com/glotzerlab/signac/blob/master/CONTRIBUTING.md>`_ file as part of the repository.
 All contributors must agree to the `Contributor Agreement <https://github.com/glotzerlab/signac/blob/master/ContributorAgreement.md>`_ before their pull request can be merged.
@@ -32,33 +32,34 @@ for example with `venv <https://docs.python.org/3/library/venv.html>`_:
 
     ~ $ python -m venv ~/envs/signac-dev
     ~ $ source ~/envs/signac-dev/bin/activate
-    (signac-dev) ~ $ pip install flake8
+    (signac-dev) ~ $ pip install pre-commit
 
 or alternatively with `conda <https://conda.io/docs/>`_:
 
 .. code-block:: bash
 
-    ~ $ conda create -n signac-dev python=3 flake8
-    ~ $ activate signac-dev
+    ~ $ conda create -n signac-dev -c conda-forge python=3 pre-commit
+    ~ $ conda activate signac-dev
 
 Then clone your fork and install the package from source with:
 
 .. code-block:: bash
 
     (signac-dev) ~ $ cd path/to/my/fork/of/signac
-    (signac-dev) signac $ pip install -e . -r requirements-dev.txt
+    (signac-dev) signac $ pip install -e .
 
 The ``-e`` option stands for *editable*, which means that the package is directly loaded from the source code repository.
 That means any changes made to the source code are immediately reflected upon reloading the Python interpreter.
 
-Finally, we recommend to setup a `Flake8 <http://flake8.pycqa.org/en/latest/>`_ git commit hook with:
+The `pre-commit tool <https://pre-commit.com/>`__ is used to enforce code style guidelines.
+To install the tool and configure pre-commit hooks, execute:
 
 .. code-block:: bash
 
-    (signac-dev) signac $ flake8 --install-hook git
-    (signac-dev) signac $ git config --bool flake8.strict true
+    (signac-dev) signac $ pip install pre-commit
+    (signac-dev) signac $ pre-commit install
 
-With the *flake8* hook, your code will be checked for syntax and style before you make a commit.
+With the pre-commit hook, your code will be checked for syntax and style before you make a commit.
 The continuous integration pipeline for the package will perform these checks as well, so running these tests before committing / pushing will prevent the pipeline from failing due to style-related issues.
 
 The development workflow
@@ -91,7 +92,7 @@ To run tests, execute:
 
 .. code-block:: bash
 
-    (signac-dev) signac $ python -m unittest discover tests/
+    (signac-dev) signac $ python -m pytest tests/
 
 
 Building documentation
@@ -113,7 +114,7 @@ Then you can build the documentation from within the ``doc/`` directory as part 
 .. note::
 
     Documentation as part of the package should be largely limited to the API.
-    More elaborate documentation on how to integrate **signac** into a computational workflow should be documented as part of the `framework documentation <https://docs.signac.io>`_, which is maintained `here <https://github.com/glotzerlab/signac-docs>`_.
+    More elaborate documentation on how to integrate **signac** into a computational workflow should be documented as part of the `framework documentation <https://docs.signac.io>`_, which is maintained `here <https://github.com/glotzerlab/signac-docs>`__.
 
 
 Updating the changelog

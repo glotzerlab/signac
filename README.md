@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/glotzerlab/signac/master/doc/images/logo.png" width="75" height="75"> signac - simple data management
+# <img src="https://raw.githubusercontent.com/glotzerlab/signac/master/doc/images/palette-header.png" width="75" height="58"> signac - simple data management
 
 [![Affiliated with NumFOCUS](https://img.shields.io/badge/NumFOCUS-affiliated%20project-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/sponsored-projects/affiliated-projects)
 [![PyPI](https://img.shields.io/pypi/v/signac.svg)](https://pypi.org/project/signac/)
@@ -8,6 +8,8 @@
 [![License](https://img.shields.io/github/license/glotzerlab/signac.svg)](https://github.com/glotzerlab/signac/blob/master/LICENSE.txt)
 [![PyPI-downloads](https://img.shields.io/pypi/dm/signac.svg?style=flat)](https://pypistats.org/packages/signac)
 [![Gitter](https://img.shields.io/gitter/room/signac/Lobby.svg?style=flat)](https://gitter.im/signac/Lobby)
+[![Twitter](https://img.shields.io/twitter/follow/signacdata?style=social)](https://twitter.com/signacdata)
+[![GitHub Stars](https://img.shields.io/github/stars/glotzerlab/signac?style=social)](https://github.com/glotzerlab/signac/)
 
 The [**signac** framework](https://signac.io) helps users manage and scale file-based workflows, facilitating data reuse, sharing, and reproducibility.
 
@@ -26,7 +28,7 @@ This makes it easier to operate on large data spaces, streamlines post-processin
 ## Installation
 
 The recommended installation method for **signac** is through **conda** or **pip**.
-The software is tested for Python 3.5+ and is built for all major platforms.
+The software is tested for Python 3.6+ and is built for all major platforms.
 
 To install **signac** *via* the [conda-forge](https://conda-forge.github.io/) channel, execute:
 
@@ -64,7 +66,7 @@ and access the project handle:
 You can test this package by executing:
 
 ```bash
-$ python -m unittest discover tests/
+$ python -m pytest tests/
 ```
 
 ## Acknowledgment

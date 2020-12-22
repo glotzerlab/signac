@@ -31,6 +31,47 @@
         {
             "affiliation": "University of Michigan",
             "name": "Alexander Adams"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Thomas R. Waltmann",
+            "orcid": "0000-0001-6876-5956"
+        },
+        {
+            "affiliation": "University of Goettingen",
+            "name": "Ali Malek"
+        },
+        {
+            "affiliation": "Boise State University",
+            "name": "Jenny Fothergill",
+            "orcid": "0000-0001-9665-5420"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Alyssa Travitz",
+            "orcid": "0000-0001-5953-8807"
+        },
+        {
+            "affiliation": "National Institute of Technology, Hamirpur",
+            "name": "Vishav Sharma"
+        },
+        {
+            "affiliation": "Indian Institute of Technology, Gandhinagar",
+            "name": "Abhavya Chandra"
+        },
+        {
+            "affiliation": "Indian Institute of Technology Roorkee",
+            "name": "Hardik Ojha"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Corwin Kerr",
+            "orcid": "0000-0003-0776-2596"
+        },
+        {
+            "affiliation": "University of Michigan",
+            "name": "Pengji Zhou",
+            "orcid": "0000-0002-1409-9633"
         }
     ],
     "creators": [
@@ -56,6 +97,11 @@
         },
         {
             "affiliation": "University of Michigan",
+            "name": "Brandon Butler",
+            "orcid": "0000-0001-7739-7796"
+        },
+        {
+            "affiliation": "University of Michigan",
             "name": "Paul M. Dodd"
         },
         {
@@ -78,5 +124,5 @@
         "id": "http://www.opensource.org/licenses/BSD-3-Clause"
     },
     "title": "signac",
-    "version": "1.2.0"
+    "version": "1.5.1"
 }

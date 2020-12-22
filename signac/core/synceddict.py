@@ -1,16 +1,16 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"Synchronized dictionary."
+"""Synchronized dictionary."""
 import logging
+from collections.abc import Mapping, MutableMapping
 from contextlib import contextmanager
-from functools import wraps
 from copy import deepcopy
-from collections.abc import Mapping
-from collections.abc import MutableMapping
+from functools import wraps
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -20,10 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class _SyncedList(list):
-
     def __init__(self, iterable, parent):
         self._parent = parent
-        super(_SyncedList, self).__init__(iterable)
+        super().__init__(iterable)
 
     def __deepcopy__(self, memo):
         ret = type(self)([], deepcopy(self._parent, memo))
@@ -33,29 +32,37 @@ class _SyncedList(list):
 
     def __getitem__(self, key):
         self._parent.load()
-        ret = super(_SyncedList, self).__getitem__(key)
+        ret = super().__getitem__(key)
         return ret
 
     def __setitem__(self, key, value):
         self._parent.load()
-        ret = super(_SyncedList, self).__setitem__(key, value)
+        ret = super().__setitem__(key, value)
         self._parent.save()
         return ret
 
     def __delitem__(self, key):
         self._parent.load()
-        super(_SyncedList, self).__delitem__(key)
+        super().__delitem__(key)
         self._parent.save()
 
     def __getattribute__(self, name):
-        outer = super(_SyncedList, self).__getattribute__(name)
+        outer = super().__getattribute__(name)
 
-        if name in ('append', 'clear', 'extend', 'insert', 'pop',
-                    'remove', 'reverse', 'sort'):
+        if name in (
+            "append",
+            "clear",
+            "extend",
+            "insert",
+            "pop",
+            "remove",
+            "reverse",
+            "sort",
+        ):
 
             @wraps(outer)
             def outer_wrapped_in_load_and_save(*args, **kwargs):
-                if hasattr(self, '_parent'):
+                if hasattr(self, "_parent"):
                     self._parent.load()
                     ret = outer(*args, **kwargs)
                     self._parent.save()
@@ -75,9 +82,9 @@ class _SyncedDict(MutableMapping):
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent
-        super(_SyncedDict, self).__init__()
+        super().__init__()
         if initialdata is None:
-            self._data = dict()
+            self._data = {}
         else:
             self._data = {
                 self._validate_key(k): self._dfs_convert(v)
@@ -87,23 +94,29 @@ class _SyncedDict(MutableMapping):
 
     @classmethod
     def _validate_key(cls, key):
-        "Emit a warning or raise an exception if key is invalid. Returns key."
+        """Emit a warning or raise an exception if key is invalid. Returns key."""
         if isinstance(key, str):
-            if '.' in key:
+            if "." in key:
                 from ..errors import InvalidKeyError
-                raise InvalidKeyError(
-                    "keys may not contain dots ('.'): {}".format(key))
+
+                raise InvalidKeyError(f"keys may not contain dots ('.'): {key}")
             else:
                 return key
         elif isinstance(key, cls.VALID_KEY_TYPES):
             return cls._validate_key(str(key))
         else:
             from ..errors import KeyTypeError
+
             raise KeyTypeError(
-                "keys must be str, int, bool or None, not {}".format(type(key).__name__))
+                "keys must be str, int, bool or None, not {}".format(type(key).__name__)
+            )
 
     def _dfs_convert(self, root):
-        if type(root) is type(self):
+        if type(root) in (bool, float, int, type(None), str):
+            # Allow common types to exit early. This must use type equality
+            # checks instead of isinstance() to avoid catching NumPy values.
+            return root
+        elif type(root) is type(self):
             for k in root:
                 root[k] = self._dfs_convert(root[k])
         elif isinstance(root, Mapping):
@@ -112,22 +125,24 @@ class _SyncedDict(MutableMapping):
                 for k in root:
                     ret[k] = root[k]
             return ret
-        elif type(root) is tuple:
-            return _SyncedList(root, self)
-        elif type(root) is list:
-            return _SyncedList(root, self)
+        elif type(root) in (list, tuple):
+            return _SyncedList(root, parent=self)
         elif NUMPY:
             if isinstance(root, numpy.number):
                 return root.item()
             elif isinstance(root, numpy.ndarray):
-                return _SyncedList(root.tolist(), self)
+                return _SyncedList(root.tolist(), parent=self)
         return root
 
     @classmethod
     def _convert_to_dict(cls, root):
-        "Convert (nested) values to dict."
-        if type(root) == cls:
-            ret = dict()
+        """Convert (nested) values to dict."""
+        if type(root) in (bool, float, int, type(None), str):
+            # Allow common types to exit early. This must use type equality
+            # checks instead of isinstance() to avoid catching NumPy values.
+            return root
+        elif type(root) is cls:
+            ret = {}
             with root._suspend_sync():
                 for k in root:
                     ret[k] = cls._convert_to_dict(root[k])
@@ -179,7 +194,7 @@ class _SyncedDict(MutableMapping):
                         self._dfs_update(self._data, data)
                     for value in self._data:
                         if isinstance(value, Mapping):
-                            assert type(value) == type(self)
+                            assert type(value) is type(self)
             else:
                 self._parent.load()
 
@@ -265,11 +280,11 @@ class _SyncedDict(MutableMapping):
 
     def values(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).values()
+        return self._convert_to_dict(self).values()
 
     def items(self):
         self._synced_load()
-        return self._convert_to_dict(self._data).items()
+        return self._convert_to_dict(self).items()
 
     def __repr__(self):
         return repr(self())
@@ -279,7 +294,7 @@ class _SyncedDict(MutableMapping):
 
     def _as_dict(self):
         with self._suspend_sync():
-            return self._convert_to_dict(self._data.copy())
+            return self._convert_to_dict(self)
 
     def __call__(self):
         self._synced_load()
