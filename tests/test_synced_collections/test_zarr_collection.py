@@ -4,10 +4,10 @@
 import pytest
 from tempfile import TemporaryDirectory
 
+from signac.core.synced_collections.collection_zarr import ZarrCollection
 from signac.core.synced_collections.collection_zarr import ZarrDict
 from signac.core.synced_collections.collection_zarr import ZarrList
-from test_synced_collection import TestJSONDict
-from test_synced_collection import TestJSONList
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 try:
     import zarr
@@ -17,35 +17,32 @@ except ImportError:
     ZARR = False
 
 
-@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
-class TestZarrDict(TestJSONDict):
+class ZarrCollectionTest:
 
-    @pytest.fixture(autouse=True)
-    def synced_dict(self):
-        self._tmp_dir = TemporaryDirectory(prefix='zarrdict_')
-        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
-        self._name = 'test'
-        yield ZarrDict(name=self._name, group=self._group)
-        self._tmp_dir.cleanup()
+    _backend = 'signac.core.synced_collections.collection_zarr'
+    _backend_collection = ZarrCollection
 
     def store(self, data):
         dataset = self._group.require_dataset(
-            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
+            'test', overwrite=True, shape=1, dtype='object',
+            object_codec=numcodecs.JSON())
         dataset[0] = data
+
+    @pytest.fixture(autouse=True)
+    def synced_collection(self):
+        self._tmp_dir = TemporaryDirectory(prefix='zarr_')
+        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
+        self._name = 'test'
+        self._backend_kwargs = {'name': self._name, 'group': self._group}
+        yield self._collection_type(**self._backend_kwargs)
+        self._tmp_dir.cleanup()
 
 
 @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
-class TestZarrList(TestJSONList):
+class TestZarrDict(ZarrCollectionTest, SyncedDictTest):
+    _collection_type = ZarrDict
 
-    @pytest.fixture(autouse=True)
-    def synced_list(self):
-        self._tmp_dir = TemporaryDirectory(prefix='zarrlist_')
-        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
-        self._name = 'test'
-        yield ZarrList(name=self._name, group=self._group)
-        self._tmp_dir.cleanup()
 
-    def store(self, data):
-        dataset = self._group.require_dataset(
-            'test', overwrite=True, shape=1, dtype='object', object_codec=numcodecs.JSON())
-        dataset[0] = data
+@pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
+class TestZarrList(ZarrCollectionTest, SyncedListTest):
+    _collection_type = ZarrList

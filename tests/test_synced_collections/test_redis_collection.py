@@ -5,10 +5,10 @@ import pytest
 import json
 import uuid
 
+from signac.core.synced_collections.collection_redis import RedisCollection
 from signac.core.synced_collections.collection_redis import RedisDict
 from signac.core.synced_collections.collection_redis import RedisList
-from test_synced_collection import TestJSONDict
-from test_synced_collection import TestJSONList
+from synced_collection_test import SyncedDictTest, SyncedListTest
 
 try:
     import redis
@@ -26,29 +26,32 @@ except ImportError:
     REDIS = False
 
 
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
-class TestRedisDict(TestJSONDict):
+class RedisCollectionTest:
 
-    @pytest.fixture
-    def synced_dict(self, request):
-        self._client = RedisClient
-        request.addfinalizer(self._client.flushall)
-        self._name = 'test'
-        yield RedisDict(name=self._name, client=self._client)
+    _backend = 'signac.core.synced_collections.collection_redis'
+    _backend_collection = RedisCollection
 
     def store(self, data):
         self._client.set(self._name, json.dumps(data).encode())
 
-
-@pytest.mark.skipif(not REDIS, reason='test requires the redis package and running redis-server')
-class TestRedisList(TestJSONList):
-
-    @pytest.fixture
-    def synced_list(self, request):
+    @pytest.fixture(autouse=True)
+    def synced_collection(self, request):
         self._client = RedisClient
         request.addfinalizer(self._client.flushall)
         self._name = 'test'
-        yield RedisList(name=self._name, client=self._client)
+        self._backend_kwargs = {'name': self._name, 'client': self._client}
+        yield self._collection_type(**self._backend_kwargs)
 
-    def store(self, data):
-        self._client.set(self._name, json.dumps(data).encode())
+
+@pytest.mark.skipif(
+    not REDIS,
+    reason='test requires the redis package and running redis-server')
+class TestRedisDict(RedisCollectionTest, SyncedDictTest):
+    _collection_type = RedisDict
+
+
+@pytest.mark.skipif(
+    not REDIS,
+    reason='test requires the redis package and running redis-server')
+class TestRedisList(RedisCollectionTest, SyncedListTest):
+    _collection_type = RedisList
