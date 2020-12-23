@@ -170,6 +170,8 @@ class Job:
         """Overwrite the state point of this job while preserving job data.
 
         Change the job id if necessary.
+        For more, see
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. danger::
 
@@ -232,6 +234,8 @@ class Job:
         """Change the state point of this job without affecting existing parameters.
 
         Change the job id if necessary.
+        For more, see
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
