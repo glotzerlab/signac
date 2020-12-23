@@ -240,8 +240,8 @@ class Job:
         update : dict
             A mapping used for the state point update.
         overwrite :
-            Set to true, to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point.
+            Set to true, to ignore whether this update overwrites parameters
+            that are currently part of the job's state point.
             Use with caution! (Default value = False)
 
         Raises
