@@ -227,7 +227,9 @@ class Job:
         self.reset_statepoint(new_sp)
 
     def update_statepoint(self, update, overwrite=False):
-        """Update the state point of this job.
+        """Change the state point of this job without affecting existing parameters.
+
+        Change the job id if necessary.
 
         .. warning::
 
