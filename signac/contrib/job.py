@@ -244,7 +244,8 @@ class Job:
         overwrite :
             Set to true to ignore whether this update overwrites parameters
             that are currently part of the job's state point.
-            Use with caution! (Default value = False)
+            If true, equivalent to ``job.reset_statepoint()``. Use with caution!
+            (Default value = False)
 
         Raises
         ------
