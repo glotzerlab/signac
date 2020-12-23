@@ -171,7 +171,7 @@ class Job:
 
         Change the job id if necessary.
         For more, see
-        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_. # noqa: E501
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. danger::
 
@@ -184,7 +184,7 @@ class Job:
         new_statepoint : dict
             The job's new state point.
 
-        """
+        """  # noqa: E501
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
@@ -235,7 +235,7 @@ class Job:
 
         Change the job id if necessary.
         For more, see
-        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_. # noqa: E501
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
@@ -263,7 +263,7 @@ class Job:
         OSError
             If the move failed due to an unknown system related error.
 
-        """
+        """  # noqa: E501
         statepoint = self.statepoint()
         if not overwrite:
             for key, value in update.items():
