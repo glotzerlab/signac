@@ -450,9 +450,9 @@ class Collection:
         self._compresslevel = compresslevel
         self._requires_flush = False
         self._dirty = set()
-        self._indexes = dict()
+        self._indexes = {}
         self._next_default_id_ = None
-        self._docs = dict()
+        self._docs = {}
         if docs is not None:
             for doc in docs:
                 if self._primary_key not in doc:

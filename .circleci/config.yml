@@ -10,10 +10,10 @@ orbs:
 references:
   restore_keys: &restore_keys
     keys:
-      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
   save_key: &save_key
-    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-dev.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
 jobs:
   pre-checks:
@@ -70,9 +70,9 @@ jobs:
             if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
               sudo apt update -qq && sudo apt install -y -qq libhdf5-dev
             fi
-            ${PYTHON} -m pip install --progress-bar off -U pip==20.2
+            ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test.txt
 
       - save_cache:
           <<: *save_key
@@ -83,7 +83,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            ${PYTHON} -m pytest --cov signac --cov-config=setup.cfg --cov-report=xml tests/ -v
             codecov
 
       - store_artifacts:
@@ -144,7 +144,7 @@ jobs:
           name: Install dependencies
           command: |
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test.txt
       - run:
           name: Run tests
           command: |
@@ -168,7 +168,7 @@ jobs:
             . test_env/bin/activate
             python --version
             python -m pip install --progress-bar off -U codecov
-            python -m pip install --progress-bar off -U -e . -r requirements-dev.txt
+            python -m pip install --progress-bar off -U -e . -r requirements-test.txt
             python -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 

@@ -25,9 +25,9 @@ _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFER_SIZE = None
 _BUFFER_LOAD = 0
-_JSONDICT_BUFFER = dict()
-_JSONDICT_HASHES = dict()
-_JSONDICT_META = dict()
+_JSONDICT_BUFFER = {}
+_JSONDICT_HASHES = {}
+_JSONDICT_META = {}
 
 
 class BufferException(Error):
@@ -286,7 +286,7 @@ class JSONDict(SyncedAttrDict):
             # Just load from disk
             blob = self._load_from_disk()
 
-        return dict() if blob is None else json.loads(blob.decode())
+        return {} if blob is None else json.loads(blob.decode())
 
     def _save(self, data=None):
         assert self._filename is not None

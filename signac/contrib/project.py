@@ -230,8 +230,8 @@ class Project:
                 raise
 
         # Internal caches
-        self._index_cache = dict()
-        self._sp_cache = dict()
+        self._index_cache = {}
+        self._sp_cache = {}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
@@ -1158,7 +1158,7 @@ class Project:
         except OSError as error:
             if not error.errno == errno.ENOENT:
                 raise
-            tmp = dict()
+            tmp = {}
         if statepoints is None:
             job_ids = self._job_dirs()
             _cache = {_id: self._get_statepoint(_id) for _id in job_ids}

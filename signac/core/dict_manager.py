@@ -29,7 +29,7 @@ class DictManager:
             self.suffix is not None
         ), "Subclasses of DictManager must define the suffix variable."
         self._prefix = os.path.abspath(prefix)
-        self._dict_registry = dict()
+        self._dict_registry = {}
 
     @property
     def prefix(self):

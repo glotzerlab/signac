@@ -1,6 +1,6 @@
-nbconvert
-nbsphinx>=0.3
+deprecation>=2
 IPython
 jupyter_client
-deprecation>=2
+nbconvert
+nbsphinx>=0.3
 sphinxcontrib-programoutput

@@ -46,7 +46,7 @@ Then clone your fork and install the package from source with:
 .. code-block:: bash
 
     (signac-dev) ~ $ cd path/to/my/fork/of/signac
-    (signac-dev) signac $ pip install -e . -r requirements-dev.txt
+    (signac-dev) signac $ pip install -e .
 
 The ``-e`` option stands for *editable*, which means that the package is directly loaded from the source code repository.
 That means any changes made to the source code are immediately reflected upon reloading the Python interpreter.

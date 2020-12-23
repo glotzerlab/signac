@@ -100,7 +100,7 @@ def create_linked_view(project, prefix=None, job_ids=None, index=None, path=None
 
     path_function = _make_path_function(jobs, path)
 
-    links = dict()
+    links = {}
     for job in jobs:
         paths = os.path.join(path_function(job), "job")
         links[paths] = job.workspace()
@@ -251,7 +251,7 @@ class _Node:
     def __init__(self, name=None, value=None):
         self.name = name
         self.value = value
-        self.children = dict()
+        self.children = {}
 
     def get_child(self, name):
         """Get child node corresponding to the name passed.
@@ -316,7 +316,7 @@ def _get_branches(root, branch=None):
 
     """
     if branch is None:
-        branch = list()
+        branch = []
     else:
         branch = list(branch) + [root]
     if root.children:
@@ -362,7 +362,7 @@ def _find_dead_branches(root, branch=None):
 
     """
     if branch is None:
-        branch = list()
+        branch = []
     else:
         branch = list(branch) + [root]
     if root.children:

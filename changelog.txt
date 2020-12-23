@@ -10,6 +10,15 @@ Version 1
 next
 ----
 
+Changed
++++++++
+
+ - Optimized job hash and equality checks (#442).
+
+
+[1.5.1] -- 2020-12-19
+---------------------
+
 Added
 +++++
 
@@ -25,6 +34,7 @@ Changed
  - Optimized internal function ``_mkdir_p`` (#421).
  - Optimized performance of job initialization (#422).
  - Optimized performance of buffer storage (#428).
+ - Optimized performance of creating/loading synced data structures (#429).
 
 [1.5.0] -- 2020-09-20
 ---------------------

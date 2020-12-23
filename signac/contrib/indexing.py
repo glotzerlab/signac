@@ -168,7 +168,7 @@ class RegexFileCrawler(BaseCrawler):
         MyCrawler.define('.*\/a_(?P<a>\d+)\.txt', 'TextFile')
     """
     "Mapping of compiled regex objects and associated formats."
-    definitions = dict()  # type: ignore
+    definitions = {}  # type: ignore
 
     @classmethod
     @deprecated(
@@ -302,8 +302,9 @@ class RegexFileCrawler(BaseCrawler):
         :param fn: The filename.
         :type fn: str
         :returns: An index document, that means an instance of mapping.
-        :rtype: mapping"""
-        result = dict()
+        :rtype: mapping
+        """
+        result = {}
         for key, value in doc.items():
             if value is None or isinstance(value, bool):
                 result[key] = value
@@ -430,7 +431,7 @@ class SignacProjectCrawler(RegexFileCrawler):
         from .project import get_project
 
         root = get_project(root=root).workspace()
-        self._statepoints = dict()
+        self._statepoints = {}
         return super().__init__(root=root)
 
     def _get_job_id(self, dirpath):
