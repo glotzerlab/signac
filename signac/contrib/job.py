@@ -167,7 +167,9 @@ class Job:
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
-        """Reset the state point of this job.
+        """Overwrite the state point of this job while preserving job data.
+
+        Change the job id if necessary.
 
         .. danger::
 
