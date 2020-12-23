@@ -171,7 +171,7 @@ class Job:
 
         Change the job id if necessary.
         For more, see
-        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_. # noqa: E501
 
         .. danger::
 
@@ -235,7 +235,7 @@ class Job:
 
         Change the job id if necessary.
         For more, see
-        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_. # noqa: E501
 
         .. warning::
 
