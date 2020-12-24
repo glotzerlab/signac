@@ -6,6 +6,7 @@
 This implements the MongoDB-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+import bson
 from copy import deepcopy
 
 from .synced_collection import SyncedCollection
@@ -22,10 +23,8 @@ class MongoDBCollection(SyncedCollection):
     _key = 'MongoDBCollection::name'
 
     def __init__(self, collection=None, name=None, parent=None, **kwargs):
-        import bson  # for InvalidDocument error
 
         self._collection = collection
-        self._errors = bson.errors
         self._name = name
         super().__init__(parent=parent, **kwargs)
 
@@ -40,7 +39,7 @@ class MongoDBCollection(SyncedCollection):
         data_to_insert = {self._key: self._name, 'data': data}
         try:
             self._collection.replace_one({self._key: self._name}, data_to_insert, True)
-        except self._errors.InvalidDocument as err:
+        except bson.errors.InvalidDocument as err:
             raise TypeError(str(err))
 
     def _pseudo_deepcopy(self):
@@ -51,6 +50,16 @@ class MongoDBCollection(SyncedCollection):
         """
         return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
                           parent=deepcopy(self._parent))
+
+    @property
+    def collection(self):
+        """`pymongo.collection.Collection`: The collection being synced to."""
+        return self._collection
+
+    @property
+    def name(self):
+        """str: The name associated with this collection."""
+        return self._name
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):

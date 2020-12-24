@@ -55,6 +55,12 @@ class MongoDBCollectionTest:
         self._collection = self._client.test_db.test_dict
         yield self._collection_type(self._collection, self._name)
 
+    def test_collection(self, synced_collection):
+        assert synced_collection.collection == self._collection
+
+    def test_name(self, synced_collection):
+        assert synced_collection.name == 'test'
+
 
 @pytest.mark.skipif(
     not PYMONGO, reason='test requires the pymongo package and mongodb server')

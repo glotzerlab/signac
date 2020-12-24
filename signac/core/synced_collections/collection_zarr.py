@@ -6,6 +6,8 @@
 This implements the Zarr-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+# TODO: Give a clearer error if the numcodecs import fails.
+import numcodecs
 from copy import deepcopy
 
 from .synced_collection import SyncedCollection
@@ -19,9 +21,6 @@ class ZarrCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, group=None, name=None, parent=None, **kwargs):
-        # TODO: Give a clearer error if the import fails.
-        import numcodecs  # zarr depends on numcodecs
-
         self._root = group
         self._object_codec = numcodecs.JSON()
         self._name = name
@@ -50,6 +49,16 @@ class ZarrCollection(SyncedCollection):
         else:
             return type(self)(group=deepcopy(self._root, memo), name=self._name, data=None,
                               parent=None)
+
+    @property
+    def group(self):
+        """`zarr.hierarchy.Group`: The Zarr group storing the data."""
+        return self._root
+
+    @property
+    def name(self):
+        """str: The name of this data in the Zarr group."""
+        return self._name
 
 
 class ZarrDict(ZarrCollection, SyncedAttrDict):

@@ -46,6 +46,12 @@ class ZarrCollectionTest:
         yield self._collection_type(self._group, self._name)
         self._tmp_dir.cleanup()
 
+    def test_group(self, synced_collection):
+        assert synced_collection.group == self._group
+
+    def test_name(self, synced_collection):
+        assert synced_collection.name == 'test'
+
 
 @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrDict(ZarrCollectionTest, SyncedDictTest):

@@ -48,6 +48,16 @@ class RedisCollection(SyncedCollection):
             return type(self)(client=self._client, name=self._name, data=None,
                             parent=None)
 
+    @property
+    def client(self):
+        """`redis.Redis`: The Redis client used to store the data."""
+        return self._client
+
+    @property
+    def name(self):
+        """str: The name of this collection stored in Redis."""
+        return self._name
+
 
 class RedisDict(RedisCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Redis-database.

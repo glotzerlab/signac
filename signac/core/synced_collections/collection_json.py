@@ -90,6 +90,11 @@ class JSONCollection(SyncedCollection):
             with open(self._filename, 'wb') as file:
                 file.write(blob)
 
+    @property
+    def filename(self):
+        """str: The name of the file this collection is synchronized with."""
+        return self._filename
+
 
 JSONCollection.add_validator(json_format_validator)
 

@@ -37,7 +37,6 @@ class SyncedCollection(Collection):
     _validators: List[Callable] = []
 
     def __init__(self, parent=None, *args, **kwargs):
-        self._data = None
         self._parent = parent
         self._suspend_sync_ = 0
 

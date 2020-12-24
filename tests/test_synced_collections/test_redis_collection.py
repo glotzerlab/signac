@@ -50,6 +50,12 @@ class RedisCollectionTest:
         self._name = 'test'
         yield self._collection_type(self._client, self._name)
 
+    def test_client(self, synced_collection):
+        assert synced_collection.client == self._client
+
+    def test_name(self, synced_collection):
+        assert synced_collection.name == 'test'
+
 
 @pytest.mark.skipif(
     not REDIS,
