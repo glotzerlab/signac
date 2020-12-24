@@ -33,6 +33,14 @@ class JSONCollectionTest:
         yield self._collection_type(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
+    @pytest.fixture
+    def synced_collection_positional(self):
+        """Fixture that initializes the object using positional arguments."""
+        self._tmp_dir = TemporaryDirectory(prefix='json_')
+        self._fn_ = os.path.join(self._tmp_dir.name, 'test.json')
+        yield self._collection_type(self._fn_, self._write_concern)
+        self._tmp_dir.cleanup()
+
 
 class TestJSONDict(JSONCollectionTest, SyncedDictTest):
 

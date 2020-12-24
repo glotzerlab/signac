@@ -42,6 +42,15 @@ class RedisCollectionTest:
         self._backend_kwargs = {'name': self._name, 'client': self._client}
         yield self._collection_type(**self._backend_kwargs)
 
+    @pytest.fixture
+    def synced_collection_positional(self, request):
+        """Fixture that initializes the object using positional arguments."""
+        self._client = RedisClient
+        request.addfinalizer(self._client.flushall)
+        self._name = 'test'
+        yield self._collection_type(self._name, self._client)
+        self._tmp_dir.cleanup()
+
 
 @pytest.mark.skipif(
     not REDIS,

@@ -60,6 +60,9 @@ class SyncedDictTest(SyncedCollectionTest):
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
 
+    def test_init_positional(self, synced_collection_positional):
+        assert len(synced_collection_positional) == 0
+
     @pytest.mark.xfail(reason="Currently error checking on construction is flawed.")
     def test_invalid_kwargs(self, synced_collection):
         # JSONDict raise an error when neither filename nor parent is passed.

@@ -47,6 +47,15 @@ class MongoDBCollectionTest:
         yield self._collection_type(**self._backend_kwargs)
         self._collection.drop()
 
+    @pytest.fixture
+    def synced_collection_positional(self):
+        """Fixture that initializes the object using positional arguments."""
+        self._client = MongoClient
+        self._name = 'test'
+        self._collection = self._client.test_db.test_dict
+        yield self._collection_type(self._name, self._collection)
+        self._tmp_dir.cleanup()
+
 
 @pytest.mark.skipif(
     not PYMONGO, reason='test requires the pymongo package and mongodb server')
