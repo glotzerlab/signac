@@ -142,6 +142,3 @@ class ZarrList(ZarrCollection, SyncedList):
         self._validate_constructor_args({'group': group, 'name': name}, data, parent)
         super().__init__(group=group, name=name, data=data, parent=parent,
                          *args, **kwargs)
-
-
-SyncedCollection.register(ZarrDict, ZarrList)

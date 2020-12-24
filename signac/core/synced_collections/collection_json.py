@@ -211,6 +211,3 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         self._validate_constructor_args({'filename': filename}, data, parent)
         super().__init__(filename=filename, write_concern=write_concern,
                          data=data, parent=parent, *args, **kwargs)
-
-
-SyncedCollection.register(JSONDict, JSONList, BufferedJSONDict, BufferedJSONList)

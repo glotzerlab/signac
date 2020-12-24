@@ -129,6 +129,3 @@ class RedisList(RedisCollection, SyncedList):
     parent: object, optional
         A parent instance of RedisList (Default value = None).
     """
-
-
-SyncedCollection.register(RedisDict, RedisList)

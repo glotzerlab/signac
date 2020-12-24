@@ -141,6 +141,3 @@ class MongoDBList(MongoDBCollection, SyncedList):
         self._validate_constructor_args({'collection': collection, 'name': name}, data, parent)
         super().__init__(collection=collection, name=name, data=data,
                          parent=parent, *args, **kwargs)
-
-
-SyncedCollection.register(MongoDBDict, MongoDBList)

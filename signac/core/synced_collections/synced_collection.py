@@ -8,6 +8,7 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
+from inspect import isabstract
 from typing import List, Callable, DefaultDict, Any
 from contextlib import contextmanager
 from abc import abstractmethod
@@ -48,26 +49,13 @@ class SyncedCollection(Collection):
         Every subclass must have a separate list so that distinct sets of validators can
         be registered to each of them.
         """
+        # The Python data model promises that __init_subclass__ will be called
+        # after the class namespace is fully defined, so at this point we know
+        # whether we have a concrete subclass or not.
+        if not isabstract(cls):
+            # Add to the parent level registry
+            SyncedCollection.registry[cls._backend].append(cls)
         cls._validators = []
-
-    @classmethod
-    def register(cls, *args):
-        r"""Register the synced data structures.
-
-        The registry is used by :meth:`from_base` to determine the appropriate subclass
-        of :class:`SyncedCollection` that should be constructed from a particular object.
-        This functionality is necessary for converting nested data structures because
-        given, for instance, a dict of lists, it must be possible to map the nested lists to
-        the appropriate subclass of :class:`SyncedList` corresponding to the desired
-        backend.
-
-        Parameters
-        ----------
-        \*args
-            Classes to register
-        """
-        for base_cls in args:
-            cls.registry[base_cls._backend].append(base_cls)
 
     @property
     def validators(self):
@@ -113,7 +101,7 @@ class SyncedCollection(Collection):
         backend = cls._backend if backend is None else backend
         if backend is None:
             raise ValueError("No backend found.")
-        for base_cls in cls.registry[backend]:
+        for base_cls in SyncedCollection.registry[backend]:
             if base_cls.is_base_type(data):
                 return base_cls(data=data, **kwargs)
         if NUMPY:
