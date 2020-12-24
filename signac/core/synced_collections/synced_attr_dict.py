@@ -41,8 +41,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         '_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
         '_validators')
 
-    def __init__(self, data=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if data is None:
             self._data = {}
         else:

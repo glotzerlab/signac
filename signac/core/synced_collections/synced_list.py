@@ -35,8 +35,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         SyncedList.
     """
 
-    def __init__(self, data=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if data is None:
             self._data = []
         else:

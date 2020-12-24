@@ -37,6 +37,7 @@ class SyncedDictTest(SyncedCollectionTest):
     def base_collection(self):
         return {'a': 0}
 
+    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
     def test_from_base(self, base_collection):
         sd = SyncedCollection.from_base(
             **self._backend_kwargs, data=base_collection,
@@ -45,6 +46,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert 'a' in sd
         assert sd['a'] == 0
 
+    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
     def test_from_base_explicit(self, base_collection):
         sd = self._backend_collection.from_base(
             **self._backend_kwargs, data=base_collection)
@@ -52,6 +54,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert 'a' in sd
         assert sd['a'] == 0
 
+    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
     def test_from_base_no_backend(self, base_collection):
         with pytest.raises(ValueError):
             SyncedCollection.from_base(
@@ -298,6 +301,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert not isinstance(synced_collection(), SyncedCollection)
         assert synced_collection() == synced_collection.to_base()
 
+    @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
         key = 'reopen'
         synced_collection[key] = testdata
@@ -411,6 +415,7 @@ class SyncedListTest(SyncedCollectionTest):
     def base_collection(self):
         return [0]
 
+    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
     def test_from_base(self, base_collection):
         sd = SyncedCollection.from_base(
             **self._backend_kwargs, data=base_collection,
@@ -419,6 +424,7 @@ class SyncedListTest(SyncedCollectionTest):
         assert 0 in sd
         assert sd[0] == 0
 
+    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
     def test_from_base_explicit(self, base_collection):
         sd = self._backend_collection.from_base(
             **self._backend_kwargs, data=base_collection)
@@ -588,6 +594,7 @@ class SyncedListTest(SyncedCollectionTest):
         with pytest.raises(ValueError):
             synced_collection._load()
 
+    @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
         try:
             synced_collection2 = deepcopy(synced_collection)

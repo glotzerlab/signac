@@ -26,12 +26,6 @@ class MongoDBCollection(SyncedCollection):
 
         self._collection = collection
         self._errors = bson.errors
-
-        if (name is None) == (parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both."
-            )
         self._name = name
         super().__init__(parent=parent, **kwargs)
 
@@ -102,6 +96,10 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     parent: object, optional
         A parent instance of MongoDBDict (Default value = None).
     """
+    def __init__(self, collection=None, name=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'name': name}, data, parent)
+        super().__init__(collection=collection, name=name, data=data,
+                         parent=parent, *args, **kwargs)
 
 
 class MongoDBList(MongoDBCollection, SyncedList):
@@ -139,6 +137,10 @@ class MongoDBList(MongoDBCollection, SyncedList):
     parent: object, optional
         A parent instance of MongoDBList (Default value = None).
     """
+    def __init__(self, collection=None, name=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'name': name}, data, parent)
+        super().__init__(collection=collection, name=name, data=data,
+                         parent=parent, *args, **kwargs)
 
 
 SyncedCollection.register(MongoDBDict, MongoDBList)

@@ -35,6 +35,10 @@ class FileBufferedCollection(BufferedCollection):
     single cache. This choice is so that that users can reliably get and set
     the buffer capacity without worrying about the number of distinct internal
     data buffers that might be present.
+
+    Note for developers: The FileBufferedCollection should be inherited before
+    any other collections so that it can pass the filename argument up the MRO
+    of super calls.
     """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
@@ -42,11 +46,11 @@ class FileBufferedCollection(BufferedCollection):
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
 
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename=None, *args, **kwargs):
         if PYPY:
             raise NotImplementedError(
                 "File-based buffering is not supported on PyPy.")
-        super().__init__(*args, **kwargs)
+        super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
 
     @staticmethod

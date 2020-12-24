@@ -190,6 +190,32 @@ class SyncedCollection(Collection):
         for validator in self.validators:
             validator(data)
 
+    def _validate_constructor_args(self, resource_args, data, parent):
+        """Validate the provided constructor arguments.
+
+        In order to support nesting of SyncedCollections, every collection
+        should either be associated with an underlying resource from which it
+        acquires data or be nested within another SyncedCollection, in which
+        case it contains its own data and points to a parent.
+        """
+        all_parent = all([arg is not None for arg in resource_args.values()])
+        any_parent = any([arg is not None for arg in resource_args.values()])
+
+        all_nested = (data is not None) and (parent is not None)
+        any_nested = (data is not None) or (parent is not None)
+
+        if not ((all_parent and not any_nested)
+                or (all_nested and not any_parent)):
+            raise ValueError(
+                f"A {type(self)} must either be synchronized, in which case "
+                f"the arguments ({', '.join(resource_args.keys())}) must be "
+                "provided, or it must be nested within another collection, "
+                "in which case the data and parent arguments must both be "
+                "provided. The received arguments were " +
+                ', '.join(f"{key}: {val}" for key, val in resource_args.items()) +
+                f", data={data}, parent={parent}"
+            )
+
     # The following methods share a common implementation for
     # all data structures and regardless of backend.
 

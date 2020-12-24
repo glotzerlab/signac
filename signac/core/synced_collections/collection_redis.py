@@ -21,12 +21,6 @@ class RedisCollection(SyncedCollection):
 
     def __init__(self, client=None, name=None, parent=None, **kwargs):
         self._client = client
-
-        if (name is None) == (parent is None):
-            raise ValueError(
-                "Illegal argument combination, one of the two arguments, "
-                "parent or name must be None, but not both."
-            )
         self._name = name
         super().__init__(parent=parent, **kwargs)
 
@@ -42,11 +36,17 @@ class RedisCollection(SyncedCollection):
     def _pseudo_deepcopy(self):
         """Return a copy of instance.
 
-        It is a psuedo implementation for `deepcopy` because
+        It is a pseudo implementation for `deepcopy` because
         `redis.Redis` does not support `deepcopy` method.
         """
-        return type(self)(client=self._client, name=self._name, data=self.to_base(),
-                          parent=deepcopy(self._parent))
+        if self._parent is not None:
+            # TODO: Do we really want a deep copy of a nested collection to
+            # deep copy the parent? Perhaps we should simply disallow this?
+            return type(self)(client=None, name=None, data=self.to_base(),
+                            parent=deepcopy(self._parent))
+        else:
+            return type(self)(client=self._client, name=self._name, data=None,
+                            parent=None)
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):

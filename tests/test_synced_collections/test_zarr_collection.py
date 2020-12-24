@@ -43,7 +43,7 @@ class ZarrCollectionTest:
         self._tmp_dir = TemporaryDirectory(prefix='zarr_')
         self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
         self._name = 'test'
-        yield self._collection_type(self._name, self._group)
+        yield self._collection_type(self._group, self._name)
         self._tmp_dir.cleanup()
 
 

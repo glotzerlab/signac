@@ -53,8 +53,7 @@ class MongoDBCollectionTest:
         self._client = MongoClient
         self._name = 'test'
         self._collection = self._client.test_db.test_dict
-        yield self._collection_type(self._name, self._collection)
-        self._tmp_dir.cleanup()
+        yield self._collection_type(self._collection, self._name)
 
 
 @pytest.mark.skipif(

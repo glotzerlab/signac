@@ -48,8 +48,7 @@ class RedisCollectionTest:
         self._client = RedisClient
         request.addfinalizer(self._client.flushall)
         self._name = 'test'
-        yield self._collection_type(self._name, self._client)
-        self._tmp_dir.cleanup()
+        yield self._collection_type(self._client, self._name)
 
 
 @pytest.mark.skipif(
