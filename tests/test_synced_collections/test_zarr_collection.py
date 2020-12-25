@@ -37,6 +37,21 @@ class ZarrCollectionTest:
         yield self._collection_type(**self._backend_kwargs)
         self._tmp_dir.cleanup()
 
+    @pytest.fixture
+    def synced_collection_positional(self):
+        """Fixture that initializes the object using positional arguments."""
+        self._tmp_dir = TemporaryDirectory(prefix='zarr_')
+        self._group = zarr.group(zarr.DirectoryStore(self._tmp_dir.name))
+        self._name = 'test'
+        yield self._collection_type(self._group, self._name)
+        self._tmp_dir.cleanup()
+
+    def test_group(self, synced_collection):
+        assert synced_collection.group == self._group
+
+    def test_name(self, synced_collection):
+        assert synced_collection.name == 'test'
+
 
 @pytest.mark.skipif(not ZARR, reason='test requires the zarr package')
 class TestZarrDict(ZarrCollectionTest, SyncedDictTest):

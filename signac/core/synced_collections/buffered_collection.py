@@ -119,7 +119,7 @@ class BufferedCollection(SyncedCollection):
     # backend actually occurs and when data is simply written to a buffer, and
     # the only way to unambiguously specific the methods to call is by
     # overriding `sync` and `load`.
-    def sync(self):
+    def _save(self):
         """Synchronize data with the backend but buffer if needed.
 
         This method is identical to the SyncedCollection implementation for
@@ -131,11 +131,11 @@ class BufferedCollection(SyncedCollection):
                 if self._is_buffered:
                     self._sync_buffer()
                 else:
-                    self._sync()
+                    self._save_to_resource()
             else:
-                self._parent.sync()
+                self._parent._save()
 
-    def load(self):
+    def _load(self):
         """Load data from the backend but buffer if needed.
 
         This method is identical to the SyncedCollection implementation for
@@ -147,11 +147,11 @@ class BufferedCollection(SyncedCollection):
                 if self._is_buffered:
                     data = self._load_buffer()
                 else:
-                    data = self._load()
+                    data = self._load_from_resource()
                 with self._suspend_sync():
                     self._update(data)
             else:
-                self._parent.load()
+                self._parent._load()
 
     def _sync_buffer(self):
         """Store data in buffer.
@@ -160,7 +160,7 @@ class BufferedCollection(SyncedCollection):
         all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just sync normally.
         """
-        self._sync()
+        self._save_to_resource()
 
     def _load_buffer(self):
         """Store data in buffer.
@@ -169,7 +169,7 @@ class BufferedCollection(SyncedCollection):
         all backends since the process is heavily dependent on the backend
         data store, so the default behavior is to just load normally.
         """
-        self._load()
+        self._load_from_resource()
 
     @contextmanager
     def buffered(self):

@@ -42,17 +42,25 @@ def _convert_key_to_str(data):
 
 
 class JSONCollection(SyncedCollection):
-    """Implement sync and load using a JSON back end."""
+    """A `SyncedCollection` with a JSON backend.
+
+    Parameters
+    ----------
+    filename: str
+        The filename of the associated JSON file on disk.
+    write_concern: bool, optional
+        Ensure file consistency by writing changes back to a temporary file
+        first, before replacing the original file (Default value = False).
+    """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, write_concern=False, **kwargs):
-        self._filename = None if filename is None else os.path.realpath(filename)
+    def __init__(self, filename=None, write_concern=False, parent=None, *args, **kwargs):
         self._write_concern = write_concern
-        kwargs['name'] = filename
-        super().__init__(filename=filename, **kwargs)
+        self._filename = filename
+        super().__init__(parent=parent, *args, **kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from a JSON file."""
         try:
             with open(self._filename, 'rb') as file:
@@ -62,9 +70,9 @@ class JSONCollection(SyncedCollection):
             if error.errno == errno.ENOENT:
                 return None
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data to JSON file."""
-        data = self.to_base()
+        data = self._to_base()
         # Converting non-string keys to string
         data = _convert_key_to_str(data)
         # Serialize data
@@ -82,17 +90,22 @@ class JSONCollection(SyncedCollection):
             with open(self._filename, 'wb') as file:
                 file.write(blob)
 
+    @property
+    def filename(self):
+        """str: The name of the file this collection is synchronized with."""
+        return self._filename
+
 
 JSONCollection.add_validator(json_format_validator)
 
 
-class BufferedJSONCollection(JSONCollection, FileBufferedCollection):
+class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
     """A JSONCollection with buffering enabled."""
 
     _backend = __name__ + '.buffered'  # type: ignore
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class JSONDict(JSONCollection, SyncedAttrDict):
@@ -123,9 +136,9 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying file, copying (even deep
         copying) a JSONDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new JSONDict
-        instance: `new_dict = JSONDict(old_dict.to_base())`.
+        instance: `new_dict = JSONDict(old_dict())`.
 
     Parameters
     ----------
@@ -133,12 +146,16 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         The filename of the associated JSON file on disk (Default value = None).
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
-        first, before replacing the original file (Default value = None).
+        first, before replacing the original file (Default value = False).
     data: mapping, optional
-        The intial data pass to JSONDict. Defaults to `list()`
+        The intial data pass to JSONDict (Default value = {}).
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
     """
+    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'filename': filename}, data, parent)
+        super().__init__(filename=filename, write_concern=write_concern,
+                         data=data, parent=parent, *args, **kwargs)
 
 
 class JSONList(JSONCollection, SyncedList):
@@ -161,9 +178,9 @@ class JSONList(JSONCollection, SyncedList):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying file, copying (even deep
         copying) a JSONList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new JSONList
-        instance: `new_list = JSONList(old_list.to_base())`.
+        instance: `new_list = JSONList(old_list())`.
 
     Parameters
     ----------
@@ -173,10 +190,14 @@ class JSONList(JSONCollection, SyncedList):
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
     data: non-str Sequence, optional
-        The intial data pass to JSONList
+        The intial data pass to JSONList (Default value = []).
     parent: object, optional
         A parent instance of JSONList or None (Default value = None).
     """
+    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'filename': filename}, data, parent)
+        super().__init__(filename=filename, write_concern=write_concern,
+                         data=data, parent=parent, *args, **kwargs)
 
 
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
@@ -184,9 +205,15 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
         '_filename', '_buffered', '_is_buffered')
 
+    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'filename': filename}, data, parent)
+        super().__init__(filename=filename, write_concern=write_concern,
+                         data=data, parent=parent, *args, **kwargs)
+
 
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A buffered JSONList."""
-
-
-SyncedCollection.register(JSONDict, JSONList, BufferedJSONDict, BufferedJSONList)
+    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'filename': filename}, data, parent)
+        super().__init__(filename=filename, write_concern=write_concern,
+                         data=data, parent=parent, *args, **kwargs)

@@ -6,6 +6,7 @@
 This implements the MongoDB-backend for SyncedCollection API by
 implementing sync and load methods.
 """
+import bson
 from copy import deepcopy
 
 from .synced_collection import SyncedCollection
@@ -18,26 +19,24 @@ class MongoDBCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, collection=None, **kwargs):
-        import bson  # for InvalidDocument error
+    def __init__(self, collection=None, uid=None, parent=None, **kwargs):
 
         self._collection = collection
-        self._errors = bson.errors
-        self._key = type(self).__name__ + '::name'
-        super().__init__(**kwargs)
+        self._uid = uid
+        super().__init__(parent=parent, **kwargs)
 
-    def _load(self):
+    def _load_from_resource(self):
         """Load the data from a MongoDB."""
-        blob = self._collection.find_one({self._key: self._name})
+        blob = self._collection.find_one(self._uid)
         return blob['data'] if blob is not None else None
 
-    def _sync(self):
+    def _save_to_resource(self):
         """Write the data from MongoDB."""
-        data = self.to_base()
-        data_to_insert = {self._key: self._name, 'data': data}
+        data = self._to_base()
+        data_to_insert = {**self._uid, 'data': data}
         try:
-            self._collection.replace_one({self._key: self._name}, data_to_insert, True)
-        except self._errors.InvalidDocument as err:
+            self._collection.replace_one(self._uid, data_to_insert, True)
+        except bson.errors.InvalidDocument as err:
             raise TypeError(str(err))
 
     def _pseudo_deepcopy(self):
@@ -46,8 +45,18 @@ class MongoDBCollection(SyncedCollection):
         It is a psuedo implementation for `deepcopy` because
         `pymongo.Collection` does not support `deepcopy` method.
         """
-        return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
+        return type(self)(collection=self._collection, uid=self._uid, data=self._to_base(),
                           parent=deepcopy(self._parent))
+
+    @property
+    def collection(self):
+        """`pymongo.collection.Collection`: The collection being synced to."""
+        return self._collection
+
+    @property
+    def uid(self):
+        """dict: The unique mapping used to identify this collection."""
+        return self._uid
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
@@ -78,9 +87,9 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a MongoDBDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new MongoDBDict
-        instance: `new_dict = MongoDBDict(old_dict.to_base())`.
+        instance: `new_dict = MongoDBDict(old_dict())`.
 
     Parameters
     ----------
@@ -93,6 +102,10 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     parent: object, optional
         A parent instance of MongoDBDict (Default value = None).
     """
+    def __init__(self, collection=None, uid=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'uid': uid}, data, parent)
+        super().__init__(collection=collection, uid=uid, data=data,
+                         parent=parent, *args, **kwargs)
 
 
 class MongoDBList(MongoDBCollection, SyncedList):
@@ -115,9 +128,9 @@ class MongoDBList(MongoDBCollection, SyncedList):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a MongoDBList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new MongoDBList
-        instance: `new_list = MongoDBList(old_list.to_base())`.
+        instance: `new_list = MongoDBList(old_list())`.
 
     Parameters
     ----------
@@ -130,6 +143,7 @@ class MongoDBList(MongoDBCollection, SyncedList):
     parent: object, optional
         A parent instance of MongoDBList (Default value = None).
     """
-
-
-SyncedCollection.register(MongoDBDict, MongoDBList)
+    def __init__(self, collection=None, uid=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'uid': uid}, data, parent)
+        super().__init__(collection=collection, uid=uid, data=data,
+                         parent=parent, *args, **kwargs)

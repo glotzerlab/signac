@@ -4,7 +4,7 @@
 """Implements the SyncedAttrDict class.
 
 This implements the dict data-structure for SyncedCollection API by
-implementing the convert method `to_base` for dictionaries.
+implementing the convert method `_to_base` for dictionaries.
 This class also allows access to values through key indexing or attributes
 named by keys, including nested keys.
 """
@@ -31,7 +31,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the `_to_base()` method to get a
         :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
     """
 
@@ -41,19 +41,19 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         '_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
         '_validators')
 
-    def __init__(self, data=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if data is None:
             self._data = {}
         else:
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self.from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self) for key, value in data.items()
                 }
-            self.sync()
+            self._save()
 
-    def to_base(self):
+    def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
 
         Returns:
@@ -64,7 +64,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         converted = {}
         for key, value in self._data.items():
             if isinstance(value, SyncedCollection):
-                converted[key] = value.to_base()
+                converted[key] = value._to_base()
             else:
                 converted[key] = value
         return converted
@@ -104,7 +104,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                                 continue
                             except ValueError:
                                 pass
-                    self._data[key] = self.from_base(data[key], parent=self)
+                    self._data[key] = self._from_base(data[key], parent=self)
                 remove = set()
                 for key in self._data:
                     if key not in data:
@@ -117,10 +117,10 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def __setitem__(self, key, value):
         self._validate({key: value})
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data[key] = self.from_base(value, parent=self)
-        self.sync()
+            self._data[key] = self._from_base(value, parent=self)
+        self._save()
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -141,44 +141,44 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self.from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self) for key, value in data.items()
                 }
-            self.sync()
+            self._save()
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
 
     def keys(self):
-        self.load()
+        self._load()
         return self._data.keys()
 
     def values(self):
-        self.load()
-        return self.to_base().values()
+        self._load()
+        return self._to_base().values()
 
     def items(self):
-        self.load()
-        return self.to_base().items()
+        self._load()
+        return self._to_base().items()
 
     def get(self, key, default=None):
-        self.load()
+        self._load()
         return self._data.get(key, default)
 
     def pop(self, key, default=None):
-        self.load()
+        self._load()
         ret = self._data.pop(key, default)
-        self.sync()
+        self._save()
         return ret
 
     def popitem(self):
-        self.load()
+        self._load()
         ret = self._data.popitem()
-        self.sync()
+        self._save()
         return ret
 
     def clear(self):
         self._data = {}
-        self.sync()
+        self._save()
 
     def update(self, other=None, **kwargs):
         if other is not None:
@@ -188,25 +188,25 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(other)
         if kwargs:
             self._validate(kwargs)
-        self.load()
+        self._load()
         with self._suspend_sync():
             if other:
                 for key, value in other.items():
-                    self._data[key] = self.from_base(data=value, parent=self)
+                    self._data[key] = self._from_base(data=value, parent=self)
             for key, value in kwargs.items():
-                self._data[key] = self.from_base(data=value, parent=self)
-        self.sync()
+                self._data[key] = self._from_base(data=value, parent=self)
+        self._save()
 
     def setdefault(self, key, default=None):
-        self.load()
+        self._load()
         if key in self._data:
             ret = self._data[key]
         else:
             self._validate({key: default})
-            ret = self.from_base(default, parent=self)
+            ret = self._from_base(default, parent=self)
             with self._suspend_sync():
                 self._data[key] = ret
-            self.sync()
+            self._save()
         return ret
 
     def __getattr__(self, name):

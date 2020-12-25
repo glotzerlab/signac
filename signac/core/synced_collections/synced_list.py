@@ -4,7 +4,7 @@
 """Implements the SyncedList class.
 
 This implements the list data structure for SyncedCollection API by
-implementing the convert method `to_base` for lists.
+implementing the convert method `_to_base` for lists.
 """
 
 from collections.abc import Sequence
@@ -30,13 +30,13 @@ class SyncedList(SyncedCollection, MutableSequence):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the `_to_base()` method to get a
         :class:`list` representation, and if necessary construct a new
         SyncedList.
     """
 
-    def __init__(self, data=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if data is None:
             self._data = []
         else:
@@ -44,8 +44,8 @@ class SyncedList(SyncedCollection, MutableSequence):
             if NUMPY and isinstance(data, numpy.ndarray):
                 data = data.tolist()
             with self._suspend_sync():
-                self._data = [self.from_base(data=value, parent=self) for value in data]
-            self.sync()
+                self._data = [self._from_base(data=value, parent=self) for value in data]
+            self._save()
 
     @classmethod
     def is_base_type(cls, data):
@@ -67,7 +67,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 return True
         return False
 
-    def to_base(self):
+    def _to_base(self):
         """Convert the SyncedList object to list.
 
         Returns
@@ -78,7 +78,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         converted = list()
         for value in self._data:
             if isinstance(value, SyncedCollection):
-                converted.append(value.to_base())
+                converted.append(value._to_base())
             else:
                 converted.append(value)
         return converted
@@ -101,7 +101,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                             continue
                         except ValueError:
                             pass
-                    self._data[i] = self.from_base(data=data[i], parent=self)
+                    self._data[i] = self._from_base(data=data[i], parent=self)
                 if len(self._data) > len(data):
                     self._data = self._data[:len(data)]
                 else:
@@ -131,8 +131,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
-                self._data = [self.from_base(data=value, parent=self) for value in data]
-            self.sync()
+                self._data = [self._from_base(data=value, parent=self) for value in data]
+            self._save()
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a non-string sequence or None."
@@ -140,54 +140,54 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __setitem__(self, key, value):
         self._validate(value)
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data[key] = self.from_base(data=value, parent=self)
-        self.sync()
+            self._data[key] = self._from_base(data=value, parent=self)
+        self._save()
 
     def __reversed__(self):
-        self.load()
+        self._load()
         return reversed(self._data)
 
     def __iadd__(self, iterable):
         # Convert input to a list so that iterators work as well as iterables.
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data += [self.from_base(data=value, parent=self) for value in iterable_data]
-        self.sync()
+            self._data += [self._from_base(data=value, parent=self) for value in iterable_data]
+        self._save()
         return self
 
     def insert(self, index, item):
         self._validate(item)
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data.insert(index, self.from_base(data=item, parent=self))
-        self.sync()
+            self._data.insert(index, self._from_base(data=item, parent=self))
+        self._save()
 
     def append(self, item):
         self._validate(item)
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data.append(self.from_base(data=item, parent=self))
-        self.sync()
+            self._data.append(self._from_base(data=item, parent=self))
+        self._save()
 
     def extend(self, iterable):
         # Convert iterable to a list to ensure generators are exhausted only once
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data.extend([self.from_base(data=value, parent=self) for value in iterable_data])
-        self.sync()
+            self._data.extend([self._from_base(data=value, parent=self) for value in iterable_data])
+        self._save()
 
     def remove(self, item):
-        self.load()
+        self._load()
         with self._suspend_sync():
-            self._data.remove(self.from_base(data=item, parent=self))
-        self.sync()
+            self._data.remove(self._from_base(data=item, parent=self))
+        self._save()
 
     def clear(self):
         self._data = []
-        self.sync()
+        self._save()

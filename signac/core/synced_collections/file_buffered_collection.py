@@ -35,6 +35,10 @@ class FileBufferedCollection(BufferedCollection):
     single cache. This choice is so that that users can reliably get and set
     the buffer capacity without worrying about the number of distinct internal
     data buffers that might be present.
+
+    Note for developers: The FileBufferedCollection should be inherited before
+    any other collections so that it can pass the filename argument up the MRO
+    of super calls.
     """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
@@ -42,11 +46,11 @@ class FileBufferedCollection(BufferedCollection):
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
 
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename=None, *args, **kwargs):
         if PYPY:
             raise NotImplementedError(
                 "File-based buffering is not supported on PyPy.")
-        super().__init__(*args, **kwargs)
+        super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
 
     @staticmethod
@@ -124,7 +128,7 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                blob = self._encode(self.to_base())
+                blob = self._encode(self._to_base())
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
@@ -136,7 +140,7 @@ class FileBufferedCollection(BufferedCollection):
                             raise MetadataError(self._filename,
                                                 cached_data['contents'])
                         self._data = self._decode(cached_data["contents"])
-                        self._sync()
+                        self._save_to_resource()
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
@@ -180,7 +184,7 @@ class FileBufferedCollection(BufferedCollection):
         could also be a Redis instance, etc).
         """
         if self._filename in self._cache:
-            blob = self._encode(self.to_base())
+            blob = self._encode(self._to_base())
             cached_data = self._cache[self._filename]
             buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
                 cached_data["contents"]
@@ -195,10 +199,10 @@ class FileBufferedCollection(BufferedCollection):
             # hash (which is used for the consistency check) with the hash of
             # the current data on disk. _initialize_data_in_cache always uses
             # the current metadata, so the only extra work here is to modify
-            # the hash after it's called (since it uses self.to_base()) to get
+            # the hash after it's called (since it uses self._to_base()) to get
             # the data to initialize the cache with.
             self._initialize_data_in_cache()
-            disk_data = self._load()
+            disk_data = self._load_from_resource()
             self._cache[self._filename]["hash"] = self._hash(self._encode(disk_data))
 
         if (
@@ -250,7 +254,7 @@ class FileBufferedCollection(BufferedCollection):
         provided data, the hash of said data, and the current metadata of the
         file on disk.
         """
-        blob = self._encode(self.to_base())
+        blob = self._encode(self._to_base())
         metadata = self._get_file_metadata()
 
         self._cache[self._filename] = {
