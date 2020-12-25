@@ -43,10 +43,10 @@ class RedisCollection(SyncedCollection):
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
             return type(self)(client=None, key=None, data=self._to_base(),
-                            parent=deepcopy(self._parent))
+                              parent=deepcopy(self._parent))
         else:
             return type(self)(client=self._client, key=self._key, data=None,
-                            parent=None)
+                              parent=None)
 
     @property
     def client(self):

@@ -278,10 +278,10 @@ class SyncedDictTest(SyncedCollectionTest):
         assert not isinstance(synced_collection(), SyncedCollection)
 
         def recursive_convert(d):
-            return {k: (recursive_convert(v) if isinstance(v, SyncedCollection) else v) for k, v in d.items()}
+            return {k: (recursive_convert(v) if isinstance(v, SyncedCollection) else v)
+                    for k, v in d.items()}
         assert synced_collection() == recursive_convert(synced_collection)
         assert synced_collection() == {'call': testdata}
-
 
     @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):

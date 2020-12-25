@@ -110,7 +110,6 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
                          *args, **kwargs)
 
 
-
 class ZarrList(ZarrCollection, SyncedList):
     """A non-string sequence interface to a persistent Zarr file.
 

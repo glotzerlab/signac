@@ -204,6 +204,7 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A buffered JSONDict."""
     _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
         '_filename', '_buffered', '_is_buffered')
+
     def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
         self._validate_constructor_args({'filename': filename}, data, parent)
         super().__init__(filename=filename, write_concern=write_concern,
