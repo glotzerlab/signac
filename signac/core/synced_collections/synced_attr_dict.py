@@ -49,7 +49,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self.from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self) for key, value in data.items()
                 }
             self._save()
 
@@ -104,7 +104,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                                 continue
                             except ValueError:
                                 pass
-                    self._data[key] = self.from_base(data[key], parent=self)
+                    self._data[key] = self._from_base(data[key], parent=self)
                 remove = set()
                 for key in self._data:
                     if key not in data:
@@ -119,7 +119,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         self._validate({key: value})
         self._load()
         with self._suspend_sync():
-            self._data[key] = self.from_base(value, parent=self)
+            self._data[key] = self._from_base(value, parent=self)
         self._save()
 
     def reset(self, data=None):
@@ -141,7 +141,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self.from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self) for key, value in data.items()
                 }
             self._save()
         else:
@@ -192,9 +192,9 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         with self._suspend_sync():
             if other:
                 for key, value in other.items():
-                    self._data[key] = self.from_base(data=value, parent=self)
+                    self._data[key] = self._from_base(data=value, parent=self)
             for key, value in kwargs.items():
-                self._data[key] = self.from_base(data=value, parent=self)
+                self._data[key] = self._from_base(data=value, parent=self)
         self._save()
 
     def setdefault(self, key, default=None):
@@ -203,7 +203,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             ret = self._data[key]
         else:
             self._validate({key: default})
-            ret = self.from_base(default, parent=self)
+            ret = self._from_base(default, parent=self)
             with self._suspend_sync():
                 self._data[key] = ret
             self._save()

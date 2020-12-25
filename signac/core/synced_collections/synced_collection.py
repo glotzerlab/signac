@@ -80,7 +80,7 @@ class SyncedCollection(Collection):
         cls._validators.extend([v for v in args if v not in cls._validators])
 
     @classmethod
-    def from_base(cls, data, backend=None, **kwargs):
+    def _from_base(cls, data, backend=None, **kwargs):
         r"""Dynamically resolve the type of object to the corresponding synced collection.
 
         Parameters

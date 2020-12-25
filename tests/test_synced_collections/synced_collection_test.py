@@ -37,29 +37,6 @@ class SyncedDictTest(SyncedCollectionTest):
     def base_collection(self):
         return {'a': 0}
 
-    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
-    def test_from_base(self, base_collection):
-        sd = SyncedCollection.from_base(
-            **self._backend_kwargs, data=base_collection,
-            backend=self._backend)
-        assert isinstance(sd, self._collection_type)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
-    def test_from_base_explicit(self, base_collection):
-        sd = self._backend_collection.from_base(
-            **self._backend_kwargs, data=base_collection)
-        assert isinstance(sd, self._collection_type)
-        assert 'a' in sd
-        assert sd['a'] == 0
-
-    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
-    def test_from_base_no_backend(self, base_collection):
-        with pytest.raises(ValueError):
-            SyncedCollection.from_base(
-                **self._backend_kwargs, data=base_collection)
-
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
 
@@ -419,23 +396,6 @@ class SyncedListTest(SyncedCollectionTest):
     @pytest.fixture(autouse=True)
     def base_collection(self):
         return [0]
-
-    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
-    def test_from_base(self, base_collection):
-        sd = SyncedCollection.from_base(
-            **self._backend_kwargs, data=base_collection,
-            backend=self._backend)
-        assert isinstance(sd, self._collection_type)
-        assert 0 in sd
-        assert sd[0] == 0
-
-    @pytest.mark.xfail(reason="Unclear what from_base API should look like.")
-    def test_from_base_explicit(self, base_collection):
-        sd = self._backend_collection.from_base(
-            **self._backend_kwargs, data=base_collection)
-        assert isinstance(sd, self._collection_type)
-        assert 0 in sd
-        assert sd[0] == 0
 
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
