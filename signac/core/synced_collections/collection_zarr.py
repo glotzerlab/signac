@@ -35,7 +35,7 @@ class ZarrCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data to zarr-store."""
-        data = self.to_base()
+        data = self._to_base()
         dataset = self._root.require_dataset(
             self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
         dataset[0] = data
@@ -44,7 +44,7 @@ class ZarrCollection(SyncedCollection):
         if self._parent is not None:
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(group=None, name=None, data=self.to_base(),
+            return type(self)(group=None, name=None, data=self._to_base(),
                               parent=deepcopy(self._parent, memo))
         else:
             return type(self)(group=deepcopy(self._root, memo), name=self._name, data=None,
@@ -89,9 +89,9 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a ZarrDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new ZarrDict
-        instance: `new_dict = ZarrDict(old_dict.to_base())`.
+        instance: `new_dict = ZarrDict(old_dict())`.
 
     Parameters
     ----------
@@ -131,9 +131,9 @@ class ZarrList(ZarrCollection, SyncedList):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a ZarrList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new ZarrList
-        instance: `new_list = ZarrList(old_list.to_base())`.
+        instance: `new_list = ZarrList(old_list())`.
 
     Parameters
     ----------

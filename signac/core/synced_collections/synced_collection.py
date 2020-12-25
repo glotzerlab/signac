@@ -111,7 +111,7 @@ class SyncedCollection(Collection):
         return data
 
     @abstractmethod
-    def to_base(self):
+    def _to_base(self):
         """Dynamically resolve the synced collection to the corresponding base type."""
         pass
 
@@ -225,7 +225,7 @@ class SyncedCollection(Collection):
 
     def __call__(self):
         self._load()
-        return self.to_base()
+        return self._to_base()
 
     def __eq__(self, other):
         self._load()

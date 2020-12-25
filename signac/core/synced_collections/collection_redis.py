@@ -31,7 +31,7 @@ class RedisCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data from Redis-database."""
-        self._client.set(self._key, json.dumps(self.to_base()).encode())
+        self._client.set(self._key, json.dumps(self._to_base()).encode())
 
     def _pseudo_deepcopy(self):
         """Return a copy of instance.
@@ -42,7 +42,7 @@ class RedisCollection(SyncedCollection):
         if self._parent is not None:
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(client=None, key=None, data=self.to_base(),
+            return type(self)(client=None, key=None, data=self._to_base(),
                             parent=deepcopy(self._parent))
         else:
             return type(self)(client=self._client, key=self._key, data=None,
@@ -87,9 +87,9 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a RedisDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new RedisDict
-        instance: `new_dict = RedisDict(old_dict.to_base())`.
+        instance: `new_dict = RedisDict(old_dict())`.
 
     Parameters
     ----------
@@ -124,9 +124,9 @@ class RedisList(RedisCollection, SyncedList):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a RedisList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new RedisList
-        instance: `new_list = RedisList(old_list.to_base())`.
+        instance: `new_list = RedisList(old_list())`.
 
     Parameters
     ----------

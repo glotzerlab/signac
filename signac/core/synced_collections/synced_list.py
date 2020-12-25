@@ -4,7 +4,7 @@
 """Implements the SyncedList class.
 
 This implements the list data structure for SyncedCollection API by
-implementing the convert method `to_base` for lists.
+implementing the convert method `_to_base` for lists.
 """
 
 from collections.abc import Sequence
@@ -30,7 +30,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the `_to_base()` method to get a
         :class:`list` representation, and if necessary construct a new
         SyncedList.
     """
@@ -67,7 +67,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 return True
         return False
 
-    def to_base(self):
+    def _to_base(self):
         """Convert the SyncedList object to list.
 
         Returns
@@ -78,7 +78,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         converted = list()
         for value in self._data:
             if isinstance(value, SyncedCollection):
-                converted.append(value.to_base())
+                converted.append(value._to_base())
             else:
                 converted.append(value)
         return converted

@@ -75,7 +75,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert synced_collection['buffered2'] == 1
 
         # Explicitly check that the file has not been changed when buffering.
-        raw_dict = synced_collection.to_base()
+        raw_dict = synced_collection()
         with synced_collection.buffered():
             synced_collection['buffered3'] = 1
             on_disk_dict = self.load(synced_collection)
@@ -349,7 +349,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         assert synced_collection == [2, 3]
 
         # Explicitly check that the file has not been changed when buffering.
-        raw_list = synced_collection.to_base()
+        raw_list = synced_collection()
         with synced_collection.buffered():
             synced_collection.append(10)
             on_disk_list = self.load(synced_collection)

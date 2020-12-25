@@ -32,7 +32,7 @@ class MongoDBCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data from MongoDB."""
-        data = self.to_base()
+        data = self._to_base()
         data_to_insert = {**self._uid, 'data': data}
         try:
             self._collection.replace_one(self._uid, data_to_insert, True)
@@ -45,7 +45,7 @@ class MongoDBCollection(SyncedCollection):
         It is a psuedo implementation for `deepcopy` because
         `pymongo.Collection` does not support `deepcopy` method.
         """
-        return type(self)(collection=self._collection, uid=self._uid, data=self.to_base(),
+        return type(self)(collection=self._collection, uid=self._uid, data=self._to_base(),
                           parent=deepcopy(self._parent))
 
     @property
@@ -87,9 +87,9 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a MongoDBDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new MongoDBDict
-        instance: `new_dict = MongoDBDict(old_dict.to_base())`.
+        instance: `new_dict = MongoDBDict(old_dict())`.
 
     Parameters
     ----------
@@ -128,9 +128,9 @@ class MongoDBList(MongoDBCollection, SyncedList):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying database, copying (even deep
         copying) a MongoDBList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the call operator to get a
         dictionary representation, and if necessary construct a new MongoDBList
-        instance: `new_list = MongoDBList(old_list.to_base())`.
+        instance: `new_list = MongoDBList(old_list())`.
 
     Parameters
     ----------

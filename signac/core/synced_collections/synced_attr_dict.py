@@ -4,7 +4,7 @@
 """Implements the SyncedAttrDict class.
 
 This implements the dict data-structure for SyncedCollection API by
-implementing the convert method `to_base` for dictionaries.
+implementing the convert method `_to_base` for dictionaries.
 This class also allows access to values through key indexing or attributes
 named by keys, including nested keys.
 """
@@ -31,7 +31,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying backend, copying (even deep
         copying) a SyncedAttrDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `to_base()` method to get a
+        true copy is required, you should use the `_to_base()` method to get a
         :class:`dict` representation, and if necessary construct a new SyncedAttrDict.
     """
 
@@ -53,7 +53,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 }
             self._save()
 
-    def to_base(self):
+    def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
 
         Returns:
@@ -64,7 +64,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         converted = {}
         for key, value in self._data.items():
             if isinstance(value, SyncedCollection):
-                converted[key] = value.to_base()
+                converted[key] = value._to_base()
             else:
                 converted[key] = value
         return converted
@@ -154,11 +154,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def values(self):
         self._load()
-        return self.to_base().values()
+        return self._to_base().values()
 
     def items(self):
         self._load()
-        return self.to_base().items()
+        return self._to_base().items()
 
     def get(self, key, default=None):
         self._load()

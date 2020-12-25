@@ -128,7 +128,7 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                blob = self._encode(self.to_base())
+                blob = self._encode(self._to_base())
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
@@ -184,7 +184,7 @@ class FileBufferedCollection(BufferedCollection):
         could also be a Redis instance, etc).
         """
         if self._filename in self._cache:
-            blob = self._encode(self.to_base())
+            blob = self._encode(self._to_base())
             cached_data = self._cache[self._filename]
             buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
                 cached_data["contents"]
@@ -199,7 +199,7 @@ class FileBufferedCollection(BufferedCollection):
             # hash (which is used for the consistency check) with the hash of
             # the current data on disk. _initialize_data_in_cache always uses
             # the current metadata, so the only extra work here is to modify
-            # the hash after it's called (since it uses self.to_base()) to get
+            # the hash after it's called (since it uses self._to_base()) to get
             # the data to initialize the cache with.
             self._initialize_data_in_cache()
             disk_data = self._load_from_resource()
@@ -254,7 +254,7 @@ class FileBufferedCollection(BufferedCollection):
         provided data, the hash of said data, and the current metadata of the
         file on disk.
         """
-        blob = self._encode(self.to_base())
+        blob = self._encode(self._to_base())
         metadata = self._get_file_metadata()
 
         self._cache[self._filename] = {

@@ -290,7 +290,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert p == synced_collection
 
     def test_str(self, synced_collection):
-        str(synced_collection) == str(synced_collection.to_base())
+        str(synced_collection) == str(synced_collection())
 
     def test_call(self, synced_collection, testdata):
         key = 'call'
@@ -299,7 +299,12 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection[key] == testdata
         assert isinstance(synced_collection(), dict)
         assert not isinstance(synced_collection(), SyncedCollection)
-        assert synced_collection() == synced_collection.to_base()
+
+        def recursive_convert(d):
+            return {k: (recursive_convert(v) if isinstance(v, SyncedCollection) else v) for k, v in d.items()}
+        assert synced_collection() == recursive_convert(synced_collection)
+        assert synced_collection() == {'call': testdata}
+
 
     @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
@@ -622,7 +627,7 @@ class SyncedListTest(SyncedCollectionTest):
         assert p == synced_collection
 
     def test_str(self, synced_collection):
-        str(synced_collection) == str(synced_collection.to_base())
+        str(synced_collection) == str(synced_collection())
 
     def test_nested_list(self, synced_collection):
         synced_collection.reset([1, 2, 3])
