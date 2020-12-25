@@ -91,7 +91,7 @@ class SyncedCollection(Collection):
         pass
 
     @classmethod
-    def _from_base(cls, data, backend=None, **kwargs):
+    def _from_base(cls, data, **kwargs):
         r"""Dynamically resolve the type of object to the corresponding synced collection.
 
         Parameters
@@ -108,10 +108,7 @@ class SyncedCollection(Collection):
         data : object
             Synced object of corresponding base type.
         """
-        backend = cls._backend if backend is None else backend
-        if backend is None:
-            raise ValueError("No backend found.")
-        for base_cls in SyncedCollection.registry[backend]:
+        for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
                 return base_cls(data=data, **kwargs)
         if NUMPY:
