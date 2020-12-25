@@ -32,7 +32,6 @@ class SyncedCollection(Collection):
     in the underlying backend. The backend name wil be same as the module name.
     """
 
-    _backend = None
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
 
@@ -78,6 +77,18 @@ class SyncedCollection(Collection):
             Validator(s) to register.
         """
         cls._validators.extend([v for v in args if v not in cls._validators])
+
+    @property
+    @abstractmethod
+    def _backend(self):
+        """str: The backend associated with a given collection.
+
+        This property is abstract to enforce that subclasses implement it.
+        Since it's only internal, subclasses can safely override it with just a
+        raw attribute; this property just serves as a way to enforce the
+        abstract API for subclasses.
+        """
+        pass
 
     @classmethod
     def _from_base(cls, data, backend=None, **kwargs):
