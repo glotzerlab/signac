@@ -19,19 +19,19 @@ class RedisCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, client=None, name=None, parent=None, **kwargs):
+    def __init__(self, client=None, key=None, parent=None, **kwargs):
         self._client = client
-        self._name = name
+        self._key = key
         super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a Redis-database."""
-        blob = self._client.get(self._name)
+        blob = self._client.get(self._key)
         return None if blob is None else json.loads(blob)
 
     def _save_to_resource(self):
         """Write the data from Redis-database."""
-        self._client.set(self._name, json.dumps(self.to_base()).encode())
+        self._client.set(self._key, json.dumps(self.to_base()).encode())
 
     def _pseudo_deepcopy(self):
         """Return a copy of instance.
@@ -42,10 +42,10 @@ class RedisCollection(SyncedCollection):
         if self._parent is not None:
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(client=None, name=None, data=self.to_base(),
+            return type(self)(client=None, key=None, data=self.to_base(),
                             parent=deepcopy(self._parent))
         else:
-            return type(self)(client=self._client, name=self._name, data=None,
+            return type(self)(client=self._client, key=self._key, data=None,
                             parent=None)
 
     @property
@@ -54,9 +54,9 @@ class RedisCollection(SyncedCollection):
         return self._client
 
     @property
-    def name(self):
-        """str: The name of this collection stored in Redis."""
-        return self._name
+    def key(self):
+        """str: The key of this collection stored in Redis."""
+        return self._key
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
@@ -97,8 +97,8 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         A redis client (Default value = None).
     data: mapping, optional
         The intial data pass to RedisDict. Defaults to `dict()`
-    name: str, optional
-        The name of the  collection (Default value = None).
+    key: str, optional
+        The key of the  collection (Default value = None).
     parent: object, optional
         A parent instance of RedisDict (Default value = None).
     """
@@ -134,8 +134,8 @@ class RedisList(RedisCollection, SyncedList):
         A redis client (Default value = None).
     data: non-str Sequence, optional
         The intial data pass to RedisList. Defaults to `list()`
-    name: str, optional
-        The name of the  collection (Default value = None).
+    key: str, optional
+        The key of the  collection (Default value = None).
     parent: object, optional
         A parent instance of RedisList (Default value = None).
     """

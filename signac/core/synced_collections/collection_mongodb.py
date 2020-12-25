@@ -19,26 +19,23 @@ class MongoDBCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    # The key used to find a collection's document in the database.
-    _key = 'MongoDBCollection::name'
-
-    def __init__(self, collection=None, name=None, parent=None, **kwargs):
+    def __init__(self, collection=None, uid=None, parent=None, **kwargs):
 
         self._collection = collection
-        self._name = name
+        self._uid = uid
         super().__init__(parent=parent, **kwargs)
 
     def _load_from_resource(self):
         """Load the data from a MongoDB."""
-        blob = self._collection.find_one({self._key: self._name})
+        blob = self._collection.find_one(self._uid)
         return blob['data'] if blob is not None else None
 
     def _save_to_resource(self):
         """Write the data from MongoDB."""
         data = self.to_base()
-        data_to_insert = {self._key: self._name, 'data': data}
+        data_to_insert = {**self._uid, 'data': data}
         try:
-            self._collection.replace_one({self._key: self._name}, data_to_insert, True)
+            self._collection.replace_one(self._uid, data_to_insert, True)
         except bson.errors.InvalidDocument as err:
             raise TypeError(str(err))
 
@@ -48,7 +45,7 @@ class MongoDBCollection(SyncedCollection):
         It is a psuedo implementation for `deepcopy` because
         `pymongo.Collection` does not support `deepcopy` method.
         """
-        return type(self)(collection=self._collection, name=self._name, data=self.to_base(),
+        return type(self)(collection=self._collection, uid=self._uid, data=self.to_base(),
                           parent=deepcopy(self._parent))
 
     @property
@@ -57,9 +54,9 @@ class MongoDBCollection(SyncedCollection):
         return self._collection
 
     @property
-    def name(self):
-        """str: The name associated with this collection."""
-        return self._name
+    def uid(self):
+        """dict: The unique mapping used to identify this collection."""
+        return self._uid
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
@@ -105,9 +102,9 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     parent: object, optional
         A parent instance of MongoDBDict (Default value = None).
     """
-    def __init__(self, collection=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'collection': collection, 'name': name}, data, parent)
-        super().__init__(collection=collection, name=name, data=data,
+    def __init__(self, collection=None, uid=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'uid': uid}, data, parent)
+        super().__init__(collection=collection, uid=uid, data=data,
                          parent=parent, *args, **kwargs)
 
 
@@ -146,7 +143,7 @@ class MongoDBList(MongoDBCollection, SyncedList):
     parent: object, optional
         A parent instance of MongoDBList (Default value = None).
     """
-    def __init__(self, collection=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'collection': collection, 'name': name}, data, parent)
-        super().__init__(collection=collection, name=name, data=data,
+    def __init__(self, collection=None, uid=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({'collection': collection, 'uid': uid}, data, parent)
+        super().__init__(collection=collection, uid=uid, data=data,
                          parent=parent, *args, **kwargs)
