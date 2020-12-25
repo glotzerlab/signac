@@ -8,13 +8,12 @@ These features are implemented in different subclasses which enable us to use a
 backend with different data-structures or vice-versa. It declares as abstract
 methods the methods that must be implemented by any subclass to match the API.
 """
-from inspect import isabstract
-from typing import List, Callable, DefaultDict, Any
-from contextlib import contextmanager
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
-
+from contextlib import contextmanager
+from inspect import isabstract
+from typing import Any, Callable, DefaultDict, List
 
 try:
     import numpy
@@ -199,16 +198,15 @@ class SyncedCollection(Collection):
         all_nested = (data is not None) and (parent is not None)
         any_nested = (data is not None) or (parent is not None)
 
-        if not ((all_parent and not any_nested)
-                or (all_nested and not any_parent)):
+        if not ((all_parent and not any_nested) or (all_nested and not any_parent)):
             raise ValueError(
                 f"A {type(self)} must either be synchronized, in which case "
                 f"the arguments ({', '.join(resource_args.keys())}) must be "
                 "provided, or it must be nested within another collection, "
                 "in which case the data and parent arguments must both be "
-                "provided. The received arguments were " +
-                ', '.join(f"{key}: {val}" for key, val in resource_args.items()) +
-                f", data={data}, parent={parent}"
+                "provided. The received arguments were "
+                + ", ".join(f"{key}: {val}" for key, val in resource_args.items())
+                + f", data={data}, parent={parent}"
             )
 
     # The following methods share a common implementation for

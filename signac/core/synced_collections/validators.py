@@ -8,14 +8,13 @@ Validators should act recursively for nested data structures and should not
 return any values, only raise errors.
 """
 
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
-from ...errors import InvalidKeyError
-from ...errors import KeyTypeError
+from ...errors import InvalidKeyError, KeyTypeError
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
@@ -41,12 +40,14 @@ def no_dot_in_key(data):
     if isinstance(data, Mapping):
         for key, value in data.items():
             if isinstance(key, str):
-                if '.' in key:
+                if "." in key:
                     raise InvalidKeyError(
-                        f"Mapping keys may not contain dots ('.'): {key}")
+                        f"Mapping keys may not contain dots ('.'): {key}"
+                    )
             elif not isinstance(key, VALID_KEY_TYPES):
                 raise KeyTypeError(
-                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}")
+                    f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
+                )
             no_dot_in_key(value)
     elif isinstance(data, Sequence) and not isinstance(data, str):
         for value in data:
@@ -77,13 +78,18 @@ def json_format_validator(data):
             # See issue: https://github.com/glotzerlab/signac/issues/316.
             if not isinstance(key, (str, int, bool, type(None))):
                 raise KeyTypeError(
-                    f"Keys must be str, int, bool or None, not {type(key).__name__}")
+                    f"Keys must be str, int, bool or None, not {type(key).__name__}"
+                )
             json_format_validator(value)
     elif isinstance(data, Sequence):
         for value in data:
             json_format_validator(value)
     elif NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
         if numpy.iscomplex(data).any():
-            raise TypeError("NumPy object with complex value(s) is not JSON serializable")
+            raise TypeError(
+                "NumPy object with complex value(s) is not JSON serializable"
+            )
     else:
-        raise TypeError(f"Object of type {type(data).__name__} is not JSON serializable")
+        raise TypeError(
+            f"Object of type {type(data).__name__} is not JSON serializable"
+        )

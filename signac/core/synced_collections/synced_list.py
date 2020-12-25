@@ -7,11 +7,9 @@ This implements the list data structure for SyncedCollection API by
 implementing the convert method `_to_base` for lists.
 """
 
-from collections.abc import Sequence
-from collections.abc import MutableSequence
+from collections.abc import MutableSequence, Sequence
 
-from .synced_collection import SyncedCollection
-from .synced_collection import NUMPY
+from .synced_collection import NUMPY, SyncedCollection
 
 if NUMPY:
     import numpy
@@ -44,7 +42,9 @@ class SyncedList(SyncedCollection, MutableSequence):
             if NUMPY and isinstance(data, numpy.ndarray):
                 data = data.tolist()
             with self._suspend_sync():
-                self._data = [self._from_base(data=value, parent=self) for value in data]
+                self._data = [
+                    self._from_base(data=value, parent=self) for value in data
+                ]
             self._save()
 
     @classmethod
@@ -103,13 +103,15 @@ class SyncedList(SyncedCollection, MutableSequence):
                             pass
                     self._data[i] = self._from_base(data=data[i], parent=self)
                 if len(self._data) > len(data):
-                    self._data = self._data[:len(data)]
+                    self._data = self._data[: len(data)]
                 else:
-                    self.extend(data[len(self):])
+                    self.extend(data[len(self) :])
         else:
             raise ValueError(
-                "Unsupported type: {}. The data must be a non-string sequence or None."
-                .format(type(data)))
+                "Unsupported type: {}. The data must be a non-string sequence or None.".format(
+                    type(data)
+                )
+            )
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -131,12 +133,16 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._validate(data)
         if isinstance(data, Sequence) and not isinstance(data, str):
             with self._suspend_sync():
-                self._data = [self._from_base(data=value, parent=self) for value in data]
+                self._data = [
+                    self._from_base(data=value, parent=self) for value in data
+                ]
             self._save()
         else:
             raise ValueError(
-                "Unsupported type: {}. The data must be a non-string sequence or None."
-                .format(type(data)))
+                "Unsupported type: {}. The data must be a non-string sequence or None.".format(
+                    type(data)
+                )
+            )
 
     def __setitem__(self, key, value):
         self._validate(value)
@@ -155,7 +161,9 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._validate(iterable_data)
         self._load()
         with self._suspend_sync():
-            self._data += [self._from_base(data=value, parent=self) for value in iterable_data]
+            self._data += [
+                self._from_base(data=value, parent=self) for value in iterable_data
+            ]
         self._save()
         return self
 
@@ -179,7 +187,9 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._validate(iterable_data)
         self._load()
         with self._suspend_sync():
-            self._data.extend([self._from_base(data=value, parent=self) for value in iterable_data])
+            self._data.extend(
+                [self._from_base(data=value, parent=self) for value in iterable_data]
+            )
         self._save()
 
     def remove(self, item):

@@ -40,4 +40,4 @@ class MetadataError(BufferException):
         self.buffer_contents = contents
 
     def __str__(self):
-        return f'{self.filename} appears to have been externally modified.'
+        return f"{self.filename} appears to have been externally modified."

@@ -2,9 +2,9 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implement the caching feature to SyncedCollection API."""
-import uuid
 import logging
 import pickle
+import uuid
 from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)

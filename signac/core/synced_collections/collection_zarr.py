@@ -6,12 +6,13 @@
 This implements the Zarr-backend for SyncedCollection API by
 implementing sync and load methods.
 """
-# TODO: Give a clearer error if the numcodecs import fails.
-import numcodecs
 from copy import deepcopy
 
-from .synced_collection import SyncedCollection
+# TODO: Give a clearer error if the numcodecs import fails.
+import numcodecs
+
 from .synced_attr_dict import SyncedAttrDict
+from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 
 
@@ -37,18 +38,31 @@ class ZarrCollection(SyncedCollection):
         """Write the data to zarr-store."""
         data = self._to_base()
         dataset = self._root.require_dataset(
-            self._name, overwrite=True, shape=1, dtype='object', object_codec=self._object_codec)
+            self._name,
+            overwrite=True,
+            shape=1,
+            dtype="object",
+            object_codec=self._object_codec,
+        )
         dataset[0] = data
 
     def __deepcopy__(self, memo):
         if self._parent is not None:
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(group=None, name=None, data=self._to_base(),
-                              parent=deepcopy(self._parent, memo))
+            return type(self)(
+                group=None,
+                name=None,
+                data=self._to_base(),
+                parent=deepcopy(self._parent, memo),
+            )
         else:
-            return type(self)(group=deepcopy(self._root, memo), name=self._name, data=None,
-                              parent=None)
+            return type(self)(
+                group=deepcopy(self._root, memo),
+                name=self._name,
+                data=None,
+                parent=None,
+            )
 
     @property
     def group(self):
@@ -104,10 +118,12 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     parent: object, optional
         A parent instance of ZarrDict or None (Default value = None).
     """
+
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'group': group, 'name': name}, data, parent)
-        super().__init__(group=group, name=name, data=data, parent=parent,
-                         *args, **kwargs)
+        self._validate_constructor_args({"group": group, "name": name}, data, parent)
+        super().__init__(
+            group=group, name=name, data=data, parent=parent, *args, **kwargs
+        )
 
 
 class ZarrList(ZarrCollection, SyncedList):
@@ -146,7 +162,9 @@ class ZarrList(ZarrCollection, SyncedList):
     parent: object, optional
         A parent instance of ZarrList or None (Default value = None).
     """
+
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'group': group, 'name': name}, data, parent)
-        super().__init__(group=group, name=name, data=data, parent=parent,
-                         *args, **kwargs)
+        self._validate_constructor_args({"group": group, "name": name}, data, parent)
+        super().__init__(
+            group=group, name=name, data=data, parent=parent, *args, **kwargs
+        )

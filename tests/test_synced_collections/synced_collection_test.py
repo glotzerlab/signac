@@ -1,41 +1,39 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import pytest
-from collections.abc import MutableMapping
-from collections.abc import MutableSequence
+from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
 
-from signac.core.synced_collections.synced_collection import SyncedCollection
+import pytest
+
 from signac.core.synced_collections.collection_json import JSONDict
-from signac.errors import InvalidKeyError
-from signac.errors import KeyTypeError
+from signac.core.synced_collections.synced_collection import SyncedCollection
+from signac.errors import InvalidKeyError, KeyTypeError
 
 try:
     import numpy
+
     NUMPY = True
 except ImportError:
     NUMPY = False
 
 
 class SyncedCollectionTest:
-
     def store(self, data):
-        raise NotImplementedError(
-            "All backend tests must implement the store method.")
+        raise NotImplementedError("All backend tests must implement the store method.")
 
     @pytest.fixture(autouse=True)
     def synced_collection(self):
         raise NotImplementedError(
             "All backend tests must implement a synced_collection autouse "
-            "fixture that returns an empty instance.")
+            "fixture that returns an empty instance."
+        )
 
 
 class SyncedDictTest(SyncedCollectionTest):
-
     @pytest.fixture(autouse=True)
     def base_collection(self):
-        return {'a': 0}
+        return {"a": 0}
 
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
@@ -54,7 +52,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert isinstance(synced_collection, MutableMapping)
 
     def test_set_get(self, synced_collection, testdata):
-        key = 'setget'
+        key = "setget"
         synced_collection.clear()
         assert not bool(synced_collection)
         assert len(synced_collection) == 0
@@ -67,10 +65,10 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection.get(key) == testdata
 
     def test_set_get_explicit_nested(self, synced_collection, testdata):
-        key = 'setgetexplicitnested'
-        synced_collection.setdefault('a', dict())
-        child1 = synced_collection['a']
-        child2 = synced_collection['a']
+        key = "setgetexplicitnested"
+        synced_collection.setdefault("a", dict())
+        child1 = synced_collection["a"]
+        child2 = synced_collection["a"]
         assert child1 == child2
         assert isinstance(child1, type(child2))
         assert id(child1) == id(child2)
@@ -86,8 +84,8 @@ class SyncedDictTest(SyncedCollectionTest):
         assert child2[key] == testdata
 
     def test_copy_value(self, synced_collection, testdata):
-        key = 'copy_value'
-        key2 = 'copy_value2'
+        key = "copy_value"
+        key2 = "copy_value2"
         assert key not in synced_collection
         assert key2 not in synced_collection
         synced_collection[key] = testdata
@@ -101,8 +99,8 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection[key2] == testdata
 
     def test_iter(self, synced_collection, testdata):
-        key1 = 'iter1'
-        key2 = 'iter2'
+        key1 = "iter1"
+        key2 = "iter2"
         d = {key1: testdata, key2: testdata}
         synced_collection.update(d)
         assert key1 in synced_collection
@@ -113,7 +111,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert i == 1
 
     def test_delete(self, synced_collection, testdata):
-        key = 'delete'
+        key = "delete"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
@@ -124,13 +122,13 @@ class SyncedDictTest(SyncedCollectionTest):
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
-        del synced_collection['delete']
+        del synced_collection["delete"]
         assert len(synced_collection) == 0
         with pytest.raises(KeyError):
             synced_collection[key]
 
     def test_update(self, synced_collection, testdata):
-        key = 'update'
+        key = "update"
         d = {key: testdata}
         synced_collection.update(d)
         assert len(synced_collection) == 1
@@ -142,19 +140,19 @@ class SyncedDictTest(SyncedCollectionTest):
         # update using key as kwarg
         synced_collection.update(update2=testdata)
         assert len(synced_collection) == 2
-        assert synced_collection['update2'] == testdata
+        assert synced_collection["update2"] == testdata
         # same key in other dict and as kwarg with different values
         synced_collection.update({key: 1}, update=2)  # here key is 'update'
         assert len(synced_collection) == 2
         assert synced_collection[key] == 2
         # update using list of key and value pair
-        synced_collection.update([('update2', 1), ('update3', 2)])
+        synced_collection.update([("update2", 1), ("update3", 2)])
         assert len(synced_collection) == 3
-        assert synced_collection['update2'] == 1
-        assert synced_collection['update3'] == 2
+        assert synced_collection["update2"] == 1
+        assert synced_collection["update3"] == 2
 
     def test_pop(self, synced_collection, testdata):
-        key = 'pop'
+        key = "pop"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
@@ -163,12 +161,12 @@ class SyncedDictTest(SyncedCollectionTest):
         assert testdata == d1
         with pytest.raises(KeyError):
             synced_collection[key]
-        d2 = synced_collection.pop(key, 'default')
+        d2 = synced_collection.pop(key, "default")
         assert len(synced_collection) == 0
-        assert d2 == 'default'
+        assert d2 == "default"
 
     def test_popitem(self, synced_collection, testdata):
-        key = 'pop'
+        key = "pop"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
@@ -180,26 +178,26 @@ class SyncedDictTest(SyncedCollectionTest):
             synced_collection[key]
 
     def test_values(self, synced_collection, testdata):
-        data = {'value1': testdata, 'value_nested': {'value2': testdata}}
+        data = {"value1": testdata, "value_nested": {"value2": testdata}}
         synced_collection.reset(data)
-        assert 'value1' in synced_collection
-        assert 'value_nested' in synced_collection
+        assert "value1" in synced_collection
+        assert "value_nested" in synced_collection
         for val in synced_collection.values():
             assert not isinstance(val, SyncedCollection)
             assert val in data.values()
 
     def test_items(self, synced_collection, testdata):
-        data = {'item1': testdata, 'item_nested': {'item2': testdata}}
+        data = {"item1": testdata, "item_nested": {"item2": testdata}}
         synced_collection.reset(data)
-        assert 'item1' in synced_collection
-        assert 'item_nested' in synced_collection
+        assert "item1" in synced_collection
+        assert "item_nested" in synced_collection
         for key, val in synced_collection.items():
             assert synced_collection[key] == data[key]
             assert not isinstance(val, type(synced_collection))
             assert (key, val) in data.items()
 
     def test_setdefault(self, synced_collection, testdata):
-        key = 'setdefault'
+        key = "setdefault"
         ret = synced_collection.setdefault(key, testdata)
         assert ret == testdata
         assert key in synced_collection
@@ -209,22 +207,22 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection[key] == testdata
 
     def test_reset(self, synced_collection, testdata):
-        key = 'reset'
+        key = "reset"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
         synced_collection.reset()
         assert len(synced_collection) == 0
-        synced_collection.reset({'reset': 'abc'})
+        synced_collection.reset({"reset": "abc"})
         assert len(synced_collection) == 1
-        assert synced_collection[key] == 'abc'
+        assert synced_collection[key] == "abc"
 
         # invalid input
         with pytest.raises(ValueError):
             synced_collection.reset([0, 1])
 
     def test_attr_dict(self, synced_collection, testdata):
-        key = 'test'
+        key = "test"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert key in synced_collection
@@ -234,7 +232,7 @@ class SyncedDictTest(SyncedCollectionTest):
         del synced_collection.test
         assert len(synced_collection) == 0
         assert key not in synced_collection
-        key = 'test2'
+        key = "test2"
         synced_collection.test2 = testdata
         assert len(synced_collection) == 1
         assert key in synced_collection
@@ -253,7 +251,7 @@ class SyncedDictTest(SyncedCollectionTest):
             synced_collection._load()
 
     def test_clear(self, synced_collection, testdata):
-        key = 'clear'
+        key = "clear"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
@@ -270,7 +268,7 @@ class SyncedDictTest(SyncedCollectionTest):
         str(synced_collection) == str(synced_collection())
 
     def test_call(self, synced_collection, testdata):
-        key = 'call'
+        key = "call"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
@@ -278,14 +276,17 @@ class SyncedDictTest(SyncedCollectionTest):
         assert not isinstance(synced_collection(), SyncedCollection)
 
         def recursive_convert(d):
-            return {k: (recursive_convert(v) if isinstance(v, SyncedCollection) else v)
-                    for k, v in d.items()}
+            return {
+                k: (recursive_convert(v) if isinstance(v, SyncedCollection) else v)
+                for k, v in d.items()
+            }
+
         assert synced_collection() == recursive_convert(synced_collection)
-        assert synced_collection() == {'call': testdata}
+        assert synced_collection() == {"call": testdata}
 
     @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
-        key = 'reopen'
+        key = "reopen"
         synced_collection[key] = testdata
         try:
             synced_collection2 = deepcopy(synced_collection)
@@ -299,13 +300,13 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection2[key] == testdata
 
     def test_update_recursive(self, synced_collection, testdata):
-        synced_collection.a = {'a': 1}
-        synced_collection.b = 'test'
+        synced_collection.a = {"a": 1}
+        synced_collection.b = "test"
         synced_collection.c = [0, 1, 2]
-        assert 'a' in synced_collection
-        assert 'b' in synced_collection
-        assert 'c' in synced_collection
-        data = {'a': 1, 'c': [0, 1, 3], 'd': 1}
+        assert "a" in synced_collection
+        assert "b" in synced_collection
+        assert "c" in synced_collection
+        data = {"a": 1, "c": [0, 1, 3], "d": 1}
         self.store(data)
         assert synced_collection == data
 
@@ -316,7 +317,7 @@ class SyncedDictTest(SyncedCollectionTest):
             synced_collection._load()
 
     def test_copy_as_dict(self, synced_collection, testdata):
-        key = 'copy'
+        key = "copy"
         synced_collection[key] = testdata
         copy = dict(synced_collection)
         del synced_collection
@@ -324,18 +325,18 @@ class SyncedDictTest(SyncedCollectionTest):
         assert copy[key] == testdata
 
     def test_nested_dict(self, synced_collection):
-        synced_collection['a'] = dict(a=dict())
-        child1 = synced_collection['a']
-        child2 = synced_collection['a']['a']
+        synced_collection["a"] = dict(a=dict())
+        child1 = synced_collection["a"]
+        child2 = synced_collection["a"]["a"]
         assert isinstance(child1, type(synced_collection))
         assert isinstance(child1, type(child2))
 
     def test_nested_dict_with_list(self, synced_collection):
-        synced_collection['a'] = [1, 2, 3]
-        child1 = synced_collection['a']
-        synced_collection['a'].append(dict(a=[1, 2, 3]))
-        child2 = synced_collection['a'][3]
-        child3 = synced_collection['a'][3]['a']
+        synced_collection["a"] = [1, 2, 3]
+        child1 = synced_collection["a"]
+        synced_collection["a"].append(dict(a=[1, 2, 3]))
+        child2 = synced_collection["a"][3]
+        child3 = synced_collection["a"][3]["a"]
         assert isinstance(child2, type(synced_collection))
         assert isinstance(child1, type(child3))
         assert isinstance(child1, SyncedCollection)
@@ -345,25 +346,25 @@ class SyncedDictTest(SyncedCollectionTest):
         class Foo(object):
             pass
 
-        key = 'write_invalid_type'
+        key = "write_invalid_type"
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
         d2 = Foo()
         with pytest.raises(TypeError):
-            synced_collection[key + '2'] = d2
+            synced_collection[key + "2"] = d2
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
 
     def test_keys_with_dots(self, synced_collection):
         with pytest.raises(InvalidKeyError):
-            synced_collection['a.b'] = None
+            synced_collection["a.b"] = None
 
     def test_keys_str_type(self, synced_collection, testdata):
-
         class MyStr(str):
             pass
-        for key in ('key', MyStr('key')):
+
+        for key in ("key", MyStr("key")):
             synced_collection[key] = testdata
             assert key in synced_collection
             assert synced_collection[key] == testdata
@@ -380,9 +381,9 @@ class SyncedDictTest(SyncedCollectionTest):
                 assert synced_collection[str(key)] == testdata
 
     def test_keys_invalid_type(self, synced_collection, testdata):
-
         class A:
             pass
+
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 synced_collection[key] = testdata
@@ -392,7 +393,6 @@ class SyncedDictTest(SyncedCollectionTest):
 
 
 class SyncedListTest(SyncedCollectionTest):
-
     @pytest.fixture(autouse=True)
     def base_collection(self):
         return [0]
@@ -423,7 +423,7 @@ class SyncedListTest(SyncedCollectionTest):
         assert len(synced_collection) == 1
         assert synced_collection[0] == 1
 
-    @pytest.mark.skipif(not NUMPY, reason='test requires the numpy package')
+    @pytest.mark.skipif(not NUMPY, reason="test requires the numpy package")
     def test_set_get_numpy_data(self, synced_collection):
         data = numpy.random.rand(3, 4)
         data_as_list = data.tolist()
@@ -469,6 +469,7 @@ class SyncedListTest(SyncedCollectionTest):
         # Ensure generators are exhausted only once by extend
         def data_generator():
             yield testdata
+
         synced_collection.extend(data_generator())
         assert len(synced_collection) == 3
         assert synced_collection[0] == d[0]
@@ -478,6 +479,7 @@ class SyncedListTest(SyncedCollectionTest):
         # Ensure generators are exhausted only once by __iadd__
         def data_generator():
             yield testdata
+
         synced_collection += data_generator()
         assert len(synced_collection) == 4
         assert synced_collection[0] == d[0]
@@ -504,7 +506,7 @@ class SyncedListTest(SyncedCollectionTest):
 
         # invalid inputs
         with pytest.raises(ValueError):
-            synced_collection.reset({'a': 1})
+            synced_collection.reset({"a": 1})
 
         with pytest.raises(ValueError):
             synced_collection.reset(1)
@@ -544,17 +546,17 @@ class SyncedListTest(SyncedCollectionTest):
         assert synced_collection() == [1, 2]
 
     def test_update_recursive(self, synced_collection):
-        synced_collection.reset([{'a': 1}, 'b', [1, 2, 3]])
-        assert synced_collection == [{'a': 1}, 'b', [1, 2, 3]]
-        data = ['a', 'b', [1, 2, 4], 'd']
+        synced_collection.reset([{"a": 1}, "b", [1, 2, 3]])
+        assert synced_collection == [{"a": 1}, "b", [1, 2, 3]]
+        data = ["a", "b", [1, 2, 4], "d"]
         self.store(data)
         assert synced_collection == data
-        data1 = ['a', 'b']
+        data1 = ["a", "b"]
         self.store(data1)
         assert synced_collection == data1
 
         # invalid data in file
-        data2 = {'a': 1}
+        data2 = {"a": 1}
         self.store(data2)
         with pytest.raises(ValueError):
             synced_collection._load()
@@ -613,8 +615,8 @@ class SyncedListTest(SyncedCollectionTest):
         assert id(child1) == id(child2)
 
     def test_nested_list_with_dict(self, synced_collection):
-        synced_collection.reset([{'a': [1, 2, 3, 4]}])
+        synced_collection.reset([{"a": [1, 2, 3, 4]}])
         child1 = synced_collection[0]
-        child2 = synced_collection[0]['a']
+        child2 = synced_collection[0]["a"]
         assert isinstance(child2, SyncedCollection)
         assert isinstance(child1, SyncedCollection)

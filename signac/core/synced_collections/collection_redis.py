@@ -9,8 +9,8 @@ implementing sync and load methods.
 import json
 from copy import deepcopy
 
-from .synced_collection import SyncedCollection
 from .synced_attr_dict import SyncedAttrDict
+from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 
 
@@ -42,11 +42,16 @@ class RedisCollection(SyncedCollection):
         if self._parent is not None:
             # TODO: Do we really want a deep copy of a nested collection to
             # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(client=None, key=None, data=self._to_base(),
-                              parent=deepcopy(self._parent))
+            return type(self)(
+                client=None,
+                key=None,
+                data=self._to_base(),
+                parent=deepcopy(self._parent),
+            )
         else:
-            return type(self)(client=self._client, key=self._key, data=None,
-                              parent=None)
+            return type(self)(
+                client=self._client, key=self._key, data=None, parent=None
+            )
 
     @property
     def client(self):

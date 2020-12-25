@@ -17,13 +17,12 @@ import json
 import os
 import platform
 import sys
-
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 
-PYPY = 'PyPy' in platform.python_implementation()
+PYPY = "PyPy" in platform.python_implementation()
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -48,8 +47,7 @@ class FileBufferedCollection(BufferedCollection):
 
     def __init__(self, filename=None, *args, **kwargs):
         if PYPY:
-            raise NotImplementedError(
-                "File-based buffering is not supported on PyPy.")
+            raise NotImplementedError("File-based buffering is not supported on PyPy.")
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
 
@@ -137,8 +135,7 @@ class FileBufferedCollection(BufferedCollection):
                         # Validate that the file hasn't been changed by
                         # something else.
                         if cached_data["metadata"] != self._get_file_metadata():
-                            raise MetadataError(self._filename,
-                                                cached_data['contents'])
+                            raise MetadataError(self._filename, cached_data["contents"])
                         self._data = self._decode(cached_data["contents"])
                         self._save_to_resource()
                 finally:

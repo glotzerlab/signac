@@ -7,15 +7,15 @@ This implements the JSON-backend for SyncedCollection API by
 implementing sync and load methods.
 """
 
-import os
-import json
 import errno
+import json
+import os
 import uuid
 import warnings
 
 from .file_buffered_collection import FileBufferedCollection
-from .synced_collection import SyncedCollection
 from .synced_attr_dict import SyncedAttrDict
+from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 from .validators import json_format_validator
 
@@ -28,14 +28,20 @@ def _convert_key_to_str(data):
     Input collections must be of "base type" (dict or list).
     """
     if isinstance(data, dict):
+
         def _str_key(key):
             if not isinstance(key, str):
-                warnings.warn(f"Use of {type(key).__name__} as key is deprecated "
-                              "and will be removed in version 2.0",
-                              DeprecationWarning)
+                warnings.warn(
+                    f"Use of {type(key).__name__} as key is deprecated "
+                    "and will be removed in version 2.0",
+                    DeprecationWarning,
+                )
                 key = str(key)
             return key
-        return {_str_key(key): _convert_key_to_str(value) for key, value in data.items()}
+
+        return {
+            _str_key(key): _convert_key_to_str(value) for key, value in data.items()
+        }
     elif isinstance(data, list):
         return [_convert_key_to_str(value) for value in data]
     return data
@@ -55,7 +61,9 @@ class JSONCollection(SyncedCollection):
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, write_concern=False, parent=None, *args, **kwargs):
+    def __init__(
+        self, filename=None, write_concern=False, parent=None, *args, **kwargs
+    ):
         self._write_concern = write_concern
         self._filename = filename
         super().__init__(parent=parent, *args, **kwargs)
@@ -63,7 +71,7 @@ class JSONCollection(SyncedCollection):
     def _load_from_resource(self):
         """Load the data from a JSON file."""
         try:
-            with open(self._filename, 'rb') as file:
+            with open(self._filename, "rb") as file:
                 blob = file.read()
                 return json.loads(blob)
         except IOError as error:
@@ -81,13 +89,14 @@ class JSONCollection(SyncedCollection):
         # replace that file with original file.
         if self._write_concern:
             dirname, filename = os.path.split(self._filename)
-            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                uid=uuid.uuid4(), fn=filename))
-            with open(fn_tmp, 'wb') as tmpfile:
+            fn_tmp = os.path.join(
+                dirname, "._{uid}_{fn}".format(uid=uuid.uuid4(), fn=filename)
+            )
+            with open(fn_tmp, "wb") as tmpfile:
                 tmpfile.write(blob)
             os.replace(fn_tmp, self._filename)
         else:
-            with open(self._filename, 'wb') as file:
+            with open(self._filename, "wb") as file:
                 file.write(blob)
 
     @property
@@ -102,7 +111,7 @@ JSONCollection.add_validator(json_format_validator)
 class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
     """A JSONCollection with buffering enabled."""
 
-    _backend = __name__ + '.buffered'  # type: ignore
+    _backend = __name__ + ".buffered"  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,10 +161,25 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
     """
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class JSONList(JSONCollection, SyncedList):
@@ -194,26 +218,74 @@ class JSONList(JSONCollection, SyncedList):
     parent: object, optional
         A parent instance of JSONList or None (Default value = None).
     """
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A buffered JSONDict."""
-    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
-        '_filename', '_buffered', '_is_buffered')
 
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+        "_filename",
+        "_buffered",
+        "_is_buffered",
+    )
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
     """A buffered JSONList."""
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )

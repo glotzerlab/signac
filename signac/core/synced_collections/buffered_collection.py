@@ -15,9 +15,8 @@ must be implemented by each backend since it depends on the nature of the
 underlying data format.
 """
 import logging
-from typing import List, Any
-
 from contextlib import contextmanager
+from typing import Any, List
 
 from .errors import BufferedError
 from .synced_collection import SyncedCollection
