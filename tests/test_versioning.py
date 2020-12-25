@@ -3,25 +3,22 @@
 # This software is licensed under the BSD 3-Clause License.
 import pytest
 
-from signac.core.utility import parse_version, Version
-
+from signac.core.utility import Version, parse_version
 
 # ordered by release time
 TEST_VERSIONS = [
-    ('0.1.2dev1', Version(minor=1, change=2, prerelease='dev1')),
-    ('0.1.2', Version(minor=1, change=2)),
-    ('0.1-a1.2', Version(major=0, minor=1, postrelease='-a1', change=2)),
-    ('0.1-a1.3dev1', Version(minor=1, postrelease='-a1',
-                             change=3, prerelease='dev1')),
-    ('0.1.3', Version(minor=1, change=3)),
-    ('1.0', Version(major=1)),
-    ('1.2', Version(major=1, minor=2)),
-    ('10.23', Version(major=10, minor=23)),
+    ("0.1.2dev1", Version(minor=1, change=2, prerelease="dev1")),
+    ("0.1.2", Version(minor=1, change=2)),
+    ("0.1-a1.2", Version(major=0, minor=1, postrelease="-a1", change=2)),
+    ("0.1-a1.3dev1", Version(minor=1, postrelease="-a1", change=3, prerelease="dev1")),
+    ("0.1.3", Version(minor=1, change=3)),
+    ("1.0", Version(major=1)),
+    ("1.2", Version(major=1, minor=2)),
+    ("10.23", Version(major=10, minor=23)),
 ]
 
 
-class TestVersionNumbering():
-
+class TestVersionNumbering:
     def test_init(self):
         Version()
 
@@ -42,4 +39,4 @@ class TestVersionNumbering():
 
     def test_illegal_prelease_tag(self):
         with pytest.raises(ValueError):
-            Version(prerelease='final1')
+            Version(prerelease="final1")

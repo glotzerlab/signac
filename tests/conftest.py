@@ -1,5 +1,8 @@
 from contextlib import contextmanager
+
+import pytest
 from packaging import version
+
 import signac
 import pytest
 import uuid

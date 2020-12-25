@@ -1,0 +1,21 @@
+[tool.black]
+target-version = ['py36']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | build
+    | dist
+    | signac/common/configobj
+  )/
+)
+'''
+
+[tool.isort]
+profile = 'black'
+skip_glob = 'signac/common/configobj/*'
