@@ -26,6 +26,7 @@ class ZarrCollection(SyncedCollection):
         The Zarr group in which to store data.
     name : str
         The name under which this collection is stored in the Zarr group.
+
     """
 
     _backend = __name__  # type: ignore
@@ -46,6 +47,7 @@ class ZarrCollection(SyncedCollection):
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the Zarr group.
+
         """
         try:
             return self._root[self._name][0]
@@ -133,6 +135,7 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     required, you should use the call operator to get a dictionary
     representation, and if necessary construct a new ZarrDict instance:
     ``new_dict = ZarrDict(old_dict())``.
+
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
@@ -175,6 +178,7 @@ class ZarrList(ZarrCollection, SyncedList):
     required, you should use the call operator to get a dictionary
     representation, and if necessary construct a new ZarrList instance:
     ``new_list = ZarrList(old_list())``.
+
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):

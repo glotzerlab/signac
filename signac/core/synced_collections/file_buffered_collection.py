@@ -49,6 +49,7 @@ class FileBufferedCollection(BufferedCollection):
         of buffering behavior, it transparently hooks into the initialization
         process, but this is dependent on its constructor being called before
         those of other classes.
+
     """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
@@ -75,6 +76,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         str
             The md5 hash of the input bytes.
+
         """
         if blob is not None:
             m = hashlib.md5()
@@ -89,6 +91,7 @@ class FileBufferedCollection(BufferedCollection):
         Tuple[int, float] or None
             The size and last modification time of the associated file. If the
             file does not exist, returns :code:`None`.
+
         """
         try:
             metadata = os.stat(self._filename)
@@ -111,6 +114,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         int
             The amount of data that can be stored before a flush is triggered.
+
         """
         return FileBufferedCollection._BUFFER_CAPACITY
 
@@ -135,6 +139,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         int
             The size of all data contained in the buffer (in bytes).
+
         """
         return FileBufferedCollection._CURRENT_BUFFER_SIZE
 
@@ -152,6 +157,7 @@ class FileBufferedCollection(BufferedCollection):
         MetadataError
             If any file is detected to have changed on disk since it was
             originally loaded into the buffer and modified.
+
         """
         if not self._is_buffered or force:
             try:
@@ -197,6 +203,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         bytes
             The underlying encoded data.
+
         """
         return json.dumps(data).encode()
 
@@ -216,6 +223,7 @@ class FileBufferedCollection(BufferedCollection):
         -------
         data : collections.abc.Collection
             The decoded data in the appropriate base collection type.
+
         """
         return json.loads(blob.decode())
 
@@ -270,6 +278,7 @@ class FileBufferedCollection(BufferedCollection):
             A collection of the same base type as the SyncedCollection this
             method is called for, corresponding to data loaded from the
             underlying file.
+
         """
         if self._filename in self._cache:
             # Need to check if we have multiple collections pointing to the
@@ -339,6 +348,7 @@ class FileBufferedCollection(BufferedCollection):
         ------
         BufferedError
             If there are any issues with flushing the data.
+
         """
         # All subclasses share a single cache rather than having separate
         # caches for each instance, so we can exit early in subclasses.

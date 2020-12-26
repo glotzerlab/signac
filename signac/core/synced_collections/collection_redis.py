@@ -21,6 +21,7 @@ class RedisCollection(SyncedCollection):
         The Redis client used to persist data.
     key : str
         The key associated with this collection in the Redis database.
+
     """
 
     _backend = __name__  # type: ignore
@@ -38,6 +39,7 @@ class RedisCollection(SyncedCollection):
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the Redis database.
+
         """
         blob = self._client.get(self._key)
         return None if blob is None else json.loads(blob)
@@ -117,6 +119,7 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     required, you should use the call operator to get a dictionary
     representation, and if necessary construct a new RedisDict instance:
     ``new_dict = RedisDict(old_dict())``.
+
     """
     def __init__(
         self, client=None, key=None, data=None, parent=None, *args, **kwargs
@@ -160,6 +163,7 @@ class RedisList(RedisCollection, SyncedList):
         The intial data pass to RedisList. Defaults to `list()`
     parent: RedisCollection, optional
         A parent instance of RedisCollection (Default value = None).
+
     """
     def __init__(
         self, client=None, key=None, data=None, parent=None, *args, **kwargs

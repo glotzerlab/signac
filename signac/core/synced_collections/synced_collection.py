@@ -73,6 +73,7 @@ class SyncedCollection(Collection):
     parent : SyncedCollection, optional
         If provided, the collection within which this collection is nested
         (Default value = None).
+
     """
 
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
@@ -128,6 +129,7 @@ class SyncedCollection(Collection):
         ----------
         \*args : List[Callable]
             Validator(s) to register.
+
         """
         cls._validators.extend([v for v in args if v not in cls._validators])
 
@@ -168,6 +170,7 @@ class SyncedCollection(Collection):
         Since this method relies on the constructor and other methods, it can
         be concretely implemented here rather than requiring subclass
         implementations.
+
         """
         for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
@@ -191,6 +194,7 @@ class SyncedCollection(Collection):
         -------
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type`.
+
         """
         pass
 
@@ -215,6 +219,7 @@ class SyncedCollection(Collection):
         -------
         bool
             Whether or not the object can be converted into this synced collection type.
+
         """
         pass
 
@@ -229,6 +234,7 @@ class SyncedCollection(Collection):
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the underlying resource (e.g. a file).
+
         """
         pass
 
@@ -273,6 +279,7 @@ class SyncedCollection(Collection):
         ----------
         data : Collection
             An collection satisfying :meth:`is_base_type`.
+
         """
         pass
 
@@ -300,6 +307,7 @@ class SyncedCollection(Collection):
         ----------
         data : Collection
             An collection satisfying :meth:`is_base_type`.
+
         """
         for validator in self.validators:
             validator(data)
@@ -325,6 +333,7 @@ class SyncedCollection(Collection):
         parent : SyncedCollection, optional
             If provided, the collection within which this collection is nested
             (Default value = None).
+
         """
         all_parent = all([arg is not None for arg in resource_args.values()])
         any_parent = any([arg is not None for arg in resource_args.values()])

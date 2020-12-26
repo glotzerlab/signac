@@ -65,6 +65,7 @@ class JSONCollection(SyncedCollection):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
+
     """
 
     _backend = __name__  # type: ignore
@@ -84,6 +85,7 @@ class JSONCollection(SyncedCollection):
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the JSON file.
+
         """
         try:
             with open(self._filename, "rb") as file:
@@ -178,6 +180,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     should use the call operator to get a dictionary representation, and if
     necessary construct a new JSONDict instance: ``new_dict =
     JSONDict(old_dict())``.
+
     """
 
     def __init__(
@@ -233,6 +236,7 @@ class JSONList(JSONCollection, SyncedList):
     should use the call operator to get a dictionary representation, and if
     necessary construct a new JSONList instance:
     ``new_list = JSONList(old_list())``.
+
     """
 
     def __init__(

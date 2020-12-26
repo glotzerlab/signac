@@ -35,6 +35,7 @@ class MongoDBCollection(SyncedCollection):
     stored in the same MongoDB collection. Failure to do so may result data
     corruption if multiple documents are found to be apparently associated with
     a given :class:`SyncedCollection`.
+
     """
 
     _backend = __name__  # type: ignore
@@ -53,6 +54,7 @@ class MongoDBCollection(SyncedCollection):
         Collection
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the MongoDB database.
+
         """
         blob = self._collection.find_one(self._uid)
         return blob["data"] if blob is not None else None
@@ -130,6 +132,7 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
         The intial data pass to MongoDBDict. Defaults to `dict()`.
     parent: MongoDBCollection, optional
         A parent instance of MongoDBCollection (Default value = None).
+
     """
 
     def __init__(
@@ -154,6 +157,17 @@ class MongoDBList(MongoDBCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
+    Parameters
+    ----------
+    collection : pymongo.collection.Collection, optional
+        A :class:`pymongo.collection.Collection` instance (Default value = None).
+    uid: dict, optional
+        The unique key-value mapping identifying the collection (Default value = None).
+    data: non-str :py:class:`collections.abc.Sequence`, optional
+        The intial data pass to MongoDBList. Defaults to `list()`.
+    parent: MongoDBCollection, optional
+        A parent instance of MongoDBCollection (Default value = None).
+
     Warnings
     --------
 
@@ -165,16 +179,6 @@ class MongoDBList(MongoDBCollection, SyncedList):
     representation, and if necessary construct a new MongoDBList instance:
     ``new_list = MongoDBList(old_list())``.
 
-    Parameters
-    ----------
-    collection : pymongo.collection.Collection, optional
-        A :class:`pymongo.collection.Collection` instance (Default value = None).
-    uid: dict, optional
-        The unique key-value mapping identifying the collection (Default value = None).
-    data: non-str :py:class:`collections.abc.Sequence`, optional
-        The intial data pass to MongoDBList. Defaults to `list()`.
-    parent: MongoDBCollection, optional
-        A parent instance of MongoDBCollection (Default value = None).
     """
 
     def __init__(

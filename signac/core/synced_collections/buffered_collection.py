@@ -78,6 +78,7 @@ def _flush_all_backends():
     ------
     BufferedError
         If there are any issues with flushing any backend.
+
     """
     global _BUFFERED_BACKENDS
     logger.debug("Flushing buffer...")
@@ -202,6 +203,7 @@ class BufferedCollection(SyncedCollection):
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the buffered data. By default, the buffered data is just the
             data in the resource.
+
         """
         self._load_from_resource()
 
