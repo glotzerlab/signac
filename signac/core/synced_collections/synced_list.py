@@ -86,7 +86,24 @@ class SyncedList(SyncedCollection, MutableSequence):
         return converted
 
     def _update(self, data=None):
-        """Update the instance of SyncedList with data using depth-first traversal."""
+        """Update the in-memory representation to match the provided data.
+
+        The purpose of this method is to update the SyncedCollection to match
+        the data in the underlying resource.  The result of calling this method
+        should be that ``self == data``. The reason that this method is
+        necessary is that SyncedCollections can be nested, and nested
+        collections must also be instances of SyncedCollection so that
+        synchronization occurs even when nested structures are modified.
+        Recreating the full nested structure every time data is reloaded from
+        file is highly inefficient, so this method performs an in-place update
+        that only changes entries that need to be changed.
+
+        Parameters
+        ----------
+        data : collections.abc.Sequence
+            The data to be assigned to this list.
+
+        """
         if data is None:
             data = []
         self._validate(data)

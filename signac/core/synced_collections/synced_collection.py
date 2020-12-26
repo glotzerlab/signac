@@ -278,7 +278,7 @@ class SyncedCollection(Collection):
         Parameters
         ----------
         data : Collection
-            An collection satisfying :meth:`is_base_type`.
+            A collection satisfying :meth:`is_base_type`.
 
         """
         pass
