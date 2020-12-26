@@ -1,6 +1,7 @@
 # Copyright (c) 2017 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Errors raised by synced collections."""
 
 
 from ..errors import Error
@@ -40,4 +41,4 @@ class MetadataError(BufferException):
         self.buffer_contents = contents
 
     def __str__(self):
-        return f'{self.filename} appears to have been externally modified.'
+        return f"{self.filename} appears to have been externally modified."

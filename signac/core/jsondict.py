@@ -2,42 +2,42 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Dict implementation with backend JSON file."""
-import os
-import sys
 import errno
-import uuid
 import hashlib
 import logging
-from tempfile import mkstemp
+import os
+import sys
+import uuid
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import copy
-from collections.abc import Mapping
+from tempfile import mkstemp
 
-from .errors import Error
 from . import json
 from .attrdict import SyncedAttrDict
-
+from .errors import Error
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_BUFFER_SIZE = 32 * 2**20    # 32 MB
+DEFAULT_BUFFER_SIZE = 32 * 2 ** 20  # 32 MB
 
 _BUFFERED_MODE = 0
 _BUFFERED_MODE_FORCE_WRITE = None
 _BUFFER_SIZE = None
-_JSONDICT_BUFFER = dict()
-_JSONDICT_HASHES = dict()
-_JSONDICT_META = dict()
+_BUFFER_LOAD = 0
+_JSONDICT_BUFFER = {}
+_JSONDICT_HASHES = {}
+_JSONDICT_META = {}
 
 
 class BufferException(Error):
-    """An exception occured in buffered mode."""
+    """An exception occurred in buffered mode."""
 
     pass
 
 
 class BufferedFileError(BufferException):
-    """Raised when an error occured while flushing one or more buffered files.
+    """Raised when an error occurred while flushing one or more buffered files.
 
     .. attribute:: files
 
@@ -61,7 +61,7 @@ def _hash(blob):
         return m.hexdigest()
 
 
-def _get_filemetadata(filename):
+def _get_file_metadata(filename):
     try:
         return os.path.getsize(filename), os.path.getmtime(filename)
     except OSError as error:
@@ -70,28 +70,32 @@ def _get_filemetadata(filename):
 
 
 def _store_in_buffer(filename, blob, store_hash=False):
+    global _BUFFER_LOAD
     assert _BUFFERED_MODE > 0
     blob_size = sys.getsizeof(blob)
-    buffer_load = get_buffer_load()
     if _BUFFER_SIZE > 0:
         if blob_size > _BUFFER_SIZE:
+            # Cannot store blobs larger than the buffer size
             return False
-        elif blob_size + buffer_load > _BUFFER_SIZE:
+        elif blob_size + _BUFFER_LOAD > _BUFFER_SIZE:
             logger.debug("Buffer overflow, flushing...")
             flush_all()
 
     _JSONDICT_BUFFER[filename] = blob
+    _BUFFER_LOAD += blob_size
     if store_hash:
         if not _BUFFERED_MODE_FORCE_WRITE:
-            _JSONDICT_META[filename] = _get_filemetadata(filename)
+            _JSONDICT_META[filename] = _get_file_metadata(filename)
         _JSONDICT_HASHES[filename] = _hash(blob)
+
     return True
 
 
 def flush_all():
     """Execute all deferred JSONDict write operations."""
+    global _BUFFER_LOAD
     logger.debug("Flushing buffer...")
-    issues = dict()
+    issues = {}
     while _JSONDICT_BUFFER:
         filename, blob = _JSONDICT_BUFFER.popitem()
         if not _BUFFERED_MODE_FORCE_WRITE:
@@ -99,12 +103,16 @@ def flush_all():
         if _hash(blob) != _JSONDICT_HASHES.pop(filename):
             try:
                 if not _BUFFERED_MODE_FORCE_WRITE:
-                    if _get_filemetadata(filename) != meta:
-                        issues[filename] = 'File appears to have been externally modified.'
+                    if _get_file_metadata(filename) != meta:
+                        issues[
+                            filename
+                        ] = "File appears to have been externally modified."
                         continue
                 try:
-                    fd_tmp, fn_tmp = mkstemp(dir=os.path.dirname(filename), suffix='.json')
-                    with os.fdopen(fd_tmp, 'wb') as file:
+                    fd_tmp, fn_tmp = mkstemp(
+                        dir=os.path.dirname(filename), suffix=".json"
+                    )
+                    with os.fdopen(fd_tmp, "wb") as file:
                         file.write(blob)
                 except OSError:
                     os.remove(fn_tmp)
@@ -116,6 +124,7 @@ def flush_all():
                 issues[filename] = error
     if issues:
         raise BufferedFileError(issues)
+    _BUFFER_LOAD = 0
 
 
 def get_buffer_size():
@@ -125,7 +134,7 @@ def get_buffer_size():
 
 def get_buffer_load():
     """Return the current actual size of the read/write buffer."""
-    return sum((sys.getsizeof(x) for x in _JSONDICT_BUFFER.values()))
+    return _BUFFER_LOAD
 
 
 def in_buffered_mode():
@@ -157,18 +166,23 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
     global _BUFFERED_MODE
     global _BUFFERED_MODE_FORCE_WRITE
     global _BUFFER_SIZE
+    global _BUFFER_LOAD
     assert _BUFFERED_MODE >= 0
 
     # Basic type check (to prevent common user error)
-    if not isinstance(buffer_size, int) or \
-            buffer_size is True or buffer_size is False:    # explicit check against boolean
+    if (
+        not isinstance(buffer_size, int) or buffer_size is True or buffer_size is False
+    ):  # explicit check against boolean
         raise TypeError("The buffer size must be an integer!")
 
     # Can't enter force write mode, if already in non-force write mode:
-    if _BUFFERED_MODE_FORCE_WRITE is not None and (force_write and not _BUFFERED_MODE_FORCE_WRITE):
+    if _BUFFERED_MODE_FORCE_WRITE is not None and (
+        force_write and not _BUFFERED_MODE_FORCE_WRITE
+    ):
         raise BufferException(
             "Unable to enter buffered mode with force write enabled, because "
-            "we are already in buffered mode with force write disabled.")
+            "we are already in buffered mode with force write disabled."
+        )
 
     # Check whether we can adjust the buffer size and warn otherwise:
     if _BUFFER_SIZE is not None and _BUFFER_SIZE != buffer_size:
@@ -190,6 +204,7 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
                 assert not _JSONDICT_HASHES
                 assert not _JSONDICT_META
                 _BUFFER_SIZE = None
+                _BUFFER_LOAD = 0
                 _BUFFERED_MODE_FORCE_WRITE = None
 
 
@@ -197,8 +212,8 @@ class JSONDict(SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
     The JSONDict is a :class:`~collections.abc.MutableMapping` and therefore
-    behaves similar to a :class:`dict`, but all data is stored persistently in
-    the associated JSON file on disk.
+    behaves similarly to a :class:`dict`, but all data is stored persistently
+    in the associated JSON file on disk.
 
     .. code-block:: python
 
@@ -225,9 +240,9 @@ class JSONDict(SyncedAttrDict):
         important distinctions to remember. In particular, because operations
         are reflected as changes to an underlying file, copying (even deep
         copying) a JSONDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `_as_dict` method to get a
-        dictionary representation, and if necessary construct a new JSONDict
-        instance: `new_dict = JSONDict(old_dict._as_dict())`.
+        true copy is required, you should use the ``_as_dict()`` method to get
+        a dictionary representation, and if necessary construct a new JSONDict
+        instance: ``new_dict = JSONDict(old_dict._as_dict())``.
 
     :param filename:
         The filename of the associated JSON file on disk.
@@ -242,16 +257,17 @@ class JSONDict(SyncedAttrDict):
         if (filename is None) == (parent is None):
             raise ValueError(
                 "Illegal argument combination, one of the two arguments, "
-                "parent or filename must be None, but not both.")
+                "parent or filename must be None, but not both."
+            )
         self._filename = None if filename is None else os.path.realpath(filename)
         self._write_concern = write_concern
-        super(JSONDict, self).__init__(parent=parent)
+        super().__init__(parent=parent)
 
     def _load_from_disk(self):
         try:
-            with open(self._filename, 'rb') as file:
+            with open(self._filename, "rb") as file:
                 return file.read()
-        except IOError as error:
+        except OSError as error:
             if error.errno == errno.ENOENT:
                 return None
 
@@ -270,7 +286,7 @@ class JSONDict(SyncedAttrDict):
             # Just load from disk
             blob = self._load_from_disk()
 
-        return dict() if blob is None else json.loads(blob.decode())
+        return {} if blob is None else json.loads(blob.decode())
 
     def _save(self, data=None):
         assert self._filename is not None
@@ -283,16 +299,15 @@ class JSONDict(SyncedAttrDict):
 
         if _BUFFERED_MODE > 0:
             _store_in_buffer(self._filename, blob)
-        else:   # Saving to disk:
+        else:  # Saving to disk:
             if self._write_concern:
                 dirname, filename = os.path.split(self._filename)
-                fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                    uid=uuid.uuid4(), fn=filename))
-                with open(fn_tmp, 'wb') as tmpfile:
+                fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
+                with open(fn_tmp, "wb") as tmpfile:
                     tmpfile.write(blob)
                 os.replace(fn_tmp, self._filename)
             else:
-                with open(self._filename, 'wb') as file:
+                with open(self._filename, "wb") as file:
                     file.write(blob)
 
     def reset(self, data):

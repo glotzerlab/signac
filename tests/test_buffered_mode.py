@@ -1,36 +1,33 @@
 # Copyright (c) 2018 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-import os
-import pytest
 import json
 import logging
+import os
 import platform
-from time import sleep
 from stat import S_IREAD
 from tempfile import TemporaryDirectory
+from time import sleep
 
-import signac
-from signac.errors import Error
-from signac.errors import BufferException
-from signac.errors import BufferedFileError
-
+import pytest
 from test_project import TestProjectBase
 
+import signac
+from signac.errors import BufferedFileError, BufferException, Error
 
-PYPY = 'PyPy' in platform.python_implementation()
+PYPY = "PyPy" in platform.python_implementation()
 
 
 # Determine if we can run permission error tests
 with TemporaryDirectory() as tmp_dir:
-    path = os.path.join(tmp_dir, 'subdir')
+    path = os.path.join(tmp_dir, "subdir")
     os.mkdir(path)
     mode = os.stat(path).st_mode
     try:
         os.chmod(path, S_IREAD)
-        with open(os.path.join(path, 'testfile.txt'), 'w') as file:
+        with open(os.path.join(path, "testfile.txt"), "w") as file:
             pass
-    except (IOError, OSError):
+    except OSError:
         ABLE_TO_PREVENT_WRITE = True
     else:
         ABLE_TO_PREVENT_WRITE = False
@@ -40,7 +37,6 @@ with TemporaryDirectory() as tmp_dir:
 
 @pytest.mark.skipif(PYPY, reason="Buffered mode not supported for PyPy.")
 class TestBufferedMode(TestProjectBase):
-
     def test_enter_exit_buffered_mode(self):
         assert not signac.is_buffered()
         with signac.buffered():
@@ -58,9 +54,9 @@ class TestBufferedMode(TestProjectBase):
     def test_basic_and_nested(self):
         job = self.project.open_job(dict(a=0))
         job.init()
-        assert 'a' not in job.doc
+        assert "a" not in job.doc
         with signac.buffered():
-            assert 'a' not in job.doc
+            assert "a" not in job.doc
             job.doc.a = 0
             assert job.doc.a == 0
         assert job.doc.a == 0
@@ -104,8 +100,8 @@ class TestBufferedMode(TestProjectBase):
                 job.doc.a = not x
                 assert job.doc.a == (not x)
                 sleep(1.0)
-                with open(job.doc._filename, 'wb') as file:
-                    file.write(json.dumps({'a': x}).encode())
+                with open(job.doc._filename, "wb") as file:
+                    file.write(json.dumps({"a": x}).encode())
         assert not signac.is_buffered()
         assert job.doc.a == x
 
@@ -114,11 +110,13 @@ class TestBufferedMode(TestProjectBase):
             job.doc.a = not x
             assert job.doc.a == (not x)
             sleep(1.0)
-            with open(job.doc._filename, 'wb') as file:
-                file.write(json.dumps({'a': x}).encode())
+            with open(job.doc._filename, "wb") as file:
+                file.write(json.dumps({"a": x}).encode())
         assert job.doc.a == (not x)
 
-    @pytest.mark.skipif(not ABLE_TO_PREVENT_WRITE, reason='unable to trigger permission error')
+    @pytest.mark.skipif(
+        not ABLE_TO_PREVENT_WRITE, reason="unable to trigger permission error"
+    )
     def test_force_write_mode_with_permission_error(self):
         job = self.project.open_job(dict(a=0))
         job.init()
@@ -175,12 +173,12 @@ class TestBufferedMode(TestProjectBase):
 
             for job in self.project:
                 assert job.sp.a > 0
-                job.sp.a = - job.sp.a
+                job.sp.a = -job.sp.a
                 assert job.sp.a < 0
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
                 assert job2.sp.a < 0
-                job.sp.a = - job.sp.a
+                job.sp.a = -job.sp.a
                 assert job.sp.a > 0
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
@@ -194,19 +192,25 @@ class TestBufferedMode(TestProjectBase):
                 assert job.doc.a
 
         routine()
+        assert signac.get_buffer_load() == 0
         with signac.buffered():
             assert signac.is_buffered()
             routine()
+            assert signac.get_buffer_load() > 0
+        assert signac.get_buffer_load() == 0
 
         for job in self.project:
             x = job.doc.a
             with signac.buffered():
+                assert signac.get_buffer_load() == 0
                 assert job.doc.a == x
+                assert signac.get_buffer_load() > 0
                 job.doc.a = not job.doc.a
                 assert job.doc.a == (not x)
                 with pytest.deprecated_call():
                     job2 = self.project.open_job(id=job.get_id())
                 assert job2.doc.a == (not x)
+            assert signac.get_buffer_load() == 0
             assert job.doc.a == (not x)
             assert job2.doc.a == (not x)
 
@@ -242,8 +246,8 @@ class TestBufferedMode(TestProjectBase):
                     job.doc.a = x
                     assert job.doc.a == x
                     sleep(1.0)
-                    with open(job.doc._filename, 'wb') as file:
-                        file.write(json.dumps({'a': not x}).encode())
+                    with open(job.doc._filename, "wb") as file:
+                        file.write(json.dumps({"a": not x}).encode())
             assert job.doc._filename in cm.value.files
 
-            break    # only test for one job
+            break  # only test for one job

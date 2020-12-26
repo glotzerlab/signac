@@ -1,48 +1,62 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements JSON-backend.
+"""Implements a JSON SyncedCollection backend."""
 
-This implements the JSON-backend for SyncedCollection API by
-implementing sync and load methods.
-"""
-
-import os
-import json
 import errno
+import json
+import os
 import uuid
 import warnings
 
 from .file_buffered_collection import FileBufferedCollection
-from .synced_collection import SyncedCollection
 from .synced_attr_dict import SyncedAttrDict
+from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 from .validators import json_format_validator
 
 
 def _convert_key_to_str(data):
-    """Recursively convert non-string keys to strings for (potentially nested) input collections.
+    """Recursively convert non-string keys to strings in dicts.
 
-    This retains compatibility with auto-casting keys to strings, and will be
-    removed in signac 2.0.
-    Input collections must be of "base type" (dict or list).
+    This method supports :py:class:`collections.abc.Sequence` or
+    :py:class:`collections.abc.Mapping` types as inputs, and recursively
+    searches for any entries in :py:class:`collections.abc.Mapping` types where
+    the key is not a string. This functionality is added for backwards
+    compatibility with legacy behavior in signac, which allowed integer keys
+    for dicts. These inputs were silently converted to string keys and stored
+    since JSON does not support integer keys. This behavior is deprecated and
+    will become an error in signac 2.0.
     """
+    # TODO: This method should be removed in signac 2.0.
     if isinstance(data, dict):
+
         def _str_key(key):
             if not isinstance(key, str):
-                warnings.warn(f"Use of {type(key).__name__} as key is deprecated "
-                              "and will be removed in version 2.0",
-                              DeprecationWarning)
+                warnings.warn(
+                    f"Use of {type(key).__name__} as key is deprecated "
+                    "and will be removed in version 2.0",
+                    DeprecationWarning,
+                )
                 key = str(key)
             return key
-        return {_str_key(key): _convert_key_to_str(value) for key, value in data.items()}
+
+        return {
+            _str_key(key): _convert_key_to_str(value) for key, value in data.items()
+        }
     elif isinstance(data, list):
         return [_convert_key_to_str(value) for value in data]
     return data
 
 
 class JSONCollection(SyncedCollection):
-    """A `SyncedCollection` with a JSON backend.
+    """A :class:`SyncedCollection` that synchronizes with a JSON file.
+
+    This collection implements synchronization by reading and writing the associated
+    JSON file in its entirety for every read/write operation. This backend is a good
+    choice for maximum accessibility and transparency since all data is immediately
+    accessible in the form of a text file with no additional tooling, but is
+    likely a poor choice for high performance applications.
 
     Parameters
     ----------
@@ -51,22 +65,33 @@ class JSONCollection(SyncedCollection):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
+
     """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, filename=None, write_concern=False, parent=None, *args, **kwargs):
+    def __init__(
+        self, filename=None, write_concern=False, parent=None, *args, **kwargs
+    ):
         self._write_concern = write_concern
         self._filename = filename
         super().__init__(parent=parent, *args, **kwargs)
 
     def _load_from_resource(self):
-        """Load the data from a JSON file."""
+        """Load the data from a JSON file.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the data in the JSON file.
+
+        """
         try:
-            with open(self._filename, 'rb') as file:
+            with open(self._filename, "rb") as file:
                 blob = file.read()
                 return json.loads(blob)
-        except IOError as error:
+        except OSError as error:
             if error.errno == errno.ENOENT:
                 return None
 
@@ -81,13 +106,12 @@ class JSONCollection(SyncedCollection):
         # replace that file with original file.
         if self._write_concern:
             dirname, filename = os.path.split(self._filename)
-            fn_tmp = os.path.join(dirname, '._{uid}_{fn}'.format(
-                uid=uuid.uuid4(), fn=filename))
-            with open(fn_tmp, 'wb') as tmpfile:
+            fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
+            with open(fn_tmp, "wb") as tmpfile:
                 tmpfile.write(blob)
             os.replace(fn_tmp, self._filename)
         else:
-            with open(self._filename, 'wb') as file:
+            with open(self._filename, "wb") as file:
                 file.write(blob)
 
     @property
@@ -100,9 +124,14 @@ JSONCollection.add_validator(json_format_validator)
 
 
 class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
-    """A JSONCollection with buffering enabled."""
+    """A :class:`JSONCollection` that supports I/O buffering.
 
-    _backend = __name__ + '.buffered'  # type: ignore
+    This class implements the buffer protocol defined by :class:`BufferedCollection`.
+    The concrete implementation of buffering behavior is defined by the
+    :class:`FileBufferedCollection`.
+    """
+
+    _backend = __name__ + ".buffered"  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -110,9 +139,6 @@ class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
 
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
-
-    The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
 
@@ -130,16 +156,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
-    .. warning::
-
-        While the JSONDict object behaves like a dictionary, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
-        copying) a JSONDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new JSONDict
-        instance: `new_dict = JSONDict(old_dict())`.
-
     Parameters
     ----------
     filename: str, optional
@@ -147,22 +163,46 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
-    data: mapping, optional
+    data: :py:class:`collections.abc.Mapping`, optional
         The intial data pass to JSONDict (Default value = {}).
-    parent: object, optional
-        A parent instance of JSONDict or None (Default value = None).
+    parent: JSONCollection, optional
+        A parent instance of JSONCollection or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the JSONDict object behaves like a dictionary, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONDict
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONDict instance: ``new_dict =
+    JSONDict(old_dict())``.
+
     """
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
-
-    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
 
@@ -172,16 +212,6 @@ class JSONList(JSONCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
-    .. warning::
-
-        While the JSONList object behaves like a list, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
-        copying) a JSONList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new JSONList
-        instance: `new_list = JSONList(old_list())`.
-
     Parameters
     ----------
     filename: str, optional
@@ -189,31 +219,91 @@ class JSONList(JSONCollection, SyncedList):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
-    data: non-str Sequence, optional
+    data: non-str :py:class:`collections.abc.Sequence`, optional
         The intial data pass to JSONList (Default value = []).
-    parent: object, optional
-        A parent instance of JSONList or None (Default value = None).
+    parent: JSONCollection, optional
+        A parent instance of JSONCollection or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the JSONList object behaves like a list, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONList
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONList instance:
+    ``new_list = JSONList(old_list())``.
+
     """
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
-    """A buffered JSONDict."""
-    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
-        '_filename', '_buffered', '_is_buffered')
+    """A buffered :class:`JSONDict`."""
 
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+        "_filename",
+        "_buffered",
+        "_is_buffered",
+    )
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
 
 
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
-    """A buffered JSONList."""
-    def __init__(self, filename=None, write_concern=False, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({'filename': filename}, data, parent)
-        super().__init__(filename=filename, write_concern=write_concern,
-                         data=data, parent=parent, *args, **kwargs)
+    """A buffered :class:`JSONList`."""
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )

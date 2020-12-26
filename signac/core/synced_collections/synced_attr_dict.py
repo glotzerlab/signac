@@ -9,8 +9,7 @@ This class also allows access to values through key indexing or attributes
 named by keys, including nested keys.
 """
 
-from collections.abc import Mapping
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Tuple
 
 from .synced_collection import SyncedCollection
@@ -38,8 +37,14 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     # Must specify this as a variable length tuple to allow subclasses to
     # extend the list of protected keys.
     _PROTECTED_KEYS: Tuple[str, ...] = (
-        '_data', '_name', '_suspend_sync_', '_load', '_sync', '_parent',
-        '_validators')
+        "_data",
+        "_name",
+        "_suspend_sync_",
+        "_load",
+        "_sync",
+        "_parent",
+        "_validators",
+    )
 
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -49,17 +54,19 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self._from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self)
+                    for key, value in data.items()
                 }
             self._save()
 
     def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
 
-        Returns:
-        --------
+        Returns
+        -------
         converted: dict
             Dictionary containing the converted synced dict object.
+
         """
         converted = {}
         for key, value in self._data.items():
@@ -81,6 +88,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         Returns
         -------
         bool
+
         """
         if isinstance(data, Mapping):
             return True
@@ -113,7 +121,10 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     del self._data[key]
         else:
             raise ValueError(
-                "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
+                "Unsupported type: {}. The data must be a mapping or None.".format(
+                    type(data)
+                )
+            )
 
     def __setitem__(self, key, value):
         self._validate({key: value})
@@ -134,6 +145,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         ------
         ValueError
             If the data is not instance of mapping
+
         """
         if data is None:
             data = {}
@@ -141,46 +153,50 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
-                    key: self._from_base(data=value, parent=self) for key, value in data.items()
+                    key: self._from_base(data=value, parent=self)
+                    for key, value in data.items()
                 }
             self._save()
         else:
             raise ValueError(
-                "Unsupported type: {}. The data must be a mapping or None.".format(type(data)))
+                "Unsupported type: {}. The data must be a mapping or None.".format(
+                    type(data)
+                )
+            )
 
-    def keys(self):
+    def keys(self):  # noqa: D102
         self._load()
         return self._data.keys()
 
-    def values(self):
+    def values(self):  # noqa: D102
         self._load()
         return self._to_base().values()
 
-    def items(self):
+    def items(self):  # noqa: D102
         self._load()
         return self._to_base().items()
 
-    def get(self, key, default=None):
+    def get(self, key, default=None):  # noqa: D102
         self._load()
         return self._data.get(key, default)
 
-    def pop(self, key, default=None):
+    def pop(self, key, default=None):  # noqa: D102
         self._load()
         ret = self._data.pop(key, default)
         self._save()
         return ret
 
-    def popitem(self):
+    def popitem(self):  # noqa: D102
         self._load()
         ret = self._data.popitem()
         self._save()
         return ret
 
-    def clear(self):
+    def clear(self):  # noqa: D102
         self._data = {}
         self._save()
 
-    def update(self, other=None, **kwargs):
+    def update(self, other=None, **kwargs):  # noqa: D102
         if other is not None:
             # Convert sequence of key, value pairs to dict before validation
             if not isinstance(other, Mapping):
@@ -197,7 +213,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 self._data[key] = self._from_base(data=value, parent=self)
         self._save()
 
-    def setdefault(self, key, default=None):
+    def setdefault(self, key, default=None):  # noqa: D102
         self._load()
         if key in self._data:
             ret = self._data[key]
@@ -210,8 +226,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return ret
 
     def __getattr__(self, name):
-        if name.startswith('__'):
-            raise AttributeError("'SyncedAttrDict' object has no attribute '{}'".format(name))
+        if name.startswith("__"):
+            raise AttributeError(f"'SyncedAttrDict' object has no attribute '{name}'")
         try:
             return self.__getitem__(name)
         except KeyError as e:
@@ -219,17 +235,17 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def __setattr__(self, key, value):
         try:
-            self.__getattribute__('_data')
+            self.__getattribute__("_data")
         except AttributeError:
             super().__setattr__(key, value)
         else:
-            if key.startswith('__') or key in self._PROTECTED_KEYS:
+            if key.startswith("__") or key in self._PROTECTED_KEYS:
                 super().__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith('__') or key in self._PROTECTED_KEYS:
+        if key.startswith("__") or key in self._PROTECTED_KEYS:
             super().__delattr__(key)
         else:
             self.__delitem__(key)

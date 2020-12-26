@@ -6,8 +6,7 @@ import os
 import signac
 
 
-class TestTemporaryProject():
-
+class TestTemporaryProject:
     def test_init_context_manager_constructor(self):
         with signac.TemporaryProject() as tmp_project:
             assert os.path.isdir(tmp_project.root_directory())

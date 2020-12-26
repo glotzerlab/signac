@@ -1,23 +1,43 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implement the BufferedCollection class.
+"""Defines a buffering protocol for SyncedCollection objects.
 
-The BufferedCollection extends the abstract SyncedCollection to support
-transparent buffering of the synchronization process. This feature allows
-client code to indicate to the collection when it is safe to buffer reads and
-writes, which usually means guaranteeing that the synchronization destination
-(e.g. an underlying file or database entry) will not be modified by other
-processes concurrently with the set of operations within the buffered block.
-Judicious use of buffering can dramatically speed up code paths that might
-otherwise involve, for instance, heavy I/O. The specific buffering mechanism
-must be implemented by each backend since it depends on the nature of the
-underlying data format.
+Depending on the choice of backend, synchronization may be an expensive process.
+In that case, it can be helpful to allow many in-memory modifications to occur
+before any synchronization is attempted. Since many collections could be pointing
+to the same underlying resource, maintaining proper data coherency across different
+instances requires careful consideration of how the data is stored. The appropriate
+buffering methods can differ for different backends; as a result, the basic
+interface simply lays out the API for buffering and leaves implementation
+details for specific backends to handle. Judicious use of buffering can
+dramatically speed up code paths that might otherwise involve, for instance,
+heavy I/O. The specific buffering mechanism must be implemented by each backend
+since it depends on the nature of the underlying data format.
+
+All buffered collections expose a local context manager for buffering. In addition,
+this module exposes a global context manager :func:`buffer_reads_writes` that
+indicates to all buffered collections irrespective of data type or backend that
+they should enter buffered mode. These context managers may be nested freely, and
+buffer flushes will occur when all such managers have been exited.
+
+.. code-block::
+
+    with collection1.buffered:
+        with buffer_reads_writes:
+            collection2['foo'] = 1
+            collection1['bar'] = 1
+            # collection2 will flush when this context exits.
+
+        # This operation will write straight to the backend.
+        collection2['bar'] = 2
+
+        # collection1 will flush when this context exits.
 """
-import logging
-from typing import List, Any
 
+import logging
 from contextlib import contextmanager
+from typing import Any, List
 
 from .errors import BufferedError
 from .synced_collection import SyncedCollection
@@ -25,22 +45,19 @@ from .synced_collection import SyncedCollection
 logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
-_BUFFERED_BACKENDS: List[Any] = list()
+_BUFFERED_BACKENDS: List[Any] = []
 
 
 @contextmanager
 def buffer_reads_writes():
-    """Enter a global buffer mode for all BufferedCollection instances.
+    """Enter a globally buffer context for all BufferedCollection instances.
 
-    All future write operations are written to the buffer, read
-    operations are performed from the buffer whenever possible.
-
-    All write operations are deferred until the flush_all() function
-    is called, the buffer overflows, or upon exiting the buffer mode.
-
-    Raises
-    ------
-    BufferException
+    All future operations use the buffer whenever possible. Write operations
+    are deferred until the context is exited, at which point all buffered
+    backends will flush their buffers. Individual backends may flush their
+    buffers within this context if the implementation requires it; this context
+    manager represents a promise to buffer whenever possible, but does not
+    guarantee that no writes will occur under all circumstances.
     """
     global _BUFFERED_MODE
     assert _BUFFERED_MODE >= 0
@@ -59,7 +76,9 @@ def _flush_all_backends():
 
     Raises
     ------
-    BufferedFileError
+    BufferedError
+        If there are any issues with flushing any backend.
+
     """
     global _BUFFERED_BACKENDS
     logger.debug("Flushing buffer...")
@@ -77,19 +96,39 @@ def _flush_all_backends():
 
 
 class BufferedCollection(SyncedCollection):
-    """Adds buffering capabilities to the SyncedCollection.
+    """A :class:`SyncedCollection` defining an interface for buffering.
 
-    *The default behavior is no buffering.* The class simply defines an
-    appropriate interface for buffering behavior so that client code can rely
-    on these methods existing, e.g. to be able to do things like
-    `with collection.buffered...`. However, in the default case the result of
-    this will be a no-op.
+    **The default behavior of this class is not to buffer.** This class simply
+    defines an appropriate interface for buffering behavior so that client code
+    can rely on these methods existing, e.g. to be able to do things like `with
+    collection.buffered...`. This feature allows client code to indicate to the
+    collection when it is safe to buffer reads and writes, which usually means
+    guaranteeing that the synchronization destination (e.g. an underlying file
+    or database entry) will not be modified by other processes concurrently
+    with the set of operations within the buffered block. However, in the
+    default case the result of this will be a no-op and all data will be
+    immediately synchronized with the backend.
 
-    In addition to the methods shown here, we may also require methods to flush
-    a specific entry out of the buffer (e.g. _flush(self, item)) which has been
-    implemented in the current version of the PR. I've left out such details
-    since they're not crucial to getting the right structure here.
+    The BufferedCollection overrides the :meth:`SyncedCollection._load` and
+    :meth:`SyncedCollection._save` methods to check whether buffering is enabled
+    or not. If not, the behavior is identical to the parent class. When in buffered
+    mode, however, the BufferedCollection introduces two additional hooks that
+    can be overridden by subclasses to control how the collection behaves while buffered:
+
+        - :meth:`~._load_from_buffer`: Loads data while in buffered mode and returns
+          it in an object satisfying :meth:`~.is_base_type`. The default behavior
+          is to simply call :meth:`~SyncedCollection._load_from_resource`
+        - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
+          is to simply call :meth:`~SyncedCollection._save_to_resource`
     """
+
+    # TODO: Include statement about thread-safety, and perhaps see if we can
+    # improve it. The main possible limitation is that while multithreaded
+    # access to different synced collections is safe in non-buffered mode
+    # (because the changes are completely independent), the same is not
+    # necessarily true in buffered mode if the buffer is shared. Additionally
+    # there are issues with buffer flushes occurring in parallel leading to
+    # race conditions.
 
     def __init__(self, *args, **kwargs):
         # The `_buffered` attribute _must_ be defined prior to calling the
@@ -111,14 +150,6 @@ class BufferedCollection(SyncedCollection):
         global _BUFFERED_BACKENDS
         _BUFFERED_BACKENDS.append(cls)
 
-    # We would like to be able to override `_sync` and `_load` rather than
-    # `sync` and `load` to avoid having to replicate the "parent" logic.
-    # However, the underscore methods are the hooks for backend-specific
-    # collections to define how synchronization with the backend behaves. What
-    # we need to control in this class is when the synchronization to the
-    # backend actually occurs and when data is simply written to a buffer, and
-    # the only way to unambiguously specific the methods to call is by
-    # overriding `sync` and `load`.
     def _save(self):
         """Synchronize data with the backend but buffer if needed.
 
@@ -129,7 +160,7 @@ class BufferedCollection(SyncedCollection):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 if self._is_buffered:
-                    self._sync_buffer()
+                    self._save_to_buffer()
                 else:
                     self._save_to_resource()
             else:
@@ -145,7 +176,7 @@ class BufferedCollection(SyncedCollection):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 if self._is_buffered:
-                    data = self._load_buffer()
+                    data = self._load_from_buffer()
                 else:
                     data = self._load_from_resource()
                 with self._suspend_sync():
@@ -153,21 +184,27 @@ class BufferedCollection(SyncedCollection):
             else:
                 self._parent._load()
 
-    def _sync_buffer(self):
+    def _save_to_buffer(self):
         """Store data in buffer.
 
-        There's little benefit to providing a default means of buffering across
-        all backends since the process is heavily dependent on the backend
-        data store, so the default behavior is to just sync normally.
+        By default, this method simply calls :meth:`~._save_to_resource`. Subclasses
+        must implement specific buffering strategies.
         """
         self._save_to_resource()
 
-    def _load_buffer(self):
+    def _load_from_buffer(self):
         """Store data in buffer.
 
-        There's little benefit to providing a default means of buffering across
-        all backends since the process is heavily dependent on the backend
-        data store, so the default behavior is to just load normally.
+        By default, this method simply calls :meth:`~._load_from_resource`. Subclasses
+        must implement specific buffering strategies.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the buffered data. By default, the buffered data is just the
+            data in the resource.
+
         """
         self._load_from_resource()
 
@@ -194,5 +231,5 @@ class BufferedCollection(SyncedCollection):
 
     @classmethod
     def _flush_buffer(self):
-        """Flush all data in the buffer."""
+        """Flush all data in this class's buffer."""
         pass

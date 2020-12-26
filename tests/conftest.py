@@ -1,8 +1,10 @@
-from contextlib import contextmanager
-from packaging import version
-import signac
-import pytest
 import uuid
+from contextlib import contextmanager
+
+import pytest
+from packaging import version
+
+import signac
 
 
 @contextmanager
