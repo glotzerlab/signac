@@ -131,6 +131,7 @@ jobs:
   windows-python-38:
     executor:
       name: win/default
+      shell: bash.exe
     environment:
       PYTHON: python
     steps:
@@ -142,8 +143,10 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            ${PYTHON} -m pip install --progress-bar off certifi
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            curl -O https://curl.haxx.se/ca/cacert.pem
+            ${PYTHON} -m pip install --cert cacert.pem --progress-bar off -U -e . -r requirements-test.txt
       - run:
           name: Run tests
           command: |
