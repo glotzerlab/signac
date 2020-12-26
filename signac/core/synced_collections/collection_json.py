@@ -1,11 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements JSON-backend.
-
-This implements the JSON-backend for SyncedCollection API by
-implementing sync and load methods.
-"""
+"""Implements a JSON SyncedCollection backend."""
 
 import errno
 import json
@@ -21,12 +17,16 @@ from .validators import json_format_validator
 
 
 def _convert_key_to_str(data):
-    """Recursively convert non-string keys to strings for (potentially nested) input collections.
+    """Recursively convert non-string keys to strings in dicts.
 
-    This retains compatibility with auto-casting keys to strings, and will be
-    removed in signac 2.0.
-    Input collections must be of "base type" (dict or list).
+    This method supports Sequence or Mapping types as inputs, and recursively searches
+    for any entries in Mapping types where the key is not a string. This functionality
+    is added for backwards compatibility with legacy behavior in signac, which
+    allowed integer keys for dicts. These inputs were silently converted to string
+    keys and stored since JSON does not support integer keys. This behavior is
+    deprecated and will become an error in signac 2.0.
     """
+    # TODO: This method should be removed in signac 2.0.
     if isinstance(data, dict):
 
         def _str_key(key):
@@ -48,7 +48,13 @@ def _convert_key_to_str(data):
 
 
 class JSONCollection(SyncedCollection):
-    """A `SyncedCollection` with a JSON backend.
+    """A :class:`SyncedCollection` that synchronizes with a JSON file.
+
+    This collection implements synchronization by reading and writing the associated
+    JSON file in its entirety for every read/write operation. This backend is a good
+    choice for maximum accessibility and transparency since all data is immediately
+    accessible in the form of a text file with no additional tooling, but is
+    likely a poor choice for high performance applications.
 
     Parameters
     ----------
@@ -109,7 +115,12 @@ JSONCollection.add_validator(json_format_validator)
 
 
 class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
-    """A JSONCollection with buffering enabled."""
+    """A :class:`JSONCollection` that supports I/O buffering.
+
+    This class implements the buffer protocol defined by :class:`BufferedCollection`.
+    The concrete implementation of buffering behavior is defined by the
+    :class:`FileBufferedCollection`.
+    """
 
     _backend = __name__ + ".buffered"  # type: ignore
 
@@ -120,8 +131,8 @@ class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedattrdict.SyncedAttrDict`.
+    The JSONDict inherits from :class:`~.JSONCollection` and
+    :class:`~.SyncedAttrDict`.
 
     .. code-block:: python
 
@@ -139,15 +150,16 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
-    .. warning::
+    Warnings
+    --------
 
-        While the JSONDict object behaves like a dictionary, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
-        copying) a JSONDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new JSONDict
-        instance: `new_dict = JSONDict(old_dict())`.
+    While the JSONDict object behaves like a dictionary, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONDict
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONDict instance: ``new_dict =
+    JSONDict(old_dict())``.
 
     Parameters
     ----------
@@ -185,8 +197,8 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedlist.SyncedList`.
+    The JSONList inherits from :class:`~.JSONCollection`
+    and :class:`~.SyncedList`.
 
     .. code-block:: python
 
@@ -196,15 +208,16 @@ class JSONList(JSONCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
-    .. warning::
+    Warnings
+    --------
 
-        While the JSONList object behaves like a list, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying file, copying (even deep
-        copying) a JSONList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new JSONList
-        instance: `new_list = JSONList(old_list())`.
+    While the JSONList object behaves like a list, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONList
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONList instance:
+    ``new_list = JSONList(old_list())``.
 
     Parameters
     ----------
@@ -240,7 +253,7 @@ class JSONList(JSONCollection, SyncedList):
 
 
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
-    """A buffered JSONDict."""
+    """A buffered :class:`JSONDict`."""
 
     _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
         "_filename",
@@ -269,7 +282,7 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
 
 
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
-    """A buffered JSONList."""
+    """A buffered :class:`JSONList`."""
 
     def __init__(
         self,
