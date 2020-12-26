@@ -184,3 +184,66 @@ signac.errors module
     :members:
     :undoc-members:
     :show-inheritance:
+
+synced\_collections package
+===========================
+
+Submodules
+----------
+
+synced\_collections.synced\_collection module
+-----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.synced_collection
+   :members:
+   :undoc-members:
+   :private-members:
+   :show-inheritance:
+
+synced\_collections.buffered\_collection module
+-----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.buffered_collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.caching module
+----------------------------------
+
+.. automodule:: signac.core.synced_collections.caching
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.collection\_json module
+-------------------------------------------
+
+.. automodule:: signac.core.synced_collections.collection_json
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.collection\_mongodb module
+----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.collection_mongodb
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.collection\_redis module
+--------------------------------------------
+
+.. automodule:: signac.core.synced_collections.collection_redis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.collection\_zarr module
+-------------------------------------------
+
+.. automodule:: signac.core.synced_collections.collection_zarr
+   :members:
+   :undoc-members:
+   :show-inheritance:
