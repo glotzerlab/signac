@@ -168,6 +168,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         return self
 
     def insert(self, index, item):
+        """Insert object before index."""
         self._validate(item)
         self._load()
         with self._suspend_sync():
@@ -175,6 +176,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._save()
 
     def append(self, item):
+        """Append object to the end of the list."""
         self._validate(item)
         self._load()
         with self._suspend_sync():
@@ -182,6 +184,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._save()
 
     def extend(self, iterable):
+        """Extend list by appending elements from the iterable."""
         # Convert iterable to a list to ensure generators are exhausted only once
         iterable_data = list(iterable)
         self._validate(iterable_data)
@@ -192,12 +195,17 @@ class SyncedList(SyncedCollection, MutableSequence):
             )
         self._save()
 
-    def remove(self, item):
+    def remove(self, value):
+        """Remove first occurrence of value.
+
+        Raises ValueError if the value is not present.
+        """
         self._load()
         with self._suspend_sync():
-            self._data.remove(self._from_base(data=item, parent=self))
+            self._data.remove(self._from_base(data=value, parent=self))
         self._save()
 
     def clear(self):
+        """Remove all items from list."""
         self._data = []
         self._save()
