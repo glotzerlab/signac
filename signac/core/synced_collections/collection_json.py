@@ -19,12 +19,14 @@ from .validators import json_format_validator
 def _convert_key_to_str(data):
     """Recursively convert non-string keys to strings in dicts.
 
-    This method supports Sequence or Mapping types as inputs, and recursively searches
-    for any entries in Mapping types where the key is not a string. This functionality
-    is added for backwards compatibility with legacy behavior in signac, which
-    allowed integer keys for dicts. These inputs were silently converted to string
-    keys and stored since JSON does not support integer keys. This behavior is
-    deprecated and will become an error in signac 2.0.
+    This method supports :py:class:`collections.abc.Sequence` or
+    :py:class:`collections.abc.Mapping` types as inputs, and recursively
+    searches for any entries in :py:class:`collections.abc.Mapping` types where
+    the key is not a string. This functionality is added for backwards
+    compatibility with legacy behavior in signac, which allowed integer keys
+    for dicts. These inputs were silently converted to string keys and stored
+    since JSON does not support integer keys. This behavior is deprecated and
+    will become an error in signac 2.0.
     """
     # TODO: This method should be removed in signac 2.0.
     if isinstance(data, dict):
@@ -138,9 +140,6 @@ class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
 class JSONDict(JSONCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
-    The JSONDict inherits from :class:`~.JSONCollection` and
-    :class:`~.SyncedAttrDict`.
-
     .. code-block:: python
 
         doc = JSONDict('data.json', write_concern=True)
@@ -164,10 +163,10 @@ class JSONDict(JSONCollection, SyncedAttrDict):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = False).
-    data: mapping, optional
+    data: :py:class:`collections.abc.Mapping`, optional
         The intial data pass to JSONDict (Default value = {}).
-    parent: object, optional
-        A parent instance of JSONDict or None (Default value = None).
+    parent: JSONCollection, optional
+        A parent instance of JSONCollection or None (Default value = None).
 
     Warnings
     --------
@@ -204,9 +203,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 class JSONList(JSONCollection, SyncedList):
     """A non-string sequence interface to a persistent JSON file.
 
-    The JSONList inherits from :class:`~.JSONCollection`
-    and :class:`~.SyncedList`.
-
     .. code-block:: python
 
         synced_list = JSONList('data.json', write_concern=True)
@@ -222,10 +218,10 @@ class JSONList(JSONCollection, SyncedList):
     write_concern: bool, optional
         Ensure file consistency by writing changes back to a temporary file
         first, before replacing the original file (Default value = None).
-    data: non-str Sequence, optional
+    data: non-str :py:class:`collections.abc.Sequence`, optional
         The intial data pass to JSONList (Default value = []).
-    parent: object, optional
-        A parent instance of JSONList or None (Default value = None).
+    parent: JSONCollection, optional
+        A parent instance of JSONCollection or None (Default value = None).
 
     Warnings
     --------

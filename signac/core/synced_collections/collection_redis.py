@@ -1,11 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements Redis-backend.
-
-This implements the Redis-backend for SyncedCollection API by
-implementing sync and load methods.
-"""
+"""Implements a Redis SyncedCollection backend."""
 import json
 from copy import deepcopy
 
@@ -15,22 +11,39 @@ from .synced_list import SyncedList
 
 
 class RedisCollection(SyncedCollection):
-    """Implement sync and load using a Redis backend."""
+    """A :class:`SyncedCollection` that synchronizes with a Redis database.
+
+    This backend stores data in Redis by associating it with the provided key.
+
+    Parameters
+    ----------
+    client : redis.Redis
+        The Redis client used to persist data.
+    key : str
+        The key associated with this collection in the Redis database.
+    """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, client=None, key=None, parent=None, **kwargs):
+    def __init__(self, client=None, key=None, **kwargs):
         self._client = client
         self._key = key
-        super().__init__(parent=parent, **kwargs)
+        super().__init__(**kwargs)
 
     def _load_from_resource(self):
-        """Load the data from a Redis-database."""
+        """Load the data from a Redis database.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the data in the Redis database.
+        """
         blob = self._client.get(self._key)
         return None if blob is None else json.loads(blob)
 
     def _save_to_resource(self):
-        """Write the data from Redis-database."""
+        """Write the data to a Redis database."""
         self._client.set(self._key, json.dumps(self._to_base()).encode())
 
     def _pseudo_deepcopy(self):
@@ -60,15 +73,12 @@ class RedisCollection(SyncedCollection):
 
     @property
     def key(self):
-        """str: The key of this collection stored in Redis."""
+        """str: The key associated with this collection stored in Redis."""
         return self._key
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Redis-database.
-
-    The RedisDict inherits from :class:`~core.rediscollection.RedisCollection`
-    and :class:`~core.syncedattrdict.SyncedAttrDict`.
 
     .. code-block:: python
 
@@ -86,34 +96,32 @@ class RedisDict(RedisCollection, SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
-    .. warning::
-
-        While the RedisDict object behaves like a dictionary, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying (even deep
-        copying) a RedisDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new RedisDict
-        instance: `new_dict = RedisDict(old_dict())`.
-
     Parameters
     ----------
-    client: object, optional
+    client: redis.Redis, optional
         A redis client (Default value = None).
-    data: mapping, optional
-        The intial data pass to RedisDict. Defaults to `dict()`
     key: str, optional
         The key of the  collection (Default value = None).
-    parent: object, optional
-        A parent instance of RedisDict (Default value = None).
+    data: :py:class:`collections.abc.Mapping`, optional
+        The intial data pass to RedisDict. Defaults to `dict()`
+    parent: RedisCollection, optional
+        A parent instance of RedisCollection (Default value = None).
+
+    Warnings
+    --------
+
+    While the RedisDict object behaves like a dictionary, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying database, copying (even deep copying) a
+    RedisDict instance may exhibit unexpected behavior. If a true copy is
+    required, you should use the call operator to get a dictionary
+    representation, and if necessary construct a new RedisDict instance:
+    ``new_dict = RedisDict(old_dict())``.
     """
 
 
 class RedisList(RedisCollection, SyncedList):
     """A non-string sequence interface to a persistent Redis file.
-
-    The RedisList inherits from :class:`~core.synced_collection.SyncedCollection`
-    and :class:`~core.syncedlist.SyncedList`.
 
     .. code-block:: python
 
@@ -135,12 +143,12 @@ class RedisList(RedisCollection, SyncedList):
 
     Parameters
     ----------
-    client: object, optional
-        A redis client (Default value = None).
-    data: non-str Sequence, optional
-        The intial data pass to RedisList. Defaults to `list()`
+    client: redis.Redis, optional
+        A Redis client (Default value = None).
     key: str, optional
         The key of the  collection (Default value = None).
-    parent: object, optional
-        A parent instance of RedisList (Default value = None).
+    data: non-str :py:class:`collections.abc.Sequence`, optional
+        The intial data pass to RedisList. Defaults to `list()`
+    parent: RedisCollection, optional
+        A parent instance of RedisCollection (Default value = None).
     """

@@ -84,7 +84,7 @@ class ZarrCollection(SyncedCollection):
 
     @property
     def group(self):
-        """`zarr.hierarchy.Group`: The Zarr group storing the data."""
+        """zarr.hierarchy.Group: The Zarr group storing the data."""
         return self._root
 
     @property
@@ -94,10 +94,7 @@ class ZarrCollection(SyncedCollection):
 
 
 class ZarrDict(ZarrCollection, SyncedAttrDict):
-    """A dict-like mapping interface to a persistent Zarr-database.
-
-    The ZarrDict inherits from :class:`~.ZarrCollection`
-    and :class:`~.SyncedAttrDict`.
+    """A dict-like mapping interface to data stored with Zarr.
 
     .. code-block:: python
 
@@ -117,14 +114,14 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 
     Parameters
     ----------
-    group: object, optional
-        A zarr.hierarchy.Group instance (Default value = None).
+    group: zarr.hierarchy.Group, optional
+        The group in which to store data (Default value = None).
     name: str, optional
         The name of the collection (Default value = None).
-    data: mapping, optional
+    data: :py:class:`collections.abc.Mapping`, optional
         The intial data pass to ZarrDict. Defaults to `dict()`.
-    parent: object, optional
-        A parent instance of ZarrDict or None (Default value = None).
+    parent: ZarrCollection, optional
+        A parent instance of ZarrCollection or None (Default value = None).
 
     Warnings
     --------
@@ -146,10 +143,7 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
 
 
 class ZarrList(ZarrCollection, SyncedList):
-    """A non-string sequence interface to a persistent Zarr file.
-
-    The ZarrList inherits from :class:`~core.synced_collection.ZarrCollection`
-    and :class:`~core.syncedlist.SyncedList`.
+    """A non-string sequence interface to data stored with Zarr.
 
     .. code-block:: python
 
@@ -162,14 +156,14 @@ class ZarrList(ZarrCollection, SyncedList):
     Parameters
     ----------
 
-    group: object, optional
-        A zarr.hierarchy.Group instance (Default value = None).
+    group: zarr.hierarchy.Group, optional
+        The group in which to store data (Default value = None).
     name: str, optional
-        The name of the  collection (Default value = None).
-    data: non-str Sequence, optional
+        The name of the collection (Default value = None).
+    data: non-str :py:class:`collections.abc.Sequence`, optional
         The intial data pass to ZarrList. Defaults to `list()`.
-    parent: object, optional
-        A parent instance of ZarrList or None (Default value = None).
+    parent: ZarrCollection, optional
+        A parent instance of ZarrCollection or None (Default value = None).
 
     Warnings
     --------
