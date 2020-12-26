@@ -1,13 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implement the SyncedCollection class.
-
-SyncedCollection encapsulates the synchronization of different data-structures.
-These features are implemented in different subclasses which enable us to use a
-backend with different data-structures or vice-versa. It declares as abstract
-methods the methods that must be implemented by any subclass to match the API.
-"""
+"""Implement the SyncedCollection class."""
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
@@ -24,11 +18,60 @@ except ImportError:
 
 
 class SyncedCollection(Collection):
-    """The base synced collection represents a collection that is synced with a backend.
+    """An abstract :class:`Collection` type that is synced with a backend.
 
-    The class is intended for use as an ABC. The SyncedCollection is a
-    :class:`~collections.abc.Collection` where all data is stored persistently
-    in the underlying backend. The backend name wil be same as the module name.
+    This class extends :class:`collections.abc.Collection` and adds a number of abstract
+    internal methods that must be implemented by its subclasses. These methods can be
+    split into two groups of functions that are designed to be implemented by
+    separate subtrees in the inheritance hierarchy that can then be composed:
+
+        **Concrete Collection Types**
+
+        These subclasses should implement the APIs for specific types of collections.
+        For instance, a list-like :class:`SyncedCollection` should implement the standard
+        methods for sequences (__len__, __contains__, __iter__, etc). In addition,
+        they must implement the following abstract methods defined by the :class:`SyncedCollection`:
+
+        - | :meth:`~.is_base_type`: Determines whether an object satisfies the
+          | semantics of the collection object a given :class:`SyncedCollection`
+          | is designed to mimic.
+        - | :meth:`~._to_base`: Converts a :class:`SyncedCollection` to its
+          | natural base type (e.g. a `list`).
+        - | :meth:`~._update`: Updates the :class:`SyncedCollection` to match the
+          | contents of the provided :class:`Collection`. After calling
+          | `sc._update(c)`, we must have that sc == c; however, since such updates
+          | are frequent when loading and saving data to a resource, `_update`
+          | should be implemented to minimize new object creation wherever
+          | possible.
+
+        **Backend**
+
+        These subclasses encode the process by which in-memory data is
+        converted into a representation suitable for a particular backend. For
+        instance, a JSON backend should know how to save a Python object into a
+        JSON-encoded file and then read that object back.
+
+        - | :meth:`~._load_from_resource`: Loads data from the underlying
+          | resource and returns it in an object satisfying :meth:`~.is_base_type`.
+        - :meth:`~._save_to_resource`: Stores data to the underlying resource.
+        - :attr:`~._backend`: A unique string identifier for the resource backend.
+
+    Since these functionalities are effectively completely orthogonal, members of
+    a given group should be interchangeable. For instance, a dict-like SyncedCollection
+    can be combined equally easily with JSON, MongoDB, or SQL backends.
+
+    To fully support the restrictions and requirements of particular backends,
+    arbitrary validators may be added to different subclasses. Validators are
+    callables that accept different data types as input and raise Exceptions if the
+    data does not conform to the requirements of a particular backend. For
+    example, a JSON validator would raise Exceptions if it detected non-string
+    keys in a dict.
+
+    Parameters
+    ----------
+    parent : SyncedCollection or None
+        If provided, the collection within which this collection is nested
+        (Default value = None).
     """
 
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
@@ -40,23 +83,33 @@ class SyncedCollection(Collection):
 
     @classmethod
     def __init_subclass__(cls):
-        """Add  ``_validator`` attribute to every subclass.
+        """Registers and enables validation in subclasses.
 
-        Subclasses contain a list of validators that are applied to collection input data.
-        Every subclass must have a separate list so that distinct sets of validators can
-        be registered to each of them.
+        All subclasses are given a ``_validators`` list so that separate sets of
+        validators can be registered to different types of synced collections. Concrete
+        subclasses (those that have all methods implemented, i.e. that are associated
+        with both a specific backend and a concrete data type) are also recorded in
+        an internal registry that is used to convert data from some collection-like
+        object into a :class:`SyncedCollection`.
         """
         # The Python data model promises that __init_subclass__ will be called
         # after the class namespace is fully defined, so at this point we know
         # whether we have a concrete subclass or not.
         if not isabstract(cls):
-            # Add to the parent level registry
             SyncedCollection.registry[cls._backend].append(cls)
         cls._validators = []
 
     @property
     def validators(self):
-        """Return the list of validators applied to the instance."""
+        """List[Callable]: The validators that will be applied.
+
+        Validators are inherited from all parents of a class.
+        """
+        # TODO: Determine whether it makes sense to construct this list here,
+        # or whether we can just do it at initialization and cache it. The only
+        # reason not to do that would be to support adding validators to a
+        # class after instantiating objects and still having those validators
+        # applied, which I don't think is necessary.
         validators = []
         # Classes inherit the validators of their parent classes.
         for base_cls in type(self).__mro__:
@@ -68,11 +121,11 @@ class SyncedCollection(Collection):
 
     @classmethod
     def add_validator(cls, *args):
-        r"""Register validator.
+        r"""Register a validator to this class.
 
         Parameters
         ----------
-        \*args
+        \*args : List[Callable]
             Validator(s) to register.
         """
         cls._validators.extend([v for v in args if v not in cls._validators])
@@ -95,17 +148,25 @@ class SyncedCollection(Collection):
 
         Parameters
         ----------
-        data : any
-            Data to be converted from base class.
-        backend: str
-            Name of backend for synchronization. Default to backend of class.
+        data : Collection
+            Data to be converted from base type.
         \*\*kwargs:
-            Kwargs passed to instance of synced collection.
+            Any keyword arguments to pass to the collection constructor.
 
         Returns
         -------
-        data : object
+        Collection
             Synced object of corresponding base type.
+
+        Notes
+        -----
+        This method relies on the internal registry of subclasses populated by
+        :meth:`__init_subclass__` and the :meth:`is_base_type` method to
+        determine the subclass with the appropriate backend and data type. Once
+        an appropriate type is determined, that class's constructor is called.
+        Since this method relies on the constructor and other methods, it can
+        be concretely implemented here rather than requiring subclass
+        implementations.
         """
         for base_cls in SyncedCollection.registry[cls._backend]:
             if base_cls.is_base_type(data):
@@ -119,12 +180,22 @@ class SyncedCollection(Collection):
 
     @abstractmethod
     def _to_base(self):
-        """Dynamically resolve the synced collection to the corresponding base type."""
+        """Dynamically resolve the synced collection to the corresponding base type.
+
+        This method should not load the data from the underlying resource, it
+        should simply converts the current in-memory representation of a synced
+        collection to its naturally corresponding unsynced collection type.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type`.
+        """
         pass
 
     @contextmanager
     def _suspend_sync(self):
-        """Prepare context where load and sync are suspended."""
+        """Prepare context where synchronization is suspended."""
         self._suspend_sync_ += 1
         yield
         self._suspend_sync_ -= 1
@@ -132,21 +203,51 @@ class SyncedCollection(Collection):
     @classmethod
     @abstractmethod
     def is_base_type(cls, data):
-        """Check whether data is of the same base type (such as list or dict) as this class."""
+        """Check whether data is of the same base type (such as list or dict) as this class.
+
+        Parameters
+        ----------
+        data : Any
+            The input data to test.
+
+        Returns
+        -------
+        bool
+            Whether or not the object can be converted into this synced collection type.
+        """
         pass
 
     @abstractmethod
     def _load_from_resource(self):
-        """Load data from underlying backend."""
+        """Load data from underlying backend.
+
+        This method must be implemented for each backend.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the data in the underlying resource (e.g. a file).
+        """
         pass
 
     @abstractmethod
     def _save_to_resource(self):
-        """Write data to underlying backend."""
+        """Save data to the backend.
+
+        This method must be implemented for each backend.
+        """
         pass
 
     def _save(self):
-        """Synchronize the data with the underlying backend."""
+        """Save the data to the backend.
+
+        This method encodes the recursive logic required to handle the saving of
+        nested collections. For a collection contained within another collection,
+        only the parent is ever responsible for storing the data. This method
+        handles the appropriate recursive calls, then farms out the actual writing
+        to the abstract method :meth:`~._save_to_resource`.
+        """
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 self._save_to_resource()
@@ -166,11 +267,23 @@ class SyncedCollection(Collection):
         Recreating the full nested structure every time data is reloaded from
         file is highly inefficient, so this method performs an in-place update
         that only changes entries that need to be changed.
+
+        Parameters
+        ----------
+        data : Collection
+            An collection satisfying :meth:`is_base_type`.
         """
         pass
 
     def _load(self):
-        """Load the data from the underlying backend."""
+        """Load the data from the backend.
+
+        This method encodes the recursive logic required to handle the loadingof
+        nested collections. For a collection contained within another collection,
+        only the parent is ever responsible for loading the data. This method
+        handles the appropriate recursive calls, then farms out the actual reading
+        to the abstract method :meth:`~._load_from_resource`.
+        """
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 data = self._load_from_resource()
@@ -180,7 +293,13 @@ class SyncedCollection(Collection):
                 self._parent._load()
 
     def _validate(self, data):
-        """Validate the input data."""
+        """Validate the input data.
+
+        Parameters
+        ----------
+        data : Collection
+            An collection satisfying :meth:`is_base_type`.
+        """
         for validator in self.validators:
             validator(data)
 
@@ -190,7 +309,21 @@ class SyncedCollection(Collection):
         In order to support nesting of SyncedCollections, every collection
         should either be associated with an underlying resource from which it
         acquires data or be nested within another SyncedCollection, in which
-        case it contains its own data and points to a parent.
+        case it contains its own data and points to a parent. Based on these
+        considerations, only certain combinations of constructor arguments are
+        valid. This method serves to validate those inputs.
+
+        Parameters
+        ----------
+        resource_args : dict
+            A dictionary of the keyword arguments that will be passed to the
+            backend constructor.
+        data : Collection or None
+            If provided, the data to be associated with this collection
+            (Default value = None).
+        parent : SyncedCollection or None
+            If provided, the collection within which this collection is nested
+            (Default value = None).
         """
         all_parent = all([arg is not None for arg in resource_args.values()])
         any_parent = any([arg is not None for arg in resource_args.values()])
