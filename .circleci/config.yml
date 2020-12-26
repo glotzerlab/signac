@@ -143,7 +143,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            ${PYTHON} -m pip install --progress-bar off certifi
+            ${PYTHON} -m pip install --progress-bar off -U certifi
             ${PYTHON} -m pip install --progress-bar off -U codecov
             curl -O https://curl.haxx.se/ca/cacert.pem
             ${PYTHON} -m pip install --cert cacert.pem --progress-bar off -U -e . -r requirements-test.txt
