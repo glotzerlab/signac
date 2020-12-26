@@ -70,7 +70,7 @@ class SyncedCollection(Collection):
 
     Parameters
     ----------
-    parent : SyncedCollection or None
+    parent : SyncedCollection, optional
         If provided, the collection within which this collection is nested
         (Default value = None).
     """
@@ -319,10 +319,10 @@ class SyncedCollection(Collection):
         resource_args : dict
             A dictionary of the keyword arguments that will be passed to the
             backend constructor.
-        data : Collection or None
+        data : Collection, optional
             If provided, the data to be associated with this collection
             (Default value = None).
-        parent : SyncedCollection or None
+        parent : SyncedCollection, optional
             If provided, the collection within which this collection is nested
             (Default value = None).
         """

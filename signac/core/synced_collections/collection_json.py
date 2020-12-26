@@ -75,7 +75,14 @@ class JSONCollection(SyncedCollection):
         super().__init__(parent=parent, *args, **kwargs)
 
     def _load_from_resource(self):
-        """Load the data from a JSON file."""
+        """Load the data from a JSON file.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the data in the JSON file.
+        """
         try:
             with open(self._filename, "rb") as file:
                 blob = file.read()
@@ -150,17 +157,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
-    Warnings
-    --------
-
-    While the JSONDict object behaves like a dictionary, there are important
-    distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying file, copying (even deep copying) a JSONDict
-    instance may exhibit unexpected behavior. If a true copy is required, you
-    should use the call operator to get a dictionary representation, and if
-    necessary construct a new JSONDict instance: ``new_dict =
-    JSONDict(old_dict())``.
-
     Parameters
     ----------
     filename: str, optional
@@ -172,6 +168,17 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         The intial data pass to JSONDict (Default value = {}).
     parent: object, optional
         A parent instance of JSONDict or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the JSONDict object behaves like a dictionary, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONDict
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONDict instance: ``new_dict =
+    JSONDict(old_dict())``.
     """
 
     def __init__(
@@ -208,17 +215,6 @@ class JSONList(JSONCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
-    Warnings
-    --------
-
-    While the JSONList object behaves like a list, there are important
-    distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying file, copying (even deep copying) a JSONList
-    instance may exhibit unexpected behavior. If a true copy is required, you
-    should use the call operator to get a dictionary representation, and if
-    necessary construct a new JSONList instance:
-    ``new_list = JSONList(old_list())``.
-
     Parameters
     ----------
     filename: str, optional
@@ -230,6 +226,17 @@ class JSONList(JSONCollection, SyncedList):
         The intial data pass to JSONList (Default value = []).
     parent: object, optional
         A parent instance of JSONList or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the JSONList object behaves like a list, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying file, copying (even deep copying) a JSONList
+    instance may exhibit unexpected behavior. If a true copy is required, you
+    should use the call operator to get a dictionary representation, and if
+    necessary construct a new JSONList instance:
+    ``new_list = JSONList(old_list())``.
     """
 
     def __init__(

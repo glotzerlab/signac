@@ -1,11 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Implements Zarr-backend.
-
-This implements the Zarr-backend for SyncedCollection API by
-implementing sync and load methods.
-"""
+"""Implements a Zarr SyncedCollection backend."""
 from copy import deepcopy
 
 # TODO: Give a clearer error if the numcodecs import fails.
@@ -17,25 +13,47 @@ from .synced_list import SyncedList
 
 
 class ZarrCollection(SyncedCollection):
-    """Implement sync and load using a Zarr backend."""
+    """A :class:`SyncedCollection` that synchronizes with a Zarr group.
+
+    Since Zarr is designed for storage of array-like data, this backend implements
+    synchronization by storing the collection in a 1-element object array. The user
+    provides the group within which to store the data and the name of the data in
+    the group.
+
+    Parameters
+    ----------
+    group : zarr.hierarchy.Group
+        The Zarr group in which to store data.
+    name : str
+        The name under which this collection is stored in the Zarr group.
+    """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, group=None, name=None, parent=None, **kwargs):
+    def __init__(self, group=None, name=None, **kwargs):
         self._root = group
+        # TODO: Give users control over the codec. If we use JSON encoding,
+        # then we should also use the JSON validator.
         self._object_codec = numcodecs.JSON()
         self._name = name
-        super().__init__(parent=parent, **kwargs)
+        super().__init__(**kwargs)
 
     def _load_from_resource(self):
-        """Load the data from zarr-store."""
+        """Load the data from the Zarr group.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type` that
+            contains the data in the Zarr group.
+        """
         try:
             return self._root[self._name][0]
         except KeyError:
             return None
 
     def _save_to_resource(self):
-        """Write the data to zarr-store."""
+        """Write the data to Zarr group."""
         data = self._to_base()
         dataset = self._root.require_dataset(
             self._name,
@@ -78,8 +96,8 @@ class ZarrCollection(SyncedCollection):
 class ZarrDict(ZarrCollection, SyncedAttrDict):
     """A dict-like mapping interface to a persistent Zarr-database.
 
-    The ZarrDict inherits from :class:`~core.synced_collection.ZarrCollection`
-    and :class:`~core.syncedattrdict.SyncedAttrDict`.
+    The ZarrDict inherits from :class:`~.ZarrCollection`
+    and :class:`~.SyncedAttrDict`.
 
     .. code-block:: python
 
@@ -97,26 +115,27 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
         >>> doc.foo.bar = False
         {'foo': {'bar': False}}
 
-    .. warning::
-
-        While the ZarrDict object behaves like a dictionary, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying (even deep
-        copying) a ZarrDict instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new ZarrDict
-        instance: `new_dict = ZarrDict(old_dict())`.
-
     Parameters
     ----------
     group: object, optional
         A zarr.hierarchy.Group instance (Default value = None).
-    data: mapping, optional
-        The intial data pass to ZarrDict. Defaults to `dict()`.
     name: str, optional
         The name of the collection (Default value = None).
+    data: mapping, optional
+        The intial data pass to ZarrDict. Defaults to `dict()`.
     parent: object, optional
         A parent instance of ZarrDict or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the ZarrDict object behaves like a dictionary, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying database, copying (even deep copying) a
+    ZarrDict instance may exhibit unexpected behavior. If a true copy is
+    required, you should use the call operator to get a dictionary
+    representation, and if necessary construct a new ZarrDict instance:
+    ``new_dict = ZarrDict(old_dict())``.
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
@@ -140,27 +159,28 @@ class ZarrList(ZarrCollection, SyncedList):
         assert len(synced_list) == 1
         del synced_list[0]
 
-    .. warning::
-
-        While the ZarrList object behaves like a list, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying (even deep
-        copying) a ZarrList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new ZarrList
-        instance: `new_list = ZarrList(old_list())`.
-
     Parameters
     ----------
 
     group: object, optional
         A zarr.hierarchy.Group instance (Default value = None).
-    data: non-str Sequence, optional
-        The intial data pass to ZarrList. Defaults to `list()`.
     name: str, optional
         The name of the  collection (Default value = None).
+    data: non-str Sequence, optional
+        The intial data pass to ZarrList. Defaults to `list()`.
     parent: object, optional
         A parent instance of ZarrList or None (Default value = None).
+
+    Warnings
+    --------
+
+    While the ZarrList object behaves like a list, there are important
+    distinctions to remember. In particular, because operations are reflected
+    as changes to an underlying database, copying (even deep copying) a
+    ZarrList instance may exhibit unexpected behavior. If a true copy is
+    required, you should use the call operator to get a dictionary
+    representation, and if necessary construct a new ZarrList instance:
+    ``new_list = ZarrList(old_list())``.
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
