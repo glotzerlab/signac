@@ -143,10 +143,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            ${PYTHON} -m pip install --progress-bar off -U -I certifi
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            curl -O https://curl.haxx.se/ca/cacert.pem
-            ${PYTHON} -m pip install --cert cacert.pem --progress-bar off -U -e . -r requirements-test.txt
+            # For some reason Zarr doesn't install correctly on Windows (runs
+            # into pip SSL errors), so we skip that test.
+            grep -v zarr requirements-test.txt > requirements-test-windows.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test-windows.txt
       - run:
           name: Run tests
           command: |
