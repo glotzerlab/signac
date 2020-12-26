@@ -45,7 +45,7 @@ from .synced_collection import SyncedCollection
 logger = logging.getLogger(__name__)
 
 _BUFFERED_MODE = 0
-_BUFFERED_BACKENDS: List[Any] = list()
+_BUFFERED_BACKENDS: List[Any] = []
 
 
 @contextmanager
@@ -121,6 +121,7 @@ class BufferedCollection(SyncedCollection):
         - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
           is to simply call :meth:`~SyncedCollection._save_to_resource`
     """
+
     # TODO: Include statement about thread-safety, and perhaps see if we can
     # improve it. The main possible limitation is that while multithreaded
     # access to different synced collections is safe in non-buffered mode

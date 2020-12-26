@@ -343,7 +343,7 @@ class SyncedDictTest(SyncedCollectionTest):
         assert isinstance(child3, SyncedCollection)
 
     def test_write_invalid_type(self, synced_collection, testdata):
-        class Foo(object):
+        class Foo:
             pass
 
         key = "write_invalid_type"
@@ -387,7 +387,7 @@ class SyncedDictTest(SyncedCollectionTest):
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 synced_collection[key] = testdata
-        for key in ([], {}, dict()):
+        for key in ([], {}):
             with pytest.raises(TypeError):
                 synced_collection[key] = testdata
 

@@ -121,12 +121,9 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     ``new_dict = RedisDict(old_dict())``.
 
     """
-    def __init__(
-        self, client=None, key=None, data=None, parent=None, *args, **kwargs
-    ):
-        self._validate_constructor_args(
-            {"client": client, "key": key}, data, parent
-        )
+
+    def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({"client": client, "key": key}, data, parent)
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
@@ -165,12 +162,9 @@ class RedisList(RedisCollection, SyncedList):
         A parent instance of RedisCollection (Default value = None).
 
     """
-    def __init__(
-        self, client=None, key=None, data=None, parent=None, *args, **kwargs
-    ):
-        self._validate_constructor_args(
-            {"client": client, "key": key}, data, parent
-        )
+
+    def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
+        self._validate_constructor_args({"client": client, "key": key}, data, parent)
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )

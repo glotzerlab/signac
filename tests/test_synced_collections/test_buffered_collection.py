@@ -41,7 +41,7 @@ class BufferedJSONCollectionTest(JSONCollectionTest):
 class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     """Tests of buffering JSONDicts."""
 
-    _collection_type = BufferedJSONDict
+    _collection_type = BufferedJSONDict  # type: ignore
 
     @pytest.fixture
     def synced_collection2(self):
@@ -323,7 +323,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
     """Tests of buffering JSONLists."""
 
-    _collection_type = BufferedJSONList
+    _collection_type = BufferedJSONList  # type: ignore
 
     def test_buffered(self, synced_collection):
         synced_collection.extend([1, 2, 3])

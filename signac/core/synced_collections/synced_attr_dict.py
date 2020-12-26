@@ -227,9 +227,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def __getattr__(self, name):
         if name.startswith("__"):
-            raise AttributeError(
-                "'SyncedAttrDict' object has no attribute '{}'".format(name)
-            )
+            raise AttributeError(f"'SyncedAttrDict' object has no attribute '{name}'")
         try:
             return self.__getitem__(name)
         except KeyError as e:

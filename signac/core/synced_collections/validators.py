@@ -56,6 +56,7 @@ def no_dot_in_key(data):
         for value in data:
             no_dot_in_key(value)
 
+
 def json_format_validator(data):
     """Validate input data can be serialized to JSON.
 

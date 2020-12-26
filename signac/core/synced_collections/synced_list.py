@@ -77,7 +77,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             List containing the conveted SyncedList object.
 
         """
-        converted = list()
+        converted = []
         for value in self._data:
             if isinstance(value, SyncedCollection):
                 converted.append(value._to_base())

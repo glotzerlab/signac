@@ -91,7 +91,7 @@ class JSONCollection(SyncedCollection):
             with open(self._filename, "rb") as file:
                 blob = file.read()
                 return json.loads(blob)
-        except IOError as error:
+        except OSError as error:
             if error.errno == errno.ENOENT:
                 return None
 
@@ -106,9 +106,7 @@ class JSONCollection(SyncedCollection):
         # replace that file with original file.
         if self._write_concern:
             dirname, filename = os.path.split(self._filename)
-            fn_tmp = os.path.join(
-                dirname, "._{uid}_{fn}".format(uid=uuid.uuid4(), fn=filename)
-            )
+            fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
             with open(fn_tmp, "wb") as tmpfile:
                 tmpfile.write(blob)
             os.replace(fn_tmp, self._filename)
