@@ -20,29 +20,30 @@ except ImportError:
 class SyncedCollection(Collection):
     """An abstract :class:`Collection` type that is synced with a backend.
 
-    This class extends :class:`collections.abc.Collection` and adds a number of abstract
+    This class extends :py:class:`collections.abc.Collection` and adds a number of abstract
     internal methods that must be implemented by its subclasses. These methods can be
     split into two groups of functions that are designed to be implemented by
     separate subtrees in the inheritance hierarchy that can then be composed:
 
         **Concrete Collection Types**
 
-        These subclasses should implement the APIs for specific types of collections.
-        For instance, a list-like :class:`SyncedCollection` should implement the standard
-        methods for sequences (__len__, __contains__, __iter__, etc). In addition,
-        they must implement the following abstract methods defined by the :class:`SyncedCollection`:
+        These subclasses should implement the APIs for specific types of
+        collections. For instance, a list-like :class:`SyncedCollection`
+        should implement the standard methods for sequences. In addition, they
+        must implement the following abstract methods defined by the
+        :class:`SyncedCollection`:
 
-        - | :meth:`~.is_base_type`: Determines whether an object satisfies the
-          | semantics of the collection object a given :class:`SyncedCollection`
-          | is designed to mimic.
-        - | :meth:`~._to_base`: Converts a :class:`SyncedCollection` to its
-          | natural base type (e.g. a `list`).
-        - | :meth:`~._update`: Updates the :class:`SyncedCollection` to match the
-          | contents of the provided :class:`Collection`. After calling
-          | `sc._update(c)`, we must have that sc == c; however, since such updates
-          | are frequent when loading and saving data to a resource, `_update`
-          | should be implemented to minimize new object creation wherever
-          | possible.
+        - :meth:`~.is_base_type`: Determines whether an object satisfies the
+          semantics of the collection object a given :class:`SyncedCollection`
+          is designed to mimic.
+        - :meth:`~._to_base`: Converts a :class:`SyncedCollection` to its
+          natural base type (e.g. a `list`).
+        - :meth:`~._update`: Updates the :class:`SyncedCollection` to match the
+          contents of the provided :py:class:`collections.abc.Collection`.
+          After calling ``sc._update(c)``, we must have that ``sc == c``; however,
+          since such updates are frequent when loading and saving data to a
+          resource, :meth:`_update` should be implemented to minimize new object
+          creation wherever possible.
 
         **Backend**
 
@@ -51,8 +52,8 @@ class SyncedCollection(Collection):
         instance, a JSON backend should know how to save a Python object into a
         JSON-encoded file and then read that object back.
 
-        - | :meth:`~._load_from_resource`: Loads data from the underlying
-          | resource and returns it in an object satisfying :meth:`~.is_base_type`.
+        - :meth:`~._load_from_resource`: Loads data from the underlying
+          resource and returns it in an object satisfying :meth:`~.is_base_type`.
         - :meth:`~._save_to_resource`: Stores data to the underlying resource.
         - :attr:`~._backend`: A unique string identifier for the resource backend.
 
@@ -161,7 +162,7 @@ class SyncedCollection(Collection):
         Notes
         -----
         This method relies on the internal registry of subclasses populated by
-        :meth:`__init_subclass__` and the :meth:`is_base_type` method to
+        :meth:`~.__init_subclass__` and the :meth:`is_base_type` method to
         determine the subclass with the appropriate backend and data type. Once
         an appropriate type is determined, that class's constructor is called.
         Since this method relies on the constructor and other methods, it can
