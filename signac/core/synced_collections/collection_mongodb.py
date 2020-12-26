@@ -83,12 +83,12 @@ class MongoDBCollection(SyncedCollection):
 
     @property
     def collection(self):
-        """pymongo.collection.Collection: The collection being synced to."""
+        """pymongo.collection.Collection: Get the collection being synced to."""
         return self._collection
 
     @property
-    def uid(self):
-        """dict: The unique mapping used to identify this collection."""
+    def uid(self):  # noqa: D401
+        """dict: Get the unique mapping used to identify this collection."""
         return self._uid
 
 

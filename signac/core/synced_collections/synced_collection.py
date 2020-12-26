@@ -85,7 +85,7 @@ class SyncedCollection(Collection):
 
     @classmethod
     def __init_subclass__(cls):
-        """Registers and enables validation in subclasses.
+        """Register and enable validation in subclasses.
 
         All subclasses are given a ``_validators`` list so that separate sets of
         validators can be registered to different types of synced collections. Concrete
@@ -373,6 +373,14 @@ class SyncedCollection(Collection):
         return len(self._data)
 
     def __call__(self):
+        """Get an equivalent but unsynced object of the base data type.
+
+        Returns
+        -------
+        Collection
+            An equivalent unsynced collection satisfying :meth:`is_base_type`.
+
+        """
         self._load()
         return self._to_base()
 

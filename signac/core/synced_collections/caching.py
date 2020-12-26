@@ -22,6 +22,7 @@ def get_cache():
     cache
         An instance of :class:`~_RedisCache` if redis-server is available,
         otherwise a dict.
+
     """
     try:
         import redis

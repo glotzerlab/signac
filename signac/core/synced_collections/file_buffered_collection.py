@@ -123,9 +123,10 @@ class FileBufferedCollection(BufferedCollection):
         """Update the buffer capacity.
 
         Parameters
-        -------
+        ----------
         new_capacity : int
             The new capacity of the buffer.
+
         """
         FileBufferedCollection._BUFFER_CAPACITY = new_capacity
         if new_capacity < FileBufferedCollection._CURRENT_BUFFER_SIZE:

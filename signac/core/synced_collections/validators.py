@@ -5,7 +5,9 @@
 
 A validator is any callable that raises Exceptions when called with invalid data.
 Validators should act recursively for nested data structures and should not
-return any values, only raise errors.
+return any values, only raise errors. This module implements built-in validators,
+but client code is free to implement and add additioal validators to collection
+types as needed.
 """
 
 from collections.abc import Mapping, Sequence
@@ -34,6 +36,7 @@ def no_dot_in_key(data):
         If key data type is not supported.
     InvalidKeyError
         If the key contains invalid characters or is otherwise malformed.
+
     """
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
@@ -53,7 +56,6 @@ def no_dot_in_key(data):
         for value in data:
             no_dot_in_key(value)
 
-
 def json_format_validator(data):
     """Validate input data can be serialized to JSON.
 
@@ -68,8 +70,8 @@ def json_format_validator(data):
         If key data type is not supported.
     TypeError
         If the data type of ``data`` is not supported.
-    """
 
+    """
     if isinstance(data, (str, int, float, bool, type(None))):
         return
     elif isinstance(data, Mapping):

@@ -62,10 +62,11 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
 
-        Returns:
-        --------
+        Returns
+        -------
         converted: dict
             Dictionary containing the converted synced dict object.
+
         """
         converted = {}
         for key, value in self._data.items():
@@ -87,6 +88,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         Returns
         -------
         bool
+
         """
         if isinstance(data, Mapping):
             return True
@@ -143,6 +145,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         ------
         ValueError
             If the data is not instance of mapping
+
         """
         if data is None:
             data = {}
@@ -161,58 +164,39 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 )
             )
 
-    def keys(self):
-        """D.keys() -> a set-like object providing a view on D's keys"""
+    def keys(self):  # noqa: D102
         self._load()
         return self._data.keys()
 
-    def values(self):
-        """D.values() -> an object providing a view on D's values"""
+    def values(self):  # noqa: D102
         self._load()
         return self._to_base().values()
 
-    def items(self):
-        """D.items() -> a set-like object providing a view on D's items"""
+    def items(self):  # noqa: D102
         self._load()
         return self._to_base().items()
 
-    def get(self, key, default=None):
-        """D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None."""
+    def get(self, key, default=None):  # noqa: D102
         self._load()
         return self._data.get(key, default)
 
-    def pop(self, key, default=None):
-        """D.pop(k[,d]) -> v, remove specified key and return the corresponding value.
-
-        If key is not found, d is returned if given, otherwise KeyError is raised.
-        """
+    def pop(self, key, default=None):  # noqa: D102
         self._load()
         ret = self._data.pop(key, default)
         self._save()
         return ret
 
-    def popitem(self):
-        """D.popitem() -> (k, v), remove and return some (key, value) pair as a 2-tuple.
-
-        Raise KeyError if D is empty.
-        """
+    def popitem(self):  # noqa: D102
         self._load()
         ret = self._data.popitem()
         self._save()
         return ret
 
-    def clear(self):
-        """D.clear() -> None.  Remove all items from D."""
+    def clear(self):  # noqa: D102
         self._data = {}
         self._save()
 
-    def update(self, other=None, **kwargs):
-        """D.update([E, ]**F) -> None.  Update D from mapping/iterable E and F.
-
-        If E present and has a .keys() method, does: for k in E: D[k] = E[k]
-        If E present and lacks .keys() method, does: for (k, v) in E: D[k] = v
-        In either case, this is followed by: for k, v in F.items(): D[k] = v
-        """
+    def update(self, other=None, **kwargs):  # noqa: D102
         if other is not None:
             # Convert sequence of key, value pairs to dict before validation
             if not isinstance(other, Mapping):
@@ -229,8 +213,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 self._data[key] = self._from_base(data=value, parent=self)
         self._save()
 
-    def setdefault(self, key, default=None):
-        """D.setdefault(k[,d]) -> D.get(k,d), also set D[k]=d if k not in D."""
+    def setdefault(self, key, default=None):  # noqa: D102
         self._load()
         if key in self._data:
             ret = self._data[key]

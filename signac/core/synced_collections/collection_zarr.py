@@ -158,7 +158,6 @@ class ZarrList(ZarrCollection, SyncedList):
 
     Parameters
     ----------
-
     group: zarr.hierarchy.Group, optional
         The group in which to store data (Default value = None).
     name: str, optional
@@ -170,7 +169,6 @@ class ZarrList(ZarrCollection, SyncedList):
 
     Warnings
     --------
-
     While the ZarrList object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
     as changes to an underlying database, copying (even deep copying) a
