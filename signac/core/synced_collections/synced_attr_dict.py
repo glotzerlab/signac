@@ -114,9 +114,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
         """
         if data is None:
-            data = {}
-        if isinstance(data, Mapping):
-            self._validate(data)
+            self._data.clear()
+        elif isinstance(data, Mapping):
             with self._suspend_sync():
                 # This loop avoids rebuilding existing synced collections for performance.
                 for key in data:
@@ -125,16 +124,27 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                             continue
                         if isinstance(self._data[key], SyncedCollection):
                             try:
+                                # The key must already be valid to be in this
+                                # object, so we only need to validate the data.
+                                self._validate(data[key])
                                 self._data[key]._update(data[key])
                                 continue
                             except ValueError:
                                 pass
+
+                    # Fall through if:
+                    #    1) The key is not currently in self, OR
+                    #    2) The key is in self, AND
+                    #        1) The existing value is not a SyncedCollection
+                    #           (in which case we would have tried to update it, OR
+                    #        2) The existing value is a SyncedCollection, but
+                    #           the new value is not a compatible type for _update.
+                    # Validate each element as it is assigned.
+                    self._validate({key: data[key]})
                     self._data[key] = self._from_base(data[key], parent=self)
-                remove = set()
-                for key in self._data:
-                    if key not in data:
-                        remove.add(key)
-                for key in remove:
+
+                to_remove = [key for key in self._data if key not in data]
+                for key in to_remove:
                     del self._data[key]
         else:
             raise ValueError(
