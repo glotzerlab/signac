@@ -218,16 +218,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             # Convert sequence of key, value pairs to dict before validation
             if not isinstance(other, Mapping):
                 other = dict(other)
-            self._validate(other)
-        if kwargs:
-            self._validate(kwargs)
+        else:
+            other = {}
+
         self._load()
-        with self._suspend_sync():
-            if other:
-                for key, value in other.items():
-                    self._data[key] = self._from_base(data=value, parent=self)
-            for key, value in kwargs.items():
-                self._data[key] = self._from_base(data=value, parent=self)
+        # The order here is important to ensure that the promised sequence of
+        # overrides is obeyed: kwargs > other > existing data.
+        self._update({**self._data, **other, **kwargs})
         self._save()
 
     def setdefault(self, key, default=None):  # noqa: D102
