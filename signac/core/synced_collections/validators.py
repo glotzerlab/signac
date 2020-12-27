@@ -91,6 +91,28 @@ def no_dot_in_key(data):
             no_dot_in_key(value)
 
 
+class AbstractTypesJSON(Enum):
+    """Simple representation of ABCs to avoid instance checks."""
+
+    BASE = auto()
+    MAPPING = auto()
+    SEQUENCE = auto()
+    NUMPY = auto()
+    INVALID = auto()
+
+
+_TYPE_CACHE_JSON = {
+    str: AbstractTypesJSON.BASE,
+    int: AbstractTypesJSON.BASE,
+    float: AbstractTypesJSON.BASE,
+    bool: AbstractTypesJSON.BASE,
+    type(None): AbstractTypesJSON.BASE,
+    dict: AbstractTypesJSON.MAPPING,
+    list: AbstractTypesJSON.SEQUENCE,
+    tuple: AbstractTypesJSON.SEQUENCE,
+}
+
+
 def json_format_validator(data):
     """Validate input data can be serialized to JSON.
 
@@ -107,9 +129,25 @@ def json_format_validator(data):
         If the data type of ``data`` is not supported.
 
     """
-    if isinstance(data, (str, int, float, bool, type(None))):
+    dtype = type(data)
+
+    try:
+        switch_type = _TYPE_CACHE_JSON[dtype]
+    except KeyError:
+        if isinstance(data, (str, int, float, bool, type(None))):
+            switch_type = _TYPE_CACHE_JSON[dtype] = AbstractTypesJSON.BASE
+        if isinstance(data, Mapping):
+            switch_type = _TYPE_CACHE_JSON[dtype] = AbstractTypesJSON.MAPPING
+        elif isinstance(data, Sequence):
+            switch_type = _TYPE_CACHE_JSON[dtype] = AbstractTypesJSON.SEQUENCE
+        elif NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
+            switch_type = _TYPE_CACHE_JSON[dtype] = AbstractTypesJSON.NUMPY
+        else:
+            switch_type = _TYPE_CACHE_JSON[dtype] = AbstractTypesJSON.INVALID
+
+    if switch_type == AbstractTypesJSON.BASE:
         return
-    elif isinstance(data, Mapping):
+    elif switch_type == AbstractTypesJSON.MAPPING:
         for key, value in data.items():
             # Support for non-str keys will be removed in version 2.0.
             # See issue: https://github.com/glotzerlab/signac/issues/316.
@@ -118,10 +156,10 @@ def json_format_validator(data):
                     f"Keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             json_format_validator(value)
-    elif isinstance(data, Sequence):
+    elif switch_type == AbstractTypesJSON.SEQUENCE:
         for value in data:
             json_format_validator(value)
-    elif NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
+    elif switch_type == AbstractTypesJSON.NUMPY:
         if numpy.iscomplex(data).any():
             raise TypeError(
                 "NumPy object with complex value(s) is not JSON serializable"
