@@ -11,6 +11,7 @@ types as needed.
 """
 
 from collections.abc import Mapping, Sequence
+from enum import Enum, auto
 
 from ...errors import InvalidKeyError, KeyTypeError
 
@@ -20,6 +21,28 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+
+"""Instance checks for abcs are expensive. Moreover, even for base classes isinstance
+is slower than a dict lookup. Therefore, we can be much faster by only calling isinstance
+when we have not seen a type before, then caching it; it's very unlikely that a user
+will be using many _different_ data types in a given run."""
+
+
+class AbstractTypes(Enum):
+    """Simple representation of ABCs to avoid instance checks."""
+
+    GENERIC = auto()
+    MAPPING = auto()
+    NON_STR_SEQUENCE = auto()
+
+
+_TYPE_CACHE = {
+    str: AbstractTypes.GENERIC,
+    dict: AbstractTypes.MAPPING,
+    list: AbstractTypes.NON_STR_SEQUENCE,
+    tuple: AbstractTypes.NON_STR_SEQUENCE,
+}
 
 
 def no_dot_in_key(data):
@@ -40,7 +63,18 @@ def no_dot_in_key(data):
     """
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
-    if isinstance(data, Mapping):
+    dtype = type(data)
+    try:
+        switch_type = _TYPE_CACHE[dtype]
+    except KeyError:
+        if isinstance(data, Mapping):
+            switch_type = _TYPE_CACHE[dtype] = AbstractTypes.MAPPING
+        elif isinstance(data, Sequence) and not isinstance(data, str):
+            switch_type = _TYPE_CACHE[dtype] = AbstractTypes.NON_STR_SEQUENCE
+        else:
+            switch_type = _TYPE_CACHE[dtype] = AbstractTypes.GENERIC
+
+    if switch_type == AbstractTypes.MAPPING:
         for key, value in data.items():
             if isinstance(key, str):
                 if "." in key:
@@ -52,7 +86,7 @@ def no_dot_in_key(data):
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             no_dot_in_key(value)
-    elif isinstance(data, Sequence) and not isinstance(data, str):
+    elif switch_type == AbstractTypes.NON_STR_SEQUENCE:
         for value in data:
             no_dot_in_key(value)
 
