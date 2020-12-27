@@ -186,7 +186,7 @@ class FileBufferedCollection(BufferedCollection):
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
                     del self._cache[self._filename]
-                    data_size = len(cached_data['contents'])
+                    data_size = len(cached_data["contents"])
                     FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     @staticmethod
@@ -325,7 +325,7 @@ class FileBufferedCollection(BufferedCollection):
             "metadata": metadata,
         }
         FileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-            self._cache[self._filename]['contents']
+            self._cache[self._filename]["contents"]
         )
         FileBufferedCollection._cached_collections[id(self)] = self
 

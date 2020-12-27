@@ -313,13 +313,20 @@ class SyncedDictTest(SyncedCollectionTest):
         # Test multiple changes. kwargs should supersede the mapping
         synced_collection.update({"a": 1, "b": 3}, a={"foo": "bar"}, d=[2, 3])
         assert synced_collection == {
-            "a": {"foo": "bar"}, "b": 3, "c": [0, 1, 3], "d": [2, 3],
+            "a": {"foo": "bar"},
+            "b": 3,
+            "c": [0, 1, 3],
+            "d": [2, 3],
         }
 
         # Test multiple changes using a sequence of key-value pairs.
         synced_collection.update((("d", [{"bar": "baz"}, 1]), ("c", 1)), e=("a", "b"))
         assert synced_collection == {
-            "a": {"foo": "bar"}, "b": 3, "c": 1, "d": [{"bar": "baz"}, 1], "e": ["a", "b"]
+            "a": {"foo": "bar"},
+            "b": 3,
+            "c": 1,
+            "d": [{"bar": "baz"}, 1],
+            "e": ["a", "b"],
         }
 
         # invalid data
