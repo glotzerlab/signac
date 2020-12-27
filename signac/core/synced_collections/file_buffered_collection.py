@@ -12,14 +12,10 @@ import errno
 import hashlib
 import json
 import os
-import platform
-import sys
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
-
-PYPY = "PyPy" in platform.python_implementation()
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -42,7 +38,7 @@ class FileBufferedCollection(BufferedCollection):
         The filename of the associated JSON file on disk (Default value = None).
 
     .. note::
-        Important note for developers: This class should be inherited before
+        Important note for subclasses: This class should be inherited before
         any other collections. This requirement is due to the extensive use of
         multiple inheritance: since this class is designed to be combined with
         other :class:`SyncedCollection` types without making those types aware
@@ -58,8 +54,6 @@ class FileBufferedCollection(BufferedCollection):
     _CURRENT_BUFFER_SIZE = 0
 
     def __init__(self, filename=None, *args, **kwargs):
-        if PYPY:
-            raise NotImplementedError("File-based buffering is not supported on PyPy.")
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
 
@@ -113,7 +107,7 @@ class FileBufferedCollection(BufferedCollection):
         Returns
         -------
         int
-            The amount of data that can be stored before a flush is triggered.
+            The number of bytes that can be stored before a flush is triggered.
 
         """
         return FileBufferedCollection._BUFFER_CAPACITY
@@ -125,7 +119,7 @@ class FileBufferedCollection(BufferedCollection):
         Parameters
         ----------
         new_capacity : int
-            The new capacity of the buffer.
+            The new capacity of the buffer in bytes.
 
         """
         FileBufferedCollection._BUFFER_CAPACITY = new_capacity
@@ -140,6 +134,13 @@ class FileBufferedCollection(BufferedCollection):
         -------
         int
             The size of all data contained in the buffer (in bytes).
+
+        Notes
+        -----
+        The buffer size is defined as the total number of bytes that will be
+        written out when the buffer is flushed. This is *not* the same as the total
+        size of the buffer, which also contains additional information like the
+        hash of the data and the file metadata (which are used for integrity checks).
 
         """
         return FileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -185,7 +186,7 @@ class FileBufferedCollection(BufferedCollection):
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
                     del self._cache[self._filename]
-                    data_size = sys.getsizeof(cached_data)
+                    data_size = len(cached_data["contents"])
                     FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     @staticmethod
@@ -237,9 +238,7 @@ class FileBufferedCollection(BufferedCollection):
         if self._filename in self._cache:
             blob = self._encode(self._to_base())
             cached_data = self._cache[self._filename]
-            buffer_size_change = sys.getsizeof(blob) - sys.getsizeof(
-                cached_data["contents"]
-            )
+            buffer_size_change = len(blob) - len(cached_data["contents"])
             FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
             cached_data["contents"] = blob
         else:
@@ -325,8 +324,8 @@ class FileBufferedCollection(BufferedCollection):
             "hash": self._hash(blob),
             "metadata": metadata,
         }
-        FileBufferedCollection._CURRENT_BUFFER_SIZE += sys.getsizeof(
-            self._cache[self._filename]
+        FileBufferedCollection._CURRENT_BUFFER_SIZE += len(
+            self._cache[self._filename]["contents"]
         )
         FileBufferedCollection._cached_collections[id(self)] = self
 

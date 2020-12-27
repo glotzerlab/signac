@@ -95,7 +95,24 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return False
 
     def _update(self, data=None):
-        """Update the SyncedDict instance with data using depth-first traversal."""
+        """Update the in-memory representation to match the provided data.
+
+        The purpose of this method is to update the SyncedCollection to match
+        the data in the underlying resource.  The result of calling this method
+        should be that ``self == data``. The reason that this method is
+        necessary is that SyncedCollections can be nested, and nested
+        collections must also be instances of SyncedCollection so that
+        synchronization occurs even when nested structures are modified.
+        Recreating the full nested structure every time data is reloaded from
+        file is highly inefficient, so this method performs an in-place update
+        that only changes entries that need to be changed.
+
+        Parameters
+        ----------
+        data : collections.abc.Mapping
+            The data to be assigned to this dict.
+
+        """
         if data is None:
             data = {}
         if isinstance(data, Mapping):
@@ -201,16 +218,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             # Convert sequence of key, value pairs to dict before validation
             if not isinstance(other, Mapping):
                 other = dict(other)
-            self._validate(other)
-        if kwargs:
-            self._validate(kwargs)
+        else:
+            other = {}
+
         self._load()
-        with self._suspend_sync():
-            if other:
-                for key, value in other.items():
-                    self._data[key] = self._from_base(data=value, parent=self)
-            for key, value in kwargs.items():
-                self._data[key] = self._from_base(data=value, parent=self)
+        # The order here is important to ensure that the promised sequence of
+        # overrides is obeyed: kwargs > other > existing data.
+        self._update({**self._data, **other, **kwargs})
         self._save()
 
     def setdefault(self, key, default=None):  # noqa: D102
