@@ -2394,13 +2394,16 @@ class JobsCursor:
             True if the job matches the filter criteria and is initialized for this project.
 
         """
+        if job not in self._project:
+            # Exit early if the job is not in the project.
+            return False
         if self._filter or self._doc_filter:
             # We use the standard function for determining job ids if a filter
             # is provided.
             return job.id in self._project._find_job_ids(self._filter, self._doc_filter)
-        else:
-            # Without filters, we can simply check if the job is in the project.
-            return job in self._project
+        # Without filters, we can simply check if the job is in the project.
+        # By the early-exit condition, we know the job must be contained.
+        return True
 
     def __iter__(self):
         # Code duplication here for improved performance.
