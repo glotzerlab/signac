@@ -491,9 +491,9 @@ class Job:
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as file:
-                assert calc_id(json.loads(file.read().decode())) == self._id
+                assert calc_id(json.loads(file.read().decode())) == self.id
         except (AssertionError, ValueError):
-            raise JobsCorruptedError([self._id])
+            raise JobsCorruptedError([self.id])
 
     def init(self, force=False):
         """Initialize the job's workspace directory.
@@ -521,7 +521,7 @@ class Job:
             self._init(force=force)
         except Exception:
             logger.error(
-                f"State point manifest file of job '{self._id}' appears to be corrupted."
+                f"State point manifest file of job '{self.id}' appears to be corrupted."
             )
             raise
         return self

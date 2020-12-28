@@ -796,7 +796,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = [{"_id": job._id, "statepoint": job.sp()} for job in self]
+            index = [{"_id": job.id, "statepoint": job.statepoint()} for job in self]
         for x, y in _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         ):
@@ -1181,29 +1181,29 @@ class Project:
         """
         self._sp_cache[job.id] = job.statepoint()
 
-    def _get_statepoint_from_workspace(self, jobid):
+    def _get_statepoint_from_workspace(self, job_id):
         """Attempt to read the state point from the workspace.
 
         Parameters
         ----------
-        jobid : str
+        job_id : str
             Identifier of the job.
 
         """
-        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, job_id, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.path.join(self._wd, jobid)):
+            if os.path.isdir(os.path.join(self._wd, job_id)):
                 logger.error(
                     "Error while trying to access state "
-                    "point manifest file of job '{}': '{}'.".format(jobid, error)
+                    "point manifest file of job '{}': '{}'.".format(job_id, error)
                 )
-                raise JobsCorruptedError([jobid])
-            raise KeyError(jobid)
+                raise JobsCorruptedError([job_id])
+            raise KeyError(job_id)
 
-    def _get_statepoint(self, jobid, fn=None):
+    def _get_statepoint(self, job_id, fn=None):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1211,7 +1211,7 @@ class Project:
 
         Parameters
         ----------
-        jobid : str
+        job_id : str
             A job id to get the state point for.
         fn : str
             The filename of the file containing the state points, defaults
@@ -1220,22 +1220,22 @@ class Project:
         Returns
         -------
         dict
-            The state point corresponding to jobid.
+            The state point corresponding to job_id.
 
         Raises
         ------
         KeyError
-            If the state point associated with jobid could not be found.
+            If the state point associated with job_id could not be found.
         JobsCorruptedError
-            If the state point manifest file corresponding to jobid is
+            If the state point manifest file corresponding to job_id is
             inaccessible or corrupted.
 
         """
         if not self._sp_cache:
             self._read_cache()
         try:
-            if jobid in self._sp_cache:
-                return self._sp_cache[jobid]
+            if job_id in self._sp_cache:
+                return self._sp_cache[job_id]
             else:
                 self._sp_cache_misses += 1
                 if (
@@ -1247,16 +1247,16 @@ class Project:
                         "to update cache with the Project.update_cache() method."
                     )
                     self._sp_cache_warned = True
-                sp = self._get_statepoint_from_workspace(jobid)
+                sp = self._get_statepoint_from_workspace(job_id)
         except KeyError as error:
             try:
-                sp = self.read_statepoints(fn=fn)[jobid]
+                sp = self.read_statepoints(fn=fn)[job_id]
             except OSError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
                     raise error
-        self._sp_cache[jobid] = sp
+        self._sp_cache[job_id] = sp
         return sp
 
     @deprecated(
@@ -1293,7 +1293,7 @@ class Project:
             inaccessible or corrupted.
 
         """
-        return self._get_statepoint(jobid=jobid, fn=fn)
+        return self._get_statepoint(job_id=jobid, fn=fn)
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
@@ -1559,7 +1559,7 @@ class Project:
         "foo/{foo}" and "foo/{job.sp.foo}".
 
         Any attribute of job can be used as a field here, so ``job.doc.bar``,
-        ``job._id``, and ``job.ws`` can also be used as path fields.
+        ``job.id``, and ``job.ws`` can also be used as path fields.
 
         A special ``{{auto}}`` field allows us to expand the path automatically with state point
         keys that have not been specified explicitly. So, for example, one can provide
@@ -1574,7 +1574,7 @@ class Project:
             data/foo_1
             ...
 
-        Finally, providing ``path=False`` is equivalent to ``path="{job._id}"``.
+        Finally, providing ``path=False`` is equivalent to ``path="{job.id}"``.
 
         See Also
         --------
@@ -2829,7 +2829,7 @@ class JobsCursor:
                     yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
-            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            data={job.id: dict(_export_sp_and_doc(job)) for job in self},
             orient="index",
         ).infer_objects()
 
