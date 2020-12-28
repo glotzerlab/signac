@@ -309,7 +309,7 @@ class Job:
 
         """
         if self._statepoint is None:
-            # Loads statepoint file lazily
+            # Load statepoint file lazily
             statepoint = self._check_manifest()
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
 
