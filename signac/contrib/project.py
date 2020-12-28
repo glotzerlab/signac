@@ -987,7 +987,7 @@ class Project:
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point parameters.
 
-        This method can be called on any :class:`~signac.contrib.project.JobCursor` such as
+        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -1037,7 +1037,7 @@ class Project:
     def groupbydoc(self, key=None, default=None):
         """Group jobs according to one or more document values.
 
-        This method can be called on any :class:`~signac.contrib.project.JobCursor` such as
+        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
         project.
 
@@ -2440,7 +2440,7 @@ class JobsCursor:
     def groupby(self, key=None, default=None):
         """Group jobs according to one or more state point parameters.
 
-        This method can be called on any :class:`~signac.contrib.project.JobCursor` such as
+        This method can be called on any :class:`~signac.contrib.project.JobsCursor` such as
         the one returned by :meth:`~signac.Project.find_jobs` or by iterating over a
         project.
 
