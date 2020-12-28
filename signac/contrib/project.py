@@ -1876,7 +1876,7 @@ class Project:
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
-        cached_ids = {k for k, v in self._sp_cache.items() if v is not None}
+        cached_ids = {key for key, value in self._sp_cache.items() if value is not None}
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
@@ -1924,7 +1924,7 @@ class Project:
         logger.info("Update cache...")
         start = time.time()
         cache = self._read_cache()
-        cached_ids = {k for k, v in self._sp_cache.items() if v is not None}
+        cached_ids = {key for key, value in self._sp_cache.items() if value is not None}
         self._update_in_memory_cache()
         if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
@@ -1933,7 +1933,11 @@ class Project:
                 with gzip.open(fn_cache_tmp, "wb") as cachefile:
                     cachefile.write(
                         json.dumps(
-                            {k: v for k, v in self._sp_cache.items() if v is not None}
+                            {
+                                key: value
+                                for key, value in self._sp_cache.items()
+                                if value is not None
+                            }
                         ).encode()
                     )
             except OSError:  # clean-up
@@ -1946,7 +1950,7 @@ class Project:
                 os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
             logger.info(f"Updated cache in {delta:.3f} seconds.")
-            return sum(1 for k, v in self._sp_cache.items() if v is not None)
+            return sum(1 for key, value in self._sp_cache.items() if value is not None)
         else:
             logger.info("Cache is up to date.")
 

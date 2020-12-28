@@ -458,7 +458,9 @@ class TestProject(TestProjectBase):
         try:
             logging.disable(logging.CRITICAL)
             with pytest.raises(JobsCorruptedError):
-                self.project.open_job(id=job.get_id()).statepoint
+                # Accessing the job state point triggers validation of the
+                # state point manifest file
+                self.project.open_job(id=job.id).statepoint
         finally:
             logging.disable(logging.NOTSET)
 
@@ -533,6 +535,8 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
+                    # Accessing the job state point triggers validation of the
+                    # state point manifest file
                     job.statepoint
 
             with pytest.raises(JobsCorruptedError):
