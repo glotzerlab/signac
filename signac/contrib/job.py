@@ -273,7 +273,21 @@ class Job:
         self.reset_statepoint(statepoint)
 
     def _read_manifest(self):
-        """Read and parse the manifest file, if it exists."""
+        """Read and parse the manifest file, if it exists.
+
+        Returns
+        -------
+        manifest : dict
+            State point data.
+
+        Raises
+        ------
+        JobsCorruptedError
+            If an error occurs while reading/parsing the state point manifest.
+        OSError
+            If an error occurs while reading/parsing the state point manifest.
+
+        """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as file:
@@ -535,13 +549,10 @@ class Job:
             occurs while reading/parsing the state point manifest.
 
         """
-        try:
-            manifest = self._read_manifest()
-            assert calc_id(manifest) == self._id
-        except AssertionError:
+        manifest = self._read_manifest()
+        if calc_id(manifest) != self._id:
             raise JobsCorruptedError([self._id])
-        else:
-            return manifest
+        return manifest
 
     def init(self, force=False):
         """Initialize the job's workspace directory.

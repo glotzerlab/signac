@@ -637,18 +637,19 @@ class Project:
             than one match.
 
         """
-        if (id is None) == (statepoint is None):
-            raise ValueError("You need to either provide the state point or the id.")
+        if (statepoint is None) == (id is None):
+            raise ValueError("Either statepoint or id must be provided, but not both.")
         if id is None:
-            # second best case (Job will update self._sp_cache on init)
+            # Second best case (Job will update self._sp_cache on init)
             return self.Job(project=self, statepoint=statepoint)
         elif self._sp_cache.get(id, None) is not None:
-            # optimal case
+            # Optimal case
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
-            # worst case (no statepoint and cache miss, Job will register
+            # Worst case (no statepoint and cache miss, Job will register
             # itself in self._sp_cache on statepoint access)
             if len(id) < 32:
+                # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
@@ -659,8 +660,9 @@ class Project:
                     # By elimination, len(matches) == 0
                     raise KeyError(id)
             elif not self._contains_job_id(id):
+                # id does not exist in the project data space
                 raise KeyError(id)
-            return self.Job(project=self, statepoint=None, _id=id)
+            return self.Job(project=self, _id=id)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -721,7 +723,7 @@ class Project:
         Returns
         -------
         bool
-            True if the job is initialized for this project.
+            True if the job id is initialized for this project.
 
         """
         return os.path.exists(os.path.join(self._wd, job_id))
