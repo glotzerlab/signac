@@ -296,7 +296,7 @@ class Job:
             if error.errno != errno.ENOENT:
                 raise error
         except ValueError:
-            raise JobsCorruptedError([self._id])
+            raise JobsCorruptedError([self.id])
         else:
             return manifest
 
@@ -550,8 +550,8 @@ class Job:
 
         """
         manifest = self._read_manifest()
-        if calc_id(manifest) != self._id:
-            raise JobsCorruptedError([self._id])
+        if calc_id(manifest) != self.id:
+            raise JobsCorruptedError([self.id])
         return manifest
 
     def init(self, force=False):
@@ -580,7 +580,7 @@ class Job:
             self._init(force=force)
         except Exception:
             logger.error(
-                f"State point manifest file of job '{self._id}' appears to be corrupted."
+                f"State point manifest file of job '{self.id}' appears to be corrupted."
             )
             raise
         return self
