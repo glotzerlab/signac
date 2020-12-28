@@ -8,12 +8,20 @@ import json
 import os
 import uuid
 import warnings
+from typing import Any, Dict
 
 from .file_buffered_collection import FileBufferedCollection
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 from .validators import json_format_validator
+
+try:
+    import numpy
+
+    NUMPY = True
+except ImportError:
+    NUMPY = False
 
 
 # TODO: This method should be removed in signac 2.0.
@@ -53,6 +61,33 @@ def _convert_key_to_str(data):
     elif isinstance(data, list):
         for i, value in enumerate(data):
             _convert_key_to_str(value)
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """Attempt to JSON-encode objects beyond the default supported types.
+
+    This encoder will attempt to obtain a JSON-serializable representation of
+    an object that is otherwise not serializable, by calling the object's
+    `_as_dict()` method.
+    """
+
+    # TODO: If a user tries to access this encoder to manually dump and calls a
+    # dump before any operation, the data won't have been initialized. This
+    # isn't in itself important, since we'll make this private, but consider
+    # whether there are any issues with that. I assume not, since we're
+    # considering making these objects lazy altogether.
+    def default(self, o: Any) -> Dict[str, Any]:  # noqa: D102
+        if NUMPY:
+            if isinstance(o, numpy.number):
+                return o.item()
+            elif isinstance(o, numpy.ndarray):
+                return o.tolist()
+        try:
+            return o._data
+        except AttributeError:
+            # Call the super method, which raises a TypeError if it cannot
+            # encode the object.
+            return super().default(o)
 
 
 class JSONCollection(SyncedCollection):
@@ -103,11 +138,8 @@ class JSONCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data to JSON file."""
-        data = self._to_base()
-        # Converting non-string keys to string
-        # data = _convert_key_to_str(data)
         # Serialize data
-        blob = json.dumps(data).encode()
+        blob = json.dumps(self, cls=CustomJSONEncoder).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.
         if self._write_concern:
