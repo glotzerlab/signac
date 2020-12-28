@@ -231,6 +231,11 @@ class Project:
 
         # Internal caches
         self._index_cache = {}
+        # Note that the state point cache is a superset of the jobs in the
+        # project, and its contents cannot be invalidated. The cached mapping
+        # of "id: statepoint" is valid even after a job has been removed, and
+        # can be used to re-open a job by id as long as that id remains in the
+        # cache.
         self._sp_cache = {_id: None for _id in self._job_dirs()}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
