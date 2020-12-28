@@ -9,12 +9,21 @@ from contextlib import contextmanager
 from inspect import isabstract
 from typing import Any, Callable, DefaultDict, List
 
+from .utils import AbstractTypeResolver
+
 try:
     import numpy
 
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+# Identifies types of SyncedCollection, which are the base type for this class.
+_sc_resolver = AbstractTypeResolver(
+    {
+        "SYNCEDCOLLECTION": lambda obj: isinstance(obj, SyncedCollection),
+    }
+)
 
 
 class SyncedCollection(Collection):

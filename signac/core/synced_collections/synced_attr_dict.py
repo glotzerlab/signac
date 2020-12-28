@@ -12,8 +12,16 @@ named by keys, including nested keys.
 from collections.abc import Mapping, MutableMapping
 from typing import Tuple
 
-from .synced_collection import SyncedCollection
+from .synced_collection import SyncedCollection, _sc_resolver
+from .utils import AbstractTypeResolver
 from .validators import no_dot_in_key
+
+# Identifies mappings, which are the base type for this class.
+_mapping_resolver = AbstractTypeResolver(
+    {
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+    }
+)
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
@@ -70,7 +78,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         converted = {}
         for key, value in self._data.items():
-            if isinstance(value, SyncedCollection):
+            switch_type = _sc_resolver.get_type(value)
+            if switch_type == "SYNCEDCOLLECTION":
                 converted[key] = value._to_base()
             else:
                 converted[key] = value
@@ -90,7 +99,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         bool
 
         """
-        if isinstance(data, Mapping):
+        if _mapping_resolver.get_type(data) == "MAPPING":
             return True
         return False
 
@@ -115,14 +124,14 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         if data is None:
             self._data.clear()
-        elif isinstance(data, Mapping):
+        elif _mapping_resolver.get_type(data) == "MAPPING":
             with self._suspend_sync():
                 # This loop avoids rebuilding existing synced collections for performance.
                 for key in data:
                     if key in self._data:
                         if data[key] == self._data[key]:
                             continue
-                        if isinstance(self._data[key], SyncedCollection):
+                        if _sc_resolver.get_type(self._data[key]) == "SYNCEDCOLLECTION":
                             try:
                                 # The key must already be valid to be in this
                                 # object, so we only need to validate the data.
@@ -183,7 +192,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         if data is None:
             data = {}
-        if isinstance(data, Mapping):
+        if _mapping_resolver.get_type(data) == "MAPPING":
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
@@ -233,7 +242,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     def update(self, other=None, **kwargs):  # noqa: D102
         if other is not None:
             # Convert sequence of key, value pairs to dict before validation
-            if not isinstance(other, Mapping):
+            if _mapping_resolver.get_type(other) != "MAPPING":
                 other = dict(other)
         else:
             other = {}
