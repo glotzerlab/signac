@@ -66,7 +66,7 @@ class SyncedCollection(Collection):
     callables that accept different data types as input and raise Exceptions if the
     data does not conform to the requirements of a particular backend. For
     example, a JSON validator would raise Exceptions if it detected non-string
-    keys in a dict.
+    keys in a dict. Validators should have no side effects.
 
     Parameters
     ----------
