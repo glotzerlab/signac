@@ -713,7 +713,7 @@ class Project:
         :returns: True when the job is initialized for this project.
         :rtype: bool
         """
-        return id in self._sp_cache or os.path.exists(os.path.join(self._wd, id))
+        return os.path.exists(os.path.join(self._wd, id))
 
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
@@ -1193,17 +1193,6 @@ class Project:
 
         """
         self._sp_cache[job._id] = job.statepoint()
-
-    def _deregister(self, job):
-        """Remove the job from the local index.
-
-        Parameters
-        ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job instance.
-
-        """
-        del self._sp_cache[job._id]
 
     def _get_statepoint_from_workspace(self, jobid):
         """Attempt to read the state point from the workspace.

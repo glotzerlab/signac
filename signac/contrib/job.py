@@ -630,7 +630,6 @@ class Job:
                         raise error
                 self._document = None
             self._data = None
-            self._project._deregister(self)
 
     def move(self, project):
         """Move this job to project.
@@ -664,7 +663,6 @@ class Job:
             else:
                 raise error
         # Update the projects' statepoint caches
-        self._project._deregister(self)
         self.__dict__.update(dst.__dict__)
         project._register(self)
 
