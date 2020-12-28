@@ -97,7 +97,7 @@ class Job:
             # State point will be loaded lazily
             self._statepoint = None
 
-        # Set id
+        # Set id. The id is computed from the state point if not provided.
         self._id = calc_id(self.statepoint()) if _id is None else _id
 
         # Prepare job working directory
