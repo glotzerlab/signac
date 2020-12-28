@@ -710,15 +710,21 @@ class Project:
 
     __len__ = num_jobs
 
-    def _contains_job_id(self, id):
-        """Determine whether job id is in the project's data space.
+    def _contains_job_id(self, job_id):
+        """Determine whether a job id is in the project's data space.
 
-        :param id: The job id to test for initialization.
-        :type id: str
-        :returns: True when the job is initialized for this project.
-        :rtype: bool
+        Parameters
+        ----------
+        job_id : str
+            The job id to test for initialization.
+
+        Returns
+        -------
+        bool
+            True if the job is initialized for this project.
+
         """
-        return os.path.exists(os.path.join(self._wd, id))
+        return os.path.exists(os.path.join(self._wd, job_id))
 
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
@@ -734,7 +740,7 @@ class Project:
             True if the job is initialized for this project.
 
         """
-        return self._contains_job_id(job.get_id())
+        return self._contains_job_id(job.id)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
