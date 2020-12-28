@@ -1171,7 +1171,7 @@ class Project:
             file.write(json.dumps(tmp, indent=indent))
 
     def _register(self, job):
-        """Register the job within the local index.
+        """Register the job state point in the project state point cache.
 
         Parameters
         ----------
@@ -1179,7 +1179,7 @@ class Project:
             The job instance.
 
         """
-        self._sp_cache[job._id] = job._statepoint._as_dict()
+        self._sp_cache[job.id] = job.statepoint()
 
     def _get_statepoint_from_workspace(self, jobid):
         """Attempt to read the state point from the workspace.
