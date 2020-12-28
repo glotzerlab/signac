@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class _sp_save_hook:
-    """Hook to handle job migration when statepoints are changed.
+    """Hook to handle job migration when state points are changed.
 
     When a job's state point is changed, in addition
     to the contents of the file being modified this hook
@@ -74,8 +74,8 @@ class Job:
     FN_MANIFEST = "signac_statepoint.json"
     """The job's manifest filename.
 
-    The job manifest, this means a human-readable dump of the job's
-    state point is stored in each workspace directory.
+    The job manifest is a human-readable file containing the job's state
+    point, and is stored in each job's workspace directory.
     """
 
     FN_DOCUMENT = "signac_job_document.json"
@@ -90,11 +90,11 @@ class Job:
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
 
-        # Set statepoint if provided
+        # Set state point if provided
         if statepoint is not None:
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
         else:
-            # Statepoint will be loaded lazily
+            # State point will be loaded lazily
             self._statepoint = None
 
         # Set id
@@ -323,11 +323,11 @@ class Job:
 
         """
         if self._statepoint is None:
-            # Load statepoint file lazily
+            # Load state point manifest lazily
             statepoint = self._check_manifest()
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
 
-            # Update the project's statepoint cache
+            # Update the project's state point cache
             self._project._register(self)
 
         return self._statepoint
@@ -481,7 +481,7 @@ class Job:
 
         This method is called by :meth:`~.init` and is responsible
         for actually creating the job workspace directory and
-        writing out the statepoint file.
+        writing out the state point manifest file.
 
         Parameters
         ----------
@@ -531,7 +531,7 @@ class Job:
             else:
                 self._check_manifest()
 
-            # Update the project's statepoint cache
+            # Update the project's state point cache
             self._project._register(self)
 
     def _check_manifest(self):
@@ -673,8 +673,8 @@ class Job:
                 )
             else:
                 raise error
-        # Update the projects' statepoint caches
         self.__dict__.update(dst.__dict__)
+        # Update the destination project's state point cache
         project._register(self)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
