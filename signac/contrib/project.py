@@ -703,7 +703,7 @@ class Project:
     __len__ = num_jobs
 
     def __contains__(self, job):
-        """Determine whether job is in the project's data space.
+        """Determine whether a job is in the project's data space.
 
         Parameters
         ----------
@@ -2373,12 +2373,34 @@ class JobsCursor:
     def __len__(self):
         # Highly performance critical code path!!
         if self._filter or self._doc_filter:
-            # We use the standard function for determining job ids if and only if
-            # any of the two filter is provided.
+            # We use the standard function for determining job ids if a filter
+            # is provided.
             return len(self._project._find_job_ids(self._filter, self._doc_filter))
         else:
-            # Without filter we can simply return the length of the whole project.
-            return self._project.__len__()
+            # Without filters, we can simply return the length of the whole project.
+            return len(self._project)
+
+    def __contains__(self, job):
+        """Determine whether a job is in this cursor.
+
+        Parameters
+        ----------
+        job : :class:`~signac.contrib.job.Job`
+            The job to check.
+
+        Returns
+        -------
+        bool
+            True if the job matches the filter criteria and is initialized for this project.
+
+        """
+        if self._filter or self._doc_filter:
+            # We use the standard function for determining job ids if a filter
+            # is provided.
+            return job.id in self._project._find_job_ids(self._filter, self._doc_filter)
+        else:
+            # Without filters, we can simply check if the job is in the project.
+            return job in self._project
 
     def __iter__(self):
         # Code duplication here for improved performance.
