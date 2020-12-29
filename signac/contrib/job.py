@@ -145,7 +145,12 @@ class Job:
         return self._id
 
     def __hash__(self):
-        return hash(os.path.realpath(self.workspace()))
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return (self.id == other.id) and (
+            os.path.realpath(self.workspace()) == os.path.realpath(other.workspace())
+        )
 
     def __str__(self):
         """Return the job's id."""
@@ -155,9 +160,6 @@ class Job:
         return "{}(project={}, statepoint={})".format(
             self.__class__.__name__, repr(self._project), self.statepoint
         )
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
 
     def workspace(self):
         """Return the job's unique workspace directory.
