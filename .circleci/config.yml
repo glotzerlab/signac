@@ -43,7 +43,6 @@ jobs:
           paths:
             - ".pre-commit-cache"
 
-
   linux-python-39: &linux-template
     docker:
       - image: circleci/python:3.9
