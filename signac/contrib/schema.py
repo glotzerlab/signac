@@ -353,6 +353,7 @@ class ProjectSchema:
             keys = key.split(".")
             for statepoint in it:
                 if not isinstance(statepoint, Mapping):
+                    # Assumes that a job was provided instead of a state point
                     statepoint = statepoint.statepoint
                 v = statepoint[keys[0]]
                 for k in keys[1:]:
