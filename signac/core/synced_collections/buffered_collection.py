@@ -16,7 +16,7 @@ heavy I/O. The specific buffering mechanism must be implemented by each backend
 since it depends on the nature of the underlying data format.
 
 All buffered collections expose a local context manager for buffering. In addition,
-this module exposes a global context manager :func:`buffer_reads_writes` that
+this module exposes a global context manager :func:`buffer_all` that
 indicates to all buffered collections irrespective of data type or backend that
 they should enter buffered mode. These context managers may be nested freely, and
 buffer flushes will occur when all such managers have been exited.
@@ -24,7 +24,7 @@ buffer flushes will occur when all such managers have been exited.
 .. code-block::
 
     with collection1.buffered:
-        with buffer_reads_writes:
+        with buffer_all:
             collection2['foo'] = 1
             collection1['bar'] = 1
             # collection2 will flush when this context exits.
@@ -104,7 +104,7 @@ class BufferedCollection(SyncedCollection):
 
     @staticmethod
     @contextmanager
-    def buffer_reads_writes():
+    def buffer_all():
         """Enter a globally buffer context for all BufferedCollection instances.
 
         All future operations use the buffer whenever possible. Write operations
@@ -231,4 +231,4 @@ class BufferedCollection(SyncedCollection):
         pass
 
 
-buffer_reads_writes = BufferedCollection.buffer_reads_writes
+buffer_all = BufferedCollection.buffer_all
