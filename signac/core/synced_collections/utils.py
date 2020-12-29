@@ -85,6 +85,30 @@ class AbstractTypeResolver:
         return enum_type
 
 
+def default(o: Any) -> Dict[str, Any]:  # noqa: D102
+    """Get a JSON-serializable version of compatible types.
+
+    This function is suitable for use with JSON-serialization tools as a way
+    to serialize :class:`SyncedCollection` objects and NumPy arrays.
+
+    Warnings
+    --------
+    JSON encoding of numpy arrays is not invertible; once encoded, reloading
+    the data will result in converting arrays to lists and numpy numbers into
+    ints or floats.
+
+    """
+    if NUMPY:
+        if isinstance(o, numpy.number):
+            return o.item()
+        elif isinstance(o, numpy.ndarray):
+            return o.tolist()
+    try:
+        return o._data
+    except AttributeError as e:
+        raise TypeError from e
+
+
 class SCJSONEncoder(JSONEncoder):
     """A JSONEncoder capable of encoding SyncedCollections and other supported types.
 
@@ -106,14 +130,9 @@ class SCJSONEncoder(JSONEncoder):
     # whether there are any issues with that. I assume not, since we're
     # considering making these objects lazy altogether.
     def default(self, o: Any) -> Dict[str, Any]:  # noqa: D102
-        if NUMPY:
-            if isinstance(o, numpy.number):
-                return o.item()
-            elif isinstance(o, numpy.ndarray):
-                return o.tolist()
         try:
-            return o._data
-        except AttributeError:
+            return default(o)
+        except TypeError:
             # Call the super method, which raises a TypeError if it cannot
             # encode the object.
             return super().default(o)
