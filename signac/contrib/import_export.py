@@ -603,11 +603,13 @@ def _make_path_based_schema_function(schema_path):
         """
         match = re.match(schema_regex, os.path.normpath(path))
         if match:
-            sp = match.groupdict()
+            statepoint = match.groupdict()
             for key in types:
-                if key in sp:
-                    sp[key] = types[key](sp[key])
-            return _dotted_dict_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
+                if key in statepoint:
+                    statepoint[key] = types[key](statepoint[key])
+            return _dotted_dict_to_nested_dicts(
+                statepoint, delimiter_nested=_DOT_MAGIC_WORD
+            )
 
     return parse_path
 

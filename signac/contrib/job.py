@@ -213,18 +213,18 @@ class Job:
         self._cwd = []
         logger.info(f"Moved '{self}' -> '{dst}'.")
 
-    def _reset_sp(self, new_sp=None):
+    def _reset_sp(self, new_statepoint=None):
         """Check for new state point requested to assign this job.
 
         Parameters
         ----------
-        new_sp : dict
+        new_statepoint : dict
             The job's new state point (Default value = None).
 
         """
-        if new_sp is None:
-            new_sp = self.statepoint()
-        self.reset_statepoint(new_sp)
+        if new_statepoint is None:
+            new_statepoint = self.statepoint()
+        self.reset_statepoint(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
@@ -288,16 +288,16 @@ class Job:
         return self._statepoint
 
     @statepoint.setter
-    def statepoint(self, new_sp):
+    def statepoint(self, new_statepoint):
         """Assign a new state point to this job.
 
         Parameters
         ----------
-        new_sp : dict
+        new_statepoint : dict
             The new state point to be assigned.
 
         """
-        self._reset_sp(new_sp)
+        self._reset_sp(new_statepoint)
 
     @property
     def sp(self):

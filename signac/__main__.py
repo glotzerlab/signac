@@ -400,10 +400,12 @@ def main_find(args):
             job = project.open_job(id=job_id)
 
             if args.sp is not None:
-                sp = job.statepoint()
+                statepoint = job.statepoint()
                 if len(args.sp) != 0:
-                    sp = {key: sp[key] for key in args.sp if key in sp}
-                print(format_lines("sp ", job_id, sp))
+                    statepoint = {
+                        key: statepoint[key] for key in args.sp if key in statepoint
+                    }
+                print(format_lines("sp ", job_id, statepoint))
 
             if args.doc is not None:
                 doc = job.document()
