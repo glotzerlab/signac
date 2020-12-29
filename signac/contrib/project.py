@@ -1263,8 +1263,10 @@ class Project:
             self._read_cache()
         try:
             if self._sp_cache.get(job_id, None) is not None:
+                # State point cache hit
                 return self._sp_cache[job_id]
             else:
+                # State point cache missed
                 self._sp_cache_misses += 1
                 if (
                     not self._sp_cache_warned
@@ -1276,15 +1278,21 @@ class Project:
                     )
                     self._sp_cache_warned = True
                 statepoint = self._get_statepoint_from_workspace(job_id)
+                # Update the project's state point cache from this cache miss
+                self._sp_cache[job_id] = statepoint
         except KeyError as error:
+            # Fall back to a file containing all state points because the state
+            # point could not be read from the job workspace.
             try:
-                statepoint = self.read_statepoints(fn=fn)[job_id]
+                statepoints = self.read_statepoints(fn=fn)
+                # Update the project's state point cache
+                self._sp_cache.update(statepoints)
+                statepoint = statepoints[job_id]
             except OSError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
                     raise error
-        self._sp_cache[job_id] = statepoint
         return statepoint
 
     @deprecated(
@@ -1765,6 +1773,7 @@ class Project:
         # Load internal cache from all available external sources.
         self._read_cache()
         try:
+            # Updates the state point cache from the provided file
             self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
