@@ -663,7 +663,6 @@ class TestProject(TestProjectBase):
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
-        assert hash(job) != hash(job_b)
         assert job not in project_a
         assert job not in project_b
         job.init()
