@@ -101,15 +101,15 @@ class JobSearchIndex:
             Filtered state point.
 
         """
-        for k, v in q.items():
-            if k in ("$and", "$or"):
-                if not isinstance(v, list) or isinstance(v, tuple):
+        for key, value in q.items():
+            if key in ("$and", "$or"):
+                if not isinstance(value, list) or isinstance(value, tuple):
                     raise ValueError(
                         "The argument to a logical operator must be a sequence (e.g. a list)!"
                     )
-                yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
+                yield key, [dict(self._resolve_statepoint_filter(i)) for i in value]
             else:
-                yield f"statepoint.{k}", v
+                yield f"statepoint.{key}", value
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find job ids from a state point or document filter.
