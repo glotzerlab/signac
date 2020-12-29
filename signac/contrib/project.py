@@ -646,8 +646,9 @@ class Project:
             # Optimal case (id is in the state point cache)
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
-            # Worst case (no statepoint and cache miss, Job will register
-            # itself in self._sp_cache on statepoint access)
+            # Worst case: no state point was provided and the state point cache
+            # missed. The Job will register itself in self._sp_cache when the
+            # state point is accessed.
             if len(id) < 32:
                 # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
@@ -1196,16 +1197,18 @@ class Project:
         with open(fn, "w") as file:
             file.write(json.dumps(tmp, indent=indent))
 
-    def _register(self, job):
+    def _register(self, _id, statepoint):
         """Register the job state point in the project state point cache.
 
         Parameters
         ----------
-        job : :class:`~signac.contrib.job.Job`
-            The job instance.
+        _id : str
+            A job identifier.
+        statepoint : dict
+            A validated job state point.
 
         """
-        self._sp_cache[job.id] = job.statepoint()
+        self._sp_cache[_id] = statepoint
 
     def _get_statepoint_from_workspace(self, job_id):
         """Attempt to read the state point from the workspace.
