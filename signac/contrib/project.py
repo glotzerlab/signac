@@ -1061,16 +1061,17 @@ class Project:
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        """Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas DataFrame.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
-        *args :
-
-        **kwargs :
+        \*args :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+        \*\*kwargs :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Returns
         -------
@@ -1482,7 +1483,7 @@ class Project:
         selection=None,
         **kwargs,
     ):
-        """Synchronize this project with the other project.
+        r"""Synchronize this project with the other project.
 
         Try to clone all jobs from the other project to this project.
         If a job is already part of this project, try to synchronize the job
@@ -1503,7 +1504,7 @@ class Project:
             The function applied for synchronizing documents (Default value = None).
         selection :
             Only sync the given jobs (Default value = None).
-        **kwargs :
+        \*\*kwargs :
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
 

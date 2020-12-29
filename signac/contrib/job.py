@@ -617,7 +617,7 @@ class Job:
         self.__dict__.update(dst.__dict__)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
-        """Perform a one-way synchronization of this job with the other job.
+        r"""Perform a one-way synchronization of this job with the other job.
 
         By default, this method will synchronize all files and document data with
         the other job to this job until a synchronization conflict occurs. There
@@ -650,11 +650,9 @@ class Job:
             no keys will be synchronized upon conflict.
         dry_run :
             If True, do not actually perform the synchronization.
-        kwargs :
+        \*\*kwargs :
             Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
             function which actually excutes the synchronization operation.
-        **kwargs :
-
 
         Raises
         ------
