@@ -99,9 +99,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         bool
 
         """
-        if _mapping_resolver.get_type(data) == "MAPPING":
-            return True
-        return False
+        return _mapping_resolver.get_type(data) == "MAPPING"
 
     def _update(self, data=None):
         """Update the in-memory representation to match the provided data.

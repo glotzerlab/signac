@@ -9,16 +9,21 @@ implementing the convert method `_to_base` for lists.
 
 from collections.abc import MutableSequence, Sequence
 
-from .synced_collection import NUMPY, SyncedCollection
+from .synced_collection import NUMPY, SyncedCollection, _sc_resolver
 from .utils import AbstractTypeResolver
 
 if NUMPY:
     import numpy
 
+
 # Identifies sequences, which are the base type for this class.
 _sequence_resolver = AbstractTypeResolver(
     {
-        "SEQUENCE": lambda obj: isinstance(obj, Sequence),
+        "SEQUENCE": (
+            lambda obj: isinstance(obj, Sequence)
+            and not isinstance(obj, str)
+            or (NUMPY and isinstance(obj, numpy.ndarray))
+        ),
     }
 )
 
@@ -30,15 +35,16 @@ class SyncedList(SyncedCollection, MutableSequence):
     and :class:`~collections.abc.MutableSequence`. Therefore, it behaves similar
     to a :class:`list`.
 
-    .. warning::
+    Warnings
+    --------
+    While the SyncedList object behaves like a :class:`list`, there are
+    important distinctions to remember. In particular, because operations
+    are reflected as changes to an underlying backend, copying (even deep
+    copying) a SyncedList instance may exhibit unexpected behavior. If a
+    true copy is required, you should use the `_to_base()` method to get a
+    :class:`list` representation, and if necessary construct a new
+    SyncedList.
 
-        While the SyncedList object behaves like a :class:`list`, there are
-        important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying backend, copying (even deep
-        copying) a SyncedList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the `_to_base()` method to get a
-        :class:`list` representation, and if necessary construct a new
-        SyncedList.
     """
 
     def __init__(self, data=None, *args, **kwargs):
@@ -69,12 +75,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         bool
 
         """
-        if isinstance(data, Sequence) and not isinstance(data, str):
-            return True
-        elif NUMPY:
-            if isinstance(data, numpy.ndarray):
-                return True
-        return False
+        return _sequence_resolver.get_type(data) == "SEQUENCE"
 
     def _to_base(self):
         """Convert the SyncedList object to list.
@@ -87,7 +88,8 @@ class SyncedList(SyncedCollection, MutableSequence):
         """
         converted = []
         for value in self._data:
-            if isinstance(value, SyncedCollection):
+            switch_type = _sc_resolver.get_type(value)
+            if switch_type == "SYNCEDCOLLECTION":
                 converted.append(value._to_base())
             else:
                 converted.append(value)
@@ -125,7 +127,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 for i in range(min(len(self), len(data))):
                     if data[i] == self._data[i]:
                         continue
-                    if isinstance(self._data[i], SyncedCollection):
+                    if _sc_resolver.get_type(self._data[i]) == "SYNCEDCOLLECTION":
                         try:
                             self._data[i]._update(data[i])
                             continue
@@ -166,7 +168,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         elif NUMPY and isinstance(data, numpy.ndarray):
             data = data.tolist()
         self._validate(data)
-        if isinstance(data, Sequence) and not isinstance(data, str):
+        if _sequence_resolver.get_type(data) == "SEQUENCE":
             with self._suspend_sync():
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data

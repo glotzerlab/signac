@@ -15,7 +15,7 @@ except ImportError:
 
 
 class AbstractTypeResolver:
-    r"""Mapping between recognized types and their abstract parents.
+    """Mapping between recognized types and their abstract parents.
 
     Synced collections are heavily reliant on checking the types of objects to
     determine the appropriate type of behavior in various scenarios. For maximum
@@ -28,8 +28,8 @@ class AbstractTypeResolver:
     a workaround by which we can amortize the cost of type checks. Given a set
     of types that must be resolved and a way to identify each of these (which
     may be expensive), it maintains a local cache of all instances of a given
-    type that have previously been observed. This allows :math:`\mathcal{O}(1)`
-    type checks except for the very first time a given type is seen.
+    type that have previously been observed. This reduces the cost of type checking
+    to a simple dict lookup, except for the first time a new type is observed.
 
     Parameters
     ----------
