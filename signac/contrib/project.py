@@ -14,6 +14,7 @@ import uuid
 import warnings
 from collections.abc import Iterable
 from contextlib import contextmanager
+from functools import partial
 from itertools import groupby
 from multiprocessing.pool import ThreadPool
 from tempfile import TemporaryDirectory
@@ -139,9 +140,21 @@ class JobSearchIndex:
 
 
 class _ProjectConfig(Config):
-    """Extends the project config to make it immutable."""
+    r"""Extends the project config to make it immutable.
 
-    def __init__(self, *args, **kwargs):
+    Parameters
+    ----------
+    \*args :
+        Forwarded to :class:`~signac.common.config.Config` constructor.
+    _mutate_hook : callable
+        Callable that is triggered if the config is mutated.
+    \*\*kwargs :
+        Forwarded to :class:`~signac.common.config.Config` constructor.
+
+    """
+
+    def __init__(self, *args, _mutate_hook=None, **kwargs):
+        self._mutate_hook = _mutate_hook
         self._mutable = True
         super().__init__(*args, **kwargs)
         self._mutable = False
@@ -156,7 +169,16 @@ class _ProjectConfig(Config):
             )
 
             assert version.parse(__version__) < version.parse("2.0")
+        if self._mutate_hook is not None:
+            self._mutate_hook()
         return super().__setitem__(key, value)
+
+
+def _mutate_hook(project):
+    """Invalidate cached properties derived from a project config."""
+    project._id = None
+    project._rd = None
+    project._wd = None
 
 
 class Project:
@@ -196,7 +218,12 @@ class Project:
     def __init__(self, config=None, _ignore_schema_version=False):
         if config is None:
             config = load_config()
-        self._config = _ProjectConfig(config)
+        self._config = _ProjectConfig(config, _mutate_hook=partial(_mutate_hook, self))
+
+        # Prepare cached properties derived from the project config.
+        self._id = None
+        self._rd = None
+        self._wd = None
 
         # Ensure that the project id is configured.
         if self.id is None:
@@ -218,9 +245,9 @@ class Project:
         self._stores = None
 
         # Prepare Workspace Directory
-        if not os.path.isdir(self._wd):
+        if not os.path.isdir(self.workspace()):
             try:
-                _mkdir_p(self._wd)
+                _mkdir_p(self.workspace())
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
@@ -238,7 +265,7 @@ class Project:
         self._sp_cache = {}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
-        self._sp_cache_miss_warning_threshold = self._config.get(
+        self._sp_cache_miss_warning_threshold = self.config.get(
             "statepoint_cache_miss_warning_threshold", 500
         )
 
@@ -285,34 +312,6 @@ class Project:
         """
         return self._config
 
-    @property
-    def _rd(self):
-        """Get project root directory.
-
-        Returns
-        -------
-        str
-            Path of project directory.
-
-        """
-        return self._config["project_dir"]
-
-    @property
-    def _wd(self):
-        """Get Project workspace directory.
-
-        Returns
-        -------
-        str
-            Path of workspace directory.
-
-        """
-        wd = os.path.expandvars(self._config.get("workspace_dir", "workspace"))
-        if os.path.isabs(wd):
-            return wd
-        else:
-            return os.path.join(self._rd, wd)
-
     def root_directory(self):
         """Return the project's root directory.
 
@@ -322,6 +321,8 @@ class Project:
             Path of project directory.
 
         """
+        if self._rd is None:
+            self._rd = self.config["project_dir"]
         return self._rd
 
     def workspace(self):
@@ -346,6 +347,12 @@ class Project:
             Path of workspace directory.
 
         """
+        if self._wd is None:
+            wd = os.path.expandvars(self.config.get("workspace_dir", "workspace"))
+            if os.path.isabs(wd):
+                self._wd = wd
+            else:
+                self._wd = os.path.join(self.root_directory(), wd)
         return self._wd
 
     @deprecated(
@@ -375,10 +382,12 @@ class Project:
             The project id.
 
         """
-        try:
-            return str(self.config["project"])
-        except KeyError:
-            return None
+        if self._id is None:
+            try:
+                self._id = str(self.config["project"])
+            except KeyError:
+                pass
+        return self._id
 
     def _check_schema_compatibility(self):
         """Check whether this project's data schema is compatible with this version.
@@ -490,7 +499,7 @@ class Project:
 
         """
         if self._document is None:
-            fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
+            fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
             self._document = JSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
@@ -566,7 +575,7 @@ class Project:
 
         """
         if self._stores is None:
-            self._stores = H5StoreManager(self._rd)
+            self._stores = H5StoreManager(self.root_directory())
         return self._stores
 
     @property
@@ -677,24 +686,30 @@ class Project:
 
         """
         try:
-            for d in os.listdir(self._wd):
+            for d in os.listdir(self.workspace()):
                 if JOB_ID_REGEX.match(d):
                     yield d
         except OSError as error:
             if error.errno == errno.ENOENT:
-                if os.path.islink(self._wd):
+                if os.path.islink(self.workspace()):
                     raise WorkspaceError(
-                        f"The link '{self._wd}' pointing to the workspace is broken."
+                        f"The link '{self.workspace()}' pointing to the workspace is broken."
                     )
-                elif not os.path.isdir(os.path.dirname(self._wd)):
+                elif not os.path.isdir(os.path.dirname(self.workspace())):
                     logger.warning(
                         "The path to the workspace directory "
-                        "('{}') does not exist.".format(os.path.dirname(self._wd))
+                        "('{}') does not exist.".format(
+                            os.path.dirname(self.workspace())
+                        )
                     )
                 else:
-                    logger.info(f"The workspace directory '{self._wd}' does not exist!")
+                    logger.info(
+                        f"The workspace directory '{self.workspace()}' does not exist!"
+                    )
             else:
-                logger.error(f"Unable to access the workspace directory '{self._wd}'.")
+                logger.error(
+                    f"Unable to access the workspace directory '{self.workspace()}'."
+                )
                 raise WorkspaceError(error)
 
     def num_jobs(self):
@@ -729,7 +744,7 @@ class Project:
             True if the job id is initialized for this project.
 
         """
-        return os.path.exists(os.path.join(self._wd, job_id))
+        return os.path.exists(os.path.join(self.workspace(), job_id))
 
     def __contains__(self, job):
         """Determine whether job is in the project's data space.
@@ -1221,12 +1236,12 @@ class Project:
             Identifier of the job.
 
         """
-        fn_manifest = os.path.join(self._wd, job_id, self.Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), job_id, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.path.join(self._wd, job_id)):
+            if os.path.isdir(os.path.join(self.workspace(), job_id)):
                 logger.error(
                     "Error while trying to access state "
                     "point manifest file of job '{}': '{}'.".format(job_id, error)
