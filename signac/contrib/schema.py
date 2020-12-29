@@ -70,17 +70,17 @@ def _build_job_statepoint_index(exclude_const, index):
             if key == "_id" or key.split(".")[0] != "statepoint":
                 continue
             collection.index(key, build=True)
-    tmp = collection._indexes
+    indexes = collection._indexes
 
     def strip_prefix(key):
-        return k[len("statepoint.") :]
+        return key[len("statepoint.") :]
 
     def remove_dict_placeholder(x):
         """Remove _DictPlaceholder elements from a mapping.
 
         Parameters
         ----------
-        x :
+        x : dict
             Dictionary from which ``_DictPlaceholder`` values will be removed.
 
         Returns
@@ -89,17 +89,17 @@ def _build_job_statepoint_index(exclude_const, index):
             Dictionary with ``_DictPlaceholder`` keys removed.
 
         """
-        return {k: v for k, v in x.items() if k is not _DictPlaceholder}
+        return {key: value for key, value in x.items() if key is not _DictPlaceholder}
 
-    for k in sorted(tmp, key=lambda k: (len(tmp[k]), k)):
+    for key in sorted(indexes, key=lambda key: (len(indexes[key]), key)):
         if (
             exclude_const
-            and len(tmp[k]) == 1
-            and len(tmp[k][list(tmp[k].keys())[0]]) == len(collection)
+            and len(indexes[key]) == 1
+            and len(indexes[key][list(indexes[key].keys())[0]]) == len(collection)
         ):
             continue
-        statepoint_key = strip_prefix(k)
-        statepoint_values = remove_dict_placeholder(tmp[k])
+        statepoint_key = strip_prefix(key)
+        statepoint_values = remove_dict_placeholder(indexes[key])
         yield statepoint_key, statepoint_values
 
 
@@ -133,7 +133,7 @@ class ProjectSchema:
             The detected project schema.
 
         """
-        return cls({k: _collect_by_type(v) for k, v in statepoint_index})
+        return cls({key: _collect_by_type(value) for key, value in statepoint_index})
 
     def format(self, depth=None, precision=None, max_num_range=None):
         """Format the schema for printing.
@@ -201,10 +201,10 @@ class ProjectSchema:
             except TypeError:
                 sorted_values = sorted(values, key=repr)
             if len(values) <= max_num_range:
-                values_string = ", ".join(_fmt_value(v) for v in sorted_values)
+                values_string = ", ".join(_fmt_value(value) for value in sorted_values)
             else:
                 values_string = ", ".join(
-                    _fmt_value(v) for v in sorted_values[: max_num_range - 2]
+                    _fmt_value(value) for value in sorted_values[: max_num_range - 2]
                 )
                 values_string += ", ..., "
                 values_string += ", ".join(_fmt_value(v) for v in sorted_values[-2:])
@@ -228,7 +228,7 @@ class ProjectSchema:
                 Comma-separated string of the input values.
 
             """
-            return ", ".join(_fmt_range(*v) for v in values.items())
+            return ", ".join(_fmt_range(*value) for value in values.items())
 
         if depth > 0:
             schema_dict = _Vividict()
@@ -323,7 +323,13 @@ class ProjectSchema:
         """
         ret = set(self.keys()).difference(other.keys())
         if not ignore_values:
-            ret.update({k for k, v in self.items() if k in other and other[k] != v})
+            ret.update(
+                {
+                    key
+                    for key, value in self.items()
+                    if key in other and other[key] != value
+                }
+            )
         return ret
 
     def __call__(self, jobs_or_statepoints):
@@ -340,17 +346,18 @@ class ProjectSchema:
             Schema of the project.
 
         """
-        s = {}
+        schema_data = {}
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []
-            keys = key.split(".")
-            for sp in it:
-                if not isinstance(sp, Mapping):
-                    sp = sp.statepoint
-                v = sp[keys[0]]
-                for k in keys[1:]:
-                    v = v[k]
-                values.append(v)
-            s[key] = _collect_by_type(values)
-        return ProjectSchema(s)
+            tokens = key.split(".")
+            for statepoint in it:
+                if not isinstance(statepoint, Mapping):
+                    # Assumes that a job was provided instead of a state point
+                    statepoint = statepoint.statepoint
+                value = statepoint[tokens[0]]
+                for token in tokens[1:]:
+                    value = value[token]
+                values.append(value)
+            schema_data[key] = _collect_by_type(values)
+        return ProjectSchema(schema_data)

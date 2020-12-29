@@ -101,15 +101,15 @@ class JobSearchIndex:
             Filtered state point.
 
         """
-        for k, v in q.items():
-            if k in ("$and", "$or"):
-                if not isinstance(v, list) or isinstance(v, tuple):
+        for key, value in q.items():
+            if key in ("$and", "$or"):
+                if not isinstance(value, list) or isinstance(value, tuple):
                     raise ValueError(
                         "The argument to a logical operator must be a sequence (e.g. a list)!"
                     )
-                yield k, [dict(self._resolve_statepoint_filter(i)) for i in v]
+                yield key, [dict(self._resolve_statepoint_filter(i)) for i in value]
             else:
-                yield f"statepoint.{k}", v
+                yield f"statepoint.{key}", value
 
     def find_job_ids(self, filter=None, doc_filter=None):
         """Find job ids from a state point or document filter.
@@ -637,8 +637,8 @@ class Project:
         if id is None:
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
-            if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = job.statepoint._as_dict()
+            if job.id not in self._sp_cache:
+                self._sp_cache[job.id] = job.statepoint()
             return job
         elif id in self._sp_cache:
             # optimal case
@@ -774,7 +774,6 @@ class Project:
                          2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
                          3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
 
-
         Values that are constant over the complete data space can be optionally
         ignored with the `exclude_const` argument set to True.
 
@@ -796,7 +795,7 @@ class Project:
         from .schema import _build_job_statepoint_index
 
         if index is None:
-            index = [{"_id": job._id, "statepoint": job.sp()} for job in self]
+            index = [{"_id": job.id, "statepoint": job.statepoint()} for job in self]
         for x, y in _build_job_statepoint_index(
             exclude_const=exclude_const, index=index
         ):
@@ -1062,16 +1061,17 @@ class Project:
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        """Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas DataFrame.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
-        *args :
-
-        **kwargs :
+        \*args :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+        \*\*kwargs :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Returns
         -------
@@ -1171,7 +1171,7 @@ class Project:
             file.write(json.dumps(tmp, indent=indent))
 
     def _register(self, job):
-        """Register the job within the local index.
+        """Register the job state point in the project state point cache.
 
         Parameters
         ----------
@@ -1179,31 +1179,31 @@ class Project:
             The job instance.
 
         """
-        self._sp_cache[job._id] = job._statepoint._as_dict()
+        self._sp_cache[job.id] = job.statepoint()
 
-    def _get_statepoint_from_workspace(self, jobid):
+    def _get_statepoint_from_workspace(self, job_id):
         """Attempt to read the state point from the workspace.
 
         Parameters
         ----------
-        jobid : str
+        job_id : str
             Identifier of the job.
 
         """
-        fn_manifest = os.path.join(self._wd, jobid, self.Job.FN_MANIFEST)
+        fn_manifest = os.path.join(self._wd, job_id, self.Job.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as manifest:
                 return json.loads(manifest.read().decode())
         except (OSError, ValueError) as error:
-            if os.path.isdir(os.path.join(self._wd, jobid)):
+            if os.path.isdir(os.path.join(self._wd, job_id)):
                 logger.error(
                     "Error while trying to access state "
-                    "point manifest file of job '{}': '{}'.".format(jobid, error)
+                    "point manifest file of job '{}': '{}'.".format(job_id, error)
                 )
-                raise JobsCorruptedError([jobid])
-            raise KeyError(jobid)
+                raise JobsCorruptedError([job_id])
+            raise KeyError(job_id)
 
-    def _get_statepoint(self, jobid, fn=None):
+    def _get_statepoint(self, job_id, fn=None):
         """Get the state point associated with a job id.
 
         The state point is retrieved from the internal cache, from
@@ -1211,7 +1211,7 @@ class Project:
 
         Parameters
         ----------
-        jobid : str
+        job_id : str
             A job id to get the state point for.
         fn : str
             The filename of the file containing the state points, defaults
@@ -1220,22 +1220,22 @@ class Project:
         Returns
         -------
         dict
-            The state point corresponding to jobid.
+            The state point corresponding to job_id.
 
         Raises
         ------
         KeyError
-            If the state point associated with jobid could not be found.
+            If the state point associated with job_id could not be found.
         JobsCorruptedError
-            If the state point manifest file corresponding to jobid is
+            If the state point manifest file corresponding to job_id is
             inaccessible or corrupted.
 
         """
         if not self._sp_cache:
             self._read_cache()
         try:
-            if jobid in self._sp_cache:
-                return self._sp_cache[jobid]
+            if job_id in self._sp_cache:
+                return self._sp_cache[job_id]
             else:
                 self._sp_cache_misses += 1
                 if (
@@ -1247,17 +1247,17 @@ class Project:
                         "to update cache with the Project.update_cache() method."
                     )
                     self._sp_cache_warned = True
-                sp = self._get_statepoint_from_workspace(jobid)
+                statepoint = self._get_statepoint_from_workspace(job_id)
         except KeyError as error:
             try:
-                sp = self.read_statepoints(fn=fn)[jobid]
+                statepoint = self.read_statepoints(fn=fn)[job_id]
             except OSError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
                     raise error
-        self._sp_cache[jobid] = sp
-        return sp
+        self._sp_cache[job_id] = statepoint
+        return statepoint
 
     @deprecated(
         deprecated_in="1.3",
@@ -1293,7 +1293,7 @@ class Project:
             inaccessible or corrupted.
 
         """
-        return self._get_statepoint(jobid=jobid, fn=fn)
+        return self._get_statepoint(job_id=jobid, fn=fn)
 
     def create_linked_view(self, prefix=None, job_ids=None, index=None, path=None):
         """Create or update a persistent linked view of the selected data space.
@@ -1483,7 +1483,7 @@ class Project:
         selection=None,
         **kwargs,
     ):
-        """Synchronize this project with the other project.
+        r"""Synchronize this project with the other project.
 
         Try to clone all jobs from the other project to this project.
         If a job is already part of this project, try to synchronize the job
@@ -1504,7 +1504,7 @@ class Project:
             The function applied for synchronizing documents (Default value = None).
         selection :
             Only sync the given jobs (Default value = None).
-        **kwargs :
+        \*\*kwargs :
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
 
@@ -1559,7 +1559,7 @@ class Project:
         "foo/{foo}" and "foo/{job.sp.foo}".
 
         Any attribute of job can be used as a field here, so ``job.doc.bar``,
-        ``job._id``, and ``job.ws`` can also be used as path fields.
+        ``job.id``, and ``job.ws`` can also be used as path fields.
 
         A special ``{{auto}}`` field allows us to expand the path automatically with state point
         keys that have not been specified explicitly. So, for example, one can provide
@@ -1574,13 +1574,12 @@ class Project:
             data/foo_1
             ...
 
-        Finally, providing ``path=False`` is equivalent to ``path="{job._id}"``.
+        Finally, providing ``path=False`` is equivalent to ``path="{job.id}"``.
 
         See Also
         --------
         :meth:`~signac.Project.import_from` :
             Previously exported or non-signac data spaces can be imported.
-
 
         See :ref:`signac export <signac-cli-export>` for the command line equivalent.
 
@@ -1640,7 +1639,6 @@ class Project:
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
 
-
         See :ref:`signac import <signac-cli-import>` for the command line equivalent.
 
         Parameters
@@ -1697,11 +1695,11 @@ class Project:
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                sp = self._get_statepoint(job_id)
-                if calc_id(sp) != job_id:
+                statepoint = self._get_statepoint(job_id)
+                if calc_id(statepoint) != job_id:
                     corrupted.append(job_id)
                 else:
-                    self.open_job(sp).init()
+                    self.open_job(statepoint).init()
             except JobsCorruptedError as error:
                 corrupted.extend(error.job_ids)
         if corrupted:
@@ -1751,9 +1749,9 @@ class Project:
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                sp = self._get_statepoint(job_id)
+                statepoint = self._get_statepoint(job_id)
                 # Check if state point and id correspond.
-                correct_id = calc_id(sp)
+                correct_id = calc_id(statepoint)
                 if correct_id != job_id:
                     logger.warning(
                         "The job id of job '{}' is incorrect; "
@@ -1773,10 +1771,10 @@ class Project:
                     else:
                         logger.info("Moved job to correct workspace.")
 
-                job = self.open_job(sp)
+                job = self.open_job(statepoint)
             except KeyError:
                 logger.critical(
-                    f"Unable to lookup state point for job with id '{job_id}'."
+                    f"Unable to look up state point for job with id '{job_id}'."
                 )
                 corrupted.append(job_id)
             else:
@@ -1785,7 +1783,7 @@ class Project:
                     job.init()
                 except Exception as error:
                     logger.error(
-                        "Error during initalization of job with "
+                        "Error during initialization of job with "
                         "id '{}': '{}'.".format(job_id, error)
                     )
                     try:  # Attempt to fix the job manifest file.
@@ -2466,7 +2464,7 @@ class JobsCursor:
                     State point value corresponding to the key.
 
                     """
-                    return job.sp[key]
+                    return job.statepoint[key]
 
             else:
 
@@ -2480,14 +2478,13 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     State point value corresponding to the key.
                     Default if key is not present.
 
                     """
-                    return job.sp.get(key, default)
+                    return job.statepoint.get(key, default)
 
         elif isinstance(key, Iterable):
             if default is None:
@@ -2504,15 +2501,13 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
                         State point values.
 
-
                     """
-                    return tuple(job.sp[k] for k in key)
+                    return tuple(job.statepoint[k] for k in key)
 
             else:
 
@@ -2526,14 +2521,13 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
                         State point values.
 
                     """
-                    return tuple(job.sp.get(k, default) for k in key)
+                    return tuple(job.statepoint.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
@@ -2614,7 +2608,6 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     Document value corresponding to the key.
@@ -2633,7 +2626,6 @@ class JobsCursor:
                     ----------
                     job : class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2654,7 +2646,6 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
@@ -2674,7 +2665,6 @@ class JobsCursor:
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2819,7 +2809,7 @@ class JobsCursor:
                 tuple with prefixed state point or document key and values.
 
             """
-            for key, value in _flatten(job.sp).items():
+            for key, value in _flatten(job.statepoint).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value
@@ -2829,7 +2819,7 @@ class JobsCursor:
                     yield prefixed_key, value
 
         return pandas.DataFrame.from_dict(
-            data={job._id: dict(_export_sp_and_doc(job)) for job in self},
+            data={job.id: dict(_export_sp_and_doc(job)) for job in self},
             orient="index",
         ).infer_objects()
 
