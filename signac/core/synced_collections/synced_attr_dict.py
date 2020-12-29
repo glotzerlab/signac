@@ -126,31 +126,37 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._data.clear()
         elif _mapping_resolver.get_type(data) == "MAPPING":
             with self._suspend_sync():
-                # This loop avoids rebuilding existing synced collections for performance.
-                for key in data:
-                    if key in self._data:
-                        if data[key] == self._data[key]:
+                for key, new_value in data.items():
+                    try:
+                        # The most common usage of SyncedCollections is with a
+                        # single object referencing an underlying resource at a
+                        # time, so we should almost always find that elements
+                        # of data are already contained in self._data, so EAFP
+                        # is the best choice for performance.
+                        existing = self._data[key]
+                    except KeyError:
+                        # If the item wasn't present at all, we can simply
+                        # assign it.
+                        self._validate({key: new_value})
+                        self._data[key] = self._from_base(new_value, parent=self)
+                    else:
+                        if new_value == existing:
                             continue
-                        if _sc_resolver.get_type(self._data[key]) == "SYNCEDCOLLECTION":
+                        if _sc_resolver.get_type(existing) == "SYNCEDCOLLECTION":
                             try:
-                                # The key must already be valid to be in this
-                                # object, so we only need to validate the data.
-                                self._validate(data[key])
-                                self._data[key]._update(data[key])
+                                existing._update(new_value)
                                 continue
                             except ValueError:
                                 pass
 
-                    # Fall through if:
-                    #    1) The key is not currently in self, OR
-                    #    2) The key is in self, AND
-                    #        1) The existing value is not a SyncedCollection
-                    #           (in which case we would have tried to update it, OR
-                    #        2) The existing value is a SyncedCollection, but
-                    #           the new value is not a compatible type for _update.
-                    # Validate each element as it is assigned.
-                    self._validate({key: data[key]})
-                    self._data[key] = self._from_base(data[key], parent=self)
+                        # Fall through if the new value is not identical to the
+                        # existing value and
+                        #     1) The existing value is not a SyncedCollection
+                        #        (in which case we would have tried to update it, OR
+                        #     2) The existing value is a SyncedCollection, but
+                        #       the new value is not a compatible type for _update.
+                        self._validate({key: new_value})
+                        self._data[key] = self._from_base(new_value, parent=self)
 
                 to_remove = [key for key in self._data if key not in data]
                 for key in to_remove:
