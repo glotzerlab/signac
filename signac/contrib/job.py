@@ -226,18 +226,18 @@ class Job:
         self._cwd = []
         logger.info(f"Moved '{self}' -> '{dst}'.")
 
-    def _reset_sp(self, new_sp=None):
+    def _reset_sp(self, new_statepoint=None):
         """Check for new state point requested to assign this job.
 
         Parameters
         ----------
-        new_sp : dict
+        new_statepoint : dict
             The job's new state point (Default value = None).
 
         """
-        if new_sp is None:
-            new_sp = self.statepoint()
-        self.reset_statepoint(new_sp)
+        if new_statepoint is None:
+            new_statepoint = self.statepoint()
+        self.reset_statepoint(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
@@ -337,16 +337,16 @@ class Job:
         return self._statepoint
 
     @statepoint.setter
-    def statepoint(self, new_sp):
+    def statepoint(self, new_statepoint):
         """Assign a new state point to this job.
 
         Parameters
         ----------
-        new_sp : dict
+        new_statepoint : dict
             The new state point to be assigned.
 
         """
-        self._reset_sp(new_sp)
+        self._reset_sp(new_statepoint)
 
     @property
     def sp(self):
@@ -683,7 +683,7 @@ class Job:
         project._register(self)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
-        """Perform a one-way synchronization of this job with the other job.
+        r"""Perform a one-way synchronization of this job with the other job.
 
         By default, this method will synchronize all files and document data with
         the other job to this job until a synchronization conflict occurs. There
@@ -716,11 +716,9 @@ class Job:
             no keys will be synchronized upon conflict.
         dry_run :
             If True, do not actually perform the synchronization.
-        kwargs :
+        \*\*kwargs :
             Extra keyword arguments will be forward to the :meth:`~signac.sync.sync_jobs`
             function which actually excutes the synchronization operation.
-        **kwargs :
-
 
         Raises
         ------

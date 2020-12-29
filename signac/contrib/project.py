@@ -1087,16 +1087,17 @@ class Project:
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        """Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas DataFrame.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Parameters
         ----------
-        *args :
-
-        **kwargs :
+        \*args :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
+        \*\*kwargs :
+            Forwarded to :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
 
         Returns
         -------
@@ -1274,17 +1275,17 @@ class Project:
                         "to update cache with the Project.update_cache() method."
                     )
                     self._sp_cache_warned = True
-                sp = self._get_statepoint_from_workspace(job_id)
+                statepoint = self._get_statepoint_from_workspace(job_id)
         except KeyError as error:
             try:
-                sp = self.read_statepoints(fn=fn)[job_id]
+                statepoint = self.read_statepoints(fn=fn)[job_id]
             except OSError as io_error:
                 if io_error.errno != errno.ENOENT:
                     raise io_error
                 else:
                     raise error
-        self._sp_cache[job_id] = sp
-        return sp
+        self._sp_cache[job_id] = statepoint
+        return statepoint
 
     @deprecated(
         deprecated_in="1.3",
@@ -1510,7 +1511,7 @@ class Project:
         selection=None,
         **kwargs,
     ):
-        """Synchronize this project with the other project.
+        r"""Synchronize this project with the other project.
 
         Try to clone all jobs from the other project to this project.
         If a job is already part of this project, try to synchronize the job
@@ -1531,7 +1532,7 @@ class Project:
             The function applied for synchronizing documents (Default value = None).
         selection :
             Only sync the given jobs (Default value = None).
-        **kwargs :
+        \*\*kwargs :
             This method also accepts the same keyword arguments as the
             :meth:`~signac.sync.sync_projects` function.
 
@@ -1722,11 +1723,11 @@ class Project:
         logger.info("Checking workspace for corruption...")
         for job_id in self._find_job_ids():
             try:
-                sp = self._get_statepoint(job_id)
-                if calc_id(sp) != job_id:
+                statepoint = self._get_statepoint(job_id)
+                if calc_id(statepoint) != job_id:
                     corrupted.append(job_id)
                 else:
-                    self.open_job(sp).init()
+                    self.open_job(statepoint).init()
             except JobsCorruptedError as error:
                 corrupted.extend(error.job_ids)
         if corrupted:
@@ -1776,9 +1777,9 @@ class Project:
         for job_id in job_ids:
             try:
                 # First, check if we can look up the state point.
-                sp = self._get_statepoint(job_id)
+                statepoint = self._get_statepoint(job_id)
                 # Check if state point and id correspond.
-                correct_id = calc_id(sp)
+                correct_id = calc_id(statepoint)
                 if correct_id != job_id:
                     logger.warning(
                         "The job id of job '{}' is incorrect; "
@@ -1798,10 +1799,10 @@ class Project:
                     else:
                         logger.info("Moved job to correct workspace.")
 
-                job = self.open_job(sp)
+                job = self.open_job(statepoint)
             except KeyError:
                 logger.critical(
-                    f"Unable to lookup state point for job with id '{job_id}'."
+                    f"Unable to look up state point for job with id '{job_id}'."
                 )
                 corrupted.append(job_id)
             else:
@@ -1810,7 +1811,7 @@ class Project:
                     job.init()
                 except Exception as error:
                     logger.error(
-                        "Error during initalization of job with "
+                        "Error during initialization of job with "
                         "id '{}': '{}'.".format(job_id, error)
                     )
                     try:  # Attempt to fix the job manifest file.
@@ -2500,7 +2501,7 @@ class JobsCursor:
                     State point value corresponding to the key.
 
                     """
-                    return job.sp[key]
+                    return job.statepoint[key]
 
             else:
 
@@ -2520,7 +2521,7 @@ class JobsCursor:
                     Default if key is not present.
 
                     """
-                    return job.sp.get(key, default)
+                    return job.statepoint.get(key, default)
 
         elif isinstance(key, Iterable):
             if default is None:
@@ -2543,7 +2544,7 @@ class JobsCursor:
                         State point values.
 
                     """
-                    return tuple(job.sp[k] for k in key)
+                    return tuple(job.statepoint[k] for k in key)
 
             else:
 
@@ -2563,7 +2564,7 @@ class JobsCursor:
                         State point values.
 
                     """
-                    return tuple(job.sp.get(k, default) for k in key)
+                    return tuple(job.statepoint.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
@@ -2845,7 +2846,7 @@ class JobsCursor:
                 tuple with prefixed state point or document key and values.
 
             """
-            for key, value in _flatten(job.sp).items():
+            for key, value in _flatten(job.statepoint).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value

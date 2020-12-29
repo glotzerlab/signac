@@ -53,15 +53,15 @@ def diff_jobs(*jobs):
     if len(jobs) == 0:
         return {}
     else:
-        sps = {}
+        statepoints = {}
         for job in jobs:
-            sps[job] = set(_nested_dicts_to_dotted_keys(job.sp()))
+            statepoints[job] = set(_nested_dicts_to_dotted_keys(job.statepoint()))
 
-        intersection = set.intersection(*sps.values())
+        intersection = set.intersection(*statepoints.values())
 
         diffs = {}
         for job in jobs:
-            unique_sps = sps[job] - intersection
-            diffs[job.id] = _dotted_dict_to_nested_dicts(dict(unique_sps))
+            unique_statepoints = statepoints[job] - intersection
+            diffs[job.id] = _dotted_dict_to_nested_dicts(dict(unique_statepoints))
 
         return diffs

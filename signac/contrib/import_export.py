@@ -62,7 +62,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         # signature of the path function below.
         return lambda job, sep=None: ""
 
-    index = [{"_id": job._id, "statepoint": job.sp()} for job in jobs]
+    index = [{"_id": job.id, "statepoint": job.statepoint()} for job in jobs]
     jsi = _build_job_statepoint_index(exclude_const=True, index=index)
     sp_index = OrderedDict(jsi)
 
@@ -100,9 +100,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         """
         try:
             if sep:
-                return os.path.normpath(sep.join(paths[job._id]))
+                return os.path.normpath(sep.join(paths[job.id]))
             else:
-                return os.path.normpath(os.path.join(*paths[job._id]))
+                return os.path.normpath(os.path.join(*paths[job.id]))
         except KeyError:
             raise RuntimeError(
                 "Unable to determine path for job '{}'.\nThis is usually caused by a "
@@ -126,10 +126,8 @@ class _AutoPathFormatter(Formatter):
         ----------
         value :
             The value to be formatted.
-
         format_spec :
             The format specification.
-
 
         Returns
         -------
@@ -220,7 +218,7 @@ def _make_path_function(jobs, path):
             """
             try:
                 try:
-                    ret = path.format(job=job, **job.sp)
+                    ret = path.format(job=job, **job.statepoint)
                 except TypeError as error:
                     if (
                         str(error)
@@ -605,11 +603,13 @@ def _make_path_based_schema_function(schema_path):
         """
         match = re.match(schema_regex, os.path.normpath(path))
         if match:
-            sp = match.groupdict()
+            statepoint = match.groupdict()
             for key in types:
-                if key in sp:
-                    sp[key] = types[key](sp[key])
-            return _dotted_dict_to_nested_dicts(sp, delimiter_nested=_DOT_MAGIC_WORD)
+                if key in statepoint:
+                    statepoint[key] = types[key](statepoint[key])
+            return _dotted_dict_to_nested_dicts(
+                statepoint, delimiter_nested=_DOT_MAGIC_WORD
+            )
 
     return parse_path
 
