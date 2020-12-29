@@ -80,8 +80,7 @@ class AbstractTypeResolver:
                 if id_func(obj):
                     enum_type = self.type_map[dtype] = adt
                     break
-            if enum_type is None:
-                self.type_map[dtype] = None
+            self.type_map[dtype] = enum_type
 
         return enum_type
 
