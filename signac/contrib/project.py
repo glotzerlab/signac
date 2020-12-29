@@ -212,11 +212,10 @@ class Project:
             self._check_schema_compatibility()
 
         # Prepare project document
-        self._fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
         self._document = None
 
-        # Prepare project h5-stores
-        self._stores = H5StoreManager(self._rd)
+        # Prepare project H5StoreManager
+        self._stores = None
 
         # Prepare Workspace Directory
         if not os.path.isdir(self._wd):
@@ -491,7 +490,8 @@ class Project:
 
         """
         if self._document is None:
-            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+            fn_doc = os.path.join(self._rd, self.FN_DOCUMENT)
+            self._document = JSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -565,6 +565,8 @@ class Project:
             The HDF5-Store manager for this project.
 
         """
+        if self._stores is None:
+            self._stores = H5StoreManager(self._rd)
         return self._stores
 
     @property
