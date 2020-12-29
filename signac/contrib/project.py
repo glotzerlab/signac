@@ -643,7 +643,7 @@ class Project:
             # Second best case (Job will update self._sp_cache on init)
             return self.Job(project=self, statepoint=statepoint)
         elif self._sp_cache.get(id, None) is not None:
-            # Optimal case
+            # Optimal case (id is in the state point cache)
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
         else:
             # Worst case (no statepoint and cache miss, Job will register

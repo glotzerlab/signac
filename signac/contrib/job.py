@@ -90,8 +90,8 @@ class Job:
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
 
-        # Set state point if provided
         if statepoint is not None:
+            # Set state point if provided
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
         else:
             # State point will be loaded lazily
@@ -112,6 +112,10 @@ class Job:
 
         # Prepare current working directory for context management
         self._cwd = []
+
+        if statepoint is not None:
+            # Update the project's state point cache immediately if opened by state point
+            self._project._register(self)
 
     @deprecated(
         deprecated_in="1.3",
@@ -327,7 +331,7 @@ class Job:
             statepoint = self._check_manifest()
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
 
-            # Update the project's state point cache
+            # Update the project's state point cache when loaded lazily
             self._project._register(self)
 
         return self._statepoint
@@ -531,8 +535,8 @@ class Job:
             else:
                 self._check_manifest()
 
-            # Update the project's state point cache
-            self._project._register(self)
+        # Update the project's state point cache if the manifest is valid
+        self._project._register(self)
 
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
@@ -674,6 +678,7 @@ class Job:
             else:
                 raise error
         self.__dict__.update(dst.__dict__)
+
         # Update the destination project's state point cache
         project._register(self)
 
