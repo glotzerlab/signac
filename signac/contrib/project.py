@@ -774,7 +774,6 @@ class Project:
                          2: {'3a530c13bfaf57517b4e81ecab6aec7f'},
                          3: {'5c2658722218d48a5eb1e0ef7c26240b'}})
 
-
         Values that are constant over the complete data space can be optionally
         ignored with the `exclude_const` argument set to True.
 
@@ -1581,7 +1580,6 @@ class Project:
         :meth:`~signac.Project.import_from` :
             Previously exported or non-signac data spaces can be imported.
 
-
         See :ref:`signac export <signac-cli-export>` for the command line equivalent.
 
         Parameters
@@ -1639,7 +1637,6 @@ class Project:
         See Also
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
-
 
         See :ref:`signac import <signac-cli-import>` for the command line equivalent.
 
@@ -2480,7 +2477,6 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     State point value corresponding to the key.
@@ -2504,12 +2500,10 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
                         State point values.
-
 
                     """
                     return tuple(job.sp[k] for k in key)
@@ -2525,7 +2519,6 @@ class JobsCursor:
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2614,7 +2607,6 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     Document value corresponding to the key.
@@ -2633,7 +2625,6 @@ class JobsCursor:
                     ----------
                     job : class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
@@ -2654,7 +2645,6 @@ class JobsCursor:
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
 
-
                     Returns
                     -------
                     tuple
@@ -2674,7 +2664,6 @@ class JobsCursor:
                     ----------
                     job : :class:`~signac.contrib.job.Job`
                         The job instance.
-
 
                     Returns
                     -------
