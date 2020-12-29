@@ -169,8 +169,9 @@ class Job:
     def reset_statepoint(self, new_statepoint):
         """Overwrite the state point of this job while preserving job data.
 
-        Change the job id if necessary.
-        For more, see
+        This method will change the job id if the state point has been altered.
+        
+        For more information, see
         `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. danger::
@@ -233,8 +234,9 @@ class Job:
     def update_statepoint(self, update, overwrite=False):
         """Change the state point of this job without affecting existing parameters.
 
-        Change the job id if necessary.
-        For more, see
+        This method will change the job id if the state point has been altered.
+
+        For more information, see
         `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
