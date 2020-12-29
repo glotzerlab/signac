@@ -10,9 +10,17 @@ implementing the convert method `_to_base` for lists.
 from collections.abc import MutableSequence, Sequence
 
 from .synced_collection import NUMPY, SyncedCollection
+from .utils import AbstractTypeResolver
 
 if NUMPY:
     import numpy
+
+# Identifies sequences, which are the base type for this class.
+_sequence_resolver = AbstractTypeResolver(
+    {
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence),
+    }
+)
 
 
 class SyncedList(SyncedCollection, MutableSequence):
@@ -105,12 +113,15 @@ class SyncedList(SyncedCollection, MutableSequence):
 
         """
         if data is None:
-            data = []
-        self._validate(data)
-        if isinstance(data, Sequence) and not isinstance(data, str):
+            self._data.clear()
+        elif _sequence_resolver.get_type(data) == "SEQUENCE":
             with self._suspend_sync():
-                # This loop avoids rebuilding existing synced collections for performance.
-                # TODO: Potential improvements to this code: Remove order constraints.
+                # This loop is optimized based on common usage patterns:
+                # insertion and removal at the end of a list. Inserting or
+                # removing in the middle will result in extra conversion
+                # operations for all subsequent items. In the worst case,
+                # inserting at the beginning will require reconverting all
+                # elements of the data.
                 for i in range(min(len(self), len(data))):
                     if data[i] == self._data[i]:
                         continue
@@ -120,11 +131,15 @@ class SyncedList(SyncedCollection, MutableSequence):
                             continue
                         except ValueError:
                             pass
-                    self._data[i] = self._from_base(data=data[i], parent=self)
+                    self._validate(data[i])
+                    self._data[i] = self._from_base(data[i], parent=self)
+
                 if len(self._data) > len(data):
                     self._data = self._data[: len(data)]
                 else:
-                    self.extend(data[len(self) :])
+                    new_data = data[len(self) :]
+                    self._validate(new_data)
+                    self.extend(new_data)
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a non-string sequence or None.".format(
