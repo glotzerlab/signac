@@ -250,9 +250,9 @@ class Job:
         update : dict
             A mapping used for the state point update.
         overwrite :
-            Set to true to ignore whether this update overwrites parameters
-            that are currently part of the job's state point.
-            If true, equivalent to ``job.reset_statepoint()``. Use with caution!
+            If True, this method will set all existing and new parameters
+            to a job's statepoint, making it equivalent to
+            :meth:`~.reset_statepoint`. Use with caution!
             (Default value = False)
 
         Raises
