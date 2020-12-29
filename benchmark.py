@@ -204,7 +204,7 @@ def benchmark_project(project, keys=None):
         "select_by_id",
         Timer(
             stmt="project.open_job(id=job_id)",
-            setup=setup + "job_id = random.choice(list(islice(project, 100))).id",
+            setup=setup + "job_id = random.choice(list(islice(project, 100))).get_id()",
         ),
     )
 
