@@ -235,7 +235,7 @@ class Project:
         # of "id: statepoint" is valid even after a job has been removed, and
         # can be used to re-open a job by id as long as that id remains in the
         # cache.
-        self._sp_cache = {_id: None for _id in self._job_dirs()}
+        self._sp_cache = {}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
         self._sp_cache_miss_warning_threshold = self._config.get(
@@ -644,10 +644,10 @@ class Project:
         if id is None:
             # Second best case (Job will update self._sp_cache on init)
             return self.Job(project=self, statepoint=statepoint)
-        elif self._sp_cache.get(id, None) is not None:
+        try:
             # Optimal case (id is in the state point cache)
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
-        else:
+        except KeyError:
             # Worst case: no state point was provided and the state point cache
             # missed. The Job will register itself in self._sp_cache when the
             # state point is accessed.
@@ -1262,42 +1262,42 @@ class Project:
             inaccessible or corrupted.
 
         """
-        if not any(self._sp_cache.values()):
+        if not self._sp_cache:
             # Triggers if no state points have been added to the cache, and all
             # the values are None.
             self._read_cache()
         try:
-            if self._sp_cache.get(job_id, None) is not None:
-                # State point cache hit
-                return self._sp_cache[job_id]
-            else:
-                # State point cache missed
-                self._sp_cache_misses += 1
-                if (
-                    not self._sp_cache_warned
-                    and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
-                ):
-                    logger.debug(
-                        "High number of state point cache misses. Consider "
-                        "to update cache with the Project.update_cache() method."
-                    )
-                    self._sp_cache_warned = True
+            # State point cache hit
+            return self._sp_cache[job_id]
+        except KeyError:
+            # State point cache missed
+            self._sp_cache_misses += 1
+            if (
+                not self._sp_cache_warned
+                and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
+            ):
+                logger.debug(
+                    "High number of state point cache misses. Consider "
+                    "to update cache with the Project.update_cache() method."
+                )
+                self._sp_cache_warned = True
+            try:
                 statepoint = self._get_statepoint_from_workspace(job_id)
                 # Update the project's state point cache from this cache miss
                 self._sp_cache[job_id] = statepoint
-        except KeyError as error:
-            # Fall back to a file containing all state points because the state
-            # point could not be read from the job workspace.
-            try:
-                statepoints = self.read_statepoints(fn=fn)
-                # Update the project's state point cache
-                self._sp_cache.update(statepoints)
-                statepoint = statepoints[job_id]
-            except OSError as io_error:
-                if io_error.errno != errno.ENOENT:
-                    raise io_error
-                else:
-                    raise error
+            except KeyError as error:
+                # Fall back to a file containing all state points because the state
+                # point could not be read from the job workspace.
+                try:
+                    statepoints = self.read_statepoints(fn=fn)
+                    # Update the project's state point cache
+                    self._sp_cache.update(statepoints)
+                    statepoint = statepoints[job_id]
+                except OSError as io_error:
+                    if io_error.errno != errno.ENOENT:
+                        raise io_error
+                    else:
+                        raise error
         return statepoint
 
     @deprecated(
@@ -1888,7 +1888,7 @@ class Project:
         logger.debug("Updating in-memory cache...")
         start = time.time()
         job_ids = set(self._job_dirs())
-        cached_ids = {key for key, value in self._sp_cache.items() if value is not None}
+        cached_ids = set(self._sp_cache)
         to_add = job_ids.difference(cached_ids)
         to_remove = cached_ids.difference(job_ids)
         if to_add or to_remove:
@@ -1936,22 +1936,14 @@ class Project:
         logger.info("Update cache...")
         start = time.time()
         cache = self._read_cache()
-        cached_ids = {key for key, value in self._sp_cache.items() if value is not None}
+        cached_ids = set(self._sp_cache)
         self._update_in_memory_cache()
         if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:
                 with gzip.open(fn_cache_tmp, "wb") as cachefile:
-                    cachefile.write(
-                        json.dumps(
-                            {
-                                key: value
-                                for key, value in self._sp_cache.items()
-                                if value is not None
-                            }
-                        ).encode()
-                    )
+                    cachefile.write(json.dumps(self._sp_cache).encode())
             except OSError:  # clean-up
                 try:
                     os.remove(fn_cache_tmp)
@@ -1962,7 +1954,7 @@ class Project:
                 os.replace(fn_cache_tmp, fn_cache)
             delta = time.time() - start
             logger.info(f"Updated cache in {delta:.3f} seconds.")
-            return sum(1 for key, value in self._sp_cache.items() if value is not None)
+            return len(self._sp_cache)
         else:
             logger.info("Cache is up to date.")
 
