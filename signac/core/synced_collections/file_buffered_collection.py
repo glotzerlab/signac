@@ -16,6 +16,7 @@ from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
+from .utils import SCJSONEncoder
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -207,7 +208,7 @@ class FileBufferedCollection(BufferedCollection):
             The underlying encoded data.
 
         """
-        return json.dumps(data).encode()
+        return json.dumps(data, cls=SCJSONEncoder).encode()
 
     @staticmethod
     def _decode(blob):
@@ -236,7 +237,7 @@ class FileBufferedCollection(BufferedCollection):
         in the buffer and the integrity checks performed.
         """
         if self._filename in self._cache:
-            blob = self._encode(self._to_base())
+            blob = self._encode(self)
             cached_data = self._cache[self._filename]
             buffer_size_change = len(blob) - len(cached_data["contents"])
             FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change

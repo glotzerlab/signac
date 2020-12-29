@@ -3,6 +3,16 @@
 # This software is licensed under the BSD 3-Clause License.
 """Define common utilities."""
 
+from json import JSONEncoder
+from typing import Any, Dict
+
+try:
+    import numpy
+
+    NUMPY = True
+except ImportError:
+    NUMPY = False
+
 
 class AbstractTypeResolver:
     r"""Mapping between recognized types and their abstract parents.
@@ -74,3 +84,37 @@ class AbstractTypeResolver:
                 self.type_map[dtype] = None
 
         return enum_type
+
+
+class SCJSONEncoder(JSONEncoder):
+    """A JSONEncoder capable of encoding SyncedCollections and other supported types.
+
+    This encoder will attempt to obtain a JSON-serializable representation of
+    an object that is otherwise not serializable by attempting to access its
+    _data attribute. In addition, it supports direct writing of numpy arrays.
+
+    Warnings
+    --------
+    JSON encoding of numpy arrays is not invertible; once encoded, reloading
+    the data will result in converting arrays to lists and numpy numbers into
+    ints or floats.
+
+    """
+
+    # TODO: If a user tries to access this encoder to manually dump and calls a
+    # dump before any operation, the data won't have been initialized. This
+    # isn't in itself important, since we'll make this private, but consider
+    # whether there are any issues with that. I assume not, since we're
+    # considering making these objects lazy altogether.
+    def default(self, o: Any) -> Dict[str, Any]:  # noqa: D102
+        if NUMPY:
+            if isinstance(o, numpy.number):
+                return o.item()
+            elif isinstance(o, numpy.ndarray):
+                return o.tolist()
+        try:
+            return o._data
+        except AttributeError:
+            # Call the super method, which raises a TypeError if it cannot
+            # encode the object.
+            return super().default(o)
