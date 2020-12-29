@@ -62,7 +62,7 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         # signature of the path function below.
         return lambda job, sep=None: ""
 
-    index = [{"_id": job._id, "statepoint": job.sp()} for job in jobs]
+    index = [{"_id": job.id, "statepoint": job.statepoint()} for job in jobs]
     jsi = _build_job_statepoint_index(exclude_const=True, index=index)
     sp_index = OrderedDict(jsi)
 
@@ -100,9 +100,9 @@ def _make_schema_based_path_function(jobs, exclude_keys=None, delimiter_nested="
         """
         try:
             if sep:
-                return os.path.normpath(sep.join(paths[job._id]))
+                return os.path.normpath(sep.join(paths[job.id]))
             else:
-                return os.path.normpath(os.path.join(*paths[job._id]))
+                return os.path.normpath(os.path.join(*paths[job.id]))
         except KeyError:
             raise RuntimeError(
                 "Unable to determine path for job '{}'.\nThis is usually caused by a "
@@ -218,7 +218,7 @@ def _make_path_function(jobs, path):
             """
             try:
                 try:
-                    ret = path.format(job=job, **job.sp)
+                    ret = path.format(job=job, **job.statepoint)
                 except TypeError as error:
                     if (
                         str(error)

@@ -637,8 +637,8 @@ class Project:
         if id is None:
             # second best case
             job = self.Job(project=self, statepoint=statepoint)
-            if job._id not in self._sp_cache:
-                self._sp_cache[job._id] = job.statepoint._as_dict()
+            if job.id not in self._sp_cache:
+                self._sp_cache[job.id] = job.statepoint()
             return job
         elif id in self._sp_cache:
             # optimal case
@@ -2464,7 +2464,7 @@ class JobsCursor:
                     State point value corresponding to the key.
 
                     """
-                    return job.sp[key]
+                    return job.statepoint[key]
 
             else:
 
@@ -2484,7 +2484,7 @@ class JobsCursor:
                     Default if key is not present.
 
                     """
-                    return job.sp.get(key, default)
+                    return job.statepoint.get(key, default)
 
         elif isinstance(key, Iterable):
             if default is None:
@@ -2507,7 +2507,7 @@ class JobsCursor:
                         State point values.
 
                     """
-                    return tuple(job.sp[k] for k in key)
+                    return tuple(job.statepoint[k] for k in key)
 
             else:
 
@@ -2527,7 +2527,7 @@ class JobsCursor:
                         State point values.
 
                     """
-                    return tuple(job.sp.get(k, default) for k in key)
+                    return tuple(job.statepoint.get(k, default) for k in key)
 
         elif key is None:
             # Must return a type that can be ordered with <, >
@@ -2809,7 +2809,7 @@ class JobsCursor:
                 tuple with prefixed state point or document key and values.
 
             """
-            for key, value in _flatten(job.sp).items():
+            for key, value in _flatten(job.statepoint).items():
                 prefixed_key = sp_prefix + key
                 if usecols(prefixed_key):
                     yield prefixed_key, value

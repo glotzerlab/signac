@@ -315,7 +315,7 @@ def main_remove(args):
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
         if args.interactive and not query_yes_no(
-            "Are you sure you want to {action} job with id '{job._id}'?".format(
+            "Are you sure you want to {action} job with id '{job.id}'?".format(
                 action="clear" if args.clear else "remove", job=job
             ),
             default="no",
@@ -1166,7 +1166,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.id,
-                    job_banner=f"\nJob:\t\t{job._id}" if job is not None else "",
+                    job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
