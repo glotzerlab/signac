@@ -203,8 +203,8 @@ def benchmark_project(project, keys=None):
     run(
         "select_by_id",
         Timer(
-            stmt="project.open_job(id=jobid)",
-            setup=setup + "jobid = random.choice(list(islice(project, 100))).get_id()",
+            stmt="project.open_job(id=job_id)",
+            setup=setup + "job_id = random.choice(list(islice(project, 100))).id",
         ),
     )
 

@@ -428,9 +428,9 @@ def main_diff(args):
 
     diff = diff_jobs(*jobs)
 
-    for jobid, sp in diff.items():
-        print(jobid)
-        pprint(sp)
+    for job_id, statepoint in diff.items():
+        print(job_id)
+        pprint(statepoint)
 
 
 def main_view(args):
