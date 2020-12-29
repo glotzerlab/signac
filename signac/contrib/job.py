@@ -170,7 +170,7 @@ class Job:
         """Overwrite the state point of this job while preserving job data.
 
         This method will change the job id if the state point has been altered.
-        
+
         For more information, see
         `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
