@@ -417,6 +417,10 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_open_job_no_id_or_statepoint(self):
+        with pytest.raises(ValueError):
+            self.project.open_job()
+
     def test_open_job_by_abbreviated_id(self):
         statepoints = [{"a": i} for i in range(5)]
         [self.project.open_job(sp).init() for sp in statepoints]
