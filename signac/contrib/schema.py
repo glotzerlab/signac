@@ -350,14 +350,14 @@ class ProjectSchema:
         iterators = itertools.tee(jobs_or_statepoints, len(self))
         for key, it in zip(self, iterators):
             values = []
-            keys = key.split(".")
+            tokens = key.split(".")
             for statepoint in it:
                 if not isinstance(statepoint, Mapping):
                     # Assumes that a job was provided instead of a state point
                     statepoint = statepoint.statepoint
-                v = statepoint[keys[0]]
-                for k in keys[1:]:
-                    v = v[k]
-                values.append(v)
+                value = statepoint[tokens[0]]
+                for token in tokens[1:]:
+                    value = value[token]
+                values.append(value)
             schema_data[key] = _collect_by_type(values)
         return ProjectSchema(schema_data)
