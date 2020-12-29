@@ -93,7 +93,7 @@ class Job:
         if statepoint is not None:
             # Set state point if provided. The id is computed from the state point.
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-            # Validate the state point and recursive convert to supported types.
+            # Validate the state point and recursively convert to supported types.
             statepoint = self.statepoint()
             self._id = calc_id(statepoint)
             # Update the project's state point cache immediately if opened by state point
