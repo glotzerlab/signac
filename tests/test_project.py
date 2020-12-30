@@ -648,6 +648,13 @@ class TestProject(TestProjectBase):
         job.init()
         assert job in self.project
 
+    def test_JobsCursor_contains(self):
+        cursor = self.project.find_jobs()
+        job = self.open_job(dict(a=0))
+        assert job not in cursor
+        job.init()
+        assert job in cursor
+
     def test_job_move(self):
         root = self._tmp_dir.name
         project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
