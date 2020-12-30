@@ -13,7 +13,7 @@ next
 Changed
 +++++++
 
- - Optimized job hash and equality checks (#442).
+ - Optimized job hash and equality checks (#442, #455).
 
 
 [1.5.1] -- 2020-12-19
