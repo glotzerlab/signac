@@ -388,7 +388,7 @@ class Project:
             try:
                 self._id = str(self.config["project"])
             except KeyError:
-                pass
+                return None
         return self._id
 
     def _check_schema_compatibility(self):
