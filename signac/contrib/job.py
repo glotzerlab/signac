@@ -137,8 +137,13 @@ class Job:
         return hash(self.id)
 
     def __eq__(self, other):
-        return (self.id == other.id) and (
-            os.path.realpath(self._wd) == os.path.realpath(other._wd)
+        return (
+            isinstance(other, type(self))
+            and (self.id == other.id)
+            and (
+                os.path.realpath(self.workspace())
+                == os.path.realpath(other.workspace())
+            )
         )
 
     def __str__(self):
