@@ -290,9 +290,9 @@ class Job:
         Raises
         ------
         JobsCorruptedError
-            If an error occurs while reading/parsing the state point manifest.
+            If an error occurs while parsing the state point manifest.
         OSError
-            If an error occurs while reading/parsing the state point manifest.
+            If an error occurs while reading the state point manifest.
 
         """
         fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
@@ -303,6 +303,7 @@ class Job:
             if error.errno != errno.ENOENT:
                 raise error
         except ValueError:
+            # This catches JSONDecodeError, a subclass of ValueError
             raise JobsCorruptedError([self.id])
         else:
             return manifest
