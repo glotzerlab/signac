@@ -171,7 +171,7 @@ class FileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
                 pass
             else:
-                blob = self._encode(self._to_base())
+                blob = self._encode(self._data)
 
                 # If the contents have not been changed since the initial read,
                 # we don't need to rewrite it.
@@ -237,7 +237,7 @@ class FileBufferedCollection(BufferedCollection):
         in the buffer and the integrity checks performed.
         """
         if self._filename in self._cache:
-            blob = self._encode(self)
+            blob = self._encode(self._data)
             cached_data = self._cache[self._filename]
             buffer_size_change = len(blob) - len(cached_data["contents"])
             FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
@@ -317,7 +317,7 @@ class FileBufferedCollection(BufferedCollection):
         additional check helps prevent or transparently error on otherwise
         unsafe access patterns.
         """
-        blob = self._encode(self._to_base())
+        blob = self._encode(self._data)
         metadata = self._get_file_metadata()
 
         self._cache[self._filename] = {
