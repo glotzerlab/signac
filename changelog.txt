@@ -38,6 +38,7 @@ Changed
  - Optimized performance of buffer storage (#428).
  - Optimized performance of creating/loading synced data structures (#429).
 
+
 [1.5.0] -- 2020-09-20
 ---------------------
 

@@ -54,20 +54,21 @@ class _sp_save_hook:
 class Job:
     """The job instance is a handle to the data of a unique state point.
 
-    Application developers should usually not need to directly
-    instantiate this class, but use :meth:`~signac.Project.open_job`
-    instead.
+    Application developers should not directly instantiate this class, but
+    use :meth:`~signac.Project.open_job` instead.
+
+    Jobs can be opened by ``statepoint`` or ``_id``. If both values are
+    provided, it is the user's responsibility to ensure that the values
+    correspond.
 
     Parameters
     ----------
     project : :class:`~signac.Project`
         Project handle.
-
     statepoint : dict
-        State point for the job.
-
+        State point for the job. (Default value = None)
     _id : str
-        A file-like object to write to.
+        The job identifier. (Default value = None)
 
     """
 
@@ -75,7 +76,7 @@ class Job:
     """The job's manifest filename.
 
     The job manifest is a human-readable file containing the job's state
-    point, and is stored in each job's workspace directory.
+    point that is stored in each job's workspace directory.
     """
 
     FN_DOCUMENT = "signac_job_document.json"
@@ -89,17 +90,17 @@ class Job:
 
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
-
-        if statepoint is not None:
-            # Set state point if provided. The id is computed from the state point.
+        elif statepoint is not None:
+            # A state point was provided.
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
             # Validate the state point and recursively convert to supported types.
             statepoint = self.statepoint()
-            self._id = calc_id(statepoint)
+            # Compute the id from the state point if not provided.
+            self._id = calc_id(statepoint) if _id is None else _id
             # Update the project's state point cache immediately if opened by state point
             self._project._register(self.id, statepoint)
         else:
-            # Set id if provided. State point will be loaded lazily.
+            # Only an id was provided. State point will be loaded lazily.
             self._statepoint = None
             self._id = _id
 
@@ -288,9 +289,9 @@ class Job:
         Raises
         ------
         JobsCorruptedError
-            If an error occurs while reading/parsing the state point manifest.
+            If an error occurs while parsing the state point manifest.
         OSError
-            If an error occurs while reading/parsing the state point manifest.
+            If an error occurs while reading the state point manifest.
 
         """
         fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
@@ -301,6 +302,7 @@ class Job:
             if error.errno != errno.ENOENT:
                 raise error
         except ValueError:
+            # This catches JSONDecodeError, a subclass of ValueError
             raise JobsCorruptedError([self.id])
         else:
             return manifest
@@ -543,6 +545,9 @@ class Job:
         # Update the project's state point cache if the manifest is valid
         self._project._register(self.id, statepoint)
 
+        # Update the project's state point cache if the manifest is valid
+        self._project._register(self)
+
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
 
@@ -554,8 +559,7 @@ class Job:
         Raises
         ------
         JobsCorruptedError
-            If the manifest hash is not equal to the job id, or if an error
-            occurs while reading/parsing the state point manifest.
+            If the manifest hash is not equal to the job id.
 
         """
         manifest = self._read_manifest()
