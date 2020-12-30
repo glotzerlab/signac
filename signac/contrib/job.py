@@ -537,6 +537,8 @@ class Job:
                 except OSError as error:
                     if error.errno not in (errno.EEXIST, errno.EACCES):
                         raise
+            except JobsCorruptedError:
+                raise
             except Exception as error:
                 # Attempt to delete the file on error, to prevent corruption.
                 try:
