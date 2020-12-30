@@ -521,17 +521,18 @@ class Job:
             fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
             try:
                 # Prepare the data before file creation and writing.
-                blob = json.dumps(self.statepoint, indent=2)
-
-                try:
-                    # Open the file for writing only if it does not exist yet.
-                    with open(fn_manifest, "w" if force else "x") as file:
-                        file.write(blob)
-                except OSError as error:
-                    if error.errno not in (errno.EEXIST, errno.EACCES):
-                        raise
+                statepoint = self.statepoint()
+                blob = json.dumps(statepoint, indent=2)
             except JobsCorruptedError:
                 raise
+
+            try:
+                # Open the file for writing only if it does not exist yet.
+                with open(fn_manifest, "w" if force else "x") as file:
+                    file.write(blob)
+            except OSError as error:
+                if error.errno not in (errno.EEXIST, errno.EACCES):
+                    raise
             except Exception as error:
                 # Attempt to delete the file on error, to prevent corruption.
                 try:

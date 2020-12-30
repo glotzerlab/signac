@@ -18,12 +18,7 @@ import signac.common.config
 import signac.contrib
 from signac import Project  # noqa: F401
 from signac.contrib.job import Job  # noqa: F401
-from signac.errors import (
-    DestinationExistsError,
-    InvalidKeyError,
-    JobsCorruptedError,
-    KeyTypeError,
-)
+from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
 
 try:
     import h5py  # noqa
@@ -599,8 +594,8 @@ class TestJobOpenAndClosing(TestJobBase):
         job2 = self.open_job(test_token)
         try:
             logging.disable(logging.ERROR)
-            with pytest.raises(JobsCorruptedError):
-                job2.init()
+            # Detects the corrupted manifest and overwrites with valid data
+            job2.init()
         finally:
             logging.disable(logging.NOTSET)
         job2.init(force=True)
