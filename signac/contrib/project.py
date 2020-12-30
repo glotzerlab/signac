@@ -2393,11 +2393,14 @@ class JobsCursor:
 
         """
         if job not in self._project:
-            # Exit early if the job is not in the project.
+            # Exit early if the job is not in the project. This is O(1).
             return False
         if self._filter or self._doc_filter:
             # We use the standard function for determining job ids if a filter
-            # is provided.
+            # is provided. This is O(N) and could be optimized by caching the
+            # ids of state points that match a state point filter. Caching the
+            # matches for a document filter is not safe because the document
+            # can change.
             return job.id in self._project._find_job_ids(self._filter, self._doc_filter)
         # Without filters, we can simply check if the job is in the project.
         # By the early-exit condition, we know the job must be contained.
