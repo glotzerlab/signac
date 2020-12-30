@@ -75,7 +75,7 @@ class Job:
     """The job's manifest filename.
 
     The job manifest is a human-readable file containing the job's state
-    point, and is stored in each job's workspace directory.
+    point that is stored in each job's workspace directory.
     """
 
     FN_DOCUMENT = "signac_job_document.json"
