@@ -154,12 +154,15 @@ class TestJob(TestJobBase):
 
         non_job = NonJob(job)
         assert job != non_job
+        assert non_job != job
 
         sub_job = JobSubclass(job)
         assert job == sub_job
+        assert sub_job == job
 
         job2 = self.project.open_job({"a": 0})
         assert job == job2
+        assert job2 == job
 
     def test_isfile(self):
         job = self.project.open_job({"a": 0})
