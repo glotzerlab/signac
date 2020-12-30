@@ -174,7 +174,7 @@ class _ProjectConfig(Config):
         return super().__setitem__(key, value)
 
 
-def _mutate_hook(project):
+def _invalidate_config_cache(project):
     """Invalidate cached properties derived from a project config."""
     project._id = None
     project._rd = None
@@ -218,7 +218,9 @@ class Project:
     def __init__(self, config=None, _ignore_schema_version=False):
         if config is None:
             config = load_config()
-        self._config = _ProjectConfig(config, _mutate_hook=partial(_mutate_hook, self))
+        self._config = _ProjectConfig(
+            config, _mutate_hook=partial(_invalidate_config_cache, self)
+        )
 
         # Prepare cached properties derived from the project config.
         self._id = None
