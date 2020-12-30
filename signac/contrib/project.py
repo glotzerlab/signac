@@ -231,6 +231,11 @@ class Project:
 
         # Internal caches
         self._index_cache = {}
+        # Note that the state point cache is a superset of the jobs in the
+        # project, and its contents cannot be invalidated. The cached mapping
+        # of "id: statepoint" is valid even after a job has been removed, and
+        # can be used to re-open a job by id as long as that id remains in the
+        # cache.
         self._sp_cache = {}
         self._sp_cache_misses = 0
         self._sp_cache_warned = False
@@ -632,27 +637,32 @@ class Project:
             than one match.
 
         """
-        if (id is None) == (statepoint is None):
-            raise ValueError("You need to either provide the state point or the id.")
+        if (statepoint is None) == (id is None):
+            raise ValueError("Either statepoint or id must be provided, but not both.")
         if id is None:
-            # second best case
-            job = self.Job(project=self, statepoint=statepoint)
-            if job.id not in self._sp_cache:
-                self._sp_cache[job.id] = job.statepoint()
-            return job
-        elif id in self._sp_cache:
-            # optimal case
+            # Second best case (Job will update self._sp_cache on init)
+            return self.Job(project=self, statepoint=statepoint)
+        try:
+            # Optimal case (id is in the state point cache)
             return self.Job(project=self, statepoint=self._sp_cache[id], _id=id)
-        else:
-            # worst case (no state point and cache miss)
+        except KeyError:
+            # Worst case (no statepoint and cache miss, Job will register
+            # itself in self._sp_cache on statepoint access)
             if len(id) < 32:
+                # Resolve partial job ids (first few characters) into a full job id
                 job_ids = self._find_job_ids()
                 matches = [_id for _id in job_ids if _id.startswith(id)]
                 if len(matches) == 1:
                     id = matches[0]
                 elif len(matches) > 1:
                     raise LookupError(id)
-            return self.Job(project=self, statepoint=self._get_statepoint(id), _id=id)
+                else:
+                    # By elimination, len(matches) == 0
+                    raise KeyError(id)
+            elif not self._contains_job_id(id):
+                # id does not exist in the project data space
+                raise KeyError(id)
+            return self.Job(project=self, _id=id)
 
     def _job_dirs(self):
         """Generate ids of jobs in the workspace.
@@ -702,6 +712,22 @@ class Project:
 
     __len__ = num_jobs
 
+    def _contains_job_id(self, job_id):
+        """Determine whether a job id is in the project's data space.
+
+        Parameters
+        ----------
+        job_id : str
+            The job id to test for initialization.
+
+        Returns
+        -------
+        bool
+            True if the job id is initialized for this project.
+
+        """
+        return os.path.exists(os.path.join(self._wd, job_id))
+
     def __contains__(self, job):
         """Determine whether a job is in the project's data space.
 
@@ -716,7 +742,7 @@ class Project:
             True if the job is initialized for this project.
 
         """
-        return os.path.exists(os.path.join(self._wd, job.id))
+        return self._contains_job_id(job.id)
 
     @deprecated(deprecated_in="1.3", removed_in="2.0", current_version=__version__)
     def build_job_search_index(self, index, _trust=False):
@@ -1232,31 +1258,41 @@ class Project:
 
         """
         if not self._sp_cache:
+            # Triggers if no state points have been added to the cache, and all
+            # the values are None.
             self._read_cache()
         try:
-            if job_id in self._sp_cache:
-                return self._sp_cache[job_id]
-            else:
-                self._sp_cache_misses += 1
-                if (
-                    not self._sp_cache_warned
-                    and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
-                ):
-                    logger.debug(
-                        "High number of state point cache misses. Consider "
-                        "to update cache with the Project.update_cache() method."
-                    )
-                    self._sp_cache_warned = True
-                statepoint = self._get_statepoint_from_workspace(job_id)
-        except KeyError as error:
+            # State point cache hit
+            return self._sp_cache[job_id]
+        except KeyError:
+            # State point cache missed
+            self._sp_cache_misses += 1
+            if (
+                not self._sp_cache_warned
+                and self._sp_cache_misses > self._sp_cache_miss_warning_threshold
+            ):
+                logger.debug(
+                    "High number of state point cache misses. Consider "
+                    "to update cache with the Project.update_cache() method."
+                )
+                self._sp_cache_warned = True
             try:
-                statepoint = self.read_statepoints(fn=fn)[job_id]
-            except OSError as io_error:
-                if io_error.errno != errno.ENOENT:
-                    raise io_error
-                else:
-                    raise error
-        self._sp_cache[job_id] = statepoint
+                statepoint = self._get_statepoint_from_workspace(job_id)
+                # Update the project's state point cache from this cache miss
+                self._sp_cache[job_id] = statepoint
+            except KeyError as error:
+                # Fall back to a file containing all state points because the state
+                # point could not be read from the job workspace.
+                try:
+                    statepoints = self.read_statepoints(fn=fn)
+                    # Update the project's state point cache
+                    self._sp_cache.update(statepoints)
+                    statepoint = statepoints[job_id]
+                except OSError as io_error:
+                    if io_error.errno != errno.ENOENT:
+                        raise io_error
+                    else:
+                        raise error
         return statepoint
 
     @deprecated(
@@ -1737,6 +1773,7 @@ class Project:
         # Load internal cache from all available external sources.
         self._read_cache()
         try:
+            # Updates the state point cache from the provided file
             self._sp_cache.update(self.read_statepoints(fn=fn_statepoints))
         except OSError as error:
             if error.errno != errno.ENOENT or fn_statepoints is not None:
@@ -1894,8 +1931,9 @@ class Project:
         logger.info("Update cache...")
         start = time.time()
         cache = self._read_cache()
+        cached_ids = set(self._sp_cache)
         self._update_in_memory_cache()
-        if cache is None or set(cache) != set(self._sp_cache):
+        if cache is None or set(cache) != cached_ids:
             fn_cache = self.fn(self.FN_CACHE)
             fn_cache_tmp = fn_cache + "~"
             try:

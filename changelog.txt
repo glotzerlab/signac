@@ -19,6 +19,7 @@ Changed
 +++++++
 
  - Optimized job hash and equality checks (#442).
+ - State points are loaded lazily when ``Job`` is opened by id (#238, #239).
 
 
 [1.5.1] -- 2020-12-19
