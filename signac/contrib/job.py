@@ -545,9 +545,6 @@ class Job:
         # Update the project's state point cache if the manifest is valid
         self._project._register(self.id, statepoint)
 
-        # Update the project's state point cache if the manifest is valid
-        self._project._register(self)
-
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
 
