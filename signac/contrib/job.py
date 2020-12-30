@@ -54,20 +54,21 @@ class _sp_save_hook:
 class Job:
     """The job instance is a handle to the data of a unique state point.
 
-    Application developers should usually not need to directly
-    instantiate this class, but use :meth:`~signac.Project.open_job`
-    instead.
+    Application developers should not directly instantiate this class, but
+    use :meth:`~signac.Project.open_job` instead.
+
+    Jobs can be opened by ``statepoint`` or ``_id``. If both values are
+    provided, it is the user's responsibility to ensure that the values
+    correspond.
 
     Parameters
     ----------
     project : :class:`~signac.Project`
         Project handle.
-
     statepoint : dict
-        State point for the job.
-
+        State point for the job. (Default value = None)
     _id : str
-        A file-like object to write to.
+        The job identifier. (Default value = None)
 
     """
 
@@ -551,8 +552,7 @@ class Job:
         Raises
         ------
         JobsCorruptedError
-            If the manifest hash is not equal to the job id, or if an error
-            occurs while reading/parsing the state point manifest.
+            If the manifest hash is not equal to the job id.
 
         """
         manifest = self._read_manifest()
