@@ -138,7 +138,7 @@ class Job:
 
     def __eq__(self, other):
         return (
-            isinstance(other, type(self))
+            (isinstance(other, type(self)) or isinstance(self, type(other)))
             and (self.id == other.id)
             and (
                 os.path.realpath(self.workspace())
