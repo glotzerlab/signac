@@ -1408,7 +1408,9 @@ class Project:
         details="Use job.reset_statepoint() instead.",
     )
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the state point of job.
+        """Overwrite the state point of this job while preserving job data.
+
+        This method will change the job id if the state point has been altered.
 
         .. danger::
 
@@ -1440,7 +1442,9 @@ class Project:
         details="Use job.update_statepoint() instead.",
     )
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the state point of this job.
+        """Change the state point of this job without affecting existing parameters.
+
+        This method will change the job id if the state point has been altered.
 
         .. warning::
 
