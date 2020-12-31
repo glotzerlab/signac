@@ -417,6 +417,10 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_open_job_no_id_or_statepoint(self):
+        with pytest.raises(ValueError):
+            self.project.open_job()
+
     def test_open_job_by_abbreviated_id(self):
         statepoints = [{"a": i} for i in range(5)]
         [self.project.open_job(sp).init() for sp in statepoints]
@@ -458,7 +462,9 @@ class TestProject(TestProjectBase):
         try:
             logging.disable(logging.CRITICAL)
             with pytest.raises(JobsCorruptedError):
-                self.project.open_job(id=job.id)
+                # Accessing the job state point triggers validation of the
+                # state point manifest file
+                self.project.open_job(id=job.id).statepoint
         finally:
             logging.disable(logging.NOTSET)
 
@@ -533,7 +539,9 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
-                    pass
+                    # Accessing the job state point triggers validation of the
+                    # state point manifest file
+                    job.statepoint
 
             with pytest.raises(JobsCorruptedError):
                 self.project.repair()
@@ -655,7 +663,6 @@ class TestProject(TestProjectBase):
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
-        assert hash(job) != hash(job_b)
         assert job not in project_a
         assert job not in project_b
         job.init()

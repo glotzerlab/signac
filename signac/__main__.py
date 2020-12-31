@@ -315,7 +315,7 @@ def main_remove(args):
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
         if args.interactive and not query_yes_no(
-            "Are you sure you want to {action} job with id '{job._id}'?".format(
+            "Are you sure you want to {action} job with id '{job.id}'?".format(
                 action="clear" if args.clear else "remove", job=job
             ),
             default="no",
@@ -400,10 +400,12 @@ def main_find(args):
             job = project.open_job(id=job_id)
 
             if args.sp is not None:
-                sp = job.statepoint()
+                statepoint = job.statepoint()
                 if len(args.sp) != 0:
-                    sp = {key: sp[key] for key in args.sp if key in sp}
-                print(format_lines("sp ", job_id, sp))
+                    statepoint = {
+                        key: statepoint[key] for key in args.sp if key in statepoint
+                    }
+                print(format_lines("sp ", job_id, statepoint))
 
             if args.doc is not None:
                 doc = job.document()
@@ -428,9 +430,9 @@ def main_diff(args):
 
     diff = diff_jobs(*jobs)
 
-    for jobid, sp in diff.items():
-        print(jobid)
-        pprint(sp)
+    for job_id, statepoint in diff.items():
+        print(job_id)
+        pprint(statepoint)
 
 
 def main_view(args):
@@ -1166,7 +1168,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.id,
-                    job_banner=f"\nJob:\t\t{job._id}" if job is not None else "",
+                    job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),
