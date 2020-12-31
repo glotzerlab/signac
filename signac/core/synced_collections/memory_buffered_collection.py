@@ -245,17 +245,20 @@ class MemoryBufferedCollection(BufferedCollection):
         # looping over the local cache so that each collection can
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
-        # remaining_collections = {}
+        remaining_collections = {}
         while MemoryBufferedCollection._cached_collections:
             col_id = next(iter(MemoryBufferedCollection._cached_collections))
             collection = MemoryBufferedCollection._cached_collections[col_id][0]
 
             if collection._is_buffered and not force:
+                remaining_collections[
+                    col_id
+                ] = MemoryBufferedCollection._cached_collections.pop(col_id)
                 continue
             try:
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
-        # if not issues:
-        #     MemoryBufferedCollection._cached_collections = remaining_collections
+        if not issues:
+            MemoryBufferedCollection._cached_collections = remaining_collections
         return issues
