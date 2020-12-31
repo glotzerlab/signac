@@ -1,6 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+"""Enable in-memory buffering."""
 
 import errno
 import os
@@ -11,6 +12,8 @@ from .errors import MetadataError
 
 
 class MemoryBufferedCollection(BufferedCollection):
+    """An in-memory buffer."""
+
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
@@ -43,7 +46,7 @@ class MemoryBufferedCollection(BufferedCollection):
             # validation checks.
             return None
 
-    def _flush(self, force=False, stored_metadata=None):
+    def _flush(self, force=False):
         """Save buffered changes to the underlying file.
 
         Parameters
@@ -72,6 +75,7 @@ class MemoryBufferedCollection(BufferedCollection):
             # cache and one of them flushes before the other, need to decide
             # how to handle it.
             try:
+                _, stored_metadata = self._cached_collections.pop(id(self))
                 cached_data = self._cache[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
@@ -134,7 +138,9 @@ class MemoryBufferedCollection(BufferedCollection):
             # same file, and if so, track it.
             if id(self) not in MemoryBufferedCollection._cached_collections:
                 MemoryBufferedCollection._cached_collections[id(self)] = (
-                    self, self._get_file_metadata())
+                    self,
+                    self._get_file_metadata(),
+                )
         else:
             self._initialize_data_in_cache()
 
@@ -143,7 +149,6 @@ class MemoryBufferedCollection(BufferedCollection):
         #     > MemoryBufferedCollection._BUFFER_CAPACITY
         # ):
         #     MemoryBufferedCollection._flush_buffer(force=True)
-
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -164,7 +169,9 @@ class MemoryBufferedCollection(BufferedCollection):
             # same file, and if so, track it.
             if id(self) not in MemoryBufferedCollection._cached_collections:
                 MemoryBufferedCollection._cached_collections[id(self)] = (
-                    self, self._get_file_metadata())
+                    self,
+                    self._get_file_metadata(),
+                )
         else:
             self._initialize_data_in_cache()
 
@@ -204,8 +211,7 @@ class MemoryBufferedCollection(BufferedCollection):
         # MemoryBufferedCollection._CURRENT_BUFFER_SIZE += len(
         #     MemoryBufferedCollection._cache[self._filename]["contents"]
         # )
-        MemoryBufferedCollection._cached_collections[id(self)] = (
-            self, metadata)
+        MemoryBufferedCollection._cached_collections[id(self)] = (self, metadata)
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -239,15 +245,17 @@ class MemoryBufferedCollection(BufferedCollection):
         # looping over the local cache so that each collection can
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
-        remaining_collections = {}
+        # remaining_collections = {}
         while MemoryBufferedCollection._cached_collections:
-            col_id, (collection, metadata) = MemoryBufferedCollection._cached_collections.popitem()
+            col_id = next(iter(MemoryBufferedCollection._cached_collections))
+            collection = MemoryBufferedCollection._cached_collections[col_id][0]
+
             if collection._is_buffered and not force:
-                remaining_collections[col_id] = (collection, metadata)
                 continue
             try:
-                collection._flush(force=force, stored_metadata=metadata)
+                collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
-        MemoryBufferedCollection._cached_collections = remaining_collections
+        # if not issues:
+        #     MemoryBufferedCollection._cached_collections = remaining_collections
         return issues
