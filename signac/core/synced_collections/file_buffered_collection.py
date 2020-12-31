@@ -49,6 +49,12 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
+    # Note for developers: since all subclasses share a single cache, all
+    # references to cache-related class variables in the code use the class
+    # name explicitly rather than using cls (in classmethods) or self (in
+    # methods). This usage avoids any possibility for confusion regarding
+    # backend-specific caches.
+
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
@@ -164,7 +170,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         if not self._is_buffered or force:
             try:
-                cached_data = self._cache[self._filename]
+                cached_data = FileBufferedCollection._cache[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
                 # object was never actually accessed during global buffering,
@@ -186,7 +192,7 @@ class FileBufferedCollection(BufferedCollection):
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
-                    del self._cache[self._filename]
+                    del FileBufferedCollection._cache[self._filename]
                     data_size = len(cached_data["contents"])
                     FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
@@ -236,9 +242,9 @@ class FileBufferedCollection(BufferedCollection):
         See :meth:`~._initialize_data_in_cache` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        if self._filename in self._cache:
+        if self._filename in FileBufferedCollection._cache:
             blob = self._encode(self._data)
-            cached_data = self._cache[self._filename]
+            cached_data = FileBufferedCollection._cache[self._filename]
             buffer_size_change = len(blob) - len(cached_data["contents"])
             FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
             cached_data["contents"] = blob
@@ -254,7 +260,9 @@ class FileBufferedCollection(BufferedCollection):
             # the data to initialize the cache with.
             self._initialize_data_in_cache()
             disk_data = self._load_from_resource()
-            self._cache[self._filename]["hash"] = self._hash(self._encode(disk_data))
+            FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
+                self._encode(disk_data)
+            )
 
         if (
             FileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -281,7 +289,7 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in self._cache:
+        if self._filename in FileBufferedCollection._cache:
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
             if id(self) not in FileBufferedCollection._cached_collections:
@@ -290,7 +298,7 @@ class FileBufferedCollection(BufferedCollection):
             self._initialize_data_in_cache()
 
         # Load from buffer
-        blob = self._cache[self._filename]["contents"]
+        blob = FileBufferedCollection._cache[self._filename]["contents"]
 
         if (
             FileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -320,13 +328,13 @@ class FileBufferedCollection(BufferedCollection):
         blob = self._encode(self._data)
         metadata = self._get_file_metadata()
 
-        self._cache[self._filename] = {
+        FileBufferedCollection._cache[self._filename] = {
             "contents": blob,
             "hash": self._hash(blob),
             "metadata": metadata,
         }
         FileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-            self._cache[self._filename]["contents"]
+            FileBufferedCollection._cache[self._filename]["contents"]
         )
         FileBufferedCollection._cached_collections[id(self)] = self
 
