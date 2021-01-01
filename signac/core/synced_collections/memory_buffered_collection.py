@@ -2,6 +2,12 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Enable in-memory buffering."""
+# TODO: The benchmarks I'm using to compare this class against the
+# FileBufferedCollection run into problems when these objects are initialized
+# but then the other ones are run before these start. I should look into that,
+# it's probably an issue with the initial data not being valid because
+# something else modified it on disk but these objects start in buffered mode
+# and don't recognize that they need to change it.
 
 import errno
 import os
@@ -99,10 +105,11 @@ class MemoryBufferedCollection(BufferedCollection):
                 try:
                     # Validate that the file hasn't been changed by
                     # something else.
-                    if cached_data["metadata"] != self._get_file_metadata():
-                        raise MetadataError(self._filename, cached_data["contents"])
-                    self._data = cached_data["contents"]
-                    self._save_to_resource()
+                    if cached_data["modified"]:
+                        if cached_data["metadata"] != self._get_file_metadata():
+                            raise MetadataError(self._filename, cached_data["contents"])
+                        self._data = cached_data["contents"]
+                        self._save_to_resource()
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
@@ -139,10 +146,11 @@ class MemoryBufferedCollection(BufferedCollection):
             if id(self) not in MemoryBufferedCollection._cached_collections:
                 MemoryBufferedCollection._cached_collections[id(self)] = (
                     self,
-                    self._get_file_metadata(),
+                    self._cache[self._filename]["metadata"],
                 )
+            self._cache[self._filename]["modified"] = True
         else:
-            self._initialize_data_in_cache()
+            self._initialize_data_in_cache(modified=True)
 
         # if (
         #     MemoryBufferedCollection._CURRENT_BUFFER_SIZE
@@ -170,10 +178,15 @@ class MemoryBufferedCollection(BufferedCollection):
             if id(self) not in MemoryBufferedCollection._cached_collections:
                 MemoryBufferedCollection._cached_collections[id(self)] = (
                     self,
-                    self._get_file_metadata(),
+                    self._cache[self._filename]["metadata"],
                 )
         else:
-            self._initialize_data_in_cache()
+            # TODO: The first time we call _load_from_buffer we might need to call
+            # _load_from_resource. Otherwise, if something modified the file in memory
+            # since the last time that we performed any save/load operation, we could be
+            # putting an out-of-date state into the buffer. This also affects the
+            # FileBufferedCollection.
+            self._initialize_data_in_cache(modified=False)
 
         # Set local data to the version in the buffer.
         self._data = self._cache[self._filename]["contents"]
@@ -185,7 +198,7 @@ class MemoryBufferedCollection(BufferedCollection):
         #     MemoryBufferedCollection._flush_buffer(force=True)
         # return self._decode(blob)
 
-    def _initialize_data_in_cache(self):
+    def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
 
         This method should be called the first time that a collection's data is
@@ -207,6 +220,7 @@ class MemoryBufferedCollection(BufferedCollection):
         MemoryBufferedCollection._cache[self._filename] = {
             "contents": self._data,
             "metadata": metadata,
+            "modified": modified,
         }
         # MemoryBufferedCollection._CURRENT_BUFFER_SIZE += len(
         #     MemoryBufferedCollection._cache[self._filename]["contents"]
