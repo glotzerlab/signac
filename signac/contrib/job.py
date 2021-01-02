@@ -93,12 +93,17 @@ class Job:
         elif statepoint is not None:
             # A state point was provided.
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-            # Validate the state point and recursively convert to supported types.
-            statepoint = self.statepoint()
-            # Compute the id from the state point if not provided.
-            self._id = calc_id(statepoint) if _id is None else _id
-            # Update the project's state point cache immediately if opened by state point
-            self._project._register(self.id, statepoint)
+            # If the id is provided, assume the job is already registered in
+            # the project cache and that the id is valid for the state point.
+            if _id is None:
+                # Validate the state point and recursively convert to supported types.
+                statepoint = self.statepoint()
+                # Compute the id from the state point if not provided.
+                self._id = calc_id(statepoint)
+                # Update the project's state point cache immediately if opened by state point
+                self._project._register(self.id, statepoint)
+            else:
+                self._id = _id
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._statepoint = None
