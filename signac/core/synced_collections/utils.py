@@ -22,7 +22,7 @@ class AbstractTypeResolver:
     generality, most of these checks use the ABCs defined in :py:mod:`collections.abc`.
     The price of this flexibility is that `isinstance` checks with these classes
     are very slow because the ``__instancecheck__`` hooks are implemented in pure
-    Python and reuqire checking many different cases.
+    Python and require checking many different cases.
 
     Rather than attempting to directly optimize this behavior, this class provides
     a workaround by which we can amortize the cost of type checks. Given a set
@@ -71,16 +71,16 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
-        dtype = type(obj)
+        obj_type = type(obj)
         enum_type = None
         try:
-            enum_type = self.type_map[dtype]
+            enum_type = self.type_map[obj_type]
         except KeyError:
-            for adt, id_func in self.abstract_type_identifiers.items():
+            for data_type, id_func in self.abstract_type_identifiers.items():
                 if id_func(obj):
-                    enum_type = self.type_map[dtype] = adt
+                    enum_type = self.type_map[obj_type] = data_type
                     break
-            self.type_map[dtype] = enum_type
+            self.type_map[obj_type] = enum_type
 
         return enum_type
 

@@ -150,7 +150,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                         # Fall through if the new value is not identical to the
                         # existing value and
                         #     1) The existing value is not a SyncedCollection
-                        #        (in which case we would have tried to update it, OR
+                        #        (in which case we would have tried to update it), OR
                         #     2) The existing value is a SyncedCollection, but
                         #       the new value is not a compatible type for _update.
                         self._validate({key: new_value})
