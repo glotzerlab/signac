@@ -21,7 +21,6 @@ from signac.core.synced_collections.errors import BufferedError, MetadataError
 
 class BufferedJSONCollectionTest(JSONCollectionTest):
 
-    _backend = "signac.core.synced_collections.collection_json.buffered"
     _backend_collection = BufferedJSONCollection
 
     def load(self, collection):

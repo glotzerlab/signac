@@ -23,7 +23,6 @@ except ImportError:
 
 class ZarrCollectionTest:
 
-    _backend = "signac.core.synced_collections.collection_zarr"
     _backend_collection = ZarrCollection
 
     def store(self, data):

@@ -17,7 +17,6 @@ from signac.core.synced_collections.collection_json import (
 
 class JSONCollectionTest:
 
-    _backend = "signac.core.synced_collections.collection_json"
     _backend_collection = JSONCollection
     _write_concern = False
     _fn = "test.json"

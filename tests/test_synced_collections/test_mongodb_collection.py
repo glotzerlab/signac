@@ -30,7 +30,6 @@ except ImportError:
 
 class MongoDBCollectionTest:
 
-    _backend = "signac.core.synced_collections.collection_mongodb"
     _backend_collection = MongoDBCollection
 
     def store(self, data):

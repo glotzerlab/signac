@@ -32,7 +32,6 @@ except ImportError:
 
 class RedisCollectionTest:
 
-    _backend = "signac.core.synced_collections.collection_redis"
     _backend_collection = RedisCollection
 
     def store(self, data):
