@@ -13,6 +13,7 @@ types as needed.
 from collections.abc import Mapping, Sequence
 
 from ...errors import InvalidKeyError, KeyTypeError
+from .utils import AbstractTypeResolver
 
 try:
     import numpy
@@ -20,6 +21,15 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+
+_no_dot_in_key_type_resolver = AbstractTypeResolver(
+    {
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+        "NON_STR_SEQUENCE": lambda obj: isinstance(obj, Sequence)
+        and not isinstance(obj, str),
+    }
+)
 
 
 def no_dot_in_key(data):
@@ -40,7 +50,9 @@ def no_dot_in_key(data):
     """
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
-    if isinstance(data, Mapping):
+    switch_type = _no_dot_in_key_type_resolver.get_type(data)
+
+    if switch_type == "MAPPING":
         for key, value in data.items():
             if isinstance(key, str):
                 if "." in key:
@@ -52,9 +64,19 @@ def no_dot_in_key(data):
                     f"Mapping keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             no_dot_in_key(value)
-    elif isinstance(data, Sequence) and not isinstance(data, str):
+    elif switch_type == "NON_STR_SEQUENCE":
         for value in data:
             no_dot_in_key(value)
+
+
+_json_format_validator_type_resolver = AbstractTypeResolver(
+    {
+        "BASE": lambda obj: isinstance(obj, (str, int, float, bool, type(None))),
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+        "SEQUENCE": lambda obj: isinstance(obj, Sequence),
+        "NUMPY": lambda obj: NUMPY and isinstance(obj, (numpy.ndarray, numpy.number)),
+    }
+)
 
 
 def json_format_validator(data):
@@ -73,9 +95,11 @@ def json_format_validator(data):
         If the data type of ``data`` is not supported.
 
     """
-    if isinstance(data, (str, int, float, bool, type(None))):
+    switch_type = _json_format_validator_type_resolver.get_type(data)
+
+    if switch_type == "BASE":
         return
-    elif isinstance(data, Mapping):
+    elif switch_type == "MAPPING":
         for key, value in data.items():
             # Support for non-str keys will be removed in version 2.0.
             # See issue: https://github.com/glotzerlab/signac/issues/316.
@@ -84,10 +108,10 @@ def json_format_validator(data):
                     f"Keys must be str, int, bool or None, not {type(key).__name__}"
                 )
             json_format_validator(value)
-    elif isinstance(data, Sequence):
+    elif switch_type == "SEQUENCE":
         for value in data:
             json_format_validator(value)
-    elif NUMPY and isinstance(data, (numpy.ndarray, numpy.number)):
+    elif switch_type == "NUMPY":
         if numpy.iscomplex(data).any():
             raise TypeError(
                 "NumPy object with complex value(s) is not JSON serializable"

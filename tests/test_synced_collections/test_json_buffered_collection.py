@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
-from signac.core.synced_collections.buffered_collection import buffer_reads_writes
+from signac.core.synced_collections.buffered_collection import buffer_all
 from signac.core.synced_collections.collection_json import (
     BufferedJSONCollection,
     BufferedJSONDict,
@@ -131,7 +131,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection["buffered"] = testdata
         assert "buffered" in synced_collection
         assert synced_collection["buffered"] == testdata
-        with buffer_reads_writes():
+        with buffer_all():
             assert "buffered" in synced_collection
             assert synced_collection["buffered"] == testdata
             synced_collection["buffered2"] = 1
@@ -140,7 +140,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 2
         assert "buffered2" in synced_collection
         assert synced_collection["buffered2"] == 1
-        with buffer_reads_writes():
+        with buffer_all():
             del synced_collection["buffered"]
             assert len(synced_collection) == 1
             assert "buffered" not in synced_collection
@@ -150,7 +150,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert synced_collection["buffered2"] == 1
 
         with pytest.raises(BufferedError):
-            with buffer_reads_writes():
+            with buffer_all():
                 synced_collection["buffered2"] = 2
                 self.store({"test": 1})
                 assert synced_collection["buffered2"] == 2
@@ -162,7 +162,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 0
 
         for outer_buffer, inner_buffer in itertools.product(
-            [synced_collection.buffered, buffer_reads_writes], repeat=2
+            [synced_collection.buffered, buffer_all], repeat=2
         ):
             err_msg = (
                 f"outer_buffer: {outer_buffer.__qualname__}, "
@@ -200,7 +200,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert "inside_first" in synced_collection2
             assert "inside_first" in on_disk_dict2
 
-            with buffer_reads_writes():
+            with buffer_all():
                 synced_collection["inside_second"] = 3
                 synced_collection2["inside_second"] = 3
 
@@ -248,7 +248,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert synced_collection["inside_first"] == 2
             assert "inside_first" not in on_disk_dict
 
-            with buffer_reads_writes():
+            with buffer_all():
                 synced_collection["inside_second"] = 3
                 synced_collection2["inside_second"] = 4
 
@@ -295,7 +295,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 assert synced_collection["inside_first"] == 2
                 assert on_disk_dict["inside_first"] == 3
 
-                with buffer_reads_writes():
+                with buffer_all():
                     synced_collection["inside_second"] = 3
                     synced_collection2["inside_second"] = 4
 
@@ -351,12 +351,12 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
     def test_global_buffered(self, synced_collection):
         assert len(synced_collection) == 0
-        with buffer_reads_writes():
+        with buffer_all():
             synced_collection.reset([1, 2, 3])
             assert len(synced_collection) == 3
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]
-        with buffer_reads_writes():
+        with buffer_all():
             assert len(synced_collection) == 3
             assert synced_collection == [1, 2, 3]
             synced_collection[0] = 4
@@ -367,7 +367,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         # metacheck failure
         with pytest.raises(BufferedError):
-            with buffer_reads_writes():
+            with buffer_all():
                 synced_collection.reset([1])
                 assert synced_collection == [1]
                 # Unfortunately the resolution of os.stat is

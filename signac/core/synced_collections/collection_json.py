@@ -13,9 +13,11 @@ from .file_buffered_collection import FileBufferedCollection
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
+from .utils import SCJSONEncoder
 from .validators import json_format_validator
 
 
+# TODO: This method should be removed in signac 2.0.
 def _convert_key_to_str(data):
     """Recursively convert non-string keys to strings in dicts.
 
@@ -27,8 +29,12 @@ def _convert_key_to_str(data):
     for dicts. These inputs were silently converted to string keys and stored
     since JSON does not support integer keys. This behavior is deprecated and
     will become an error in signac 2.0.
+
+    Note for developers: this method is designed for use as a validator in the
+    synced collections framework, but due to the backwards compatibility requirement
+    it violates the general behavior of validators by modifying the data in place.
+    This behavior can be removed in signac 2.0 once non-str keys become an error.
     """
-    # TODO: This method should be removed in signac 2.0.
     if isinstance(data, dict):
 
         def _str_key(key):
@@ -41,12 +47,13 @@ def _convert_key_to_str(data):
                 key = str(key)
             return key
 
-        return {
-            _str_key(key): _convert_key_to_str(value) for key, value in data.items()
-        }
+        # Get a list of keys a priori to support modification in place.
+        for key in list(data):
+            _convert_key_to_str(data[key])
+            data[_str_key(key)] = data.pop(key)
     elif isinstance(data, list):
-        return [_convert_key_to_str(value) for value in data]
-    return data
+        for i, value in enumerate(data):
+            _convert_key_to_str(value)
 
 
 class JSONCollection(SyncedCollection):
@@ -97,11 +104,8 @@ class JSONCollection(SyncedCollection):
 
     def _save_to_resource(self):
         """Write the data to JSON file."""
-        data = self._to_base()
-        # Converting non-string keys to string
-        data = _convert_key_to_str(data)
         # Serialize data
-        blob = json.dumps(data).encode()
+        blob = json.dumps(self, cls=SCJSONEncoder).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file.
         if self._write_concern:
@@ -120,7 +124,7 @@ class JSONCollection(SyncedCollection):
         return self._filename
 
 
-JSONCollection.add_validator(json_format_validator)
+JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
 
 
 class BufferedJSONCollection(FileBufferedCollection, JSONCollection):

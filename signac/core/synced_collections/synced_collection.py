@@ -9,12 +9,21 @@ from contextlib import contextmanager
 from inspect import isabstract
 from typing import Any, Callable, DefaultDict, List
 
+from .utils import AbstractTypeResolver
+
 try:
     import numpy
 
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+# Identifies types of SyncedCollection, which are the base type for this class.
+_sc_resolver = AbstractTypeResolver(
+    {
+        "SYNCEDCOLLECTION": lambda obj: isinstance(obj, SyncedCollection),
+    }
+)
 
 
 class SyncedCollection(Collection):
@@ -66,7 +75,7 @@ class SyncedCollection(Collection):
     callables that accept different data types as input and raise Exceptions if the
     data does not conform to the requirements of a particular backend. For
     example, a JSON validator would raise Exceptions if it detected non-string
-    keys in a dict.
+    keys in a dict. Validators should have no side effects.
 
     Parameters
     ----------

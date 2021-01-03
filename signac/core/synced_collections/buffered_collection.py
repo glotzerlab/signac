@@ -16,7 +16,7 @@ heavy I/O. The specific buffering mechanism must be implemented by each backend
 since it depends on the nature of the underlying data format.
 
 All buffered collections expose a local context manager for buffering. In addition,
-this module exposes a global context manager :func:`buffer_reads_writes` that
+this module exposes a global context manager :func:`buffer_all` that
 indicates to all buffered collections irrespective of data type or backend that
 they should enter buffered mode. These context managers may be nested freely, and
 buffer flushes will occur when all such managers have been exited.
@@ -24,7 +24,7 @@ buffer flushes will occur when all such managers have been exited.
 .. code-block::
 
     with collection1.buffered:
-        with buffer_reads_writes:
+        with buffer_all:
             collection2['foo'] = 1
             collection1['bar'] = 1
             # collection2 will flush when this context exits.
@@ -43,56 +43,6 @@ from .errors import BufferedError
 from .synced_collection import SyncedCollection
 
 logger = logging.getLogger(__name__)
-
-_BUFFERED_MODE = 0
-_BUFFERED_BACKENDS: List[Any] = []
-
-
-@contextmanager
-def buffer_reads_writes():
-    """Enter a globally buffer context for all BufferedCollection instances.
-
-    All future operations use the buffer whenever possible. Write operations
-    are deferred until the context is exited, at which point all buffered
-    backends will flush their buffers. Individual backends may flush their
-    buffers within this context if the implementation requires it; this context
-    manager represents a promise to buffer whenever possible, but does not
-    guarantee that no writes will occur under all circumstances.
-    """
-    global _BUFFERED_MODE
-    assert _BUFFERED_MODE >= 0
-
-    _BUFFERED_MODE += 1
-    try:
-        yield
-    finally:
-        _BUFFERED_MODE -= 1
-        if _BUFFERED_MODE == 0:
-            _flush_all_backends()
-
-
-def _flush_all_backends():
-    """Execute all deferred write operations.
-
-    Raises
-    ------
-    BufferedError
-        If there are any issues with flushing any backend.
-
-    """
-    global _BUFFERED_BACKENDS
-    logger.debug("Flushing buffer...")
-    issues = {}
-    for backend in _BUFFERED_BACKENDS:
-        try:
-            # try to sync the data to backend
-            issue = backend._flush_buffer()
-            issues.update(issue)
-        except OSError as error:
-            logger.error(str(error))
-            issues[backend] = error
-    if issues:
-        raise BufferedError(issues)
 
 
 class BufferedCollection(SyncedCollection):
@@ -122,6 +72,9 @@ class BufferedCollection(SyncedCollection):
           is to simply call :meth:`~SyncedCollection._save_to_resource`
     """
 
+    _BUFFERED_MODE = 0
+    _BUFFERED_BACKENDS: List[Any] = []
+
     # TODO: Include statement about thread-safety, and perhaps see if we can
     # improve it. The main possible limitation is that while multithreaded
     # access to different synced collections is safe in non-buffered mode
@@ -147,8 +100,52 @@ class BufferedCollection(SyncedCollection):
         Each subclass has its own means of buffering and must be flushed.
         """
         super().__init_subclass__()
-        global _BUFFERED_BACKENDS
-        _BUFFERED_BACKENDS.append(cls)
+        BufferedCollection._BUFFERED_BACKENDS.append(cls)
+
+    @staticmethod
+    @contextmanager
+    def buffer_all():
+        """Enter a globally buffer context for all BufferedCollection instances.
+
+        All future operations use the buffer whenever possible. Write operations
+        are deferred until the context is exited, at which point all buffered
+        backends will flush their buffers. Individual backends may flush their
+        buffers within this context if the implementation requires it; this context
+        manager represents a promise to buffer whenever possible, but does not
+        guarantee that no writes will occur under all circumstances.
+        """
+        assert BufferedCollection._BUFFERED_MODE >= 0
+
+        BufferedCollection._BUFFERED_MODE += 1
+        try:
+            yield
+        finally:
+            BufferedCollection._BUFFERED_MODE -= 1
+            if BufferedCollection._BUFFERED_MODE == 0:
+                BufferedCollection._flush_all_backends()
+
+    @staticmethod
+    def _flush_all_backends():
+        """Execute all deferred write operations.
+
+        Raises
+        ------
+        BufferedError
+            If there are any issues with flushing any backend.
+
+        """
+        logger.debug("Flushing buffer...")
+        issues = {}
+        for backend in BufferedCollection._BUFFERED_BACKENDS:
+            try:
+                # try to sync the data to backend
+                issue = backend._flush_buffer()
+                issues.update(issue)
+            except OSError as error:
+                logger.error(str(error))
+                issues[backend] = error
+        if issues:
+            raise BufferedError(issues)
 
     def _save(self):
         """Synchronize data with the backend but buffer if needed.
@@ -222,8 +219,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        global _BUFFERED_MODE
-        return self._buffered + _BUFFERED_MODE > 0
+        return self._buffered + BufferedCollection._BUFFERED_MODE > 0
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
@@ -233,3 +229,6 @@ class BufferedCollection(SyncedCollection):
     def _flush_buffer(self):
         """Flush all data in this class's buffer."""
         pass
+
+
+buffer_all = BufferedCollection.buffer_all

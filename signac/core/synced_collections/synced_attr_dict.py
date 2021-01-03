@@ -12,8 +12,16 @@ named by keys, including nested keys.
 from collections.abc import Mapping, MutableMapping
 from typing import Tuple
 
-from .synced_collection import SyncedCollection
+from .synced_collection import SyncedCollection, _sc_resolver
+from .utils import AbstractTypeResolver
 from .validators import no_dot_in_key
+
+# Identifies mappings, which are the base type for this class.
+_mapping_resolver = AbstractTypeResolver(
+    {
+        "MAPPING": lambda obj: isinstance(obj, Mapping),
+    }
+)
 
 
 class SyncedAttrDict(SyncedCollection, MutableMapping):
@@ -70,7 +78,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         converted = {}
         for key, value in self._data.items():
-            if isinstance(value, SyncedCollection):
+            switch_type = _sc_resolver.get_type(value)
+            if switch_type == "SYNCEDCOLLECTION":
                 converted[key] = value._to_base()
             else:
                 converted[key] = value
@@ -90,9 +99,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         bool
 
         """
-        if isinstance(data, Mapping):
-            return True
-        return False
+        return _mapping_resolver.get_type(data) == "MAPPING"
 
     def _update(self, data=None):
         """Update the in-memory representation to match the provided data.
@@ -114,27 +121,43 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
         """
         if data is None:
-            data = {}
-        if isinstance(data, Mapping):
-            self._validate(data)
+            self._data.clear()
+        elif _mapping_resolver.get_type(data) == "MAPPING":
             with self._suspend_sync():
-                # This loop avoids rebuilding existing synced collections for performance.
-                for key in data:
-                    if key in self._data:
-                        if data[key] == self._data[key]:
+                for key, new_value in data.items():
+                    try:
+                        # The most common usage of SyncedCollections is with a
+                        # single object referencing an underlying resource at a
+                        # time, so we should almost always find that elements
+                        # of data are already contained in self._data, so EAFP
+                        # is the best choice for performance.
+                        existing = self._data[key]
+                    except KeyError:
+                        # If the item wasn't present at all, we can simply
+                        # assign it.
+                        self._validate({key: new_value})
+                        self._data[key] = self._from_base(new_value, parent=self)
+                    else:
+                        if new_value == existing:
                             continue
-                        if isinstance(self._data[key], SyncedCollection):
+                        if _sc_resolver.get_type(existing) == "SYNCEDCOLLECTION":
                             try:
-                                self._data[key]._update(data[key])
+                                existing._update(new_value)
                                 continue
                             except ValueError:
                                 pass
-                    self._data[key] = self._from_base(data[key], parent=self)
-                remove = set()
-                for key in self._data:
-                    if key not in data:
-                        remove.add(key)
-                for key in remove:
+
+                        # Fall through if the new value is not identical to the
+                        # existing value and
+                        #     1) The existing value is not a SyncedCollection
+                        #        (in which case we would have tried to update it), OR
+                        #     2) The existing value is a SyncedCollection, but
+                        #       the new value is not a compatible type for _update.
+                        self._validate({key: new_value})
+                        self._data[key] = self._from_base(new_value, parent=self)
+
+                to_remove = [key for key in self._data if key not in data]
+                for key in to_remove:
                     del self._data[key]
         else:
             raise ValueError(
@@ -144,10 +167,17 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             )
 
     def __setitem__(self, key, value):
-        self._validate({key: value})
+        # TODO: Remove in signac 2.0, currently we're constructing a dict to
+        # allow in-place modification by _convert_key_to_str, but validators
+        # should not have side effects once that backwards compatibility layer
+        # is removed, so we can validate a temporary dict {key: value} and
+        # directly set using those rather than looping over data.
+        data = {key: value}
+        self._validate(data)
         self._load()
         with self._suspend_sync():
-            self._data[key] = self._from_base(value, parent=self)
+            for key, value in data.items():
+                self._data[key] = self._from_base(value, parent=self)
         self._save()
 
     def reset(self, data=None):
@@ -166,7 +196,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         """
         if data is None:
             data = {}
-        if isinstance(data, Mapping):
+        if _mapping_resolver.get_type(data) == "MAPPING":
             self._validate(data)
             with self._suspend_sync():
                 self._data = {
@@ -216,7 +246,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
     def update(self, other=None, **kwargs):  # noqa: D102
         if other is not None:
             # Convert sequence of key, value pairs to dict before validation
-            if not isinstance(other, Mapping):
+            if _mapping_resolver.get_type(other) != "MAPPING":
                 other = dict(other)
         else:
             other = {}
@@ -232,10 +262,18 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if key in self._data:
             ret = self._data[key]
         else:
-            self._validate({key: default})
             ret = self._from_base(default, parent=self)
+            # TODO: Remove in signac 2.0, currently we're constructing a dict
+            # to allow in-place modification by _convert_key_to_str, but
+            # validators should not have side effects once that backwards
+            # compatibility layer is removed, so we can validate a temporary
+            # dict {key: value} and directly set using those rather than
+            # looping over data.
+            data = {key: ret}
+            self._validate(data)
             with self._suspend_sync():
-                self._data[key] = ret
+                for key, value in data.items():
+                    self._data[key] = value
             self._save()
         return ret
 
