@@ -1,13 +1,21 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""Enable in-memory buffering."""
-# TODO: The benchmarks I'm using to compare this class against the
-# FileBufferedCollection run into problems when these objects are initialized
-# but then the other ones are run before these start. I should look into that,
-# it's probably an issue with the initial data not being valid because
-# something else modified it on disk but these objects start in buffered mode
-# and don't recognize that they need to change it.
+"""A standardized buffering implementation for file-based backends.
+
+This module defines a variant of the buffering protocol in
+:py:mod:`file_buffered_collection`. This module exploits the same idea that
+all file-based backends can use a similar buffering protocol using integrity
+checks based on file modification times. However, that buffering approach
+mitigates I/O costs by serializing data into a single buffer that is then
+treated as the underlying data store by associated :class:`SyncedCollection` objects.
+That approach is expensive because it still requires constant encoding and
+decoding of data while checking for changes to the data in the buffer from other
+instances pointing to the same underlying files. The approach in this module circumvents
+this these performance bottlenecks by directly sharing the underlying data store
+in the buffer for all objects, completely removing the need for encoding, decoding,
+and updating in place.
+"""
 
 import errno
 import os
@@ -17,8 +25,61 @@ from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 
 
-class MemoryBufferedCollection(BufferedCollection):
-    """An in-memory buffer."""
+class SharedMemoryFileBufferedCollection(BufferedCollection):
+    """A :class:`SyncedCollection` that defers all I/O when buffered.
+
+    This class implements a variant of the buffering strategy defined in the
+    :class:`signac.core.synced_collections.file_buffered_collection.FileBufferedCollection`.
+    Like that class, this class enables buffering for file-based backends by storing
+    the last known modification time of the data on disk prior to entering buffered
+    mode, then checking whether that has changed when the buffer is flushed.
+    The buffering implemented by
+    :class:`signac.core.synced_collections.file_buffered_collection.FileBufferedCollection`.
+    is true buffering in the sense that the entire normal write operation is
+    performed as normal, including serialization, except that data is written to
+    a different persistent store than the underlying resource. However, such
+    buffering incurs significant overhead associated all the non-I/O tasks
+    required prior to writing to the buffer, particularly data serialization.
+    This class exists to remove these performance bottlenecks, which can be
+    severe, and provide a more performant alternative.
+
+    The buffering method implemented in this class circumvents the
+    aforementioned performance bottlenecks by directly sharing the data between
+    multiple synced collections. Rather than encoding and decoding data, all
+    objects associated with a file share a single underlying in-memory data store,
+    allowing any changes to one to be transparently persisted to the others. When
+    the first collection associated with a particular file is accessed or
+    modified in buffered mode for the first time, its data is stored in a cache.
+    When future collections pointing to the same file access the cache, rather
+    than synchronizing their data with the contents of the cache, the underlying
+    data attribute of the collection is simply repointed at the data in the cache.
+    This method exploits the fact that all mutable collection types in Python are
+    references, so modifying one such collection results in modifying all of them,
+    thereby removing any need for more complicated synchronization protocols.
+
+    This approach has one principal downside relative to the other buffering
+    method. Since the data is not always encoded into a byte-string, the exact
+    size of the data in the buffer is not exactly known. This method attempts
+    to provide an approximation for this behavior by specifying an expected growth
+    factor indicating how much an average file is expected to grow while in buffered
+    mode. The initial file size is then used along with this factor to estimate
+    the buffer size and flush accordingly.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The filename of the associated JSON file on disk (Default value = None).
+
+    .. note::
+        Important note for subclasses: This class should be inherited before
+        any other collections. This requirement is due to the extensive use of
+        multiple inheritance: since this class is designed to be combined with
+        other :class:`SyncedCollection` types without making those types aware
+        of buffering behavior, it transparently hooks into the initialization
+        process, but this is dependent on its constructor being called before
+        those of other classes.
+
+    """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
@@ -115,7 +176,7 @@ class MemoryBufferedCollection(BufferedCollection):
                     # cleared to ensure a valid final buffer state.
                     del self._cache[self._filename]
                     # data_size = len(cached_data["contents"])
-                    # MemoryBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
+                    # SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -143,8 +204,8 @@ class MemoryBufferedCollection(BufferedCollection):
         if self._filename in self._cache:
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
-            if id(self) not in MemoryBufferedCollection._cached_collections:
-                MemoryBufferedCollection._cached_collections[id(self)] = (
+            if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
                     self,
                     self._cache[self._filename]["metadata"],
                 )
@@ -153,10 +214,10 @@ class MemoryBufferedCollection(BufferedCollection):
             self._initialize_data_in_cache(modified=True)
 
         # if (
-        #     MemoryBufferedCollection._CURRENT_BUFFER_SIZE
-        #     > MemoryBufferedCollection._BUFFER_CAPACITY
+        #     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+        #     > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
         # ):
-        #     MemoryBufferedCollection._flush_buffer(force=True)
+        #     SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -175,8 +236,8 @@ class MemoryBufferedCollection(BufferedCollection):
         if self._filename in self._cache:
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
-            if id(self) not in MemoryBufferedCollection._cached_collections:
-                MemoryBufferedCollection._cached_collections[id(self)] = (
+            if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
                     self,
                     self._cache[self._filename]["metadata"],
                 )
@@ -192,10 +253,10 @@ class MemoryBufferedCollection(BufferedCollection):
         self._data = self._cache[self._filename]["contents"]
 
         # if (
-        #     MemoryBufferedCollection._CURRENT_BUFFER_SIZE
-        #     > MemoryBufferedCollection._BUFFER_CAPACITY
+        #     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+        #     > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
         # ):
-        #     MemoryBufferedCollection._flush_buffer(force=True)
+        #     SharedMemoryFileBufferedCollection._flush_buffer(force=True)
         # return self._decode(blob)
 
     def _initialize_data_in_cache(self, modified):
@@ -217,15 +278,18 @@ class MemoryBufferedCollection(BufferedCollection):
         unsafe access patterns.
         """
         metadata = self._get_file_metadata()
-        MemoryBufferedCollection._cache[self._filename] = {
+        SharedMemoryFileBufferedCollection._cache[self._filename] = {
             "contents": self._data,
             "metadata": metadata,
             "modified": modified,
         }
-        # MemoryBufferedCollection._CURRENT_BUFFER_SIZE += len(
-        #     MemoryBufferedCollection._cache[self._filename]["contents"]
+        # SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += len(
+        #     SharedMemoryFileBufferedCollection._cache[self._filename]["contents"]
         # )
-        MemoryBufferedCollection._cached_collections[id(self)] = (self, metadata)
+        SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
+            self,
+            metadata,
+        )
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -250,7 +314,7 @@ class MemoryBufferedCollection(BufferedCollection):
         """
         # All subclasses share a single cache rather than having separate
         # caches for each instance, so we can exit early in subclasses.
-        if cls != MemoryBufferedCollection:
+        if cls != SharedMemoryFileBufferedCollection:
             return {}
 
         issues = {}
@@ -260,19 +324,23 @@ class MemoryBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while MemoryBufferedCollection._cached_collections:
-            col_id = next(iter(MemoryBufferedCollection._cached_collections))
-            collection = MemoryBufferedCollection._cached_collections[col_id][0]
+        while SharedMemoryFileBufferedCollection._cached_collections:
+            col_id = next(iter(SharedMemoryFileBufferedCollection._cached_collections))
+            collection = SharedMemoryFileBufferedCollection._cached_collections[col_id][
+                0
+            ]
 
             if collection._is_buffered and not force:
                 remaining_collections[
                     col_id
-                ] = MemoryBufferedCollection._cached_collections.pop(col_id)
+                ] = SharedMemoryFileBufferedCollection._cached_collections.pop(col_id)
                 continue
             try:
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            MemoryBufferedCollection._cached_collections = remaining_collections
+            SharedMemoryFileBufferedCollection._cached_collections = (
+                remaining_collections
+            )
         return issues

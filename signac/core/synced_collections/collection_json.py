@@ -10,7 +10,7 @@ import uuid
 import warnings
 
 from .file_buffered_collection import FileBufferedCollection
-from .memory_buffered_collection import MemoryBufferedCollection
+from .memory_buffered_collection import SharedMemoryFileBufferedCollection
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
@@ -142,7 +142,7 @@ class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
         super().__init__(*args, **kwargs)
 
 
-class MemoryBufferedJSONCollection(MemoryBufferedCollection, JSONCollection):
+class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
 
     This class implements the buffer protocol defined by :class:`BufferedCollection`.
