@@ -117,6 +117,44 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             # validation checks.
             return None
 
+    @staticmethod
+    def get_buffer_capacity():
+        """Get the current buffer capacity.
+
+        Returns
+        -------
+        int
+            The number of collections that can be stored before a flush is triggered.
+
+        """
+        return SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+
+    @staticmethod
+    def set_buffer_capacity(new_capacity):
+        """Update the buffer capacity.
+
+        Parameters
+        ----------
+        new_capacity : int
+            The number of collections that can be fit in the buffer.
+
+        """
+        SharedMemoryFileBufferedCollection._BUFFER_CAPACITY = new_capacity
+        if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
+            SharedMemoryFileBufferedCollection._flush_buffer()
+
+    @staticmethod
+    def get_current_buffer_size():
+        """Get the total number of collections currently stored in the buffer.
+
+        Returns
+        -------
+        int
+            The number of collections contained in the buffer.
+
+        """
+        return SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
 

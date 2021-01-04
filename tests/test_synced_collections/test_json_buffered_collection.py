@@ -423,7 +423,44 @@ class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
 
     def test_buffer_flush(self, synced_collection, synced_collection2):
         """Test that the buffer gets flushed when enough data is written."""
-        return
+        original_buffer_capacity = self._collection_type.get_buffer_capacity()
+
+        assert self._collection_type.get_current_buffer_size() == 0
+        self._collection_type.set_buffer_capacity(1)
+
+        # Ensure that the file exists on disk by executing a clear operation so
+        # that load operations work as expected.
+        assert len(synced_collection) == 0
+        assert len(synced_collection2) == 0
+        synced_collection.clear()
+        synced_collection2.clear()
+
+        with buffer_all():
+            synced_collection["foo"] = 1
+            assert self._collection_type.get_current_buffer_size() == 1
+            assert synced_collection != self.load(synced_collection)
+
+            # This buffering mode is based on the number of files buffered, so
+            # we need to write to the second collection.
+            synced_collection2["bar"] = 2
+            assert self._collection_type.get_current_buffer_size() == 1
+
+            # The second file shouldn't match; the first file was flushed to
+            # make room for the second in the buffer.
+            assert synced_collection2 != self.load(synced_collection2)
+
+            # Make sure the first file on disk now matches. We must check this
+            # after the previous check, though, because the __eq__ check below
+            # results in synced_collection being loaded into the buffer,
+            # thereby causing a flush .
+            assert synced_collection == self.load(synced_collection)
+
+            # The second file will now match because the check above loaded
+            # synced_collection into the buffer and flushed synced_collection2.
+            assert synced_collection2 == self.load(synced_collection2)
+
+        # Reset buffer capacity for other tests.
+        self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
 
 class TestMemoryBufferedJSONList(TestBufferedJSONList):
