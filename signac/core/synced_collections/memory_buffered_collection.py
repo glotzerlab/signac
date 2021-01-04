@@ -59,11 +59,9 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     This approach has one principal downside relative to the other buffering
     method. Since the data is not always encoded into a byte-string, the exact
-    size of the data in the buffer is not exactly known. This method attempts
-    to provide an approximation for this behavior by specifying an expected growth
-    factor indicating how much an average file is expected to grow while in buffered
-    mode. The initial file size is then used along with this factor to estimate
-    the buffer size and flush accordingly.
+    size of the data in the buffer is not exactly known. This method simply counts
+    the number of objects in the buffer as a means to decide how much to store before
+    the buffer is flushed.
 
     Parameters
     ----------
@@ -83,9 +81,14 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
-    _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
+    # TODO: Do we really care about the total number of objects stored in the
+    # buffer, or do we only care about objects that have been modified (and
+    # therefore require a file write when flushing)? For files that have been
+    # read but not modified, I don't think that there's any reason not to just
+    # let them sit in memory, or at least to give the user an option to allow
+    # that in case they know that virtual memory exhaustion won't be an issue.
+    _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
-    _GROWTH_FACTOR = 4
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -151,10 +154,10 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 # multiple collections pointing to the same file, etc).
 
                 # However, we do have to verify that the current metadata for
-                # the file is not older than the old metadata; otherwise we
-                # load the file from disk, because this indicates that while we
-                # haven't stored any buffered data for this file since it was
-                # last modified, something else has (typical use case would be
+                # the file is not newer than the originally stored metadata;
+                # otherwise we load the file from disk, because this indicates
+                # that something has modified the file since its data was
+                # originally stored in the buffer. A typical use case would be
                 # multiple collections pointing to the same file where only one
                 # of them has changed. The fact that this collection hasn't
                 # stored anything to the buffer is why this behavior is valid.
@@ -175,11 +178,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= (
-                        cached_data["metadata"][0]
-                        if cached_data["metadata"] is not None
-                        else 0
-                    )
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
                     del self._cache[self._filename]
 
     def _load(self):
@@ -219,7 +218,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         if (
             SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-            * SharedMemoryFileBufferedCollection._GROWTH_FACTOR
             > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
         ):
             SharedMemoryFileBufferedCollection._flush_buffer(force=True)
@@ -259,7 +257,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         if (
             SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-            * SharedMemoryFileBufferedCollection._GROWTH_FACTOR
             > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
         ):
             SharedMemoryFileBufferedCollection._flush_buffer(force=True)
@@ -288,9 +285,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             "metadata": metadata,
             "modified": modified,
         }
-        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += (
-            metadata[0] if metadata is not None else 0
-        )
+        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
         SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
             self,
             metadata,
