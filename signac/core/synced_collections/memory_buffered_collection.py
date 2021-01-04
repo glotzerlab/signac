@@ -81,10 +81,11 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     """
 
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
+    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
+    _GROWTH_FACTOR = 4
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -174,9 +175,12 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= (
+                        cached_data["metadata"][0]
+                        if cached_data["metadata"] is not None
+                        else 0
+                    )
                     del self._cache[self._filename]
-                    # data_size = len(cached_data["contents"])
-                    # SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -213,11 +217,12 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         else:
             self._initialize_data_in_cache(modified=True)
 
-        # if (
-        #     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-        #     > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-        # ):
-        #     SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+        if (
+            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+            * SharedMemoryFileBufferedCollection._GROWTH_FACTOR
+            > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+        ):
+            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -252,12 +257,12 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # Set local data to the version in the buffer.
         self._data = self._cache[self._filename]["contents"]
 
-        # if (
-        #     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-        #     > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-        # ):
-        #     SharedMemoryFileBufferedCollection._flush_buffer(force=True)
-        # return self._decode(blob)
+        if (
+            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+            * SharedMemoryFileBufferedCollection._GROWTH_FACTOR
+            > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+        ):
+            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
@@ -283,9 +288,9 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             "metadata": metadata,
             "modified": modified,
         }
-        # SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-        #     SharedMemoryFileBufferedCollection._cache[self._filename]["contents"]
-        # )
+        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += (
+            metadata[0] if metadata is not None else 0
+        )
         SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
             self,
             metadata,
