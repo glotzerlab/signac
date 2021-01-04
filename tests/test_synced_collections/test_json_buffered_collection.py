@@ -312,6 +312,35 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 finished = True
         assert finished
 
+    def test_buffer_flush(self, synced_collection):
+        """Test that the buffer gets flushed when enough data is written."""
+        original_buffer_capacity = self._collection_type.get_buffer_capacity()
+
+        assert self._collection_type.get_current_buffer_size() == 0
+        self._collection_type.set_buffer_capacity(20)
+
+        # Ensure that the file exists on disk by executing a clear operation so
+        # that load operations work as expected.
+        assert len(synced_collection) == 0
+        synced_collection.clear()
+
+        with synced_collection.buffered():
+            synced_collection["foo"] = 1
+            assert self._collection_type.get_current_buffer_size() == len(
+                repr(synced_collection)
+            )
+            assert synced_collection != self.load(synced_collection)
+
+            # Add a long enough value to force a flush.
+            synced_collection["bar"] = 100
+            assert self._collection_type.get_current_buffer_size() == 0
+
+            # Make sure the file on disk now matches.
+            assert synced_collection == self.load(synced_collection)
+
+        # Reset buffer capacity for other tests.
+        self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
 
 class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
     """Tests of buffering JSONLists."""
@@ -391,6 +420,10 @@ class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
 
     _backend_collection = MemoryBufferedJSONCollection  # type: ignore
     _collection_type = MemoryBufferedJSONDict  # type: ignore
+
+    def test_buffer_flush(self, synced_collection, synced_collection2):
+        """Test that the buffer gets flushed when enough data is written."""
+        return
 
 
 class TestMemoryBufferedJSONList(TestBufferedJSONList):
