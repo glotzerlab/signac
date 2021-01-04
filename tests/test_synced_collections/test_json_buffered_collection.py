@@ -15,6 +15,9 @@ from signac.core.synced_collections.collection_json import (
     BufferedJSONCollection,
     BufferedJSONDict,
     BufferedJSONList,
+    MemoryBufferedJSONCollection,
+    MemoryBufferedJSONDict,
+    MemoryBufferedJSONList,
 )
 from signac.core.synced_collections.errors import BufferedError, MetadataError
 
@@ -39,7 +42,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         _tmp_dir2 = TemporaryDirectory(prefix="jsondict2_")
         _fn_2 = os.path.join(_tmp_dir2.name, "test2.json")
         _backend_kwargs2 = {"filename": _fn_2, "write_concern": False}
-        tmp = BufferedJSONDict(**_backend_kwargs2)
+        tmp = self._collection_type(**_backend_kwargs2)
         yield tmp
         _tmp_dir2.cleanup()
 
@@ -82,7 +85,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     def test_two_buffered(self, synced_collection, testdata):
         """Test that a non-buffered copy is not modified."""
         synced_collection["buffered"] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with synced_collection.buffered():
@@ -92,7 +95,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     def test_two_buffered_modify_unbuffered(self, synced_collection, testdata):
         """Test that in-memory changes raise errors in buffered mode."""
         synced_collection["buffered"] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with pytest.raises(MetadataError):
@@ -116,7 +119,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         # buffer when entering the context instead of waiting until the first
         # call to load, but for global buffering there's no equivalent.
         synced_collection["buffered"] = testdata
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with synced_collection.buffered():
@@ -234,7 +237,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
     def test_nested_copied_collection(self, synced_collection):
         """Test modifying two collections pointing to the same data."""
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         assert len(synced_collection) == 0
         assert len(synced_collection2) == 0
@@ -262,7 +265,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     @pytest.mark.skip("Not currently sure what the expected behavior is.")
     def test_nested_copied_collection_invalid(self, synced_collection):
         """Test the behavior of invalid modifications of copied objects."""
-        synced_collection2 = BufferedJSONDict(filename=synced_collection._filename)
+        synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         assert len(synced_collection) == 0
         assert len(synced_collection2) == 0
@@ -381,6 +384,20 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
                 assert synced_collection == [1]
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]
+
+
+class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
+    """Tests of MemoryBufferedJSONDicts."""
+
+    _backend_collection = MemoryBufferedJSONCollection  # type: ignore
+    _collection_type = MemoryBufferedJSONDict  # type: ignore
+
+
+class TestMemoryBufferedJSONList(TestBufferedJSONList):
+    """Tests of MemoryBufferedJSONLists."""
+
+    _backend_collection = MemoryBufferedJSONCollection  # type: ignore
+    _collection_type = MemoryBufferedJSONList  # type: ignore
 
 
 class TestBufferedJSONDictWriteConcern(TestBufferedJSONDict):

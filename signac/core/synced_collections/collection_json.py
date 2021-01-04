@@ -150,7 +150,7 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
     :class:`FileBufferedCollection`.
     """
 
-    _backend = __name__ + ".buffered"  # type: ignore
+    _backend = __name__ + ".memory_buffered"  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
