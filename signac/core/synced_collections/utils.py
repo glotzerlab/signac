@@ -93,9 +93,14 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
 
     Warnings
     --------
-    JSON encoding of numpy arrays is not invertible; once encoded, reloading
-    the data will result in converting arrays to lists and numpy numbers into
-    ints or floats.
+    - JSON encoding of numpy arrays is not invertible; once encoded, reloading
+      the data will result in converting arrays to lists and numpy numbers into
+      ints or floats.
+    - This function assumes that the in-memory data for a SyncedCollection is
+      up-to-date. If the data has been changed on disk without updating the
+      collection, or if this function is used to serialize the data before any
+      method is invoked that would load the data from disk, the resulting
+      serialized data may be incorrect.
 
     """
     if NUMPY:
@@ -118,17 +123,17 @@ class SCJSONEncoder(JSONEncoder):
 
     Warnings
     --------
-    JSON encoding of numpy arrays is not invertible; once encoded, reloading
-    the data will result in converting arrays to lists and numpy numbers into
-    ints or floats.
+    - JSON encoding of numpy arrays is not invertible; once encoded, reloading
+      the data will result in converting arrays to lists and numpy numbers into
+      ints or floats.
+    - This class assumes that the in-memory data for a SyncedCollection is
+      up-to-date. If the data has been changed on disk without updating the
+      collection, or if this class is used to serialize the data before any
+      method of the collection is invoked that would load the data from disk,
+      the resulting serialized data may be incorrect.
 
     """
 
-    # TODO: If a user tries to access this encoder to manually dump and calls a
-    # dump before any operation, the data won't have been initialized. This
-    # isn't in itself important, since we'll make this private, but consider
-    # whether there are any issues with that. I assume not, since we're
-    # considering making these objects lazy altogether.
     def default(self, o: Any) -> Dict[str, Any]:  # noqa: D102
         try:
             return default(o)
