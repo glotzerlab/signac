@@ -306,31 +306,75 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
     def test_buffer_flush(self, synced_collection):
         """Test that the buffer gets flushed when enough data is written."""
         original_buffer_capacity = self._collection_type.get_buffer_capacity()
-
         assert self._collection_type.get_current_buffer_size() == 0
-        self._collection_type.set_buffer_capacity(20)
 
-        # Ensure that the file exists on disk by executing a clear operation so
-        # that load operations work as expected.
-        assert len(synced_collection) == 0
-        synced_collection.clear()
+        try:
+            self._collection_type.set_buffer_capacity(20)
 
-        with synced_collection.buffered():
-            synced_collection["foo"] = 1
-            assert self._collection_type.get_current_buffer_size() == len(
-                repr(synced_collection)
-            )
-            assert synced_collection != self.load(synced_collection)
+            # Ensure that the file exists on disk by executing a clear operation so
+            # that load operations work as expected.
+            assert len(synced_collection) == 0
+            synced_collection.clear()
 
-            # Add a long enough value to force a flush.
-            synced_collection["bar"] = 100
-            assert self._collection_type.get_current_buffer_size() == 0
+            with synced_collection.buffered():
+                synced_collection["foo"] = 1
+                assert self._collection_type.get_current_buffer_size() == len(
+                    repr(synced_collection)
+                )
+                assert synced_collection != self.load(synced_collection)
 
-            # Make sure the file on disk now matches.
-            assert synced_collection == self.load(synced_collection)
+                # Add a long enough value to force a flush.
+                synced_collection["bar"] = 100
+                assert self._collection_type.get_current_buffer_size() == 0
 
-        # Reset buffer capacity for other tests.
-        self._collection_type.set_buffer_capacity(original_buffer_capacity)
+                # Make sure the file on disk now matches.
+                assert synced_collection == self.load(synced_collection)
+        finally:
+            # Reset buffer capacity for other tests.
+            self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+    def test_multithreaded_buffering(self):
+        """Test that buffering in a multithreaded context is safe."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        original_buffer_capacity = self._collection_type.get_buffer_capacity()
+        try:
+            # Choose some arbitrarily low value that will ensure intermittent
+            # forced buffer flushes.
+            new_buffer_capacity = 20
+            self._collection_type.set_buffer_capacity(new_buffer_capacity)
+
+            with buffer_all():
+                with TemporaryDirectory(
+                    prefix="jsondict_buffered_multithreaded"
+                ) as tmp_dir:
+                    num_dicts = 100
+                    dicts = []
+                    dict_data = []
+                    for i in range(num_dicts):
+                        fn = os.path.join(tmp_dir, f"test_dict{i}.json")
+                        dicts.append(self._collection_type(filename=fn))
+                        dict_data.append({str(j): j for j in range(i)})
+
+                    # for i in range(num_dicts):
+                    #     dicts[i].update(dict_data[i])
+                    def update_dict(sd, data):
+                        sd.update(data)
+
+                    num_threads = 10
+                    try:
+                        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+                            list(executor.map(update_dict, dicts, dict_data))
+                    except KeyError as e:
+                        raise RuntimeError(
+                            "Buffering in parallel failed due to different threads "
+                            "simultaneously modifying the buffer."
+                        ) from e
+
+                    assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
+        finally:
+            # Reset buffer capacity for other tests.
+            self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
     def test_buffer_first_load(self, synced_collection):
         """Ensure that existing data is preserved if the first load is in buffered mode."""
