@@ -10,6 +10,11 @@ Version 1
 next
 ----
 
+Added
++++++
+
+ - Implemented ``JobsCursor.__contains__`` check (#449).
+
 Changed
 +++++++
 
