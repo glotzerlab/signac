@@ -77,6 +77,18 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    Warnings
+    --------
+    Although it can be done safely, in general modifying two different collections
+    pointing to the same underlying resource while both are in different buffering
+    modes is unsupported and can lead to undefined behavior. This class makes a
+    best effort at performing safe modifications, but it is possible to construct
+    nested buffered contexts for different objects that can lead to an invalid
+    buffer state, or even situations where there is no obvious indicator of what
+    is the canonical source of truth. In general, if you need multiple objects
+    pointing to the same resource, it is **strongly** recommeneded to work with
+    both of them in identical buffering states at all times.
+
     """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}

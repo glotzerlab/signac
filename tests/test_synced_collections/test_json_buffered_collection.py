@@ -284,10 +284,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 # associated with the metadata stored when synced_collection
                 # entered buffered mode. As a result, when the global buffering
                 # exits, we see metadata errors because synced_collection2 lost
-                # track of the fact that it saved changes to filemade prior to
-                # entering the global buffer. We _could_ fix this by changing
-                # the behavior of _load_buffer to not load the data from the
-                # cache if it exists, if the object is new to
+                # track of the fact that it saved changes to the file made
+                # prior to entering the global buffer. We _could_ fix this by
+                # changing the behavior of _load_buffer to not load the data
+                # from the cache if it exists, if the object is new to
                 # cached_collections then we would save a new version. However,
                 # I'm not sure that's the correct answer. Is there a true
                 # canonical source of truth in this scenario?
