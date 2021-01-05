@@ -139,8 +139,7 @@ class SyncedCollection(Collection):
 
         # Monkey-patch subclasses that support locking.
         if cls._supports_threading:
-            cls._locks = {}
-            cls._thread_lock = _thread_lock
+            cls.enable_multithreading()
 
     @classmethod
     def enable_multithreading(cls):
@@ -150,7 +149,7 @@ class SyncedCollection(Collection):
         :meth:`~.disable_multithreading`; calling this method reverses that.
 
         """
-        if type(cls)._supports_threading:
+        if cls._supports_threading:
             cls._locks = {}
             cls._thread_lock = _thread_lock
         else:
@@ -164,8 +163,11 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        del cls._locks
-        cls._thread_lock = _fake_lock
+        try:
+            del cls._locks
+            cls._thread_lock = _fake_lock
+        except AttributeError:
+            raise ValueError("This class does not support multithreaded execution.")
 
     # By default, classes do not support locking.
     _thread_lock = _fake_lock

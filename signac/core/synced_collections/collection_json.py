@@ -108,8 +108,10 @@ class JSONCollection(SyncedCollection):
         # Serialize data
         blob = json.dumps(self, cls=SCJSONEncoder).encode()
         # When write_concern flag is set, we write the data into dummy file and then
-        # replace that file with original file.
-        if self._write_concern:
+        # replace that file with original file. We also enable this mode
+        # irrespective of the write_concern flag if we're running in
+        # multithreaded mode.
+        if self._write_concern or hasattr(type(self), "_locks"):
             dirname, filename = os.path.split(self._filename)
             fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
             with open(fn_tmp, "wb") as tmpfile:
