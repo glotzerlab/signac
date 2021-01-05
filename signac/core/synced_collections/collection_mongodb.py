@@ -2,8 +2,6 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB SyncedCollection backend."""
-from copy import deepcopy
-
 import bson
 
 from .synced_attr_dict import SyncedAttrDict
@@ -68,19 +66,6 @@ class MongoDBCollection(SyncedCollection):
         except bson.errors.InvalidDocument as err:
             raise TypeError(str(err))
 
-    def _pseudo_deepcopy(self):
-        """Return a copy of instance.
-
-        It is a pseudo implementation for `deepcopy` because
-        :py:class:`pymongo.collection.Collection` does not support `deepcopy` method.
-        """
-        return type(self)(
-            collection=self._collection,
-            uid=self._uid,
-            data=self._to_base(),
-            parent=deepcopy(self._parent),
-        )
-
     @property
     def collection(self):
         """pymongo.collection.Collection: Get the collection being synced to."""
@@ -90,6 +75,10 @@ class MongoDBCollection(SyncedCollection):
     def uid(self):  # noqa: D401
         """dict: Get the unique mapping used to identify this collection."""
         return self._uid
+
+    def __deepcopy__(self, memo):
+        # The underlying MongoDB collection cannot be deepcopied.
+        raise TypeError("MongoDBCollection does not support deepcopying.")
 
 
 class MongoDBDict(MongoDBCollection, SyncedAttrDict):
@@ -116,10 +105,10 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
 
     While the MongoDBDict object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying database, copying (even deep copying) a
-    MongoDBDict instance may exhibit unexpected behavior. If a true copy is
-    required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new MongoDBDict instance:
+    as changes to an underlying database, copying a MongoDBDict instance may
+    exhibit unexpected behavior. If a true copy is required, you should use the
+    call operator to get a dictionary representation, and if necessary
+    construct a new MongoDBDict instance:
     ``new_dict = MongoDBDict(old_dict())``.
 
     Parameters
@@ -173,10 +162,10 @@ class MongoDBList(MongoDBCollection, SyncedList):
 
     While the MongoDBList object behaves like a list, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying database, copying (even deep copying) a
-    MongoDBList instance may exhibit unexpected behavior. If a true copy is
-    required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new MongoDBList instance:
+    as changes to an underlying database, copying a MongoDBList instance may
+    exhibit unexpected behavior. If a true copy is required, you should use the
+    call operator to get a dictionary representation, and if necessary
+    construct a new MongoDBList instance:
     ``new_list = MongoDBList(old_list())``.
 
     """

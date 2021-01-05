@@ -287,15 +287,14 @@ class SyncedDictTest(SyncedCollectionTest):
         assert synced_collection() == recursive_convert(synced_collection)
         assert synced_collection() == {"call": testdata}
 
-    @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
         key = "reopen"
         synced_collection[key] = testdata
         try:
             synced_collection2 = deepcopy(synced_collection)
         except TypeError:
-            # Use fallback implementation, deepcopy not supported by backend.
-            synced_collection2 = synced_collection._pseudo_deepcopy()
+            # Ignore backends that don't support deepcopy.
+            return
         synced_collection._save()
         del synced_collection  # possibly unsafe
         synced_collection2._load()
@@ -613,13 +612,12 @@ class SyncedListTest(SyncedCollectionTest):
         with pytest.raises(ValueError):
             synced_collection._load()
 
-    @pytest.mark.xfail(reason="Deep copying these objects probably doesn't make sense.")
     def test_reopen(self, synced_collection, testdata):
         try:
             synced_collection2 = deepcopy(synced_collection)
         except TypeError:
-            # Use fallback implementation, deepcopy not supported by backend.
-            synced_collection2 = synced_collection._pseudo_deepcopy()
+            # Ignore backends that don't support deepcopy.
+            return
         synced_collection.append(testdata)
         synced_collection._save()
         del synced_collection  # possibly unsafe
