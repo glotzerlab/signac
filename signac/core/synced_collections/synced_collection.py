@@ -176,11 +176,6 @@ class SyncedCollection(Collection):
 
         Validators are inherited from all parents of a class.
         """
-        # TODO: Determine whether it makes sense to construct this list here,
-        # or whether we can just do it at initialization and cache it. The only
-        # reason not to do that would be to support adding validators to a
-        # class after instantiating objects and still having those validators
-        # applied, which I don't think is necessary.
         validators = []
         # Classes inherit the validators of their parent classes.
         for base_cls in type(self).__mro__:
@@ -256,8 +251,6 @@ class SyncedCollection(Collection):
         if NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
-        # TODO: This return value could be the original object if no match is
-        # found, there should be an error or at least a warning.
         return data
 
     @abstractmethod
