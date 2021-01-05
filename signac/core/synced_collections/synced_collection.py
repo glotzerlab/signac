@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Collection
 from contextlib import contextmanager
 from inspect import isabstract
+from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
 from .utils import AbstractTypeResolver
@@ -91,6 +92,7 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
+        type(self)._locks[self._lock_id] = RLock()
 
     @classmethod
     def __init_subclass__(cls):
@@ -109,6 +111,7 @@ class SyncedCollection(Collection):
         if not isabstract(cls):
             SyncedCollection.registry[cls._backend].append(cls)
         cls._validators = []
+        cls._locks = {}
 
     @property
     def validators(self):
@@ -129,6 +132,25 @@ class SyncedCollection(Collection):
                     [v for v in base_cls._validators if v not in validators]
                 )
         return validators
+
+    @property
+    def _lock_id(self):
+        raise NotImplementedError(
+            "Backends must implement the _lock_id property to support multithreaded "
+            "execution. This property should return a hashable unique identifier for "
+            "all collections that will be used to maintain a resource-specific "
+            "set of locks."
+        )
+
+    @contextmanager
+    def _thread_lock(self):
+        """Prepare context for thread-safe operation.
+
+        All operations that can mutate an object should use this context
+        manager to ensure thread safety.
+        """
+        with type(self)._locks[self._lock_id]:
+            yield
 
     @classmethod
     def add_validator(cls, *args):
@@ -365,13 +387,15 @@ class SyncedCollection(Collection):
     # all data structures and regardless of backend.
 
     def __getitem__(self, key):
-        self._load()
+        with self._thread_lock():
+            self._load()
         return self._data[key]
 
     def __delitem__(self, item):
-        self._load()
-        del self._data[item]
-        self._save()
+        with self._thread_lock():
+            self._load()
+            del self._data[item]
+            self._save()
 
     def __iter__(self):
         self._load()

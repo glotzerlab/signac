@@ -123,6 +123,10 @@ class JSONCollection(SyncedCollection):
         """str: The name of the file this collection is synchronized with."""
         return self._filename
 
+    @property
+    def _lock_id(self):
+        return self._filename
+
 
 JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
 
