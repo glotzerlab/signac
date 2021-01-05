@@ -313,6 +313,23 @@ class TestProject(TestProjectBase):
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
 
+    def test_find_jobs_JobsCursor_contains(self):
+        statepoints = [{"a": i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document["test"] = True
+        cursor_all = self.project.find_jobs()
+        for sp in statepoints:
+            assert self.project.open_job(sp) in cursor_all
+        cursor_first = self.project.find_jobs(statepoints[0])
+        for sp in statepoints:
+            if sp["a"] == 0:
+                assert self.project.open_job(sp) in cursor_first
+            else:
+                assert self.project.open_job(sp) not in cursor_first
+        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        for sp in statepoints:
+            assert self.project.open_job(sp) in cursor_doc
+
     def test_find_jobs_next(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -655,6 +672,13 @@ class TestProject(TestProjectBase):
         assert job not in self.project
         job.init()
         assert job in self.project
+
+    def test_JobsCursor_contains(self):
+        cursor = self.project.find_jobs()
+        job = self.open_job(dict(a=0))
+        assert job not in cursor
+        job.init()
+        assert job in cursor
 
     def test_job_move(self):
         root = self._tmp_dir.name

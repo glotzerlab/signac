@@ -729,7 +729,7 @@ class Project:
         return os.path.exists(os.path.join(self._wd, job_id))
 
     def __contains__(self, job):
-        """Determine whether job is in the project's data space.
+        """Determine whether a job is in the project's data space.
 
         Parameters
         ----------
@@ -2413,12 +2413,40 @@ class JobsCursor:
     def __len__(self):
         # Highly performance critical code path!!
         if self._filter or self._doc_filter:
-            # We use the standard function for determining job ids if and only if
-            # any of the two filter is provided.
+            # We use the standard function for determining job ids if a filter
+            # is provided.
             return len(self._project._find_job_ids(self._filter, self._doc_filter))
         else:
-            # Without filter we can simply return the length of the whole project.
-            return self._project.__len__()
+            # Without filters, we can simply return the length of the whole project.
+            return len(self._project)
+
+    def __contains__(self, job):
+        """Determine whether a job is in this cursor.
+
+        Parameters
+        ----------
+        job : :class:`~signac.contrib.job.Job`
+            The job to check.
+
+        Returns
+        -------
+        bool
+            True if the job matches the filter criteria and is initialized for this project.
+
+        """
+        if job not in self._project:
+            # Exit early if the job is not in the project. This is O(1).
+            return False
+        if self._filter or self._doc_filter:
+            # We use the standard function for determining job ids if a filter
+            # is provided. This is O(N) and could be optimized by caching the
+            # ids of state points that match a state point filter. Caching the
+            # matches for a document filter is not safe because the document
+            # can change.
+            return job.id in self._project._find_job_ids(self._filter, self._doc_filter)
+        # Without filters, we can simply check if the job is in the project.
+        # By the early-exit condition, we know the job must be contained.
+        return True
 
     def __iter__(self):
         # Code duplication here for improved performance.
