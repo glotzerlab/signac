@@ -215,23 +215,19 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             )
 
     def keys(self):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        self._load()
         return self._data.keys()
 
     def values(self):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        self._load()
         return self._to_base().values()
 
     def items(self):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        self._load()
         return self._to_base().items()
 
     def get(self, key, default=None):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        self._load()
         return self._data.get(key, default)
 
     def pop(self, key, default=None):  # noqa: D102

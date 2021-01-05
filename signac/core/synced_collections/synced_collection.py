@@ -434,8 +434,7 @@ class SyncedCollection(Collection):
     # all data structures and regardless of backend.
 
     def __getitem__(self, key):
-        with self._thread_lock():
-            self._load()
+        self._load()
         return self._data[key]
 
     def __delitem__(self, item):
