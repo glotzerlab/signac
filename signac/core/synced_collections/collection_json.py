@@ -76,6 +76,7 @@ class JSONCollection(SyncedCollection):
     """
 
     _backend = __name__  # type: ignore
+    _supports_threading = True
 
     def __init__(
         self, filename=None, write_concern=False, parent=None, *args, **kwargs
