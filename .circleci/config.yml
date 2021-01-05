@@ -108,112 +108,118 @@ jobs:
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
 
-  #linux-python-38:
-  #  <<: *linux-template
-  #  docker:
-  #    - image: circleci/python:3.8
-  #
-  #linux-python-37:
-  #  <<: *linux-template
-  #  docker:
-  #    - image: circleci/python:3.7
-  #
-  #linux-python-36:
-  #  <<: *linux-template
-  #  docker:
-  #    - image: circleci/python:3.6
-  #
-  #linux-pypy-3:
-  #  <<: *linux-template
-  #  docker:
-  #    - image: pypy:3
-  #  environment:
-  #    PYTHON: pypy3
-  #
-  #windows-python-38:
-  #  executor:
-  #    name: win/default
-  #    shell: bash.exe
-  #  environment:
-  #    PYTHON: python
-  #  steps:
-  #    - checkout
-  #    - run:
-  #        name: Install Python
-  #        command: |
-  #          choco install python --version 3.8.1 --limit-output --no-progress
-  #    - run:
-  #        name: Install dependencies
-  #        command: |
-  #          ${PYTHON} -m pip install --progress-bar off -U codecov
-  #          # For some reason Zarr doesn't install correctly on Windows (runs
-  #          # into pip SSL errors), so we skip that test.
-  #          grep -v zarr requirements-test.txt > requirements-test-windows.txt
-  #          ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test-windows.txt
-  #    - run:
-  #        name: Run tests
-  #        command: |
-  #          ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
-  #          codecov
-  #
-  #macos-python-3:
-  #  macos:  # executor type
-  #    xcode: 11.3.0
-  #  steps:
-  #    - checkout
-  #    - run:
-  #        name: Create environment and run tests
-  #        command: |
-  #          # The default Python on OS X is still Python2, so we must specify
-  #          # python3. We create a virtual environment so that the python
-  #          # command line executable is python3. This change is necessary
-  #          # because the tests of signac's CLI call `python`, so they'll use
-  #          # the python2 executable by default.
-  #          python3 -m venv create test_env
-  #          . test_env/bin/activate
-  #          python --version
-  #          python -m pip install --progress-bar off -U codecov
-  #          python -m pip install --progress-bar off -U -e . -r requirements-test.txt
-  #          python -m pytest --cov=signac --cov-report=xml tests/ -v
-  #          codecov
-  #
-  #check-metadata:
-  #  docker:
-  #    - image: circleci/python:3.9
-  #  working_directory: ~/repo
-  #  steps:
-  #    - checkout
-  #    - run:
-  #        name: check-zenodo-metadata
-  #        command: |
-  #          python -c "import json; json.load(open('.zenodo.json'))"
-  #    - run:
-  #        name: references.bib
-  #        command: |
-  #          pip install --progress-bar off --user -U pybtex
-  #          python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
-  #
-  #test-deploy-pypi:
-  #  docker:
-  #    - image: circleci/python:3.9
-  #  working_directory: ~/repo
-  #  steps:
-  #    - checkout
-  #    - run:
-  #        name: test-deploy-pypi
-  #        command: |
-  #          bash .circleci/deploy.bash testpypi
-  #
-  #deploy-pypi:
-  #  docker:
-  #    - image: circleci/python:3.9
-  #  working_directory: ~/repo
-  #  steps:
-  #    - checkout
-  #    - run:
-  #        name: deploy-pypi
-  #        command: |
-  #          bash .circleci/deploy.bash pypi
+  linux-python-38:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.8
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
+
+  linux-python-37:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.7
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
+
+  linux-python-36:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.6
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
+
+  linux-pypy-3:
+    <<: *linux-template
+    docker:
+      - image: pypy:3
+    environment:
+      PYTHON: pypy3
+
+  windows-python-38:
+    executor:
+      name: win/default
+      shell: bash.exe
+    environment:
+      PYTHON: python
+    steps:
+      - checkout
+      - run:
+          name: Install Python
+          command: |
+            choco install python --version 3.8.1 --limit-output --no-progress
+      - run:
+          name: Install dependencies
+          command: |
+            ${PYTHON} -m pip install --progress-bar off -U codecov
+            # For some reason Zarr doesn't install correctly on Windows (runs
+            # into pip SSL errors), so we skip that test.
+            grep -v zarr requirements-test.txt > requirements-test-windows.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test-windows.txt
+      - run:
+          name: Run tests
+          command: |
+            ${PYTHON} -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
+
+  macos-python-3:
+    macos:  # executor type
+      xcode: 11.3.0
+    steps:
+      - checkout
+      - run:
+          name: Create environment and run tests
+          command: |
+            # The default Python on OS X is still Python2, so we must specify
+            # python3. We create a virtual environment so that the python
+            # command line executable is python3. This change is necessary
+            # because the tests of signac's CLI call `python`, so they'll use
+            # the python2 executable by default.
+            python3 -m venv create test_env
+            . test_env/bin/activate
+            python --version
+            python -m pip install --progress-bar off -U codecov
+            python -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            python -m pytest --cov=signac --cov-report=xml tests/ -v
+            codecov
+
+  check-metadata:
+    docker:
+      - image: circleci/python:3.9
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: check-zenodo-metadata
+          command: |
+            python -c "import json; json.load(open('.zenodo.json'))"
+      - run:
+          name: references.bib
+          command: |
+            pip install --progress-bar off --user -U pybtex
+            python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
+
+  test-deploy-pypi:
+    docker:
+      - image: circleci/python:3.9
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: test-deploy-pypi
+          command: |
+            bash .circleci/deploy.bash testpypi
+
+  deploy-pypi:
+    docker:
+      - image: circleci/python:3.9
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: deploy-pypi
+          command: |
+            bash .circleci/deploy.bash pypi
 
 
 workflows:
@@ -224,44 +230,44 @@ workflows:
       - linux-python-39:
           requires:
             - pre-checks
-      #- linux-python-38:
-      #    requires:
-      #      - pre-checks
-      #- linux-python-37:
-      #    requires:
-      #      - pre-checks
-      #- linux-python-36:
-      #    requires:
-      #      - pre-checks
-      #- linux-pypy-3:
-      #    requires:
-      #      - pre-checks
-      #- windows-python-38:
-      #    requires:
-      #      - pre-checks
-      #- macos-python-3:
-      #    requires:
-      #      - pre-checks
-      #- check-metadata:
-      #    filters:
-      #      branches:
-      #        only: /release\/.*/
-      #- test-deploy-pypi:
-      #    filters:
-      #      branches:
-      #        only: /release\/.*/
-      #    requires:
-      #      - linux-python-39
-      #      - linux-python-38
-      #      - linux-python-37
-      #      - linux-python-36
-      #      - linux-pypy-3
-      #      - windows-python-38
-  #deploy:
-  #  jobs:
-  #    - deploy-pypi:
-  #        filters:
-  #          branches:
-  #            ignore: /.*/
-  #          tags:
-  #            only: /v.*/
+      - linux-python-38:
+          requires:
+            - pre-checks
+      - linux-python-37:
+          requires:
+            - pre-checks
+      - linux-python-36:
+          requires:
+            - pre-checks
+      - linux-pypy-3:
+          requires:
+            - pre-checks
+      - windows-python-38:
+          requires:
+            - pre-checks
+      - macos-python-3:
+          requires:
+            - pre-checks
+      - check-metadata:
+          filters:
+            branches:
+              only: /release\/.*/
+      - test-deploy-pypi:
+          filters:
+            branches:
+              only: /release\/.*/
+          requires:
+            - linux-python-39
+            - linux-python-38
+            - linux-python-37
+            - linux-python-36
+            - linux-pypy-3
+            - windows-python-38
+  deploy:
+    jobs:
+      - deploy-pypi:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/
