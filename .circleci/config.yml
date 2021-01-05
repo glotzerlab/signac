@@ -176,44 +176,44 @@ jobs:
   #          python -m pip install --progress-bar off -U -e . -r requirements-test.txt
   #          python -m pytest --cov=signac --cov-report=xml tests/ -v
   #          codecov
-
-  check-metadata:
-    docker:
-      - image: circleci/python:3.9
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: check-zenodo-metadata
-          command: |
-            python -c "import json; json.load(open('.zenodo.json'))"
-      - run:
-          name: references.bib
-          command: |
-            pip install --progress-bar off --user -U pybtex
-            python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
-
-  test-deploy-pypi:
-    docker:
-      - image: circleci/python:3.9
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: test-deploy-pypi
-          command: |
-            bash .circleci/deploy.bash testpypi
-
-  deploy-pypi:
-    docker:
-      - image: circleci/python:3.9
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: deploy-pypi
-          command: |
-            bash .circleci/deploy.bash pypi
+  #
+  #check-metadata:
+  #  docker:
+  #    - image: circleci/python:3.9
+  #  working_directory: ~/repo
+  #  steps:
+  #    - checkout
+  #    - run:
+  #        name: check-zenodo-metadata
+  #        command: |
+  #          python -c "import json; json.load(open('.zenodo.json'))"
+  #    - run:
+  #        name: references.bib
+  #        command: |
+  #          pip install --progress-bar off --user -U pybtex
+  #          python -c "import pybtex; print(pybtex.format_from_file(open('references.bib'), style='unsrt', output_backend='text'))"
+  #
+  #test-deploy-pypi:
+  #  docker:
+  #    - image: circleci/python:3.9
+  #  working_directory: ~/repo
+  #  steps:
+  #    - checkout
+  #    - run:
+  #        name: test-deploy-pypi
+  #        command: |
+  #          bash .circleci/deploy.bash testpypi
+  #
+  #deploy-pypi:
+  #  docker:
+  #    - image: circleci/python:3.9
+  #  working_directory: ~/repo
+  #  steps:
+  #    - checkout
+  #    - run:
+  #        name: deploy-pypi
+  #        command: |
+  #          bash .circleci/deploy.bash pypi
 
 
 workflows:
@@ -242,26 +242,26 @@ workflows:
       #- macos-python-3:
       #    requires:
       #      - pre-checks
-      - check-metadata:
-          filters:
-            branches:
-              only: /release\/.*/
-      - test-deploy-pypi:
-          filters:
-            branches:
-              only: /release\/.*/
-          requires:
-            - linux-python-39
-            - linux-python-38
-            - linux-python-37
-            - linux-python-36
-            - linux-pypy-3
-            - windows-python-38
-  deploy:
-    jobs:
-      - deploy-pypi:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v.*/
+      #- check-metadata:
+      #    filters:
+      #      branches:
+      #        only: /release\/.*/
+      #- test-deploy-pypi:
+      #    filters:
+      #      branches:
+      #        only: /release\/.*/
+      #    requires:
+      #      - linux-python-39
+      #      - linux-python-38
+      #      - linux-python-37
+      #      - linux-python-36
+      #      - linux-pypy-3
+      #      - windows-python-38
+  #deploy:
+  #  jobs:
+  #    - deploy-pypi:
+  #        filters:
+  #          branches:
+  #            ignore: /.*/
+  #          tags:
+  #            only: /v.*/
