@@ -19,6 +19,7 @@ Changed
 +++++++
 
  - Optimized job hash and equality checks (#442).
+ - Optimized ``H5Store`` initialization (#443).
  - State points are loaded lazily when ``Job`` is opened by id (#238, #239).
 
 
