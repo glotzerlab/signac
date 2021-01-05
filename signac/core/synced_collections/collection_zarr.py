@@ -4,7 +4,6 @@
 """Implements a Zarr SyncedCollection backend."""
 from copy import deepcopy
 
-# TODO: Give a clearer error if the numcodecs import fails.
 import numcodecs
 
 from .synced_attr_dict import SyncedAttrDict
@@ -26,17 +25,18 @@ class ZarrCollection(SyncedCollection):
         The Zarr group in which to store data.
     name : str
         The name under which this collection is stored in the Zarr group.
+    codec : numcodecs.abc.Codec
+        The encoding mechanism for the data. If not provided, defaults to JSON
+        encoding (Default value: None).
 
     """
 
     _backend = __name__  # type: ignore
 
-    def __init__(self, group=None, name=None, **kwargs):
+    def __init__(self, group=None, name=None, codec=None, **kwargs):
         self._root = group
-        # TODO: Give users control over the codec. If we use JSON encoding,
-        # then we should also use the JSON validator.
-        self._object_codec = numcodecs.JSON()
         self._name = name
+        self._object_codec = numcodecs.JSON() if codec is None else codec
         super().__init__(**kwargs)
 
     def _load_from_resource(self):
@@ -68,8 +68,6 @@ class ZarrCollection(SyncedCollection):
 
     def __deepcopy__(self, memo):
         if self._parent is not None:
-            # TODO: Do we really want a deep copy of a nested collection to
-            # deep copy the parent? Perhaps we should simply disallow this?
             return type(self)(
                 group=None,
                 name=None,
@@ -83,6 +81,15 @@ class ZarrCollection(SyncedCollection):
                 data=None,
                 parent=None,
             )
+
+    @property
+    def codec(self):
+        """numcodecs.abc.Codec: The encoding method used for the data."""
+        return self._object_codec
+
+    @codec.setter
+    def codec(self, new_codec):
+        self._object_codec = new_codec
 
     @property
     def group(self):
