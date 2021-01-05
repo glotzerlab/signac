@@ -47,6 +47,8 @@ jobs:
   linux-python-39: &linux-template
     docker:
       - image: circleci/python:3.9
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
     environment:
       PYTHON: python
@@ -110,16 +112,22 @@ jobs:
     <<: *linux-template
     docker:
       - image: circleci/python:3.8
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-python-37:
     <<: *linux-template
     docker:
       - image: circleci/python:3.7
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-python-36:
     <<: *linux-template
     docker:
       - image: circleci/python:3.6
+      - image: circleci/mongo:latest
+      - image: circleci/redis:latest
 
   linux-pypy-3:
     <<: *linux-template
