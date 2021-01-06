@@ -59,7 +59,8 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
-            self._save()
+            with self._thread_lock():
+                self._save()
 
     @classmethod
     def is_base_type(cls, data):
@@ -173,7 +174,8 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
-            self._save()
+            with self._thread_lock():
+                self._save()
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a non-string sequence or None.".format(
@@ -183,58 +185,69 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __setitem__(self, key, value):
         self._validate(value)
-        self._load()
-        with self._suspend_sync():
-            self._data[key] = self._from_base(data=value, parent=self)
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data[key] = self._from_base(data=value, parent=self)
+            self._save()
 
     def __reversed__(self):
-        self._load()
+        with self._thread_lock():
+            self._load()
         return reversed(self._data)
 
     def __iadd__(self, iterable):
         # Convert input to a list so that iterators work as well as iterables.
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        self._load()
-        with self._suspend_sync():
-            self._data += [
-                self._from_base(data=value, parent=self) for value in iterable_data
-            ]
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data += [
+                    self._from_base(data=value, parent=self) for value in iterable_data
+                ]
+            self._save()
         return self
 
     def insert(self, index, item):  # noqa: D102
         self._validate(item)
-        self._load()
-        with self._suspend_sync():
-            self._data.insert(index, self._from_base(data=item, parent=self))
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data.insert(index, self._from_base(data=item, parent=self))
+            self._save()
 
     def append(self, item):  # noqa: D102
         self._validate(item)
-        self._load()
-        with self._suspend_sync():
-            self._data.append(self._from_base(data=item, parent=self))
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data.append(self._from_base(data=item, parent=self))
+            self._save()
 
     def extend(self, iterable):  # noqa: D102
         # Convert iterable to a list to ensure generators are exhausted only once
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        self._load()
-        with self._suspend_sync():
-            self._data.extend(
-                [self._from_base(data=value, parent=self) for value in iterable_data]
-            )
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data.extend(
+                    [
+                        self._from_base(data=value, parent=self)
+                        for value in iterable_data
+                    ]
+                )
+            self._save()
 
     def remove(self, value):  # noqa: D102
-        self._load()
-        with self._suspend_sync():
-            self._data.remove(self._from_base(data=value, parent=self))
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                self._data.remove(self._from_base(data=value, parent=self))
+            self._save()
 
     def clear(self):  # noqa: D102
         self._data = []
-        self._save()
+        with self._thread_lock():
+            self._save()

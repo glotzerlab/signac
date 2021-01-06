@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Collection
 from contextlib import contextmanager
 from inspect import isabstract
+from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
 from .utils import AbstractTypeResolver
@@ -18,12 +19,34 @@ try:
 except ImportError:
     NUMPY = False
 
+
 # Identifies types of SyncedCollection, which are the base type for this class.
 _sc_resolver = AbstractTypeResolver(
     {
         "SYNCEDCOLLECTION": lambda obj: isinstance(obj, SyncedCollection),
     }
 )
+
+
+class _fake_lock:
+    """A nullary context manager to simulate a lock in backends that don't support them."""
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+
+@contextmanager
+def _thread_lock(self):
+    """Prepare context for thread-safe operation.
+
+    All operations that can mutate an object should use this context
+    manager to ensure thread safety.
+    """
+    with type(self)._locks[self._lock_id]:
+        yield
 
 
 class SyncedCollection(Collection):
@@ -87,6 +110,8 @@ class SyncedCollection(Collection):
 
     registry: DefaultDict[str, List[Any]] = defaultdict(list)
     _validators: List[Callable] = []
+    # Backends that support threading should modify this flag.
+    _supports_threading: bool = False
 
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
@@ -110,6 +135,41 @@ class SyncedCollection(Collection):
             SyncedCollection.registry[cls._backend].append(cls)
         cls._validators = []
 
+        # Monkey-patch subclasses that support locking.
+        if cls._supports_threading:
+            cls.enable_multithreading()
+
+    @classmethod
+    def enable_multithreading(cls):
+        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        Support for multithreaded execution can be disabled by calling
+        :meth:`~.disable_multithreading`; calling this method reverses that.
+
+        """
+        if cls._supports_threading:
+            cls._locks = defaultdict(RLock)
+            cls._thread_lock = _thread_lock
+        else:
+            raise ValueError("This class does not support multithreaded execution.")
+
+    @classmethod
+    def disable_multithreading(cls):
+        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        The mutex locks required to enable multithreading introduce nontrivial performance
+        costs, so they can be disabled for classes that support it.
+
+        """
+        try:
+            del cls._locks
+            cls._thread_lock = _fake_lock
+        except AttributeError:
+            raise ValueError("This class does not support multithreaded execution.")
+
+    # By default, classes do not support locking.
+    _thread_lock = _fake_lock
+
     @property
     def validators(self):
         """List[Callable]: The validators that will be applied.
@@ -129,6 +189,15 @@ class SyncedCollection(Collection):
                     [v for v in base_cls._validators if v not in validators]
                 )
         return validators
+
+    @property
+    def _lock_id(self):
+        raise NotImplementedError(
+            "Backends must implement the _lock_id property to support multithreaded "
+            "execution. This property should return a hashable unique identifier for "
+            "all collections that will be used to maintain a resource-specific "
+            "set of locks."
+        )
 
     @classmethod
     def add_validator(cls, *args):
@@ -369,9 +438,10 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        self._load()
-        del self._data[item]
-        self._save()
+        with self._thread_lock():
+            self._load()
+            del self._data[item]
+            self._save()
 
     def __iter__(self):
         self._load()

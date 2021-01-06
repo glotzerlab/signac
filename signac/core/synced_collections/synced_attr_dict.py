@@ -65,7 +65,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            self._save()
+            with self._thread_lock():
+                self._save()
 
     def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
@@ -174,11 +175,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         # directly set using those rather than looping over data.
         data = {key: value}
         self._validate(data)
-        self._load()
-        with self._suspend_sync():
-            for key, value in data.items():
-                self._data[key] = self._from_base(value, parent=self)
-        self._save()
+        with self._thread_lock():
+            self._load()
+            with self._suspend_sync():
+                for key, value in data.items():
+                    self._data[key] = self._from_base(value, parent=self)
+            self._save()
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -203,7 +205,8 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            self._save()
+            with self._thread_lock():
+                self._save()
         else:
             raise ValueError(
                 "Unsupported type: {}. The data must be a mapping or None.".format(
@@ -228,20 +231,23 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return self._data.get(key, default)
 
     def pop(self, key, default=None):  # noqa: D102
-        self._load()
-        ret = self._data.pop(key, default)
-        self._save()
+        with self._thread_lock():
+            self._load()
+            ret = self._data.pop(key, default)
+            self._save()
         return ret
 
     def popitem(self):  # noqa: D102
-        self._load()
-        ret = self._data.popitem()
-        self._save()
+        with self._thread_lock():
+            self._load()
+            ret = self._data.popitem()
+            self._save()
         return ret
 
     def clear(self):  # noqa: D102
         self._data = {}
-        self._save()
+        with self._thread_lock():
+            self._save()
 
     def update(self, other=None, **kwargs):  # noqa: D102
         if other is not None:
@@ -251,30 +257,32 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         else:
             other = {}
 
-        self._load()
-        # The order here is important to ensure that the promised sequence of
-        # overrides is obeyed: kwargs > other > existing data.
-        self._update({**self._data, **other, **kwargs})
-        self._save()
+        with self._thread_lock():
+            self._load()
+            # The order here is important to ensure that the promised sequence of
+            # overrides is obeyed: kwargs > other > existing data.
+            self._update({**self._data, **other, **kwargs})
+            self._save()
 
     def setdefault(self, key, default=None):  # noqa: D102
-        self._load()
-        if key in self._data:
-            ret = self._data[key]
-        else:
-            ret = self._from_base(default, parent=self)
-            # TODO: Remove in signac 2.0, currently we're constructing a dict
-            # to allow in-place modification by _convert_key_to_str, but
-            # validators should not have side effects once that backwards
-            # compatibility layer is removed, so we can validate a temporary
-            # dict {key: value} and directly set using those rather than
-            # looping over data.
-            data = {key: ret}
-            self._validate(data)
-            with self._suspend_sync():
-                for key, value in data.items():
-                    self._data[key] = value
-            self._save()
+        with self._thread_lock():
+            self._load()
+            if key in self._data:
+                ret = self._data[key]
+            else:
+                ret = self._from_base(default, parent=self)
+                # TODO: Remove in signac 2.0, currently we're constructing a dict
+                # to allow in-place modification by _convert_key_to_str, but
+                # validators should not have side effects once that backwards
+                # compatibility layer is removed, so we can validate a temporary
+                # dict {key: value} and directly set using those rather than
+                # looping over data.
+                data = {key: ret}
+                self._validate(data)
+                with self._suspend_sync():
+                    for key, value in data.items():
+                        self._data[key] = value
+                self._save()
         return ret
 
     def __getattr__(self, name):
