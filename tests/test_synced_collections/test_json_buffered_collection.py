@@ -28,7 +28,7 @@ class BufferedJSONCollectionTest(JSONCollectionTest):
 
     def load(self, collection):
         """Load the data corresponding to a SyncedCollection from disk."""
-        with open(collection._filename) as f:
+        with open(collection.filename) as f:
             return json.load(f)
 
 
@@ -333,7 +333,6 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # Reset buffer capacity for other tests.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
-    @pytest.mark.skip
     def test_multithreaded_buffering(self):
         """Test that buffering in a multithreaded context is safe."""
         from concurrent.futures import ThreadPoolExecutor
@@ -372,7 +371,9 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                             "simultaneously modifying the buffer."
                         ) from e
 
-                    assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
+                    # assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
+                    for i in range(num_dicts):
+                        assert dicts[i] == dict_data[i]
         finally:
             # Reset buffer capacity for other tests.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
