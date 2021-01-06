@@ -116,8 +116,6 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
-        if type(self)._supports_threading:
-            type(self)._locks[self._lock_id] = RLock()
 
     @classmethod
     def __init_subclass__(cls):
@@ -150,7 +148,7 @@ class SyncedCollection(Collection):
 
         """
         if cls._supports_threading:
-            cls._locks = {}
+            cls._locks = defaultdict(RLock)
             cls._thread_lock = _thread_lock
         else:
             raise ValueError("This class does not support multithreaded execution.")

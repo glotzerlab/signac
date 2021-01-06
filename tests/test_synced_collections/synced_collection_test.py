@@ -415,6 +415,26 @@ class SyncedDictTest(SyncedCollectionTest):
 
         assert len(synced_collection) == num_threads
 
+        # Now clear the data and try again with multithreading disabled. Unless
+        # we're very unlucky, some of these threads should overwrite each
+        # other.
+        type(synced_collection).disable_multithreading()
+        synced_collection.clear()
+
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            list(executor.map(set_value, [synced_collection] * num_threads * 10))
+
+        assert len(synced_collection) != num_threads
+
+        # For good measure, try reenabling multithreading and test to be safe.
+        type(synced_collection).enable_multithreading()
+        synced_collection.clear()
+
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            list(executor.map(set_value, [synced_collection] * num_threads * 10))
+
+        assert len(synced_collection) == num_threads
+
 
 class SyncedListTest(SyncedCollectionTest):
     @pytest.fixture(autouse=True)
