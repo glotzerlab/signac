@@ -344,10 +344,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             new_buffer_capacity = 20
             self._collection_type.set_buffer_capacity(new_buffer_capacity)
 
-            with buffer_all():
-                with TemporaryDirectory(
-                    prefix="jsondict_buffered_multithreaded"
-                ) as tmp_dir:
+            with TemporaryDirectory(
+                prefix="jsondict_buffered_multithreaded"
+            ) as tmp_dir:
+                with buffer_all():
                     num_dicts = 100
                     dicts = []
                     dict_data = []
@@ -371,11 +371,15 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                             "simultaneously modifying the buffer."
                         ) from e
 
+                    # First validate inside buffer.
                     # assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
                     for i in range(num_dicts):
                         assert dicts[i] == dict_data[i]
+                # Now validate outside buffer.
+                for i in range(num_dicts):
+                    assert dicts[i] == dict_data[i]
         finally:
-            # Reset buffer capacity for other tests.
+            # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
     def test_buffer_first_load(self, synced_collection):
