@@ -10,6 +10,7 @@ import uuid
 import warnings
 
 from .file_buffered_collection import FileBufferedCollection
+from .memory_buffered_collection import SharedMemoryFileBufferedCollection
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
@@ -143,6 +144,20 @@ class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
     """
 
     _backend = __name__ + ".buffered"  # type: ignore
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONCollection):
+    """A :class:`JSONCollection` that supports I/O buffering.
+
+    This class implements the buffer protocol defined by :class:`BufferedCollection`.
+    The concrete implementation of buffering behavior is defined by the
+    :class:`FileBufferedCollection`.
+    """
+
+    _backend = __name__ + ".memory_buffered"  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -298,6 +313,58 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
 
 
 class BufferedJSONList(BufferedJSONCollection, SyncedList):
+    """A buffered :class:`JSONList`."""
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
+
+
+class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict):
+    """A buffered :class:`JSONDict`."""
+
+    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+        "_filename",
+        "_buffered",
+        "_is_buffered",
+    )
+
+    def __init__(
+        self,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        self._validate_constructor_args({"filename": filename}, data, parent)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
+
+
+class MemoryBufferedJSONList(MemoryBufferedJSONCollection, SyncedList):
     """A buffered :class:`JSONList`."""
 
     def __init__(

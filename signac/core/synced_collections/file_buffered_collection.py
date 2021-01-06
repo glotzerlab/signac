@@ -256,8 +256,8 @@ class FileBufferedCollection(BufferedCollection):
             # hash (which is used for the consistency check) with the hash of
             # the current data on disk. _initialize_data_in_cache always uses
             # the current metadata, so the only extra work here is to modify
-            # the hash after it's called (since it uses self._to_base()) to get
-            # the data to initialize the cache with.
+            # the hash after it's called (since it uses self._to_base() to get
+            # the data to initialize the cache with).
             self._initialize_data_in_cache()
             disk_data = self._load_from_resource()
             FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
