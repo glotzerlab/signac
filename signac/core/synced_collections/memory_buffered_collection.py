@@ -33,8 +33,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     Like that class, this class enables buffering for file-based backends by storing
     the last known modification time of the data on disk prior to entering buffered
     mode, then checking whether that has changed when the buffer is flushed.
-    The buffering implemented by
-    :class:`~.FileBufferedCollection`
+    The buffering implemented by :class:`~.FileBufferedCollection`
     is true buffering in the sense that the entire write operation is
     performed as normal, including serialization, except that data is written to
     a different persistent store than the underlying resource. However, such
@@ -61,12 +60,11 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     method. Since the data is not always encoded into a byte-string, the exact
     size of the data in the buffer is not exactly known. This method simply counts
     the number of objects in the buffer as a means to decide how much to store before
-    the buffer is flushed.
-
-    Parameters
-    ----------
-    filename : str, optional
-        The filename of the associated JSON file on disk (Default value = None).
+    the buffer is flushed. To further simplify the logic and improve performance,
+    buffer flushes in this class never remove data from the buffer when forcing
+    a flush, they simply write out changes that occurred. The buffer is only cleared
+    when a buffered context is exited. This allows storing an arbitrary number of
+    objects in the buffer for read-only purposes.
 
     .. note::
         Important note for subclasses: This class should be inherited before
@@ -77,17 +75,27 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    Parameters
+    ----------
+    filename : str, optional
+        The filename of the associated JSON file on disk (Default value = None).
+
     Warnings
     --------
-    Although it can be done safely, in general modifying two different collections
-    pointing to the same underlying resource while both are in different buffering
-    modes is unsupported and can lead to undefined behavior. This class makes a
-    best effort at performing safe modifications, but it is possible to construct
-    nested buffered contexts for different objects that can lead to an invalid
-    buffer state, or even situations where there is no obvious indicator of what
-    is the canonical source of truth. In general, if you need multiple objects
-    pointing to the same resource, it is **strongly** recommeneded to work with
-    both of them in identical buffering states at all times.
+    - Although it can be done safely, in general modifying two different collections
+      pointing to the same underlying resource while both are in different buffering
+      modes is unsupported and can lead to undefined behavior. This class makes a
+      best effort at performing safe modifications, but it is possible to construct
+      nested buffered contexts for different objects that can lead to an invalid
+      buffer state, or even situations where there is no obvious indicator of what
+      is the canonical source of truth. In general, if you need multiple objects
+      pointing to the same resource, it is **strongly** recommeneded to work with
+      both of them in identical buffering states at all times.
+    - This buffering method has no upper bound on the buffer size if all
+      operations on buffered objects are read-only operations. If a strict upper bound
+      is required, for instance due to strict virtual memory limits on a given system,
+      use of the :class:~.FileBufferedCollection` will allow limiting the total
+      memory usage of the process.
 
     """
 
@@ -95,11 +103,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
-
-    # TODO: Change buffer capacity to only account for items that have been
-    # modified. Also, change flushing to not remove items from the buffer, it
-    # should only write modified items to disk. Once I get this right here, I
-    # should port the solution to the FileBufferedCollection.
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -192,23 +195,17 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         """
         if not self._is_buffered or force:
             try:
-                _, stored_metadata = self._cached_collections.pop(id(self))
                 cached_data = self._cache[self._filename]
             except KeyError:
-                # There are valid reasons for nothing to be in the cache (the
-                # object was never actually accessed during global buffering,
-                # multiple collections pointing to the same file, etc).
-
-                # However, we do have to verify that the current metadata for
-                # the file is not newer than the originally stored metadata;
-                # otherwise we load the file from disk, because this indicates
-                # that something has modified the file since its data was
-                # originally stored in the buffer. A typical use case would be
-                # multiple collections pointing to the same file where only one
-                # of them has changed. The fact that this collection hasn't
-                # stored anything to the buffer is why this behavior is valid.
-                cur_metadata = self._get_file_metadata()
-                if stored_metadata[1] < cur_metadata[1]:
+                # If we got to this point, it means that another collection
+                # pointing to the same underlying resource flushed the buffer.
+                # If so, then the data in this instance is still pointing to
+                # that object's data store. If this was a force flush, then
+                # the data store is still the cached data, so we're fine. If
+                # this wasn't a force flush, then we have to reload this
+                # object's data so that it will stop sharing data with the
+                # other instance.
+                if not force:
                     self._data = self._load_from_resource()
             else:
                 # If the contents have not been changed since the initial read,
@@ -219,7 +216,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     if cached_data["modified"]:
                         if cached_data["metadata"] != self._get_file_metadata():
                             raise MetadataError(self._filename, cached_data["contents"])
-                        self._data = cached_data["contents"]
                         self._save_to_resource()
                 finally:
                     # Whether or not an error was raised, the cache must be
@@ -232,6 +228,17 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                         del self._cache[self._filename]
                     else:
                         self._cache[self._filename]["modified"] = False
+        else:
+            # If this object is still buffered _and_ this wasn't a force flush,
+            # that implies a nesting of buffered contexts in which another
+            # collection pointing to the same data flushed the buffer. This
+            # object's data will still be pointing to that one, though, so the
+            # safest choice is to reinitialize its data from scratch.
+            with self._suspend_sync():
+                self._data = {
+                    key: self._from_base(data=value, parent=self)
+                    for key, value in self._to_base().items()
+                }
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -260,10 +267,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
             if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
-                    self,
-                    self._cache[self._filename]["metadata"],
-                )
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
 
             # If all we had to do is set the flag, it could be done without any
             # check, but we also need to increment the number of modified
@@ -299,10 +303,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
             if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
-                    self,
-                    self._cache[self._filename]["metadata"],
-                )
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -342,10 +343,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             "metadata": metadata,
             "modified": modified,
         }
-        SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
-            self,
-            metadata,
-        )
+        SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -381,10 +379,10 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
         while SharedMemoryFileBufferedCollection._cached_collections:
-            col_id = next(iter(SharedMemoryFileBufferedCollection._cached_collections))
-            collection = SharedMemoryFileBufferedCollection._cached_collections[col_id][
-                0
-            ]
+            (
+                col_id,
+                collection,
+            ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
 
             # If force is true, the collection must still be buffered, and we
             # want to put it back in the remaining_collections list after
@@ -395,14 +393,10 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             # this object, so we just put it back in the list *and* skip the
             # flush.
             if collection._is_buffered and not force:
-                remaining_collections[
-                    col_id
-                ] = SharedMemoryFileBufferedCollection._cached_collections.pop(col_id)
+                remaining_collections[col_id] = collection
                 continue
             elif force:
-                remaining_collections[
-                    col_id
-                ] = SharedMemoryFileBufferedCollection._cached_collections[col_id]
+                remaining_collections[col_id] = collection
 
             try:
                 collection._flush(force=force)

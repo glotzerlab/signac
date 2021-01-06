@@ -12,6 +12,7 @@ import errno
 import hashlib
 import json
 import os
+from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
@@ -33,11 +34,6 @@ class FileBufferedCollection(BufferedCollection):
     might be present. This setting has no effect on the buffering behavior of
     other :class:`BufferedCollection` types.
 
-    Parameters
-    ----------
-    filename: str, optional
-        The filename of the associated JSON file on disk (Default value = None).
-
     .. note::
         Important note for subclasses: This class should be inherited before
         any other collections. This requirement is due to the extensive use of
@@ -46,6 +42,11 @@ class FileBufferedCollection(BufferedCollection):
         of buffering behavior, it transparently hooks into the initialization
         process, but this is dependent on its constructor being called before
         those of other classes.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The filename of the associated JSON file on disk (Default value = None).
 
     Warnings
     --------
@@ -71,6 +72,7 @@ class FileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
+    _buffer_lock = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
