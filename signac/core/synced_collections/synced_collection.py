@@ -100,6 +100,22 @@ class SyncedCollection(Collection):
     example, a JSON validator would raise Exceptions if it detected non-string
     keys in a dict. Validators should have no side effects.
 
+    **Thread safety**
+
+    Whether or not SyncedCollection objects are thread-safe depends on the
+    implementation of the backend. Thread-safety of SyncedCollection objects
+    is predicated on backends providing an atomic write operation. All concrete
+    collection types use mutexes to guard against concurrent write operations,
+    while allowing read operations to happen freely. The validity of this mode
+    of access depends on the write operations of a SyncedCollection being
+    atomic, specifically the `:meth:`~._save_to_resource` method.
+
+    Backends that support multithreaded execution will have multithreaded
+    support turned on by default. This support can be enabled or disabled using
+    the :meth:`enable_multithreading` and :meth:`disable_multithreading`
+    methods.
+
+
     Parameters
     ----------
     parent : SyncedCollection, optional

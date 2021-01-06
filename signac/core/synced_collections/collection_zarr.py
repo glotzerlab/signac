@@ -19,6 +19,10 @@ class ZarrCollection(SyncedCollection):
     provides the group within which to store the data and the name of the data in
     the group.
 
+    **Thread safety**
+
+    The ZarrCollection is not thread-safe.
+
     Parameters
     ----------
     group : zarr.hierarchy.Group

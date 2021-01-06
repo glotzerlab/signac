@@ -14,6 +14,10 @@ class RedisCollection(SyncedCollection):
 
     This backend stores data in Redis by associating it with the provided key.
 
+    **Thread safety**
+
+    The RedisCollection is not thread-safe.
+
     Parameters
     ----------
     client : redis.Redis
