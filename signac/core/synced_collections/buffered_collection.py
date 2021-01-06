@@ -70,6 +70,14 @@ class BufferedCollection(SyncedCollection):
           is to simply call :meth:`~SyncedCollection._load_from_resource`
         - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
           is to simply call :meth:`~SyncedCollection._save_to_resource`
+
+    **Thread safety**
+
+    Whether or not buffering is thread safe depends on the buffering method used. In
+    general, both the buffering logic and the standard data read/write logic (i.e.
+    operations like `__setitem__`) must be thread safe for the resulting collection
+    type to be thread safe.
+
     """
 
     _BUFFERED_MODE = 0
