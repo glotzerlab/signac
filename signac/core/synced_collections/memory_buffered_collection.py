@@ -284,15 +284,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # normally, we have to serialize this whole block.
         with type(self)._buffer_lock:
             if self._filename in self._cache:
-                # Need to check if we have multiple collections pointing to the
-                # same file, and if so, track it.
-                if (
-                    id(self)
-                    not in SharedMemoryFileBufferedCollection._cached_collections
-                ):
-                    SharedMemoryFileBufferedCollection._cached_collections[
-                        id(self)
-                    ] = self
+                # Always track all instances pointing to the same data.
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
 
                 # If all we had to do is set the flag, it could be done without any
                 # check, but we also need to increment the number of modified
@@ -306,8 +299,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 with type(self)._buffer_lock:
                     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
-        # Only allow buffer flushes from a single collection at a time.
-        with type(self)._buffer_lock:
             if (
                 SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
                 > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
@@ -332,16 +323,10 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # another object was found in the buffer and attempts to proceed
         # normally, we have to serialize this whole block.
         with type(self)._buffer_lock:
-            if self._filename in self._cache:
+            if self._filename in SharedMemoryFileBufferedCollection._cache:
                 # Need to check if we have multiple collections pointing to the
                 # same file, and if so, track it.
-                if (
-                    id(self)
-                    not in SharedMemoryFileBufferedCollection._cached_collections
-                ):
-                    SharedMemoryFileBufferedCollection._cached_collections[
-                        id(self)
-                    ] = self
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
             else:
                 # The first time this method is called, if nothing is in the buffer
                 # for this file then we cannot guarantee that the _data attribute
@@ -355,13 +340,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                         self._update(data)
                 self._initialize_data_in_cache(modified=False)
 
-            # Set local data to the version in the buffer. Do this inside a lock so
-            # that no matter how many concurrent initializations occur in the else
-            # clause above, at the end all collections end up pointing to the same
-            # data in the cache. It doesn't matter which one that is since they're
-            # all identical.
-            with type(self)._buffer_lock:
-                self._data = self._cache[self._filename]["contents"]
+            # Set local data to the version in the buffer.
+            self._data = self._cache[self._filename]["contents"]
 
     def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
