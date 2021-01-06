@@ -208,6 +208,22 @@ synced\_collections.buffered\_collection module
    :undoc-members:
    :show-inheritance:
 
+synced\_collections.file\_buffered\_collection module
+-----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.file_buffered_collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+synced\_collections.memory\_buffered\_collection module
+-----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.memory_buffered_collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 synced\_collections.caching module
 ----------------------------------
 
