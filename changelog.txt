@@ -10,10 +10,16 @@ Version 1
 next
 ----
 
+Added
++++++
+
+ - Implemented ``JobsCursor.__contains__`` check (#449).
+
 Changed
 +++++++
 
  - Optimized job hash and equality checks (#442).
+ - Optimized ``H5Store`` initialization (#443).
  - State points are loaded lazily when ``Job`` is opened by id (#238, #239).
  - Optimized ``Job`` and ``Project`` classes to cache internal properties and initialize on access (#451).
 
