@@ -96,6 +96,11 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
 
+    # TODO: Change buffer capacity to only account for items that have been
+    # modified. Also, change flushing to not remove items from the buffer, it
+    # should only write modified items to disk. Once I get this right here, I
+    # should port the solution to the FileBufferedCollection.
+
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
@@ -147,7 +152,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         """
         SharedMemoryFileBufferedCollection._BUFFER_CAPACITY = new_capacity
         if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
-            SharedMemoryFileBufferedCollection._flush_buffer()
+            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     @staticmethod
     def get_current_buffer_size():
@@ -218,9 +223,15 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                         self._save_to_resource()
                 finally:
                     # Whether or not an error was raised, the cache must be
-                    # cleared to ensure a valid final buffer state.
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
-                    del self._cache[self._filename]
+                    # cleared to ensure a valid final buffer state, unless
+                    # we're force flushing in which case we never delete, but
+                    # take note that the data is no longer modified relative to
+                    # its representation on disk.
+                    if not force:
+                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
+                        del self._cache[self._filename]
+                    else:
+                        self._cache[self._filename]["modified"] = False
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -253,9 +264,16 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     self,
                     self._cache[self._filename]["metadata"],
                 )
-            self._cache[self._filename]["modified"] = True
+
+            # If all we had to do is set the flag, it could be done without any
+            # check, but we also need to increment the number of modified
+            # items, so we may as well do the update conditionally as well.
+            if not self._cache[self._filename]["modified"]:
+                self._cache[self._filename]["modified"] = True
+                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
         else:
             self._initialize_data_in_cache(modified=True)
+            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
         if (
             SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
@@ -300,12 +318,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # Set local data to the version in the buffer.
         self._data = self._cache[self._filename]["contents"]
 
-        if (
-            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-            > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-        ):
-            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
-
     def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
 
@@ -330,7 +342,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             "metadata": metadata,
             "modified": modified,
         }
-        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
         SharedMemoryFileBufferedCollection._cached_collections[id(self)] = (
             self,
             metadata,
@@ -375,11 +386,24 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 0
             ]
 
+            # If force is true, the collection must still be buffered, and we
+            # want to put it back in the remaining_collections list after
+            # flushing any writes. If force is false, then the only way for the
+            # collection to still be buffered is if there are nested buffered
+            # contexts. In that case, flush_buffer was called due to the exit
+            # of an inner buffered context, and we shouldn't do anything with
+            # this object, so we just put it back in the list *and* skip the
+            # flush.
             if collection._is_buffered and not force:
                 remaining_collections[
                     col_id
                 ] = SharedMemoryFileBufferedCollection._cached_collections.pop(col_id)
                 continue
+            elif force:
+                remaining_collections[
+                    col_id
+                ] = SharedMemoryFileBufferedCollection._cached_collections[col_id]
+
             try:
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
