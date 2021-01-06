@@ -34,8 +34,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     the last known modification time of the data on disk prior to entering buffered
     mode, then checking whether that has changed when the buffer is flushed.
     The buffering implemented by
-    :class:`signac.core.synced_collections.file_buffered_collection.FileBufferedCollection`.
-    is true buffering in the sense that the entire normal write operation is
+    :class:`~.FileBufferedCollection`
+    is true buffering in the sense that the entire write operation is
     performed as normal, including serialization, except that data is written to
     a different persistent store than the underlying resource. However, such
     buffering incurs significant overhead associated all the non-I/O tasks
@@ -65,7 +65,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     Parameters
     ----------
-    filename: str, optional
+    filename : str, optional
         The filename of the associated JSON file on disk (Default value = None).
 
     .. note::
@@ -223,7 +223,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         """Load data from the backend but buffer if needed.
 
         Override the base buffered method to skip the _update and to let
-        _load_from_buffer happen "in place".
+        _load_from_buffer happen "in place."
         """
         if self._suspend_sync_ <= 0:
             if self._parent is None:
