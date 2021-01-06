@@ -116,6 +116,8 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
+        if type(self)._supports_threading:
+            type(self)._locks[self._lock_id] = RLock()
 
     @classmethod
     def __init_subclass__(cls):
@@ -137,7 +139,10 @@ class SyncedCollection(Collection):
 
         # Monkey-patch subclasses that support locking.
         if cls._supports_threading:
+            cls._locks = {}
             cls.enable_multithreading()
+        else:
+            cls.disable_multithreading()
 
     @classmethod
     def enable_multithreading(cls):
@@ -148,8 +153,8 @@ class SyncedCollection(Collection):
 
         """
         if cls._supports_threading:
-            cls._locks = defaultdict(RLock)
             cls._thread_lock = _thread_lock
+            cls._threading_support_is_active = True
         else:
             raise ValueError("This class does not support multithreaded execution.")
 
@@ -161,14 +166,8 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        try:
-            del cls._locks
-            cls._thread_lock = _fake_lock
-        except AttributeError:
-            raise ValueError("This class does not support multithreaded execution.")
-
-    # By default, classes do not support locking.
-    _thread_lock = _fake_lock
+        cls._thread_lock = _fake_lock
+        cls._threading_support_is_active = False
 
     @property
     def validators(self):
