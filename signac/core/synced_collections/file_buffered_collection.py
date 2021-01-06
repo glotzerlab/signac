@@ -47,6 +47,18 @@ class FileBufferedCollection(BufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    Warnings
+    --------
+    Although it can be done safely, in general modifying two different collections
+    pointing to the same underlying resource while both are in different buffering
+    modes is unsupported and can lead to undefined behavior. This class makes a
+    best effort at performing safe modifications, but it is possible to construct
+    nested buffered contexts for different objects that can lead to an invalid
+    buffer state, or even situations where there is no obvious indicator of what
+    is the canonical source of truth. In general, if you need multiple objects
+    pointing to the same resource, it is **strongly** recommeneded to work with
+    both of them in identical buffering states at all times.
+
     """
 
     # Note for developers: since all subclasses share a single cache, all
@@ -295,6 +307,15 @@ class FileBufferedCollection(BufferedCollection):
             if id(self) not in FileBufferedCollection._cached_collections:
                 FileBufferedCollection._cached_collections[id(self)] = self
         else:
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._suspend_sync():
+                self._update(data)
             self._initialize_data_in_cache()
 
         # Load from buffer

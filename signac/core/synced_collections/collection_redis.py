@@ -3,7 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 """Implements a Redis SyncedCollection backend."""
 import json
-from copy import deepcopy
 
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
@@ -48,26 +47,6 @@ class RedisCollection(SyncedCollection):
         """Write the data to a Redis database."""
         self._client.set(self._key, json.dumps(self._to_base()).encode())
 
-    def _pseudo_deepcopy(self):
-        """Return a copy of instance.
-
-        It is a pseudo implementation for `deepcopy` because
-        `redis.Redis` does not support `deepcopy` method.
-        """
-        if self._parent is not None:
-            # TODO: Do we really want a deep copy of a nested collection to
-            # deep copy the parent? Perhaps we should simply disallow this?
-            return type(self)(
-                client=None,
-                key=None,
-                data=self._to_base(),
-                parent=deepcopy(self._parent),
-            )
-        else:
-            return type(self)(
-                client=self._client, key=self._key, data=None, parent=None
-            )
-
     @property
     def client(self):
         """`redis.Redis`: The Redis client used to store the data."""
@@ -77,6 +56,10 @@ class RedisCollection(SyncedCollection):
     def key(self):
         """str: The key associated with this collection stored in Redis."""
         return self._key
+
+    def __deepcopy__(self, memo):
+        # The underlying Redis client cannot be deepcopied.
+        raise TypeError("RedisCollection does not support deepcopying.")
 
 
 class RedisDict(RedisCollection, SyncedAttrDict):
@@ -114,11 +97,10 @@ class RedisDict(RedisCollection, SyncedAttrDict):
 
     While the RedisDict object behaves like a dictionary, there are important
     distinctions to remember. In particular, because operations are reflected
-    as changes to an underlying database, copying (even deep copying) a
-    RedisDict instance may exhibit unexpected behavior. If a true copy is
-    required, you should use the call operator to get a dictionary
-    representation, and if necessary construct a new RedisDict instance:
-    ``new_dict = RedisDict(old_dict())``.
+    as changes to an underlying database, copying a RedisDict instance may
+    exhibit unexpected behavior. If a true copy is required, you should use the
+    call operator to get a dictionary representation, and if necessary
+    construct a new RedisDict instance: ``new_dict = RedisDict(old_dict())``.
 
     """
 
@@ -144,11 +126,11 @@ class RedisList(RedisCollection, SyncedList):
 
         While the RedisList object behaves like a list, there are
         important distinctions to remember. In particular, because operations
-        are reflected as changes to an underlying database, copying (even deep
-        copying) a RedisList instance may exhibit unexpected behavior. If a
-        true copy is required, you should use the call operator to get a
-        dictionary representation, and if necessary construct a new RedisList
-        instance: `new_list = RedisList(old_list())`.
+        are reflected as changes to an underlying database, copying a RedisList
+        instance may exhibit unexpected behavior. If a true copy is required,
+        you should use the call operator to get a dictionary representation,
+        and if necessary construct a new RedisList instance:
+        ``new_list = RedisList(old_list())``.
 
     Parameters
     ----------

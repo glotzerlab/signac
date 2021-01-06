@@ -112,7 +112,7 @@ class JSONCollection(SyncedCollection):
         # replace that file with original file. We also enable this mode
         # irrespective of the write_concern flag if we're running in
         # multithreaded mode.
-        if self._write_concern or hasattr(type(self), "_locks"):
+        if self._write_concern or type(self)._threading_support_is_active:
             dirname, filename = os.path.split(self._filename)
             fn_tmp = os.path.join(dirname, f"._{uuid.uuid4()}_{filename}")
             with open(fn_tmp, "wb") as tmpfile:

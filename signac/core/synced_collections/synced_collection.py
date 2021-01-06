@@ -116,6 +116,8 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
+        if type(self)._supports_threading:
+            type(self)._locks[self._lock_id] = RLock()
 
     @classmethod
     def __init_subclass__(cls):
@@ -137,7 +139,10 @@ class SyncedCollection(Collection):
 
         # Monkey-patch subclasses that support locking.
         if cls._supports_threading:
+            cls._locks = {}
             cls.enable_multithreading()
+        else:
+            cls.disable_multithreading()
 
     @classmethod
     def enable_multithreading(cls):
@@ -148,8 +153,8 @@ class SyncedCollection(Collection):
 
         """
         if cls._supports_threading:
-            cls._locks = defaultdict(RLock)
             cls._thread_lock = _thread_lock
+            cls._threading_support_is_active = True
         else:
             raise ValueError("This class does not support multithreaded execution.")
 
@@ -161,14 +166,8 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        try:
-            del cls._locks
-            cls._thread_lock = _fake_lock
-        except AttributeError:
-            raise ValueError("This class does not support multithreaded execution.")
-
-    # By default, classes do not support locking.
-    _thread_lock = _fake_lock
+        cls._thread_lock = _fake_lock
+        cls._threading_support_is_active = False
 
     @property
     def validators(self):
@@ -176,11 +175,6 @@ class SyncedCollection(Collection):
 
         Validators are inherited from all parents of a class.
         """
-        # TODO: Determine whether it makes sense to construct this list here,
-        # or whether we can just do it at initialization and cache it. The only
-        # reason not to do that would be to support adding validators to a
-        # class after instantiating objects and still having those validators
-        # applied, which I don't think is necessary.
         validators = []
         # Classes inherit the validators of their parent classes.
         for base_cls in type(self).__mro__:
@@ -256,8 +250,6 @@ class SyncedCollection(Collection):
         if NUMPY:
             if isinstance(data, numpy.number):
                 return data.item()
-        # TODO: This return value could be the original object if no match is
-        # found, there should be an error or at least a warning.
         return data
 
     @abstractmethod

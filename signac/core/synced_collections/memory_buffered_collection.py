@@ -77,16 +77,22 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    Warnings
+    --------
+    Although it can be done safely, in general modifying two different collections
+    pointing to the same underlying resource while both are in different buffering
+    modes is unsupported and can lead to undefined behavior. This class makes a
+    best effort at performing safe modifications, but it is possible to construct
+    nested buffered contexts for different objects that can lead to an invalid
+    buffer state, or even situations where there is no obvious indicator of what
+    is the canonical source of truth. In general, if you need multiple objects
+    pointing to the same resource, it is **strongly** recommeneded to work with
+    both of them in identical buffering states at all times.
+
     """
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
-    # TODO: Do we really care about the total number of objects stored in the
-    # buffer, or do we only care about objects that have been modified (and
-    # therefore require a file write when flushing)? For files that have been
-    # read but not modified, I don't think that there's any reason not to just
-    # let them sit in memory, or at least to give the user an option to allow
-    # that in case they know that virtual memory exhaustion won't be an issue.
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
 
@@ -180,9 +186,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         """
         if not self._is_buffered or force:
-            # TODO: If we have two objects pointing to the same filename in the
-            # cache and one of them flushes before the other, need to decide
-            # how to handle it.
             try:
                 _, stored_metadata = self._cached_collections.pop(id(self))
                 cached_data = self._cache[self._filename]
@@ -283,11 +286,15 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     self._cache[self._filename]["metadata"],
                 )
         else:
-            # TODO: The first time we call _load_from_buffer we might need to call
-            # _load_from_resource. Otherwise, if something modified the file in memory
-            # since the last time that we performed any save/load operation, we could be
-            # putting an out-of-date state into the buffer. This also affects the
-            # FileBufferedCollection.
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._suspend_sync():
+                self._update(data)
             self._initialize_data_in_cache(modified=False)
 
         # Set local data to the version in the buffer.
