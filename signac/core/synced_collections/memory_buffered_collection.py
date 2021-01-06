@@ -93,12 +93,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
-    # TODO: Do we really care about the total number of objects stored in the
-    # buffer, or do we only care about objects that have been modified (and
-    # therefore require a file write when flushing)? For files that have been
-    # read but not modified, I don't think that there's any reason not to just
-    # let them sit in memory, or at least to give the user an option to allow
-    # that in case they know that virtual memory exhaustion won't be an issue.
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
 
@@ -192,9 +186,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         """
         if not self._is_buffered or force:
-            # TODO: If we have two objects pointing to the same filename in the
-            # cache and one of them flushes before the other, need to decide
-            # how to handle it.
             try:
                 _, stored_metadata = self._cached_collections.pop(id(self))
                 cached_data = self._cache[self._filename]
