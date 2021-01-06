@@ -19,6 +19,7 @@ and updating in place.
 
 import errno
 import os
+from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
@@ -75,6 +76,19 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    **Thread safety**
+
+    This buffering method is thread safe. This thread safety is independent of the
+    safety of an individual collection backend; the backend must support thread
+    safe writes to the underlying resource in order for a buffered version using
+    this class to be thread safe for general use. The thread safety guaranteed
+    by this class only concerns buffer reads, writes, and flushes. All these
+    operations are serialized because there is no way to prevent one collection
+    from triggering a flush while another still thinks its data is in the cache;
+    however, this shouldn't be terribly performance-limiting since in buffered
+    mode we're avoiding I/O anyway and that's the only thing that can be effectively
+    parallelized here.
+
     Parameters
     ----------
     filename : str, optional
@@ -103,6 +117,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
+    _buffer_lock = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -224,7 +239,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     # take note that the data is no longer modified relative to
                     # its representation on disk.
                     if not force:
-                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
+                        with type(self)._buffer_lock:
+                            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
                         del self._cache[self._filename]
                     else:
                         self._cache[self._filename]["modified"] = False
@@ -263,27 +279,40 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         See :meth:`~._initialize_data_in_cache` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        if self._filename in self._cache:
-            # Need to check if we have multiple collections pointing to the
-            # same file, and if so, track it.
-            if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+        # Since one object could write to the buffer and trigger a flush while
+        # another object was found in the buffer and attempts to proceed
+        # normally, we have to serialize this whole block.
+        with type(self)._buffer_lock:
+            if self._filename in self._cache:
+                # Need to check if we have multiple collections pointing to the
+                # same file, and if so, track it.
+                if (
+                    id(self)
+                    not in SharedMemoryFileBufferedCollection._cached_collections
+                ):
+                    SharedMemoryFileBufferedCollection._cached_collections[
+                        id(self)
+                    ] = self
 
-            # If all we had to do is set the flag, it could be done without any
-            # check, but we also need to increment the number of modified
-            # items, so we may as well do the update conditionally as well.
-            if not self._cache[self._filename]["modified"]:
-                self._cache[self._filename]["modified"] = True
-                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
-        else:
-            self._initialize_data_in_cache(modified=True)
-            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+                # If all we had to do is set the flag, it could be done without any
+                # check, but we also need to increment the number of modified
+                # items, so we may as well do the update conditionally as well.
+                if not self._cache[self._filename]["modified"]:
+                    self._cache[self._filename]["modified"] = True
+                    with type(self)._buffer_lock:
+                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+            else:
+                self._initialize_data_in_cache(modified=True)
+                with type(self)._buffer_lock:
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
-        if (
-            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-            > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-        ):
-            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+        # Only allow buffer flushes from a single collection at a time.
+        with type(self)._buffer_lock:
+            if (
+                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+                > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+            ):
+                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -299,25 +328,40 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in self._cache:
-            # Need to check if we have multiple collections pointing to the
-            # same file, and if so, track it.
-            if id(self) not in SharedMemoryFileBufferedCollection._cached_collections:
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._suspend_sync():
-                self._update(data)
-            self._initialize_data_in_cache(modified=False)
+        # Since one object could write to the buffer and trigger a flush while
+        # another object was found in the buffer and attempts to proceed
+        # normally, we have to serialize this whole block.
+        with type(self)._buffer_lock:
+            if self._filename in self._cache:
+                # Need to check if we have multiple collections pointing to the
+                # same file, and if so, track it.
+                if (
+                    id(self)
+                    not in SharedMemoryFileBufferedCollection._cached_collections
+                ):
+                    SharedMemoryFileBufferedCollection._cached_collections[
+                        id(self)
+                    ] = self
+            else:
+                # The first time this method is called, if nothing is in the buffer
+                # for this file then we cannot guarantee that the _data attribute
+                # is valid either since the resource could have been modified
+                # between when _data was last updated and when this load is being
+                # called. As a result, we have to load from the resource here to be
+                # safe.
+                data = self._load_from_resource()
+                with self._thread_lock():
+                    with self._suspend_sync():
+                        self._update(data)
+                self._initialize_data_in_cache(modified=False)
 
-        # Set local data to the version in the buffer.
-        self._data = self._cache[self._filename]["contents"]
+            # Set local data to the version in the buffer. Do this inside a lock so
+            # that no matter how many concurrent initializations occur in the else
+            # clause above, at the end all collections end up pointing to the same
+            # data in the cache. It doesn't matter which one that is since they're
+            # all identical.
+            with type(self)._buffer_lock:
+                self._data = self._cache[self._filename]["contents"]
 
     def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
