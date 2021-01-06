@@ -109,22 +109,13 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 assert synced_collection["buffered2"] == 3
 
     def test_two_buffered_modify_unbuffered_first(self, synced_collection, testdata):
-        # TODO: What is the expected behavior in this test? Data is only loaded
-        # into the buffer the first time anything happens, so if we enter the
-        # buffered context for one collection then modify an unbuffered
-        # collection within that context _before_ doing anything with the
-        # buffered collection, the buffered version will overwrite it. This
-        # behavior feels slightly unexpected, but I don't know if there's any
-        # way to fix it. For object-local buffering, we could load into the
-        # buffer when entering the context instead of waiting until the first
-        # call to load, but for global buffering there's no equivalent.
         synced_collection["buffered"] = testdata
         synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
         with synced_collection.buffered():
             synced_collection2["buffered2"] = 1
-            assert "buffered2" not in synced_collection
+            assert "buffered2" in synced_collection
             synced_collection["buffered2"] = 3
         assert synced_collection == {"buffered": testdata, "buffered2": 3}
 
@@ -340,6 +331,22 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         # Reset buffer capacity for other tests.
         self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+    def test_buffer_first_load(self, synced_collection):
+        """Ensure that existing data is preserved if the first load is in buffered mode."""
+        fn = synced_collection.filename
+        write_concern = self._write_concern
+
+        sc = self._collection_type(fn, write_concern)
+        sc["foo"] = 1
+        sc["bar"] = 2
+        del sc
+
+        sc = self._collection_type(fn, write_concern)
+        with sc.buffered():
+            sc["foo"] = 3
+
+        assert "bar" in sc
 
 
 class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):

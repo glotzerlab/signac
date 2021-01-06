@@ -295,11 +295,15 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     self._cache[self._filename]["metadata"],
                 )
         else:
-            # TODO: The first time we call _load_from_buffer we might need to call
-            # _load_from_resource. Otherwise, if something modified the file in memory
-            # since the last time that we performed any save/load operation, we could be
-            # putting an out-of-date state into the buffer. This also affects the
-            # FileBufferedCollection.
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._suspend_sync():
+                self._update(data)
             self._initialize_data_in_cache(modified=False)
 
         # Set local data to the version in the buffer.

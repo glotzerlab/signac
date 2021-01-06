@@ -307,6 +307,15 @@ class FileBufferedCollection(BufferedCollection):
             if id(self) not in FileBufferedCollection._cached_collections:
                 FileBufferedCollection._cached_collections[id(self)] = self
         else:
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._suspend_sync():
+                self._update(data)
             self._initialize_data_in_cache()
 
         # Load from buffer
