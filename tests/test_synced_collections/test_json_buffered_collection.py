@@ -5,6 +5,7 @@ import itertools
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -339,8 +340,6 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         This method encodes the logic for the test, but can be used to test different
         operations on the dict.
         """
-        from concurrent.futures import ThreadPoolExecutor
-
         original_buffer_capacity = self._collection_type.get_buffer_capacity()
         try:
             # Choose some arbitrarily low value that will ensure intermittent
@@ -383,6 +382,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
     def test_multithreaded_buffering_setitem(self):
+        """Test setitem in a multithreaded buffering context."""
+
         def setitem_dict(sd, data):
             for k, v in data.items():
                 sd[k] = v
@@ -390,16 +391,64 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         self.multithreaded_buffering_test(setitem_dict)
 
     def test_multithreaded_buffering_update(self):
+        """Test update in a multithreaded buffering context."""
+
         def update_dict(sd, data):
             sd.update(data)
 
         self.multithreaded_buffering_test(update_dict)
 
     def test_multithreaded_buffering_reset(self):
+        """Test reset in a multithreaded buffering context."""
+
         def reset_dict(sd, data):
             sd.reset(data)
 
         self.multithreaded_buffering_test(reset_dict)
+
+    def test_multithreaded_buffering_clear(self):
+        """Test clear in a multithreaded buffering context.
+
+        Since clear requires ending up with an empty dict, it's easier to
+        write a separate test from the others.
+        """
+        original_buffer_capacity = self._collection_type.get_buffer_capacity()
+        try:
+            # Choose some arbitrarily low value that will ensure intermittent
+            # forced buffer flushes.
+            new_buffer_capacity = 20
+            self._collection_type.set_buffer_capacity(new_buffer_capacity)
+
+            with TemporaryDirectory(
+                prefix="jsondict_buffered_multithreaded"
+            ) as tmp_dir:
+                # Initialize the data outside the buffered context so that it's
+                # already present on disk for testing both.
+                num_dicts = 100
+                dicts = []
+                for i in range(num_dicts):
+                    fn = os.path.join(tmp_dir, f"test_dict{i}.json")
+                    dicts.append(self._collection_type(filename=fn))
+                    dicts[-1].update({str(j): j for j in range(i)})
+
+                with buffer_all():
+                    num_threads = 10
+                    try:
+                        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+                            list(executor.map(lambda sd: sd.clear(), dicts))
+                    except KeyError as e:
+                        raise RuntimeError(
+                            "Buffering in parallel failed due to different threads "
+                            "simultaneously modifying the buffer."
+                        ) from e
+
+                    # First validate inside buffer.
+                    assert all(not dicts[i] for i in range(num_dicts))
+                # Now validate outside buffer.
+                assert all(not dicts[i] for i in range(num_dicts))
+        finally:
+            # Reset buffer capacity for other tests in case this fails.
+            self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
     def test_buffer_first_load(self, synced_collection):
         """Ensure that existing data is preserved if the first load is in buffered mode."""
