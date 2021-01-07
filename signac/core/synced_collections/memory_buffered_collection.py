@@ -396,8 +396,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     self._update(data)
             self._initialize_data_in_cache(modified=False)
 
-            # Set local data to the version in the buffer.
-            self._data = self._cache[self._filename]["contents"]
+        # Set local data to the version in the buffer.
+        self._data = self._cache[self._filename]["contents"]
 
     def _initialize_data_in_cache(self, modified):
         """Create the initial entry for the data in the cache.
