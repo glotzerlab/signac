@@ -25,6 +25,18 @@ from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
+from .synced_collection import _fake_lock
+
+
+@contextmanager
+def _buffer_lock(self):
+    """Prepare context for thread-safe operation.
+
+    All operations that can mutate an object should use this context
+    manager to ensure thread safety.
+    """
+    with type(self)._BUFFER_LOCK:
+        yield
 
 
 class SharedMemoryFileBufferedCollection(BufferedCollection):
@@ -118,7 +130,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
-    _buffer_lock = RLock()
+    _BUFFER_LOCK = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -131,9 +143,31 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         Override the parent function's hook to support safely multithreaded
         access to the buffer.
         """
-        with type(self)._buffer_lock:
+        with self._buffer_lock():
             with super()._load_and_save():
                 yield
+
+    @classmethod
+    def enable_multithreading(cls):
+        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        Support for multithreaded execution can be disabled by calling
+        :meth:`~.disable_multithreading`; calling this method reverses that.
+
+        """
+        super().enable_multithreading()
+        cls._buffer_lock = _buffer_lock
+
+    @classmethod
+    def disable_multithreading(cls):
+        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        The mutex locks required to enable multithreading introduce nontrivial performance
+        costs, so they can be disabled for classes that support it.
+
+        """
+        super().disable_multithreading()
+        cls._buffer_lock = _fake_lock
 
     def _get_file_metadata(self):
         """Return metadata of file.
@@ -181,7 +215,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         """
         SharedMemoryFileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        with SharedMemoryFileBufferedCollection._buffer_lock:
+        with SharedMemoryFileBufferedCollection._buffer_lock():
             if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
                 SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
@@ -306,7 +340,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # those the writes will be automatically serialized because Python
         # dicts are thread-safe because of the GIL. However, it's best not to
         # depend on the thread-safety of built-in containers.
-        with self._buffer_lock:
+        with self._buffer_lock():
             if self._filename in self._cache:
                 # Always track all instances pointing to the same data.
                 SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
@@ -321,7 +355,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 self._initialize_data_in_cache(modified=True)
                 SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
-            with self._buffer_lock:
+            with self._buffer_lock():
                 if (
                     SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
                     > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
@@ -424,7 +458,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        with cls._buffer_lock:
+        with cls._buffer_lock():
             while SharedMemoryFileBufferedCollection._cached_collections:
                 # TODO: Consider the possibility that a forced flush in
                 # buffered mode will lead to going through this entire loop
