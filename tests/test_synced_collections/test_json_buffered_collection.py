@@ -254,7 +254,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             on_disk_dict = self.load(synced_collection)
             assert on_disk_dict["inside_second"] == 4
 
-    @pytest.mark.skip("Not currently sure what the expected behavior is.")
+    @pytest.mark.skip("This is an example of unsupported (and undefined) behavior).")
     def test_nested_copied_collection_invalid(self, synced_collection):
         """Test the behavior of invalid modifications of copied objects."""
         synced_collection2 = self._collection_type(filename=synced_collection._filename)
@@ -267,9 +267,9 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         with pytest.raises(MetadataError):
             with synced_collection.buffered():
                 synced_collection["inside_first"] = 2
-                # TODO: Currently, modifying synced_collection2 here causes
-                # problems.  It is unbuffered, so it directly writes to file.
-                # Then, when entering global buffering in the context below,
+                # Modifying synced_collection2 here causes problems. It is
+                # unbuffered, so it directly writes to file.  Then, when
+                # entering global buffering in the context below,
                 # synced_collection2 sees that synced_collection has already
                 # saved data for this file to the buffer, so it loads that
                 # data, which also means that synced_collection2 becomes
@@ -277,12 +277,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 # entered buffered mode. As a result, when the global buffering
                 # exits, we see metadata errors because synced_collection2 lost
                 # track of the fact that it saved changes to the file made
-                # prior to entering the global buffer. We _could_ fix this by
-                # changing the behavior of _load_buffer to not load the data
-                # from the cache if it exists, if the object is new to
-                # cached_collections then we would save a new version. However,
-                # I'm not sure that's the correct answer. Is there a true
-                # canonical source of truth in this scenario?
+                # prior to entering the global buffer. While this case could be
+                # given some specific behavior, there's no obvious canonical
+                # source of truth here, so we simply choose to skip it
+                # altogether.
                 synced_collection2["inside_first"] = 3
 
                 on_disk_dict = self.load(synced_collection)

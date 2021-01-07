@@ -40,7 +40,6 @@ class SyncedDictTest(SyncedCollectionTest):
     def test_init_positional(self, synced_collection_positional):
         assert len(synced_collection_positional) == 0
 
-    @pytest.mark.xfail(reason="Currently error checking on construction is flawed.")
     def test_invalid_kwargs(self, synced_collection):
         # JSONDict raise an error when neither filename nor parent is passed.
         with pytest.raises(ValueError):
@@ -402,7 +401,6 @@ class SyncedDictTest(SyncedCollectionTest):
         if not type(synced_collection)._supports_threading:
             return
 
-        # TODO: Add a corresponding test for lists.
         from concurrent.futures import ThreadPoolExecutor
         from json.decoder import JSONDecodeError
         from threading import current_thread
@@ -452,7 +450,6 @@ class SyncedListTest(SyncedCollectionTest):
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
 
-    @pytest.mark.xfail(reason="Currently error checking on construction is flawed.")
     def test_invalid_kwargs(self, synced_collection):
         # JSONList raise an error when neither filename nor parent is passed.
         with pytest.raises(ValueError):

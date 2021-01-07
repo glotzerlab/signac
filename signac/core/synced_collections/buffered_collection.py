@@ -83,14 +83,6 @@ class BufferedCollection(SyncedCollection):
     _BUFFERED_MODE = 0
     _BUFFERED_BACKENDS: List[Any] = []
 
-    # TODO: Include statement about thread-safety, and perhaps see if we can
-    # improve it. The main possible limitation is that while multithreaded
-    # access to different synced collections is safe in non-buffered mode
-    # (because the changes are completely independent), the same is not
-    # necessarily true in buffered mode if the buffer is shared. Additionally
-    # there are issues with buffer flushes occurring in parallel leading to
-    # race conditions.
-
     def __init__(self, *args, **kwargs):
         # The `_buffered` attribute _must_ be defined prior to calling the
         # superclass constructors in order to enable subclasses to override
