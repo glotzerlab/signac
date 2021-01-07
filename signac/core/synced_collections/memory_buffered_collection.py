@@ -299,27 +299,34 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         """
         # Since one object could write to the buffer and trigger a flush while
         # another object was found in the buffer and attempts to proceed
-        # normally, we have to serialize this whole block.
-        if self._filename in self._cache:
-            # Always track all instances pointing to the same data.
-            SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
-
-            # If all we had to do is set the flag, it could be done without any
-            # check, but we also need to increment the number of modified
-            # items, so we may as well do the update conditionally as well.
-            if not self._cache[self._filename]["modified"]:
-                self._cache[self._filename]["modified"] = True
-                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
-        else:
-            self._initialize_data_in_cache(modified=True)
-            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
-
+        # normally, we have to serialize this whole block. In theory we might
+        # be safe without it because the only operations that should reach this
+        # point without already being locked are destructive operations (clear,
+        # reset) that don't use the :meth:`_load_and_save` context, and for
+        # those the writes will be automatically serialized because Python
+        # dicts are thread-safe because of the GIL. However, it's best not to
+        # depend on the thread-safety of built-in containers.
         with self._buffer_lock:
-            if (
-                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-                > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-            ):
-                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+            if self._filename in self._cache:
+                # Always track all instances pointing to the same data.
+                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+
+                # If all we had to do is set the flag, it could be done without any
+                # check, but we also need to increment the number of modified
+                # items, so we may as well do the update conditionally as well.
+                if not self._cache[self._filename]["modified"]:
+                    self._cache[self._filename]["modified"] = True
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+            else:
+                self._initialize_data_in_cache(modified=True)
+                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+
+            with self._buffer_lock:
+                if (
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+                    > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+                ):
+                    SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.

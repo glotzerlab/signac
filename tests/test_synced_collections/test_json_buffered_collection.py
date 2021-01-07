@@ -395,10 +395,11 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         self.multithreaded_buffering_test(update_dict)
 
-    # def test_multithreaded_buffering_reset(self):
-    #     def reset_dict(sd, data):
-    #         sd.reset(data)
-    #     self.multithreaded_buffering_test(reset_dict)
+    def test_multithreaded_buffering_reset(self):
+        def reset_dict(sd, data):
+            sd.reset(data)
+
+        self.multithreaded_buffering_test(reset_dict)
 
     def test_buffer_first_load(self, synced_collection):
         """Ensure that existing data is preserved if the first load is in buffered mode."""

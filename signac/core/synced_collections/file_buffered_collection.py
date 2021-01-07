@@ -271,35 +271,37 @@ class FileBufferedCollection(BufferedCollection):
         See :meth:`~._initialize_data_in_cache` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        if self._filename in FileBufferedCollection._cache:
-            # Always track all instances pointing to the same data.
-            FileBufferedCollection._cached_collections[id(self)] = self
-            blob = self._encode(self._data)
-            cached_data = FileBufferedCollection._cache[self._filename]
-            buffer_size_change = len(blob) - len(cached_data["contents"])
-            FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-            cached_data["contents"] = blob
-        else:
-            # The only methods that could safely call sync without a load are
-            # destructive operations like `reset` or `clear` that completely
-            # wipe out previously existing data. Therefore, the safest choice
-            # for ensuring consistency of the buffer is to modify the stored
-            # hash (which is used for the consistency check) with the hash of
-            # the current data on disk. _initialize_data_in_cache always uses
-            # the current metadata, so the only extra work here is to modify
-            # the hash after it's called (since it uses self._to_base() to get
-            # the data to initialize the cache with).
-            self._initialize_data_in_cache()
-            disk_data = self._load_from_resource()
-            FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
-                self._encode(disk_data)
-            )
+        # Writes to the buffer must always be locked for thread safety.
+        with self._buffer_lock:
+            if self._filename in FileBufferedCollection._cache:
+                # Always track all instances pointing to the same data.
+                FileBufferedCollection._cached_collections[id(self)] = self
+                blob = self._encode(self._data)
+                cached_data = FileBufferedCollection._cache[self._filename]
+                buffer_size_change = len(blob) - len(cached_data["contents"])
+                FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+                cached_data["contents"] = blob
+            else:
+                # The only methods that could safely call sync without a load are
+                # destructive operations like `reset` or `clear` that completely
+                # wipe out previously existing data. Therefore, the safest choice
+                # for ensuring consistency of the buffer is to modify the stored
+                # hash (which is used for the consistency check) with the hash of
+                # the current data on disk. _initialize_data_in_cache always uses
+                # the current metadata, so the only extra work here is to modify
+                # the hash after it's called (since it uses self._to_base() to get
+                # the data to initialize the cache with).
+                self._initialize_data_in_cache()
+                disk_data = self._load_from_resource()
+                FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
+                    self._encode(disk_data)
+                )
 
-        if (
-            FileBufferedCollection._CURRENT_BUFFER_SIZE
-            > FileBufferedCollection._BUFFER_CAPACITY
-        ):
-            FileBufferedCollection._flush_buffer(force=True)
+            if (
+                FileBufferedCollection._CURRENT_BUFFER_SIZE
+                > FileBufferedCollection._BUFFER_CAPACITY
+            ):
+                FileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
