@@ -160,6 +160,20 @@ class SyncedCollection(Collection):
         else:
             cls.disable_multithreading()
 
+    @contextmanager
+    def _load_and_save(self):
+        """Prepare a context manager in which mutating changes can happen.
+
+        Various standard operations on this data structure require loading the data,
+        modifying it, and then saving it back. This context manager encapsulates that
+        simple requirement, and it provides a hook for subclasses that require
+        additional logic in these operations.
+        """
+        with self._thread_lock():
+            self._load()
+            yield
+            self._save()
+
     @classmethod
     def enable_multithreading(cls):
         """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
@@ -446,10 +460,8 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             del self._data[item]
-            self._save()
 
     def __iter__(self):
         self._load()
