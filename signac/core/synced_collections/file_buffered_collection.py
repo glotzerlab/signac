@@ -18,7 +18,22 @@ from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
+from .synced_collection import _fake_lock
 from .utils import SCJSONEncoder
+
+# TODO: Port the extensions from this class's multithreading support to the
+# memory buffered collection.
+
+
+@contextmanager
+def _buffer_lock(self):
+    """Prepare context for thread-safe operation.
+
+    All operations that can mutate an object should use this context
+    manager to ensure thread safety.
+    """
+    with type(self)._BUFFER_LOCK:
+        yield
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -73,11 +88,33 @@ class FileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
-    _buffer_lock = RLock()
+    _BUFFER_LOCK = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
+
+    @classmethod
+    def enable_multithreading(cls):
+        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        Support for multithreaded execution can be disabled by calling
+        :meth:`~.disable_multithreading`; calling this method reverses that.
+
+        """
+        super().enable_multithreading()
+        cls._buffer_lock = _buffer_lock
+
+    @classmethod
+    def disable_multithreading(cls):
+        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        The mutex locks required to enable multithreading introduce nontrivial performance
+        costs, so they can be disabled for classes that support it.
+
+        """
+        super().disable_multithreading()
+        cls._buffer_lock = _fake_lock
 
     @staticmethod
     def _hash(blob):
@@ -134,9 +171,6 @@ class FileBufferedCollection(BufferedCollection):
         """
         return FileBufferedCollection._BUFFER_CAPACITY
 
-    # TODO: Extend the parent enable/disable threading methods to also change
-    # use of the buffer lock.
-
     @contextmanager
     def _load_and_save(self):
         """Prepare a context manager in which mutating changes can happen.
@@ -144,7 +178,7 @@ class FileBufferedCollection(BufferedCollection):
         Override the parent function's hook to support safely multithreaded
         access to the buffer.
         """
-        with type(self)._buffer_lock:
+        with self._buffer_lock():
             with super()._load_and_save():
                 yield
 
@@ -272,7 +306,7 @@ class FileBufferedCollection(BufferedCollection):
         in the buffer and the integrity checks performed.
         """
         # Writes to the buffer must always be locked for thread safety.
-        with self._buffer_lock:
+        with self._buffer_lock():
             if self._filename in FileBufferedCollection._cache:
                 # Always track all instances pointing to the same data.
                 FileBufferedCollection._cached_collections[id(self)] = self
