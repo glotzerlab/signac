@@ -358,8 +358,28 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
                     # for i in range(num_dicts):
                     #     dicts[i].update(dict_data[i])
+                    # TODO: Add separate tests for setitem and update.
+                    # TODO: Add a test that only loads the data into the buffer
+                    # but doesn't save anything. This will trigger a flush for
+                    # the old buffering mode (which needs to be thread safe)
+                    # but not in the new one.
+                    # TODO: Add a context manager that does a load-yield-save.
+                    # This whole cycle needs to be atomic, which is why
+                    # this buffering test currently fails. The buffered modes
+                    # can override this to introduce a lock if they need to.
+                    # Destructive ops like reset and clear won't go through
+                    # this, but in those cases just adding a thread lock on the
+                    # save_to_buffer should be safe enough because you don't
+                    # run into the case of one thing reading, then another
+                    # reading and writing, then the original writing, which can
+                    # break things. Note that for this reason overriding this
+                    # context manager with a lock won't change the need for
+                    # acquiring and releasing the locks in the save_to and
+                    # load_from_buffer methods.
                     def update_dict(sd, data):
-                        sd.update(data)
+                        # sd.update(data)
+                        for k, v in data.items():
+                            sd[k] = v
 
                     num_threads = 10
                     try:
