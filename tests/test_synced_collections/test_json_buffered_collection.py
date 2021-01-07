@@ -359,10 +359,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                         dicts.append(self._collection_type(filename=fn))
                         dict_data.append({str(j): j for j in range(i)})
 
-                    # TODO: Add a test that only loads the data into the buffer
-                    # but doesn't save anything. This will trigger a flush for
-                    # the old buffering mode (which needs to be thread safe)
-                    # but not in the new one.
+                    # TODO: Add these tests for lists.
                     num_threads = 10
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -446,6 +443,50 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                     assert all(not dicts[i] for i in range(num_dicts))
                 # Now validate outside buffer.
                 assert all(not dicts[i] for i in range(num_dicts))
+        finally:
+            # Reset buffer capacity for other tests in case this fails.
+            self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+    def test_multithreaded_buffering_load(self):
+        """Test loading data in a multithreaded buffering context.
+
+        This test is primarily for verifying that multithreaded buffering does
+        not lead to concurrency errors in flushing data from the buffer due to
+        too many loads. This test is primarily for buffering methods with a maximum
+        capacity, even for read-only operations.
+        """
+        original_buffer_capacity = self._collection_type.get_buffer_capacity()
+        self._collection_type.disable_multithreading()
+        try:
+            # Choose some arbitrarily low value that will ensure intermittent
+            # forced buffer flushes.
+            new_buffer_capacity = 1000
+            self._collection_type.set_buffer_capacity(new_buffer_capacity)
+
+            with TemporaryDirectory(
+                prefix="jsondict_buffered_multithreaded"
+            ) as tmp_dir:
+                # Must initialize the data outside the buffered context so that
+                # we only execute read operations inside the buffered context.
+                num_dicts = 100
+                dicts = []
+                for i in range(num_dicts):
+                    fn = os.path.join(tmp_dir, f"test_dict{i}.json")
+                    dicts.append(self._collection_type(filename=fn))
+                    # Go to i+1 so that every dict contains the 0 element.
+                    dicts[-1].update({str(j): j for j in range(i + 1)})
+
+                with buffer_all():
+                    num_threads = 100
+                    try:
+                        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+                            list(executor.map(lambda sd: sd["0"], dicts * 5))
+                    except KeyError as e:
+                        raise RuntimeError(
+                            "Buffering in parallel failed due to different threads "
+                            "simultaneously modifying the buffer."
+                        ) from e
+
         finally:
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)

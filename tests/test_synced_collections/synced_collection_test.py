@@ -402,6 +402,7 @@ class SyncedDictTest(SyncedCollectionTest):
         if not type(synced_collection)._supports_threading:
             return
 
+        # TODO: Add a corresponding test for lists.
         from concurrent.futures import ThreadPoolExecutor
         from json.decoder import JSONDecodeError
         from threading import current_thread
