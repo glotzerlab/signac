@@ -333,8 +333,12 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # Reset buffer capacity for other tests.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
-    def test_multithreaded_buffering(self):
-        """Test that buffering in a multithreaded context is safe."""
+    def multithreaded_buffering_test(self, op):
+        """Test that buffering in a multithreaded context is safe for different operations.
+
+        This method encodes the logic for the test, but can be used to test different
+        operations on the dict.
+        """
         from concurrent.futures import ThreadPoolExecutor
 
         original_buffer_capacity = self._collection_type.get_buffer_capacity()
@@ -356,35 +360,14 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                         dicts.append(self._collection_type(filename=fn))
                         dict_data.append({str(j): j for j in range(i)})
 
-                    # for i in range(num_dicts):
-                    #     dicts[i].update(dict_data[i])
-                    # TODO: Add separate tests for setitem and update.
                     # TODO: Add a test that only loads the data into the buffer
                     # but doesn't save anything. This will trigger a flush for
                     # the old buffering mode (which needs to be thread safe)
                     # but not in the new one.
-                    # TODO: Add a context manager that does a load-yield-save.
-                    # This whole cycle needs to be atomic, which is why
-                    # this buffering test currently fails. The buffered modes
-                    # can override this to introduce a lock if they need to.
-                    # Destructive ops like reset and clear won't go through
-                    # this, but in those cases just adding a thread lock on the
-                    # save_to_buffer should be safe enough because you don't
-                    # run into the case of one thing reading, then another
-                    # reading and writing, then the original writing, which can
-                    # break things. Note that for this reason overriding this
-                    # context manager with a lock won't change the need for
-                    # acquiring and releasing the locks in the save_to and
-                    # load_from_buffer methods.
-                    def update_dict(sd, data):
-                        # sd.update(data)
-                        for k, v in data.items():
-                            sd[k] = v
-
                     num_threads = 10
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
-                            list(executor.map(update_dict, dicts, dict_data))
+                            list(executor.map(op, dicts, dict_data))
                     except KeyError as e:
                         raise RuntimeError(
                             "Buffering in parallel failed due to different threads "
@@ -392,15 +375,30 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                         ) from e
 
                     # First validate inside buffer.
-                    # assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
-                    for i in range(num_dicts):
-                        assert dicts[i] == dict_data[i]
+                    assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
                 # Now validate outside buffer.
-                for i in range(num_dicts):
-                    assert dicts[i] == dict_data[i]
+                assert all(dicts[i] == dict_data[i] for i in range(num_dicts))
         finally:
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+    def test_multithreaded_buffering_setitem(self):
+        def setitem_dict(sd, data):
+            for k, v in data.items():
+                sd[k] = v
+
+        self.multithreaded_buffering_test(setitem_dict)
+
+    def test_multithreaded_buffering_update(self):
+        def update_dict(sd, data):
+            sd.update(data)
+
+        self.multithreaded_buffering_test(update_dict)
+
+    # def test_multithreaded_buffering_reset(self):
+    #     def reset_dict(sd, data):
+    #         sd.reset(data)
+    #     self.multithreaded_buffering_test(reset_dict)
 
     def test_buffer_first_load(self, synced_collection):
         """Ensure that existing data is preserved if the first load is in buffered mode."""
