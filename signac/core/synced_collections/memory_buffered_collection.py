@@ -19,6 +19,7 @@ and updating in place.
 
 import errno
 import os
+from contextlib import contextmanager
 from threading import RLock
 from typing import Dict, Tuple, Union
 
@@ -123,6 +124,17 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
 
+    @contextmanager
+    def _load_and_save(self):
+        """Prepare a context manager in which mutating changes can happen.
+
+        Override the parent function's hook to support safely multithreaded
+        access to the buffer.
+        """
+        with type(self)._buffer_lock:
+            with super()._load_and_save():
+                yield
+
     def _get_file_metadata(self):
         """Return metadata of file.
 
@@ -169,8 +181,9 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
         """
         SharedMemoryFileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
-            SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+        with SharedMemoryFileBufferedCollection._buffer_lock:
+            if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
+                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     @staticmethod
     def get_current_buffer_size():
@@ -238,12 +251,17 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     # we're force flushing in which case we never delete, but
                     # take note that the data is no longer modified relative to
                     # its representation on disk.
+                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
                     if not force:
-                        with type(self)._buffer_lock:
-                            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
                         del self._cache[self._filename]
                     else:
-                        self._cache[self._filename]["modified"] = False
+                        # Have to update the metadata on a force flush because
+                        # we could modify this item again later, leading to
+                        # another (possibly forced) flush afterwards that will
+                        # appear invalid if the metadata isn't updated to the
+                        # metadata after the current flush.
+                        cached_data["metadata"] = self._get_file_metadata()
+                        cached_data["modified"] = False
         else:
             # If this object is still buffered _and_ this wasn't a force flush,
             # that implies a nesting of buffered contexts in which another
@@ -282,23 +300,21 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # Since one object could write to the buffer and trigger a flush while
         # another object was found in the buffer and attempts to proceed
         # normally, we have to serialize this whole block.
-        with type(self)._buffer_lock:
-            if self._filename in self._cache:
-                # Always track all instances pointing to the same data.
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+        if self._filename in self._cache:
+            # Always track all instances pointing to the same data.
+            SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
 
-                # If all we had to do is set the flag, it could be done without any
-                # check, but we also need to increment the number of modified
-                # items, so we may as well do the update conditionally as well.
-                if not self._cache[self._filename]["modified"]:
-                    self._cache[self._filename]["modified"] = True
-                    with type(self)._buffer_lock:
-                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
-            else:
-                self._initialize_data_in_cache(modified=True)
-                with type(self)._buffer_lock:
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+            # If all we had to do is set the flag, it could be done without any
+            # check, but we also need to increment the number of modified
+            # items, so we may as well do the update conditionally as well.
+            if not self._cache[self._filename]["modified"]:
+                self._cache[self._filename]["modified"] = True
+                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+        else:
+            self._initialize_data_in_cache(modified=True)
+            SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
+        with self._buffer_lock:
             if (
                 SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
                 > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
@@ -322,23 +338,22 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # Since one object could write to the buffer and trigger a flush while
         # another object was found in the buffer and attempts to proceed
         # normally, we have to serialize this whole block.
-        with type(self)._buffer_lock:
-            if self._filename in SharedMemoryFileBufferedCollection._cache:
-                # Need to check if we have multiple collections pointing to the
-                # same file, and if so, track it.
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
-            else:
-                # The first time this method is called, if nothing is in the buffer
-                # for this file then we cannot guarantee that the _data attribute
-                # is valid either since the resource could have been modified
-                # between when _data was last updated and when this load is being
-                # called. As a result, we have to load from the resource here to be
-                # safe.
-                data = self._load_from_resource()
-                with self._thread_lock():
-                    with self._suspend_sync():
-                        self._update(data)
-                self._initialize_data_in_cache(modified=False)
+        if self._filename in SharedMemoryFileBufferedCollection._cache:
+            # Need to check if we have multiple collections pointing to the
+            # same file, and if so, track it.
+            SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+        else:
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._thread_lock():
+                with self._suspend_sync():
+                    self._update(data)
+            self._initialize_data_in_cache(modified=False)
 
             # Set local data to the version in the buffer.
             self._data = self._cache[self._filename]["contents"]
@@ -402,32 +417,37 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while SharedMemoryFileBufferedCollection._cached_collections:
-            (
-                col_id,
-                collection,
-            ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
+        with cls._buffer_lock:
+            while SharedMemoryFileBufferedCollection._cached_collections:
+                # TODO: Consider the possibility that a forced flush in
+                # buffered mode will lead to going through this entire loop
+                # once on every thread, and because of the (required) lock
+                # we'll end up doing them all serially.
+                (
+                    col_id,
+                    collection,
+                ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
 
-            # If force is true, the collection must still be buffered, and we
-            # want to put it back in the remaining_collections list after
-            # flushing any writes. If force is false, then the only way for the
-            # collection to still be buffered is if there are nested buffered
-            # contexts. In that case, flush_buffer was called due to the exit
-            # of an inner buffered context, and we shouldn't do anything with
-            # this object, so we just put it back in the list *and* skip the
-            # flush.
-            if collection._is_buffered and not force:
-                remaining_collections[col_id] = collection
-                continue
-            elif force:
-                remaining_collections[col_id] = collection
+                # If force is true, the collection must still be buffered, and we
+                # want to put it back in the remaining_collections list after
+                # flushing any writes. If force is false, then the only way for the
+                # collection to still be buffered is if there are nested buffered
+                # contexts. In that case, flush_buffer was called due to the exit
+                # of an inner buffered context, and we shouldn't do anything with
+                # this object, so we just put it back in the list *and* skip the
+                # flush.
+                if collection._is_buffered and not force:
+                    remaining_collections[col_id] = collection
+                    continue
+                elif force:
+                    remaining_collections[col_id] = collection
 
-            try:
-                collection._flush(force=force)
-            except (OSError, MetadataError) as err:
-                issues[collection._filename] = err
-        if not issues:
-            SharedMemoryFileBufferedCollection._cached_collections = (
-                remaining_collections
-            )
+                try:
+                    collection._flush(force=force)
+                except (OSError, MetadataError) as err:
+                    issues[collection._filename] = err
+            if not issues:
+                SharedMemoryFileBufferedCollection._cached_collections = (
+                    remaining_collections
+                )
         return issues
