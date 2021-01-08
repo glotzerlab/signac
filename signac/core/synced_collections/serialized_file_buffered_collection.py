@@ -58,33 +58,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
 
     """
 
-    # Note for developers: since all subclasses share a single cache, all
-    # references to cache-related class variables in the code use the class
-    # name explicitly rather than using cls (in classmethods) or self (in
-    # methods). This usage avoids any possibility for confusion regarding
-    # backend-specific caches.
-
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
-
-    @staticmethod
-    def _hash(blob):
-        """Calculate and return the md5 hash value for the file data.
-
-        Parameters
-        ----------
-        blob : bytes
-            Byte literal to be hashed.
-
-        Returns
-        -------
-        str
-            The md5 hash of the input bytes.
-
-        """
-        if blob is not None:
-            m = hashlib.md5()
-            m.update(blob)
-            return m.hexdigest()
 
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
@@ -129,6 +103,26 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                     del type(self)._cache[self._filename]
                     data_size = len(cached_data["contents"])
                     type(self)._CURRENT_BUFFER_SIZE -= data_size
+
+    @staticmethod
+    def _hash(blob):
+        """Calculate and return the md5 hash value for the file data.
+
+        Parameters
+        ----------
+        blob : bytes
+            Byte literal to be hashed.
+
+        Returns
+        -------
+        str
+            The md5 hash of the input bytes.
+
+        """
+        if blob is not None:
+            m = hashlib.md5()
+            m.update(blob)
+            return m.hexdigest()
 
     @staticmethod
     def _encode(data):
@@ -294,30 +288,4 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             If there are any issues with flushing the data.
 
         """
-        issues = {}
-
-        # We need to use the list of buffered objects rather than directly
-        # looping over the local cache so that each collection can
-        # independently decide whether or not to flush based on whether it's
-        # still buffered (if buffered contexts are nested).
-        remaining_collections = {}
-        while True:
-            with cls._BUFFER_LOCK:
-                try:
-                    (
-                        col_id,
-                        collection,
-                    ) = cls._cached_collections.popitem()
-                except KeyError:
-                    break
-
-            if collection._is_buffered and not force:
-                remaining_collections[col_id] = collection
-                continue
-            try:
-                collection._flush(force=force)
-            except (OSError, MetadataError) as err:
-                issues[collection._filename] = err
-        if not issues:
-            cls._cached_collections = remaining_collections
-        return issues
+        return super()._flush_buffer(force=force, retain_in_force=False)

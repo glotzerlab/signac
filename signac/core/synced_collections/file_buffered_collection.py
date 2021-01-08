@@ -223,7 +223,7 @@ class FileBufferedCollection(BufferedCollection):
         pass
 
     @classmethod
-    def _flush_buffer(cls, force=False):
+    def _flush_buffer(cls, force=False, retain_in_force=False):
         """Flush the data in the file buffer.
 
         Parameters
@@ -231,6 +231,12 @@ class FileBufferedCollection(BufferedCollection):
         force : bool
             If True, force a flush even in buffered mode (defaults to False). This
             parameter is used when the buffer is filled to capacity.
+        retain_in_force : bool
+            If True, when forcing a flush a collection is retained in the buffer.
+            This feature is useful if only some subset of the buffer's contents
+            are relevant to size restrictions. For intance, since only modified
+            items will have to be written back out to disk, a buffer protocol may
+            not care to count unmodified collections towards the total.
 
         Returns
         -------
@@ -243,11 +249,6 @@ class FileBufferedCollection(BufferedCollection):
             If there are any issues with flushing the data.
 
         """
-        # All subclasses share a single cache rather than having separate
-        # caches for each instance, so we can exit early in subclasses.
-        if cls != cls:
-            return {}
-
         issues = {}
 
         # We need to use the list of buffered objects rather than directly
@@ -255,11 +256,30 @@ class FileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while cls._cached_collections:
-            col_id, collection = cls._cached_collections.popitem()
+        while True:
+            with cls._BUFFER_LOCK:
+                try:
+                    (
+                        col_id,
+                        collection,
+                    ) = cls._cached_collections.popitem()
+                except KeyError:
+                    break
+
+            # If force is true, the collection must still be buffered, and we
+            # want to put it back in the remaining_collections list after
+            # flushing any writes. If force is false, then the only way for the
+            # collection to still be buffered is if there are nested buffered
+            # contexts. In that case, flush_buffer was called due to the exit
+            # of an inner buffered context, and we shouldn't do anything with
+            # this object, so we just put it back in the list *and* skip the
+            # flush.
             if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue
+            elif force and retain_in_force:
+                remaining_collections[col_id] = collection
+
             try:
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
