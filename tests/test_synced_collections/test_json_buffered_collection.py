@@ -453,7 +453,6 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         capacity, even for read-only operations.
         """
         original_buffer_capacity = self._collection_type.get_buffer_capacity()
-        self._collection_type.disable_multithreading()
         try:
             # Choose some arbitrarily low value that will ensure intermittent
             # forced buffer flushes.
@@ -659,7 +658,6 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         capacity, even for read-only operations.
         """
         original_buffer_capacity = self._collection_type.get_buffer_capacity()
-        self._collection_type.disable_multithreading()
         try:
             # Choose some arbitrarily low value that will ensure intermittent
             # forced buffer flushes.
