@@ -95,33 +95,38 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             originally loaded into the buffer and modified.
 
         """
-        if not self._is_buffered or force:
-            try:
-                cached_data = type(self)._buffer[self._filename]
-            except KeyError:
-                # There are valid reasons for nothing to be in the cache (the
-                # object was never actually accessed during global buffering,
-                # multiple collections pointing to the same file, etc).
-                pass
-            else:
-                blob = self._encode(self._data)
-
-                # If the contents have not been changed since the initial read,
-                # we don't need to rewrite it.
+        # Different files in the buffer can be safely flushed simultaneously,
+        # but a given file can only be flushed on one thread at once.
+        with self._buffer_flush_lock():
+            if not self._is_buffered or force:
                 try:
-                    if self._hash(blob) != cached_data["hash"]:
-                        # Validate that the file hasn't been changed by
-                        # something else.
-                        if cached_data["metadata"] != self._get_file_metadata():
-                            raise MetadataError(self._filename, cached_data["contents"])
-                        self._data = self._decode(cached_data["contents"])
-                        self._save_to_resource()
-                finally:
-                    # Whether or not an error was raised, the cache must be
-                    # cleared to ensure a valid final buffer state.
-                    del type(self)._buffer[self._filename]
-                    data_size = len(cached_data["contents"])
-                    type(self)._CURRENT_BUFFER_SIZE -= data_size
+                    cached_data = type(self)._buffer[self._filename]
+                except KeyError:
+                    # There are valid reasons for nothing to be in the cache (the
+                    # object was never actually accessed during global buffering,
+                    # multiple collections pointing to the same file, etc).
+                    return
+                else:
+                    blob = self._encode(self._data)
+
+                    # If the contents have not been changed since the initial read,
+                    # we don't need to rewrite it.
+                    try:
+                        if self._hash(blob) != cached_data["hash"]:
+                            # Validate that the file hasn't been changed by
+                            # something else.
+                            if cached_data["metadata"] != self._get_file_metadata():
+                                raise MetadataError(
+                                    self._filename, cached_data["contents"]
+                                )
+                            self._data = self._decode(cached_data["contents"])
+                            self._save_to_resource()
+                    finally:
+                        # Whether or not an error was raised, the cache must be
+                        # cleared to ensure a valid final buffer state.
+                        del type(self)._buffer[self._filename]
+                        data_size = len(cached_data["contents"])
+                        type(self)._CURRENT_BUFFER_SIZE -= data_size
 
     @staticmethod
     def _hash(blob):

@@ -101,59 +101,64 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             originally loaded into the buffer and modified.
 
         """
-        if not self._is_buffered or force:
-            try:
-                cached_data = type(self)._buffer[self._filename]
-            except KeyError:
-                # If we got to this point, it means that another collection
-                # pointing to the same underlying resource flushed the buffer.
-                # If so, then the data in this instance is still pointing to
-                # that object's data store. If this was a force flush, then
-                # the data store is still the cached data, so we're fine. If
-                # this wasn't a force flush, then we have to reload this
-                # object's data so that it will stop sharing data with the
-                # other instance.
-                if not force:
-                    self._data = self._load_from_resource()
-            else:
-                # If the contents have not been changed since the initial read,
-                # we don't need to rewrite it.
+        # Different files in the buffer can be safely flushed simultaneously,
+        # but a given file can only be flushed on one thread at once.
+        with self._buffer_flush_lock():
+            if not self._is_buffered or force:
                 try:
-                    # Validate that the file hasn't been changed by
-                    # something else.
-                    if cached_data["modified"]:
-                        if cached_data["metadata"] != self._get_file_metadata():
-                            raise MetadataError(self._filename, cached_data["contents"])
-                        self._save_to_resource()
-                finally:
-                    # Whether or not an error was raised, the cache must be
-                    # cleared to ensure a valid final buffer state, unless
-                    # we're force flushing in which case we never delete, but
-                    # take note that the data is no longer modified relative to
-                    # its representation on disk.
-                    if cached_data["modified"]:
-                        type(self)._CURRENT_BUFFER_SIZE -= 1
+                    cached_data = type(self)._buffer[self._filename]
+                except KeyError:
+                    # If we got to this point, it means that another collection
+                    # pointing to the same underlying resource flushed the buffer.
+                    # If so, then the data in this instance is still pointing to
+                    # that object's data store. If this was a force flush, then
+                    # the data store is still the cached data, so we're fine. If
+                    # this wasn't a force flush, then we have to reload this
+                    # object's data so that it will stop sharing data with the
+                    # other instance.
                     if not force:
-                        del type(self)._buffer[self._filename]
-                    else:
-                        # Have to update the metadata on a force flush because
-                        # we could modify this item again later, leading to
-                        # another (possibly forced) flush afterwards that will
-                        # appear invalid if the metadata isn't updated to the
-                        # metadata after the current flush.
-                        cached_data["metadata"] = self._get_file_metadata()
-                        cached_data["modified"] = False
-        else:
-            # If this object is still buffered _and_ this wasn't a force flush,
-            # that implies a nesting of buffered contexts in which another
-            # collection pointing to the same data flushed the buffer. This
-            # object's data will still be pointing to that one, though, so the
-            # safest choice is to reinitialize its data from scratch.
-            with self._suspend_sync():
-                self._data = {
-                    key: self._from_base(data=value, parent=self)
-                    for key, value in self._to_base().items()
-                }
+                        self._data = self._load_from_resource()
+                else:
+                    # If the contents have not been changed since the initial read,
+                    # we don't need to rewrite it.
+                    try:
+                        # Validate that the file hasn't been changed by
+                        # something else.
+                        if cached_data["modified"]:
+                            if cached_data["metadata"] != self._get_file_metadata():
+                                raise MetadataError(
+                                    self._filename, cached_data["contents"]
+                                )
+                            self._save_to_resource()
+                    finally:
+                        # Whether or not an error was raised, the cache must be
+                        # cleared to ensure a valid final buffer state, unless
+                        # we're force flushing in which case we never delete, but
+                        # take note that the data is no longer modified relative to
+                        # its representation on disk.
+                        if cached_data["modified"]:
+                            type(self)._CURRENT_BUFFER_SIZE -= 1
+                        if not force:
+                            del type(self)._buffer[self._filename]
+                        else:
+                            # Have to update the metadata on a force flush because
+                            # we could modify this item again later, leading to
+                            # another (possibly forced) flush afterwards that will
+                            # appear invalid if the metadata isn't updated to the
+                            # metadata after the current flush.
+                            cached_data["metadata"] = self._get_file_metadata()
+                            cached_data["modified"] = False
+            else:
+                # If this object is still buffered _and_ this wasn't a force flush,
+                # that implies a nesting of buffered contexts in which another
+                # collection pointing to the same data flushed the buffer. This
+                # object's data will still be pointing to that one, though, so the
+                # safest choice is to reinitialize its data from scratch.
+                with self._suspend_sync():
+                    self._data = {
+                        key: self._from_base(data=value, parent=self)
+                        for key, value in self._to_base().items()
+                    }
 
     def _load(self):
         """Load data from the backend but buffer if needed.
