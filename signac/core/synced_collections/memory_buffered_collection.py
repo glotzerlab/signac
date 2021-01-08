@@ -118,33 +118,6 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     _CURRENT_BUFFER_SIZE = 0
     _BUFFER_LOCK = RLock()
 
-    @staticmethod
-    def set_buffer_capacity(new_capacity):
-        """Update the buffer capacity.
-
-        Parameters
-        ----------
-        new_capacity : int
-            The number of collections that can be fit in the buffer.
-
-        """
-        SharedMemoryFileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        with SharedMemoryFileBufferedCollection._buffer_lock():
-            if new_capacity < SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE:
-                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
-
-    @staticmethod
-    def get_current_buffer_size():
-        """Get the total number of collections currently stored in the buffer.
-
-        Returns
-        -------
-        int
-            The number of collections contained in the buffer.
-
-        """
-        return SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
 
@@ -200,7 +173,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                     # take note that the data is no longer modified relative to
                     # its representation on disk.
                     if cached_data["modified"]:
-                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
+                        type(self)._CURRENT_BUFFER_SIZE -= 1
                     if not force:
                         del self._cache[self._filename]
                     else:
@@ -258,23 +231,20 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         with self._buffer_lock():
             if self._filename in self._cache:
                 # Always track all instances pointing to the same data.
-                SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+                type(self)._cached_collections[id(self)] = self
 
                 # If all we had to do is set the flag, it could be done without any
                 # check, but we also need to increment the number of modified
                 # items, so we may as well do the update conditionally as well.
                 if not self._cache[self._filename]["modified"]:
                     self._cache[self._filename]["modified"] = True
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+                    type(self)._CURRENT_BUFFER_SIZE += 1
             else:
                 self._initialize_data_in_cache(modified=True)
-                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
+                type(self)._CURRENT_BUFFER_SIZE += 1
 
-            if (
-                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-                > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-            ):
-                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+                type(self)._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -293,10 +263,10 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         # Since one object could write to the buffer and trigger a flush while
         # another object was found in the buffer and attempts to proceed
         # normally, we have to serialize this whole block.
-        if self._filename in SharedMemoryFileBufferedCollection._cache:
+        if self._filename in type(self)._cache:
             # Need to check if we have multiple collections pointing to the
             # same file, and if so, track it.
-            SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+            type(self)._cached_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -332,12 +302,12 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         unsafe access patterns.
         """
         metadata = self._get_file_metadata()
-        SharedMemoryFileBufferedCollection._cache[self._filename] = {
+        type(self)._cache[self._filename] = {
             "contents": self._data,
             "metadata": metadata,
             "modified": modified,
         }
-        SharedMemoryFileBufferedCollection._cached_collections[id(self)] = self
+        type(self)._cached_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -362,7 +332,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         """
         # All subclasses share a single cache rather than having separate
         # caches for each instance, so we can exit early in subclasses.
-        if cls != SharedMemoryFileBufferedCollection:
+        if cls != cls:
             return {}
 
         issues = {}
@@ -373,12 +343,12 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
         while True:
-            with cls._buffer_lock():
+            with cls._BUFFER_LOCK:
                 try:
                     (
                         col_id,
                         collection,
-                    ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
+                    ) = cls._cached_collections.popitem()
                 except KeyError:
                     break
 
@@ -401,7 +371,5 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            SharedMemoryFileBufferedCollection._cached_collections = (
-                remaining_collections
-            )
+            cls._cached_collections = remaining_collections
         return issues

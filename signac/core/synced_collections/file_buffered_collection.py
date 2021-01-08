@@ -165,10 +165,13 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         cls._BUFFER_CAPACITY = new_capacity
-        if new_capacity < cls._CURRENT_BUFFER_SIZE:
-            cls._flush_buffer(force=True)
+        # TODO: Figure out how to take advantage of the context manager method
+        # that I'm using to figure out the enable/disable buffering.
+        with cls._BUFFER_LOCK:
+            if new_capacity < cls._CURRENT_BUFFER_SIZE:
+                cls._flush_buffer(force=True)
 
-    @staticmethod
+    @classmethod
     def get_current_buffer_size(cls):
         """Get the total amount of data currently stored in the buffer.
 

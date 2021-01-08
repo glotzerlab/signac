@@ -93,39 +93,6 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             m.update(blob)
             return m.hexdigest()
 
-    @staticmethod
-    def set_buffer_capacity(new_capacity):
-        """Update the buffer capacity.
-
-        Parameters
-        ----------
-        new_capacity : int
-            The new capacity of the buffer in bytes.
-
-        """
-        SerializedFileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        if new_capacity < SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE:
-            SerializedFileBufferedCollection._flush_buffer(force=True)
-
-    @staticmethod
-    def get_current_buffer_size():
-        """Get the total amount of data currently stored in the buffer.
-
-        Returns
-        -------
-        int
-            The size of all data contained in the buffer (in bytes).
-
-        Notes
-        -----
-        The buffer size is defined as the total number of bytes that will be
-        written out when the buffer is flushed. This is *not* the same as the total
-        size of the buffer, which also contains additional information like the
-        hash of the data and the file metadata (which are used for integrity checks).
-
-        """
-        return SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE
-
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
 
@@ -144,7 +111,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         if not self._is_buffered or force:
             try:
-                cached_data = SerializedFileBufferedCollection._cache[self._filename]
+                cached_data = type(self)._cache[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
                 # object was never actually accessed during global buffering,
@@ -166,9 +133,9 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
-                    del SerializedFileBufferedCollection._cache[self._filename]
+                    del type(self)._cache[self._filename]
                     data_size = len(cached_data["contents"])
-                    SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
+                    type(self)._CURRENT_BUFFER_SIZE -= data_size
 
     @staticmethod
     def _encode(data):
@@ -218,15 +185,13 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         # Writes to the buffer must always be locked for thread safety.
         with self._buffer_lock():
-            if self._filename in SerializedFileBufferedCollection._cache:
+            if self._filename in type(self)._cache:
                 # Always track all instances pointing to the same data.
-                SerializedFileBufferedCollection._cached_collections[id(self)] = self
+                type(self)._cached_collections[id(self)] = self
                 blob = self._encode(self._data)
-                cached_data = SerializedFileBufferedCollection._cache[self._filename]
+                cached_data = type(self)._cache[self._filename]
                 buffer_size_change = len(blob) - len(cached_data["contents"])
-                SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE += (
-                    buffer_size_change
-                )
+                type(self)._CURRENT_BUFFER_SIZE += buffer_size_change
                 cached_data["contents"] = blob
             else:
                 # The only methods that could safely call sync without a load are
@@ -240,15 +205,12 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                 # the data to initialize the cache with).
                 self._initialize_data_in_cache()
                 disk_data = self._load_from_resource()
-                SerializedFileBufferedCollection._cache[self._filename][
-                    "hash"
-                ] = self._hash(self._encode(disk_data))
+                type(self)._cache[self._filename]["hash"] = self._hash(
+                    self._encode(disk_data)
+                )
 
-            if (
-                SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE
-                > SerializedFileBufferedCollection._BUFFER_CAPACITY
-            ):
-                SerializedFileBufferedCollection._flush_buffer(force=True)
+            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+                type(self)._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -264,9 +226,9 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        if self._filename in SerializedFileBufferedCollection._cache:
+        if self._filename in type(self)._cache:
             # Always track all instances pointing to the same data.
-            SerializedFileBufferedCollection._cached_collections[id(self)] = self
+            type(self)._cached_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -281,13 +243,10 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             self._initialize_data_in_cache()
 
         # Load from buffer
-        blob = SerializedFileBufferedCollection._cache[self._filename]["contents"]
+        blob = type(self)._cache[self._filename]["contents"]
 
-        if (
-            SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE
-            > SerializedFileBufferedCollection._BUFFER_CAPACITY
-        ):
-            SerializedFileBufferedCollection._flush_buffer(force=True)
+        if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+            type(self)._flush_buffer(force=True)
         return self._decode(blob)
 
     def _initialize_data_in_cache(self):
@@ -311,15 +270,15 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         blob = self._encode(self._data)
         metadata = self._get_file_metadata()
 
-        SerializedFileBufferedCollection._cache[self._filename] = {
+        type(self)._cache[self._filename] = {
             "contents": blob,
             "hash": self._hash(blob),
             "metadata": metadata,
         }
-        SerializedFileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-            SerializedFileBufferedCollection._cache[self._filename]["contents"]
+        type(self)._CURRENT_BUFFER_SIZE += len(
+            type(self)._cache[self._filename]["contents"]
         )
-        SerializedFileBufferedCollection._cached_collections[id(self)] = self
+        type(self)._cached_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -344,7 +303,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         # All subclasses share a single cache rather than having separate
         # caches for each instance, so we can exit early in subclasses.
-        if cls != SerializedFileBufferedCollection:
+        if cls != cls:
             return {}
 
         issues = {}
@@ -354,11 +313,11 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while SerializedFileBufferedCollection._cached_collections:
+        while cls._cached_collections:
             (
                 col_id,
                 collection,
-            ) = SerializedFileBufferedCollection._cached_collections.popitem()
+            ) = cls._cached_collections.popitem()
             if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue
@@ -367,5 +326,5 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            SerializedFileBufferedCollection._cached_collections = remaining_collections
+            cls._cached_collections = remaining_collections
         return issues
