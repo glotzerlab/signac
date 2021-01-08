@@ -189,11 +189,20 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        # Writes to the buffer must always be locked for thread safety.
+        type(self)._buffered_collections[id(self)] = self
+
+        # Since one object could write to the buffer and trigger a flush while
+        # another object was found in the buffer and attempts to proceed
+        # normally, we have to serialize this whole block. In theory we might
+        # be safe without it because the only operations that should reach this
+        # point without already being locked are destructive operations (clear,
+        # reset) that don't use the :meth:`_load_and_save` context, and for
+        # those the writes will be automatically serialized because Python
+        # dicts are thread-safe because of the GIL. However, it's best not to
+        # depend on the thread-safety of built-in containers.
         with self._buffer_lock():
             if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
-                type(self)._buffered_collections[id(self)] = self
                 blob = self._encode(self._data)
                 cached_data = type(self)._buffer[self._filename]
                 buffer_size_change = len(blob) - len(cached_data["contents"])
@@ -265,7 +274,6 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         type(self)._CURRENT_BUFFER_SIZE += len(
             type(self)._buffer[self._filename]["contents"]
         )
-        type(self)._buffered_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):

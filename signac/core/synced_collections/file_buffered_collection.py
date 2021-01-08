@@ -211,21 +211,22 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in type(self)._buffer:
-            # Always track all instances pointing to the same data.
-            type(self)._buffered_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._thread_lock():
-                with self._suspend_sync():
-                    self._update(data)
-            self._initialize_data_in_buffer()
+        with self._buffer_lock():
+            if self._filename not in type(self)._buffer:
+                # The first time this method is called, if nothing is in the buffer
+                # for this file then we cannot guarantee that the _data attribute
+                # is valid either since the resource could have been modified
+                # between when _data was last updated and when this load is being
+                # called. As a result, we have to load from the resource here to be
+                # safe.
+                data = self._load_from_resource()
+                with self._thread_lock():
+                    with self._suspend_sync():
+                        self._update(data)
+                self._initialize_data_in_buffer()
+
+        # This storage can be safely updated every time on every thread.
+        type(self)._buffered_collections[id(self)] = self
 
     @abstractmethod
     def _initialize_data_in_buffer(self):

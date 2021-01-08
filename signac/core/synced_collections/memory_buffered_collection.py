@@ -178,6 +178,8 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
         """
+        type(self)._buffered_collections[id(self)] = self
+
         # Since one object could write to the buffer and trigger a flush while
         # another object was found in the buffer and attempts to proceed
         # normally, we have to serialize this whole block. In theory we might
@@ -190,7 +192,6 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         with self._buffer_lock():
             if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
-                type(self)._buffered_collections[id(self)] = self
 
                 # If all we had to do is set the flag, it could be done without any
                 # check, but we also need to increment the number of modified
@@ -249,7 +250,6 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             "metadata": metadata,
             "modified": modified,
         }
-        type(self)._buffered_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
