@@ -88,14 +88,14 @@ class FileBufferedCollection(BufferedCollection):
 
         # This dict is the actual data buffer, mapping filenames to their
         # cached data and metadata.
-        cls._cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
+        cls._buffer: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
 
         # Buffered contexts may be nested, and when leaving a buffered context
         # we only want to flush collections that are no longer buffered. To
         # accomplish this, we maintain a list of buffered collections so that
         # we can perform per-instance flushes that account for their current
         # buffering state.
-        cls._cached_collections: Dict[int, BufferedCollection] = {}
+        cls._buffered_collections: Dict[int, BufferedCollection] = {}
 
     @classmethod
     def enable_multithreading(cls):
@@ -200,7 +200,7 @@ class FileBufferedCollection(BufferedCollection):
     def _load_from_buffer(self):
         """Read data from buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
 
         Returns
@@ -211,9 +211,9 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in type(self)._cache:
+        if self._filename in type(self)._buffer:
             # Always track all instances pointing to the same data.
-            type(self)._cached_collections[id(self)] = self
+            type(self)._buffered_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -279,7 +279,7 @@ class FileBufferedCollection(BufferedCollection):
                     (
                         col_id,
                         collection,
-                    ) = cls._cached_collections.popitem()
+                    ) = cls._buffered_collections.popitem()
                 except KeyError:
                     break
 
@@ -302,5 +302,5 @@ class FileBufferedCollection(BufferedCollection):
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            cls._cached_collections = remaining_collections
+            cls._buffered_collections = remaining_collections
         return issues

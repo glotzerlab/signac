@@ -103,7 +103,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         """
         if not self._is_buffered or force:
             try:
-                cached_data = self._cache[self._filename]
+                cached_data = type(self)._buffer[self._filename]
             except KeyError:
                 # If we got to this point, it means that another collection
                 # pointing to the same underlying resource flushed the buffer.
@@ -134,7 +134,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                     if cached_data["modified"]:
                         type(self)._CURRENT_BUFFER_SIZE -= 1
                     if not force:
-                        del self._cache[self._filename]
+                        del type(self)._buffer[self._filename]
                     else:
                         # Have to update the metadata on a force flush because
                         # we could modify this item again later, leading to
@@ -188,15 +188,15 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         # dicts are thread-safe because of the GIL. However, it's best not to
         # depend on the thread-safety of built-in containers.
         with self._buffer_lock():
-            if self._filename in self._cache:
+            if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
-                type(self)._cached_collections[id(self)] = self
+                type(self)._buffered_collections[id(self)] = self
 
                 # If all we had to do is set the flag, it could be done without any
                 # check, but we also need to increment the number of modified
                 # items, so we may as well do the update conditionally as well.
-                if not self._cache[self._filename]["modified"]:
-                    self._cache[self._filename]["modified"] = True
+                if not type(self)._buffer[self._filename]["modified"]:
+                    type(self)._buffer[self._filename]["modified"] = True
                     type(self)._CURRENT_BUFFER_SIZE += 1
             else:
                 self._initialize_data_in_buffer(modified=True)
@@ -222,7 +222,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         super()._load_from_buffer()
 
         # Set local data to the version in the buffer.
-        self._data = self._cache[self._filename]["contents"]
+        self._data = type(self)._buffer[self._filename]["contents"]
 
     def _initialize_data_in_buffer(self, modified=False):
         """Create the initial entry for the data in the cache.
@@ -244,12 +244,12 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
 
         """
         metadata = self._get_file_metadata()
-        type(self)._cache[self._filename] = {
+        type(self)._buffer[self._filename] = {
             "contents": self._data,
             "metadata": metadata,
             "modified": modified,
         }
-        type(self)._cached_collections[id(self)] = self
+        type(self)._buffered_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):

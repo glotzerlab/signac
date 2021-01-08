@@ -97,7 +97,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         if not self._is_buffered or force:
             try:
-                cached_data = type(self)._cache[self._filename]
+                cached_data = type(self)._buffer[self._filename]
             except KeyError:
                 # There are valid reasons for nothing to be in the cache (the
                 # object was never actually accessed during global buffering,
@@ -119,7 +119,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                 finally:
                     # Whether or not an error was raised, the cache must be
                     # cleared to ensure a valid final buffer state.
-                    del type(self)._cache[self._filename]
+                    del type(self)._buffer[self._filename]
                     data_size = len(cached_data["contents"])
                     type(self)._CURRENT_BUFFER_SIZE -= data_size
 
@@ -191,11 +191,11 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         # Writes to the buffer must always be locked for thread safety.
         with self._buffer_lock():
-            if self._filename in type(self)._cache:
+            if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
-                type(self)._cached_collections[id(self)] = self
+                type(self)._buffered_collections[id(self)] = self
                 blob = self._encode(self._data)
-                cached_data = type(self)._cache[self._filename]
+                cached_data = type(self)._buffer[self._filename]
                 buffer_size_change = len(blob) - len(cached_data["contents"])
                 type(self)._CURRENT_BUFFER_SIZE += buffer_size_change
                 cached_data["contents"] = blob
@@ -211,7 +211,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                 # the data to initialize the cache with).
                 self._initialize_data_in_buffer()
                 disk_data = self._load_from_resource()
-                type(self)._cache[self._filename]["hash"] = self._hash(
+                type(self)._buffer[self._filename]["hash"] = self._hash(
                     self._encode(disk_data)
                 )
 
@@ -235,7 +235,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         super()._load_from_buffer()
 
         # Load from buffer
-        blob = type(self)._cache[self._filename]["contents"]
+        blob = type(self)._buffer[self._filename]["contents"]
 
         if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
             type(self)._flush_buffer(force=True)
@@ -257,15 +257,15 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         blob = self._encode(self._data)
         metadata = self._get_file_metadata()
 
-        type(self)._cache[self._filename] = {
+        type(self)._buffer[self._filename] = {
             "contents": blob,
             "hash": self._hash(blob),
             "metadata": metadata,
         }
         type(self)._CURRENT_BUFFER_SIZE += len(
-            type(self)._cache[self._filename]["contents"]
+            type(self)._buffer[self._filename]["contents"]
         )
-        type(self)._cached_collections[id(self)] = self
+        type(self)._buffered_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
