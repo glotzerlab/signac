@@ -216,6 +216,14 @@ synced\_collections.file\_buffered\_collection module
    :undoc-members:
    :show-inheritance:
 
+synced\_collections.serialized\_file\_buffered\_collection module
+-----------------------------------------------
+
+.. automodule:: signac.core.synced_collections.serialized_file_buffered_collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 synced\_collections.memory\_buffered\_collection module
 -----------------------------------------------
 
