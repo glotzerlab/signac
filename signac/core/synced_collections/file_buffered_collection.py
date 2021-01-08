@@ -21,9 +21,6 @@ from .errors import MetadataError
 from .synced_collection import _fake_lock
 from .utils import SCJSONEncoder
 
-# TODO: Port the extensions from this class's multithreading support to the
-# memory buffered collection.
-
 
 @contextmanager
 def _buffer_lock(self):

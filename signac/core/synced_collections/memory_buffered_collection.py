@@ -126,7 +126,7 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
 
     """
 
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float, int]]]] = {}
+    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
