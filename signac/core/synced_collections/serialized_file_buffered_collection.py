@@ -10,10 +10,7 @@ modified since it was originally loaded into the buffer.
 
 import hashlib
 import json
-from threading import RLock
-from typing import Dict, Tuple, Union
 
-from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 from .file_buffered_collection import FileBufferedCollection
 from .utils import SCJSONEncoder
@@ -67,11 +64,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
     # methods). This usage avoids any possibility for confusion regarding
     # backend-specific caches.
 
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
-    _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
-    _CURRENT_BUFFER_SIZE = 0
-    _BUFFER_LOCK = RLock()
 
     @staticmethod
     def _hash(blob):
@@ -301,11 +294,6 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             If there are any issues with flushing the data.
 
         """
-        # All subclasses share a single cache rather than having separate
-        # caches for each instance, so we can exit early in subclasses.
-        if cls != cls:
-            return {}
-
         issues = {}
 
         # We need to use the list of buffered objects rather than directly
@@ -313,11 +301,16 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while cls._cached_collections:
-            (
-                col_id,
-                collection,
-            ) = cls._cached_collections.popitem()
+        while True:
+            with cls._BUFFER_LOCK:
+                try:
+                    (
+                        col_id,
+                        collection,
+                    ) = cls._cached_collections.popitem()
+                except KeyError:
+                    break
+
             if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue

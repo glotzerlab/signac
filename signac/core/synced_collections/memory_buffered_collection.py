@@ -17,10 +17,7 @@ in the buffer for all objects, completely removing the need for encoding, decodi
 and updating in place.
 """
 
-from threading import RLock
-from typing import Dict, Tuple, Union
 
-from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 from .file_buffered_collection import FileBufferedCollection
 
@@ -112,11 +109,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
 
     """
 
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
-    _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
-    _CURRENT_BUFFER_SIZE = 0
-    _BUFFER_LOCK = RLock()
 
     def _flush(self, force=False):
         """Save buffered changes to the underlying file.
@@ -330,11 +323,6 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             If there are any issues with flushing the data.
 
         """
-        # All subclasses share a single cache rather than having separate
-        # caches for each instance, so we can exit early in subclasses.
-        if cls != cls:
-            return {}
-
         issues = {}
 
         # We need to use the list of buffered objects rather than directly

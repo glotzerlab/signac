@@ -10,7 +10,9 @@ modified since it was originally loaded into the buffer.
 
 import errno
 import os
+from abc import abstractmethod
 from contextlib import contextmanager
+from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
@@ -77,14 +79,18 @@ class FileBufferedCollection(BufferedCollection):
     # methods). This usage avoids any possibility for confusion regarding
     # backend-specific caches.
 
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
-    _cached_collections: Dict[int, BufferedCollection] = {}
-    _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
-    _CURRENT_BUFFER_SIZE = 0
-
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
+
+    @classmethod
+    def __init_subclass__(cls):
+        """Prepare subclasses."""
+        super().__init_subclass__()
+        cls._CURRENT_BUFFER_SIZE = 0
+        cls._BUFFER_LOCK = RLock()
+        cls._cached_collections: Dict[int, BufferedCollection] = {}
+        cls._cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
 
     @classmethod
     def enable_multithreading(cls):
@@ -190,41 +196,16 @@ class FileBufferedCollection(BufferedCollection):
         """
         return cls._CURRENT_BUFFER_SIZE
 
+    @abstractmethod
     def _save_to_buffer(self):
         """Store data in buffer.
 
         See :meth:`~._initialize_data_in_cache` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        # Writes to the buffer must always be locked for thread safety.
-        with self._buffer_lock():
-            if self._filename in type(self)._cache:
-                # Always track all instances pointing to the same data.
-                type(self)._cached_collections[id(self)] = self
-                blob = self._encode(self._data)
-                cached_data = type(self)._cache[self._filename]
-                buffer_size_change = len(blob) - len(cached_data["contents"])
-                type(self)._CURRENT_BUFFER_SIZE += buffer_size_change
-                cached_data["contents"] = blob
-            else:
-                # The only methods that could safely call sync without a load are
-                # destructive operations like `reset` or `clear` that completely
-                # wipe out previously existing data. Therefore, the safest choice
-                # for ensuring consistency of the buffer is to modify the stored
-                # hash (which is used for the consistency check) with the hash of
-                # the current data on disk. _initialize_data_in_cache always uses
-                # the current metadata, so the only extra work here is to modify
-                # the hash after it's called (since it uses self._to_base() to get
-                # the data to initialize the cache with).
-                self._initialize_data_in_cache()
-                disk_data = self._load_from_resource()
-                type(self)._cache[self._filename]["hash"] = self._hash(
-                    self._encode(disk_data)
-                )
+        pass
 
-            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
-                type(self)._flush_buffer(force=True)
-
+    @abstractmethod
     def _load_from_buffer(self):
         """Read data from buffer.
 
@@ -239,28 +220,7 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in type(self)._cache:
-            # Always track all instances pointing to the same data.
-            type(self)._cached_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._thread_lock():
-                with self._suspend_sync():
-                    self._update(data)
-            self._initialize_data_in_cache()
-
-        # Load from buffer
-        blob = type(self)._cache[self._filename]["contents"]
-
-        if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
-            type(self)._flush_buffer(force=True)
-        return self._decode(blob)
+        pass
 
     @classmethod
     def _flush_buffer(cls, force=False):
