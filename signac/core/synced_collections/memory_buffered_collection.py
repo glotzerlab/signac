@@ -285,7 +285,8 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                     # we're force flushing in which case we never delete, but
                     # take note that the data is no longer modified relative to
                     # its representation on disk.
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
+                    if cached_data["modified"]:
+                        SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE -= 1
                     if not force:
                         del self._cache[self._filename]
                     else:
@@ -355,12 +356,11 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
                 self._initialize_data_in_cache(modified=True)
                 SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE += 1
 
-            with self._buffer_lock():
-                if (
-                    SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
-                    > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
-                ):
-                    SharedMemoryFileBufferedCollection._flush_buffer(force=True)
+            if (
+                SharedMemoryFileBufferedCollection._CURRENT_BUFFER_SIZE
+                > SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
+            ):
+                SharedMemoryFileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -458,37 +458,36 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        with cls._buffer_lock():
-            while SharedMemoryFileBufferedCollection._cached_collections:
-                # TODO: Consider the possibility that a forced flush in
-                # buffered mode will lead to going through this entire loop
-                # once on every thread, and because of the (required) lock
-                # we'll end up doing them all serially.
-                (
-                    col_id,
-                    collection,
-                ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
-
-                # If force is true, the collection must still be buffered, and we
-                # want to put it back in the remaining_collections list after
-                # flushing any writes. If force is false, then the only way for the
-                # collection to still be buffered is if there are nested buffered
-                # contexts. In that case, flush_buffer was called due to the exit
-                # of an inner buffered context, and we shouldn't do anything with
-                # this object, so we just put it back in the list *and* skip the
-                # flush.
-                if collection._is_buffered and not force:
-                    remaining_collections[col_id] = collection
-                    continue
-                elif force:
-                    remaining_collections[col_id] = collection
-
+        while True:
+            with cls._buffer_lock():
                 try:
-                    collection._flush(force=force)
-                except (OSError, MetadataError) as err:
-                    issues[collection._filename] = err
-            if not issues:
-                SharedMemoryFileBufferedCollection._cached_collections = (
-                    remaining_collections
-                )
+                    (
+                        col_id,
+                        collection,
+                    ) = SharedMemoryFileBufferedCollection._cached_collections.popitem()
+                except KeyError:
+                    break
+
+            # If force is true, the collection must still be buffered, and we
+            # want to put it back in the remaining_collections list after
+            # flushing any writes. If force is false, then the only way for the
+            # collection to still be buffered is if there are nested buffered
+            # contexts. In that case, flush_buffer was called due to the exit
+            # of an inner buffered context, and we shouldn't do anything with
+            # this object, so we just put it back in the list *and* skip the
+            # flush.
+            if collection._is_buffered and not force:
+                remaining_collections[col_id] = collection
+                continue
+            elif force:
+                remaining_collections[col_id] = collection
+
+            try:
+                collection._flush(force=force)
+            except (OSError, MetadataError) as err:
+                issues[collection._filename] = err
+        if not issues:
+            SharedMemoryFileBufferedCollection._cached_collections = (
+                remaining_collections
+            )
         return issues
