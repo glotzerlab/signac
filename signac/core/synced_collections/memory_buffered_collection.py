@@ -3,20 +3,14 @@
 # This software is licensed under the BSD 3-Clause License.
 """A standardized buffering implementation for file-based backends.
 
-This module defines a variant of the buffering protocol in
-:py:mod:`file_buffered_collection`. This module exploits the same idea that
-all file-based backends can use a similar buffering protocol using integrity
-checks based on file modification times. However, that buffering approach
-mitigates I/O costs by serializing data into a single buffer that is then
-treated as the underlying data store by associated :class:`SyncedCollection` objects.
-That approach is expensive because it still requires constant encoding and
-decoding of data while checking for changes to the data in the buffer from other
-instances pointing to the same underlying files. The approach in this module circumvents
-this these performance bottlenecks by directly sharing the underlying data store
-in the buffer for all objects, completely removing the need for encoding, decoding,
-and updating in place.
+The buffering method implemented here involves a single buffer of references to
+in-memory objects containing data. These objects are the base types of a given
+SyncedCollection type, e.g. a dict for all dict-like collections, and are the
+underlying data stores for those types. This buffering method exploits the fact
+that all mutable collection types in Python are references, so modifying one
+such collection results in modifying all of them, thereby removing any need for
+more complicated synchronization protocols.
 """
-
 
 from .errors import MetadataError
 from .file_buffered_collection import FileBufferedCollection
@@ -25,43 +19,23 @@ from .file_buffered_collection import FileBufferedCollection
 class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     """A :class:`SyncedCollection` that defers all I/O when buffered.
 
-    This class implements a variant of the buffering strategy defined in the
-    :class:`signac.core.synced_collections.file_buffered_collection.FileBufferedCollection`.
-    Like that class, this class enables buffering for file-based backends by storing
-    the last known modification time of the data on disk prior to entering buffered
-    mode, then checking whether that has changed when the buffer is flushed.
-    The buffering implemented by :class:`~.FileBufferedCollection`
-    is true buffering in the sense that the entire write operation is
-    performed as normal, including serialization, except that data is written to
-    a different persistent store than the underlying resource. However, such
-    buffering incurs significant overhead associated all the non-I/O tasks
-    required prior to writing to the buffer, particularly data serialization.
-    This class exists to remove these performance bottlenecks, which can be
-    severe, and provide a more performant alternative.
+    This class extends the :class:`~.FileBufferedCollection` and implements a
+    concrete storage mechanism in which collections store a reference to their
+    data in a buffer. This method takes advantage of the reference-based semantics
+    of built-in Python mutable data types like dicts and lists. All collections
+    referencing the same file are pointed to the same underlying data store in
+    buffered mode, allowing all changes in one to be transparently reflected in
+    the others. To further improve performance, the buffer size is determined
+    only based on the number of modified collections stored, not the total number.
+    As a result, the maximum capacity is only reached when a large number of
+    modified collections are stored, and unmodified collections are only removed
+    from the buffer when a buffered context is exited (rather than when buffer
+    capacity is exhausted). See the Warnings section for more information.
 
-    The buffering method implemented in this class circumvents the
-    aforementioned performance bottlenecks by directly sharing the data between
-    multiple synced collections. Rather than encoding and decoding data, all
-    objects associated with a file share a single underlying in-memory data store,
-    allowing any changes to one to be transparently persisted to the others. When
-    the first collection associated with a particular file is accessed or
-    modified in buffered mode for the first time, its data is stored in a cache.
-    When future collections pointing to the same file access the cache, rather
-    than synchronizing their data with the contents of the cache, the underlying
-    data attribute of the collection is simply repointed at the data in the cache.
-    This method exploits the fact that all mutable collection types in Python are
-    references, so modifying one such collection results in modifying all of them,
-    thereby removing any need for more complicated synchronization protocols.
-
-    This approach has one principal downside relative to the other buffering
-    method. Since the data is not always encoded into a byte-string, the exact
-    size of the data in the buffer is not exactly known. This method simply counts
-    the number of objects in the buffer as a means to decide how much to store before
-    the buffer is flushed. To further simplify the logic and improve performance,
-    buffer flushes in this class never remove data from the buffer when forcing
-    a flush, they simply write out changes that occurred. The buffer is only cleared
-    when a buffered context is exited. This allows storing an arbitrary number of
-    objects in the buffer for read-only purposes.
+    The buffer size and capacity for this class is measured in the total number
+    of collections stored in the buffer that have undergone any modifications
+    since their initial load from disk. A sequence of read-only operations will
+    load data into the buffer, but the apparent buffer size will be zero.
 
     .. note::
         Important note for subclasses: This class should be inherited before
@@ -104,8 +78,8 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     - This buffering method has no upper bound on the buffer size if all
       operations on buffered objects are read-only operations. If a strict upper bound
       is required, for instance due to strict virtual memory limits on a given system,
-      use of the :class:~.FileBufferedCollection` will allow limiting the total
-      memory usage of the process.
+      use of the :class:~.SerializedFileBufferedCollection` will allow limiting
+      the total memory usage of the process.
 
     """
 
@@ -119,14 +93,6 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         force : bool
             If True, force a flush even in buffered mode (defaults to False). This
             parameter is used when the buffer is filled to capacity.
-        stored_metadata : tuple[int, float]
-            The metadata stored for this particular collection in the cache. It
-            will have been removed by _flush_buffer when this method is called, so
-            it must be passed as an argument. Under normal circumstances it will be
-            equal to the metadata stored in _cache, but if there are multiple objects
-            pointing to the same file and one of them modifies it by exiting buffered
-            mode first and the other makes _no_ modifications, it is safe to simply
-            reload the data.
 
         Raises
         ------
@@ -209,7 +175,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     def _save_to_buffer(self):
         """Store data in buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
         """
         # Since one object could write to the buffer and trigger a flush while
@@ -233,7 +199,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                     self._cache[self._filename]["modified"] = True
                     type(self)._CURRENT_BUFFER_SIZE += 1
             else:
-                self._initialize_data_in_cache(modified=True)
+                self._initialize_data_in_buffer(modified=True)
                 type(self)._CURRENT_BUFFER_SIZE += 1
 
             if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
@@ -242,7 +208,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     def _load_from_buffer(self):
         """Read data from buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
 
         Returns
@@ -253,46 +219,29 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        # Since one object could write to the buffer and trigger a flush while
-        # another object was found in the buffer and attempts to proceed
-        # normally, we have to serialize this whole block.
-        if self._filename in type(self)._cache:
-            # Need to check if we have multiple collections pointing to the
-            # same file, and if so, track it.
-            type(self)._cached_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._thread_lock():
-                with self._suspend_sync():
-                    self._update(data)
-            self._initialize_data_in_cache(modified=False)
+        super()._load_from_buffer()
 
         # Set local data to the version in the buffer.
         self._data = self._cache[self._filename]["contents"]
 
-    def _initialize_data_in_cache(self, modified):
+    def _initialize_data_in_buffer(self, modified=False):
         """Create the initial entry for the data in the cache.
 
-        This method should be called the first time that a collection's data is
-        accessed in buffered mode. This method stores the encoded data in the
-        cache, along with a hash of the data and the metadata of the underlying
-        file. The hash is later used for quick checks of whether the data in
-        memory has changed since the initial load into the buffer. If so the
-        metadata is used to verify that the file on disk has not been modified
-        since the data was modified in memory.
+        Stores the following information:
+            - The metadata provided by :meth:`~._get_file_metadata`. Used to
+              check if a file has been modified on disk since it was loaded
+              into the buffer.
+            - A flag indicating whether any operation that saves to the buffer
+              has occurred, e.g. a ``__setitem__`` call. This flag is used to
+              determine what collections need to be saved to disk when
+              flushing.
 
-        We also maintain a separate set of all collections that are currently
-        in buffered mode. This extra storage is necessary because when leaving
-        a buffered context we need to make sure to only flush collections that
-        are no longer in buffered mode in cases of nested buffering. This
-        additional check helps prevent or transparently error on otherwise
-        unsafe access patterns.
+        Parameters
+        ----------
+        modified : bool
+            Whether or not the data has been modified from the version on disk
+            (Default value = False).
+
         """
         metadata = self._get_file_metadata()
         type(self)._cache[self._filename] = {

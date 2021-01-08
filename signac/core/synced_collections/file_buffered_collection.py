@@ -5,7 +5,8 @@
 
 All file-based backends can use a similar buffering protocol. In particular,
 integrity checks can be performed by checking for whether the file has been
-modified since it was originally loaded into the buffer.
+modified since it was originally loaded into the buffer. However, various
+specific components are abstract and must be implemented by child classes.
 """
 
 import errno
@@ -35,24 +36,25 @@ class FileBufferedCollection(BufferedCollection):
     """A :class:`SyncedCollection` that can buffer file I/O.
 
     This class provides a standardized buffering protocol for all file-based
-    backends.  All file-based backends can use the same set of integrity checks
+    backends. All file-based backends can use the same set of integrity checks
     prior to a buffer flush to ensure that no conflicting modifications are
     made. Specifically, they can check whether the file has been modified on
-    disk since it was originally loaded to the buffer. This class uses a
-    single centralized cache for all subclasses, irrespective of backend. This
-    choice is so that that users can reliably get and set the buffer capacity
-    without worrying about the number of distinct internal data buffers that
-    might be present. This setting has no effect on the buffering behavior of
-    other :class:`BufferedCollection` types.
+    disk since it was originally loaded to the buffer. This class provides the
+    basic infrastructure for that and defines standard methods that can be used
+    by all classes. Subclasses must define the appropriate storage mechanism.
 
     .. note::
-        Important note for subclasses: This class should be inherited before
-        any other collections. This requirement is due to the extensive use of
-        multiple inheritance: since this class is designed to be combined with
-        other :class:`SyncedCollection` types without making those types aware
-        of buffering behavior, it transparently hooks into the initialization
-        process, but this is dependent on its constructor being called before
-        those of other classes.
+        Important notes for developers:
+            - This class should be inherited before any other collections. This
+              requirement is due to the extensive use of multiple inheritance.
+              Since this class is designed to be combined with other
+              :class:`SyncedCollection` types without making those types aware
+              of buffering behavior, it transparently hooks into the
+              initialization process, but this is dependent on its constructor
+              being called before those of other classes.
+            - All subclasses must define a class level _BUFFER_CAPACITY
+              variable that is used to determine the maximum allowable buffer
+              size.
 
     Parameters
     ----------
@@ -73,12 +75,6 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
-    # Note for developers: since all subclasses share a single cache, all
-    # references to cache-related class variables in the code use the class
-    # name explicitly rather than using cls (in classmethods) or self (in
-    # methods). This usage avoids any possibility for confusion regarding
-    # backend-specific caches.
-
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
@@ -89,8 +85,17 @@ class FileBufferedCollection(BufferedCollection):
         super().__init_subclass__()
         cls._CURRENT_BUFFER_SIZE = 0
         cls._BUFFER_LOCK = RLock()
-        cls._cached_collections: Dict[int, BufferedCollection] = {}
+
+        # This dict is the actual data buffer, mapping filenames to their
+        # cached data and metadata.
         cls._cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
+
+        # Buffered contexts may be nested, and when leaving a buffered context
+        # we only want to flush collections that are no longer buffered. To
+        # accomplish this, we maintain a list of buffered collections so that
+        # we can perform per-instance flushes that account for their current
+        # buffering state.
+        cls._cached_collections: Dict[int, BufferedCollection] = {}
 
     @classmethod
     def enable_multithreading(cls):
@@ -144,21 +149,11 @@ class FileBufferedCollection(BufferedCollection):
         Returns
         -------
         int
-            The number of bytes that can be stored before a flush is triggered.
+            The amount of data that can be stored before a flush is triggered
+            in the appropriate units for a particular buffering implementation.
 
         """
         return cls._BUFFER_CAPACITY
-
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Override the parent function's hook to support safely multithreaded
-        access to the buffer.
-        """
-        with self._buffer_lock():
-            with super()._load_and_save():
-                yield
 
     @classmethod
     def set_buffer_capacity(cls, new_capacity):
@@ -167,7 +162,8 @@ class FileBufferedCollection(BufferedCollection):
         Parameters
         ----------
         new_capacity : int
-            The new capacity of the buffer in bytes.
+            The new capacity of the buffer in the appropriate units for a particular
+            buffering implementation.
 
         """
         cls._BUFFER_CAPACITY = new_capacity
@@ -184,28 +180,23 @@ class FileBufferedCollection(BufferedCollection):
         Returns
         -------
         int
-            The size of all data contained in the buffer (in bytes).
-
-        Notes
-        -----
-        The buffer size is defined as the total number of bytes that will be
-        written out when the buffer is flushed. This is *not* the same as the total
-        size of the buffer, which also contains additional information like the
-        hash of the data and the file metadata (which are used for integrity checks).
+            The size of all data contained in the buffer in the appropriate
+            units for a particular buffering implementation.
 
         """
         return cls._CURRENT_BUFFER_SIZE
 
-    @abstractmethod
-    def _save_to_buffer(self):
-        """Store data in buffer.
+    @contextmanager
+    def _load_and_save(self):
+        """Prepare a context manager in which mutating changes can happen.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
-        in the buffer and the integrity checks performed.
+        Override the parent function's hook to support safely multithreaded
+        access to the buffer.
         """
-        pass
+        with self._buffer_lock():
+            with super()._load_and_save():
+                yield
 
-    @abstractmethod
     def _load_from_buffer(self):
         """Read data from buffer.
 
@@ -219,6 +210,32 @@ class FileBufferedCollection(BufferedCollection):
             method is called for, corresponding to data loaded from the
             underlying file.
 
+        """
+        if self._filename in type(self)._cache:
+            # Always track all instances pointing to the same data.
+            type(self)._cached_collections[id(self)] = self
+        else:
+            # The first time this method is called, if nothing is in the buffer
+            # for this file then we cannot guarantee that the _data attribute
+            # is valid either since the resource could have been modified
+            # between when _data was last updated and when this load is being
+            # called. As a result, we have to load from the resource here to be
+            # safe.
+            data = self._load_from_resource()
+            with self._thread_lock():
+                with self._suspend_sync():
+                    self._update(data)
+            self._initialize_data_in_buffer()
+
+    @abstractmethod
+    def _initialize_data_in_buffer(self):
+        """Create the initial entry for the data in the cache.
+
+        This method should be called the first time that a collection's data is
+        accessed in buffered mode. This method stores the encoded data in the
+        cache, along with the metadata of the underlying file and any other
+        information that may be used for validation later. This information
+        depends on the implementation of the buffer in subclasses.
         """
         pass
 

@@ -1,11 +1,11 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
-"""A standardized buffering implementation for file-based backends.
+"""Buffering for file-based backends using a serialized buffer.
 
-All file-based backends can use a similar buffering protocol. In particular,
-integrity checks can be performed by checking for whether the file has been
-modified since it was originally loaded into the buffer.
+The buffering method implemented here involves a single buffer of serialized
+data. All collections in buffered mode encode their data into this buffer on save
+and decode from it on load.
 """
 
 import hashlib
@@ -17,18 +17,20 @@ from .utils import SCJSONEncoder
 
 
 class SerializedFileBufferedCollection(FileBufferedCollection):
-    """A :class:`SyncedCollection` that can buffer file I/O.
+    """A :class:`FileBufferedCollection` based on a serialized data store.
 
-    This class provides a standardized buffering protocol for all file-based
-    backends.  All file-based backends can use the same set of integrity checks
-    prior to a buffer flush to ensure that no conflicting modifications are
-    made. Specifically, they can check whether the file has been modified on
-    disk since it was originally loaded to the buffer. This class uses a
-    single centralized cache for all subclasses, irrespective of backend. This
-    choice is so that that users can reliably get and set the buffer capacity
-    without worrying about the number of distinct internal data buffers that
-    might be present. This setting has no effect on the buffering behavior of
-    other :class:`BufferedCollection` types.
+    This class extends the :class:`~.FileBufferedCollection` and implements a
+    concrete storage mechanism in which data is encoded (by default, into JSON)
+    and stored into a buffer. This buffer functions as a central data store for
+    all collections and is a synchronization point for various collections
+    pointing to the same underlying file. This serialization method may be a
+    bottleneck in some applications; see the Warnings section for more information.
+
+    The buffer size and capacity for this class is measured in the total number
+    of bytes stored in the buffer that correspond to file data. This is *not*
+    the total size of the buffer, which also contains additional information
+    like the hash of the data and the file metadata (which are used for
+    integrity checks), but it is the relevant metric for users.
 
     .. note::
         Important note for subclasses: This class should be inherited before
@@ -39,6 +41,19 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         process, but this is dependent on its constructor being called before
         those of other classes.
 
+    **Thread safety**
+
+    This buffering method is thread safe. This thread safety is independent of the
+    safety of an individual collection backend; the backend must support thread
+    safe writes to the underlying resource in order for a buffered version using
+    this class to be thread safe for general use. The thread safety guaranteed
+    by this class only concerns buffer reads, writes, and flushes. All these
+    operations are serialized because there is no way to prevent one collection
+    from triggering a flush while another still thinks its data is in the cache;
+    however, this shouldn't be terribly performance-limiting since in buffered
+    mode we're avoiding I/O anyway and that's the only thing that can be effectively
+    parallelized here.
+
     Parameters
     ----------
     filename: str, optional
@@ -46,15 +61,19 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
 
     Warnings
     --------
-    Although it can be done safely, in general modifying two different collections
-    pointing to the same underlying resource while both are in different buffering
-    modes is unsupported and can lead to undefined behavior. This class makes a
-    best effort at performing safe modifications, but it is possible to construct
-    nested buffered contexts for different objects that can lead to an invalid
-    buffer state, or even situations where there is no obvious indicator of what
-    is the canonical source of truth. In general, if you need multiple objects
-    pointing to the same resource, it is **strongly** recommeneded to work with
-    both of them in identical buffering states at all times.
+    - Although it can be done safely, in general modifying two different collections
+      pointing to the same underlying resource while both are in different buffering
+      modes is unsupported and can lead to undefined behavior. This class makes a
+      best effort at performing safe modifications, but it is possible to construct
+      nested buffered contexts for different objects that can lead to an invalid
+      buffer state, or even situations where there is no obvious indicator of what
+      is the canonical source of truth. In general, if you need multiple objects
+      pointing to the same resource, it is **strongly** recommeneded to work with
+      both of them in identical buffering states at all times.
+    - The overhead of this buffering method is quite high due to the constant
+      encoding and decoding of data. For performance-critical applications where
+      memory is not highly constrained and virtual memory limits are absent, the
+      :class:`~.SharedMemoryFileBufferedCollection` may be more appropriate.
 
     """
 
@@ -167,7 +186,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
     def _save_to_buffer(self):
         """Store data in buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
         """
         # Writes to the buffer must always be locked for thread safety.
@@ -186,11 +205,11 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                 # wipe out previously existing data. Therefore, the safest choice
                 # for ensuring consistency of the buffer is to modify the stored
                 # hash (which is used for the consistency check) with the hash of
-                # the current data on disk. _initialize_data_in_cache always uses
+                # the current data on disk. _initialize_data_in_buffer always uses
                 # the current metadata, so the only extra work here is to modify
                 # the hash after it's called (since it uses self._to_base() to get
                 # the data to initialize the cache with).
-                self._initialize_data_in_cache()
+                self._initialize_data_in_buffer()
                 disk_data = self._load_from_resource()
                 type(self)._cache[self._filename]["hash"] = self._hash(
                     self._encode(disk_data)
@@ -202,7 +221,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
     def _load_from_buffer(self):
         """Read data from buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
 
         Returns
@@ -213,21 +232,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        if self._filename in type(self)._cache:
-            # Always track all instances pointing to the same data.
-            type(self)._cached_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._thread_lock():
-                with self._suspend_sync():
-                    self._update(data)
-            self._initialize_data_in_cache()
+        super()._load_from_buffer()
 
         # Load from buffer
         blob = type(self)._cache[self._filename]["contents"]
@@ -236,23 +241,18 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             type(self)._flush_buffer(force=True)
         return self._decode(blob)
 
-    def _initialize_data_in_cache(self):
+    def _initialize_data_in_buffer(self):
         """Create the initial entry for the data in the cache.
 
-        This method should be called the first time that a collection's data is
-        accessed in buffered mode. This method stores the encoded data in the
-        cache, along with a hash of the data and the metadata of the underlying
-        file. The hash is later used for quick checks of whether the data in
-        memory has changed since the initial load into the buffer. If so the
-        metadata is used to verify that the file on disk has not been modified
-        since the data was modified in memory.
+        Stores the following information:
+            - The hash of the data as initially stored in the cache. This hash
+              is used to quickly determine whether data has changed when flushing.
+            - The metadata provided by :meth:`~._get_file_metadata`. Used to
+              check if a file has been modified on disk since it was loaded
+              into the buffer.
 
-        We also maintain a separate set of all collections that are currently
-        in buffered mode. This extra storage is necessary because when leaving
-        a buffered context we need to make sure to only flush collections that
-        are no longer in buffered mode in cases of nested buffering. This
-        additional check helps prevent or transparently error on otherwise
-        unsafe access patterns.
+        This method also increments the current buffer size, which in this class
+        is the total number of bytes of data in the buffer.
         """
         blob = self._encode(self._data)
         metadata = self._get_file_metadata()
