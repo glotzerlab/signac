@@ -17,29 +17,15 @@ in the buffer for all objects, completely removing the need for encoding, decodi
 and updating in place.
 """
 
-import errno
-import os
-from contextlib import contextmanager
 from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
-from .synced_collection import _fake_lock
+from .file_buffered_collection import FileBufferedCollection
 
 
-@contextmanager
-def _buffer_lock(self):
-    """Prepare context for thread-safe operation.
-
-    All operations that can mutate an object should use this context
-    manager to ensure thread safety.
-    """
-    with type(self)._BUFFER_LOCK:
-        yield
-
-
-class SharedMemoryFileBufferedCollection(BufferedCollection):
+class SharedMemoryFileBufferedCollection(FileBufferedCollection):
     """A :class:`SyncedCollection` that defers all I/O when buffered.
 
     This class implements a variant of the buffering strategy defined in the
@@ -131,78 +117,6 @@ class SharedMemoryFileBufferedCollection(BufferedCollection):
     _BUFFER_CAPACITY = 1000  # The number of collections to store in the buffer.
     _CURRENT_BUFFER_SIZE = 0
     _BUFFER_LOCK = RLock()
-
-    def __init__(self, filename=None, *args, **kwargs):
-        super().__init__(filename=filename, *args, **kwargs)
-        self._filename = filename
-
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Override the parent function's hook to support safely multithreaded
-        access to the buffer.
-        """
-        with self._buffer_lock():
-            with super()._load_and_save():
-                yield
-
-    @classmethod
-    def enable_multithreading(cls):
-        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
-
-        Support for multithreaded execution can be disabled by calling
-        :meth:`~.disable_multithreading`; calling this method reverses that.
-
-        """
-        super().enable_multithreading()
-        cls._buffer_lock = _buffer_lock
-
-    @classmethod
-    def disable_multithreading(cls):
-        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
-
-        The mutex locks required to enable multithreading introduce nontrivial performance
-        costs, so they can be disabled for classes that support it.
-
-        """
-        super().disable_multithreading()
-        cls._buffer_lock = _fake_lock
-
-    def _get_file_metadata(self):
-        """Return metadata of file.
-
-        Returns
-        -------
-        Tuple[int, float] or None
-            The size and last modification time of the associated file. If the
-            file does not exist, returns :code:`None`.
-
-        """
-        try:
-            metadata = os.stat(self._filename)
-            return metadata.st_size, metadata.st_mtime_ns
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise
-            # A return value of None indicates that the file does not
-            # exist. Since any non-``None`` value will return `False` when
-            # compared to ``None``, returning ``None`` provides a
-            # reasonable value to compare against for metadata-based
-            # validation checks.
-            return None
-
-    @staticmethod
-    def get_buffer_capacity():
-        """Get the current buffer capacity.
-
-        Returns
-        -------
-        int
-            The number of collections that can be stored before a flush is triggered.
-
-        """
-        return SharedMemoryFileBufferedCollection._BUFFER_CAPACITY
 
     @staticmethod
     def set_buffer_capacity(new_capacity):

@@ -9,17 +9,13 @@ modified since it was originally loaded into the buffer.
 """
 
 import errno
-import hashlib
-import json
 import os
 from contextlib import contextmanager
-from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 from .synced_collection import _fake_lock
-from .utils import SCJSONEncoder
 
 
 @contextmanager
@@ -85,7 +81,6 @@ class FileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
-    _BUFFER_LOCK = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
@@ -113,26 +108,6 @@ class FileBufferedCollection(BufferedCollection):
         super().disable_multithreading()
         cls._buffer_lock = _fake_lock
 
-    @staticmethod
-    def _hash(blob):
-        """Calculate and return the md5 hash value for the file data.
-
-        Parameters
-        ----------
-        blob : bytes
-            Byte literal to be hashed.
-
-        Returns
-        -------
-        str
-            The md5 hash of the input bytes.
-
-        """
-        if blob is not None:
-            m = hashlib.md5()
-            m.update(blob)
-            return m.hexdigest()
-
     def _get_file_metadata(self):
         """Return metadata of file.
 
@@ -156,8 +131,8 @@ class FileBufferedCollection(BufferedCollection):
             # validation checks.
             return None
 
-    @staticmethod
-    def get_buffer_capacity():
+    @classmethod
+    def get_buffer_capacity(cls):
         """Get the current buffer capacity.
 
         Returns
@@ -166,7 +141,7 @@ class FileBufferedCollection(BufferedCollection):
             The number of bytes that can be stored before a flush is triggered.
 
         """
-        return FileBufferedCollection._BUFFER_CAPACITY
+        return cls._BUFFER_CAPACITY
 
     @contextmanager
     def _load_and_save(self):
@@ -179,8 +154,8 @@ class FileBufferedCollection(BufferedCollection):
             with super()._load_and_save():
                 yield
 
-    @staticmethod
-    def set_buffer_capacity(new_capacity):
+    @classmethod
+    def set_buffer_capacity(cls, new_capacity):
         """Update the buffer capacity.
 
         Parameters
@@ -189,12 +164,12 @@ class FileBufferedCollection(BufferedCollection):
             The new capacity of the buffer in bytes.
 
         """
-        FileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        if new_capacity < FileBufferedCollection._CURRENT_BUFFER_SIZE:
-            FileBufferedCollection._flush_buffer(force=True)
+        cls._BUFFER_CAPACITY = new_capacity
+        if new_capacity < cls._CURRENT_BUFFER_SIZE:
+            cls._flush_buffer(force=True)
 
     @staticmethod
-    def get_current_buffer_size():
+    def get_current_buffer_size(cls):
         """Get the total amount of data currently stored in the buffer.
 
         Returns
@@ -210,91 +185,7 @@ class FileBufferedCollection(BufferedCollection):
         hash of the data and the file metadata (which are used for integrity checks).
 
         """
-        return FileBufferedCollection._CURRENT_BUFFER_SIZE
-
-    def _flush(self, force=False):
-        """Save buffered changes to the underlying file.
-
-        Parameters
-        ----------
-        force : bool
-            If True, force a flush even in buffered mode (defaults to False). This
-            parameter is used when the buffer is filled to capacity.
-
-        Raises
-        ------
-        MetadataError
-            If any file is detected to have changed on disk since it was
-            originally loaded into the buffer and modified.
-
-        """
-        if not self._is_buffered or force:
-            try:
-                cached_data = FileBufferedCollection._cache[self._filename]
-            except KeyError:
-                # There are valid reasons for nothing to be in the cache (the
-                # object was never actually accessed during global buffering,
-                # multiple collections pointing to the same file, etc).
-                pass
-            else:
-                blob = self._encode(self._data)
-
-                # If the contents have not been changed since the initial read,
-                # we don't need to rewrite it.
-                try:
-                    if self._hash(blob) != cached_data["hash"]:
-                        # Validate that the file hasn't been changed by
-                        # something else.
-                        if cached_data["metadata"] != self._get_file_metadata():
-                            raise MetadataError(self._filename, cached_data["contents"])
-                        self._data = self._decode(cached_data["contents"])
-                        self._save_to_resource()
-                finally:
-                    # Whether or not an error was raised, the cache must be
-                    # cleared to ensure a valid final buffer state.
-                    del FileBufferedCollection._cache[self._filename]
-                    data_size = len(cached_data["contents"])
-                    FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
-
-    @staticmethod
-    def _encode(data):
-        """Encode the data into a serializable form.
-
-        This method assumes JSON-serializable data, but subclasses can override
-        this hook method to change the encoding behavior as needed.
-
-        Parameters
-        ----------
-        data : collections.abc.Collection
-            Any collection type that can be encoded.
-
-        Returns
-        -------
-        bytes
-            The underlying encoded data.
-
-        """
-        return json.dumps(data, cls=SCJSONEncoder).encode()
-
-    @staticmethod
-    def _decode(blob):
-        """Decode serialized data.
-
-        This method assumes JSON-serializable data, but subclasses can override
-        this hook method to change the encoding behavior as needed.
-
-        Parameters
-        ----------
-        blob : bytes
-            Byte literal to be decoded.
-
-        Returns
-        -------
-        data : collections.abc.Collection
-            The decoded data in the appropriate base collection type.
-
-        """
-        return json.loads(blob.decode())
+        return cls._CURRENT_BUFFER_SIZE
 
     def _save_to_buffer(self):
         """Store data in buffer.
@@ -304,13 +195,13 @@ class FileBufferedCollection(BufferedCollection):
         """
         # Writes to the buffer must always be locked for thread safety.
         with self._buffer_lock():
-            if self._filename in FileBufferedCollection._cache:
+            if self._filename in type(self)._cache:
                 # Always track all instances pointing to the same data.
-                FileBufferedCollection._cached_collections[id(self)] = self
+                type(self)._cached_collections[id(self)] = self
                 blob = self._encode(self._data)
-                cached_data = FileBufferedCollection._cache[self._filename]
+                cached_data = type(self)._cache[self._filename]
                 buffer_size_change = len(blob) - len(cached_data["contents"])
-                FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+                type(self)._CURRENT_BUFFER_SIZE += buffer_size_change
                 cached_data["contents"] = blob
             else:
                 # The only methods that could safely call sync without a load are
@@ -324,15 +215,12 @@ class FileBufferedCollection(BufferedCollection):
                 # the data to initialize the cache with).
                 self._initialize_data_in_cache()
                 disk_data = self._load_from_resource()
-                FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
+                type(self)._cache[self._filename]["hash"] = self._hash(
                     self._encode(disk_data)
                 )
 
-            if (
-                FileBufferedCollection._CURRENT_BUFFER_SIZE
-                > FileBufferedCollection._BUFFER_CAPACITY
-            ):
-                FileBufferedCollection._flush_buffer(force=True)
+            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+                type(self)._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -348,9 +236,9 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in FileBufferedCollection._cache:
+        if self._filename in type(self)._cache:
             # Always track all instances pointing to the same data.
-            FileBufferedCollection._cached_collections[id(self)] = self
+            type(self)._cached_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -365,45 +253,11 @@ class FileBufferedCollection(BufferedCollection):
             self._initialize_data_in_cache()
 
         # Load from buffer
-        blob = FileBufferedCollection._cache[self._filename]["contents"]
+        blob = type(self)._cache[self._filename]["contents"]
 
-        if (
-            FileBufferedCollection._CURRENT_BUFFER_SIZE
-            > FileBufferedCollection._BUFFER_CAPACITY
-        ):
-            FileBufferedCollection._flush_buffer(force=True)
+        if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+            type(self)._flush_buffer(force=True)
         return self._decode(blob)
-
-    def _initialize_data_in_cache(self):
-        """Create the initial entry for the data in the cache.
-
-        This method should be called the first time that a collection's data is
-        accessed in buffered mode. This method stores the encoded data in the
-        cache, along with a hash of the data and the metadata of the underlying
-        file. The hash is later used for quick checks of whether the data in
-        memory has changed since the initial load into the buffer. If so the
-        metadata is used to verify that the file on disk has not been modified
-        since the data was modified in memory.
-
-        We also maintain a separate set of all collections that are currently
-        in buffered mode. This extra storage is necessary because when leaving
-        a buffered context we need to make sure to only flush collections that
-        are no longer in buffered mode in cases of nested buffering. This
-        additional check helps prevent or transparently error on otherwise
-        unsafe access patterns.
-        """
-        blob = self._encode(self._data)
-        metadata = self._get_file_metadata()
-
-        FileBufferedCollection._cache[self._filename] = {
-            "contents": blob,
-            "hash": self._hash(blob),
-            "metadata": metadata,
-        }
-        FileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-            FileBufferedCollection._cache[self._filename]["contents"]
-        )
-        FileBufferedCollection._cached_collections[id(self)] = self
 
     @classmethod
     def _flush_buffer(cls, force=False):
@@ -428,7 +282,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         # All subclasses share a single cache rather than having separate
         # caches for each instance, so we can exit early in subclasses.
-        if cls != FileBufferedCollection:
+        if cls != cls:
             return {}
 
         issues = {}
@@ -438,8 +292,8 @@ class FileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while FileBufferedCollection._cached_collections:
-            col_id, collection = FileBufferedCollection._cached_collections.popitem()
+        while cls._cached_collections:
+            col_id, collection = cls._cached_collections.popitem()
             if collection._is_buffered and not force:
                 remaining_collections[col_id] = collection
                 continue
@@ -448,5 +302,5 @@ class FileBufferedCollection(BufferedCollection):
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            FileBufferedCollection._cached_collections = remaining_collections
+            cls._cached_collections = remaining_collections
         return issues
