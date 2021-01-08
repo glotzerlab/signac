@@ -107,6 +107,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().enable_multithreading()
         cls._buffer_lock = _buffer_lock
+        cls._BUFFER_LOCK = RLock()
 
     @classmethod
     def disable_multithreading(cls):
@@ -118,6 +119,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().disable_multithreading()
         cls._buffer_lock = _fake_lock
+        cls._BUFFER_LOCK = _fake_lock()
 
     def _get_file_metadata(self):
         """Return metadata of file.
@@ -167,8 +169,6 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         cls._BUFFER_CAPACITY = new_capacity
-        # TODO: Figure out how to take advantage of the context manager method
-        # that I'm using to figure out the enable/disable buffering.
         with cls._BUFFER_LOCK:
             if new_capacity < cls._CURRENT_BUFFER_SIZE:
                 cls._flush_buffer(force=True)
