@@ -283,18 +283,20 @@ class FileBufferedCollection(BufferedCollection):
                 except KeyError:
                     break
 
-            # If force is true, the collection must still be buffered, and we
-            # want to put it back in the remaining_collections list after
-            # flushing any writes. If force is false, then the only way for the
-            # collection to still be buffered is if there are nested buffered
-            # contexts. In that case, flush_buffer was called due to the exit
-            # of an inner buffered context, and we shouldn't do anything with
-            # this object, so we just put it back in the list *and* skip the
-            # flush.
             if collection._is_buffered and not force:
+                # If force is false, then the only way for the collection to
+                # still be buffered is if there are nested buffered contexts.
+                # In that case, flush_buffer was called due to the exit of an
+                # inner buffered context, and we shouldn't do anything with
+                # this object, so we just put it back in the list *and* skip
+                # the flush.
                 remaining_collections[col_id] = collection
                 continue
             elif force and retain_in_force:
+                # If force is true, the collection must still be buffered.
+                # In that case, the retain_in_force parameter controls whether
+                # we we want to put it back in the remaining_collections list
+                # after flushing any writes.
                 remaining_collections[col_id] = collection
 
             try:
