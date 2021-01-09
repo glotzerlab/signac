@@ -103,7 +103,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         """
         # Different files in the buffer can be safely flushed simultaneously,
         # but a given file can only be flushed on one thread at once.
-        with self._buffer_flush_lock():
+        with self._buffer_lock():
             if not self._is_buffered or force:
                 try:
                     cached_data = type(self)._buffer[self._filename]
@@ -225,10 +225,11 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        super()._load_from_buffer()
+        with self._buffer_lock():
+            super()._load_from_buffer()
 
-        # Set local data to the version in the buffer.
-        self._data = type(self)._buffer[self._filename]["contents"]
+            # Set local data to the version in the buffer.
+            self._data = type(self)._buffer[self._filename]["contents"]
 
     def _initialize_data_in_buffer(self, modified=False):
         """Create the initial entry for the data in the cache.

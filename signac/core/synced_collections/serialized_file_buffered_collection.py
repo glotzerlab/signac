@@ -97,7 +97,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         # Different files in the buffer can be safely flushed simultaneously,
         # but a given file can only be flushed on one thread at once.
-        with self._buffer_flush_lock():
+        with self._buffer_lock():
             if not self._is_buffered or force:
                 try:
                     cached_data = type(self)._buffer[self._filename]
@@ -246,14 +246,15 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        super()._load_from_buffer()
+        with self._buffer_lock():
+            super()._load_from_buffer()
 
-        # Load from buffer
-        blob = type(self)._buffer[self._filename]["contents"]
+            # Load from buffer
+            blob = type(self)._buffer[self._filename]["contents"]
 
-        if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
-            type(self)._flush_buffer(force=True)
-        return self._decode(blob)
+            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+                type(self)._flush_buffer(force=True)
+            return self._decode(blob)
 
     def _initialize_data_in_buffer(self):
         """Create the initial entry for the data in the cache.
