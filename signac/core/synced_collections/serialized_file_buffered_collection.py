@@ -49,10 +49,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
     this class to be thread safe for general use. The thread safety guaranteed
     by this class only concerns buffer reads, writes, and flushes. All these
     operations are serialized because there is no way to prevent one collection
-    from triggering a flush while another still thinks its data is in the cache;
-    however, this shouldn't be terribly performance-limiting since in buffered
-    mode we're avoiding I/O anyway and that's the only thing that can be effectively
-    parallelized here.
+    from triggering a flush while another still thinks its data is in the cache.
 
     Parameters
     ----------
@@ -74,6 +71,11 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
       encoding and decoding of data. For performance-critical applications where
       memory is not highly constrained and virtual memory limits are absent, the
       :class:`~.SharedMemoryFileBufferedCollection` may be more appropriate.
+    - Due to the possibility of read operations triggering a flush, the
+      contents of the buffer may be invalidated on loads as well. To prevent this
+      even nominally read-only operations are serialized. As a result, although
+      this class is thread safe, it will effectively serialize all operations and
+      will therefore not be performant.
 
     """
 
@@ -249,12 +251,14 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         with self._buffer_lock():
             super()._load_from_buffer()
 
-            # Load from buffer
+            # Load from buffer. This has to happen inside the locked context
+            # because otherwise the data could be flushed from the buffer by
+            # another thread.
             blob = type(self)._buffer[self._filename]["contents"]
 
-            if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
-                type(self)._flush_buffer(force=True)
-            return self._decode(blob)
+        if type(self)._CURRENT_BUFFER_SIZE > type(self)._BUFFER_CAPACITY:
+            type(self)._flush_buffer(force=True)
+        return self._decode(blob)
 
     def _initialize_data_in_buffer(self):
         """Create the initial entry for the data in the cache.
