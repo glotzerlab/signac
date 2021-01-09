@@ -1,6 +1,7 @@
 # Copyright (c) 2020 The Regents of the University of Michigan
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
+import platform
 from collections.abc import MutableMapping, MutableSequence
 from copy import deepcopy
 
@@ -15,6 +16,9 @@ try:
     NUMPY = True
 except ImportError:
     NUMPY = False
+
+
+PYPY = "PyPy" in platform.python_implementation()
 
 
 class SyncedCollectionTest:
@@ -430,7 +434,10 @@ class SyncedDictTest(SyncedCollectionTest):
             # clear it.
             synced_collection.clear()
         else:
-            assert len(synced_collection) != num_threads
+            # PyPy is fast enough that threads will frequently complete without
+            # being preempted, so this check is frequently invalidated.
+            if not PYPY:
+                assert len(synced_collection) != num_threads
 
         # For good measure, try reenabling multithreading and test to be safe.
         type(synced_collection).enable_multithreading()

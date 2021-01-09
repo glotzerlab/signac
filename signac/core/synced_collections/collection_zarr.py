@@ -4,8 +4,6 @@
 """Implements a Zarr SyncedCollection backend."""
 from copy import deepcopy
 
-import numcodecs
-
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
@@ -38,6 +36,8 @@ class ZarrCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, group=None, name=None, codec=None, **kwargs):
+        import numcodecs
+
         self._root = group
         self._name = name
         self._object_codec = numcodecs.JSON() if codec is None else codec
