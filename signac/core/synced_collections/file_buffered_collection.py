@@ -5,13 +5,13 @@
 
 All file-based backends can use a similar buffering protocol. In particular,
 integrity checks can be performed by checking for whether the file has been
-modified since it was originally loaded into the buffer.
+modified since it was originally loaded into the buffer. However, various
+specific components are abstract and must be implemented by child classes.
 """
 
 import errno
-import hashlib
-import json
 import os
+from abc import abstractmethod
 from contextlib import contextmanager
 from threading import RLock
 from typing import Dict, Tuple, Union
@@ -19,7 +19,6 @@ from typing import Dict, Tuple, Union
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
 from .synced_collection import _fake_lock
-from .utils import SCJSONEncoder
 
 
 @contextmanager
@@ -37,24 +36,25 @@ class FileBufferedCollection(BufferedCollection):
     """A :class:`SyncedCollection` that can buffer file I/O.
 
     This class provides a standardized buffering protocol for all file-based
-    backends.  All file-based backends can use the same set of integrity checks
+    backends. All file-based backends can use the same set of integrity checks
     prior to a buffer flush to ensure that no conflicting modifications are
     made. Specifically, they can check whether the file has been modified on
-    disk since it was originally loaded to the buffer. This class uses a
-    single centralized cache for all subclasses, irrespective of backend. This
-    choice is so that that users can reliably get and set the buffer capacity
-    without worrying about the number of distinct internal data buffers that
-    might be present. This setting has no effect on the buffering behavior of
-    other :class:`BufferedCollection` types.
+    disk since it was originally loaded to the buffer. This class provides the
+    basic infrastructure for that and defines standard methods that can be used
+    by all classes. Subclasses must define the appropriate storage mechanism.
 
     .. note::
-        Important note for subclasses: This class should be inherited before
-        any other collections. This requirement is due to the extensive use of
-        multiple inheritance: since this class is designed to be combined with
-        other :class:`SyncedCollection` types without making those types aware
-        of buffering behavior, it transparently hooks into the initialization
-        process, but this is dependent on its constructor being called before
-        those of other classes.
+        Important notes for developers:
+            - This class should be inherited before any other collections. This
+              requirement is due to the extensive use of multiple inheritance.
+              Since this class is designed to be combined with other
+              :class:`SyncedCollection` types without making those types aware
+              of buffering behavior, it transparently hooks into the
+              initialization process, but this is dependent on its constructor
+              being called before those of other classes.
+            - All subclasses must define a class level _BUFFER_CAPACITY
+              variable that is used to determine the maximum allowable buffer
+              size.
 
     Parameters
     ----------
@@ -75,21 +75,27 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
-    # Note for developers: since all subclasses share a single cache, all
-    # references to cache-related class variables in the code use the class
-    # name explicitly rather than using cls (in classmethods) or self (in
-    # methods). This usage avoids any possibility for confusion regarding
-    # backend-specific caches.
-
-    _cache: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
-    _cached_collections: Dict[int, BufferedCollection] = {}
-    _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
-    _CURRENT_BUFFER_SIZE = 0
-    _BUFFER_LOCK = RLock()
-
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
+
+    @classmethod
+    def __init_subclass__(cls):
+        """Prepare subclasses."""
+        super().__init_subclass__()
+        cls._CURRENT_BUFFER_SIZE = 0
+        cls._BUFFER_LOCK = RLock()
+
+        # This dict is the actual data buffer, mapping filenames to their
+        # cached data and metadata.
+        cls._buffer: Dict[str, Dict[str, Union[bytes, str, Tuple[int, float]]]] = {}
+
+        # Buffered contexts may be nested, and when leaving a buffered context
+        # we only want to flush collections that are no longer buffered. To
+        # accomplish this, we maintain a list of buffered collections so that
+        # we can perform per-instance flushes that account for their current
+        # buffering state.
+        cls._buffered_collections: Dict[int, BufferedCollection] = {}
 
     @classmethod
     def enable_multithreading(cls):
@@ -101,6 +107,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().enable_multithreading()
         cls._buffer_lock = _buffer_lock
+        cls._BUFFER_LOCK = RLock()
 
     @classmethod
     def disable_multithreading(cls):
@@ -112,26 +119,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         super().disable_multithreading()
         cls._buffer_lock = _fake_lock
-
-    @staticmethod
-    def _hash(blob):
-        """Calculate and return the md5 hash value for the file data.
-
-        Parameters
-        ----------
-        blob : bytes
-            Byte literal to be hashed.
-
-        Returns
-        -------
-        str
-            The md5 hash of the input bytes.
-
-        """
-        if blob is not None:
-            m = hashlib.md5()
-            m.update(blob)
-            return m.hexdigest()
+        cls._BUFFER_LOCK = _fake_lock()
 
     def _get_file_metadata(self):
         """Return metadata of file.
@@ -156,17 +144,47 @@ class FileBufferedCollection(BufferedCollection):
             # validation checks.
             return None
 
-    @staticmethod
-    def get_buffer_capacity():
+    @classmethod
+    def get_buffer_capacity(cls):
         """Get the current buffer capacity.
 
         Returns
         -------
         int
-            The number of bytes that can be stored before a flush is triggered.
+            The amount of data that can be stored before a flush is triggered
+            in the appropriate units for a particular buffering implementation.
 
         """
-        return FileBufferedCollection._BUFFER_CAPACITY
+        return cls._BUFFER_CAPACITY
+
+    @classmethod
+    def set_buffer_capacity(cls, new_capacity):
+        """Update the buffer capacity.
+
+        Parameters
+        ----------
+        new_capacity : int
+            The new capacity of the buffer in the appropriate units for a particular
+            buffering implementation.
+
+        """
+        cls._BUFFER_CAPACITY = new_capacity
+        with cls._BUFFER_LOCK:
+            if new_capacity < cls._CURRENT_BUFFER_SIZE:
+                cls._flush_buffer(force=True)
+
+    @classmethod
+    def get_current_buffer_size(cls):
+        """Get the total amount of data currently stored in the buffer.
+
+        Returns
+        -------
+        int
+            The size of all data contained in the buffer in the appropriate
+            units for a particular buffering implementation.
+
+        """
+        return cls._CURRENT_BUFFER_SIZE
 
     @contextmanager
     def _load_and_save(self):
@@ -179,165 +197,10 @@ class FileBufferedCollection(BufferedCollection):
             with super()._load_and_save():
                 yield
 
-    @staticmethod
-    def set_buffer_capacity(new_capacity):
-        """Update the buffer capacity.
-
-        Parameters
-        ----------
-        new_capacity : int
-            The new capacity of the buffer in bytes.
-
-        """
-        FileBufferedCollection._BUFFER_CAPACITY = new_capacity
-        if new_capacity < FileBufferedCollection._CURRENT_BUFFER_SIZE:
-            FileBufferedCollection._flush_buffer(force=True)
-
-    @staticmethod
-    def get_current_buffer_size():
-        """Get the total amount of data currently stored in the buffer.
-
-        Returns
-        -------
-        int
-            The size of all data contained in the buffer (in bytes).
-
-        Notes
-        -----
-        The buffer size is defined as the total number of bytes that will be
-        written out when the buffer is flushed. This is *not* the same as the total
-        size of the buffer, which also contains additional information like the
-        hash of the data and the file metadata (which are used for integrity checks).
-
-        """
-        return FileBufferedCollection._CURRENT_BUFFER_SIZE
-
-    def _flush(self, force=False):
-        """Save buffered changes to the underlying file.
-
-        Parameters
-        ----------
-        force : bool
-            If True, force a flush even in buffered mode (defaults to False). This
-            parameter is used when the buffer is filled to capacity.
-
-        Raises
-        ------
-        MetadataError
-            If any file is detected to have changed on disk since it was
-            originally loaded into the buffer and modified.
-
-        """
-        if not self._is_buffered or force:
-            try:
-                cached_data = FileBufferedCollection._cache[self._filename]
-            except KeyError:
-                # There are valid reasons for nothing to be in the cache (the
-                # object was never actually accessed during global buffering,
-                # multiple collections pointing to the same file, etc).
-                pass
-            else:
-                blob = self._encode(self._data)
-
-                # If the contents have not been changed since the initial read,
-                # we don't need to rewrite it.
-                try:
-                    if self._hash(blob) != cached_data["hash"]:
-                        # Validate that the file hasn't been changed by
-                        # something else.
-                        if cached_data["metadata"] != self._get_file_metadata():
-                            raise MetadataError(self._filename, cached_data["contents"])
-                        self._data = self._decode(cached_data["contents"])
-                        self._save_to_resource()
-                finally:
-                    # Whether or not an error was raised, the cache must be
-                    # cleared to ensure a valid final buffer state.
-                    del FileBufferedCollection._cache[self._filename]
-                    data_size = len(cached_data["contents"])
-                    FileBufferedCollection._CURRENT_BUFFER_SIZE -= data_size
-
-    @staticmethod
-    def _encode(data):
-        """Encode the data into a serializable form.
-
-        This method assumes JSON-serializable data, but subclasses can override
-        this hook method to change the encoding behavior as needed.
-
-        Parameters
-        ----------
-        data : collections.abc.Collection
-            Any collection type that can be encoded.
-
-        Returns
-        -------
-        bytes
-            The underlying encoded data.
-
-        """
-        return json.dumps(data, cls=SCJSONEncoder).encode()
-
-    @staticmethod
-    def _decode(blob):
-        """Decode serialized data.
-
-        This method assumes JSON-serializable data, but subclasses can override
-        this hook method to change the encoding behavior as needed.
-
-        Parameters
-        ----------
-        blob : bytes
-            Byte literal to be decoded.
-
-        Returns
-        -------
-        data : collections.abc.Collection
-            The decoded data in the appropriate base collection type.
-
-        """
-        return json.loads(blob.decode())
-
-    def _save_to_buffer(self):
-        """Store data in buffer.
-
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
-        in the buffer and the integrity checks performed.
-        """
-        # Writes to the buffer must always be locked for thread safety.
-        with self._buffer_lock():
-            if self._filename in FileBufferedCollection._cache:
-                # Always track all instances pointing to the same data.
-                FileBufferedCollection._cached_collections[id(self)] = self
-                blob = self._encode(self._data)
-                cached_data = FileBufferedCollection._cache[self._filename]
-                buffer_size_change = len(blob) - len(cached_data["contents"])
-                FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-                cached_data["contents"] = blob
-            else:
-                # The only methods that could safely call sync without a load are
-                # destructive operations like `reset` or `clear` that completely
-                # wipe out previously existing data. Therefore, the safest choice
-                # for ensuring consistency of the buffer is to modify the stored
-                # hash (which is used for the consistency check) with the hash of
-                # the current data on disk. _initialize_data_in_cache always uses
-                # the current metadata, so the only extra work here is to modify
-                # the hash after it's called (since it uses self._to_base() to get
-                # the data to initialize the cache with).
-                self._initialize_data_in_cache()
-                disk_data = self._load_from_resource()
-                FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
-                    self._encode(disk_data)
-                )
-
-            if (
-                FileBufferedCollection._CURRENT_BUFFER_SIZE
-                > FileBufferedCollection._BUFFER_CAPACITY
-            ):
-                FileBufferedCollection._flush_buffer(force=True)
-
     def _load_from_buffer(self):
         """Read data from buffer.
 
-        See :meth:`~._initialize_data_in_cache` for details on the data stored
+        See :meth:`~._initialize_data_in_buffer` for details on the data stored
         in the buffer and the integrity checks performed.
 
         Returns
@@ -348,65 +211,37 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        if self._filename in FileBufferedCollection._cache:
-            # Always track all instances pointing to the same data.
-            FileBufferedCollection._cached_collections[id(self)] = self
-        else:
-            # The first time this method is called, if nothing is in the buffer
-            # for this file then we cannot guarantee that the _data attribute
-            # is valid either since the resource could have been modified
-            # between when _data was last updated and when this load is being
-            # called. As a result, we have to load from the resource here to be
-            # safe.
-            data = self._load_from_resource()
-            with self._thread_lock():
-                with self._suspend_sync():
-                    self._update(data)
-            self._initialize_data_in_cache()
+        with self._buffer_lock():
+            if self._filename not in type(self)._buffer:
+                # The first time this method is called, if nothing is in the buffer
+                # for this file then we cannot guarantee that the _data attribute
+                # is valid either since the resource could have been modified
+                # between when _data was last updated and when this load is being
+                # called. As a result, we have to load from the resource here to be
+                # safe.
+                data = self._load_from_resource()
+                with self._thread_lock():
+                    with self._suspend_sync():
+                        self._update(data)
+                self._initialize_data_in_buffer()
 
-        # Load from buffer
-        blob = FileBufferedCollection._cache[self._filename]["contents"]
+        # This storage can be safely updated every time on every thread.
+        type(self)._buffered_collections[id(self)] = self
 
-        if (
-            FileBufferedCollection._CURRENT_BUFFER_SIZE
-            > FileBufferedCollection._BUFFER_CAPACITY
-        ):
-            FileBufferedCollection._flush_buffer(force=True)
-        return self._decode(blob)
-
-    def _initialize_data_in_cache(self):
+    @abstractmethod
+    def _initialize_data_in_buffer(self):
         """Create the initial entry for the data in the cache.
 
         This method should be called the first time that a collection's data is
         accessed in buffered mode. This method stores the encoded data in the
-        cache, along with a hash of the data and the metadata of the underlying
-        file. The hash is later used for quick checks of whether the data in
-        memory has changed since the initial load into the buffer. If so the
-        metadata is used to verify that the file on disk has not been modified
-        since the data was modified in memory.
-
-        We also maintain a separate set of all collections that are currently
-        in buffered mode. This extra storage is necessary because when leaving
-        a buffered context we need to make sure to only flush collections that
-        are no longer in buffered mode in cases of nested buffering. This
-        additional check helps prevent or transparently error on otherwise
-        unsafe access patterns.
+        cache, along with the metadata of the underlying file and any other
+        information that may be used for validation later. This information
+        depends on the implementation of the buffer in subclasses.
         """
-        blob = self._encode(self._data)
-        metadata = self._get_file_metadata()
-
-        FileBufferedCollection._cache[self._filename] = {
-            "contents": blob,
-            "hash": self._hash(blob),
-            "metadata": metadata,
-        }
-        FileBufferedCollection._CURRENT_BUFFER_SIZE += len(
-            FileBufferedCollection._cache[self._filename]["contents"]
-        )
-        FileBufferedCollection._cached_collections[id(self)] = self
+        pass
 
     @classmethod
-    def _flush_buffer(cls, force=False):
+    def _flush_buffer(cls, force=False, retain_in_force=False):
         """Flush the data in the file buffer.
 
         Parameters
@@ -414,6 +249,12 @@ class FileBufferedCollection(BufferedCollection):
         force : bool
             If True, force a flush even in buffered mode (defaults to False). This
             parameter is used when the buffer is filled to capacity.
+        retain_in_force : bool
+            If True, when forcing a flush a collection is retained in the buffer.
+            This feature is useful if only some subset of the buffer's contents
+            are relevant to size restrictions. For intance, since only modified
+            items will have to be written back out to disk, a buffer protocol may
+            not care to count unmodified collections towards the total.
 
         Returns
         -------
@@ -426,11 +267,6 @@ class FileBufferedCollection(BufferedCollection):
             If there are any issues with flushing the data.
 
         """
-        # All subclasses share a single cache rather than having separate
-        # caches for each instance, so we can exit early in subclasses.
-        if cls != FileBufferedCollection:
-            return {}
-
         issues = {}
 
         # We need to use the list of buffered objects rather than directly
@@ -438,15 +274,39 @@ class FileBufferedCollection(BufferedCollection):
         # independently decide whether or not to flush based on whether it's
         # still buffered (if buffered contexts are nested).
         remaining_collections = {}
-        while FileBufferedCollection._cached_collections:
-            col_id, collection = FileBufferedCollection._cached_collections.popitem()
+        while True:
+            # This is the only part that needs to be locked; once items are
+            # removed from the buffer they can be safely handled on separate
+            # threads.
+            with cls._BUFFER_LOCK:
+                try:
+                    (
+                        col_id,
+                        collection,
+                    ) = cls._buffered_collections.popitem()
+                except KeyError:
+                    break
+
             if collection._is_buffered and not force:
+                # If force is false, then the only way for the collection to
+                # still be buffered is if there are nested buffered contexts.
+                # In that case, flush_buffer was called due to the exit of an
+                # inner buffered context, and we shouldn't do anything with
+                # this object, so we just put it back in the list *and* skip
+                # the flush.
                 remaining_collections[col_id] = collection
                 continue
+            elif force and retain_in_force:
+                # If force is true, the collection must still be buffered.
+                # In that case, the retain_in_force parameter controls whether
+                # we we want to put it back in the remaining_collections list
+                # after flushing any writes.
+                remaining_collections[col_id] = collection
+
             try:
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
         if not issues:
-            FileBufferedCollection._cached_collections = remaining_collections
+            cls._buffered_collections = remaining_collections
         return issues

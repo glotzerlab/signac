@@ -37,6 +37,7 @@ buffer flushes will occur when all such managers have been exited.
 
 import logging
 from contextlib import contextmanager
+from inspect import isabstract
 from typing import Any, List
 
 from .errors import BufferedError
@@ -100,7 +101,8 @@ class BufferedCollection(SyncedCollection):
         Each subclass has its own means of buffering and must be flushed.
         """
         super().__init_subclass__()
-        BufferedCollection._BUFFERED_BACKENDS.append(cls)
+        if not isabstract(cls):
+            BufferedCollection._BUFFERED_BACKENDS.append(cls)
 
     @staticmethod
     @contextmanager

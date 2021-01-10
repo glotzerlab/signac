@@ -332,6 +332,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # Reset buffer capacity for other tests.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
+
     def multithreaded_buffering_test(self, op):
         """Test that buffering in a multithreaded context is safe for different operations.
 
@@ -374,6 +378,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         finally:
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
 
     def test_multithreaded_buffering_setitem(self):
         """Test setitem in a multithreaded buffering context."""
@@ -444,6 +452,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
+
     def test_multithreaded_buffering_load(self):
         """Test loading data in a multithreaded buffering context.
 
@@ -486,6 +498,10 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         finally:
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
 
     def test_buffer_first_load(self, synced_collection):
         """Ensure that existing data is preserved if the first load is in buffered mode."""
@@ -623,6 +639,10 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
 
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
+
     def test_multithreaded_buffering_setitem(self):
         """Test setitem in a multithreaded buffering context."""
 
@@ -691,6 +711,10 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         finally:
             # Reset buffer capacity for other tests in case this fails.
             self._collection_type.set_buffer_capacity(original_buffer_capacity)
+
+            # To avoid confusing test failures later, make sure the buffer is
+            # truly flushed correctly.
+            assert self._collection_type.get_current_buffer_size() == 0
 
 
 class TestMemoryBufferedJSONDict(TestBufferedJSONDict):

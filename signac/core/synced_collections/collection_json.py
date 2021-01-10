@@ -9,8 +9,8 @@ import os
 import uuid
 import warnings
 
-from .file_buffered_collection import FileBufferedCollection
 from .memory_buffered_collection import SharedMemoryFileBufferedCollection
+from .serialized_file_buffered_collection import SerializedFileBufferedCollection
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
@@ -143,12 +143,12 @@ class JSONCollection(SyncedCollection):
 JSONCollection.add_validator(json_format_validator, _convert_key_to_str)
 
 
-class BufferedJSONCollection(FileBufferedCollection, JSONCollection):
+class BufferedJSONCollection(SerializedFileBufferedCollection, JSONCollection):
     """A :class:`JSONCollection` that supports I/O buffering.
 
     This class implements the buffer protocol defined by :class:`BufferedCollection`.
     The concrete implementation of buffering behavior is defined by the
-    :class:`FileBufferedCollection`.
+    :class:`SerializedFileBufferedCollection`.
     """
 
     _backend = __name__ + ".buffered"  # type: ignore
@@ -162,7 +162,7 @@ class MemoryBufferedJSONCollection(SharedMemoryFileBufferedCollection, JSONColle
 
     This class implements the buffer protocol defined by :class:`BufferedCollection`.
     The concrete implementation of buffering behavior is defined by the
-    :class:`FileBufferedCollection`.
+    :class:`SharedMemoryFileBufferedCollection`.
     """
 
     _backend = __name__ + ".memory_buffered"  # type: ignore
