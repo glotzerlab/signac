@@ -275,6 +275,19 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                         self._data[key] = value
         return ret
 
+    @property
+    def _protected_keys(self):
+        try:
+            return type(self)._all_protected_keys
+        except AttributeError:
+            protected_keys = set()
+            # Classes inherit the validators of their parent classes.
+            for base_cls in type(self).__mro__:
+                if hasattr(base_cls, "_PROTECTED_KEYS"):
+                    protected_keys.update(base_cls._PROTECTED_KEYS)
+            type(self)._all_protected_keys = protected_keys
+            return protected_keys
+
     def __getattr__(self, name):
         if name.startswith("__"):
             raise AttributeError(f"'SyncedAttrDict' object has no attribute '{name}'")
@@ -289,13 +302,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         except AttributeError:
             super().__setattr__(key, value)
         else:
-            if key.startswith("__") or key in self._PROTECTED_KEYS:
+            if key.startswith("__") or key in self._protected_keys:
                 super().__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith("__") or key in self._PROTECTED_KEYS:
+        if key.startswith("__") or key in self._protected_keys:
             super().__delattr__(key)
         else:
             self.__delitem__(key)
