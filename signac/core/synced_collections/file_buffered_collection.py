@@ -21,17 +21,6 @@ from .errors import MetadataError
 from .utils import _NullContext
 
 
-@contextmanager
-def _buffer_lock(self):
-    """Prepare context for thread-safe operation.
-
-    All operations that can mutate an object should use this context
-    manager to ensure thread safety.
-    """
-    with type(self)._BUFFER_LOCK:
-        yield
-
-
 class FileBufferedCollection(BufferedCollection):
     """A :class:`SyncedCollection` that can buffer file I/O.
 
@@ -106,6 +95,15 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().enable_multithreading()
+
+        def _buffer_lock(self):
+            """Prepare context for thread-safe operation.
+
+            All operations that can mutate an object should use this context
+            manager to ensure thread safety.
+            """
+            return type(self)._BUFFER_LOCK
+
         cls._buffer_lock = _buffer_lock
         cls._BUFFER_LOCK = RLock()
 
