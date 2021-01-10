@@ -221,7 +221,7 @@ class FileBufferedCollection(BufferedCollection):
                 # safe.
                 data = self._load_from_resource()
                 with self._thread_lock():
-                    with self._suspend_sync():
+                    with self._suspend_sync:
                         self._update(data)
                 self._initialize_data_in_buffer()
 

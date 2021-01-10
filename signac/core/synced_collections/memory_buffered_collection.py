@@ -151,7 +151,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             # collection pointing to the same data flushed the buffer. This
             # object's data will still be pointing to that one, though, so the
             # safest choice is to reinitialize its data from scratch.
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in self._to_base().items()
@@ -169,7 +169,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                     self._load_from_buffer()
                 else:
                     data = self._load_from_resource()
-                    with self._suspend_sync():
+                    with self._suspend_sync:
                         self._update(data)
             else:
                 self._parent._load()

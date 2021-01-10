@@ -55,7 +55,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             self._validate(data)
             if NUMPY and isinstance(data, numpy.ndarray):
                 data = data.tolist()
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
@@ -118,7 +118,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         if data is None:
             self._data.clear()
         elif _sequence_resolver.get_type(data) == "SEQUENCE":
-            with self._suspend_sync():
+            with self._suspend_sync:
                 # This loop is optimized based on common usage patterns:
                 # insertion and removal at the end of a list. Inserting or
                 # removing in the middle will result in extra conversion
@@ -170,7 +170,7 @@ class SyncedList(SyncedCollection, MutableSequence):
             data = data.tolist()
         self._validate(data)
         if _sequence_resolver.get_type(data) == "SEQUENCE":
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
@@ -186,7 +186,7 @@ class SyncedList(SyncedCollection, MutableSequence):
     def __setitem__(self, key, value):
         self._validate(value)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data[key] = self._from_base(data=value, parent=self)
 
     def __reversed__(self):
@@ -198,7 +198,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         iterable_data = list(iterable)
         self._validate(iterable_data)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data += [
                     self._from_base(data=value, parent=self) for value in iterable_data
                 ]
@@ -207,13 +207,13 @@ class SyncedList(SyncedCollection, MutableSequence):
     def insert(self, index, item):  # noqa: D102
         self._validate(item)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data.insert(index, self._from_base(data=item, parent=self))
 
     def append(self, item):  # noqa: D102
         self._validate(item)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data.append(self._from_base(data=item, parent=self))
 
     def extend(self, iterable):  # noqa: D102
@@ -221,7 +221,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         iterable_data = list(iterable)
         self._validate(iterable_data)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data.extend(
                     [
                         self._from_base(data=value, parent=self)
@@ -231,7 +231,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def remove(self, value):  # noqa: D102
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data.remove(self._from_base(data=value, parent=self))
 
     def clear(self):  # noqa: D102

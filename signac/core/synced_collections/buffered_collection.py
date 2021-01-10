@@ -178,7 +178,7 @@ class BufferedCollection(SyncedCollection):
                     data = self._load_from_buffer()
                 else:
                     data = self._load_from_resource()
-                with self._suspend_sync():
+                with self._suspend_sync:
                     self._update(data)
             else:
                 self._parent._load()

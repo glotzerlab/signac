@@ -28,6 +28,17 @@ _sc_resolver = AbstractTypeResolver(
 )
 
 
+class _SuspendSync:
+    def __init__(self, collection):
+        self._collection = collection
+
+    def __enter__(self):
+        self._collection._suspend_sync_ += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._collection._suspend_sync_ -= 1
+
+
 class SyncedCollection(Collection):
     """An abstract :class:`Collection` type that is synced with a backend.
 
@@ -111,6 +122,7 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
+        self._suspend_sync = _SuspendSync(self)
         if type(self)._supports_threading:
             type(self)._locks[self._lock_id] = RLock()
 
@@ -286,13 +298,6 @@ class SyncedCollection(Collection):
         """
         pass
 
-    @contextmanager
-    def _suspend_sync(self):
-        """Prepare context where synchronization is suspended."""
-        self._suspend_sync_ += 1
-        yield
-        self._suspend_sync_ -= 1
-
     @classmethod
     @abstractmethod
     def is_base_type(cls, data):
@@ -383,7 +388,7 @@ class SyncedCollection(Collection):
         if self._suspend_sync_ <= 0:
             if self._parent is None:
                 data = self._load_from_resource()
-                with self._suspend_sync():
+                with self._suspend_sync:
                     self._update(data)
             else:
                 self._parent._load()

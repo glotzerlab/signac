@@ -60,7 +60,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._data = {}
         else:
             self._validate(data)
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
@@ -124,7 +124,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             self._data.clear()
         elif _mapping_resolver.get_type(data) == "MAPPING":
-            with self._suspend_sync():
+            with self._suspend_sync:
                 for key, new_value in data.items():
                     try:
                         # The most common usage of SyncedCollections is with a
@@ -176,7 +176,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         data = {key: value}
         self._validate(data)
         with self._load_and_save():
-            with self._suspend_sync():
+            with self._suspend_sync:
                 for key, value in data.items():
                     self._data[key] = self._from_base(value, parent=self)
 
@@ -198,7 +198,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             data = {}
         if _mapping_resolver.get_type(data) == "MAPPING":
             self._validate(data)
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
@@ -270,7 +270,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 # looping over data.
                 data = {key: ret}
                 self._validate(data)
-                with self._suspend_sync():
+                with self._suspend_sync:
                     for key, value in data.items():
                         self._data[key] = value
         return ret
