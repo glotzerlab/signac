@@ -32,17 +32,6 @@ def _buffer_lock(self):
         yield
 
 
-@contextmanager
-def _buffer_flush_lock(self):
-    """Prepare context for thread-safe buffer flushes.
-
-    These locks exist solely to support thread-safe buffer flushes of a single
-    file without serializing flushes of different files.
-    """
-    with type(self)._buffer_flush_locks[self._lock_id]:
-        yield
-
-
 class FileBufferedCollection(BufferedCollection):
     """A :class:`SyncedCollection` that can buffer file I/O.
 
@@ -89,8 +78,6 @@ class FileBufferedCollection(BufferedCollection):
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
-        if type(self)._supports_threading:
-            type(self)._buffer_flush_locks[self._lock_id] = RLock()
 
     @classmethod
     def __init_subclass__(cls):
@@ -110,15 +97,6 @@ class FileBufferedCollection(BufferedCollection):
         # buffering state.
         cls._buffered_collections: Dict[int, BufferedCollection] = {}
 
-        # The principal contention issue that arises with flushes is that one
-        # thread saves a file, triggering a buffer flush, but then other
-        # threads also flush and try to flush that file from the buffer. Since
-        # both threads can't acquire the same lock, the threads hand waiting
-        # for each other. We could completely serialize buffer flushes using
-        # the buffer lock, but this would be very slow, so instead we maintain
-        # a separate set of per-file locks just for flushing.
-        cls._buffer_flush_locks = {}
-
     @classmethod
     def enable_multithreading(cls):
         """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
@@ -130,7 +108,6 @@ class FileBufferedCollection(BufferedCollection):
         super().enable_multithreading()
         cls._buffer_lock = _buffer_lock
         cls._BUFFER_LOCK = RLock()
-        cls._buffer_flush_lock = _buffer_flush_lock
 
     @classmethod
     def disable_multithreading(cls):
@@ -143,7 +120,6 @@ class FileBufferedCollection(BufferedCollection):
         super().disable_multithreading()
         cls._buffer_lock = _fake_lock
         cls._BUFFER_LOCK = _fake_lock()
-        cls._buffer_flush_lock = _fake_lock
 
     def _get_file_metadata(self):
         """Return metadata of file.
