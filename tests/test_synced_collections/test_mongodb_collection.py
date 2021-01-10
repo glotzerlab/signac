@@ -14,8 +14,9 @@ try:
     import pymongo
 
     try:
-        # test the mongodb server
-        MongoClient = pymongo.MongoClient()
+        # Test the mongodb server. Set a short timeout so that tests don't
+        # appear to hang while waiting for a connection.
+        MongoClient = pymongo.MongoClient(serverSelectionTimeoutMS=1000)
         tmp_collection = MongoClient["test_db"]["test"]
         tmp_collection.insert_one({"test": "0"})
         ret = tmp_collection.find_one({"test": "0"})

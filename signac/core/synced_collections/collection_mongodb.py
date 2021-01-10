@@ -18,6 +18,10 @@ class MongoDBCollection(SyncedCollection):
     as a single document within the collection provided by the user. The document
     is identified by a unique key provided by the user.
 
+    **Thread safety**
+
+    The MongoDBCollection is not thread-safe.
+
     Parameters
     ----------
     collection : :py:class:`pymongo.collection.Collection`

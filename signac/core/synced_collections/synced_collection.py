@@ -100,6 +100,22 @@ class SyncedCollection(Collection):
     example, a JSON validator would raise Exceptions if it detected non-string
     keys in a dict. Validators should have no side effects.
 
+    **Thread safety**
+
+    Whether or not SyncedCollection objects are thread-safe depends on the
+    implementation of the backend. Thread-safety of SyncedCollection objects
+    is predicated on backends providing an atomic write operation. All concrete
+    collection types use mutexes to guard against concurrent write operations,
+    while allowing read operations to happen freely. The validity of this mode
+    of access depends on the write operations of a SyncedCollection being
+    atomic, specifically the `:meth:`~._save_to_resource` method.
+
+    Backends that support multithreaded execution will have multithreaded
+    support turned on by default. This support can be enabled or disabled using
+    the :meth:`enable_multithreading` and :meth:`disable_multithreading`
+    methods.
+
+
     Parameters
     ----------
     parent : SyncedCollection, optional
@@ -143,6 +159,20 @@ class SyncedCollection(Collection):
             cls.enable_multithreading()
         else:
             cls.disable_multithreading()
+
+    @contextmanager
+    def _load_and_save(self):
+        """Prepare a context manager in which mutating changes can happen.
+
+        Various standard operations on this data structure require loading the data,
+        modifying it, and then saving it back. This context manager encapsulates that
+        simple requirement, and it provides a hook for subclasses that require
+        additional logic in these operations.
+        """
+        with self._thread_lock():
+            self._load()
+            yield
+            self._save()
 
     @classmethod
     def enable_multithreading(cls):
@@ -430,10 +460,8 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             del self._data[item]
-            self._save()
 
     def __iter__(self):
         self._load()

@@ -12,11 +12,25 @@ import errno
 import hashlib
 import json
 import os
+from contextlib import contextmanager
+from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
+from .synced_collection import _fake_lock
 from .utils import SCJSONEncoder
+
+
+@contextmanager
+def _buffer_lock(self):
+    """Prepare context for thread-safe operation.
+
+    All operations that can mutate an object should use this context
+    manager to ensure thread safety.
+    """
+    with type(self)._BUFFER_LOCK:
+        yield
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -33,11 +47,6 @@ class FileBufferedCollection(BufferedCollection):
     might be present. This setting has no effect on the buffering behavior of
     other :class:`BufferedCollection` types.
 
-    Parameters
-    ----------
-    filename: str, optional
-        The filename of the associated JSON file on disk (Default value = None).
-
     .. note::
         Important note for subclasses: This class should be inherited before
         any other collections. This requirement is due to the extensive use of
@@ -46,6 +55,11 @@ class FileBufferedCollection(BufferedCollection):
         of buffering behavior, it transparently hooks into the initialization
         process, but this is dependent on its constructor being called before
         those of other classes.
+
+    Parameters
+    ----------
+    filename: str, optional
+        The filename of the associated JSON file on disk (Default value = None).
 
     Warnings
     --------
@@ -71,10 +85,33 @@ class FileBufferedCollection(BufferedCollection):
     _cached_collections: Dict[int, BufferedCollection] = {}
     _BUFFER_CAPACITY = 32 * 2 ** 20  # 32 MB
     _CURRENT_BUFFER_SIZE = 0
+    _BUFFER_LOCK = RLock()
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(filename=filename, *args, **kwargs)
         self._filename = filename
+
+    @classmethod
+    def enable_multithreading(cls):
+        """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        Support for multithreaded execution can be disabled by calling
+        :meth:`~.disable_multithreading`; calling this method reverses that.
+
+        """
+        super().enable_multithreading()
+        cls._buffer_lock = _buffer_lock
+
+    @classmethod
+    def disable_multithreading(cls):
+        """Prevent multithreaded access to and modification of :class:`SyncedCollection`s.
+
+        The mutex locks required to enable multithreading introduce nontrivial performance
+        costs, so they can be disabled for classes that support it.
+
+        """
+        super().disable_multithreading()
+        cls._buffer_lock = _fake_lock
 
     @staticmethod
     def _hash(blob):
@@ -131,6 +168,17 @@ class FileBufferedCollection(BufferedCollection):
         """
         return FileBufferedCollection._BUFFER_CAPACITY
 
+    @contextmanager
+    def _load_and_save(self):
+        """Prepare a context manager in which mutating changes can happen.
+
+        Override the parent function's hook to support safely multithreaded
+        access to the buffer.
+        """
+        with self._buffer_lock():
+            with super()._load_and_save():
+                yield
+
     @staticmethod
     def set_buffer_capacity(new_capacity):
         """Update the buffer capacity.
@@ -143,7 +191,7 @@ class FileBufferedCollection(BufferedCollection):
         """
         FileBufferedCollection._BUFFER_CAPACITY = new_capacity
         if new_capacity < FileBufferedCollection._CURRENT_BUFFER_SIZE:
-            FileBufferedCollection._flush_buffer()
+            FileBufferedCollection._flush_buffer(force=True)
 
     @staticmethod
     def get_current_buffer_size():
@@ -254,38 +302,37 @@ class FileBufferedCollection(BufferedCollection):
         See :meth:`~._initialize_data_in_cache` for details on the data stored
         in the buffer and the integrity checks performed.
         """
-        if self._filename in FileBufferedCollection._cache:
-            blob = self._encode(self._data)
-            cached_data = FileBufferedCollection._cache[self._filename]
-            buffer_size_change = len(blob) - len(cached_data["contents"])
-            FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
-            cached_data["contents"] = blob
-        else:
-            # The only methods that could safely call sync without a load are
-            # destructive operations like `reset` or `clear` that completely
-            # wipe out previously existing data. Therefore, the safest choice
-            # for ensuring consistency of the buffer is to modify the stored
-            # hash (which is used for the consistency check) with the hash of
-            # the current data on disk. _initialize_data_in_cache always uses
-            # the current metadata, so the only extra work here is to modify
-            # the hash after it's called (since it uses self._to_base() to get
-            # the data to initialize the cache with).
-            self._initialize_data_in_cache()
-            disk_data = self._load_from_resource()
-            FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
-                self._encode(disk_data)
-            )
+        # Writes to the buffer must always be locked for thread safety.
+        with self._buffer_lock():
+            if self._filename in FileBufferedCollection._cache:
+                # Always track all instances pointing to the same data.
+                FileBufferedCollection._cached_collections[id(self)] = self
+                blob = self._encode(self._data)
+                cached_data = FileBufferedCollection._cache[self._filename]
+                buffer_size_change = len(blob) - len(cached_data["contents"])
+                FileBufferedCollection._CURRENT_BUFFER_SIZE += buffer_size_change
+                cached_data["contents"] = blob
+            else:
+                # The only methods that could safely call sync without a load are
+                # destructive operations like `reset` or `clear` that completely
+                # wipe out previously existing data. Therefore, the safest choice
+                # for ensuring consistency of the buffer is to modify the stored
+                # hash (which is used for the consistency check) with the hash of
+                # the current data on disk. _initialize_data_in_cache always uses
+                # the current metadata, so the only extra work here is to modify
+                # the hash after it's called (since it uses self._to_base() to get
+                # the data to initialize the cache with).
+                self._initialize_data_in_cache()
+                disk_data = self._load_from_resource()
+                FileBufferedCollection._cache[self._filename]["hash"] = self._hash(
+                    self._encode(disk_data)
+                )
 
-        if (
-            FileBufferedCollection._CURRENT_BUFFER_SIZE
-            > FileBufferedCollection._BUFFER_CAPACITY
-        ):
-            FileBufferedCollection._flush_buffer(force=True)
-
-        if id(self) not in FileBufferedCollection._cached_collections:
-            # Need to check if we have multiple collections pointing to the
-            # same file, and if so, track it.
-            FileBufferedCollection._cached_collections[id(self)] = self
+            if (
+                FileBufferedCollection._CURRENT_BUFFER_SIZE
+                > FileBufferedCollection._BUFFER_CAPACITY
+            ):
+                FileBufferedCollection._flush_buffer(force=True)
 
     def _load_from_buffer(self):
         """Read data from buffer.
@@ -302,10 +349,8 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         if self._filename in FileBufferedCollection._cache:
-            # Need to check if we have multiple collections pointing to the
-            # same file, and if so, track it.
-            if id(self) not in FileBufferedCollection._cached_collections:
-                FileBufferedCollection._cached_collections[id(self)] = self
+            # Always track all instances pointing to the same data.
+            FileBufferedCollection._cached_collections[id(self)] = self
         else:
             # The first time this method is called, if nothing is in the buffer
             # for this file then we cannot guarantee that the _data attribute
@@ -314,8 +359,9 @@ class FileBufferedCollection(BufferedCollection):
             # called. As a result, we have to load from the resource here to be
             # safe.
             data = self._load_from_resource()
-            with self._suspend_sync():
-                self._update(data)
+            with self._thread_lock():
+                with self._suspend_sync():
+                    self._update(data)
             self._initialize_data_in_cache()
 
         # Load from buffer
@@ -401,5 +447,6 @@ class FileBufferedCollection(BufferedCollection):
                 collection._flush(force=force)
             except (OSError, MetadataError) as err:
                 issues[collection._filename] = err
-        FileBufferedCollection._cached_collections = remaining_collections
+        if not issues:
+            FileBufferedCollection._cached_collections = remaining_collections
         return issues

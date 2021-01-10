@@ -70,18 +70,18 @@ class BufferedCollection(SyncedCollection):
           is to simply call :meth:`~SyncedCollection._load_from_resource`
         - :meth:`~._save_to_buffer`: Stores data while in buffered mode. The default behavior
           is to simply call :meth:`~SyncedCollection._save_to_resource`
+
+    **Thread safety**
+
+    Whether or not buffering is thread safe depends on the buffering method used. In
+    general, both the buffering logic and the standard data read/write logic (i.e.
+    operations like `__setitem__`) must be thread safe for the resulting collection
+    type to be thread safe.
+
     """
 
     _BUFFERED_MODE = 0
     _BUFFERED_BACKENDS: List[Any] = []
-
-    # TODO: Include statement about thread-safety, and perhaps see if we can
-    # improve it. The main possible limitation is that while multithreaded
-    # access to different synced collections is safe in non-buffered mode
-    # (because the changes are completely independent), the same is not
-    # necessarily true in buffered mode if the buffer is shared. Additionally
-    # there are issues with buffer flushes occurring in parallel leading to
-    # race conditions.
 
     def __init__(self, *args, **kwargs):
         # The `_buffered` attribute _must_ be defined prior to calling the

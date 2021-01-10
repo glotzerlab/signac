@@ -66,6 +66,14 @@ class JSONCollection(SyncedCollection):
     accessible in the form of a text file with no additional tooling, but is
     likely a poor choice for high performance applications.
 
+    **Thread safety**
+
+    The JSONCollection is thread-safe. To make these collections safe, the
+    ``write_concern`` flag is ignored in multithreaded execution, and the
+    write is **always** performed via a write to temporary file followed by a
+    replacement of the original file. The file replacement operation uses
+    :py:func:`os.replace`, which is guaranteed to be atomic by the Python standard.
+
     Parameters
     ----------
     filename: str

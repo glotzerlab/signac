@@ -175,12 +175,10 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         # directly set using those rather than looping over data.
         data = {key: value}
         self._validate(data)
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             with self._suspend_sync():
                 for key, value in data.items():
                     self._data[key] = self._from_base(value, parent=self)
-            self._save()
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -231,17 +229,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return self._data.get(key, default)
 
     def pop(self, key, default=None):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             ret = self._data.pop(key, default)
-            self._save()
         return ret
 
     def popitem(self):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             ret = self._data.popitem()
-            self._save()
         return ret
 
     def clear(self):  # noqa: D102
@@ -257,16 +251,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         else:
             other = {}
 
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             # The order here is important to ensure that the promised sequence of
             # overrides is obeyed: kwargs > other > existing data.
             self._update({**self._data, **other, **kwargs})
-            self._save()
 
     def setdefault(self, key, default=None):  # noqa: D102
-        with self._thread_lock():
-            self._load()
+        with self._load_and_save():
             if key in self._data:
                 ret = self._data[key]
             else:
@@ -282,7 +273,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 with self._suspend_sync():
                     for key, value in data.items():
                         self._data[key] = value
-                self._save()
         return ret
 
     def __getattr__(self, name):
