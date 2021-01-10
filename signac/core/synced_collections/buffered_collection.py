@@ -128,6 +128,15 @@ class BufferedCollection(SyncedCollection):
             BufferedCollection._BUFFERED_BACKENDS.append(cls)
 
     buffer_all = _GlobalBufferedMode()
+    """Enter a globally buffer context for all BufferedCollection instances.
+
+    All future operations use the buffer whenever possible. Write operations
+    are deferred until the context is exited, at which point all buffered
+    backends will flush their buffers. Individual backends may flush their
+    buffers within this context if the implementation requires it; this context
+    manager represents a promise to buffer whenever possible, but does not
+    guarantee that no writes will occur under all circumstances.
+    """
 
     @staticmethod
     def _flush_all_backends():
@@ -225,4 +234,16 @@ class BufferedCollection(SyncedCollection):
         pass
 
 
-buffer_all = BufferedCollection.buffer_all
+def buffer_all():
+    """Enter a globally buffer context for all BufferedCollection instances.
+
+    All future operations use the buffer whenever possible. Write operations
+    are deferred until the context is exited, at which point all buffered
+    backends will flush their buffers. Individual backends may flush their
+    buffers within this context if the implementation requires it; this context
+    manager represents a promise to buffer whenever possible, but does not
+    guarantee that no writes will occur under all circumstances.
+
+    This method is a trivial alias for :meth:`~.BufferedCollection.buffer_all`
+    """
+    return BufferedCollection.buffer_all

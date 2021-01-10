@@ -11,7 +11,10 @@ from tempfile import TemporaryDirectory
 import pytest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
-from signac.core.synced_collections.buffered_collection import buffer_all
+from signac.core.synced_collections.buffered_collection import (
+    BufferedCollection,
+    buffer_all,
+)
 from signac.core.synced_collections.collection_json import (
     BufferedJSONCollection,
     BufferedJSONDict,
@@ -125,7 +128,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection["buffered"] = testdata
         assert "buffered" in synced_collection
         assert synced_collection["buffered"] == testdata
-        with buffer_all:
+        with buffer_all():
             assert "buffered" in synced_collection
             assert synced_collection["buffered"] == testdata
             synced_collection["buffered2"] = 1
@@ -134,7 +137,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 2
         assert "buffered2" in synced_collection
         assert synced_collection["buffered2"] == 1
-        with buffer_all:
+        with buffer_all():
             del synced_collection["buffered"]
             assert len(synced_collection) == 1
             assert "buffered" not in synced_collection
@@ -144,7 +147,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert synced_collection["buffered2"] == 1
 
         with pytest.raises(BufferedError):
-            with buffer_all:
+            with buffer_all():
                 synced_collection["buffered2"] = 2
                 self.store({"test": 1})
                 assert synced_collection["buffered2"] == 2
@@ -156,7 +159,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 0
 
         for outer_buffer, inner_buffer in itertools.product(
-            [synced_collection.buffered, buffer_all], repeat=2
+            [synced_collection.buffered, BufferedCollection.buffer_all], repeat=2
         ):
             err_msg = (
                 f"outer_buffer: {type(outer_buffer).__qualname__}, "
@@ -194,7 +197,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert "inside_first" in synced_collection2
             assert "inside_first" in on_disk_dict2
 
-            with buffer_all:
+            with buffer_all():
                 synced_collection["inside_second"] = 3
                 synced_collection2["inside_second"] = 3
 
@@ -242,7 +245,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert synced_collection["inside_first"] == 2
             assert "inside_first" not in on_disk_dict
 
-            with buffer_all:
+            with buffer_all():
                 synced_collection["inside_second"] = 3
                 synced_collection2["inside_second"] = 4
 
@@ -287,7 +290,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                 assert synced_collection["inside_first"] == 2
                 assert on_disk_dict["inside_first"] == 3
 
-                with buffer_all:
+                with buffer_all():
                     synced_collection["inside_second"] = 3
                     synced_collection2["inside_second"] = 4
 
@@ -352,7 +355,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             with TemporaryDirectory(
                 prefix="jsondict_buffered_multithreaded"
             ) as tmp_dir:
-                with buffer_all:
+                with buffer_all():
                     num_dicts = 100
                     dicts = []
                     dict_data = []
@@ -433,7 +436,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                     dicts.append(self._collection_type(filename=fn))
                     dicts[-1].update({str(j): j for j in range(i)})
 
-                with buffer_all:
+                with buffer_all():
                     num_threads = 10
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -484,7 +487,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
                     # Go to i+1 so that every dict contains the 0 element.
                     dicts[-1].update({str(j): j for j in range(i + 1)})
 
-                with buffer_all:
+                with buffer_all():
                     num_threads = 100
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -560,12 +563,12 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
     def test_global_buffered(self, synced_collection):
         assert len(synced_collection) == 0
-        with buffer_all:
+        with buffer_all():
             synced_collection.reset([1, 2, 3])
             assert len(synced_collection) == 3
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]
-        with buffer_all:
+        with buffer_all():
             assert len(synced_collection) == 3
             assert synced_collection == [1, 2, 3]
             synced_collection[0] = 4
@@ -576,7 +579,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         # metacheck failure
         with pytest.raises(BufferedError):
-            with buffer_all:
+            with buffer_all():
                 synced_collection.reset([1])
                 assert synced_collection == [1]
                 # Unfortunately the resolution of os.stat is
@@ -620,7 +623,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
                     if requires_init:
                         lists[-1].extend([0 for j in range(i)])
 
-                with buffer_all:
+                with buffer_all():
                     num_threads = 10
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -697,7 +700,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
                     # Go to i+1 so that every list contains the 0 element.
                     lists[-1].extend([j for j in range(i + 1)])
 
-                with buffer_all:
+                with buffer_all():
                     num_threads = 100
                     try:
                         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -737,7 +740,7 @@ class TestMemoryBufferedJSONDict(TestBufferedJSONDict):
         synced_collection.clear()
         synced_collection2.clear()
 
-        with buffer_all:
+        with buffer_all():
             synced_collection["foo"] = 1
             assert self._collection_type.get_current_buffer_size() == 1
             assert synced_collection != self.load(synced_collection)
