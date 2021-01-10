@@ -36,7 +36,6 @@ buffer flushes will occur when all such managers have been exited.
 """
 
 import logging
-from contextlib import contextmanager
 from inspect import isabstract
 from typing import Any, List
 
@@ -57,6 +56,16 @@ class _BufferedMode:
         self._collection._buffered -= 1
         if not self._collection._is_buffered:
             self._collection._flush()
+
+
+class _GlobalBufferedMode:
+    def __enter__(self):
+        BufferedCollection._BUFFERED_MODE += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        BufferedCollection._BUFFERED_MODE -= 1
+        if BufferedCollection._BUFFERED_MODE == 0:
+            BufferedCollection._flush_all_backends()
 
 
 class BufferedCollection(SyncedCollection):
@@ -118,27 +127,7 @@ class BufferedCollection(SyncedCollection):
         if not isabstract(cls):
             BufferedCollection._BUFFERED_BACKENDS.append(cls)
 
-    @staticmethod
-    @contextmanager
-    def buffer_all():
-        """Enter a globally buffer context for all BufferedCollection instances.
-
-        All future operations use the buffer whenever possible. Write operations
-        are deferred until the context is exited, at which point all buffered
-        backends will flush their buffers. Individual backends may flush their
-        buffers within this context if the implementation requires it; this context
-        manager represents a promise to buffer whenever possible, but does not
-        guarantee that no writes will occur under all circumstances.
-        """
-        assert BufferedCollection._BUFFERED_MODE >= 0
-
-        BufferedCollection._BUFFERED_MODE += 1
-        try:
-            yield
-        finally:
-            BufferedCollection._BUFFERED_MODE -= 1
-            if BufferedCollection._BUFFERED_MODE == 0:
-                BufferedCollection._flush_all_backends()
+    buffer_all = _GlobalBufferedMode()
 
     @staticmethod
     def _flush_all_backends():
