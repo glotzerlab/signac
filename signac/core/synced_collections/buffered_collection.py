@@ -46,6 +46,19 @@ from .synced_collection import SyncedCollection
 logger = logging.getLogger(__name__)
 
 
+class _BufferedMode:
+    def __init__(self, collection):
+        self._collection = collection
+
+    def __enter__(self):
+        self._collection._buffered += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._collection._buffered -= 1
+        if not self._collection._is_buffered:
+            self._collection._flush()
+
+
 class BufferedCollection(SyncedCollection):
     """A :class:`SyncedCollection` defining an interface for buffering.
 
@@ -92,6 +105,7 @@ class BufferedCollection(SyncedCollection):
         # which depend on this parameter existing and could otherwise end up in
         # an infinite recursion.
         self._buffered = 0
+        self.buffered = _BufferedMode(self)
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -206,17 +220,6 @@ class BufferedCollection(SyncedCollection):
 
         """
         self._load_from_resource()
-
-    @contextmanager
-    def buffered(self):
-        """Enter buffered mode."""
-        self._buffered += 1
-        try:
-            yield
-        finally:
-            self._buffered -= 1
-            if not self._is_buffered:
-                self._flush()
 
     @property
     def _is_buffered(self):
