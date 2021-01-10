@@ -10,7 +10,7 @@ from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
-from .utils import AbstractTypeResolver
+from .utils import AbstractTypeResolver, _NullContext
 
 try:
     import numpy
@@ -26,16 +26,6 @@ _sc_resolver = AbstractTypeResolver(
         "SYNCEDCOLLECTION": lambda obj: isinstance(obj, SyncedCollection),
     }
 )
-
-
-class _fake_lock:
-    """A nullary context manager to simulate a lock in backends that don't support them."""
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, type, value, traceback):
-        pass
 
 
 @contextmanager
@@ -196,7 +186,7 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        cls._thread_lock = _fake_lock
+        cls._thread_lock = _NullContext
         cls._threading_support_is_active = False
 
     @property

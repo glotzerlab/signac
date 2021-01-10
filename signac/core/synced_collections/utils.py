@@ -141,3 +141,26 @@ class SCJSONEncoder(JSONEncoder):
             # Call the super method, which raises a TypeError if it cannot
             # encode the object.
             return super().default(o)
+
+
+class _NullContext:
+    """A nullary context manager.
+
+    There are various cases where we sometimes want to perform a task within a
+    particular context, but at other times we wish to ignore that context. The
+    most obvious example is a lock for threading: since
+    :class:`SyncedCollection`s allow multithreading support to be enabled or
+    disabled, it is important to be able to write code that is agnostic to
+    whether or not a mutex must be acquired prior to executing a task. Locks
+    support the context manager protocol and are used in that manner throughout
+    the code base, so the most transparent way to disable buffering is to
+    create a nullary context manager that can be placed as a drop-in
+    replacement for the lock so that all other code can handle this in a
+    transparent manner.
+    """
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass

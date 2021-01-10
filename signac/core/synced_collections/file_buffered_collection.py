@@ -18,7 +18,7 @@ from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
-from .synced_collection import _fake_lock
+from .utils import _NullContext
 
 
 @contextmanager
@@ -118,8 +118,8 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().disable_multithreading()
-        cls._buffer_lock = _fake_lock
-        cls._BUFFER_LOCK = _fake_lock()
+        cls._buffer_lock = _NullContext
+        cls._BUFFER_LOCK = _NullContext()
 
     def _get_file_metadata(self):
         """Return metadata of file.
