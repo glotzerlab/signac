@@ -5,7 +5,6 @@
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
-from contextlib import contextmanager
 from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
@@ -37,6 +36,19 @@ class _SuspendSync:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._collection._suspend_sync_ -= 1
+
+
+class _LoadAndSave:
+    def __init__(self, collection):
+        self._collection = collection
+
+    def __enter__(self):
+        self._collection._thread_lock().__enter__()
+        self._collection._load()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._collection._save()
+        self._collection._thread_lock().__exit__(exc_type, exc_val, exc_tb)
 
 
 class SyncedCollection(Collection):
@@ -122,7 +134,12 @@ class SyncedCollection(Collection):
     def __init__(self, parent=None, *args, **kwargs):
         self._parent = parent
         self._suspend_sync_ = 0
-        self._suspend_sync = _SuspendSync(self)
+        self._suspend_sync = (
+            _SuspendSync(self) if parent is None else parent._suspend_sync
+        )
+        self._load_and_save = (
+            _LoadAndSave(self) if parent is None else parent._load_and_save
+        )
         if type(self)._supports_threading:
             type(self)._locks[self._lock_id] = RLock()
 
@@ -150,20 +167,6 @@ class SyncedCollection(Collection):
             cls.enable_multithreading()
         else:
             cls.disable_multithreading()
-
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Various standard operations on this data structure require loading the data,
-        modifying it, and then saving it back. This context manager encapsulates that
-        simple requirement, and it provides a hook for subclasses that require
-        additional logic in these operations.
-        """
-        with self._thread_lock():
-            self._load()
-            yield
-            self._save()
 
     @classmethod
     def enable_multithreading(cls):
@@ -453,7 +456,7 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        with self._load_and_save():
+        with self._load_and_save:
             del self._data[item]
 
     def __iter__(self):

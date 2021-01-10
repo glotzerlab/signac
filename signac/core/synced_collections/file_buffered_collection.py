@@ -192,7 +192,7 @@ class FileBufferedCollection(BufferedCollection):
         access to the buffer.
         """
         with self._buffer_lock():
-            with super()._load_and_save():
+            with super()._load_and_save:
                 yield
 
     def _load_from_buffer(self):

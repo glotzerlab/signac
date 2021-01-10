@@ -175,7 +175,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         # directly set using those rather than looping over data.
         data = {key: value}
         self._validate(data)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 for key, value in data.items():
                     self._data[key] = self._from_base(value, parent=self)
@@ -229,12 +229,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return self._data.get(key, default)
 
     def pop(self, key, default=None):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             ret = self._data.pop(key, default)
         return ret
 
     def popitem(self):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             ret = self._data.popitem()
         return ret
 
@@ -251,13 +251,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         else:
             other = {}
 
-        with self._load_and_save():
+        with self._load_and_save:
             # The order here is important to ensure that the promised sequence of
             # overrides is obeyed: kwargs > other > existing data.
             self._update({**self._data, **other, **kwargs})
 
     def setdefault(self, key, default=None):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             if key in self._data:
                 ret = self._data[key]
             else:

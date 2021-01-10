@@ -185,7 +185,7 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def __setitem__(self, key, value):
         self._validate(value)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data[key] = self._from_base(data=value, parent=self)
 
@@ -197,7 +197,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         # Convert input to a list so that iterators work as well as iterables.
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data += [
                     self._from_base(data=value, parent=self) for value in iterable_data
@@ -206,13 +206,13 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def insert(self, index, item):  # noqa: D102
         self._validate(item)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data.insert(index, self._from_base(data=item, parent=self))
 
     def append(self, item):  # noqa: D102
         self._validate(item)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data.append(self._from_base(data=item, parent=self))
 
@@ -220,7 +220,7 @@ class SyncedList(SyncedCollection, MutableSequence):
         # Convert iterable to a list to ensure generators are exhausted only once
         iterable_data = list(iterable)
         self._validate(iterable_data)
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data.extend(
                     [
@@ -230,7 +230,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 )
 
     def remove(self, value):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             with self._suspend_sync:
                 self._data.remove(self._from_base(data=value, parent=self))
 
