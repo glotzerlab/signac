@@ -52,6 +52,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         "_sync",
         "_parent",
         "_validators",
+        "_load_and_save",
     )
 
     def __init__(self, data=None, *args, **kwargs):

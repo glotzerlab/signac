@@ -12,13 +12,23 @@ specific components are abstract and must be implemented by child classes.
 import errno
 import os
 from abc import abstractmethod
-from contextlib import contextmanager
 from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
+from .synced_collection import _LoadAndSave
 from .utils import _NullContext
+
+
+class _BufferedLoadAndSave(_LoadAndSave):
+    def __enter__(self):
+        self._collection._buffer_lock().__enter__()
+        super().__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self._collection._buffer_lock().__exit__(exc_type, exc_val, exc_tb)
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -64,9 +74,12 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
-    def __init__(self, filename=None, *args, **kwargs):
-        super().__init__(filename=filename, *args, **kwargs)
+    def __init__(self, parent=None, filename=None, *args, **kwargs):
+        super().__init__(parent=parent, filename=filename, *args, **kwargs)
         self._filename = filename
+        self._load_and_save = (
+            _BufferedLoadAndSave(self) if parent is None else parent._load_and_save
+        )
 
     @classmethod
     def __init_subclass__(cls):
@@ -183,17 +196,6 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         return cls._CURRENT_BUFFER_SIZE
-
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Override the parent function's hook to support safely multithreaded
-        access to the buffer.
-        """
-        with self._buffer_lock():
-            with super()._load_and_save:
-                yield
 
     def _load_from_buffer(self):
         """Read data from buffer.
