@@ -28,17 +28,6 @@ _sc_resolver = AbstractTypeResolver(
 )
 
 
-@contextmanager
-def _thread_lock(self):
-    """Prepare context for thread-safe operation.
-
-    All operations that can mutate an object should use this context
-    manager to ensure thread safety.
-    """
-    with type(self)._locks[self._lock_id]:
-        yield
-
-
 class SyncedCollection(Collection):
     """An abstract :class:`Collection` type that is synced with a backend.
 
@@ -173,6 +162,15 @@ class SyncedCollection(Collection):
 
         """
         if cls._supports_threading:
+
+            def _thread_lock(self):
+                """Get the lock specific to this collection.
+
+                Since locks support the context manager protocol, this method
+                can typically be invoked directly as part of a ``with`` statement.
+                """
+                return type(self)._locks[self._lock_id]
+
             cls._thread_lock = _thread_lock
             cls._threading_support_is_active = True
         else:
