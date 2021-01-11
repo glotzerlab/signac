@@ -41,21 +41,9 @@ from typing import Any, List
 
 from .errors import BufferedError
 from .synced_collection import SyncedCollection
+from .utils import _CounterFuncContext
 
 logger = logging.getLogger(__name__)
-
-
-class _BufferedMode:
-    def __init__(self, collection):
-        self._collection = collection
-
-    def __enter__(self):
-        self._collection._buffered += 1
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._collection._buffered -= 1
-        if not self._collection._is_buffered:
-            self._collection._flush()
 
 
 class _GlobalBufferedMode:
@@ -113,8 +101,7 @@ class BufferedCollection(SyncedCollection):
         # getattr need to access the synced data, they may call sync and load,
         # which depend on this parameter existing and could otherwise end up in
         # an infinite recursion.
-        self._buffered = 0
-        self.buffered = _BufferedMode(self)
+        self.buffered = _CounterFuncContext(self._flush)
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -222,7 +209,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self._buffered + BufferedCollection._BUFFERED_MODE > 0
+        return self.buffered or (BufferedCollection._BUFFERED_MODE > 0)
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""

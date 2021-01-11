@@ -184,3 +184,20 @@ class _CounterContext:
 
     def __bool__(self):
         return self._count > 0
+
+
+class _CounterFuncContext(_CounterContext):
+    """A counter that performs some operation whenever the counter hits zero.
+
+    This class maintains a counter, and also accepts an arbitrary nullary
+    callable to be executed anytime the context exits and the counter hits zero.
+    """
+
+    def __init__(self, func):
+        super().__init__()
+        self._func = func
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        if self._count == 0:
+            self._func()
