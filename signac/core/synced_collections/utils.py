@@ -170,7 +170,8 @@ class _CounterContext:
     """A context manager that maintains a total entry count.
 
     This class simply contains an internal counter that is incremented on every
-    entrance and decremented on every exit.
+    entrance and decremented on every exit. It is also truthy and only evaluates
+    to False if the count is 0.
     """
 
     def __init__(self):
