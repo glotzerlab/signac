@@ -278,11 +278,25 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     @property
     def _protected_keys(self):
+        """Get the protected keys of this class.
+
+        The :class:`SyncedAttrDict` overrides the default getattr and setattr
+        methods to provide attribute-based access to dictionary elements. The
+        cost of this feature is that internal attribute access is also piped
+        through this logic and there is no easy way around it. To circumvent
+        this problem, classes can specify the ``_PROTECTED_KEYS`` attribute to
+        indicate what attributes should be set as actual attributes rather than
+        being added as dict elements. Since subclasses may add additional such
+        attributes to the ones specified by this class, this property provides
+        a centralized means by which all the protected keys associated with a
+        given class can be accessed by accumulated all of the protected keys of
+        all the classes in the inheritance hierarchy.
+        """
         try:
             return type(self)._all_protected_keys
         except AttributeError:
             protected_keys = set()
-            # Classes inherit the validators of their parent classes.
+            # Classes inherit the protected attributes of their parent classes.
             for base_cls in type(self).__mro__:
                 if hasattr(base_cls, "_PROTECTED_KEYS"):
                     protected_keys.update(base_cls._PROTECTED_KEYS)
