@@ -91,7 +91,6 @@ class FileBufferedCollection(BufferedCollection):
         """Prepare subclasses."""
         super().__init_subclass__()
         cls._CURRENT_BUFFER_SIZE = 0
-        cls._BUFFER_LOCK = RLock()
 
         # This dict is the actual data buffer, mapping filenames to their
         # cached data and metadata.
@@ -113,16 +112,6 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().enable_multithreading()
-
-        def _buffer_lock(self):
-            """Prepare context for thread-safe operation.
-
-            All operations that can mutate an object should use this context
-            manager to ensure thread safety.
-            """
-            return type(self)._BUFFER_LOCK
-
-        cls._buffer_lock = _buffer_lock
         cls._BUFFER_LOCK = RLock()
 
     @classmethod
@@ -134,8 +123,11 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().disable_multithreading()
-        cls._buffer_lock = _NullContext
         cls._BUFFER_LOCK = _NullContext()
+
+    def _buffer_lock(self):
+        """Acquire the buffer lock."""
+        return type(self)._BUFFER_LOCK
 
     def _get_file_metadata(self):
         """Return metadata of file.
