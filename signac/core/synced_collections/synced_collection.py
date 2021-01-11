@@ -9,7 +9,7 @@ from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
-from .utils import AbstractTypeResolver, _NullContext
+from .utils import AbstractTypeResolver, _CounterContext, _NullContext
 
 try:
     import numpy
@@ -25,17 +25,6 @@ _sc_resolver = AbstractTypeResolver(
         "SYNCEDCOLLECTION": lambda obj: isinstance(obj, SyncedCollection),
     }
 )
-
-
-class _SuspendSync:
-    def __init__(self, collection):
-        self._collection = collection
-
-    def __enter__(self):
-        self._collection._suspend_sync_ += 1
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._collection._suspend_sync_ -= 1
 
 
 class _LoadAndSave:
@@ -132,10 +121,12 @@ class SyncedCollection(Collection):
     _supports_threading: bool = False
 
     def __init__(self, parent=None, *args, **kwargs):
-        self._parent = parent
-        self._suspend_sync_ = 0
+        if parent is not None:
+            self._parent = parent._parent if parent._parent is not None else parent
+        else:
+            self._parent = parent
         self._suspend_sync = (
-            _SuspendSync(self) if parent is None else parent._suspend_sync
+            _CounterContext() if parent is None else parent._suspend_sync
         )
         self._load_and_save = (
             _LoadAndSave(self) if parent is None else parent._load_and_save
@@ -351,7 +342,7 @@ class SyncedCollection(Collection):
         handles the appropriate recursive calls, then farms out the actual writing
         to the abstract method :meth:`~._save_to_resource`.
         """
-        if self._suspend_sync_ <= 0:
+        if not self._suspend_sync:
             if self._parent is None:
                 self._save_to_resource()
             else:
@@ -388,7 +379,7 @@ class SyncedCollection(Collection):
         handles the appropriate recursive calls, then farms out the actual reading
         to the abstract method :meth:`~._load_from_resource`.
         """
-        if self._suspend_sync_ <= 0:
+        if not self._suspend_sync:
             if self._parent is None:
                 data = self._load_from_resource()
                 with self._suspend_sync:

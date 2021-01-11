@@ -164,3 +164,23 @@ class _NullContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+
+class _CounterContext:
+    """A context manager that maintains a total entry count.
+
+    This class simply contains an internal counter that is incremented on every
+    entrance and decremented on every exit.
+    """
+
+    def __init__(self):
+        self._count = 0
+
+    def __enter__(self):
+        self._count += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._count -= 1
+
+    def __bool__(self):
+        return self._count > 0

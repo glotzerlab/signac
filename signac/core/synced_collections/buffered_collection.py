@@ -168,7 +168,7 @@ class BufferedCollection(SyncedCollection):
         `sync` except that it determines whether data is actually synchronized
         or instead written to a temporary buffer based on the buffering mode.
         """
-        if self._suspend_sync_ <= 0:
+        if not self._suspend_sync:
             if self._parent is None:
                 if self._is_buffered:
                     self._save_to_buffer()
@@ -184,7 +184,7 @@ class BufferedCollection(SyncedCollection):
         `load` except that it determines whether data is actually synchronized
         or instead read from a temporary buffer based on the buffering mode.
         """
-        if self._suspend_sync_ <= 0:
+        if not self._suspend_sync:
             if self._parent is None:
                 if self._is_buffered:
                     data = self._load_from_buffer()

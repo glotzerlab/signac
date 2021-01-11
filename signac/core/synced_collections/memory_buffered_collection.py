@@ -163,7 +163,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         Override the base buffered method to skip the _update and to let
         _load_from_buffer happen "in place."
         """
-        if self._suspend_sync_ <= 0:
+        if not self._suspend_sync:
             if self._parent is None:
                 if self._is_buffered:
                     self._load_from_buffer()
