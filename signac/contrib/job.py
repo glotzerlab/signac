@@ -154,9 +154,11 @@ class Job:
         return hash(self.id)
 
     def __eq__(self, other):
-        return (self.id == other.id) and (
-            os.path.realpath(self.workspace()) == os.path.realpath(other.workspace())
-        )
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.id == other.id and os.path.realpath(
+            self.workspace()
+        ) == os.path.realpath(other.workspace())
 
     def __str__(self):
         """Return the job's id."""
