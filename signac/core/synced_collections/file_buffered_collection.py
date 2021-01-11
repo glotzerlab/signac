@@ -22,6 +22,12 @@ from .utils import _NullContext
 
 
 class _BufferedLoadAndSave(_LoadAndSave):
+    """Wrap base loading and saving with an extra thread lock.
+
+    Writes to buffered collections will also modify the buffer, so they must
+    acquire the buffer lock in addition to the default behavior.
+    """
+
     def __enter__(self):
         self._collection._buffer_lock().__enter__()
         super().__enter__()
@@ -74,12 +80,11 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
+    _LoadSaveType = _BufferedLoadAndSave
+
     def __init__(self, parent=None, filename=None, *args, **kwargs):
         super().__init__(parent=parent, filename=filename, *args, **kwargs)
         self._filename = filename
-        self._load_and_save = (
-            _BufferedLoadAndSave(self) if parent is None else parent._load_and_save
-        )
 
     @classmethod
     def __init_subclass__(cls):

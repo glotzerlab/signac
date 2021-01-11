@@ -28,6 +28,15 @@ _sc_resolver = AbstractTypeResolver(
 
 
 class _LoadAndSave:
+    """A context manager for :class:`SyncedCollection` to wrap saving and loading.
+
+    Any write operation on a synced collection must be preceded by a load and
+    followed by a save. Moreover, additional logic may be required to handle
+    other aspects of the synchronization, particularly the acquisition of thread
+    locks. This class abstracts this concept, making it easy for subclasses to
+    customize the behavior if needed (for instance, to introduce additional locks).
+    """
+
     def __init__(self, collection):
         self._collection = collection
 
@@ -119,6 +128,7 @@ class SyncedCollection(Collection):
     _validators: List[Callable] = []
     # Backends that support threading should modify this flag.
     _supports_threading: bool = False
+    _LoadSaveType = _LoadAndSave
 
     def __init__(self, parent=None, *args, **kwargs):
         if parent is not None:
@@ -129,7 +139,7 @@ class SyncedCollection(Collection):
             _CounterContext() if parent is None else parent._suspend_sync
         )
         self._load_and_save = (
-            _LoadAndSave(self) if parent is None else parent._load_and_save
+            type(self)._LoadSaveType(self) if parent is None else parent._load_and_save
         )
         if type(self)._supports_threading:
             type(self)._locks[self._lock_id] = RLock()
