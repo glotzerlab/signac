@@ -66,7 +66,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
 
     def _to_base(self):
@@ -204,7 +204,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
         else:
             raise ValueError(
@@ -241,7 +241,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
     def clear(self):  # noqa: D102
         self._data = {}
-        with self._thread_lock():
+        with self._thread_lock:
             self._save()
 
     def update(self, other=None, **kwargs):  # noqa: D102

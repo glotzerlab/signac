@@ -29,12 +29,12 @@ class _BufferedLoadAndSave(_LoadAndSave):
     """
 
     def __enter__(self):
-        self._collection._buffer_lock().__enter__()
+        self._collection._buffer_lock.__enter__()
         super().__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
-        self._collection._buffer_lock().__exit__(exc_type, exc_val, exc_tb)
+        self._collection._buffer_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -125,6 +125,7 @@ class FileBufferedCollection(BufferedCollection):
         super().disable_multithreading()
         cls._BUFFER_LOCK = _NullContext()
 
+    @property
     def _buffer_lock(self):
         """Acquire the buffer lock."""
         return type(self)._BUFFER_LOCK
@@ -208,7 +209,7 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        with self._buffer_lock():
+        with self._buffer_lock:
             if self._filename not in type(self)._buffer:
                 # The first time this method is called, if nothing is in the buffer
                 # for this file then we cannot guarantee that the _data attribute
@@ -217,7 +218,7 @@ class FileBufferedCollection(BufferedCollection):
                 # called. As a result, we have to load from the resource here to be
                 # safe.
                 data = self._load_from_resource()
-                with self._thread_lock():
+                with self._thread_lock:
                     with self._suspend_sync:
                         self._update(data)
                 self._initialize_data_in_buffer()

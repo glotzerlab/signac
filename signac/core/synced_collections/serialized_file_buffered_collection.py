@@ -99,7 +99,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         """
         # Different files in the buffer can be safely flushed simultaneously,
         # but a given file can only be flushed on one thread at once.
-        with self._buffer_lock():
+        with self._buffer_lock:
             if not self._is_buffered or force:
                 try:
                     cached_data = type(self)._buffer[self._filename]
@@ -207,7 +207,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
         # those the writes will be automatically serialized because Python
         # dicts are thread-safe because of the GIL. However, it's best not to
         # depend on the thread-safety of built-in containers.
-        with self._buffer_lock():
+        with self._buffer_lock:
             if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
                 blob = self._encode(self._data)
@@ -248,7 +248,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             underlying file.
 
         """
-        with self._buffer_lock():
+        with self._buffer_lock:
             super()._load_from_buffer()
 
             # Load from buffer. This has to happen inside the locked context

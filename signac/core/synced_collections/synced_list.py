@@ -59,7 +59,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
 
     @classmethod
@@ -174,7 +174,7 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
         else:
             raise ValueError(
@@ -236,5 +236,5 @@ class SyncedList(SyncedCollection, MutableSequence):
 
     def clear(self):  # noqa: D102
         self._data = []
-        with self._thread_lock():
+        with self._thread_lock:
             self._save()

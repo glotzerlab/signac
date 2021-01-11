@@ -191,7 +191,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         # those the writes will be automatically serialized because Python
         # dicts are thread-safe because of the GIL. However, it's best not to
         # depend on the thread-safety of built-in containers.
-        with self._buffer_lock():
+        with self._buffer_lock:
             if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
 

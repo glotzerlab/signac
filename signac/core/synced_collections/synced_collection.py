@@ -41,12 +41,12 @@ class _LoadAndSave:
         self._collection = collection
 
     def __enter__(self):
-        self._collection._thread_lock().__enter__()
+        self._collection._thread_lock.__enter__()
         self._collection._load()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._collection._save()
-        self._collection._thread_lock().__exit__(exc_type, exc_val, exc_tb)
+        self._collection._thread_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class SyncedCollection(Collection):
@@ -179,6 +179,7 @@ class SyncedCollection(Collection):
         """
         if cls._supports_threading:
 
+            @property
             def _thread_lock(self):
                 """Get the lock specific to this collection.
 
@@ -200,7 +201,7 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        cls._thread_lock = _NullContext
+        cls._thread_lock = _NullContext()
         cls._threading_support_is_active = False
 
     @property
