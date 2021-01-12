@@ -134,13 +134,13 @@ class BufferedCollection(SyncedCollection):
         or instead written to a temporary buffer based on the buffering mode.
         """
         if not self._suspend_sync:
-            if self._parent is None:
+            if self._root is None:
                 if self._is_buffered:
                     self._save_to_buffer()
                 else:
                     self._save_to_resource()
             else:
-                self._parent._save()
+                self._root._save()
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -150,7 +150,7 @@ class BufferedCollection(SyncedCollection):
         or instead read from a temporary buffer based on the buffering mode.
         """
         if not self._suspend_sync:
-            if self._parent is None:
+            if self._root is None:
                 if self._is_buffered:
                     data = self._load_from_buffer()
                 else:
@@ -158,7 +158,7 @@ class BufferedCollection(SyncedCollection):
                 with self._suspend_sync:
                     self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _save_to_buffer(self):
         """Store data in buffer.

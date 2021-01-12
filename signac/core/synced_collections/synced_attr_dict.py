@@ -50,7 +50,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         "_suspend_sync_",
         "_load",
         "_sync",
-        "_parent",
+        "_root",
         "_validators",
         "_load_and_save",
     )

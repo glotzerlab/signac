@@ -164,7 +164,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         _load_from_buffer happen "in place."
         """
         if not self._suspend_sync:
-            if self._parent is None:
+            if self._root is None:
                 if self._is_buffered:
                     self._load_from_buffer()
                 else:
@@ -172,7 +172,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
                     with self._suspend_sync:
                         self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _save_to_buffer(self):
         """Store data in buffer.

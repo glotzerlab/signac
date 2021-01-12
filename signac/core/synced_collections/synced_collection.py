@@ -132,9 +132,9 @@ class SyncedCollection(Collection):
 
     def __init__(self, parent=None, *args, **kwargs):
         if parent is not None:
-            self._parent = parent._parent if parent._parent is not None else parent
+            self._root = parent._root if parent._root is not None else parent
         else:
-            self._parent = parent
+            self._root = parent
         self._suspend_sync = (
             _CounterContext() if parent is None else parent._suspend_sync
         )
@@ -354,10 +354,10 @@ class SyncedCollection(Collection):
         to the abstract method :meth:`~._save_to_resource`.
         """
         if not self._suspend_sync:
-            if self._parent is None:
+            if self._root is None:
                 self._save_to_resource()
             else:
-                self._parent._save()
+                self._root._save()
 
     @abstractmethod
     def _update(self, data):
@@ -391,12 +391,12 @@ class SyncedCollection(Collection):
         to the abstract method :meth:`~._load_from_resource`.
         """
         if not self._suspend_sync:
-            if self._parent is None:
+            if self._root is None:
                 data = self._load_from_resource()
                 with self._suspend_sync:
                     self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _validate(self, data):
         """Validate the input data.
@@ -433,13 +433,13 @@ class SyncedCollection(Collection):
             (Default value = None).
 
         """
-        all_parent = all([arg is not None for arg in resource_args.values()])
-        any_parent = any([arg is not None for arg in resource_args.values()])
+        all_root = all([arg is not None for arg in resource_args.values()])
+        any_root = any([arg is not None for arg in resource_args.values()])
 
         all_nested = (data is not None) and (parent is not None)
         any_nested = (data is not None) or (parent is not None)
 
-        if not ((all_parent and not any_nested) or (all_nested and not any_parent)):
+        if not ((all_root and not any_nested) or (all_nested and not any_root)):
             raise ValueError(
                 f"A {type(self)} must either be synchronized, in which case "
                 f"the arguments ({', '.join(resource_args.keys())}) must be "

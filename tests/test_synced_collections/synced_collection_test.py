@@ -246,9 +246,9 @@ class SyncedDictTest(SyncedCollectionTest):
 
         # deleting a protected attribute
         synced_collection._load()
-        del synced_collection._parent
-        # deleting _parent will lead to recursion as _parent is treated as key
-        # _load() will check for _parent and __getattr__ will call __getitem__ which calls _load()
+        del synced_collection._root
+        # deleting _root will lead to recursion as _root is treated as key
+        # _load() will check for _root and __getattr__ will call __getitem__ which calls _load()
         with pytest.raises(RecursionError):
             synced_collection._load()
 
