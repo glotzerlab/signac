@@ -50,8 +50,9 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         "_suspend_sync_",
         "_load",
         "_sync",
-        "_parent",
+        "_root",
         "_validators",
+        "_load_and_save",
     )
 
     def __init__(self, data=None, *args, **kwargs):
@@ -60,12 +61,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             self._data = {}
         else:
             self._validate(data)
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
 
     def _to_base(self):
@@ -124,7 +125,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         if data is None:
             self._data.clear()
         elif _mapping_resolver.get_type(data) == "MAPPING":
-            with self._suspend_sync():
+            with self._suspend_sync:
                 for key, new_value in data.items():
                     try:
                         # The most common usage of SyncedCollections is with a
@@ -175,10 +176,9 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         # directly set using those rather than looping over data.
         data = {key: value}
         self._validate(data)
-        with self._load_and_save():
-            with self._suspend_sync():
-                for key, value in data.items():
-                    self._data[key] = self._from_base(value, parent=self)
+        with self._load_and_save, self._suspend_sync:
+            for key, value in data.items():
+                self._data[key] = self._from_base(value, parent=self)
 
     def reset(self, data=None):
         """Update the instance with new data.
@@ -198,12 +198,12 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             data = {}
         if _mapping_resolver.get_type(data) == "MAPPING":
             self._validate(data)
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            with self._thread_lock():
+            with self._thread_lock:
                 self._save()
         else:
             raise ValueError(
@@ -229,18 +229,18 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         return self._data.get(key, default)
 
     def pop(self, key, default=None):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             ret = self._data.pop(key, default)
         return ret
 
     def popitem(self):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             ret = self._data.popitem()
         return ret
 
     def clear(self):  # noqa: D102
         self._data = {}
-        with self._thread_lock():
+        with self._thread_lock:
             self._save()
 
     def update(self, other=None, **kwargs):  # noqa: D102
@@ -251,13 +251,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         else:
             other = {}
 
-        with self._load_and_save():
+        with self._load_and_save:
             # The order here is important to ensure that the promised sequence of
             # overrides is obeyed: kwargs > other > existing data.
             self._update({**self._data, **other, **kwargs})
 
     def setdefault(self, key, default=None):  # noqa: D102
-        with self._load_and_save():
+        with self._load_and_save:
             if key in self._data:
                 ret = self._data[key]
             else:
@@ -270,10 +270,37 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                 # looping over data.
                 data = {key: ret}
                 self._validate(data)
-                with self._suspend_sync():
+                with self._suspend_sync:
                     for key, value in data.items():
                         self._data[key] = value
         return ret
+
+    @property
+    def _protected_keys(self):
+        """Get the protected keys of this class.
+
+        The :class:`SyncedAttrDict` overrides the default getattr and setattr
+        methods to provide attribute-based access to dictionary elements. The
+        cost of this feature is that internal attribute access is also piped
+        through this logic and there is no easy way around it. To circumvent
+        this problem, classes can specify the ``_PROTECTED_KEYS`` attribute to
+        indicate what attributes should be set as actual attributes rather than
+        being added as dict elements. Since subclasses may add additional such
+        attributes to the ones specified by this class, this property provides
+        a centralized means by which all the protected keys associated with a
+        given class can be accessed by accumulated all of the protected keys of
+        all the classes in the inheritance hierarchy.
+        """
+        try:
+            return type(self)._all_protected_keys
+        except AttributeError:
+            protected_keys = set()
+            # Classes inherit the protected attributes of their parent classes.
+            for base_cls in type(self).__mro__:
+                if hasattr(base_cls, "_PROTECTED_KEYS"):
+                    protected_keys.update(base_cls._PROTECTED_KEYS)
+            type(self)._all_protected_keys = protected_keys
+            return protected_keys
 
     def __getattr__(self, name):
         if name.startswith("__"):
@@ -289,13 +316,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         except AttributeError:
             super().__setattr__(key, value)
         else:
-            if key.startswith("__") or key in self._PROTECTED_KEYS:
+            if key.startswith("__") or key in self._protected_keys:
                 super().__setattr__(key, value)
             else:
                 self.__setitem__(key, value)
 
     def __delattr__(self, key):
-        if key.startswith("__") or key in self._PROTECTED_KEYS:
+        if key.startswith("__") or key in self._protected_keys:
             super().__delattr__(key)
         else:
             self.__delitem__(key)

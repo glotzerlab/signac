@@ -294,7 +294,7 @@ class JSONList(JSONCollection, SyncedList):
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+    _PROTECTED_KEYS = (
         "_filename",
         "_buffered",
         "_is_buffered",

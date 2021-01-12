@@ -12,24 +12,29 @@ specific components are abstract and must be implemented by child classes.
 import errno
 import os
 from abc import abstractmethod
-from contextlib import contextmanager
 from threading import RLock
 from typing import Dict, Tuple, Union
 
 from .buffered_collection import BufferedCollection
 from .errors import MetadataError
-from .synced_collection import _fake_lock
+from .synced_collection import _LoadAndSave
+from .utils import _NullContext
 
 
-@contextmanager
-def _buffer_lock(self):
-    """Prepare context for thread-safe operation.
+class _BufferedLoadAndSave(_LoadAndSave):
+    """Wrap base loading and saving with an extra thread lock.
 
-    All operations that can mutate an object should use this context
-    manager to ensure thread safety.
+    Writes to buffered collections will also modify the buffer, so they must
+    acquire the buffer lock in addition to the default behavior.
     """
-    with type(self)._BUFFER_LOCK:
-        yield
+
+    def __enter__(self):
+        self._collection._buffer_lock.__enter__()
+        super().__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self._collection._buffer_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class FileBufferedCollection(BufferedCollection):
@@ -75,8 +80,10 @@ class FileBufferedCollection(BufferedCollection):
 
     """
 
-    def __init__(self, filename=None, *args, **kwargs):
-        super().__init__(filename=filename, *args, **kwargs)
+    _LoadSaveType = _BufferedLoadAndSave
+
+    def __init__(self, parent=None, filename=None, *args, **kwargs):
+        super().__init__(parent=parent, filename=filename, *args, **kwargs)
         self._filename = filename
 
     @classmethod
@@ -84,7 +91,6 @@ class FileBufferedCollection(BufferedCollection):
         """Prepare subclasses."""
         super().__init_subclass__()
         cls._CURRENT_BUFFER_SIZE = 0
-        cls._BUFFER_LOCK = RLock()
 
         # This dict is the actual data buffer, mapping filenames to their
         # cached data and metadata.
@@ -106,7 +112,6 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().enable_multithreading()
-        cls._buffer_lock = _buffer_lock
         cls._BUFFER_LOCK = RLock()
 
     @classmethod
@@ -118,8 +123,12 @@ class FileBufferedCollection(BufferedCollection):
 
         """
         super().disable_multithreading()
-        cls._buffer_lock = _fake_lock
-        cls._BUFFER_LOCK = _fake_lock()
+        cls._BUFFER_LOCK = _NullContext()
+
+    @property
+    def _buffer_lock(self):
+        """Acquire the buffer lock."""
+        return type(self)._BUFFER_LOCK
 
     def _get_file_metadata(self):
         """Return metadata of file.
@@ -186,17 +195,6 @@ class FileBufferedCollection(BufferedCollection):
         """
         return cls._CURRENT_BUFFER_SIZE
 
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Override the parent function's hook to support safely multithreaded
-        access to the buffer.
-        """
-        with self._buffer_lock():
-            with super()._load_and_save():
-                yield
-
     def _load_from_buffer(self):
         """Read data from buffer.
 
@@ -211,7 +209,7 @@ class FileBufferedCollection(BufferedCollection):
             underlying file.
 
         """
-        with self._buffer_lock():
+        with self._buffer_lock:
             if self._filename not in type(self)._buffer:
                 # The first time this method is called, if nothing is in the buffer
                 # for this file then we cannot guarantee that the _data attribute
@@ -220,9 +218,8 @@ class FileBufferedCollection(BufferedCollection):
                 # called. As a result, we have to load from the resource here to be
                 # safe.
                 data = self._load_from_resource()
-                with self._thread_lock():
-                    with self._suspend_sync():
-                        self._update(data)
+                with self._thread_lock, self._suspend_sync:
+                    self._update(data)
                 self._initialize_data_in_buffer()
 
         # This storage can be safely updated every time on every thread.

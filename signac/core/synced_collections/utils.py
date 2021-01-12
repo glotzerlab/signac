@@ -141,3 +141,72 @@ class SCJSONEncoder(JSONEncoder):
             # Call the super method, which raises a TypeError if it cannot
             # encode the object.
             return super().default(o)
+
+
+class _NullContext:
+    """A nullary context manager.
+
+    There are various cases where we sometimes want to perform a task within a
+    particular context, but at other times we wish to ignore that context. The
+    most obvious example is a lock for threading: since
+    :class:`SyncedCollection` allows multithreading support to be enabled or
+    disabled, it is important to be able to write code that is agnostic to
+    whether or not a mutex must be acquired prior to executing a task. Locks
+    support the context manager protocol and are used in that manner throughout
+    the code base, so the most transparent way to disable buffering is to
+    create a nullary context manager that can be placed as a drop-in
+    replacement for the lock so that all other code can handle this in a
+    transparent manner.
+    """
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def __call__(self):
+        """Allow usage of the context in a function-like manner."""
+        return self
+
+
+class _CounterContext:
+    """A context manager that maintains a total entry count.
+
+    This class simply contains an internal counter that is incremented on every
+    entrance and decremented on every exit. It is also truthy and only evaluates
+    to True if the count is greater than 0.
+    """
+
+    def __init__(self):
+        self._count = 0
+
+    def __enter__(self):
+        self._count += 1
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._count -= 1
+
+    def __bool__(self):
+        return self._count > 0
+
+    def __call__(self):
+        """Allow usage of the context in a function-like manner."""
+        return self
+
+
+class _CounterFuncContext(_CounterContext):
+    """A counter that performs some operation whenever the counter hits zero.
+
+    This class maintains a counter, and also accepts an arbitrary nullary
+    callable to be executed anytime the context exits and the counter hits zero.
+    """
+
+    def __init__(self, func):
+        super().__init__()
+        self._func = func
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        if not self:
+            self._func()

@@ -53,7 +53,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection["buffered"] = testdata
         assert "buffered" in synced_collection
         assert synced_collection["buffered"] == testdata
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             assert "buffered" in synced_collection
             assert synced_collection["buffered"] == testdata
             synced_collection["buffered2"] = 1
@@ -62,7 +62,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 2
         assert "buffered2" in synced_collection
         assert synced_collection["buffered2"] == 1
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             del synced_collection["buffered"]
             assert len(synced_collection) == 1
             assert "buffered" not in synced_collection
@@ -73,7 +73,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         # Explicitly check that the file has not been changed when buffering.
         raw_dict = synced_collection()
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection["buffered3"] = 1
             on_disk_dict = self.load(synced_collection)
             assert "buffered3" not in on_disk_dict
@@ -89,7 +89,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection["buffered2"] = 1
             assert "buffered2" not in synced_collection2
 
@@ -100,7 +100,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         # Check that the non-buffered object is not modified.
         with pytest.raises(MetadataError):
-            with synced_collection.buffered():
+            with synced_collection.buffered:
                 synced_collection["buffered2"] = 1
                 synced_collection2["buffered2"] = 2
                 assert synced_collection["buffered2"] == 1
@@ -114,7 +114,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection2 = self._collection_type(filename=synced_collection._filename)
 
         # Check that the non-buffered object is not modified.
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection2["buffered2"] = 1
             assert "buffered2" in synced_collection
             synced_collection["buffered2"] = 3
@@ -159,8 +159,8 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             [synced_collection.buffered, buffer_all], repeat=2
         ):
             err_msg = (
-                f"outer_buffer: {outer_buffer.__qualname__}, "
-                f"inner_buffer: {inner_buffer.__qualname__}"
+                f"outer_buffer: {type(outer_buffer).__qualname__}, "
+                f"inner_buffer: {type(inner_buffer).__qualname__}"
             )
             synced_collection.reset({"outside": 1})
             with outer_buffer():
@@ -183,7 +183,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         synced_collection["outside"] = 1
         synced_collection2["outside"] = 1
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection["inside_first"] = 2
             on_disk_dict = self.load(synced_collection)
             assert "inside_first" in synced_collection
@@ -235,7 +235,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection2) == 0
 
         synced_collection["outside"] = 1
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection["inside_first"] = 2
 
             on_disk_dict = self.load(synced_collection)
@@ -265,7 +265,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         synced_collection["outside"] = 1
         finished = False
         with pytest.raises(MetadataError):
-            with synced_collection.buffered():
+            with synced_collection.buffered:
                 synced_collection["inside_first"] = 2
                 # Modifying synced_collection2 here causes problems. It is
                 # unbuffered, so it directly writes to file.  Then, when
@@ -315,7 +315,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
             assert len(synced_collection) == 0
             synced_collection.clear()
 
-            with synced_collection.buffered():
+            with synced_collection.buffered:
                 synced_collection["foo"] = 1
                 assert self._collection_type.get_current_buffer_size() == len(
                     repr(synced_collection)
@@ -514,7 +514,7 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         del sc
 
         sc = self._collection_type(fn, write_concern)
-        with sc.buffered():
+        with sc.buffered:
             sc["foo"] = 3
 
         assert "bar" in sc
@@ -529,7 +529,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
         synced_collection.extend([1, 2, 3])
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             assert len(synced_collection) == 3
             assert synced_collection == [1, 2, 3]
             synced_collection[0] = 4
@@ -537,7 +537,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
             assert synced_collection == [4, 2, 3]
         assert len(synced_collection) == 3
         assert synced_collection == [4, 2, 3]
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             assert len(synced_collection) == 3
             assert synced_collection == [4, 2, 3]
             del synced_collection[0]
@@ -548,7 +548,7 @@ class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
 
         # Explicitly check that the file has not been changed when buffering.
         raw_list = synced_collection()
-        with synced_collection.buffered():
+        with synced_collection.buffered:
             synced_collection.append(10)
             on_disk_list = self.load(synced_collection)
             assert 10 not in on_disk_list

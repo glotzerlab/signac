@@ -5,12 +5,11 @@
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Collection
-from contextlib import contextmanager
 from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
-from .utils import AbstractTypeResolver
+from .utils import AbstractTypeResolver, _CounterContext, _NullContext
 
 try:
     import numpy
@@ -28,25 +27,26 @@ _sc_resolver = AbstractTypeResolver(
 )
 
 
-class _fake_lock:
-    """A nullary context manager to simulate a lock in backends that don't support them."""
+class _LoadAndSave:
+    """A context manager for :class:`SyncedCollection` to wrap saving and loading.
+
+    Any write operation on a synced collection must be preceded by a load and
+    followed by a save. Moreover, additional logic may be required to handle
+    other aspects of the synchronization, particularly the acquisition of thread
+    locks. This class abstracts this concept, making it easy for subclasses to
+    customize the behavior if needed (for instance, to introduce additional locks).
+    """
+
+    def __init__(self, collection):
+        self._collection = collection
 
     def __enter__(self):
-        pass
+        self._collection._thread_lock.__enter__()
+        self._collection._load()
 
-    def __exit__(self, type, value, traceback):
-        pass
-
-
-@contextmanager
-def _thread_lock(self):
-    """Prepare context for thread-safe operation.
-
-    All operations that can mutate an object should use this context
-    manager to ensure thread safety.
-    """
-    with type(self)._locks[self._lock_id]:
-        yield
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._collection._save()
+        self._collection._thread_lock.__exit__(exc_type, exc_val, exc_tb)
 
 
 class SyncedCollection(Collection):
@@ -128,10 +128,24 @@ class SyncedCollection(Collection):
     _validators: List[Callable] = []
     # Backends that support threading should modify this flag.
     _supports_threading: bool = False
+    _LoadSaveType = _LoadAndSave
 
     def __init__(self, parent=None, *args, **kwargs):
-        self._parent = parent
-        self._suspend_sync_ = 0
+        # Nested collections need to know their root collection, which is
+        # responsible for all synchronization, and therefore all the associated
+        # context managers are also stored from the root.
+        if parent is not None:
+            self._root = parent._root if parent._root is not None else parent
+        else:
+            self._root = parent
+        self._suspend_sync = (
+            _CounterContext() if self._root is None else self._root._suspend_sync
+        )
+        self._load_and_save = (
+            type(self)._LoadSaveType(self)
+            if self._root is None
+            else self._root._load_and_save
+        )
         if type(self)._supports_threading:
             type(self)._locks[self._lock_id] = RLock()
 
@@ -160,20 +174,6 @@ class SyncedCollection(Collection):
         else:
             cls.disable_multithreading()
 
-    @contextmanager
-    def _load_and_save(self):
-        """Prepare a context manager in which mutating changes can happen.
-
-        Various standard operations on this data structure require loading the data,
-        modifying it, and then saving it back. This context manager encapsulates that
-        simple requirement, and it provides a hook for subclasses that require
-        additional logic in these operations.
-        """
-        with self._thread_lock():
-            self._load()
-            yield
-            self._save()
-
     @classmethod
     def enable_multithreading(cls):
         """Allow multithreaded access to and modification of :class:`SyncedCollection`s.
@@ -183,6 +183,16 @@ class SyncedCollection(Collection):
 
         """
         if cls._supports_threading:
+
+            @property
+            def _thread_lock(self):
+                """Get the lock specific to this collection.
+
+                Since locks support the context manager protocol, this method
+                can typically be invoked directly as part of a ``with`` statement.
+                """
+                return type(self)._locks[self._lock_id]
+
             cls._thread_lock = _thread_lock
             cls._threading_support_is_active = True
         else:
@@ -196,7 +206,7 @@ class SyncedCollection(Collection):
         costs, so they can be disabled for classes that support it.
 
         """
-        cls._thread_lock = _fake_lock
+        cls._thread_lock = _NullContext()
         cls._threading_support_is_active = False
 
     @property
@@ -298,13 +308,6 @@ class SyncedCollection(Collection):
         """
         pass
 
-    @contextmanager
-    def _suspend_sync(self):
-        """Prepare context where synchronization is suspended."""
-        self._suspend_sync_ += 1
-        yield
-        self._suspend_sync_ -= 1
-
     @classmethod
     @abstractmethod
     def is_base_type(cls, data):
@@ -355,11 +358,11 @@ class SyncedCollection(Collection):
         handles the appropriate recursive calls, then farms out the actual writing
         to the abstract method :meth:`~._save_to_resource`.
         """
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
+        if not self._suspend_sync:
+            if self._root is None:
                 self._save_to_resource()
             else:
-                self._parent._save()
+                self._root._save()
 
     @abstractmethod
     def _update(self, data):
@@ -392,13 +395,13 @@ class SyncedCollection(Collection):
         handles the appropriate recursive calls, then farms out the actual reading
         to the abstract method :meth:`~._load_from_resource`.
         """
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
+        if not self._suspend_sync:
+            if self._root is None:
                 data = self._load_from_resource()
-                with self._suspend_sync():
+                with self._suspend_sync:
                     self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _validate(self, data):
         """Validate the input data.
@@ -435,13 +438,13 @@ class SyncedCollection(Collection):
             (Default value = None).
 
         """
-        all_parent = all([arg is not None for arg in resource_args.values()])
-        any_parent = any([arg is not None for arg in resource_args.values()])
+        all_root = all([arg is not None for arg in resource_args.values()])
+        any_root = any([arg is not None for arg in resource_args.values()])
 
         all_nested = (data is not None) and (parent is not None)
         any_nested = (data is not None) or (parent is not None)
 
-        if not ((all_parent and not any_nested) or (all_nested and not any_parent)):
+        if not ((all_root and not any_nested) or (all_nested and not any_root)):
             raise ValueError(
                 f"A {type(self)} must either be synchronized, in which case "
                 f"the arguments ({', '.join(resource_args.keys())}) must be "
@@ -460,7 +463,7 @@ class SyncedCollection(Collection):
         return self._data[key]
 
     def __delitem__(self, item):
-        with self._load_and_save():
+        with self._load_and_save:
             del self._data[item]
 
     def __iter__(self):

@@ -36,12 +36,12 @@ buffer flushes will occur when all such managers have been exited.
 """
 
 import logging
-from contextlib import contextmanager
 from inspect import isabstract
 from typing import Any, List
 
 from .errors import BufferedError
 from .synced_collection import SyncedCollection
+from .utils import _CounterFuncContext
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,6 @@ class BufferedCollection(SyncedCollection):
 
     """
 
-    _BUFFERED_MODE = 0
     _BUFFERED_BACKENDS: List[Any] = []
 
     def __init__(self, *args, **kwargs):
@@ -91,7 +90,7 @@ class BufferedCollection(SyncedCollection):
         # getattr need to access the synced data, they may call sync and load,
         # which depend on this parameter existing and could otherwise end up in
         # an infinite recursion.
-        self._buffered = 0
+        self.buffered = _CounterFuncContext(self._flush)
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -103,28 +102,6 @@ class BufferedCollection(SyncedCollection):
         super().__init_subclass__()
         if not isabstract(cls):
             BufferedCollection._BUFFERED_BACKENDS.append(cls)
-
-    @staticmethod
-    @contextmanager
-    def buffer_all():
-        """Enter a globally buffer context for all BufferedCollection instances.
-
-        All future operations use the buffer whenever possible. Write operations
-        are deferred until the context is exited, at which point all buffered
-        backends will flush their buffers. Individual backends may flush their
-        buffers within this context if the implementation requires it; this context
-        manager represents a promise to buffer whenever possible, but does not
-        guarantee that no writes will occur under all circumstances.
-        """
-        assert BufferedCollection._BUFFERED_MODE >= 0
-
-        BufferedCollection._BUFFERED_MODE += 1
-        try:
-            yield
-        finally:
-            BufferedCollection._BUFFERED_MODE -= 1
-            if BufferedCollection._BUFFERED_MODE == 0:
-                BufferedCollection._flush_all_backends()
 
     @staticmethod
     def _flush_all_backends():
@@ -156,14 +133,14 @@ class BufferedCollection(SyncedCollection):
         `sync` except that it determines whether data is actually synchronized
         or instead written to a temporary buffer based on the buffering mode.
         """
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
+        if not self._suspend_sync:
+            if self._root is None:
                 if self._is_buffered:
                     self._save_to_buffer()
                 else:
                     self._save_to_resource()
             else:
-                self._parent._save()
+                self._root._save()
 
     def _load(self):
         """Load data from the backend but buffer if needed.
@@ -172,16 +149,16 @@ class BufferedCollection(SyncedCollection):
         `load` except that it determines whether data is actually synchronized
         or instead read from a temporary buffer based on the buffering mode.
         """
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
+        if not self._suspend_sync:
+            if self._root is None:
                 if self._is_buffered:
                     data = self._load_from_buffer()
                 else:
                     data = self._load_from_resource()
-                with self._suspend_sync():
+                with self._suspend_sync:
                     self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _save_to_buffer(self):
         """Store data in buffer.
@@ -207,21 +184,10 @@ class BufferedCollection(SyncedCollection):
         """
         self._load_from_resource()
 
-    @contextmanager
-    def buffered(self):
-        """Enter buffered mode."""
-        self._buffered += 1
-        try:
-            yield
-        finally:
-            self._buffered -= 1
-            if not self._is_buffered:
-                self._flush()
-
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self._buffered + BufferedCollection._BUFFERED_MODE > 0
+        return self.buffered or _BUFFER_ALL_CONTEXT
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
@@ -233,4 +199,22 @@ class BufferedCollection(SyncedCollection):
         pass
 
 
-buffer_all = BufferedCollection.buffer_all
+# This module-scope variable is a context that can be accessed via the
+# buffer_all method for the purpose of buffering all subsequence read and write
+# operations.
+_BUFFER_ALL_CONTEXT = _CounterFuncContext(BufferedCollection._flush_all_backends)
+
+
+# This function provides a more familiar module-scope, function-based interface
+# for enabling buffering rather than calling the class's static method.
+def buffer_all():
+    """Return a global buffer context for all BufferedCollection instances.
+
+    All future operations use the buffer whenever possible. Write operations
+    are deferred until the context is exited, at which point all buffered
+    backends will flush their buffers. Individual backends may flush their
+    buffers within this context if the implementation requires it; this context
+    manager represents a promise to buffer whenever possible, but does not
+    guarantee that no writes will occur under all circumstances.
+    """
+    return _BUFFER_ALL_CONTEXT

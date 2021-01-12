@@ -151,7 +151,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
             # collection pointing to the same data flushed the buffer. This
             # object's data will still be pointing to that one, though, so the
             # safest choice is to reinitialize its data from scratch.
-            with self._suspend_sync():
+            with self._suspend_sync:
                 self._data = {
                     key: self._from_base(data=value, parent=self)
                     for key, value in self._to_base().items()
@@ -163,16 +163,16 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         Override the base buffered method to skip the _update and to let
         _load_from_buffer happen "in place."
         """
-        if self._suspend_sync_ <= 0:
-            if self._parent is None:
+        if not self._suspend_sync:
+            if self._root is None:
                 if self._is_buffered:
                     self._load_from_buffer()
                 else:
                     data = self._load_from_resource()
-                    with self._suspend_sync():
+                    with self._suspend_sync:
                         self._update(data)
             else:
-                self._parent._load()
+                self._root._load()
 
     def _save_to_buffer(self):
         """Store data in buffer.
@@ -191,7 +191,7 @@ class SharedMemoryFileBufferedCollection(FileBufferedCollection):
         # those the writes will be automatically serialized because Python
         # dicts are thread-safe because of the GIL. However, it's best not to
         # depend on the thread-safety of built-in containers.
-        with self._buffer_lock():
+        with self._buffer_lock:
             if self._filename in type(self)._buffer:
                 # Always track all instances pointing to the same data.
 

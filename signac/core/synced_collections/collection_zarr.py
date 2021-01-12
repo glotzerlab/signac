@@ -38,7 +38,7 @@ class ZarrCollection(SyncedCollection):
     def __init__(self, group=None, name=None, codec=None, **kwargs):
         import numcodecs
 
-        self._root = group
+        self._group = group
         self._name = name
         self._object_codec = numcodecs.JSON() if codec is None else codec
         super().__init__(**kwargs)
@@ -54,14 +54,14 @@ class ZarrCollection(SyncedCollection):
 
         """
         try:
-            return self._root[self._name][0]
+            return self._group[self._name][0]
         except KeyError:
             return None
 
     def _save_to_resource(self):
         """Write the data to Zarr group."""
         data = self._to_base()
-        dataset = self._root.require_dataset(
+        dataset = self._group.require_dataset(
             self._name,
             overwrite=True,
             shape=1,
@@ -71,16 +71,16 @@ class ZarrCollection(SyncedCollection):
         dataset[0] = data
 
     def __deepcopy__(self, memo):
-        if self._parent is not None:
+        if self._root is not None:
             return type(self)(
                 group=None,
                 name=None,
                 data=self._to_base(),
-                parent=deepcopy(self._parent, memo),
+                parent=deepcopy(self._root, memo),
             )
         else:
             return type(self)(
-                group=deepcopy(self._root, memo),
+                group=deepcopy(self._group, memo),
                 name=self._name,
                 data=None,
                 parent=None,
@@ -98,7 +98,7 @@ class ZarrCollection(SyncedCollection):
     @property
     def group(self):
         """zarr.hierarchy.Group: The Zarr group storing the data."""
-        return self._root
+        return self._group
 
     @property
     def name(self):
