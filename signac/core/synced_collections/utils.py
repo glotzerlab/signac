@@ -165,6 +165,10 @@ class _NullContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    def __call__(self):
+        """Allow usage of the context in a function-like manner."""
+        return self
+
 
 class _CounterContext:
     """A context manager that maintains a total entry count.
@@ -185,6 +189,10 @@ class _CounterContext:
 
     def __bool__(self):
         return self._count > 0
+
+    def __call__(self):
+        """Allow usage of the context in a function-like manner."""
+        return self
 
 
 class _CounterFuncContext(_CounterContext):

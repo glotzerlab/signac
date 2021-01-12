@@ -11,10 +11,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
-from signac.core.synced_collections.buffered_collection import (
-    BufferedCollection,
-    buffer_all,
-)
+from signac.core.synced_collections.buffered_collection import buffer_all
 from signac.core.synced_collections.collection_json import (
     BufferedJSONCollection,
     BufferedJSONDict,
@@ -159,16 +156,16 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
         assert len(synced_collection) == 0
 
         for outer_buffer, inner_buffer in itertools.product(
-            [synced_collection.buffered, BufferedCollection.buffer_all], repeat=2
+            [synced_collection.buffered, buffer_all], repeat=2
         ):
             err_msg = (
                 f"outer_buffer: {type(outer_buffer).__qualname__}, "
                 f"inner_buffer: {type(inner_buffer).__qualname__}"
             )
             synced_collection.reset({"outside": 1})
-            with outer_buffer:
+            with outer_buffer():
                 synced_collection["inside_first"] = 2
-                with inner_buffer:
+                with inner_buffer():
                     synced_collection["inside_second"] = 3
 
                 on_disk_dict = self.load(synced_collection)

@@ -187,7 +187,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self.buffered or type(self).buffer_all
+        return self.buffered or _BUFFER_ALL_CONTEXT
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
@@ -199,27 +199,16 @@ class BufferedCollection(SyncedCollection):
         pass
 
 
-# Have to monkey-patch this into the class after the fact because the
-# flush_all_backends method is not fully defined and bound as a static method
-# until after the class definition is complete.
-BufferedCollection.buffer_all = _CounterFuncContext(  # type: ignore
-    BufferedCollection._flush_all_backends
-)
-"""Enter a globally buffer context for all BufferedCollection instances.
-
-All future operations use the buffer whenever possible. Write operations
-are deferred until the context is exited, at which point all buffered
-backends will flush their buffers. Individual backends may flush their
-buffers within this context if the implementation requires it; this context
-manager represents a promise to buffer whenever possible, but does not
-guarantee that no writes will occur under all circumstances.
-"""
+# This module-scope variable is a context that can be accessed via the
+# buffer_all method for the purpose of buffering all subsequence read and write
+# operations.
+_BUFFER_ALL_CONTEXT = _CounterFuncContext(BufferedCollection._flush_all_backends)
 
 
 # This function provides a more familiar module-scope, function-based interface
 # for enabling buffering rather than calling the class's static method.
 def buffer_all():
-    """Enter a globally buffer context for all BufferedCollection instances.
+    """Return a global buffer context for all BufferedCollection instances.
 
     All future operations use the buffer whenever possible. Write operations
     are deferred until the context is exited, at which point all buffered
@@ -227,7 +216,5 @@ def buffer_all():
     buffers within this context if the implementation requires it; this context
     manager represents a promise to buffer whenever possible, but does not
     guarantee that no writes will occur under all circumstances.
-
-    This method is a trivial alias for :meth:`~.BufferedCollection.buffer_all`
     """
-    return BufferedCollection.buffer_all
+    return _BUFFER_ALL_CONTEXT
