@@ -24,7 +24,7 @@ MIGRATIONS = {
 
 def _reload_project_config(project):
     project_reloaded = project.get_project(
-        root=project._rd, search=False, _ignore_schema_version=True
+        root=project.root_directory(), search=False, _ignore_schema_version=True
     )
     project._config = project_reloaded._config
 

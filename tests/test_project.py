@@ -313,6 +313,23 @@ class TestProject(TestProjectBase):
         assert 1 == len(list(self.project.find_jobs({"a": 0})))
         assert 0 == len(list(self.project.find_jobs({"a": 5})))
 
+    def test_find_jobs_JobsCursor_contains(self):
+        statepoints = [{"a": i} for i in range(5)]
+        for sp in statepoints:
+            self.project.open_job(sp).document["test"] = True
+        cursor_all = self.project.find_jobs()
+        for sp in statepoints:
+            assert self.project.open_job(sp) in cursor_all
+        cursor_first = self.project.find_jobs(statepoints[0])
+        for sp in statepoints:
+            if sp["a"] == 0:
+                assert self.project.open_job(sp) in cursor_first
+            else:
+                assert self.project.open_job(sp) not in cursor_first
+        cursor_doc = self.project.find_jobs(doc_filter={"test": True})
+        for sp in statepoints:
+            assert self.project.open_job(sp) in cursor_doc
+
     def test_find_jobs_next(self):
         statepoints = [{"a": i} for i in range(5)]
         for sp in statepoints:
@@ -417,6 +434,10 @@ class TestProject(TestProjectBase):
         finally:
             logging.disable(logging.NOTSET)
 
+    def test_open_job_no_id_or_statepoint(self):
+        with pytest.raises(ValueError):
+            self.project.open_job()
+
     def test_open_job_by_abbreviated_id(self):
         statepoints = [{"a": i} for i in range(5)]
         [self.project.open_job(sp).init() for sp in statepoints]
@@ -458,7 +479,9 @@ class TestProject(TestProjectBase):
         try:
             logging.disable(logging.CRITICAL)
             with pytest.raises(JobsCorruptedError):
-                self.project.open_job(id=job.id)
+                # Accessing the job state point triggers validation of the
+                # state point manifest file
+                self.project.open_job(id=job.id).statepoint
         finally:
             logging.disable(logging.NOTSET)
 
@@ -533,7 +556,9 @@ class TestProject(TestProjectBase):
             # Iterating through the jobs should now result in an error.
             with pytest.raises(JobsCorruptedError):
                 for job in self.project:
-                    pass
+                    # Accessing the job state point triggers validation of the
+                    # state point manifest file
+                    job.statepoint
 
             with pytest.raises(JobsCorruptedError):
                 self.project.repair()
@@ -648,6 +673,13 @@ class TestProject(TestProjectBase):
         job.init()
         assert job in self.project
 
+    def test_JobsCursor_contains(self):
+        cursor = self.project.find_jobs()
+        job = self.open_job(dict(a=0))
+        assert job not in cursor
+        job.init()
+        assert job in cursor
+
     def test_job_move(self):
         root = self._tmp_dir.name
         project_a = signac.init_project("ProjectA", os.path.join(root, "a"))
@@ -655,7 +687,6 @@ class TestProject(TestProjectBase):
         job = project_a.open_job(dict(a=0))
         job_b = project_b.open_job(dict(a=0))
         assert job != job_b
-        assert hash(job) != hash(job_b)
         assert job not in project_a
         assert job not in project_b
         job.init()

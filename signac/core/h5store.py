@@ -327,7 +327,7 @@ class H5Store(MutableMapping):
     def __init__(self, filename, **kwargs):
         if not (isinstance(filename, str) and len(filename) > 0):
             raise ValueError("H5Store filename must be a non-empty string.")
-        self._filename = os.path.realpath(filename)
+        self._filename = os.path.abspath(filename)
         self._file = None
         self._kwargs = kwargs
 
