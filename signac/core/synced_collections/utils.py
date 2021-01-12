@@ -149,7 +149,7 @@ class _NullContext:
     There are various cases where we sometimes want to perform a task within a
     particular context, but at other times we wish to ignore that context. The
     most obvious example is a lock for threading: since
-    :class:`SyncedCollection`s allow multithreading support to be enabled or
+    :class:`SyncedCollection` allows multithreading support to be enabled or
     disabled, it is important to be able to write code that is agnostic to
     whether or not a mutex must be acquired prior to executing a task. Locks
     support the context manager protocol and are used in that manner throughout
@@ -175,7 +175,7 @@ class _CounterContext:
 
     This class simply contains an internal counter that is incremented on every
     entrance and decremented on every exit. It is also truthy and only evaluates
-    to False if the count is 0.
+    to True if the count is greater than 0.
     """
 
     def __init__(self):
@@ -208,5 +208,5 @@ class _CounterFuncContext(_CounterContext):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
-        if self._count == 0:
+        if not self:
             self._func()
