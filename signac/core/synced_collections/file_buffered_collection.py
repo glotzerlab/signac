@@ -218,9 +218,8 @@ class FileBufferedCollection(BufferedCollection):
                 # called. As a result, we have to load from the resource here to be
                 # safe.
                 data = self._load_from_resource()
-                with self._thread_lock:
-                    with self._suspend_sync:
-                        self._update(data)
+                with self._thread_lock, self._suspend_sync:
+                    self._update(data)
                 self._initialize_data_in_buffer()
 
         # This storage can be safely updated every time on every thread.

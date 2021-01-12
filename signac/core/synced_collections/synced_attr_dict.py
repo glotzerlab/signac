@@ -176,10 +176,9 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         # directly set using those rather than looping over data.
         data = {key: value}
         self._validate(data)
-        with self._load_and_save:
-            with self._suspend_sync:
-                for key, value in data.items():
-                    self._data[key] = self._from_base(value, parent=self)
+        with self._load_and_save, self._suspend_sync:
+            for key, value in data.items():
+                self._data[key] = self._from_base(value, parent=self)
 
     def reset(self, data=None):
         """Update the instance with new data.
