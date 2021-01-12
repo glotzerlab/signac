@@ -131,15 +131,20 @@ class SyncedCollection(Collection):
     _LoadSaveType = _LoadAndSave
 
     def __init__(self, parent=None, *args, **kwargs):
+        # Nested collections need to know their root collection, which is
+        # responsible for all synchronization, and therefore all the associated
+        # context managers are also stored from the root.
         if parent is not None:
             self._root = parent._root if parent._root is not None else parent
         else:
             self._root = parent
         self._suspend_sync = (
-            _CounterContext() if parent is None else parent._suspend_sync
+            _CounterContext() if self._root is None else self._root._suspend_sync
         )
         self._load_and_save = (
-            type(self)._LoadSaveType(self) if parent is None else parent._load_and_save
+            type(self)._LoadSaveType(self)
+            if self._root is None
+            else self._root._load_and_save
         )
         if type(self)._supports_threading:
             type(self)._locks[self._lock_id] = RLock()
