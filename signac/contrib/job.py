@@ -14,7 +14,9 @@ from deprecation import deprecated
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.h5store import H5StoreManager
-from ..core.synced_collections.collection_json import BufferedJSONDict
+from ..core.synced_collections.collection_json import (
+    MemoryBufferedJSONDict as BufferedJSONDict,
+)
 from ..sync import sync_jobs
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
