@@ -31,7 +31,7 @@ class _sp_save_hook:
 
     When a job's state point is changed, in addition
     to the contents of the file being modified this hook
-    calls :meth:`~Job._reset_sp` to rehash the state
+    calls :meth:`~Job.reset_statepoint` to rehash the state
     point, compute a new job id, and move the folder.
 
     Parameters
@@ -50,7 +50,7 @@ class _sp_save_hook:
     def save(self):
         """Reset the state point for all the jobs."""
         for job in self.jobs:
-            job._reset_sp()
+            job.reset_statepoint(job.statepoint())
 
 
 class Job:
@@ -237,19 +237,6 @@ class Job:
         self._cwd = []
         logger.info(f"Moved '{self}' -> '{dst}'.")
 
-    def _reset_sp(self, new_statepoint=None):
-        """Check for new state point requested to assign this job.
-
-        Parameters
-        ----------
-        new_statepoint : dict
-            The job's new state point (Default value = None).
-
-        """
-        if new_statepoint is None:
-            new_statepoint = self.statepoint()
-        self.reset_statepoint(new_statepoint)
-
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
 
@@ -358,7 +345,7 @@ class Job:
             The new state point to be assigned.
 
         """
-        self._reset_sp(new_statepoint)
+        self.reset_statepoint(new_statepoint)
 
     @property
     def sp(self):
