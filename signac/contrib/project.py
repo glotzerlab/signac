@@ -1506,7 +1506,7 @@ class Project:
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
         copytree :
-             (Default value = shutil.copytree)
+             (Default value = :func:`shutil.copytree`)
 
         Returns
         -------
