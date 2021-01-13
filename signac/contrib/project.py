@@ -8,6 +8,7 @@ import gzip
 import logging
 import os
 import re
+import shutil
 import stat
 import time
 import uuid
@@ -22,7 +23,6 @@ from tempfile import TemporaryDirectory
 from deprecation import deprecated
 from packaging import version
 
-from .. import syncutil
 from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
