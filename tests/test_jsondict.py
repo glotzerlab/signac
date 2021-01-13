@@ -54,7 +54,7 @@ class TestJSONDict(TestJSONDictBase):
         jsd = self.get_json_dict()
         key = "setgetexplicitnested"
         d = self.get_testdata()
-        jsd.setdefault("a", dict())
+        jsd.setdefault("a", {})
         child1 = jsd["a"]
         child2 = jsd["a"]
         assert child1 == child2
@@ -244,7 +244,7 @@ class TestJSONDict(TestJSONDictBase):
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
                 jsd[key] = self.get_testdata()
-        for key in ([], {}, dict()):
+        for key in ([], {}):
             with pytest.raises(TypeError):
                 jsd[key] = self.get_testdata()
 

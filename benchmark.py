@@ -75,7 +75,7 @@ def calc_project_metadata_size(project):
 
 def get_partition(path):
     path = os.path.realpath(path)
-    candidates = dict()
+    candidates = {}
     for partition in psutil.disk_partitions(all=True):
         mp = os.path.realpath(partition.mountpoint)
         if path.startswith(mp):
@@ -203,14 +203,16 @@ def benchmark_project(project, keys=None):
     run(
         "select_by_id",
         Timer(
-            stmt="project.open_job(id=jobid)",
-            setup=setup + "jobid = random.choice(list(islice(project, 100))).get_id()",
+            stmt="project.open_job(id=job_id)",
+            setup=setup + "job_id = random.choice(list(islice(project, 100))).get_id()",
         ),
     )
 
     run("iterate", Timer("list(project)", setup), 3, 10)
 
     run("iterate_single_pass", Timer("list(project)", setup), number=1)
+
+    run("iterate_load_sp", Timer("[job.sp() for job in project]", setup), 3, 10)
 
     run(
         "search_lean_filter",

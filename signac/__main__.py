@@ -315,7 +315,7 @@ def main_remove(args):
     for job_id in args.job_id:
         job = _open_job_by_id(project, job_id)
         if args.interactive and not query_yes_no(
-            "Are you sure you want to {action} job with id '{job._id}'?".format(
+            "Are you sure you want to {action} job with id '{job.id}'?".format(
                 action="clear" if args.clear else "remove", job=job
             ),
             default="no",
@@ -400,10 +400,12 @@ def main_find(args):
             job = project.open_job(id=job_id)
 
             if args.sp is not None:
-                sp = job.statepoint()
+                statepoint = job.statepoint()
                 if len(args.sp) != 0:
-                    sp = {key: sp[key] for key in args.sp if key in sp}
-                print(format_lines("sp ", job_id, sp))
+                    statepoint = {
+                        key: statepoint[key] for key in args.sp if key in statepoint
+                    }
+                print(format_lines("sp ", job_id, statepoint))
 
             if args.doc is not None:
                 doc = job.document()
@@ -428,9 +430,9 @@ def main_diff(args):
 
     diff = diff_jobs(*jobs)
 
-    for jobid, sp in diff.items():
-        print(jobid)
-        pprint(sp)
+    for job_id, statepoint in diff.items():
+        print(job_id)
+        pprint(statepoint)
 
 
 def main_view(args):
@@ -635,7 +637,7 @@ def _main_import_interactive(project, origin, args):
         with _prepare_import_into_project(
             origin, tmp_project, args.schema_path
         ) as data_mapping:
-            paths = dict()
+            paths = {}
             for src, copy_executor in tqdm(
                 dict(data_mapping).items(), desc="Import to temporary project"
             ):
@@ -671,7 +673,7 @@ def _main_import_non_interactive(project, origin, args):
     from .contrib.import_export import _prepare_import_into_project
 
     try:
-        paths = dict()
+        paths = {}
         if args.sync:
             with project.temporary_project() as tmp_project:
                 _print_err("Prepare data space for import...")
@@ -738,7 +740,7 @@ def main_export(args):
     project = get_project()
     jobs = [project.open_job(id=job_id) for job_id in find_with_filter(args)]
 
-    paths = dict()
+    paths = {}
     with tqdm(total=len(jobs), desc="Export") as pbar:
         try:
             for src, dst in export_jobs(
@@ -919,7 +921,7 @@ def main_config_set(args):
             args.value = args.value[0]
     sec = cfg
     for key in keys[:-1]:
-        sec = sec.setdefault(key, dict())
+        sec = sec.setdefault(key, {})
     try:
         sec[keys[-1]] = args.value
         _print_err(f"Updated value '{args.key}'='{args.value}'.")
@@ -959,7 +961,7 @@ def main_config_host(args):
         cfg = config.get_config(fn_config)
 
     def hostcfg():
-        return cfg.setdefault("hosts", dict()).setdefault(args.hostname, dict())
+        return cfg.setdefault("hosts", {}).setdefault(args.hostname, {})
 
     if sum((args.test, args.remove, args.show_pw)) > 1:
         raise ValueError(
@@ -1166,7 +1168,7 @@ def main_shell(args):
                     python_version=sys.version,
                     signac_version=__version__,
                     project_id=project.id,
-                    job_banner=f"\nJob:\t\t{job._id}" if job is not None else "",
+                    job_banner=f"\nJob:\t\t{job.id}" if job is not None else "",
                     root_path=project.root_directory(),
                     workspace_path=project.workspace(),
                     size=len(project),

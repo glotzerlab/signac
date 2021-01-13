@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 SESSION_PASSWORD_HASH_CACHE = SimpleKeyring()
-SESSION_USERNAME_CACHE = dict()  # type: ignore
+SESSION_USERNAME_CACHE = {}  # type: ignore
 
 """
 THIS MODULE IS DEPRECATED!

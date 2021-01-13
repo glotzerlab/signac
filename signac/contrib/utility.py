@@ -389,13 +389,13 @@ def _dotted_dict_to_nested_dicts(dotted_dict, delimiter_nested="."):
         A mapping instance with nested dicts, e.g. {'a': {'b': 'c'}}.
 
     """
-    nested_dict = dict()
+    nested_dict = {}
     for key, value in dotted_dict.items():
         tokens = key.split(delimiter_nested)
         if len(tokens) > 1:
-            tmp = nested_dict.setdefault(tokens[0], dict())
+            tmp = nested_dict.setdefault(tokens[0], {})
             for token in tokens[1:-1]:
-                tmp = tmp.setdefault(token, dict())
+                tmp = tmp.setdefault(token, {})
             tmp[tokens[-1]] = value
         else:
             nested_dict[tokens[0]] = value
