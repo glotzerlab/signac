@@ -32,7 +32,7 @@ logger.more = log_more  # type: ignore
 
 @deprecated(
     deprecated_in="1.6.0",
-    removed_in="2.3.0",
+    removed_in="2.0.0",
     current_version=__version__,
     details="Use shutil.copytree instead.",
 )
