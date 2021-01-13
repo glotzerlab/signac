@@ -72,6 +72,9 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
+    )
     def test_buffered_mode_force_write(self):
         with signac.buffered(force_write=False):
             with signac.buffered(force_write=False):
@@ -88,6 +91,9 @@ class TestBufferedMode(TestProjectBase):
                     pass
         assert not signac.is_buffered()
 
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
+    )
     def test_buffered_mode_force_write_with_file_modification(self):
         job = self.project.open_job(dict(a=0))
         job.init()
@@ -114,8 +120,8 @@ class TestBufferedMode(TestProjectBase):
                 file.write(json.dumps({"a": x}).encode())
         assert job.doc.a == (not x)
 
-    @pytest.mark.skipif(
-        not ABLE_TO_PREVENT_WRITE, reason="unable to trigger permission error"
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
     )
     def test_force_write_mode_with_permission_error(self):
         job = self.project.open_job(dict(a=0))
@@ -138,6 +144,7 @@ class TestBufferedMode(TestProjectBase):
             os.chmod(path, mode)
         assert job.doc.a == x
 
+    @pytest.mark.xfail(reason="This API for setting the buffer size is deprecated.")
     def test_buffered_mode_change_buffer_size(self):
         assert not signac.is_buffered()
         with signac.buffered(buffer_size=12):
@@ -165,6 +172,7 @@ class TestBufferedMode(TestProjectBase):
                 with signac.buffered(buffer_size=14):
                     pass
 
+    @pytest.mark.xfail(reason="This test uses various deprecated APIs.")
     def test_integration(self):
         def routine():
             for i in range(1, 4):

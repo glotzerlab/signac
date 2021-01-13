@@ -14,7 +14,7 @@ from deprecation import deprecated
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.h5store import H5StoreManager
-from ..core.jsondict import JSONDict
+from ..core.synced_collections.collection_json import BufferedJSONDict
 from ..sync import sync_jobs
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -376,7 +376,8 @@ class Job:
 
             If you need a deep copy that will not modify the underlying
             persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
-            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+            For more information, see
+            :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
@@ -386,10 +387,11 @@ class Job:
             The job document handle.
 
         """
+        # TODO: Fix this docstring explaining how to get a deep copy.
         if self._document is None:
             self.init()
             fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = JSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -398,7 +400,7 @@ class Job:
 
         Parameters
         ----------
-        new_doc : :class:`~signac.JSONDict`
+        new_doc : :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
             The job document handle.
 
         """
@@ -412,7 +414,8 @@ class Job:
 
             If you need a deep copy that will not modify the underlying
             persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
-            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+            For more information, see
+            :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
 
         """
         return self.document

@@ -36,6 +36,7 @@ buffer flushes will occur when all such managers have been exited.
 """
 
 import logging
+import warnings
 from inspect import isabstract
 from typing import Any, List
 
@@ -207,7 +208,7 @@ _BUFFER_ALL_CONTEXT = _CounterFuncContext(BufferedCollection._flush_all_backends
 
 # This function provides a more familiar module-scope, function-based interface
 # for enabling buffering rather than calling the class's static method.
-def buffer_all():
+def buffer_all(force_write=None, buffer_size=None):
     """Return a global buffer context for all BufferedCollection instances.
 
     All future operations use the buffer whenever possible. Write operations
@@ -217,4 +218,25 @@ def buffer_all():
     manager represents a promise to buffer whenever possible, but does not
     guarantee that no writes will occur under all circumstances.
     """
+    if force_write is not None:
+        warnings.warn(
+            DeprecationWarning(
+                "The force_write parameter is deprecated and will be removed in "
+                "signac 2.0. This functionality is no longer supported."
+            )
+        )
+    if buffer_size is not None:
+        warnings.warn(
+            DeprecationWarning(
+                "The buffer_size parameter is deprecated and will be removed in "
+                "signac 2.0. The buffer size should be set using the "
+                "set_buffer_capacity method of FileBufferedCollection or any of its "
+                "subclasses."
+            )
+        )
     return _BUFFER_ALL_CONTEXT
+
+
+def is_buffered():
+    """Check the global buffered mode setting."""
+    return bool(_BUFFER_ALL_CONTEXT)
