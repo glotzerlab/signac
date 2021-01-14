@@ -14,6 +14,7 @@ from deprecation import deprecated
 from ..core import json
 from ..core.attrdict import SyncedAttrDict
 from ..core.h5store import H5StoreManager
+from ..core.synced_collections.collection_json import JSONDict
 from ..core.synced_collections.collection_json import (
     MemoryBufferedJSONDict as BufferedJSONDict,
 )
@@ -274,35 +275,6 @@ class Job:
         statepoint.update(update)
         self.reset_statepoint(statepoint)
 
-    def _read_manifest(self):
-        """Read and parse the manifest file, if it exists.
-
-        Returns
-        -------
-        manifest : dict
-            State point data.
-
-        Raises
-        ------
-        JobsCorruptedError
-            If an error occurs while parsing the state point manifest.
-        OSError
-            If an error occurs while reading the state point manifest.
-
-        """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-        try:
-            with open(fn_manifest, "rb") as file:
-                manifest = json.loads(file.read().decode())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
-        except ValueError:
-            # This catches JSONDecodeError, a subclass of ValueError
-            raise JobsCorruptedError([self.id])
-        else:
-            return manifest
-
     @property
     def statepoint(self):
         """Get the job's state point.
@@ -558,7 +530,13 @@ class Job:
             If the manifest hash is not equal to the job id.
 
         """
-        manifest = self._read_manifest()
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+        try:
+            manifest = JSONDict(fn_manifest)()
+        except ValueError:
+            # This catches JSONDecodeError, a subclass of ValueError
+            raise JobsCorruptedError([self.id])
+
         if calc_id(manifest) != self.id:
             raise JobsCorruptedError([self.id])
         return manifest
