@@ -766,7 +766,7 @@ def _copy_to_job_workspace(src, job, copytree):
             raise DestinationExistsError(job)
         raise
     else:
-        job._init()
+        job.init()
     return dst
 
 

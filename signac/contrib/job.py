@@ -458,64 +458,6 @@ class Job:
         """
         self.stores[self.KEY_DATA] = new_data
 
-    def _init(self, force=False):
-        """Contains all logic for job initialization.
-
-        This method is called by :meth:`~.init` and is responsible
-        for actually creating the job workspace directory and
-        writing out the state point manifest file.
-
-        Parameters
-        ----------
-        force : bool
-            If ``True``, write the job manifest even if it
-            already exists. If ``False``, this method will
-            raise an Exception if the manifest exists
-            (Default value = False).
-
-        """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-
-        # Attempt early exit if the manifest exists and is valid
-        try:
-            statepoint = self._check_manifest()
-        except Exception:
-            # Any exception means this method cannot exit early.
-
-            # Create the workspace directory if it did not exist yet.
-            try:
-                _mkdir_p(self.workspace())
-            except OSError:
-                logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for job '{}'.".format(self)
-                )
-                raise
-
-            try:
-                # Prepare the data before file creation and writing
-                blob = json.dumps(self.statepoint, indent=2)
-
-                try:
-                    # Open the file for writing only if it does not exist yet.
-                    with open(fn_manifest, "w" if force else "x") as file:
-                        file.write(blob)
-                except OSError as error:
-                    if error.errno not in (errno.EEXIST, errno.EACCES):
-                        raise
-            except Exception as error:
-                # Attempt to delete the file on error, to prevent corruption.
-                try:
-                    os.remove(fn_manifest)
-                except Exception:  # ignore all errors here
-                    pass
-                raise error
-            else:
-                statepoint = self._check_manifest()
-
-        # Update the project's state point cache if the manifest is valid
-        self._project._register(self.id, statepoint)
-
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
 
@@ -564,7 +506,47 @@ class Job:
 
         """
         try:
-            self._init(force=force)
+            fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
+
+            # Attempt early exit if the manifest exists and is valid
+            try:
+                statepoint = self._check_manifest()
+            except Exception:
+                # Any exception means this method cannot exit early.
+
+                # Create the workspace directory if it did not exist yet.
+                try:
+                    _mkdir_p(self.workspace())
+                except OSError:
+                    logger.error(
+                        "Error occurred while trying to create "
+                        "workspace directory for job '{}'.".format(self)
+                    )
+                    raise
+
+                try:
+                    # Prepare the data before file creation and writing
+                    blob = json.dumps(self.statepoint, indent=2)
+
+                    try:
+                        # Open the file for writing only if it does not exist yet.
+                        with open(fn_manifest, "w" if force else "x") as file:
+                            file.write(blob)
+                    except OSError as error:
+                        if error.errno not in (errno.EEXIST, errno.EACCES):
+                            raise
+                except Exception as error:
+                    # Attempt to delete the file on error, to prevent corruption.
+                    try:
+                        os.remove(fn_manifest)
+                    except Exception:  # ignore all errors here
+                        pass
+                    raise error
+                else:
+                    statepoint = self._check_manifest()
+
+            # Update the project's state point cache if the manifest is valid
+            self._project._register(self.id, statepoint)
         except Exception:
             logger.error(
                 f"State point manifest file of job '{self.id}' appears to be corrupted."
