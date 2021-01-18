@@ -66,8 +66,6 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
                     key: self._from_base(data=value, parent=self)
                     for key, value in data.items()
                 }
-            with self._thread_lock:
-                self._save()
 
     def _to_base(self):
         """Convert the SyncedDict object to Dictionary.
@@ -119,11 +117,13 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
         Parameters
         ----------
         data : collections.abc.Mapping
-            The data to be assigned to this dict.
+            The data to be assigned to this dict. If ``None``, the data is left
+            unchanged (Default value = None).
 
         """
         if data is None:
-            self._data.clear()
+            # If no data is passed, take no action.
+            pass
         elif _mapping_resolver.get_type(data) == "MAPPING":
             with self._suspend_sync:
                 for key, new_value in data.items():

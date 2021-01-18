@@ -59,8 +59,6 @@ class SyncedList(SyncedCollection, MutableSequence):
                 self._data = [
                     self._from_base(data=value, parent=self) for value in data
                 ]
-            with self._thread_lock:
-                self._save()
 
     @classmethod
     def is_base_type(cls, data):
@@ -112,11 +110,13 @@ class SyncedList(SyncedCollection, MutableSequence):
         Parameters
         ----------
         data : collections.abc.Sequence
-            The data to be assigned to this list.
+            The data to be assigned to this list. If ``None``, the data is left
+            unchanged (Default value = None).
 
         """
         if data is None:
-            self._data.clear()
+            # If no data is passed, take no action.
+            pass
         elif _sequence_resolver.get_type(data) == "SEQUENCE":
             with self._suspend_sync:
                 # This loop is optimized based on common usage patterns:
