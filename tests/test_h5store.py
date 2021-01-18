@@ -683,7 +683,7 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
                         assert reader2["test"]
 
     @pytest.mark.skipif(
-        WINDOWS, reason="This test fails for an unknown reason on Windows."
+        python_implementation() != "CPython", reason="SWMR mode not available."
     )
     def test_single_writer_multiple_reader_same_instance(self):
         from multiprocessing import Process
