@@ -8,14 +8,12 @@ import logging
 import os
 import shutil
 from copy import deepcopy
+from json import JSONDecodeError
 
 from deprecation import deprecated
 
 from ..core.h5store import H5StoreManager
-from ..core.synced_collections.collection_json import JSONDict
-from ..core.synced_collections.collection_json import (
-    MemoryBufferedJSONDict as BufferedJSONDict,
-)
+from ..core.synced_collections.collection_json import BufferedJSONDict, JSONDict
 from ..errors import KeyTypeError
 from ..sync import sync_jobs
 from ..version import __version__
@@ -79,27 +77,22 @@ class _StatepointDict(JSONDict):
         )
 
     def _load(self):
-        """Don't attempt a load unless no data was initially provided."""
+        """Never automatically load from disk."""
         pass
 
     def _save(self):
-        """Don't save to disk by default."""
+        """Trigger job migrations on save by default."""
         for job in self._jobs:
             job.reset_statepoint(self._data)
 
     def save(self, force):
-        """Need a way to force a save to disk."""
+        """Force a save to disk."""
         if force or not os.path.isfile(self._filename):
             super()._save()
 
     def load(self):
-        """Need a way to force a save to disk."""
+        """Force a load from disk."""
         super()._load()
-
-    def move(self, new_filename):
-        """Move to new filename."""
-        os.replace(self.filename, new_filename)
-        self._filename = new_filename
 
 
 class Job:
@@ -260,12 +253,13 @@ class Job:
         if dst == self:
             return
 
+        tmp_statepoint_file = self.statepoint.filename + "~"
         try:
-            self.statepoint.move(self.statepoint.filename + "~")
+            os.replace(self.statepoint.filename, tmp_statepoint_file)
             try:
                 os.replace(self.workspace(), dst.workspace())
             except OSError as error:
-                self._statepoint.move(self._statepoint.filename[:-1])  # rollback
+                os.replace(tmp_statepoint_file, self.statepoint.filename)  # rollback
                 if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
                     raise DestinationExistsError(dst)
                 else:
@@ -356,11 +350,8 @@ class Job:
             try:
                 self._statepoint.load()
                 statepoint = self._statepoint()
-            except ValueError:
-                # This catches JSONDecodeError, a subclass of ValueError
-                raise JobsCorruptedError([self.id])
-
-            if calc_id(statepoint) != self.id:
+                assert calc_id(statepoint) == self.id
+            except (JSONDecodeError, AssertionError):
                 raise JobsCorruptedError([self.id])
 
             # Update the project's state point cache when loaded lazily
@@ -577,11 +568,8 @@ class Job:
                 else:
                     try:
                         statepoint = self.statepoint._load_from_resource()
-                    except ValueError:
-                        # This catches JSONDecodeError, a subclass of ValueError
-                        raise JobsCorruptedError([self.id])
-
-                    if calc_id(statepoint) != self.id:
+                        assert calc_id(statepoint) == self.id
+                    except (JSONDecodeError, AssertionError):
                         raise JobsCorruptedError([self.id])
 
             # Update the project's state point cache if the manifest is valid
