@@ -517,31 +517,6 @@ class Job:
         """
         self.stores[self.KEY_DATA] = new_data
 
-    def _check_manifest(self):
-        """Check whether the manifest file exists and is correct.
-
-        Returns
-        -------
-        manifest : dict
-            State point data.
-
-        Raises
-        ------
-        JobsCorruptedError
-            If the manifest hash is not equal to the job id.
-
-        """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-        try:
-            manifest = JSONDict(fn_manifest)()
-        except ValueError:
-            # This catches JSONDecodeError, a subclass of ValueError
-            raise JobsCorruptedError([self.id])
-
-        if calc_id(manifest) != self.id:
-            raise JobsCorruptedError([self.id])
-        return manifest
-
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
