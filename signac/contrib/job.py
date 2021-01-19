@@ -68,6 +68,10 @@ class _StatepointDict(JSONDict):
         *args,
         **kwargs,
     ):
+        # A job-statepoint mapping need not be unique because multiple Python
+        # Job objects can point to the same data on disk. We need to store
+        # these jobs in a shared list here so that shallow copies can point to
+        # the same place and trigger each other to update.
         self._jobs = list(jobs)
         super().__init__(
             filename=filename,
@@ -799,6 +803,8 @@ class Job:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+        # Note that we append to a list of jobs rather than replacing to
+        # support transparent id updates between shallow copies of a job.
         self.statepoint._jobs.append(self)
 
     def __deepcopy__(self, memo):
