@@ -671,6 +671,11 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
         assert self.get_h5store()["x"] in set(range(100))
 
 
+def _read_from_h5store(filename, **kwargs):
+    with H5Store(filename, **kwargs) as h5s:
+        list(h5s)
+
+
 class TestH5StoreMultiProcessing(TestH5StoreBase):
     def test_single_writer_multiple_reader_same_process(self):
         with self.open_h5store() as writer:
@@ -688,12 +693,12 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
     def test_single_writer_multiple_reader_same_instance(self):
         from multiprocessing import Process
 
-        def _read_from_h5store(filename, **kwargs):
-            with H5Store(self._fn_store, mode="r", swmr=True) as h5s:
-                list(h5s)
-
         def read():
-            p = Process()
+            p = Process(
+                target=_read_from_h5store,
+                args=(self._fn_store,),
+                kwargs=(dict(mode="r", swmr=True, libver="latest")),
+            )
             p.start()
             p.join()
             # Ensure the process succeeded
