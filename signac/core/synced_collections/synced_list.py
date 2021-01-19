@@ -229,3 +229,27 @@ class SyncedList(SyncedCollection, MutableSequence):
         self._data = []
         with self._thread_lock:
             self._save()
+
+    def __lt__(self, other):
+        if isinstance(other, type(self)):
+            return self() < other()
+        else:
+            return self() > other
+
+    def __le__(self, other):
+        if isinstance(other, type(self)):
+            return self() <= other()
+        else:
+            return self() <= other
+
+    def __gt__(self, other):
+        if isinstance(other, type(self)):
+            return self() > other()
+        else:
+            return self() > other
+
+    def __ge__(self, other):
+        if isinstance(other, type(self)):
+            return self() >= other()
+        else:
+            return self() >= other

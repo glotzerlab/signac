@@ -215,6 +215,8 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
     """
 
+    _PROTECTED_KEYS = ("_filename",)
+
     def __init__(
         self,
         filename=None,
