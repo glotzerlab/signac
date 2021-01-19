@@ -8,6 +8,7 @@ import json
 import os
 import uuid
 import warnings
+from typing import Tuple
 
 from .memory_buffered_collection import SharedMemoryFileBufferedCollection
 from .serialized_file_buffered_collection import SerializedFileBufferedCollection
@@ -215,7 +216,7 @@ class JSONDict(JSONCollection, SyncedAttrDict):
 
     """
 
-    _PROTECTED_KEYS = ("_filename",)
+    _PROTECTED_KEYS: Tuple[str, ...] = ("_filename",)
 
     def __init__(
         self,
@@ -294,7 +295,7 @@ class JSONList(JSONCollection, SyncedList):
 class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS = (
+    _PROTECTED_KEYS: Tuple[str, ...] = (
         "_filename",
         "_buffered",
         "_is_buffered",
@@ -344,7 +345,7 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
 class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict):
     """A buffered :class:`JSONDict`."""
 
-    _PROTECTED_KEYS = SyncedAttrDict._PROTECTED_KEYS + (
+    _PROTECTED_KEYS: Tuple[str, ...] = SyncedAttrDict._PROTECTED_KEYS + (
         "_filename",
         "_buffered",
         "_is_buffered",
