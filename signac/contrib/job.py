@@ -27,10 +27,12 @@ logger = logging.getLogger(__name__)
 class _LoadAndSaveSingleThread:
     """A context manager for :class:`SyncedCollection` to wrap saving and loading.
 
-    Unclear how to mesh thread-safety with the fact that I'm introducing locks on a per-file level,
-    but the save operation changes the filename within the context _and_ multiple jobs could
-    point to the same statepoint. When the filename is changed by reset_statepoint, I need some
-    way to consistently also repoint the locks.
+    It's also not obvious how to achieve thread-safety for statepoint
+    modifications within the current framework because when multiple copies of
+    a job (shallow copies owning the same statepoint) exist and one of them is
+    modified, the calls to reset_statepoint will invalidate the per-file locks
+    because the folders are moved. Since statepoint accesses do not need to be
+    thread safe, this context manager simply removes that functionality.
     """
 
     def __init__(self, collection):
