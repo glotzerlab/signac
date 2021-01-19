@@ -55,7 +55,7 @@ class _StatepointDict(JSONDict):
            job is opened by id and they're not present in the cache.
     """
 
-    _PROTECTED_KEYS = ("_jobs", "_requires_init")
+    _PROTECTED_KEYS = ("_jobs",)
     _LoadSaveType = _LoadAndSaveSingleThread  # type: ignore
 
     def __init__(
@@ -69,7 +69,6 @@ class _StatepointDict(JSONDict):
         **kwargs,
     ):
         self._jobs = list(jobs)
-        self._requires_init = data is None
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -81,9 +80,7 @@ class _StatepointDict(JSONDict):
 
     def _load(self):
         """Don't attempt a load unless no data was initially provided."""
-        if self._requires_init:
-            super()._load()
-            self._requires_init = False
+        pass
 
     def _save(self):
         """Don't save to disk by default."""
@@ -94,6 +91,10 @@ class _StatepointDict(JSONDict):
         """Need a way to force a save to disk."""
         if force or not os.path.isfile(self._filename):
             super()._save()
+
+    def load(self):
+        """Need a way to force a save to disk."""
+        super()._load()
 
     def move(self, new_filename):
         """Move to new filename."""
@@ -353,6 +354,7 @@ class Job:
             )
 
             try:
+                self._statepoint.load()
                 statepoint = self._statepoint()
             except ValueError:
                 # This catches JSONDecodeError, a subclass of ValueError
