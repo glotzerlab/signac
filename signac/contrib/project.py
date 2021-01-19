@@ -26,9 +26,7 @@ from .. import syncutil
 from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
-from ..core.synced_collections.collection_json import (
-    MemoryBufferedJSONDict as BufferedJSONDict,
-)
+from ..core.synced_collections.collection_json import BufferedJSONDict
 from ..sync import sync_projects
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
