@@ -226,7 +226,6 @@ class JSONDict(JSONCollection, SyncedAttrDict):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -282,7 +281,6 @@ class JSONList(JSONCollection, SyncedList):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -311,7 +309,6 @@ class BufferedJSONDict(BufferedJSONCollection, SyncedAttrDict):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -334,7 +331,6 @@ class BufferedJSONList(BufferedJSONCollection, SyncedList):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -363,7 +359,6 @@ class MemoryBufferedJSONDict(MemoryBufferedJSONCollection, SyncedAttrDict):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -386,7 +381,6 @@ class MemoryBufferedJSONList(MemoryBufferedJSONCollection, SyncedList):
         *args,
         **kwargs,
     ):
-        self._validate_constructor_args({"filename": filename}, data, parent)
         super().__init__(
             filename=filename,
             write_concern=write_concern,

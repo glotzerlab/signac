@@ -100,6 +100,16 @@ class SyncedCollection(Collection):
     example, a JSON validator would raise Exceptions if it detected non-string
     keys in a dict. Validators should have no side effects.
 
+    .. note::
+
+        Typically, a synced collection will be initialized with resource information,
+        and data will be pulled from that resource. However, initializing with
+        both data and resource information is a valid use case. In this case, the
+        initial data will be validated by the standard validators, however, it
+        will not be checked against the contents stored in the synced resource and
+        is assumed to be consistent. This constructor pattern can be useful to
+        avoid unnecessary resource accesses.
+
     **Thread safety**
 
     Whether or not SyncedCollection objects are thread-safe depends on the
@@ -414,46 +424,6 @@ class SyncedCollection(Collection):
         """
         for validator in self.validators:
             validator(data)
-
-    def _validate_constructor_args(self, resource_args, data, parent):
-        """Validate the provided constructor arguments.
-
-        In order to support nesting of SyncedCollections, every collection
-        should either be associated with an underlying resource from which it
-        acquires data or be nested within another SyncedCollection, in which
-        case it contains its own data and points to a parent. Based on these
-        considerations, only certain combinations of constructor arguments are
-        valid. This method serves to validate those inputs.
-
-        Parameters
-        ----------
-        resource_args : dict
-            A dictionary of the keyword arguments that will be passed to the
-            backend constructor.
-        data : Collection, optional
-            If provided, the data to be associated with this collection
-            (Default value = None).
-        parent : SyncedCollection, optional
-            If provided, the collection within which this collection is nested
-            (Default value = None).
-
-        """
-        all_root = all([arg is not None for arg in resource_args.values()])
-        any_root = any([arg is not None for arg in resource_args.values()])
-
-        all_nested = (data is not None) and (parent is not None)
-        any_nested = (data is not None) or (parent is not None)
-
-        if not ((all_root and not any_nested) or (all_nested and not any_root)):
-            raise ValueError(
-                f"A {type(self)} must either be synchronized, in which case "
-                f"the arguments ({', '.join(resource_args.keys())}) must be "
-                "provided, or it must be nested within another collection, "
-                "in which case the data and parent arguments must both be "
-                "provided. The received arguments were "
-                + ", ".join(f"{key}: {val}" for key, val in resource_args.items())
-                + f", data={data}, parent={parent}"
-            )
 
     # The following methods share a common implementation for
     # all data structures and regardless of backend.

@@ -44,11 +44,6 @@ class SyncedDictTest(SyncedCollectionTest):
     def test_init_positional(self, synced_collection_positional):
         assert len(synced_collection_positional) == 0
 
-    def test_invalid_kwargs(self, synced_collection):
-        # JSONDict raise an error when neither filename nor parent is passed.
-        with pytest.raises(ValueError):
-            return type(synced_collection)()
-
     def test_isinstance(self, synced_collection):
         assert isinstance(synced_collection, SyncedCollection)
         assert isinstance(synced_collection, MutableMapping)
@@ -456,11 +451,6 @@ class SyncedListTest(SyncedCollectionTest):
 
     def test_init(self, synced_collection):
         assert len(synced_collection) == 0
-
-    def test_invalid_kwargs(self, synced_collection):
-        # JSONList raise an error when neither filename nor parent is passed.
-        with pytest.raises(ValueError):
-            return type(synced_collection)()
 
     def test_isinstance(self, synced_collection):
         assert isinstance(synced_collection, MutableSequence)

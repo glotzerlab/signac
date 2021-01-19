@@ -131,9 +131,6 @@ class MongoDBDict(MongoDBCollection, SyncedAttrDict):
     def __init__(
         self, collection=None, uid=None, data=None, parent=None, *args, **kwargs
     ):
-        self._validate_constructor_args(
-            {"collection": collection, "uid": uid}, data, parent
-        )
         super().__init__(
             collection=collection, uid=uid, data=data, parent=parent, *args, **kwargs
         )
@@ -177,9 +174,6 @@ class MongoDBList(MongoDBCollection, SyncedList):
     def __init__(
         self, collection=None, uid=None, data=None, parent=None, *args, **kwargs
     ):
-        self._validate_constructor_args(
-            {"collection": collection, "uid": uid}, data, parent
-        )
         super().__init__(
             collection=collection, uid=uid, data=data, parent=parent, *args, **kwargs
         )

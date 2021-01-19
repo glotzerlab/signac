@@ -150,7 +150,6 @@ class ZarrDict(ZarrCollection, SyncedAttrDict):
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({"group": group, "name": name}, data, parent)
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
         )
@@ -191,7 +190,6 @@ class ZarrList(ZarrCollection, SyncedList):
     """
 
     def __init__(self, group=None, name=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({"group": group, "name": name}, data, parent)
         super().__init__(
             group=group, name=name, data=data, parent=parent, *args, **kwargs
         )

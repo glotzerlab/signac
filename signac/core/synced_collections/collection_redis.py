@@ -109,7 +109,6 @@ class RedisDict(RedisCollection, SyncedAttrDict):
     """
 
     def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({"client": client, "key": key}, data, parent)
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
@@ -150,7 +149,6 @@ class RedisList(RedisCollection, SyncedList):
     """
 
     def __init__(self, client=None, key=None, data=None, parent=None, *args, **kwargs):
-        self._validate_constructor_args({"client": client, "key": key}, data, parent)
         super().__init__(
             client=client, key=key, data=data, parent=parent, *args, **kwargs
         )
