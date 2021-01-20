@@ -620,7 +620,8 @@ class Job:
                     raise
 
                 self._statepoint.save(force=force)
-                # Re-load from disk as a validation.
+                # Re-load as a validation (required to detect invalid data on
+                # disk).
                 statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache if the saved file is valid.
