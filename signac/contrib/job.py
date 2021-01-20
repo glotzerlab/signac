@@ -102,8 +102,22 @@ class _StatepointDict(JSONDict):
         force : bool
             If True, save even if the file is present on disk.
         """
-        if force or not os.path.isfile(self._filename):
-            super()._save()
+        try:
+            # Open the file for writing only if it does not exist yet.
+            if force or not os.path.isfile(self._filename):
+                super()._save()
+        except Exception as error:
+            if not isinstance(error, OSError) or error.errno not in (
+                errno.EEXIST,
+                errno.EACCES,
+            ):
+                # Attempt to delete the file on error, to prevent corruption.
+                # OSErrors that are EEXIST or EACCES don't need to delete the file.
+                try:
+                    os.remove(self._filename)
+                except Exception:  # ignore all errors here
+                    pass
+                raise error
 
     def load(self, job_id):
         """Force a load from disk.
@@ -113,22 +127,18 @@ class _StatepointDict(JSONDict):
         validated against the data on disk; at all other times, the in-memory
         data is assumed to be accurate to avoid unnecessary I/O.
         """
-        if not self._suspend_sync:
-            if self._root is None:
-                try:
-                    data = self._load_from_resource()
-                except JSONDecodeError:
-                    raise JobsCorruptedError([job_id])
+        try:
+            data = self._load_from_resource()
+        except JSONDecodeError:
+            raise JobsCorruptedError([job_id])
 
-                if calc_id(data) != job_id:
-                    raise JobsCorruptedError([job_id])
+        if calc_id(data) != job_id:
+            raise JobsCorruptedError([job_id])
 
-                with self._suspend_sync:
-                    self._update(data)
+        with self._suspend_sync:
+            self._update(data)
 
-                return data
-            else:
-                self._root._load()
+        return data
 
 
 class Job:
@@ -592,25 +602,9 @@ class Job:
                     )
                     raise
 
-                try:
-                    try:
-                        # Open the file for writing only if it does not exist yet.
-                        self._statepoint.save(force=force)
-                    except OSError as error:
-                        if error.errno not in (errno.EEXIST, errno.EACCES):
-                            raise
-                except Exception as error:
-                    # Attempt to delete the file on error, to prevent corruption.
-                    try:
-                        os.remove(self._statepoint_filename)
-                    except Exception:  # ignore all errors here
-                        pass
-                    raise error
-                else:
-                    try:
-                        statepoint = self._statepoint.load(self.id)
-                    except (JSONDecodeError, AssertionError):
-                        raise JobsCorruptedError([self.id])
+                self._statepoint.save(force=force)
+                # Re-load from disk as a validation.
+                statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache if the saved file is valid.
             self._project._register(self.id, statepoint)
