@@ -482,8 +482,14 @@ class TestProject(TestProjectBase):
                 # Accessing the job state point triggers validation of the
                 # state point manifest file
                 self.project.open_job(id=job.id).statepoint
+            with pytest.raises(JobsCorruptedError):
+                # Initializing the job state point triggers validation of the
+                # state point manifest file
+                self.project.open_job(id=job.id).init()
         finally:
             logging.disable(logging.NOTSET)
+        # Ensure that the corrupted manifest still exists
+        assert os.path.exists(job.fn(job.FN_MANIFEST))
 
     def test_rename_workspace(self):
         job = self.project.open_job(dict(a=0))
