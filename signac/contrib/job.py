@@ -24,39 +24,31 @@ from .utility import _mkdir_p
 logger = logging.getLogger(__name__)
 
 
-class _LoadAndSaveSingleThread:
-    """A context manager for :class:`SyncedCollection` to wrap saving and loading.
-
-    It's also not obvious how to achieve thread-safety for statepoint
-    modifications within the current framework because when multiple copies of
-    a job (shallow copies owning the same statepoint) exist and one of them is
-    modified, the calls to reset_statepoint will invalidate the per-file locks
-    because the folders are moved. Since statepoint accesses do not need to be
-    thread safe, this context manager simply removes that functionality.
-    """
-
-    def __init__(self, collection):
-        self._collection = collection
-
-    def __enter__(self):
-        self._collection._load()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._collection._save()
-
-
 class _StatepointDict(JSONDict):
     """A JSON-backed dictionary for storing job statepoints.
 
-    There are two principal reasons for extending the base JSONDict:
+    There are three principal reasons for extending the base JSONDict:
         1. Saving needs to trigger a job directory migration, and
-        2. Statepoints are assumed to not have to support external modification,
-           so they never need to load from disk _except_ the very first time a
-           job is opened by id and they're not present in the cache.
+        2. Statepoints are assumed to not support external modification, so
+           they never need to load from disk _except_ the very first time a job
+           is opened by id and they're not present in the cache.
+        3. It must be possible to load and/or save on demand during tasks like
+           Job directory migrations.
     """
 
     _PROTECTED_KEYS = ("_jobs",)
-    _LoadSaveType = _LoadAndSaveSingleThread  # type: ignore
+    # State points are rarely modified and are not designed for efficient
+    # modification, so they do not support multithreaded execution.
+    # Implementing thread safe modifications would also be quite difficult
+    # because state point modification triggers a migration that moves the
+    # file. Moreover, since shallow copies of jobs share state points to
+    # trigger id updates, and since Job.reset_statepoint is called within
+    # _StatepointDict._save, the filename will actually change withiin the
+    # context. Since this linkage between the Job and the _StatepointDict
+    # allows the _StatepointDict to be in invalid intermediate states during
+    # the process, making the threading work would require somewhat complex and
+    # highly specialized handling.
+    _supports_threading = False
 
     def __init__(
         self,
@@ -83,21 +75,43 @@ class _StatepointDict(JSONDict):
         )
 
     def _load(self):
-        """Never automatically load from disk."""
+        # State points never load from disk automatically. They are either
+        # initialized with provided data (e.g. from the state point cache), or
+        # they load from disk the first time state point data is requested for
+        # a Job opened by id (in which case the state point must first be
+        # validated manually).
         pass
 
     def _save(self):
-        """Trigger job migrations on save by default."""
+        # State point modification triggers job migration for all jobs sharing
+        # this state point (shallow copies of a single job).
         for job in self._jobs:
             job.reset_statepoint(self._data)
 
     def save(self, force):
-        """Force a save to disk."""
+        """Force a save to disk.
+
+        Unlike normal JSONDict objects, this class requires the ability to save
+        on command. Moreover, this save must be conditional on whether or not a
+        file is present to allow the user to observe state points in corrupted
+        data spaces and attempt to recover.
+
+        Parameters
+        ----------
+        force : bool
+            If True, save even if the file is present on disk.
+        """
         if force or not os.path.isfile(self._filename):
             super()._save()
 
     def load(self):
-        """Force a load from disk."""
+        """Force a load from disk.
+
+        Unlike normal JSONDict objects, this class requires the ability to load
+        on command. These loads typically occur when the state point must be
+        validated against the data on disk; at all other times, the in-memory
+        data is assumed to be accurate to avoid unnecessary I/O.
+        """
         super()._load()
 
 
@@ -123,9 +137,9 @@ class Job:
     """
 
     FN_MANIFEST = "signac_statepoint.json"
-    """The job's manifest filename.
+    """The job's state point filename.
 
-    The job manifest is a human-readable file containing the job's state
+    The job state point is a human-readable file containing the job's state
     point that is stored in each job's workspace directory.
     """
 
@@ -348,7 +362,7 @@ class Job:
 
         """
         if self._statepoint is None:
-            # Load state point manifest lazily
+            # Load the state point lazily.
             self._statepoint = _StatepointDict(
                 jobs=[self], filename=self._statepoint_filename
             )
@@ -393,8 +407,11 @@ class Job:
 
         .. warning::
 
+            Even deep copies of :attr:`~Job.document` will modify the same file,
+            so changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
+            persistent JSON file, use the call operator to get an (otherwise
+            equivalent) raw dictionary: ``job.document()``.
             For more information, see
             :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
 
@@ -406,7 +423,6 @@ class Job:
             The job document handle.
 
         """
-        # TODO: Fix this docstring explaining how to get a deep copy.
         if self._document is None:
             self.init()
             fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
@@ -431,10 +447,18 @@ class Job:
 
         .. warning::
 
+            Even deep copies of :attr:`~Job.doc` will modify the same file, so
+            changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
-            For more information, see
-            :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
+            persistent JSON file, use the call operator to get an (otherwise
+            equivalent) raw dictionary: ``job.doc()``.
+
+        See :ref:`signac document <signac-cli-document>` for the command line equivalent.
+
+        Returns
+        -------
+        :class:`~signac.JSONDict`
+            The job document handle.
 
         """
         return self.document
@@ -519,8 +543,8 @@ class Job:
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
-        This function will do nothing if the directory and
-        the job manifest already exist.
+        This function will do nothing if the directory and the job state point
+        already exist.
 
         Returns the calling job.
 
@@ -529,8 +553,8 @@ class Job:
         Parameters
         ----------
         force : bool
-            Overwrite any existing state point's manifest
-            files, e.g., to repair them if they got corrupted (Default value = False).
+            Overwrite any existing state point files, e.g., to repair them if
+            they got corrupted (Default value = False).
 
         Returns
         -------
@@ -539,7 +563,7 @@ class Job:
 
         """
         try:
-            # Attempt early exit if the manifest exists and is valid
+            # Attempt early exit if the state point file exists and is valid.
             try:
                 statepoint = self.statepoint._load_from_resource()
                 if calc_id(statepoint) != self.id:
@@ -578,11 +602,11 @@ class Job:
                     except (JSONDecodeError, AssertionError):
                         raise JobsCorruptedError([self.id])
 
-            # Update the project's state point cache if the manifest is valid
-            self._project._register(self.id, self.statepoint())
+            # Update the project's state point cache if the saved file is valid.
+            self._project._register(self.id, statepoint)
         except Exception:
             logger.error(
-                f"State point manifest file of job '{self.id}' appears to be corrupted."
+                f"State point file of job '{self.id}' appears to be corrupted."
             )
             raise
         return self
