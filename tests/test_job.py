@@ -17,13 +17,9 @@ import pytest
 import signac.common.config
 import signac.contrib
 from signac import Project  # noqa: F401
+from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.job import Job  # noqa: F401
-from signac.errors import (
-    DestinationExistsError,
-    InvalidKeyError,
-    JobsCorruptedError,
-    KeyTypeError,
-)
+from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
 
 try:
     import h5py  # noqa

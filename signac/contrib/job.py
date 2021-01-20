@@ -571,13 +571,13 @@ class Job:
             except Exception:
                 # Any exception means this method cannot exit early.
 
-                # Create the workspace directory if it did not exist yet.
+                # Create the workspace directory if it does not exist.
                 try:
                     _mkdir_p(self.workspace())
                 except OSError:
                     logger.error(
                         "Error occurred while trying to create "
-                        "workspace directory for job '{}'.".format(self)
+                        "workspace directory for job '{}'.".format(self.id)
                     )
                     raise
 

@@ -672,8 +672,6 @@ class TestH5StoreMultiThreading(TestH5StoreBase):
 
 
 def _read_from_h5store(filename, **kwargs):
-    from signac.core.h5store import H5Store
-
     with H5Store(filename, **kwargs) as h5s:
         list(h5s)
 
@@ -690,7 +688,7 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
                         assert reader2["test"]
 
     @pytest.mark.skipif(
-        WINDOWS, reason="This test fails for an unknown reason on Windows."
+        python_implementation() != "CPython", reason="SWMR mode not available."
     )
     def test_single_writer_multiple_reader_same_instance(self):
         from multiprocessing import Process
@@ -699,14 +697,15 @@ class TestH5StoreMultiProcessing(TestH5StoreBase):
             p = Process(
                 target=_read_from_h5store,
                 args=(self._fn_store,),
-                kwargs=(dict(mode="r")),
+                kwargs=(dict(mode="r", swmr=True, libver="latest")),
             )
             p.start()
             p.join()
             # Ensure the process succeeded
             assert p.exitcode == 0
 
-        with self.open_h5store() as writer:
+        with self.open_h5store(libver="latest") as writer:
+            writer.file.swmr_mode = True
             read()
             writer["test"] = True
             read()
