@@ -122,10 +122,27 @@ class _StatepointDict(JSONDict):
     def load(self, job_id):
         """Force a load from disk.
 
-        Unlike normal JSONDict objects, this class requires the ability to load
-        on command. These loads typically occur when the state point must be
-        validated against the data on disk; at all other times, the in-memory
-        data is assumed to be accurate to avoid unnecessary I/O.
+        Unlike normal JSONDict objects, this class requires the ability to
+        load on command. These loads typically occur when the state point
+        must be validated against the data on disk; at all other times, the
+        in-memory data is assumed to be accurate to avoid unnecessary I/O.
+
+        Parameters
+        ----------
+        job_id : str
+            Job id used to validate contents on disk.
+
+        Returns
+        -------
+        data : dict
+            Dictionary of state point data.
+
+        Raises
+        ------
+        JobsCorruptedError
+            If the data on disk is invalid or its hash does not match the job
+            id.
+
         """
         try:
             data = self._load_from_resource()
