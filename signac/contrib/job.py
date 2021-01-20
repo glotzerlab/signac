@@ -36,7 +36,7 @@ class _StatepointDict(JSONDict):
            Job directory migrations.
     """
 
-    _PROTECTED_KEYS = ("_jobs",)
+    _PROTECTED_KEYS = ("_jobs", "_requires_init")
     # State points are rarely modified and are not designed for efficient
     # modification, so they do not support multithreaded execution.
     # Implementing thread safe modifications would also be quite difficult
@@ -105,7 +105,7 @@ class _StatepointDict(JSONDict):
         if force or not os.path.isfile(self._filename):
             super()._save()
 
-    def load(self):
+    def load(self, job_id):
         """Force a load from disk.
 
         Unlike normal JSONDict objects, this class requires the ability to load
@@ -113,7 +113,22 @@ class _StatepointDict(JSONDict):
         validated against the data on disk; at all other times, the in-memory
         data is assumed to be accurate to avoid unnecessary I/O.
         """
-        super()._load()
+        if not self._suspend_sync:
+            if self._root is None:
+                try:
+                    data = self._load_from_resource()
+                except JSONDecodeError:
+                    raise JobsCorruptedError([job_id])
+
+                if calc_id(data) != job_id:
+                    raise JobsCorruptedError([job_id])
+
+                with self._suspend_sync:
+                    self._update(data)
+
+                return data
+            else:
+                self._root._load()
 
 
 class Job:
@@ -367,9 +382,7 @@ class Job:
         if self._statepoint._requires_init:
             # Load the state point lazily.
             try:
-                self._statepoint.load()
-                statepoint = self._statepoint()
-                assert calc_id(statepoint) == self.id
+                statepoint = self._statepoint.load(self.id)
             except (JSONDecodeError, AssertionError):
                 raise JobsCorruptedError([self.id])
 
@@ -565,9 +578,7 @@ class Job:
         try:
             # Attempt early exit if the state point file exists and is valid.
             try:
-                statepoint = self._statepoint._load_from_resource()
-                if calc_id(statepoint) != self.id:
-                    raise JobsCorruptedError([self.id])
+                statepoint = self._statepoint.load(self.id)
             except Exception:
                 # Any exception means this method cannot exit early.
 
@@ -597,8 +608,7 @@ class Job:
                     raise error
                 else:
                     try:
-                        statepoint = self._statepoint._load_from_resource()
-                        assert calc_id(statepoint) == self.id
+                        statepoint = self._statepoint.load(self.id)
                     except (JSONDecodeError, AssertionError):
                         raise JobsCorruptedError([self.id])
 
