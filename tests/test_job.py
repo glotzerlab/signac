@@ -537,6 +537,9 @@ class TestJobOpenAndClosing(TestJobBase):
         assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
 
     def test_construction(self):
+        from signac import Project  # noqa: F401
+
+        # The eval statement needs to have Project available
         job = self.open_job(test_token)
         job2 = eval(repr(job))
         assert job == job2
