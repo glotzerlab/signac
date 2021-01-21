@@ -65,6 +65,7 @@ class _StatepointDict(JSONDict):
         # these jobs in a shared list here so that shallow copies can point to
         # the same place and trigger each other to update.
         self._jobs = list(jobs)
+        self._requires_init = data is None
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -169,8 +170,10 @@ class Job:
             self._project._register(self.id, statepoint)
         else:
             # Only an id was provided. State point will be loaded lazily.
-            self._statepoint = None
             self._id = _id
+            self._statepoint = _StatepointDict(
+                jobs=[self], filename=self._statepoint_filename
+            )
 
         # Prepare job document
         self._document = None
@@ -361,12 +364,8 @@ class Job:
             Returns the job's state point.
 
         """
-        if self._statepoint is None:
+        if self._statepoint._requires_init:
             # Load the state point lazily.
-            self._statepoint = _StatepointDict(
-                jobs=[self], filename=self._statepoint_filename
-            )
-
             try:
                 self._statepoint.load()
                 statepoint = self._statepoint()
@@ -376,6 +375,7 @@ class Job:
 
             # Update the project's state point cache when loaded lazily
             self._project._register(self.id, statepoint)
+            self._statepoint._requires_init = False
 
         return self._statepoint
 
@@ -565,7 +565,7 @@ class Job:
         try:
             # Attempt early exit if the state point file exists and is valid.
             try:
-                statepoint = self.statepoint._load_from_resource()
+                statepoint = self._statepoint._load_from_resource()
                 if calc_id(statepoint) != self.id:
                     raise JobsCorruptedError([self.id])
             except Exception:
@@ -584,7 +584,7 @@ class Job:
                 try:
                     try:
                         # Open the file for writing only if it does not exist yet.
-                        self.statepoint.save(force=force)
+                        self._statepoint.save(force=force)
                     except OSError as error:
                         if error.errno not in (errno.EEXIST, errno.EACCES):
                             raise
@@ -597,7 +597,7 @@ class Job:
                     raise error
                 else:
                     try:
-                        statepoint = self.statepoint._load_from_resource()
+                        statepoint = self._statepoint._load_from_resource()
                         assert calc_id(statepoint) == self.id
                     except (JSONDecodeError, AssertionError):
                         raise JobsCorruptedError([self.id])
