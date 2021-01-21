@@ -75,18 +75,18 @@ jobs:
               # Some requirements below are not strictly the lowest versions,
               # and are only needed for testing.
               ${PYTHON} -m pip install --progress-bar off \
-                deprecation==2 \
-                filelock==3.0 \
-                packaging==15.0 \
-                tqdm==4.10.0 \
                 click==7.0.0 \
                 coverage==5.0.0 \
+                deprecation==2.0 \
+                filelock==3.0.0 \
                 h5py==2.8.0 \
                 numpy==1.13.3 \
+                packaging==15.0 \
                 pandas==1.0.0 \
-                pytest==6.2.1 \
                 pytest-cov==2.10.1 \
+                pytest==6.2.1 \
                 tables==3.3.0
+                tqdm==4.10.0 \
             else
               ${PYTHON} -m pip install --progress-bar off -U -r requirements-test.txt
             fi
