@@ -8,6 +8,7 @@ import gzip
 import logging
 import os
 import re
+import shutil
 import stat
 import time
 import uuid
@@ -22,7 +23,6 @@ from tempfile import TemporaryDirectory
 from deprecation import deprecated
 from packaging import version
 
-from .. import syncutil
 from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
@@ -1494,7 +1494,7 @@ class Project:
         """
         job.update_statepoint(update=update, overwrite=overwrite)
 
-    def clone(self, job, copytree=syncutil.copytree):
+    def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -1506,7 +1506,7 @@ class Project:
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
         copytree :
-             (Default value = syncutil.copytree)
+             (Default value = :func:`shutil.copytree`)
 
         Returns
         -------
