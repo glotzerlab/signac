@@ -85,8 +85,8 @@ jobs:
                 pandas==1.0.0 \
                 pytest-cov==2.10.1 \
                 pytest==6.2.1 \
-                tables==3.3.0
-                tqdm==4.10.0 \
+                tables==3.3.0 \
+                tqdm==4.10.0
             else
               ${PYTHON} -m pip install --progress-bar off -U -r requirements-test.txt
             fi
