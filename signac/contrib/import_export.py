@@ -191,7 +191,7 @@ def _make_path_function(jobs, path):
                 Job id.
 
             """
-            return str(job.get_id())
+            return str(job.id)
 
     elif isinstance(path, str):
         # Detect keys that are already provided as part of the path specifier and
