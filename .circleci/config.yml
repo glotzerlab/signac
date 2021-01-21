@@ -81,7 +81,7 @@ jobs:
                 tqdm==4.10.0 \
                 click==7.0.0 \
                 coverage==5.0.0 \
-                h5py==2.6.0 \
+                h5py==2.9.0 \
                 numpy==1.13.3 \
                 pandas==1.0.0 \
                 pytest==6.2.1 \
