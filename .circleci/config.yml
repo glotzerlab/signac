@@ -72,19 +72,17 @@ jobs:
             ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
             if [ "${DEPENDENCIES}" == "OLDEST" ]; then
-              # Some requirements below are not strictly the lowest versions, and
-              # are only needed for testing.
+              # Some requirements below are not strictly the lowest versions,
+              # and are only needed for testing.
               ${PYTHON} -m pip install --progress-bar off \
                 click==7.0.0 \
-                coverage==5.3.1 \
-                h5py==3.1.0 \
-                numpy==1.19.4 \
-                pandas==1.1.4 \
-                pymongo==3.11.2 \
+                coverage==5.0.0 \
+                h5py==2.6.0 \
+                numpy==1.12.0 \
+                pandas==1.0.0 \
                 pytest==6.2.1 \
                 pytest-cov==2.10.1 \
-                ruamel.yaml==0.16.12 \
-                tables==3.6.1
+                tables==3.3.0
             else
               ${PYTHON} -m pip install --progress-bar off -U -r requirements-test.txt
             fi
