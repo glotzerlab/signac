@@ -10,10 +10,10 @@ orbs:
 references:
   restore_keys: &restore_keys
     keys:
-      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
   save_key: &save_key
-    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
 jobs:
   pre-checks:
@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Install pre-check dependencies
           command: |
-            pip install --progress-bar off --user -U -r requirements-precommit.txt
+            pip install --progress-bar off --user -U -r requirements/requirements-precommit.txt
 
       - run:
           name: Run pre-checks
@@ -91,7 +91,12 @@ jobs:
                 tables==3.3.0 \
                 tqdm==4.10.0
             elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
-              ${PYTHON} -m pip install --progress-bar off -U -r requirements-test.txt
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            else
+              # "${DEPENDENCIES}" == "MINIMAL"
+              # Install only testing requirements.
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
             fi
             ${PYTHON} -m pip install --progress-bar off -e .
 
@@ -119,7 +124,7 @@ jobs:
             # BENCHMARKS can be "RUN" or "SKIP"
             if [[ "${BENCHMARKS}" == "RUN" ]]; then
               . venv/bin/activate
-              ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
+              ${PYTHON} -m pip install --progress-bar off -r requirements/requirements-benchmark.txt
               ${PYTHON} -m pip freeze
               ${PYTHON} benchmark.py run -N 100 1000  # this revision
               ${PYTHON} benchmark.py report
@@ -182,7 +187,7 @@ jobs:
           name: Install dependencies
           command: |
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements/requirements-test.txt
       - run:
           name: Run tests
           command: |
@@ -206,7 +211,7 @@ jobs:
             . test_env/bin/activate
             python --version
             python -m pip install --progress-bar off -U codecov
-            python -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            python -m pip install --progress-bar off -U -e . -r requirements/requirements-test.txt
             python -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 
