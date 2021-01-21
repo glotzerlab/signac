@@ -243,7 +243,7 @@ workflows:
       - linux-python-37:
           requires:
             - pre-checks
-      - linux-python-36:
+      - linux-python-36-oldest:
           requires:
             - pre-checks
       - linux-pypy-3:
@@ -267,7 +267,7 @@ workflows:
             - linux-python-39
             - linux-python-38
             - linux-python-37
-            - linux-python-36
+            - linux-python-36-oldest
             - linux-pypy-3
             - windows-python-38
   deploy:
