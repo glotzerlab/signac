@@ -407,11 +407,7 @@ class Job:
 
         """
         if self._statepoint._requires_init:
-            # Load the state point lazily.
-            try:
-                statepoint = self._statepoint.load(self.id)
-            except (JSONDecodeError, AssertionError):
-                raise JobsCorruptedError([self.id])
+            statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache when loaded lazily
             self._project._register(self.id, statepoint)
