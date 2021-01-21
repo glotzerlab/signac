@@ -556,7 +556,7 @@ def sync_projects(
     if selection is None:
         jobs_to_sync = list(source)
     else:
-        jobs_to_sync = [job for job in source if job.get_id() in selection]
+        jobs_to_sync = [job for job in source if job.id in selection]
 
     N = len(jobs_to_sync)
     logger.more(f"Synchronizing {N} jobs.")
@@ -569,7 +569,7 @@ def sync_projects(
             logger.more(f"Cloned job '{src_job}'.")
             return 1
         except DestinationExistsError:
-            dst_job = destination.open_job(id=src_job.get_id())
+            dst_job = destination.open_job(id=src_job.id)
             sync_jobs(
                 src=src_job,
                 dst=dst_job,
@@ -579,7 +579,7 @@ def sync_projects(
                 recursive=recursive,
                 dry_run=proxy,  # used as internal argument to forward the proxy
             )
-            logger.more(f"Synchonized job '{src_job}'.")
+            logger.more(f"Synchronized job '{src_job}'.")
             return 2
 
     if parallel:

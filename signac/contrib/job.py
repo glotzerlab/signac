@@ -337,10 +337,9 @@ class Job:
 
         """
         if self._statepoint is None:
-            # Load state point manifest lazily
+            # Load state point manifest lazily and assign to
+            # self._statepoint
             statepoint = self._check_manifest()
-            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-
             # Update the project's state point cache when loaded lazily
             self._project._register(self.id, statepoint)
 
@@ -510,35 +509,37 @@ class Job:
             (Default value = False).
 
         """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-
         # Attempt early exit if the manifest exists and is valid
         try:
             statepoint = self._check_manifest()
         except Exception:
             # Any exception means this method cannot exit early.
 
-            # Create the workspace directory if it did not exist yet.
+            # Create the workspace directory if it does not exist.
             try:
                 _mkdir_p(self.workspace())
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
-                    "workspace directory for job '{}'.".format(self)
+                    "workspace directory for job '{}'.".format(self.id)
                 )
                 raise
 
+            fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
             try:
-                # Prepare the data before file creation and writing
-                blob = json.dumps(self.statepoint, indent=2)
+                # Prepare the data before file creation and writing.
+                statepoint = self.statepoint()
+                blob = json.dumps(statepoint, indent=2)
+            except JobsCorruptedError:
+                raise
 
-                try:
-                    # Open the file for writing only if it does not exist yet.
-                    with open(fn_manifest, "w" if force else "x") as file:
-                        file.write(blob)
-                except OSError as error:
-                    if error.errno not in (errno.EEXIST, errno.EACCES):
-                        raise
+            try:
+                # Open the file for writing only if it does not exist yet.
+                with open(fn_manifest, "w" if force else "x") as file:
+                    file.write(blob)
+            except OSError as error:
+                if error.errno not in (errno.EEXIST, errno.EACCES):
+                    raise
             except Exception as error:
                 # Attempt to delete the file on error, to prevent corruption.
                 try:
@@ -547,6 +548,7 @@ class Job:
                     pass
                 raise error
             else:
+                # Validate the output again after writing to disk
                 statepoint = self._check_manifest()
 
         # Update the project's state point cache if the manifest is valid
@@ -554,6 +556,9 @@ class Job:
 
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
+
+        If the manifest is valid, this sets the state point if it is not
+        already set.
 
         Returns
         -------
@@ -569,6 +574,8 @@ class Job:
         manifest = self._read_manifest()
         if calc_id(manifest) != self.id:
             raise JobsCorruptedError([self.id])
+        if self._statepoint is None:
+            self._statepoint = SyncedAttrDict(manifest, parent=_sp_save_hook(self))
         return manifest
 
     def init(self, force=False):
