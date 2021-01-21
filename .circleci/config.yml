@@ -138,6 +138,7 @@ jobs:
       - image: circleci/python:3.6
     environment:
       DEPENDENCIES: "OLDEST"
+      PYTHON: python
 
   linux-pypy-3:
     <<: *linux-template
