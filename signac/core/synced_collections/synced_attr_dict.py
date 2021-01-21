@@ -185,7 +185,7 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
 
         Parameters
         ----------
-        data: mapping
+        data : mapping
             Data to update the instance (Default value = None).
 
         Raises
