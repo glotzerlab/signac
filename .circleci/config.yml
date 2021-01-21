@@ -237,40 +237,42 @@ workflows:
   test:
     jobs:
       - pre-checks
-      #- linux-python-39:
-      #    requires:
-      #      - pre-checks
-      #- linux-python-38:
-      #    requires:
-      #      - pre-checks
-      #- linux-python-37:
-      #    requires:
-      #      - pre-checks
-      - linux-python-36-oldest
-      #- linux-pypy-3:
-      #    requires:
-      #      - pre-checks
-      #- windows-python-38:
-      #    requires:
-      #      - pre-checks
-      #- macos-python-3:
-      #    requires:
-      #      - pre-checks
-      #- check-metadata:
-      #    filters:
-      #      branches:
-      #        only: /release\/.*/
-      #- test-deploy-pypi:
-      #    filters:
-      #      branches:
-      #        only: /release\/.*/
-      #    requires:
-      #      - linux-python-39
-      #      - linux-python-38
-      #      - linux-python-37
-      #      - linux-python-36-oldest
-      #      - linux-pypy-3
-      #      - windows-python-38
+      - linux-python-39:
+          requires:
+            - pre-checks
+      - linux-python-38:
+          requires:
+            - pre-checks
+      - linux-python-37:
+          requires:
+            - pre-checks
+      - linux-python-36-oldest:
+          requires:
+            - pre-checks
+      - linux-pypy-3:
+          requires:
+            - pre-checks
+      - windows-python-38:
+          requires:
+            - pre-checks
+      - macos-python-3:
+          requires:
+            - pre-checks
+      - check-metadata:
+          filters:
+            branches:
+              only: /release\/.*/
+      - test-deploy-pypi:
+          filters:
+            branches:
+              only: /release\/.*/
+          requires:
+            - linux-python-39
+            - linux-python-38
+            - linux-python-37
+            - linux-python-36-oldest
+            - linux-pypy-3
+            - windows-python-38
   deploy:
     jobs:
       - deploy-pypi:
