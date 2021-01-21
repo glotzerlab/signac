@@ -48,6 +48,8 @@ jobs:
       - image: circleci/python:3.9
 
     environment:
+      BENCHMARKS: "RUN"
+      DEPENDENCIES: "NEWEST"
       PYTHON: python
 
     working_directory: ~/repo
@@ -71,6 +73,7 @@ jobs:
             fi
             ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
+            # DEPENDENCIES can be "OLDEST", "NEWEST", or "MINIMAL"
             if [ "${DEPENDENCIES}" == "OLDEST" ]; then
               # Some requirements below are not strictly the lowest versions,
               # and are only needed for testing.
@@ -87,7 +90,7 @@ jobs:
                 pytest==6.2.1 \
                 tables==3.3.0 \
                 tqdm==4.10.0
-            else
+            elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
               ${PYTHON} -m pip install --progress-bar off -U -r requirements-test.txt
             fi
             ${PYTHON} -m pip install --progress-bar off -e .
@@ -111,8 +114,10 @@ jobs:
       - run:
           name: Run benchmarks
           command: |
-            # Benchmarks depend on pandas, which takes a long time to install on pypy.
-            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
+            # Benchmarks depend on pandas, which isn't available for pypy or
+            # minimal dependencies
+            # BENCHMARKS can be "RUN" or "SKIP"
+            if [[ "${BENCHMARKS}" == "RUN" ]]; then
               . venv/bin/activate
               ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
               ${PYTHON} -m pip freeze
@@ -123,6 +128,15 @@ jobs:
               ${PYTHON} benchmark.py run -N 100 1000 --force
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
+
+  linux-python-39-minimal:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.9
+    environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "MINIMAL"
+      PYTHON: python
 
   linux-python-38:
     <<: *linux-template
@@ -139,6 +153,7 @@ jobs:
     docker:
       - image: circleci/python:3.6
     environment:
+      BENCHMARKS: "SKIP"
       DEPENDENCIES: "OLDEST"
       PYTHON: python
 
@@ -147,6 +162,8 @@ jobs:
     docker:
       - image: pypy:3
     environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "NEWEST"
       PYTHON: pypy3
 
   windows-python-38:
@@ -240,6 +257,9 @@ workflows:
       - linux-python-39:
           requires:
             - pre-checks
+      - linux-python-39-minimal:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
@@ -268,6 +288,7 @@ workflows:
               only: /release\/.*/
           requires:
             - linux-python-39
+            - linux-python-39-minimal
             - linux-python-38
             - linux-python-37
             - linux-python-36-oldest
