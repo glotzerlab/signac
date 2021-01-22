@@ -33,6 +33,13 @@ class TestNumpyIntegration(TestProjectBase):
             assert [i] == job.sp.a
             assert numpy.array([i]) == job.sp.a
 
+    def test_store_zero_dim_array_in_sp(self):
+        # Zero-dimensional array
+        value = 1.0
+        job = self.project.open_job(dict(a=numpy.array(value))).init()
+        assert value == job.sp.a
+        assert numpy.array(value) == job.sp.a
+
     def test_store_array_in_doc(self):
         for i in range(10):
             job = self.project.open_job(dict(a=i))
@@ -42,3 +49,14 @@ class TestNumpyIntegration(TestProjectBase):
             assert i == job.sp.a
             assert (numpy.array([i, i, i]) == job.doc.array).all()
             assert [i] * 3 == job.doc.array
+
+    def test_store_zero_dim_array(self):
+        # Zero-dimensional array
+        value = 1.0
+        job = self.project.open_job(dict(a=numpy.array(value))).init()
+        assert value == job.sp.a
+        assert numpy.array(value) == job.sp.a
+        job.doc.array = numpy.array(value)
+        numpy.testing.assert_equal(job.doc.array, numpy.array(value))
+        assert value == job.doc.array
+        assert numpy.array(value) == job.doc.array
