@@ -483,14 +483,14 @@ def sync_projects(
 
     Raises
     ------
-    DocumentSyncConflict
+    :class:`~signac.errors.DocumentSyncConflict`
         If there are conflicting keys within the project or job documents that
         cannot be resolved with the given strategy or if there is no strategy
         provided.
-    FileSyncConflict
+    :class:`~signac.errors.FileSyncConflict`
         If there are differing files that cannot be resolved with the given
         strategy or if no strategy is provided.
-    SchemaSyncConflict
+    :class:`~signac.errors.SchemaSyncConflict`
         In case that the check_schema argument is True and the detected state
         point schema of this and the other project differ.
 

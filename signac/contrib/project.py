@@ -1274,7 +1274,7 @@ class Project:
         ------
         KeyError
             If the state point associated with job_id could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to job_id is
             inaccessible or corrupted.
 
@@ -1346,7 +1346,7 @@ class Project:
         ------
         KeyError
             If the state point associated with jobid could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
 
@@ -1753,7 +1753,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more jobs are identified as corrupted.
 
         """
@@ -1793,7 +1793,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more corrupted job could not be repaired.
 
         """

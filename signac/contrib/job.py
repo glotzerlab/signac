@@ -285,7 +285,7 @@ class Job:
         KeyError
             If the update contains keys, which are already part of the job's
             state point and overwrite is False.
-        DestinationExistsError
+        :class:`~signac.errors.DestinationExistsError`
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
@@ -309,7 +309,7 @@ class Job:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`~signac.errors.JobsCorruptedError`
             If an error occurs while parsing the state point manifest.
         OSError
             If an error occurs while reading the state point manifest.
@@ -581,7 +581,7 @@ class Job:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`~signac.errors.JobsCorruptedError`
             If the manifest hash is not equal to the job id.
 
         """
@@ -757,7 +757,7 @@ class Job:
 
         Raises
         ------
-        FileSyncConflict
+        :class:`~signac.errors.FileSyncConflict`
             In case that a file synchronization results in a conflict.
 
         """
