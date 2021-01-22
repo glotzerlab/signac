@@ -1042,8 +1042,7 @@ class Project:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
@@ -1090,8 +1089,7 @@ class Project:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
@@ -2529,8 +2527,7 @@ class JobsCursor:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
@@ -2682,8 +2679,7 @@ class JobsCursor:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
