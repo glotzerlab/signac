@@ -1050,7 +1050,7 @@ class Project:
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default
+        default :
             A default value to be used when a given state point key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -1093,13 +1093,14 @@ class Project:
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         return self.find_jobs().groupbydoc(key, default=default)
@@ -2531,12 +2532,14 @@ class JobsCursor:
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, the job (Default value = None).
+        key : str, iterable, or callable
+            The state point grouping parameter(s) passed as a string,
+            iterable of strings, or a callable that will be passed one
+            argument, the job (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given state point key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         _filter = self._filter
@@ -2683,13 +2686,14 @@ class JobsCursor:
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         if isinstance(key, str):
