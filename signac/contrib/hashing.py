@@ -6,6 +6,9 @@
 import hashlib
 import json
 
+from ..core.synced_collections.utils import SCJSONEncoder
+from ..errors import KeyTypeError
+
 # We must use the standard library json for exact consistency in formatting
 
 
@@ -27,7 +30,10 @@ def calc_id(spec):
         Encoded hash in hexadecimal format.
 
     """
-    blob = json.dumps(spec, sort_keys=True)
+    try:
+        blob = json.dumps(spec, cls=SCJSONEncoder, sort_keys=True)
+    except TypeError:
+        raise KeyTypeError
     m = hashlib.md5()
     m.update(blob.encode())
     return m.hexdigest()

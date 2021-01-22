@@ -14,7 +14,6 @@ from deprecation import deprecated
 
 from ..core.h5store import H5StoreManager
 from ..core.synced_collections.collection_json import BufferedJSONDict, JSONDict
-from ..errors import KeyTypeError
 from ..sync import sync_jobs
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -87,10 +86,10 @@ class _StatepointDict(JSONDict):
         # State point modification triggers job migration for all jobs sharing
         # this state point (shallow copies of a single job).
         for job in self._jobs:
-            job.reset_statepoint(self._data)
+            job.reset_statepoint(self)
 
-    def save(self, force):
-        """Force a save to disk.
+    def save(self, force=False):
+        """Trigger a save to disk.
 
         Unlike normal JSONDict objects, this class requires the ability to save
         on command. Moreover, this save must be conditional on whether or not a
@@ -120,7 +119,7 @@ class _StatepointDict(JSONDict):
                 raise error
 
     def load(self, job_id):
-        """Force a load from disk.
+        """Trigger a load from disk.
 
         Unlike normal JSONDict objects, this class requires the ability to
         load on command. These loads typically occur when the state point
@@ -202,10 +201,7 @@ class Job:
             raise ValueError("Either statepoint or _id must be provided.")
         elif statepoint is not None:
             self._statepoint = _StatepointDict(jobs=[self], data=statepoint)
-            try:
-                self._id = calc_id(self._statepoint._to_base()) if _id is None else _id
-            except TypeError:
-                raise KeyTypeError
+            self._id = calc_id(self._statepoint._to_base()) if _id is None else _id
             self._statepoint._filename = self._statepoint_filename
 
             # Update the project's state point cache immediately if opened by state point
@@ -314,23 +310,46 @@ class Job:
             The job's new state point.
 
         """
-        dst = self._project.open_job(new_statepoint)
-        if dst == self:
+        if isinstance(new_statepoint, JSONDict):
+            new_statepoint = new_statepoint()
+
+        # This technically isn't 100% equivalent to the old logic, because this
+        # doesn't check workspace equality. However, since the old logic opened
+        # the new job using self._project it wouldn't actually be possible to
+        # have two different projects, so checking the id is sufficient.
+        new_id = calc_id(new_statepoint)
+        if self._id == new_id:
             return
 
+        # In the old version of the code the loading and saving was all handled
+        # by the job, but in the new code the _StatepointDict expects to be
+        # saved in order to perform in-memory modifications prior to any
+        # disk save operation, so we have to manually reset this here.
+        # However this also affects directly calling reset_statepoint, so
+        # we need a way to handle that too. The easiest way is to just make
+        # reset_statepoint call reset on the _StatepointDict here.
+        # The only issue with this is that normal modifications of the
+        # statepoint (e.g. __setitem__ calls) will result in changing the
+        # statepoint internally, then calling Job.reset_statepoint, which will
+        # then call this reset method, resulting in effectively changing this
+        # twice. Hopefully that's not a significant performance hit.
+        self._statepoint._update(new_statepoint)
+
         tmp_statepoint_file = self.statepoint.filename + "~"
+        should_init = False
         try:
             os.replace(self.statepoint.filename, tmp_statepoint_file)
+            new_workspace = os.path.join(self._project.workspace(), new_id)
             try:
-                os.replace(self.workspace(), dst.workspace())
+                os.replace(self.workspace(), new_workspace)
             except OSError as error:
                 os.replace(tmp_statepoint_file, self.statepoint.filename)  # rollback
                 if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
-                    raise DestinationExistsError(dst)
+                    raise DestinationExistsError(new_id)
                 else:
                     raise
             else:
-                dst.init()
+                should_init = True
         except OSError as error:
             if error.errno == errno.ENOENT:
                 pass  # File is not initialized.
@@ -338,14 +357,17 @@ class Job:
                 raise
 
         # Update this instance
-        self.statepoint._data = dst.statepoint._data
-        self.statepoint._filename = dst.statepoint._filename
-        self._id = dst._id
+        old_id = self._id
+        self._id = new_id
         self._wd = None
         self._document = None
         self._stores = None
         self._cwd = []
-        logger.info(f"Moved '{self}' -> '{dst}'.")
+        self._data = None
+        self._statepoint._filename = self._statepoint_filename
+        if should_init:
+            self.init()
+        logger.info(f"Moved '{old_id}' -> '{new_id}'.")
 
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
