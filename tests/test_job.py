@@ -18,12 +18,7 @@ import signac.common.config
 import signac.contrib
 from signac import Project  # noqa: F401
 from signac.contrib.job import Job  # noqa: F401
-from signac.errors import (
-    DestinationExistsError,
-    InvalidKeyError,
-    JobsCorruptedError,
-    KeyTypeError,
-)
+from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
 
 try:
     import h5py  # noqa
@@ -130,6 +125,39 @@ class TestJob(TestJobBase):
     def test_str(self):
         job = self.project.open_job({"a": 0})
         assert str(job) == job.id
+
+    def test_eq(self):
+        job = self.project.open_job({"a": 0})
+
+        # Make sure that Jobs can only be equal to other Job instances.
+        class NonJob:
+            """Minimal class that cannot be compared with Job objects."""
+
+            def __init__(self, job):
+                self.id = job.id
+                self._workspace = job.workspace()
+
+        class JobSubclass(Job):
+            """Minimal subclass that can be compared with Job objects."""
+
+            def __init__(self, job):
+                self._id = job.id
+                self._workspace = job.workspace()
+
+            def workspace(self):
+                return self._workspace
+
+        non_job = NonJob(job)
+        assert job != non_job
+        assert non_job != job
+
+        sub_job = JobSubclass(job)
+        assert job == sub_job
+        assert sub_job == job
+
+        job2 = self.project.open_job({"a": 0})
+        assert job == job2
+        assert job2 == job
 
     def test_isfile(self):
         job = self.project.open_job({"a": 0})
@@ -599,8 +627,8 @@ class TestJobOpenAndClosing(TestJobBase):
         job2 = self.open_job(test_token)
         try:
             logging.disable(logging.ERROR)
-            with pytest.raises(JobsCorruptedError):
-                job2.init()
+            # Detects the corrupted manifest and overwrites with valid data
+            job2.init()
         finally:
             logging.disable(logging.NOTSET)
         job2.init(force=True)

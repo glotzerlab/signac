@@ -90,33 +90,36 @@ class Job:
 
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
-
-        if statepoint is not None:
-            # Set state point if provided
+        elif statepoint is not None:
+            # A state point was provided.
             self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
+            # If the id is provided, assume the job is already registered in
+            # the project cache and that the id is valid for the state point.
+            if _id is None:
+                # Validate the state point and recursively convert to supported types.
+                statepoint = self.statepoint()
+                # Compute the id from the state point if not provided.
+                self._id = calc_id(statepoint)
+                # Update the project's state point cache immediately if opened by state point
+                self._project._register(self.id, statepoint)
+            else:
+                self._id = _id
         else:
-            # State point will be loaded lazily
+            # Only an id was provided. State point will be loaded lazily.
             self._statepoint = None
-
-        # Set id. The id is computed from the state point if not provided.
-        self._id = calc_id(self.statepoint()) if _id is None else _id
+            self._id = _id
 
         # Prepare job working directory
-        self._wd = os.path.join(project.workspace(), self._id)
+        self._wd = None
 
         # Prepare job document
-        self._fn_doc = os.path.join(self._wd, self.FN_DOCUMENT)
         self._document = None
 
-        # Prepare job h5-stores
-        self._stores = H5StoreManager(self._wd)
+        # Prepare job H5StoreManager
+        self._stores = None
 
         # Prepare current working directory for context management
         self._cwd = []
-
-        if statepoint is not None:
-            # Update the project's state point cache immediately if opened by state point
-            self._project._register(self)
 
     @deprecated(
         deprecated_in="1.3",
@@ -151,9 +154,11 @@ class Job:
         return hash(self.id)
 
     def __eq__(self, other):
-        return (self.id == other.id) and (
-            os.path.realpath(self._wd) == os.path.realpath(other._wd)
-        )
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        return self.id == other.id and os.path.realpath(
+            self.workspace()
+        ) == os.path.realpath(other.workspace())
 
     def __str__(self):
         """Return the job's id."""
@@ -175,6 +180,8 @@ class Job:
             The path to the job's workspace directory.
 
         """
+        if self._wd is None:
+            self._wd = os.path.join(self._project.workspace(), self.id)
         return self._wd
 
     @property
@@ -205,7 +212,7 @@ class Job:
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
-        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
         fn_manifest_backup = fn_manifest + "~"
         try:
             os.replace(fn_manifest, fn_manifest_backup)
@@ -227,10 +234,9 @@ class Job:
         # Update this instance
         self.statepoint._data = dst.statepoint._data
         self._id = dst._id
-        self._wd = dst._wd
-        self._fn_doc = dst._fn_doc
+        self._wd = None
         self._document = None
-        self._data = None
+        self._stores = None
         self._cwd = []
         logger.info(f"Moved '{self}' -> '{dst}'.")
 
@@ -309,7 +315,7 @@ class Job:
             If an error occurs while reading the state point manifest.
 
         """
-        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
+        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
         try:
             with open(fn_manifest, "rb") as file:
                 manifest = json.loads(file.read().decode())
@@ -345,12 +351,11 @@ class Job:
 
         """
         if self._statepoint is None:
-            # Load state point manifest lazily
+            # Load state point manifest lazily and assign to
+            # self._statepoint
             statepoint = self._check_manifest()
-            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-
             # Update the project's state point cache when loaded lazily
-            self._project._register(self)
+            self._project._register(self.id, statepoint)
 
         return self._statepoint
 
@@ -396,7 +401,8 @@ class Job:
         """
         if self._document is None:
             self.init()
-            self._document = JSONDict(filename=self._fn_doc, write_concern=True)
+            fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
+            self._document = JSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -462,6 +468,9 @@ class Job:
             The HDF5-Store manager for this job.
 
         """
+        if self._stores is None:
+            self.init()
+            self._stores = H5StoreManager(self.workspace())
         return self.init()._stores
 
     @property
@@ -514,35 +523,37 @@ class Job:
             (Default value = False).
 
         """
-        fn_manifest = os.path.join(self._wd, self.FN_MANIFEST)
-
         # Attempt early exit if the manifest exists and is valid
         try:
-            self._check_manifest()
+            statepoint = self._check_manifest()
         except Exception:
             # Any exception means this method cannot exit early.
 
-            # Create the workspace directory if it did not exist yet.
+            # Create the workspace directory if it does not exist.
             try:
-                _mkdir_p(self._wd)
+                _mkdir_p(self.workspace())
             except OSError:
                 logger.error(
                     "Error occurred while trying to create "
-                    "workspace directory for job '{}'.".format(self)
+                    "workspace directory for job '{}'.".format(self.id)
                 )
                 raise
 
+            fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
             try:
-                # Prepare the data before file creation and writing
-                blob = json.dumps(self.statepoint, indent=2)
+                # Prepare the data before file creation and writing.
+                statepoint = self.statepoint()
+                blob = json.dumps(statepoint, indent=2)
+            except JobsCorruptedError:
+                raise
 
-                try:
-                    # Open the file for writing only if it does not exist yet.
-                    with open(fn_manifest, "w" if force else "x") as file:
-                        file.write(blob)
-                except OSError as error:
-                    if error.errno not in (errno.EEXIST, errno.EACCES):
-                        raise
+            try:
+                # Open the file for writing only if it does not exist yet.
+                with open(fn_manifest, "w" if force else "x") as file:
+                    file.write(blob)
+            except OSError as error:
+                if error.errno not in (errno.EEXIST, errno.EACCES):
+                    raise
             except Exception as error:
                 # Attempt to delete the file on error, to prevent corruption.
                 try:
@@ -551,13 +562,17 @@ class Job:
                     pass
                 raise error
             else:
-                self._check_manifest()
+                # Validate the output again after writing to disk
+                statepoint = self._check_manifest()
 
         # Update the project's state point cache if the manifest is valid
-        self._project._register(self)
+        self._project._register(self.id, statepoint)
 
     def _check_manifest(self):
         """Check whether the manifest file exists and is correct.
+
+        If the manifest is valid, this sets the state point if it is not
+        already set.
 
         Returns
         -------
@@ -573,6 +588,8 @@ class Job:
         manifest = self._read_manifest()
         if calc_id(manifest) != self.id:
             raise JobsCorruptedError([self.id])
+        if self._statepoint is None:
+            self._statepoint = SyncedAttrDict(manifest, parent=_sp_save_hook(self))
         return manifest
 
     def init(self, force=False):
@@ -616,10 +633,10 @@ class Job:
 
         """
         try:
-            for fn in os.listdir(self._wd):
+            for fn in os.listdir(self.workspace()):
                 if fn in (self.FN_MANIFEST, self.FN_DOCUMENT):
                     continue
-                path = os.path.join(self._wd, fn)
+                path = os.path.join(self.workspace(), fn)
                 if os.path.isfile(path):
                     os.remove(path)
                 elif os.path.isdir(path):
@@ -661,7 +678,7 @@ class Job:
                     if not error.errno == errno.ENOENT:
                         raise error
                 self._document = None
-            self._data = None
+            self._stores = None
 
     def move(self, project):
         """Move this job to project.
@@ -677,7 +694,8 @@ class Job:
             The project to move this job to.
 
         """
-        dst = project.open_job(self.statepoint())
+        statepoint = self.statepoint()
+        dst = project.open_job(statepoint)
         _mkdir_p(project.workspace())
         try:
             os.replace(self.workspace(), dst.workspace())
@@ -697,7 +715,7 @@ class Job:
         self.__dict__.update(dst.__dict__)
 
         # Update the destination project's state point cache
-        project._register(self)
+        project._register(self.id, statepoint)
 
     def sync(self, other, strategy=None, exclude=None, doc_sync=None, **kwargs):
         r"""Perform a one-way synchronization of this job with the other job.
@@ -766,7 +784,7 @@ class Job:
             The full workspace path of the file.
 
         """
-        return os.path.join(self._wd, filename)
+        return os.path.join(self.workspace(), filename)
 
     def isfile(self, filename):
         """Return True if file exists in the job's workspace.
@@ -800,8 +818,8 @@ class Job:
         """
         self._cwd.append(os.getcwd())
         self.init()
-        logger.info(f"Enter workspace '{self._wd}'.")
-        os.chdir(self._wd)
+        logger.info(f"Enter workspace '{self.workspace()}'.")
+        os.chdir(self.workspace())
 
     def close(self):
         """Close the job and switch to the previous working directory."""

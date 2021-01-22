@@ -18,10 +18,16 @@ Added
 Changed
 +++++++
 
- - Optimized job hash and equality checks (#442).
+ - Optimized job hash and equality checks (#442, #455).
  - Optimized ``H5Store`` initialization (#443).
  - State points are loaded lazily when ``Job`` is opened by id (#238, #239).
+ - Optimized ``Job`` and ``Project`` classes to cache internal properties and initialize on access (#451).
+ - Python 3.6 is only tested with oldest dependencies (#474).
 
+Deprecated
+++++++++++
+
+ - Deprecate ``syncutil.copytree`` method (#439).
 
 [1.5.1] -- 2020-12-19
 ---------------------
@@ -42,6 +48,7 @@ Changed
  - Optimized performance of job initialization (#422).
  - Optimized performance of buffer storage (#428).
  - Optimized performance of creating/loading synced data structures (#429).
+
 
 [1.5.0] -- 2020-09-20
 ---------------------
