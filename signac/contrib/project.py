@@ -1480,9 +1480,10 @@ class Project:
             The job whose state point shall be updated.
         update : mapping
             A mapping used for the state point update.
-        overwrite :
-            Set to true to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point. Use with caution!
+        overwrite : bool, optional
+            If True, this method will set all existing and new parameters
+            to a job's statepoint, making it equivalent to
+            :meth:`~.reset_statepoint`. Use with caution!
             (Default value = False).
 
         Raises

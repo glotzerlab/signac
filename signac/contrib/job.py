@@ -278,7 +278,7 @@ class Job:
             If True, this method will set all existing and new parameters
             to a job's statepoint, making it equivalent to
             :meth:`~.reset_statepoint`. Use with caution!
-            (Default value = False)
+            (Default value = False).
 
         Raises
         ------
