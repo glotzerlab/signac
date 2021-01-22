@@ -35,7 +35,7 @@ class _StatepointDict(JSONDict):
            Job directory migrations.
     """
 
-    _PROTECTED_KEYS = ("_jobs", "_requires_init")
+    _PROTECTED_KEYS = ("_jobs", "filename")
     # State points are rarely modified and are not designed for efficient
     # modification, so they do not support multithreaded execution.
     # Implementing thread safe modifications would also be quite difficult
@@ -64,7 +64,6 @@ class _StatepointDict(JSONDict):
         # these jobs in a shared list here so that shallow copies can point to
         # the same place and trigger each other to update.
         self._jobs = list(jobs)
-        self._requires_init = data is None
         super().__init__(
             filename=filename,
             write_concern=write_concern,
@@ -144,6 +143,11 @@ class _StatepointDict(JSONDict):
 
         """
         try:
+            # TODO: This method will return None if the file does not exist on
+            # disk. I think the only time that load should be called is when a
+            # job is opened by id. If a user opens a job by id that doesn't
+            # exist, it will result in a KeyError on project.open_job, so I
+            # don't think that this is a problem, but we should double check.
             data = self._load_from_resource()
         except JSONDecodeError:
             raise JobsCorruptedError([job_id])
@@ -155,6 +159,23 @@ class _StatepointDict(JSONDict):
             self._update(data)
 
         return data
+
+    @property
+    def filename(self):
+        """str: Get or set the name of the file this collection is synchronized with.
+
+        This property is overridden in order to support setting. In the parent
+        class the semantics for setting a filename are unclear; since a JSONDict
+        is always synced to a file, setting a filename might be expected to move
+        the file if it exists. In this subclass, we can safely define exactly the
+        behavior required, which is that the filename changes but the file is not
+        moved.
+        """
+        return self._filename
+
+    @filename.setter
+    def filename(self, new_filename):
+        self._filename = new_filename
 
 
 class Job:
@@ -200,9 +221,10 @@ class Job:
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
         elif statepoint is not None:
+            self._statepoint_requires_init = False
             self._statepoint = _StatepointDict(jobs=[self], data=statepoint)
-            self._id = calc_id(self._statepoint._to_base()) if _id is None else _id
-            self._statepoint._filename = self._statepoint_filename
+            self._id = calc_id(self._statepoint()) if _id is None else _id
+            self._statepoint.filename = self._statepoint_filename
 
             # Update the project's state point cache immediately if opened by state point
             self._project._register(self.id, statepoint)
@@ -212,6 +234,7 @@ class Job:
             self._statepoint = _StatepointDict(
                 jobs=[self], filename=self._statepoint_filename
             )
+            self._statepoint_requires_init = True
 
         # Prepare job document
         self._document = None
@@ -351,9 +374,7 @@ class Job:
             else:
                 should_init = True
         except OSError as error:
-            if error.errno == errno.ENOENT:
-                pass  # File is not initialized.
-            else:
+            if error.errno != errno.ENOENT:  # OK if file is not initialized.
                 raise
 
         # Update this instance
@@ -363,8 +384,7 @@ class Job:
         self._document = None
         self._stores = None
         self._cwd = []
-        self._data = None
-        self._statepoint._filename = self._statepoint_filename
+        self._statepoint.filename = self._statepoint_filename
         if should_init:
             self.init()
         logger.info(f"Moved '{old_id}' -> '{new_id}'.")
@@ -428,12 +448,12 @@ class Job:
             Returns the job's state point.
 
         """
-        if self._statepoint._requires_init:
+        if self._statepoint_requires_init:
             statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache when loaded lazily
             self._project._register(self.id, statepoint)
-            self._statepoint._requires_init = False
+            self._statepoint_requires_init = False
 
         return self._statepoint
 
@@ -637,13 +657,15 @@ class Job:
                     )
                     raise
 
+                # The state point save will not overwrite an existing file on
+                # disk unless force is True, so the subsequent load will catch
+                # when a preexisting invalid file was present.
                 self._statepoint.save(force=force)
-                # Re-load as a validation (required to detect invalid data on
-                # disk).
+                # TODO: Can we omit this entirely if force=False?
                 statepoint = self._statepoint.load(self.id)
 
-            # Update the project's state point cache if the saved file is valid.
-            self._project._register(self.id, statepoint)
+                # Update the project's state point cache if the saved file is valid.
+                self._project._register(self.id, statepoint)
         except Exception:
             logger.error(
                 f"State point file of job '{self.id}' appears to be corrupted."
