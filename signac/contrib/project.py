@@ -1464,7 +1464,10 @@ class Project:
         details="Use job.update_statepoint() instead.",
     )
     def update_statepoint(self, job, update, overwrite=False):
-        """Change the state point of this job without affecting existing parameters.
+        """Change the state point of this job while preserving job data.
+
+        By default, this method will not change existing parameters of the
+        state point of the job.
 
         This method will change the job id if the state point has been altered.
 
