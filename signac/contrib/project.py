@@ -2403,6 +2403,9 @@ class _JobsCursorIterator:
 class JobsCursor:
     """An iterator over a search query result.
 
+    Application developers should not directly instantiate this class, but
+    use :meth:`~signac.Project.find_jobs` instead.
+
     Enables simple iteration and grouping operations.
 
     Parameters
