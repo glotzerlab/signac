@@ -15,7 +15,7 @@ from .serialized_file_buffered_collection import SerializedFileBufferedCollectio
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
-from .utils import SCJSONEncoder
+from .utils import SyncedCollectionJSONEncoder
 from .validators import json_format_validator
 
 
@@ -119,7 +119,7 @@ class JSONCollection(SyncedCollection):
     def _save_to_resource(self):
         """Write the data to JSON file."""
         # Serialize data
-        blob = json.dumps(self, cls=SCJSONEncoder).encode()
+        blob = json.dumps(self, cls=SyncedCollectionJSONEncoder).encode()
         # When write_concern flag is set, we write the data into dummy file and then
         # replace that file with original file. We also enable this mode
         # irrespective of the write_concern flag if we're running in

@@ -10,7 +10,10 @@ import pytest
 
 from signac.core.synced_collections.collection_json import JSONDict
 from signac.core.synced_collections.synced_list import SyncedList
-from signac.core.synced_collections.utils import AbstractTypeResolver, SCJSONEncoder
+from signac.core.synced_collections.utils import (
+    AbstractTypeResolver,
+    SyncedCollectionJSONEncoder,
+)
 
 try:
     import numpy
@@ -52,7 +55,7 @@ def test_json_encoder():
     # Raw dictionaries should be encoded transparently.
     data = {"foo": 1, "bar": 2, "baz": 3}
     assert json.dumps(data) == encode_flat_dict(data)
-    assert json.dumps(data, cls=SCJSONEncoder) == json.dumps(data)
+    assert json.dumps(data, cls=SyncedCollectionJSONEncoder) == json.dumps(data)
 
     with TemporaryDirectory() as tmp_dir:
         fn = os.path.join(tmp_dir, "test_json_encoding.json")
@@ -60,14 +63,15 @@ def test_json_encoder():
         synced_data.update(data)
         with pytest.raises(TypeError):
             json.dumps(synced_data)
-        assert json.dumps(synced_data, cls=SCJSONEncoder) == encode_flat_dict(
-            synced_data
-        )
+        assert json.dumps(
+            synced_data, cls=SyncedCollectionJSONEncoder
+        ) == encode_flat_dict(synced_data)
 
         if NUMPY:
             array = numpy.random.rand(3)
             synced_data["foo"] = array
             assert isinstance(synced_data["foo"], SyncedList)
             assert (
-                json.loads(json.dumps(synced_data, cls=SCJSONEncoder)) == synced_data()
+                json.loads(json.dumps(synced_data, cls=SyncedCollectionJSONEncoder))
+                == synced_data()
             )
