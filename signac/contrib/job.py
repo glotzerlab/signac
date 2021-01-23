@@ -336,10 +336,6 @@ class Job:
         if isinstance(new_statepoint, JSONDict):
             new_statepoint = new_statepoint()
 
-        # This technically isn't 100% equivalent to the old logic, because this
-        # doesn't check workspace equality. However, since the old logic opened
-        # the new job using self._project it wouldn't actually be possible to
-        # have two different projects, so checking the id is sufficient.
         new_id = calc_id(new_statepoint)
         if self._id == new_id:
             return

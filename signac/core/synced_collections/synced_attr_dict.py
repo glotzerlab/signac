@@ -180,29 +180,22 @@ class SyncedAttrDict(SyncedCollection, MutableMapping):
             for key, value in data.items():
                 self._data[key] = self._from_base(value, parent=self)
 
-    def reset(self, data=None):
+    def reset(self, data):
         """Update the instance with new data.
 
         Parameters
         ----------
         data : mapping
-            Data to update the instance (Default value = None).
+            Data to update the instance.
 
         Raises
         ------
         ValueError
-            If the data is not instance of mapping
+            If the data is not a mapping.
 
         """
-        if data is None:
-            data = {}
         if _mapping_resolver.get_type(data) == "MAPPING":
-            self._validate(data)
-            with self._suspend_sync:
-                self._data = {
-                    key: self._from_base(data=value, parent=self)
-                    for key, value in data.items()
-                }
+            self._update(data)
             with self._thread_lock:
                 self._save()
         else:
