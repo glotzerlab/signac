@@ -1106,7 +1106,7 @@ class Project:
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        r"""Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
@@ -2847,7 +2847,7 @@ class JobsCursor:
     def to_dataframe(
         self, sp_prefix="sp.", doc_prefix="doc.", usecols=None, flatten=False
     ):
-        """Convert the selection of jobs to a pandas dataframe.
+        """Convert the selection of jobs to a pandas :class:`~pandas.DataFrame`.
 
         This function exports the job metadata to a
         :py:class:`pandas.DataFrame`. All state point and document keys are
