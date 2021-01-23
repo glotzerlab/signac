@@ -107,10 +107,7 @@ class _StatepointDict(JSONDict):
         # Update each job instance.
         for job in self._jobs:
             job._id = new_id
-            job._wd = None
-            job._document = None
-            job._stores = None
-            job._cwd = []
+            job._initialize_lazy_properties()
 
         # Since all the jobs are equivalent, just grab the filename from the
         # last one and init it. Also migrate the lock for multithreaded support.
@@ -228,9 +225,7 @@ class Job:
 
     def __init__(self, project, statepoint=None, _id=None):
         self._project = project
-
-        # Prepare wd in advance so that the attribute exists in checks below.
-        self._wd = None
+        self._initialize_lazy_properties()
 
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
@@ -251,13 +246,11 @@ class Job:
             )
             self._statepoint_requires_init = True
 
-        # Prepare job document
+    def _initialize_lazy_properties(self):
+        """Initialize all properties that are designed to be loaded lazily."""
+        self._wd = None
         self._document = None
-
-        # Prepare job H5StoreManager
         self._stores = None
-
-        # Prepare current working directory for context management
         self._cwd = []
 
     @deprecated(
