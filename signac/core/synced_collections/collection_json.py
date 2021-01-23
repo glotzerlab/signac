@@ -112,6 +112,8 @@ class JSONCollection(SyncedCollection):
         except OSError as error:
             if error.errno == errno.ENOENT:
                 return None
+            else:
+                raise error
 
     def _save_to_resource(self):
         """Write the data to JSON file."""
