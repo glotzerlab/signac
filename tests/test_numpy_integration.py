@@ -42,3 +42,21 @@ class TestNumpyIntegration(TestProjectBase):
             assert i == job.sp.a
             assert (numpy.array([i, i, i]) == job.doc.array).all()
             assert [i] * 3 == job.doc.array
+
+    def test_store_zero_dim_array_in_sp(self):
+        # Zero-dimensional arrays have size 1, and their tolist() method
+        # returns a single value.
+        value = 1.0
+        job = self.project.open_job(dict(a=numpy.array(value))).init()
+        assert value == job.sp.a
+        assert numpy.array(value) == job.sp.a
+
+    def test_store_zero_dim_array_in_doc(self):
+        # Zero-dimensional arrays have size 1, and their tolist() method
+        # returns a single value.
+        value = 1.0
+        job = self.project.open_job(dict(a=1)).init()
+        job.doc.array = numpy.array(value)
+        numpy.testing.assert_equal(job.doc.array, numpy.array(value))
+        assert value == job.doc.array
+        assert numpy.array(value) == job.doc.array

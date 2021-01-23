@@ -128,10 +128,13 @@ class _SyncedDict(MutableMapping):
         elif type(root) in (list, tuple):
             return _SyncedList(root, parent=self)
         elif NUMPY:
-            if isinstance(root, numpy.number):
+            if isinstance(root, numpy.ndarray):
+                if root.shape == ():
+                    return root.item()
+                else:
+                    return _SyncedList(root.tolist(), parent=self)
+            elif isinstance(root, numpy.number):
                 return root.item()
-            elif isinstance(root, numpy.ndarray):
-                return _SyncedList(root.tolist(), parent=self)
         return root
 
     @classmethod
