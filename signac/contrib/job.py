@@ -243,9 +243,10 @@ class Job:
             raise ValueError("Either statepoint or _id must be provided.")
         elif statepoint is not None:
             self._statepoint_requires_init = False
-            self._statepoint = _StatepointDict(jobs=[self], data=statepoint)
-            self._id = calc_id(self._statepoint()) if _id is None else _id
-            self._statepoint._filename = self._statepoint_filename
+            self._id = calc_id(statepoint) if _id is None else _id
+            self._statepoint = _StatepointDict(
+                jobs=[self], filename=self._statepoint_filename, data=statepoint
+            )
 
             # Update the project's state point cache immediately if opened by state point
             self._project._register(self.id, statepoint)
