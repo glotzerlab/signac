@@ -646,7 +646,7 @@ def _with_consistency_check(schema_function, read_sp_manifest_file):
 
         Raises
         ------
-        StatepointParsingError
+        :class:`~signac.errors.StatepointParsingError`
             If identified state point conflicts with state point in job manifest file.
 
         """
@@ -817,7 +817,7 @@ def _analyze_directory_for_import(root, project, schema):
     ------
     TypeError
         If the schema given is not None, callable, or a string.
-    StatepointParsingError
+    :class:`~signac.errors.StatepointParsingError`
         If the jobs identified with the given schema function are not unique.
 
     """
@@ -910,9 +910,9 @@ def _analyze_zipfile_for_import(zipfile, project, schema):
     ------
     TypeError
         If the schema provided is not None, callable, or a string.
-    DestinationExistsError
+    :class:`~signac.errors.DestinationExistsError`
         If a job is already initialized.
-    StatepointParsingError
+    :class:`~signac.errors.StatepointParsingError`
         If the jobs identified with the given schema function are not unique.
 
     """
@@ -1055,9 +1055,9 @@ def _analyze_tarfile_for_import(tarfile, project, schema, tmpdir):
     ------
     TypeError
         If the schema given is not None, callable, or a string.
-    DestinationExistsError
+    :class:`~signac.errors.DestinationExistsError`
         If a job is already initialized.
-    StatepointParsingError
+    :class:`~signac.errors.StatepointParsingError`
         If the jobs identified with the given schema function are not unique.
     AssertionError
         If ``tmpdir`` given is not a directory.

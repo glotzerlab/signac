@@ -1274,7 +1274,7 @@ class Project:
         ------
         KeyError
             If the state point associated with job_id could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to job_id is
             inaccessible or corrupted.
 
@@ -1346,7 +1346,7 @@ class Project:
         ------
         KeyError
             If the state point associated with jobid could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
 
@@ -1430,7 +1430,9 @@ class Project:
         details="Use job.reset_statepoint() instead.",
     )
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the state point of job.
+        """Overwrite the state point of this job while preserving job data.
+
+        This method will change the job id if the state point has been altered.
 
         .. danger::
 
@@ -1462,7 +1464,12 @@ class Project:
         details="Use job.update_statepoint() instead.",
     )
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the state point of this job.
+        """Change the state point of this job while preserving job data.
+
+        By default, this method will not change existing parameters of the
+        state point of the job.
+
+        This method will change the job id if the state point has been altered.
 
         .. warning::
 
@@ -1476,9 +1483,10 @@ class Project:
             The job whose state point shall be updated.
         update : mapping
             A mapping used for the state point update.
-        overwrite :
-            Set to true to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point. Use with caution!
+        overwrite : bool, optional
+            If True, this method will set all existing and new parameters
+            to a job's statepoint, making it equivalent to
+            :meth:`~.reset_statepoint`. Use with caution!
             (Default value = False).
 
         Raises
@@ -1745,7 +1753,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more jobs are identified as corrupted.
 
         """
@@ -1785,7 +1793,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more corrupted job could not be repaired.
 
         """

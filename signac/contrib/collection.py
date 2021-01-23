@@ -192,7 +192,7 @@ def _build_index(docs, key, primary_key):
 
     Raises
     ------
-    InvalidKeyError
+    :class:`~signac.errors.InvalidKeyError`
         The document contains invalid keys.
 
     """

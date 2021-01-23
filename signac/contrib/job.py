@@ -190,7 +190,12 @@ class Job:
         return self.workspace()
 
     def reset_statepoint(self, new_statepoint):
-        """Reset the state point of this job.
+        """Overwrite the state point of this job while preserving job data.
+
+        This method will change the job id if the state point has been altered.
+
+        For more information, see
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. danger::
 
@@ -203,7 +208,7 @@ class Job:
         new_statepoint : dict
             The job's new state point.
 
-        """
+        """  # noqa: E501
         dst = self._project.open_job(new_statepoint)
         if dst == self:
             return
@@ -249,7 +254,15 @@ class Job:
         self.reset_statepoint(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
-        """Update the state point of this job.
+        """Change the state point of this job while preserving job data.
+
+        By default, this method will not change existing parameters of the
+        state point of the job.
+
+        This method will change the job id if the state point has been altered.
+
+        For more information, see
+        `Modifying the State Point <https://docs.signac.io/en/latest/jobs.html#modifying-the-state-point>`_.
 
         .. warning::
 
@@ -261,22 +274,23 @@ class Job:
         ----------
         update : dict
             A mapping used for the state point update.
-        overwrite :
-            Set to true, to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point.
-            Use with caution! (Default value = False)
+        overwrite : bool, optional
+            If True, this method will set all existing and new parameters
+            to a job's statepoint, making it equivalent to
+            :meth:`~.reset_statepoint`. Use with caution!
+            (Default value = False).
 
         Raises
         ------
         KeyError
             If the update contains keys, which are already part of the job's
             state point and overwrite is False.
-        DestinationExistsError
+        :class:`~signac.errors.DestinationExistsError`
             If a job associated with the new state point is already initialized.
         OSError
             If the move failed due to an unknown system related error.
 
-        """
+        """  # noqa: E501
         statepoint = self.statepoint()
         if not overwrite:
             for key, value in update.items():
@@ -295,7 +309,7 @@ class Job:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`~signac.errors.JobsCorruptedError`
             If an error occurs while parsing the state point manifest.
         OSError
             If an error occurs while reading the state point manifest.
@@ -567,7 +581,7 @@ class Job:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`~signac.errors.JobsCorruptedError`
             If the manifest hash is not equal to the job id.
 
         """
@@ -743,7 +757,7 @@ class Job:
 
         Raises
         ------
-        FileSyncConflict
+        :class:`~signac.errors.FileSyncConflict`
             In case that a file synchronization results in a conflict.
 
         """

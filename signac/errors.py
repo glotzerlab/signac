@@ -12,6 +12,8 @@ from .contrib.errors import (
     DestinationExistsError,
     IncompatibleSchemaVersion,
     JobsCorruptedError,
+    StatepointParsingError,
+    WorkspaceError,
 )
 from .core.errors import Error
 from .core.jsondict import BufferedFileError, BufferException
@@ -65,19 +67,21 @@ class KeyTypeError(TypeError):
 
 
 __all__ = [
-    "Error",
+    "AuthenticationError",
     "BufferException",
     "BufferedFileError",
     "ConfigError",
-    "AuthenticationError",
+    "DestinationExistsError",
+    "DocumentSyncConflict",
+    "Error",
     "ExportError",
     "FetchError",
-    "DestinationExistsError",
-    "JobsCorruptedError",
-    "IncompatibleSchemaVersion",
-    "SyncConflict",
     "FileSyncConflict",
-    "DocumentSyncConflict",
-    "SchemaSyncConflict",
+    "IncompatibleSchemaVersion",
     "InvalidKeyError",
+    "JobsCorruptedError",
+    "SchemaSyncConflict",
+    "StatepointParsingError",
+    "SyncConflict",
+    "WorkspaceError",
 ]
