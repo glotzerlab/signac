@@ -36,17 +36,6 @@ class _StatepointDict(JSONDict):
     """
 
     _PROTECTED_KEYS = ("_jobs", "filename")
-    # State points are rarely modified and are not designed for efficient
-    # modification, so they do not support multithreaded execution.
-    # Implementing thread safe modifications would also be quite difficult
-    # because state point modification triggers a migration that moves the
-    # file. Moreover, since shallow copies of jobs share state points to
-    # trigger id updates, so the filename will actually change within the
-    # context. Since this linkage between the Job and the _StatepointDict
-    # allows the _StatepointDict to be in invalid intermediate states during
-    # the process, making the threading work would require somewhat complex and
-    # highly specialized handling.
-    _supports_threading = False
 
     def __init__(
         self,
@@ -118,11 +107,16 @@ class _StatepointDict(JSONDict):
             job._document = None
             job._stores = None
             job._cwd = []
-            self._filename = job._statepoint_filename
+
+        # Since all the jobs are equivalent, just grab the filename from the
+        # last one and init it. Also migrate the lock.
+        old_lock_id = self._lock_id
+        self._filename = job._statepoint_filename
+        type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
+
         if should_init:
-            # All the jobs are equivalent, so just init the last one from the
-            # for loop.
             job.init()
+
         logger.info(f"Moved '{old_id}' -> '{new_id}'.")
 
     def save(self, force=False):
@@ -857,8 +851,8 @@ class Job:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        # Note that we append to a list of jobs rather than replacing to
-        # support transparent id updates between shallow copies of a job.
+        # We append to a list of jobs rather than replacing to support
+        # transparent id updates between shallow copies of a job.
         self.statepoint._jobs.append(self)
 
     def __deepcopy__(self, memo):
