@@ -1042,8 +1042,7 @@ class Project:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
@@ -1051,7 +1050,7 @@ class Project:
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default
+        default :
             A default value to be used when a given state point key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -1090,24 +1089,24 @@ class Project:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        r"""Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
@@ -1647,7 +1646,8 @@ class Project:
         :meth:`~signac.Project.import_from` :
             Previously exported or non-signac data spaces can be imported.
 
-        See :ref:`signac export <signac-cli-export>` for the command line equivalent.
+        :ref:`signac export <signac-cli-export>` :
+            See signac export for the command line equivalent.
 
         Parameters
         ----------
@@ -1705,7 +1705,8 @@ class Project:
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
 
-        See :ref:`signac import <signac-cli-import>` for the command line equivalent.
+        :ref:`signac import <signac-cli-import>` :
+            See signac import for the command line equivalent.
 
         Parameters
         ----------
@@ -2403,6 +2404,9 @@ class _JobsCursorIterator:
 class JobsCursor:
     """An iterator over a search query result.
 
+    Application developers should not directly instantiate this class, but
+    use :meth:`~signac.Project.find_jobs` instead.
+
     Enables simple iteration and grouping operations.
 
     Parameters
@@ -2526,17 +2530,18 @@ class JobsCursor:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, the job (Default value = None).
+        key : str, iterable, or callable
+            The state point grouping parameter(s) passed as a string,
+            iterable of strings, or a callable that will be passed one
+            argument, the job (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given state point key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         _filter = self._filter
@@ -2679,18 +2684,18 @@ class JobsCursor:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         if isinstance(key, str):
@@ -2842,7 +2847,7 @@ class JobsCursor:
     def to_dataframe(
         self, sp_prefix="sp.", doc_prefix="doc.", usecols=None, flatten=False
     ):
-        """Convert the selection of jobs to a pandas dataframe.
+        """Convert the selection of jobs to a pandas :class:`~pandas.DataFrame`.
 
         This function exports the job metadata to a
         :py:class:`pandas.DataFrame`. All state point and document keys are
