@@ -177,6 +177,22 @@ class _StatepointDict(JSONDict):
     def filename(self, new_filename):
         self._filename = new_filename
 
+    def reset_data(self, data):
+        """Reset the in-memory data without saving.
+
+        When a statepoint is modified prior to the job being initialized, the
+        job's reset_statepoint method needs a way to modify the in-memory data
+        without calling save. This method provides that interface via a transparent
+        call-through to the internal _update method.
+
+        Parameters
+        ----------
+        data : dict
+            The new data.
+
+        """
+        self._update(data)
+
 
 class Job:
     """The job instance is a handle to the data of a unique state point.
@@ -340,19 +356,12 @@ class Job:
         if self._id == new_id:
             return
 
-        # In the old version of the code the loading and saving was all handled
-        # by the job, but in the new code the _StatepointDict expects to be
-        # saved in order to perform in-memory modifications prior to any
-        # disk save operation, so we have to manually reset this here.
-        # However this also affects directly calling reset_statepoint, so
-        # we need a way to handle that too. The easiest way is to just make
-        # reset_statepoint call reset on the _StatepointDict here.
-        # The only issue with this is that normal modifications of the
-        # statepoint (e.g. __setitem__ calls) will result in changing the
-        # statepoint internally, then calling Job.reset_statepoint, which will
-        # then call this reset method, resulting in effectively changing this
-        # twice. Hopefully that's not a significant performance hit.
-        self._statepoint._update(new_statepoint)
+        # Normal modifications of the statepoint (e.g. __setitem__ calls) will
+        # result in changing the statepoint internally, then calling
+        # Job.reset_statepoint, which will then call this reset method,
+        # resulting in two in-memory modifications of the data. Hopefully
+        # that's not a significant performance hit.
+        self._statepoint.reset_data(new_statepoint)
 
         tmp_statepoint_file = self.statepoint.filename + "~"
         should_init = False
