@@ -35,7 +35,7 @@ class _StatepointDict(JSONDict):
            Job directory migrations.
     """
 
-    _PROTECTED_KEYS = ("_jobs", "filename")
+    _PROTECTED_KEYS = ("_jobs",)
 
     def __init__(
         self,
