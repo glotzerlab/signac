@@ -41,8 +41,7 @@ class _StatepointDict(JSONDict):
     # Implementing thread safe modifications would also be quite difficult
     # because state point modification triggers a migration that moves the
     # file. Moreover, since shallow copies of jobs share state points to
-    # trigger id updates, and since Job._reset_statepoint is called within
-    # _StatepointDict._save, the filename will actually change withiin the
+    # trigger id updates, so the filename will actually change within the
     # context. Since this linkage between the Job and the _StatepointDict
     # allows the _StatepointDict to be in invalid intermediate states during
     # the process, making the threading work would require somewhat complex and
@@ -84,8 +83,47 @@ class _StatepointDict(JSONDict):
     def _save(self):
         # State point modification triggers job migration for all jobs sharing
         # this state point (shallow copies of a single job).
+        new_id = calc_id(self)
+
+        # All elements of the job list are shallow copies of each other, so any
+        # one of them is representative.
+        job = self._jobs[0]
+        if job._id == new_id:
+            return
+
+        tmp_statepoint_file = self.filename + "~"
+        should_init = False
+        try:
+            os.replace(self.filename, tmp_statepoint_file)
+            new_workspace = os.path.join(job._project.workspace(), new_id)
+            try:
+                os.replace(job.workspace(), new_workspace)
+            except OSError as error:
+                os.replace(tmp_statepoint_file, self.filename)  # rollback
+                if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
+                    raise DestinationExistsError(new_id)
+                else:
+                    raise
+            else:
+                should_init = True
+        except OSError as error:
+            if error.errno != errno.ENOENT:  # OK if file is not initialized.
+                raise
+
+        # Update each job instance.
         for job in self._jobs:
-            job._reset_statepoint(self)
+            old_id = job._id
+            job._id = new_id
+            job._wd = None
+            job._document = None
+            job._stores = None
+            job._cwd = []
+            self._filename = job._statepoint_filename
+        if should_init:
+            # All the jobs are equivalent, so just init the last one from the
+            # for loop.
+            job.init()
+        logger.info(f"Moved '{old_id}' -> '{new_id}'.")
 
     def save(self, force=False):
         """Trigger a save to disk.
@@ -160,23 +198,6 @@ class _StatepointDict(JSONDict):
 
         return data
 
-    @property
-    def filename(self):
-        """str: Get or set the name of the file this collection is synchronized with.
-
-        This property is overridden in order to support setting. In the parent
-        class the semantics for setting a filename are unclear; since a JSONDict
-        is always synced to a file, setting a filename might be expected to move
-        the file if it exists. In this subclass, we can safely define exactly the
-        behavior required, which is that the filename changes but the file is not
-        moved.
-        """
-        return self._filename
-
-    @filename.setter
-    def filename(self, new_filename):
-        self._filename = new_filename
-
 
 class Job:
     """The job instance is a handle to the data of a unique state point.
@@ -224,7 +245,7 @@ class Job:
             self._statepoint_requires_init = False
             self._statepoint = _StatepointDict(jobs=[self], data=statepoint)
             self._id = calc_id(self._statepoint()) if _id is None else _id
-            self._statepoint.filename = self._statepoint_filename
+            self._statepoint._filename = self._statepoint_filename
 
             # Update the project's state point cache immediately if opened by state point
             self._project._register(self.id, statepoint)
@@ -335,45 +356,6 @@ class Job:
         """
         self._statepoint.reset(new_statepoint)
 
-    def _reset_statepoint(self, new_statepoint):
-        if isinstance(new_statepoint, JSONDict):
-            new_statepoint = new_statepoint()
-
-        new_id = calc_id(new_statepoint)
-        if self._id == new_id:
-            return
-
-        tmp_statepoint_file = self.statepoint.filename + "~"
-        should_init = False
-        try:
-            os.replace(self.statepoint.filename, tmp_statepoint_file)
-            new_workspace = os.path.join(self._project.workspace(), new_id)
-            try:
-                os.replace(self.workspace(), new_workspace)
-            except OSError as error:
-                os.replace(tmp_statepoint_file, self.statepoint.filename)  # rollback
-                if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
-                    raise DestinationExistsError(new_id)
-                else:
-                    raise
-            else:
-                should_init = True
-        except OSError as error:
-            if error.errno != errno.ENOENT:  # OK if file is not initialized.
-                raise
-
-        # Update this instance
-        old_id = self._id
-        self._id = new_id
-        self._wd = None
-        self._document = None
-        self._stores = None
-        self._cwd = []
-        self._statepoint.filename = self._statepoint_filename
-        if should_init:
-            self.init()
-        logger.info(f"Moved '{old_id}' -> '{new_id}'.")
-
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
 
@@ -409,7 +391,7 @@ class Job:
                 if statepoint.get(key, value) != value:
                     raise KeyError(key)
         statepoint.update(update)
-        self.reset_statepoint(statepoint)
+        self._statepoint.reset(statepoint)
 
     @property
     def statepoint(self):
@@ -452,7 +434,7 @@ class Job:
             The new state point to be assigned.
 
         """
-        self.reset_statepoint(new_statepoint)
+        self._statepoint.reset(new_statepoint)
 
     @property
     def sp(self):
