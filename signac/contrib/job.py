@@ -83,9 +83,10 @@ class _StatepointDict(JSONDict):
         tmp_statepoint_file = self.filename + "~"
         should_init = False
         try:
+            # Move the statepoint to an intermediate location as a backup.
             os.replace(self.filename, tmp_statepoint_file)
-            new_workspace = os.path.join(job._project.workspace(), new_id)
             try:
+                new_workspace = os.path.join(job._project.workspace(), new_id)
                 os.replace(job.workspace(), new_workspace)
             except OSError as error:
                 os.replace(tmp_statepoint_file, self.filename)  # rollback
@@ -96,7 +97,10 @@ class _StatepointDict(JSONDict):
             else:
                 should_init = True
         except OSError as error:
-            if error.errno != errno.ENOENT:  # OK if file is not initialized.
+            # The most likely reason we got here is because the state point
+            # file move failed due to the job not being initialized so the file
+            # doesn't exist, which is OK.
+            if error.errno != errno.ENOENT:
                 raise
 
         # Update each job instance.
@@ -109,7 +113,7 @@ class _StatepointDict(JSONDict):
             job._cwd = []
 
         # Since all the jobs are equivalent, just grab the filename from the
-        # last one and init it. Also migrate the lock.
+        # last one and init it. Also migrate the lock for multithreaded support.
         old_lock_id = self._lock_id
         self._filename = job._statepoint_filename
         type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
@@ -175,11 +179,6 @@ class _StatepointDict(JSONDict):
 
         """
         try:
-            # TODO: This method will return None if the file does not exist on
-            # disk. I think the only time that load should be called is when a
-            # job is opened by id. If a user opens a job by id that doesn't
-            # exist, it will result in a KeyError on project.open_job, so I
-            # don't think that this is a problem, but we should double check.
             data = self._load_from_resource()
         except JSONDecodeError:
             raise JobsCorruptedError([job_id])
@@ -623,7 +622,6 @@ class Job:
                 # disk unless force is True, so the subsequent load will catch
                 # when a preexisting invalid file was present.
                 self._statepoint.save(force=force)
-                # TODO: Can we omit this entirely if force=False?
                 statepoint = self._statepoint.load(self.id)
 
                 # Update the project's state point cache if the saved file is valid.
