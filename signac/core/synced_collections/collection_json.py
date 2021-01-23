@@ -100,9 +100,10 @@ class JSONCollection(SyncedCollection):
 
         Returns
         -------
-        Collection
+        Collection or None
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
-            contains the data in the JSON file.
+            contains the data in the JSON file. Will return None if the file does
+            not exist.
 
         """
         try:

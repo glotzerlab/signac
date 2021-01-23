@@ -53,9 +53,10 @@ class MongoDBCollection(SyncedCollection):
 
         Returns
         -------
-        Collection
+        Collection or None
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
-            contains the data in the MongoDB database.
+            contains the data in the MongoDB database. Will return None if no data
+            was found in the database.
 
         """
         blob = self._collection.find_one(self._uid)
