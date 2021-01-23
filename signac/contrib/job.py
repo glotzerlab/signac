@@ -32,7 +32,7 @@ class _StatepointDict(JSONDict):
            they never need to load from disk _except_ the very first time a job
            is opened by id and they're not present in the cache.
         3. It must be possible to load and/or save on demand during tasks like
-           Job directory migrations.
+           job directory migrations.
     """
 
     _PROTECTED_KEYS = ("_jobs",)
@@ -173,7 +173,7 @@ class _StatepointDict(JSONDict):
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`~signac.errors.JobsCorruptedError`
             If the data on disk is invalid or its hash does not match the job
             id.
 
@@ -410,6 +410,7 @@ class Job:
 
         """
         if self._statepoint_requires_init:
+            # Load state point data lazily (on access).
             statepoint = self._statepoint.load(self.id)
 
             # Update the project's state point cache when loaded lazily
@@ -449,8 +450,8 @@ class Job:
             Even deep copies of :attr:`~Job.document` will modify the same file,
             so changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use the call operator to get an (otherwise
-            equivalent) raw dictionary: ``job.document()``.
+            persistent JSON file, use the call operator to get an equivalent
+            plain dictionary: ``job.document()``.
             For more information, see
             :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
 
@@ -489,8 +490,8 @@ class Job:
             Even deep copies of :attr:`~Job.doc` will modify the same file, so
             changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use the call operator to get an (otherwise
-            equivalent) raw dictionary: ``job.doc()``.
+            persistent JSON file, use the call operator to get an equivalent
+            plain dictionary: ``job.doc()``.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
