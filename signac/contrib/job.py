@@ -41,7 +41,7 @@ class _StatepointDict(JSONDict):
     # Implementing thread safe modifications would also be quite difficult
     # because state point modification triggers a migration that moves the
     # file. Moreover, since shallow copies of jobs share state points to
-    # trigger id updates, and since Job.reset_statepoint is called within
+    # trigger id updates, and since Job._reset_statepoint is called within
     # _StatepointDict._save, the filename will actually change withiin the
     # context. Since this linkage between the Job and the _StatepointDict
     # allows the _StatepointDict to be in invalid intermediate states during
@@ -85,7 +85,7 @@ class _StatepointDict(JSONDict):
         # State point modification triggers job migration for all jobs sharing
         # this state point (shallow copies of a single job).
         for job in self._jobs:
-            job.reset_statepoint(self)
+            job._reset_statepoint(self)
 
     def save(self, force=False):
         """Trigger a save to disk.
@@ -176,22 +176,6 @@ class _StatepointDict(JSONDict):
     @filename.setter
     def filename(self, new_filename):
         self._filename = new_filename
-
-    def reset_data(self, data):
-        """Reset the in-memory data without saving.
-
-        When a statepoint is modified prior to the job being initialized, the
-        job's reset_statepoint method needs a way to modify the in-memory data
-        without calling save. This method provides that interface via a transparent
-        call-through to the internal _update method.
-
-        Parameters
-        ----------
-        data : dict
-            The new data.
-
-        """
-        self._update(data)
 
 
 class Job:
@@ -349,19 +333,15 @@ class Job:
             The job's new state point.
 
         """
+        self._statepoint.reset(new_statepoint)
+
+    def _reset_statepoint(self, new_statepoint):
         if isinstance(new_statepoint, JSONDict):
             new_statepoint = new_statepoint()
 
         new_id = calc_id(new_statepoint)
         if self._id == new_id:
             return
-
-        # Normal modifications of the statepoint (e.g. __setitem__ calls) will
-        # result in changing the statepoint internally, then calling
-        # Job.reset_statepoint, which will then call this reset method,
-        # resulting in two in-memory modifications of the data. Hopefully
-        # that's not a significant performance hit.
-        self._statepoint.reset_data(new_statepoint)
 
         tmp_statepoint_file = self.statepoint.filename + "~"
         should_init = False
