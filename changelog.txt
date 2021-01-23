@@ -29,6 +29,12 @@ Deprecated
 
  - Deprecate ``syncutil.copytree`` method (#439).
 
+Fixed
++++++
+
+ - Zero-dimensional NumPy arrays can be used in state points and documents (#449).
+
+
 [1.5.1] -- 2020-12-19
 ---------------------
 
