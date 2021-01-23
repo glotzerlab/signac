@@ -77,7 +77,8 @@ class _StatepointDict(JSONDict):
         # All elements of the job list are shallow copies of each other, so any
         # one of them is representative.
         job = self._jobs[0]
-        if job._id == new_id:
+        old_id = job._id
+        if old_id == new_id:
             return
 
         tmp_statepoint_file = self.filename + "~"
@@ -105,7 +106,6 @@ class _StatepointDict(JSONDict):
 
         # Update each job instance.
         for job in self._jobs:
-            old_id = job._id
             job._id = new_id
             job._wd = None
             job._document = None
