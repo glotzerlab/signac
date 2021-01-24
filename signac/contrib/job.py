@@ -100,7 +100,6 @@ class _StatePointDict(JSONDict):
                 else:
                     raise
             else:
-                # os.remove(self.filename + "~")
                 should_init = True
         except OSError as error:
             # The most likely reason we got here is because the state point
@@ -113,6 +112,14 @@ class _StatePointDict(JSONDict):
         for job in self._jobs:
             job._id = new_id
             job._initialize_lazy_properties()
+
+        # Remove the temporary statepoint file if it was created. Have to do it
+        # here because we need to get the updated job statepoint filename.
+        try:
+            os.remove(job._statepoint_filename + "~")
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise
 
         # Since all the jobs are equivalent, just grab the filename from the
         # last one and init it. Also migrate the lock for multithreaded support.
