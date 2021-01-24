@@ -75,21 +75,9 @@ jobs:
             ${PYTHON} -m pip install --progress-bar off -U codecov
             # DEPENDENCIES can be "OLDEST", "NEWEST", or "MINIMAL"
             if [ "${DEPENDENCIES}" == "OLDEST" ]; then
-              # Some requirements below are not strictly the lowest versions,
-              # and are only needed for testing.
-              ${PYTHON} -m pip install --progress-bar off \
-                click==7.1.2 \
-                coverage==5.3.1 \
-                deprecation==2.0 \
-                filelock==3.0.0 \
-                h5py==2.8.0 \
-                numpy==1.13.3 \
-                packaging==15.0 \
-                pandas==1.0.0 \
-                pytest-cov==2.10.1 \
-                pytest==6.2.1 \
-                tables==3.3.0 \
-                tqdm==4.10.0
+              # Some of the "oldest" requirements are not strictly the lowest
+              # versions, and are only needed for testing.
+              ${PYTHON} -m pip install --progress-bar off -r .circleci/ci-oldest-reqs.txt
             elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
               ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
               ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
