@@ -446,10 +446,13 @@ class TestJobSpInterface(TestJobBase):
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
-
         class A:
             pass
+
+        with pytest.raises(KeyTypeError):
+            self.open_job({A(): True}).init()
+
+        job = self.open_job(dict(invalid_key=True)).init()
 
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):

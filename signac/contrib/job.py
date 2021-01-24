@@ -14,6 +14,7 @@ from deprecation import deprecated
 
 from ..core.h5store import H5StoreManager
 from ..core.synced_collections.collection_json import BufferedJSONDict, JSONDict
+from ..errors import KeyTypeError
 from ..sync import sync_jobs
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -23,12 +24,12 @@ from .utility import _mkdir_p
 logger = logging.getLogger(__name__)
 
 
-class _StatepointDict(JSONDict):
-    """A JSON-backed dictionary for storing job statepoints.
+class _StatePointDict(JSONDict):
+    """A JSON-backed dictionary for storing job state points.
 
     There are three principal reasons for extending the base JSONDict:
         1. Saving needs to trigger a job directory migration, and
-        2. Statepoints are assumed to not support external modification, so
+        2. State points are assumed to not support external modification, so
            they never need to load from disk _except_ the very first time a job
            is opened by id and they're not present in the cache.
         3. It must be possible to load and/or save on demand during tasks like
@@ -47,10 +48,13 @@ class _StatepointDict(JSONDict):
         *args,
         **kwargs,
     ):
-        # A job-statepoint mapping need not be unique because multiple Python
-        # Job objects can point to the same data on disk. We need to store
-        # these jobs in a shared list here so that shallow copies can point to
-        # the same place and trigger each other to update.
+        # Multiple Python Job objects can share a single `_StatepointDict`
+        # instance because they are shallow copies referring to the same data
+        # on disk. We need to store these jobs in a shared list here so that
+        # shallow copies can point to the same place and trigger each other to
+        # update. This does not apply to independently created Job objects,
+        # even if they refer to the same disk data; this only applies to
+        # explicit shallow copies and unpickled objects within a session.
         self._jobs = list(jobs)
         super().__init__(
             filename=filename,
@@ -76,7 +80,7 @@ class _StatepointDict(JSONDict):
 
         # All elements of the job list are shallow copies of each other, so any
         # one of them is representative.
-        job = self._jobs[0]
+        job = next(iter(self._jobs))
         old_id = job._id
         if old_id == new_id:
             return
@@ -84,7 +88,7 @@ class _StatepointDict(JSONDict):
         tmp_statepoint_file = self.filename + "~"
         should_init = False
         try:
-            # Move the statepoint to an intermediate location as a backup.
+            # Move the state point to an intermediate location as a backup.
             os.replace(self.filename, tmp_statepoint_file)
             try:
                 new_workspace = os.path.join(job._project.workspace(), new_id)
@@ -96,6 +100,7 @@ class _StatepointDict(JSONDict):
                 else:
                     raise
             else:
+                # os.remove(self.filename + "~")
                 should_init = True
         except OSError as error:
             # The most likely reason we got here is because the state point
@@ -116,6 +121,14 @@ class _StatepointDict(JSONDict):
         type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
 
         if should_init:
+            # Only initializing one job assumes that all changes in init are
+            # changes reflected in the underlying resource (the JSON file).
+            # This assumption is currently valid because all in-memory
+            # attributes are loaded lazily (and are handled by the call to
+            # _initialize_lazy_properties above), except for the key defining
+            # property of the job id (which is also updated above). If init
+            # ever changes to making modifications to the job object, we may
+            # need to call it for all jobs.
             job.init()
 
         logger.info(f"Moved '{old_id}' -> '{new_id}'.")
@@ -148,7 +161,7 @@ class _StatepointDict(JSONDict):
                     os.remove(self._filename)
                 except Exception:  # ignore all errors here
                     pass
-                raise error
+                raise
 
     def load(self, job_id):
         """Trigger a load from disk.
@@ -231,8 +244,11 @@ class Job:
             raise ValueError("Either statepoint or _id must be provided.")
         elif statepoint is not None:
             self._statepoint_requires_init = False
-            self._id = calc_id(statepoint) if _id is None else _id
-            self._statepoint = _StatepointDict(
+            try:
+                self._id = calc_id(statepoint) if _id is None else _id
+            except TypeError:
+                raise KeyTypeError
+            self._statepoint = _StatePointDict(
                 jobs=[self], filename=self._statepoint_filename, data=statepoint
             )
 
@@ -241,7 +257,7 @@ class Job:
         else:
             # Only an id was provided. State point will be loaded lazily.
             self._id = _id
-            self._statepoint = _StatepointDict(
+            self._statepoint = _StatePointDict(
                 jobs=[self], filename=self._statepoint_filename
             )
             self._statepoint_requires_init = True
@@ -854,3 +870,13 @@ class Job:
         for key, value in self.__dict__.items():
             setattr(result, key, deepcopy(value, memo))
         return result
+
+
+def get_buffer_load():
+    """Get the actual size of the buffer."""
+    return BufferedJSONDict.get_buffer_size()
+
+
+def get_buffer_size():
+    """Get the maximum available capacity of the buffer."""
+    return BufferedJSONDict.get_buffer_capacity()
