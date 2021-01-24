@@ -396,7 +396,7 @@ def sync_jobs(
                 doc_sync(src.document, dst_proxy)
 
 
-FileTransferStats = namedtuple("_FileTransferStats", ["num_files", "volume"])
+FileTransferStats = namedtuple("FileTransferStats", ["num_files", "volume"])
 
 
 def sync_projects(
