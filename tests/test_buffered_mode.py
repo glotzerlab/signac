@@ -13,7 +13,8 @@ import pytest
 from test_project import TestProjectBase
 
 import signac
-from signac.errors import BufferedFileError, BufferException, Error
+from signac.core.synced_collections.errors import BufferedError
+from signac.errors import BufferedFileError, Error
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -144,35 +145,25 @@ class TestBufferedMode(TestProjectBase):
             os.chmod(path, mode)
         assert job.doc.a == x
 
-    @pytest.mark.xfail(reason="This API for setting the buffer size is deprecated.")
     def test_buffered_mode_change_buffer_size(self):
         assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        signac.set_buffer_size(12)
+        with signac.buffered():
             assert signac.buffered()
             assert signac.get_buffer_size() == 12
 
         assert not signac.is_buffered()
-        with pytest.raises(TypeError):
-            with signac.buffered(buffer_size=True):
-                pass
 
         assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
+        with signac.buffered():
             assert signac.buffered()
             assert signac.get_buffer_size() == 12
-            with signac.buffered(buffer_size=12):
+            with signac.buffered():
                 assert signac.buffered()
                 assert signac.get_buffer_size() == 12
 
         assert not signac.is_buffered()
-        with pytest.raises(BufferException):
-            with signac.buffered(buffer_size=12):
-                assert signac.buffered()
-                assert signac.get_buffer_size() == 12
-                with signac.buffered(buffer_size=14):
-                    pass
 
-    @pytest.mark.xfail(reason="This test uses various deprecated APIs.")
     def test_integration(self):
         def routine():
             for i in range(1, 4):
@@ -248,7 +239,7 @@ class TestBufferedMode(TestProjectBase):
             assert job2.doc.a == (not x)
 
             assert job.doc.a == (not x)
-            with pytest.raises(BufferedFileError) as cm:
+            with pytest.raises(BufferedError) as cm:
                 with signac.buffered():
                     assert job.doc.a == (not x)
                     job.doc.a = x

@@ -881,9 +881,14 @@ class Job:
 
 def get_buffer_load():
     """Get the actual size of the buffer."""
-    return BufferedJSONDict.get_buffer_size()
+    return BufferedJSONDict.get_current_buffer_size()
 
 
 def get_buffer_size():
     """Get the maximum available capacity of the buffer."""
     return BufferedJSONDict.get_buffer_capacity()
+
+
+def set_buffer_size(new_size):
+    """Set the maximum available capacity of the buffer."""
+    return BufferedJSONDict.set_buffer_capacity(new_size)
