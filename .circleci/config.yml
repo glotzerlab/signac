@@ -76,7 +76,10 @@ jobs:
             # DEPENDENCIES can be "OLDEST", "NEWEST", or "MINIMAL"
             if [ "${DEPENDENCIES}" == "OLDEST" ]; then
               # Some of the "oldest" requirements are not strictly the lowest
-              # versions, and are only needed for testing.
+              # versions, and are only needed for testing. The "oldest"
+              # requirements filename and directory cannot contain
+              # "requirements" or else dependabot will attempt to update, which
+              # we do not want.
               ${PYTHON} -m pip install --progress-bar off -r .circleci/ci-oldest-reqs.txt
             elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
               ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
