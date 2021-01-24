@@ -10,10 +10,10 @@ orbs:
 references:
   restore_keys: &restore_keys
     keys:
-      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
   save_key: &save_key
-    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
 jobs:
   pre-checks:
