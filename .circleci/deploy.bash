@@ -3,7 +3,8 @@
 set -e
 set -u
 
-python -m pip install --progress-bar off --user -U -r requirements-test.txt
+python -m pip install --progress-bar off --user -U -r requirements/requirements-test.txt
+python -m pip install --progress-bar off --user -U -r requirements/requirements-test-optional.txt
 python -m pip install --progress-bar off --user -U twine wheel setuptools
 
 # PYPI_USERNAME - (Required) Username for the publisher's account on PyPI

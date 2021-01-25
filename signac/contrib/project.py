@@ -8,6 +8,7 @@ import gzip
 import logging
 import os
 import re
+import shutil
 import stat
 import time
 import uuid
@@ -22,7 +23,6 @@ from tempfile import TemporaryDirectory
 from deprecation import deprecated
 from packaging import version
 
-from .. import syncutil
 from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
@@ -1042,8 +1042,7 @@ class Project:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
@@ -1051,7 +1050,7 @@ class Project:
             The state point grouping parameter(s) passed as a string,
             iterable of strings, or a callable that will be passed one
             argument, the job (Default value = None).
-        default
+        default :
             A default value to be used when a given state point key is not
             present. The value must be sortable and is only used if not None
             (Default value = None).
@@ -1090,24 +1089,24 @@ class Project:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         return self.find_jobs().groupbydoc(key, default=default)
 
     def to_dataframe(self, *args, **kwargs):
-        r"""Export the project metadata to a pandas DataFrame.
+        r"""Export the project metadata to a pandas :class:`~pandas.DataFrame`.
 
         The arguments to this function are forwarded to
         :meth:`~signac.contrib.project.JobsCursor.to_dataframe`.
@@ -1274,7 +1273,7 @@ class Project:
         ------
         KeyError
             If the state point associated with job_id could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to job_id is
             inaccessible or corrupted.
 
@@ -1346,7 +1345,7 @@ class Project:
         ------
         KeyError
             If the state point associated with jobid could not be found.
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             If the state point manifest file corresponding to jobid is
             inaccessible or corrupted.
 
@@ -1430,7 +1429,9 @@ class Project:
         details="Use job.reset_statepoint() instead.",
     )
     def reset_statepoint(self, job, new_statepoint):
-        """Reset the state point of job.
+        """Overwrite the state point of this job while preserving job data.
+
+        This method will change the job id if the state point has been altered.
 
         .. danger::
 
@@ -1462,7 +1463,12 @@ class Project:
         details="Use job.update_statepoint() instead.",
     )
     def update_statepoint(self, job, update, overwrite=False):
-        """Update the state point of this job.
+        """Change the state point of this job while preserving job data.
+
+        By default, this method will not change existing parameters of the
+        state point of the job.
+
+        This method will change the job id if the state point has been altered.
 
         .. warning::
 
@@ -1476,9 +1482,10 @@ class Project:
             The job whose state point shall be updated.
         update : mapping
             A mapping used for the state point update.
-        overwrite :
-            Set to true to ignore whether this update overwrites parameters,
-            which are currently part of the job's state point. Use with caution!
+        overwrite : bool, optional
+            If True, this method will set all existing and new parameters
+            to a job's statepoint, making it equivalent to
+            :meth:`~.reset_statepoint`. Use with caution!
             (Default value = False).
 
         Raises
@@ -1494,7 +1501,7 @@ class Project:
         """
         job.update_statepoint(update=update, overwrite=overwrite)
 
-    def clone(self, job, copytree=syncutil.copytree):
+    def clone(self, job, copytree=shutil.copytree):
         """Clone job into this project.
 
         Create an identical copy of job within this project.
@@ -1506,7 +1513,7 @@ class Project:
         job : :class:`~signac.contrib.job.Job`
             The job to copy into this project.
         copytree :
-             (Default value = syncutil.copytree)
+             (Default value = :func:`shutil.copytree`)
 
         Returns
         -------
@@ -1639,7 +1646,8 @@ class Project:
         :meth:`~signac.Project.import_from` :
             Previously exported or non-signac data spaces can be imported.
 
-        See :ref:`signac export <signac-cli-export>` for the command line equivalent.
+        :ref:`signac export <signac-cli-export>` :
+            See signac export for the command line equivalent.
 
         Parameters
         ----------
@@ -1697,7 +1705,8 @@ class Project:
         --------
         :meth:`~signac.Project.export_to` : Export the project data space.
 
-        See :ref:`signac import <signac-cli-import>` for the command line equivalent.
+        :ref:`signac import <signac-cli-import>` :
+            See signac import for the command line equivalent.
 
         Parameters
         ----------
@@ -1745,7 +1754,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more jobs are identified as corrupted.
 
         """
@@ -1785,7 +1794,7 @@ class Project:
 
         Raises
         ------
-        JobsCorruptedError
+        :class:`signac.errors.JobsCorruptedError`
             When one or more corrupted job could not be repaired.
 
         """
@@ -2395,6 +2404,9 @@ class _JobsCursorIterator:
 class JobsCursor:
     """An iterator over a search query result.
 
+    Application developers should not directly instantiate this class, but
+    use :meth:`~signac.Project.find_jobs` instead.
+
     Enables simple iteration and grouping operations.
 
     Parameters
@@ -2518,17 +2530,18 @@ class JobsCursor:
             ):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, the job (Default value = None).
+        key : str, iterable, or callable
+            The state point grouping parameter(s) passed as a string,
+            iterable of strings, or a callable that will be passed one
+            argument, the job (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given state point key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         _filter = self._filter
@@ -2671,18 +2684,18 @@ class JobsCursor:
             for key, group in project.groupbydoc(lambda doc: 'd' in doc):
                 print(key, list(group))
 
-        If `key` is None, jobs are grouped by identity (by id), placing one job
-        into each group.
+        If `key` is None, jobs are grouped by id, placing one job into each group.
 
         Parameters
         ----------
-        key : str, iterable, or function
-            The state point grouping parameter(s) passed as a string, iterable of strings,
-            or a function that will be passed one argument, :meth:`~signac.job.Job.document`.
-            (Default value = None).
+        key : str, iterable, or callable
+            The document grouping parameter(s) passed as a string, iterable
+            of strings, or a callable that will be passed one argument,
+            :attr:`~signac.contrib.job.Job.document` (Default value = None).
         default :
-            A default value to be used when a given state point key is not present (must
-            be sortable).
+            A default value to be used when a given document key is not
+            present. The value must be sortable and is only used if not None
+            (Default value = None).
 
         """
         if isinstance(key, str):
@@ -2834,7 +2847,7 @@ class JobsCursor:
     def to_dataframe(
         self, sp_prefix="sp.", doc_prefix="doc.", usecols=None, flatten=False
     ):
-        """Convert the selection of jobs to a pandas dataframe.
+        """Convert the selection of jobs to a pandas :class:`~pandas.DataFrame`.
 
         This function exports the job metadata to a
         :py:class:`pandas.DataFrame`. All state point and document keys are

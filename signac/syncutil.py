@@ -11,6 +11,10 @@ from contextlib import contextmanager
 from copy import deepcopy
 from filecmp import dircmp
 
+from deprecation import deprecated
+
+from .version import __version__
+
 LEVEL_MORE = logging.INFO - 5
 
 logger = logging.getLogger("sync")
@@ -26,6 +30,12 @@ def log_more(msg, *args, **kwargs):
 logger.more = log_more  # type: ignore
 
 
+@deprecated(
+    deprecated_in="1.6.0",
+    removed_in="2.0.0",
+    current_version=__version__,
+    details="Use shutil.copytree instead.",
+)
 def copytree(src, dst, copy_function=shutil.copy2, symlinks=False):
     """Recursively copy a directory tree from src to dst, using a custom copy function.
 

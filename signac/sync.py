@@ -396,7 +396,7 @@ def sync_jobs(
                 doc_sync(src.document, dst_proxy)
 
 
-FileTransferStats = namedtuple("_FileTransferStats", ["num_files", "volume"])
+FileTransferStats = namedtuple("FileTransferStats", ["num_files", "volume"])
 
 
 def sync_projects(
@@ -483,14 +483,14 @@ def sync_projects(
 
     Raises
     ------
-    DocumentSyncConflict
+    :class:`~signac.errors.DocumentSyncConflict`
         If there are conflicting keys within the project or job documents that
         cannot be resolved with the given strategy or if there is no strategy
         provided.
-    FileSyncConflict
+    :class:`~signac.errors.FileSyncConflict`
         If there are differing files that cannot be resolved with the given
         strategy or if no strategy is provided.
-    SchemaSyncConflict
+    :class:`~signac.errors.SchemaSyncConflict`
         In case that the check_schema argument is True and the detected state
         point schema of this and the other project differ.
 
@@ -556,7 +556,7 @@ def sync_projects(
     if selection is None:
         jobs_to_sync = list(source)
     else:
-        jobs_to_sync = [job for job in source if job.get_id() in selection]
+        jobs_to_sync = [job for job in source if job.id in selection]
 
     N = len(jobs_to_sync)
     logger.more(f"Synchronizing {N} jobs.")
@@ -569,7 +569,7 @@ def sync_projects(
             logger.more(f"Cloned job '{src_job}'.")
             return 1
         except DestinationExistsError:
-            dst_job = destination.open_job(id=src_job.get_id())
+            dst_job = destination.open_job(id=src_job.id)
             sync_jobs(
                 src=src_job,
                 dst=dst_job,
@@ -579,7 +579,7 @@ def sync_projects(
                 recursive=recursive,
                 dry_run=proxy,  # used as internal argument to forward the proxy
             )
-            logger.more(f"Synchonized job '{src_job}'.")
+            logger.more(f"Synchronized job '{src_job}'.")
             return 2
 
     if parallel:

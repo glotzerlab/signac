@@ -10,10 +10,10 @@ orbs:
 references:
   restore_keys: &restore_keys
     keys:
-      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+      - python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
   save_key: &save_key
-    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements-test.txt" }}-{{ checksum "requirements-precommit.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
+    key: python-env-v7-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "requirements/requirements-test.txt" }}-{{ checksum "requirements/requirements-test-optional.txt" }}-{{ checksum "requirements/requirements-precommit.txt" }}-{{ checksum ".circleci/ci-oldest-reqs.txt" }}-{{ checksum ".pre-commit-config.yaml" }}
 
 jobs:
   pre-checks:
@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Install pre-check dependencies
           command: |
-            pip install --progress-bar off --user -U -r requirements-precommit.txt
+            pip install --progress-bar off --user -U -r requirements/requirements-precommit.txt
 
       - run:
           name: Run pre-checks
@@ -50,6 +50,8 @@ jobs:
       - image: circleci/redis:latest
 
     environment:
+      BENCHMARKS: "RUN"
+      DEPENDENCIES: "NEWEST"
       PYTHON: python
 
     working_directory: ~/repo
@@ -73,7 +75,23 @@ jobs:
             fi
             ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            # DEPENDENCIES can be "OLDEST", "NEWEST", or "MINIMAL"
+            if [ "${DEPENDENCIES}" == "OLDEST" ]; then
+              # Some of the "oldest" requirements are not strictly the lowest
+              # versions, and are only needed for testing. The "oldest"
+              # requirements filename and directory cannot contain
+              # "requirements" or else dependabot will attempt to update, which
+              # we do not want.
+              ${PYTHON} -m pip install --progress-bar off -r .circleci/ci-oldest-reqs.txt
+            elif [ "${DEPENDENCIES}" == "NEWEST" ]; then
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            else
+              # "${DEPENDENCIES}" == "MINIMAL"
+              # Install only testing requirements.
+              ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+            fi
+            ${PYTHON} -m pip install --progress-bar off -e .
 
       - save_cache:
           <<: *save_key
@@ -94,10 +112,12 @@ jobs:
       - run:
           name: Run benchmarks
           command: |
-            # Benchmarks depend on pandas, which takes a long time to install on pypy.
-            if [[ "${CIRCLE_JOB}" != *"pypy"* ]]; then
+            # Benchmarks depend on pandas, which isn't available for pypy or
+            # minimal dependencies
+            # BENCHMARKS can be "RUN" or "SKIP"
+            if [[ "${BENCHMARKS}" == "RUN" ]]; then
               . venv/bin/activate
-              ${PYTHON} -m pip install --progress-bar off -r requirements-benchmark.txt
+              ${PYTHON} -m pip install --progress-bar off -r requirements/requirements-benchmark.txt
               ${PYTHON} -m pip freeze
               ${PYTHON} benchmark.py run -N 100 1000  # this revision
               ${PYTHON} benchmark.py report
@@ -106,6 +126,15 @@ jobs:
               ${PYTHON} benchmark.py run -N 100 1000 --force
               ${PYTHON} benchmark.py compare origin/master "${CIRCLE_SHA1}"
             fi
+
+  linux-python-39-minimal:
+    <<: *linux-template
+    docker:
+      - image: circleci/python:3.9
+    environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "MINIMAL"
+      PYTHON: python
 
   linux-python-38:
     <<: *linux-template
@@ -121,18 +150,24 @@ jobs:
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
 
-  linux-python-36:
+  linux-python-36-oldest:
     <<: *linux-template
     docker:
       - image: circleci/python:3.6
       - image: circleci/mongo:latest
       - image: circleci/redis:latest
+    environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "OLDEST"
+      PYTHON: python
 
   linux-pypy-3:
     <<: *linux-template
     docker:
       - image: pypy:3
     environment:
+      BENCHMARKS: "SKIP"
+      DEPENDENCIES: "NEWEST"
       PYTHON: pypy3
 
   windows-python-38:
@@ -150,11 +185,16 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            ${PYTHON} -m pip install --progress-bar off -U pip>=20.3
             ${PYTHON} -m pip install --progress-bar off -U codecov
+            ${PYTHON} -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+
             # For some reason Zarr doesn't install correctly on Windows (runs
             # into pip SSL errors), so we skip that test.
-            grep -v zarr requirements-test.txt > requirements-test-windows.txt
-            ${PYTHON} -m pip install --progress-bar off -U -e . -r requirements-test-windows.txt
+            grep -v zarr requirements-test-optional.txt > requirements-test-optional-windows.txt
+            ${PYTHON} -m pip install --progress-bar off -U -r requirements-test-optional-windows.txt
+
+            ${PYTHON} -m pip install --progress-bar off -U -e .
       - run:
           name: Run tests
           command: |
@@ -177,8 +217,11 @@ jobs:
             python3 -m venv create test_env
             . test_env/bin/activate
             python --version
+            python -m pip install --progress-bar off -U pip>=20.3
             python -m pip install --progress-bar off -U codecov
-            python -m pip install --progress-bar off -U -e . -r requirements-test.txt
+            python -m pip install --progress-bar off -U -r requirements/requirements-test.txt
+            python -m pip install --progress-bar off -U -r requirements/requirements-test-optional.txt
+            python -m pip install --progress-bar off -U -e .
             python -m pytest --cov=signac --cov-report=xml tests/ -v
             codecov
 
@@ -229,13 +272,16 @@ workflows:
       - linux-python-39:
           requires:
             - pre-checks
+      - linux-python-39-minimal:
+          requires:
+            - pre-checks
       - linux-python-38:
           requires:
             - pre-checks
       - linux-python-37:
           requires:
             - pre-checks
-      - linux-python-36:
+      - linux-python-36-oldest:
           requires:
             - pre-checks
       - linux-pypy-3:
@@ -257,9 +303,10 @@ workflows:
               only: /release\/.*/
           requires:
             - linux-python-39
+            - linux-python-39-minimal
             - linux-python-38
             - linux-python-37
-            - linux-python-36
+            - linux-python-36-oldest
             - linux-pypy-3
             - windows-python-38
   deploy:

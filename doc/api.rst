@@ -61,6 +61,28 @@ The Project
     :show-inheritance:
     :exclude-members: Job
 
+
+The JobsCursor class
+====================
+.. _python-api-jobscursor:
+
+.. currentmodule:: signac.contrib.project
+
+.. rubric:: Attributes
+
+.. autosummary::
+    JobsCursor.export_to
+    JobsCursor.groupby
+    JobsCursor.groupbydoc
+    JobsCursor.to_dataframe
+
+
+.. autoclass:: JobsCursor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 The Job class
 =============
 
