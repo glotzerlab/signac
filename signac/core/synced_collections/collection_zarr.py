@@ -8,6 +8,13 @@ from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
 
+try:
+    import numcodecs
+
+    ZARR = True
+except ImportError:
+    ZARR = False
+
 
 class ZarrCollection(SyncedCollection):
     """A :class:`SyncedCollection` that synchronizes with a Zarr group.
@@ -36,7 +43,10 @@ class ZarrCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, group=None, name=None, codec=None, **kwargs):
-        import numcodecs
+        if not ZARR:
+            raise RuntimeError(
+                "The Zarr package must be installed to use the ZarrCollection."
+            )
 
         self._group = group
         self._name = name

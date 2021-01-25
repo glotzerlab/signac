@@ -2,11 +2,16 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB SyncedCollection backend."""
-import bson
-
 from .synced_attr_dict import SyncedAttrDict
 from .synced_collection import SyncedCollection
 from .synced_list import SyncedList
+
+try:
+    import bson
+
+    MONGO = True
+except ImportError:
+    MONGO = False
 
 
 class MongoDBCollection(SyncedCollection):
@@ -43,6 +48,10 @@ class MongoDBCollection(SyncedCollection):
     _backend = __name__  # type: ignore
 
     def __init__(self, collection=None, uid=None, parent=None, **kwargs):
+        if not MONGO:
+            raise RuntimeError(
+                "The PyMongo package must be installed to use the MongoDBCollection."
+            )
 
         self._collection = collection
         self._uid = uid
