@@ -20,9 +20,8 @@ if NUMPY:
 _sequence_resolver = AbstractTypeResolver(
     {
         "SEQUENCE": (
-            lambda obj: isinstance(obj, Sequence)
-            and not isinstance(obj, str)
-            or (NUMPY and isinstance(obj, numpy.ndarray))
+            lambda obj: (isinstance(obj, Sequence) and not isinstance(obj, str))
+            or (NUMPY and (isinstance(obj, numpy.ndarray) and obj.shape != ()))
         ),
     }
 )

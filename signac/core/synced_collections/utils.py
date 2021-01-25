@@ -71,6 +71,11 @@ class AbstractTypeResolver:
             will return ``None``.
 
         """
+        # 0-d NumPy arrays must be handled the right way here.
+        if NUMPY and isinstance(obj, numpy.ndarray):
+            if obj.shape == ():
+                obj = obj.item()
+
         obj_type = type(obj)
         enum_type = None
         try:
@@ -104,10 +109,13 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
 
     """
     if NUMPY:
-        if isinstance(o, numpy.number):
+        if isinstance(o, numpy.ndarray):
+            if o.shape == ():
+                return o.item()
+            else:
+                return o.tolist()
+        elif isinstance(o, numpy.number):
             return o.item()
-        elif isinstance(o, numpy.ndarray):
-            return o.tolist()
     try:
         return o._data
     except AttributeError as e:

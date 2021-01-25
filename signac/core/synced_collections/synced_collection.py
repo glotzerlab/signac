@@ -298,7 +298,9 @@ class SyncedCollection(Collection):
             if base_cls.is_base_type(data):
                 return base_cls(data=data, **kwargs)
         if NUMPY:
-            if isinstance(data, numpy.number):
+            if isinstance(data, numpy.number) or (
+                isinstance(data, numpy.ndarray) and data.shape == ()
+            ):
                 return data.item()
         return data
 
