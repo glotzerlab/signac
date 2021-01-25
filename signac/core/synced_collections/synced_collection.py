@@ -340,11 +340,15 @@ class SyncedCollection(Collection):
     def _load_from_resource(self):
         """Load data from underlying backend.
 
-        This method must be implemented for each backend.
+        This method must be implemented for each backend. Backends may choose
+        to return ``None``, signaling that no modification should be performed
+        on the data in memory. This mode is useful for backends where the underlying
+        resource (e.g. a file) may not initially exist, but can be transparently
+        created on save.
 
         Returns
         -------
-        Collection
+        Collection or None
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
             contains the data in the underlying resource (e.g. a file).
 

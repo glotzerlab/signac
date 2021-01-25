@@ -16,6 +16,7 @@ import pytest
 
 import signac.common.config
 import signac.contrib
+from signac.contrib.errors import JobsCorruptedError
 from signac.contrib.job import Job
 from signac.errors import DestinationExistsError, InvalidKeyError, KeyTypeError
 
@@ -445,10 +446,13 @@ class TestJobSpInterface(TestJobBase):
             assert str(key) in job.sp
 
     def test_invalid_sp_key_types(self):
-        job = self.open_job(dict(invalid_key=True)).init()
-
         class A:
             pass
+
+        with pytest.raises(KeyTypeError):
+            self.open_job({A(): True}).init()
+
+        job = self.open_job(dict(invalid_key=True)).init()
 
         for key in (0.0, A(), (1, 2, 3)):
             with pytest.raises(KeyTypeError):
@@ -536,6 +540,9 @@ class TestJobOpenAndClosing(TestJobBase):
         assert os.path.exists(os.path.join(job.workspace(), job.FN_MANIFEST))
 
     def test_construction(self):
+        from signac import Project  # noqa: F401
+
+        # The eval statement needs to have Project available
         job = self.open_job(test_token)
         job2 = eval(repr(job))
         assert job == job2
@@ -626,8 +633,8 @@ class TestJobOpenAndClosing(TestJobBase):
         job2 = self.open_job(test_token)
         try:
             logging.disable(logging.ERROR)
-            # Detects the corrupted manifest and overwrites with valid data
-            job2.init()
+            with pytest.raises(JobsCorruptedError):
+                job2.init()
         finally:
             logging.disable(logging.NOTSET)
         job2.init(force=True)

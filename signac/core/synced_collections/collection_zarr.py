@@ -48,9 +48,10 @@ class ZarrCollection(SyncedCollection):
 
         Returns
         -------
-        Collection
+        Collection or None
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
-            contains the data in the Zarr group.
+            contains the data in the Zarr group. Will return None if associated
+            data is not found in the Zarr group.
 
         """
         try:

@@ -39,9 +39,10 @@ class RedisCollection(SyncedCollection):
 
         Returns
         -------
-        Collection
+        Collection or None
             An equivalent unsynced collection satisfying :meth:`is_base_type` that
-            contains the data in the Redis database.
+            contains the data in the Redis database. Will return None if no data
+            was found in the Redis database.
 
         """
         blob = self._client.get(self._key)

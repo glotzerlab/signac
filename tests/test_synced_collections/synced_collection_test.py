@@ -208,8 +208,6 @@ class SyncedDictTest(SyncedCollectionTest):
         synced_collection[key] = testdata
         assert len(synced_collection) == 1
         assert synced_collection[key] == testdata
-        synced_collection.reset()
-        assert len(synced_collection) == 0
         synced_collection.reset({"reset": "abc"})
         assert len(synced_collection) == 1
         assert synced_collection[key] == "abc"
@@ -544,8 +542,6 @@ class SyncedListTest(SyncedCollectionTest):
         synced_collection.reset([1, 2, 3])
         assert len(synced_collection) == 3
         assert synced_collection == [1, 2, 3]
-        synced_collection.reset()
-        assert len(synced_collection) == 0
         synced_collection.reset([3, 4])
         assert len(synced_collection) == 2
         assert synced_collection == [3, 4]

@@ -13,7 +13,8 @@ import pytest
 from test_project import TestProjectBase
 
 import signac
-from signac.errors import BufferedFileError, BufferException, Error
+from signac.core.synced_collections.errors import BufferedError
+from signac.errors import BufferedFileError, Error
 
 PYPY = "PyPy" in platform.python_implementation()
 
@@ -72,6 +73,10 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
+    # Remove this test in signac 2.0.
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
+    )
     def test_buffered_mode_force_write(self):
         with signac.buffered(force_write=False):
             with signac.buffered(force_write=False):
@@ -88,6 +93,10 @@ class TestBufferedMode(TestProjectBase):
                     pass
         assert not signac.is_buffered()
 
+    # Remove this test in signac 2.0.
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
+    )
     def test_buffered_mode_force_write_with_file_modification(self):
         job = self.project.open_job(dict(a=0))
         job.init()
@@ -114,8 +123,9 @@ class TestBufferedMode(TestProjectBase):
                 file.write(json.dumps({"a": x}).encode())
         assert job.doc.a == (not x)
 
-    @pytest.mark.skipif(
-        not ABLE_TO_PREVENT_WRITE, reason="unable to trigger permission error"
+    # Remove this test in signac 2.0.
+    @pytest.mark.xfail(
+        reason="The new SyncedCollection does not implement force_write."
     )
     def test_force_write_mode_with_permission_error(self):
         job = self.project.open_job(dict(a=0))
@@ -139,31 +149,27 @@ class TestBufferedMode(TestProjectBase):
         assert job.doc.a == x
 
     def test_buffered_mode_change_buffer_size(self):
-        assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
-            assert signac.buffered()
-            assert signac.get_buffer_size() == 12
-
-        assert not signac.is_buffered()
-        with pytest.raises(TypeError):
-            with signac.buffered(buffer_size=True):
-                pass
-
-        assert not signac.is_buffered()
-        with signac.buffered(buffer_size=12):
-            assert signac.buffered()
-            assert signac.get_buffer_size() == 12
-            with signac.buffered(buffer_size=12):
+        original_buffer_size = signac.get_buffer_size()
+        try:
+            assert not signac.is_buffered()
+            signac.set_buffer_size(12)
+            with signac.buffered():
                 assert signac.buffered()
                 assert signac.get_buffer_size() == 12
 
-        assert not signac.is_buffered()
-        with pytest.raises(BufferException):
-            with signac.buffered(buffer_size=12):
+            assert not signac.is_buffered()
+
+            assert not signac.is_buffered()
+            with signac.buffered():
                 assert signac.buffered()
                 assert signac.get_buffer_size() == 12
-                with signac.buffered(buffer_size=14):
-                    pass
+                with signac.buffered():
+                    assert signac.buffered()
+                    assert signac.get_buffer_size() == 12
+
+            assert not signac.is_buffered()
+        finally:
+            signac.set_buffer_size(original_buffer_size)
 
     def test_integration(self):
         def routine():
@@ -240,7 +246,7 @@ class TestBufferedMode(TestProjectBase):
             assert job2.doc.a == (not x)
 
             assert job.doc.a == (not x)
-            with pytest.raises(BufferedFileError) as cm:
+            with pytest.raises(BufferedError) as cm:
                 with signac.buffered():
                     assert job.doc.a == (not x)
                     job.doc.a = x

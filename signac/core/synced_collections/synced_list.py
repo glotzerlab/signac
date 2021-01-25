@@ -150,30 +150,24 @@ class SyncedList(SyncedCollection, MutableSequence):
                 )
             )
 
-    def reset(self, data=None):
+    def reset(self, data):
         """Update the instance with new data.
 
         Parameters
         ----------
-        data: non-string Sequence, optional
-            Data to update the instance (Default value = None).
+        data : non-string Sequence
+            Data to update the instance.
 
         Raises
         ------
         ValueError
-            If the data is not instance of non-string seqeuence
+            If the data is not a non-string sequence.
 
         """
-        if data is None:
-            data = []
-        elif NUMPY and isinstance(data, numpy.ndarray):
+        if NUMPY and isinstance(data, numpy.ndarray):
             data = data.tolist()
-        self._validate(data)
         if _sequence_resolver.get_type(data) == "SEQUENCE":
-            with self._suspend_sync:
-                self._data = [
-                    self._from_base(data=value, parent=self) for value in data
-                ]
+            self._update(data)
             with self._thread_lock:
                 self._save()
         else:

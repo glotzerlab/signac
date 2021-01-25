@@ -26,7 +26,7 @@ from .. import syncutil
 from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
-from ..core.jsondict import JSONDict
+from ..core.synced_collections.collection_json import BufferedJSONDict
 from ..sync import sync_projects
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
@@ -496,13 +496,13 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
             The project document.
 
         """
         if self._document is None:
             fn_doc = os.path.join(self.root_directory(), self.FN_DOCUMENT)
-            self._document = JSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -525,7 +525,7 @@ class Project:
 
         Returns
         -------
-        :class:`~signac.JSONDict`
+        :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
             The project document.
 
         """

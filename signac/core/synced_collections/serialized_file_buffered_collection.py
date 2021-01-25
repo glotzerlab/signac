@@ -13,7 +13,7 @@ import json
 
 from .errors import MetadataError
 from .file_buffered_collection import FileBufferedCollection
-from .utils import SCJSONEncoder
+from .utils import SyncedCollectionJSONEncoder
 
 
 class SerializedFileBufferedCollection(FileBufferedCollection):
@@ -168,7 +168,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
             The underlying encoded data.
 
         """
-        return json.dumps(data, cls=SCJSONEncoder).encode()
+        return json.dumps(data, cls=SyncedCollectionJSONEncoder).encode()
 
     @staticmethod
     def _decode(blob):

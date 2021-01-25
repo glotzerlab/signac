@@ -114,7 +114,7 @@ def default(o: Any) -> Dict[str, Any]:  # noqa: D102
         raise TypeError from e
 
 
-class SCJSONEncoder(JSONEncoder):
+class SyncedCollectionJSONEncoder(JSONEncoder):
     """A JSONEncoder capable of encoding SyncedCollections and other supported types.
 
     This encoder will attempt to obtain a JSON-serializable representation of

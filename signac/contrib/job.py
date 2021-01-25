@@ -8,13 +8,13 @@ import logging
 import os
 import shutil
 from copy import deepcopy
+from json import JSONDecodeError
 
 from deprecation import deprecated
 
-from ..core import json
-from ..core.attrdict import SyncedAttrDict
 from ..core.h5store import H5StoreManager
-from ..core.jsondict import JSONDict
+from ..core.synced_collections.collection_json import BufferedJSONDict, JSONDict
+from ..errors import KeyTypeError
 from ..sync import sync_jobs
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
@@ -24,31 +24,189 @@ from .utility import _mkdir_p
 logger = logging.getLogger(__name__)
 
 
-class _sp_save_hook:
-    """Hook to handle job migration when state points are changed.
+class _StatePointDict(JSONDict):
+    """A JSON-backed dictionary for storing job state points.
 
-    When a job's state point is changed, in addition
-    to the contents of the file being modified this hook
-    calls :meth:`~Job._reset_sp` to rehash the state
-    point, compute a new job id, and move the folder.
-
-    Parameters
-    ----------
-    jobs : iterable of `Jobs`
-        List of jobs(instance of `Job`).
-
+    There are three principal reasons for extending the base JSONDict:
+        1. Saving needs to trigger a job directory migration, and
+        2. State points are assumed to not support external modification, so
+           they never need to load from disk _except_ the very first time a job
+           is opened by id and they're not present in the cache.
+        3. It must be possible to load and/or save on demand during tasks like
+           job directory migrations.
     """
 
-    def __init__(self, *jobs):
-        self.jobs = list(jobs)
+    _PROTECTED_KEYS = ("_jobs",)
 
-    def load(self):
+    def __init__(
+        self,
+        jobs=None,
+        filename=None,
+        write_concern=False,
+        data=None,
+        parent=None,
+        *args,
+        **kwargs,
+    ):
+        # Multiple Python Job objects can share a single `_StatePointDict`
+        # instance because they are shallow copies referring to the same data
+        # on disk. We need to store these jobs in a shared list here so that
+        # shallow copies can point to the same place and trigger each other to
+        # update. This does not apply to independently created Job objects,
+        # even if they refer to the same disk data; this only applies to
+        # explicit shallow copies and unpickled objects within a session.
+        self._jobs = list(jobs)
+        super().__init__(
+            filename=filename,
+            write_concern=write_concern,
+            data=data,
+            parent=parent,
+            *args,
+            **kwargs,
+        )
+
+    def _load(self):
+        # State points never load from disk automatically. They are either
+        # initialized with provided data (e.g. from the state point cache), or
+        # they load from disk the first time state point data is requested for
+        # a Job opened by id (in which case the state point must first be
+        # validated manually).
         pass
 
-    def save(self):
-        """Reset the state point for all the jobs."""
-        for job in self.jobs:
-            job._reset_sp()
+    def _save(self):
+        # State point modification triggers job migration for all jobs sharing
+        # this state point (shallow copies of a single job).
+        new_id = calc_id(self)
+
+        # All elements of the job list are shallow copies of each other, so any
+        # one of them is representative.
+        job = next(iter(self._jobs))
+        old_id = job._id
+        if old_id == new_id:
+            return
+
+        tmp_statepoint_file = self.filename + "~"
+        should_init = False
+        try:
+            # Move the state point to an intermediate location as a backup.
+            os.replace(self.filename, tmp_statepoint_file)
+            try:
+                new_workspace = os.path.join(job._project.workspace(), new_id)
+                os.replace(job.workspace(), new_workspace)
+            except OSError as error:
+                os.replace(tmp_statepoint_file, self.filename)  # rollback
+                if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
+                    raise DestinationExistsError(new_id)
+                else:
+                    raise
+            else:
+                should_init = True
+        except OSError as error:
+            # The most likely reason we got here is because the state point
+            # file move failed due to the job not being initialized so the file
+            # doesn't exist, which is OK.
+            if error.errno != errno.ENOENT:
+                raise
+
+        # Update each job instance.
+        for job in self._jobs:
+            job._id = new_id
+            job._initialize_lazy_properties()
+
+        # Remove the temporary state point file if it was created. Have to do it
+        # here because we need to get the updated job state point filename.
+        try:
+            os.remove(job._statepoint_filename + "~")
+        except OSError as error:
+            if error.errno != errno.ENOENT:
+                raise
+
+        # Since all the jobs are equivalent, just grab the filename from the
+        # last one and init it. Also migrate the lock for multithreaded support.
+        old_lock_id = self._lock_id
+        self._filename = job._statepoint_filename
+        type(self)._locks[self._lock_id] = type(self)._locks.pop(old_lock_id)
+
+        if should_init:
+            # Only initializing one job assumes that all changes in init are
+            # changes reflected in the underlying resource (the JSON file).
+            # This assumption is currently valid because all in-memory
+            # attributes are loaded lazily (and are handled by the call to
+            # _initialize_lazy_properties above), except for the key defining
+            # property of the job id (which is also updated above). If init
+            # ever changes to making modifications to the job object, we may
+            # need to call it for all jobs.
+            job.init()
+
+        logger.info(f"Moved '{old_id}' -> '{new_id}'.")
+
+    def save(self, force=False):
+        """Trigger a save to disk.
+
+        Unlike normal JSONDict objects, this class requires the ability to save
+        on command. Moreover, this save must be conditional on whether or not a
+        file is present to allow the user to observe state points in corrupted
+        data spaces and attempt to recover.
+
+        Parameters
+        ----------
+        force : bool
+            If True, save even if the file is present on disk.
+        """
+        try:
+            # Open the file for writing only if it does not exist yet.
+            if force or not os.path.isfile(self._filename):
+                super()._save()
+        except Exception as error:
+            if not isinstance(error, OSError) or error.errno not in (
+                errno.EEXIST,
+                errno.EACCES,
+            ):
+                # Attempt to delete the file on error, to prevent corruption.
+                # OSErrors that are EEXIST or EACCES don't need to delete the file.
+                try:
+                    os.remove(self._filename)
+                except Exception:  # ignore all errors here
+                    pass
+                raise
+
+    def load(self, job_id):
+        """Trigger a load from disk.
+
+        Unlike normal JSONDict objects, this class requires the ability to
+        load on command. These loads typically occur when the state point
+        must be validated against the data on disk; at all other times, the
+        in-memory data is assumed to be accurate to avoid unnecessary I/O.
+
+        Parameters
+        ----------
+        job_id : str
+            Job id used to validate contents on disk.
+
+        Returns
+        -------
+        data : dict
+            Dictionary of state point data.
+
+        Raises
+        ------
+        :class:`~signac.errors.JobsCorruptedError`
+            If the data on disk is invalid or its hash does not match the job
+            id.
+
+        """
+        try:
+            data = self._load_from_resource()
+        except JSONDecodeError:
+            raise JobsCorruptedError([job_id])
+
+        if calc_id(data) != job_id:
+            raise JobsCorruptedError([job_id])
+
+        with self._suspend_sync:
+            self._update(data)
+
+        return data
 
 
 class Job:
@@ -73,9 +231,9 @@ class Job:
     """
 
     FN_MANIFEST = "signac_statepoint.json"
-    """The job's manifest filename.
+    """The job's state point filename.
 
-    The job manifest is a human-readable file containing the job's state
+    The job state point is a human-readable file containing the job's state
     point that is stored in each job's workspace directory.
     """
 
@@ -87,38 +245,35 @@ class Job:
 
     def __init__(self, project, statepoint=None, _id=None):
         self._project = project
+        self._initialize_lazy_properties()
 
         if statepoint is None and _id is None:
             raise ValueError("Either statepoint or _id must be provided.")
         elif statepoint is not None:
-            # A state point was provided.
-            self._statepoint = SyncedAttrDict(statepoint, parent=_sp_save_hook(self))
-            # If the id is provided, assume the job is already registered in
-            # the project cache and that the id is valid for the state point.
-            if _id is None:
-                # Validate the state point and recursively convert to supported types.
-                statepoint = self.statepoint()
-                # Compute the id from the state point if not provided.
-                self._id = calc_id(statepoint)
-                # Update the project's state point cache immediately if opened by state point
-                self._project._register(self.id, statepoint)
-            else:
-                self._id = _id
+            self._statepoint_requires_init = False
+            try:
+                self._id = calc_id(statepoint) if _id is None else _id
+            except TypeError:
+                raise KeyTypeError
+            self._statepoint = _StatePointDict(
+                jobs=[self], filename=self._statepoint_filename, data=statepoint
+            )
+
+            # Update the project's state point cache immediately if opened by state point
+            self._project._register(self.id, statepoint)
         else:
             # Only an id was provided. State point will be loaded lazily.
-            self._statepoint = None
             self._id = _id
+            self._statepoint = _StatePointDict(
+                jobs=[self], filename=self._statepoint_filename
+            )
+            self._statepoint_requires_init = True
 
-        # Prepare job working directory
+    def _initialize_lazy_properties(self):
+        """Initialize all properties that are designed to be loaded lazily."""
         self._wd = None
-
-        # Prepare job document
         self._document = None
-
-        # Prepare job H5StoreManager
         self._stores = None
-
-        # Prepare current working directory for context management
         self._cwd = []
 
     @deprecated(
@@ -185,6 +340,11 @@ class Job:
         return self._wd
 
     @property
+    def _statepoint_filename(self):
+        """Get the path of the state point file for this job."""
+        return os.path.join(self.workspace(), self.FN_MANIFEST)
+
+    @property
     def ws(self):
         """Alias for :meth:`~Job.workspace`."""
         return self.workspace()
@@ -204,49 +364,7 @@ class Job:
             The job's new state point.
 
         """
-        dst = self._project.open_job(new_statepoint)
-        if dst == self:
-            return
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-        fn_manifest_backup = fn_manifest + "~"
-        try:
-            os.replace(fn_manifest, fn_manifest_backup)
-            try:
-                os.replace(self.workspace(), dst.workspace())
-            except OSError as error:
-                os.replace(fn_manifest_backup, fn_manifest)  # rollback
-                if error.errno in (errno.EEXIST, errno.ENOTEMPTY, errno.EACCES):
-                    raise DestinationExistsError(dst)
-                else:
-                    raise
-            else:
-                dst.init()
-        except OSError as error:
-            if error.errno == errno.ENOENT:
-                pass  # job is not initialized
-            else:
-                raise
-        # Update this instance
-        self.statepoint._data = dst.statepoint._data
-        self._id = dst._id
-        self._wd = None
-        self._document = None
-        self._stores = None
-        self._cwd = []
-        logger.info(f"Moved '{self}' -> '{dst}'.")
-
-    def _reset_sp(self, new_statepoint=None):
-        """Check for new state point requested to assign this job.
-
-        Parameters
-        ----------
-        new_statepoint : dict
-            The job's new state point (Default value = None).
-
-        """
-        if new_statepoint is None:
-            new_statepoint = self.statepoint()
-        self.reset_statepoint(new_statepoint)
+        self._statepoint.reset(new_statepoint)
 
     def update_statepoint(self, update, overwrite=False):
         """Update the state point of this job.
@@ -283,36 +401,7 @@ class Job:
                 if statepoint.get(key, value) != value:
                     raise KeyError(key)
         statepoint.update(update)
-        self.reset_statepoint(statepoint)
-
-    def _read_manifest(self):
-        """Read and parse the manifest file, if it exists.
-
-        Returns
-        -------
-        manifest : dict
-            State point data.
-
-        Raises
-        ------
-        JobsCorruptedError
-            If an error occurs while parsing the state point manifest.
-        OSError
-            If an error occurs while reading the state point manifest.
-
-        """
-        fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-        try:
-            with open(fn_manifest, "rb") as file:
-                manifest = json.loads(file.read().decode())
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                raise error
-        except ValueError:
-            # This catches JSONDecodeError, a subclass of ValueError
-            raise JobsCorruptedError([self.id])
-        else:
-            return manifest
+        self._statepoint.reset(statepoint)
 
     @property
     def statepoint(self):
@@ -336,12 +425,13 @@ class Job:
             Returns the job's state point.
 
         """
-        if self._statepoint is None:
-            # Load state point manifest lazily and assign to
-            # self._statepoint
-            statepoint = self._check_manifest()
+        if self._statepoint_requires_init:
+            # Load state point data lazily (on access).
+            statepoint = self._statepoint.load(self.id)
+
             # Update the project's state point cache when loaded lazily
             self._project._register(self.id, statepoint)
+            self._statepoint_requires_init = False
 
         return self._statepoint
 
@@ -355,7 +445,7 @@ class Job:
             The new state point to be assigned.
 
         """
-        self._reset_sp(new_statepoint)
+        self._statepoint.reset(new_statepoint)
 
     @property
     def sp(self):
@@ -373,9 +463,13 @@ class Job:
 
         .. warning::
 
+            Even deep copies of :attr:`~Job.document` will modify the same file,
+            so changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
-            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+            persistent JSON file, use the call operator to get an equivalent
+            plain dictionary: ``job.document()``.
+            For more information, see
+            :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`.
 
         See :ref:`signac document <signac-cli-document>` for the command line equivalent.
 
@@ -388,7 +482,7 @@ class Job:
         if self._document is None:
             self.init()
             fn_doc = os.path.join(self.workspace(), self.FN_DOCUMENT)
-            self._document = JSONDict(filename=fn_doc, write_concern=True)
+            self._document = BufferedJSONDict(filename=fn_doc, write_concern=True)
         return self._document
 
     @document.setter
@@ -397,7 +491,7 @@ class Job:
 
         Parameters
         ----------
-        new_doc : :class:`~signac.JSONDict`
+        new_doc : :class:`~signac.core.synced_collections.collection_json.BufferedJSONDict`
             The job document handle.
 
         """
@@ -409,9 +503,18 @@ class Job:
 
         .. warning::
 
+            Even deep copies of :attr:`~Job.doc` will modify the same file, so
+            changes will still effectively be persisted between deep copies.
             If you need a deep copy that will not modify the underlying
-            persistent JSON file, use :attr:`~Job.document` instead of :attr:`~Job.doc`.
-            For more information, see :attr:`~Job.statepoint` or :class:`~signac.JSONDict`.
+            persistent JSON file, use the call operator to get an equivalent
+            plain dictionary: ``job.doc()``.
+
+        See :ref:`signac document <signac-cli-document>` for the command line equivalent.
+
+        Returns
+        -------
+        :class:`~signac.JSONDict`
+            The job document handle.
 
         """
         return self.document
@@ -493,96 +596,11 @@ class Job:
         """
         self.stores[self.KEY_DATA] = new_data
 
-    def _init(self, force=False):
-        """Contains all logic for job initialization.
-
-        This method is called by :meth:`~.init` and is responsible
-        for actually creating the job workspace directory and
-        writing out the state point manifest file.
-
-        Parameters
-        ----------
-        force : bool
-            If ``True``, write the job manifest even if it
-            already exists. If ``False``, this method will
-            raise an Exception if the manifest exists
-            (Default value = False).
-
-        """
-        # Attempt early exit if the manifest exists and is valid
-        try:
-            statepoint = self._check_manifest()
-        except Exception:
-            # Any exception means this method cannot exit early.
-
-            # Create the workspace directory if it does not exist.
-            try:
-                _mkdir_p(self.workspace())
-            except OSError:
-                logger.error(
-                    "Error occurred while trying to create "
-                    "workspace directory for job '{}'.".format(self.id)
-                )
-                raise
-
-            fn_manifest = os.path.join(self.workspace(), self.FN_MANIFEST)
-            try:
-                # Prepare the data before file creation and writing.
-                statepoint = self.statepoint()
-                blob = json.dumps(statepoint, indent=2)
-            except JobsCorruptedError:
-                raise
-
-            try:
-                # Open the file for writing only if it does not exist yet.
-                with open(fn_manifest, "w" if force else "x") as file:
-                    file.write(blob)
-            except OSError as error:
-                if error.errno not in (errno.EEXIST, errno.EACCES):
-                    raise
-            except Exception as error:
-                # Attempt to delete the file on error, to prevent corruption.
-                try:
-                    os.remove(fn_manifest)
-                except Exception:  # ignore all errors here
-                    pass
-                raise error
-            else:
-                # Validate the output again after writing to disk
-                statepoint = self._check_manifest()
-
-        # Update the project's state point cache if the manifest is valid
-        self._project._register(self.id, statepoint)
-
-    def _check_manifest(self):
-        """Check whether the manifest file exists and is correct.
-
-        If the manifest is valid, this sets the state point if it is not
-        already set.
-
-        Returns
-        -------
-        manifest : dict
-            State point data.
-
-        Raises
-        ------
-        JobsCorruptedError
-            If the manifest hash is not equal to the job id.
-
-        """
-        manifest = self._read_manifest()
-        if calc_id(manifest) != self.id:
-            raise JobsCorruptedError([self.id])
-        if self._statepoint is None:
-            self._statepoint = SyncedAttrDict(manifest, parent=_sp_save_hook(self))
-        return manifest
-
     def init(self, force=False):
         """Initialize the job's workspace directory.
 
-        This function will do nothing if the directory and
-        the job manifest already exist.
+        This function will do nothing if the directory and the job state point
+        already exist.
 
         Returns the calling job.
 
@@ -591,8 +609,8 @@ class Job:
         Parameters
         ----------
         force : bool
-            Overwrite any existing state point's manifest
-            files, e.g., to repair them if they got corrupted (Default value = False).
+            Overwrite any existing state point files, e.g., to repair them if
+            they got corrupted (Default value = False).
 
         Returns
         -------
@@ -601,10 +619,33 @@ class Job:
 
         """
         try:
-            self._init(force=force)
+            # Attempt early exit if the state point file exists and is valid.
+            try:
+                statepoint = self._statepoint.load(self.id)
+            except Exception:
+                # Any exception means this method cannot exit early.
+
+                # Create the workspace directory if it does not exist.
+                try:
+                    _mkdir_p(self.workspace())
+                except OSError:
+                    logger.error(
+                        "Error occurred while trying to create "
+                        "workspace directory for job '{}'.".format(self.id)
+                    )
+                    raise
+
+                # The state point save will not overwrite an existing file on
+                # disk unless force is True, so the subsequent load will catch
+                # when a preexisting invalid file was present.
+                self._statepoint.save(force=force)
+                statepoint = self._statepoint.load(self.id)
+
+                # Update the project's state point cache if the saved file is valid.
+                self._project._register(self.id, statepoint)
         except Exception:
             logger.error(
-                f"State point manifest file of job '{self.id}' appears to be corrupted."
+                f"State point file of job '{self.id}' appears to be corrupted."
             )
             raise
         return self
@@ -825,7 +866,9 @@ class Job:
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.statepoint._parent.jobs.append(self)
+        # We append to a list of jobs rather than replacing to support
+        # transparent id updates between shallow copies of a job.
+        self.statepoint._jobs.append(self)
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -834,3 +877,18 @@ class Job:
         for key, value in self.__dict__.items():
             setattr(result, key, deepcopy(value, memo))
         return result
+
+
+def get_buffer_load():
+    """Get the actual size of the buffer."""
+    return BufferedJSONDict.get_current_buffer_size()
+
+
+def get_buffer_size():
+    """Get the maximum available capacity of the buffer."""
+    return BufferedJSONDict.get_buffer_capacity()
+
+
+def set_buffer_size(new_size):
+    """Set the maximum available capacity of the buffer."""
+    return BufferedJSONDict.set_buffer_capacity(new_size)
