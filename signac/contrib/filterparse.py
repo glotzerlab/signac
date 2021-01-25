@@ -3,9 +3,8 @@
 # This software is licensed under the BSD 3-Clause License.
 """Parse the filter arguments."""
 
+import json
 import sys
-
-from ..core import json
 
 
 def _print_err(msg=None):

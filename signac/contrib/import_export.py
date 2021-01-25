@@ -4,6 +4,7 @@
 """Provides features for importing and exporting data."""
 
 import errno
+import json
 import logging
 import os
 import re
@@ -16,7 +17,6 @@ from string import Formatter
 from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from ..core import json
 from .errors import DestinationExistsError, StatepointParsingError
 from .utility import _dotted_dict_to_nested_dicts, _mkdir_p
 
