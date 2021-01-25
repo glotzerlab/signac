@@ -48,7 +48,7 @@ class _StatePointDict(JSONDict):
         *args,
         **kwargs,
     ):
-        # Multiple Python Job objects can share a single `_StatepointDict`
+        # Multiple Python Job objects can share a single `_StatePointDict`
         # instance because they are shallow copies referring to the same data
         # on disk. We need to store these jobs in a shared list here so that
         # shallow copies can point to the same place and trigger each other to
@@ -113,8 +113,8 @@ class _StatePointDict(JSONDict):
             job._id = new_id
             job._initialize_lazy_properties()
 
-        # Remove the temporary statepoint file if it was created. Have to do it
-        # here because we need to get the updated job statepoint filename.
+        # Remove the temporary state point file if it was created. Have to do it
+        # here because we need to get the updated job state point filename.
         try:
             os.remove(job._statepoint_filename + "~")
         except OSError as error:

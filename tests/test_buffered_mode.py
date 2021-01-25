@@ -73,6 +73,7 @@ class TestBufferedMode(TestProjectBase):
             assert job.doc.a == 2
         assert job.doc.a == 2
 
+    # Remove this test in signac 2.0.
     @pytest.mark.xfail(
         reason="The new SyncedCollection does not implement force_write."
     )
@@ -92,6 +93,7 @@ class TestBufferedMode(TestProjectBase):
                     pass
         assert not signac.is_buffered()
 
+    # Remove this test in signac 2.0.
     @pytest.mark.xfail(
         reason="The new SyncedCollection does not implement force_write."
     )
@@ -121,6 +123,7 @@ class TestBufferedMode(TestProjectBase):
                 file.write(json.dumps({"a": x}).encode())
         assert job.doc.a == (not x)
 
+    # Remove this test in signac 2.0.
     @pytest.mark.xfail(
         reason="The new SyncedCollection does not implement force_write."
     )
