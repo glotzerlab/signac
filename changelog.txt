@@ -7,13 +7,14 @@ The **signac** package follows `semantic versioning <https://semver.org/>`_.
 Version 1
 =========
 
-next
-----
+[1.6.0] -- 2020-01-24
+---------------------
 
 Added
 +++++
 
  - Implemented ``JobsCursor.__contains__`` check (#449).
+ - Added documentation for ``JobsCursor`` class (#475).
 
 Changed
 +++++++
@@ -23,6 +24,7 @@ Changed
  - State points are loaded lazily when ``Job`` is opened by id (#238, #239).
  - Optimized ``Job`` and ``Project`` classes to cache internal properties and initialize on access (#451).
  - Python 3.6 is only tested with oldest dependencies (#474).
+ - Improved documentation for updating and resetting state points (#444).
 
 Deprecated
 ++++++++++

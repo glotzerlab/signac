@@ -86,9 +86,8 @@ def sync(ctx, in_place=False, check=True):
     if modified:
         if in_place:
             with open(".zenodo.json", "wb") as file:
-                file.write(
-                    json.dumps(zenodo_updated, indent=4, sort_keys=True).encode("utf-8")
-                )
+                json_data = json.dumps(zenodo_updated, indent=4, sort_keys=True)
+                file.write((json_data + "\n").encode("utf-8"))
         else:
             click.echo(json.dumps(zenodo_updated, indent=4, sort_keys=True))
         if check:

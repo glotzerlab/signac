@@ -72,6 +72,10 @@
             "affiliation": "University of Michigan",
             "name": "Pengji Zhou",
             "orcid": "0000-0002-1409-9633"
+        },
+        {
+            "affiliation": "Jodhpur Institute of Engineering and Technology",
+            "name": "Shantanu Dave"
         }
     ],
     "creators": [
@@ -124,5 +128,5 @@
         "id": "http://www.opensource.org/licenses/BSD-3-Clause"
     },
     "title": "signac",
-    "version": "1.5.1"
+    "version": "1.6.0"
 }
