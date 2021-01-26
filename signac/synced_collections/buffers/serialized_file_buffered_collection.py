@@ -11,9 +11,9 @@ and decode from it on load.
 import hashlib
 import json
 
-from .errors import MetadataError
+from ..errors import MetadataError
+from ..utils import SyncedCollectionJSONEncoder
 from .file_buffered_collection import FileBufferedCollection
-from .utils import SyncedCollectionJSONEncoder
 
 
 class SerializedFileBufferedCollection(FileBufferedCollection):

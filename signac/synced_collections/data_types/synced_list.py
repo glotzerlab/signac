@@ -9,8 +9,8 @@ implementing the convert method `_to_base` for lists.
 
 from collections.abc import MutableSequence, Sequence
 
+from ..utils import AbstractTypeResolver
 from .synced_collection import NUMPY, SyncedCollection, _sc_resolver
-from .utils import AbstractTypeResolver
 
 if NUMPY:
     import numpy

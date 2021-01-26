@@ -2,9 +2,7 @@
 # All rights reserved.
 # This software is licensed under the BSD 3-Clause License.
 """Implements a MongoDB SyncedCollection backend."""
-from .synced_attr_dict import SyncedAttrDict
-from .synced_collection import SyncedCollection
-from .synced_list import SyncedList
+from .. import SyncedAttrDict, SyncedCollection, SyncedList
 
 try:
     import bson

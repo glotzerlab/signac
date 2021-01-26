@@ -4,7 +4,7 @@
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.synced_collections.collection_mongodb import (
+from signac.synced_collections.backends.collection_mongodb import (
     MongoDBCollection,
     MongoDBDict,
     MongoDBList,

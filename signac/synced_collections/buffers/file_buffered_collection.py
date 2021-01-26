@@ -15,10 +15,10 @@ from abc import abstractmethod
 from threading import RLock
 from typing import Dict, Tuple, Union
 
+from ..data_types.synced_collection import _LoadAndSave
+from ..errors import MetadataError
+from ..utils import _NullContext
 from .buffered_collection import BufferedCollection
-from .errors import MetadataError
-from .synced_collection import _LoadAndSave
-from .utils import _NullContext
 
 
 class _BufferedLoadAndSave(_LoadAndSave):

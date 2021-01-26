@@ -10,13 +10,13 @@ import uuid
 import warnings
 from typing import Tuple
 
-from .memory_buffered_collection import SharedMemoryFileBufferedCollection
-from .serialized_file_buffered_collection import SerializedFileBufferedCollection
-from .synced_attr_dict import SyncedAttrDict
-from .synced_collection import SyncedCollection
-from .synced_list import SyncedList
-from .utils import SyncedCollectionJSONEncoder
-from .validators import json_format_validator
+from .. import SyncedAttrDict, SyncedCollection, SyncedList
+from ..buffers.memory_buffered_collection import SharedMemoryFileBufferedCollection
+from ..buffers.serialized_file_buffered_collection import (
+    SerializedFileBufferedCollection,
+)
+from ..utils import SyncedCollectionJSONEncoder
+from ..validators import json_format_validator
 
 
 # TODO: This method should be removed in signac 2.0.

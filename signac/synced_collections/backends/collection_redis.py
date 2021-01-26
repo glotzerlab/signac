@@ -4,9 +4,7 @@
 """Implements a Redis SyncedCollection backend."""
 import json
 
-from .synced_attr_dict import SyncedAttrDict
-from .synced_collection import SyncedCollection
-from .synced_list import SyncedList
+from .. import SyncedAttrDict, SyncedCollection, SyncedList
 
 
 class RedisCollection(SyncedCollection):
