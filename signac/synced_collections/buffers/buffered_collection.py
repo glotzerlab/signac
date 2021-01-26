@@ -36,7 +36,6 @@ buffer flushes will occur when all such managers have been exited.
 """
 
 import logging
-import warnings
 from inspect import isabstract
 from typing import Any, List
 
@@ -201,7 +200,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self.buffered or _BUFFER_ALL_CONTEXT or type(self)._buffer_context
+        return self.buffered or type(self)._buffer_context
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
@@ -211,45 +210,3 @@ class BufferedCollection(SyncedCollection):
     def _flush_buffer(self):
         """Flush all data in this class's buffer."""
         pass
-
-
-# This module-scope variable is a context that can be accessed via the
-# buffer_all method for the purpose of buffering all subsequence read and write
-# operations.
-_BUFFER_ALL_CONTEXT = _CounterFuncContext(BufferedCollection._flush_all_backends)
-
-
-# This function provides a more familiar module-scope, function-based interface
-# for enabling buffering rather than calling the class's static method.
-def buffer_all(force_write=None, buffer_size=None):
-    """Return a global buffer context for all BufferedCollection instances.
-
-    All future operations use the buffer whenever possible. Write operations
-    are deferred until the context is exited, at which point all buffered
-    backends will flush their buffers. Individual backends may flush their
-    buffers within this context if the implementation requires it; this context
-    manager represents a promise to buffer whenever possible, but does not
-    guarantee that no writes will occur under all circumstances.
-    """
-    if force_write is not None:
-        warnings.warn(
-            DeprecationWarning(
-                "The force_write parameter is deprecated and will be removed in "
-                "signac 2.0. This functionality is no longer supported."
-            )
-        )
-    if buffer_size is not None:
-        warnings.warn(
-            DeprecationWarning(
-                "The buffer_size parameter is deprecated and will be removed in "
-                "signac 2.0. The buffer size should be set using the "
-                "set_buffer_capacity method of FileBufferedCollection or any of its "
-                "subclasses."
-            )
-        )
-    return _BUFFER_ALL_CONTEXT
-
-
-def is_buffered():
-    """Check the global buffered mode setting."""
-    return bool(_BUFFER_ALL_CONTEXT)
