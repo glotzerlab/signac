@@ -23,30 +23,36 @@ from .buffered_collection import BufferedCollection
 
 
 class _FileBufferedContext(_CounterFuncContext):
+    """Extend the usual buffering context to support setting the buffer size.
+
+    This context allows the buffer_backend method to temporarily set the buffer
+    size within the scope of this context.
+    """
+
     def __init__(self, cls):
         super().__init__(cls._flush_buffer)
-        self._buffer_size = None
-        self._original_buffer_sizes = []
+        self._buffer_capacity = None
+        self._original_buffer_capacitys = []
         self._cls = cls
 
-    def __call__(self, buffer_size=None):
-        self._buffer_size = buffer_size
+    def __call__(self, buffer_capacity=None):
+        self._buffer_capacity = buffer_capacity
         return self
 
     def __enter__(self):
         super().__enter__()
-        if self._buffer_size is not None:
-            self._original_buffer_sizes.append(self._cls.get_buffer_capacity())
-            self._cls.set_buffer_capacity(self._buffer_size)
+        if self._buffer_capacity is not None:
+            self._original_buffer_capacitys.append(self._cls.get_buffer_capacity())
+            self._cls.set_buffer_capacity(self._buffer_capacity)
         else:
-            self._original_buffer_sizes.append(None)
-        self._buffer_size = None
+            self._original_buffer_capacitys.append(None)
+        self._buffer_capacity = None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
-        original_buffer_size = self._original_buffer_sizes.pop()
-        if original_buffer_size is not None:
-            self._cls.set_buffer_capacity(original_buffer_size)
+        original_buffer_capacity = self._original_buffer_capacitys.pop()
+        if original_buffer_capacity is not None:
+            self._cls.set_buffer_capacity(original_buffer_capacity)
 
 
 class _BufferedLoadAndSave(_LoadAndSave):
@@ -339,9 +345,21 @@ class FileBufferedCollection(BufferedCollection):
         else:
             raise BufferedError(issues)
 
+    # TODO: The buffer_size argument should be changed to buffer_capacity in
+    # signac 2.0 for consistency with the new names in synced collections.
     @classmethod
     def buffer_backend(cls, buffer_size=None, force_write=None, *args, **kwargs):
-        """Enter context to buffer all operations for this backend."""
+        """Enter context to buffer all operations for this backend.
+
+        Parameters
+        ----------
+        buffer_size : int
+            The capacity of the buffer to use within this context (resets after
+            the context is exited).
+        force_write : bool
+            This argument does nothing and is only present for compatibility
+            with signac 1.x.
+        """
         if force_write is not None:
             warnings.warn(
                 DeprecationWarning(

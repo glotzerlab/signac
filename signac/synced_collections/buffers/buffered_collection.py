@@ -37,10 +37,8 @@ buffer flushes will occur when all such managers have been exited.
 
 import logging
 from inspect import isabstract
-from typing import Any, List
 
 from .. import SyncedCollection
-from ..errors import BufferedError
 from ..utils import _CounterFuncContext
 
 logger = logging.getLogger(__name__)
@@ -81,8 +79,6 @@ class BufferedCollection(SyncedCollection):
 
     """
 
-    _BUFFERED_BACKENDS: List[Any] = []
-
     def __init__(self, *args, **kwargs):
         # The `_buffered` attribute _must_ be defined prior to calling the
         # superclass constructors in order to enable subclasses to override
@@ -101,7 +97,6 @@ class BufferedCollection(SyncedCollection):
         """
         super().__init_subclass__()
         if not isabstract(cls):
-            BufferedCollection._BUFFERED_BACKENDS.append(cls)
             cls._buffer_context = _CounterFuncContext(cls._flush_buffer)
 
     @classmethod
@@ -113,31 +108,6 @@ class BufferedCollection(SyncedCollection):
     def backend_is_buffered(cls):
         """Check if this backend is currently buffered."""
         return bool(cls._buffer_context)
-
-    @staticmethod
-    def _flush_all_backends():
-        """Execute all deferred write operations.
-
-        Raises
-        ------
-        BufferedError
-            If there are any issues with flushing any backend.
-
-        """
-        logger.debug("Flushing buffer...")
-        issues = {}
-        for backend in BufferedCollection._BUFFERED_BACKENDS:
-            try:
-                # try to sync the data to backend
-                issue = backend._flush_buffer()
-                issues.update(issue)
-            except OSError as error:
-                logger.error(str(error))
-                issues[backend] = error
-            except BufferedError as error:
-                issues.update(error.files)
-        if issues:
-            raise BufferedError(issues)
 
     def _save(self):
         """Synchronize data with the backend but buffer if needed.
