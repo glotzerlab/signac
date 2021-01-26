@@ -11,6 +11,7 @@ specific components are abstract and must be implemented by child classes.
 
 import errno
 import os
+import warnings
 from abc import abstractmethod
 from threading import RLock
 from typing import Dict, Tuple, Union
@@ -308,3 +309,26 @@ class FileBufferedCollection(BufferedCollection):
             cls._buffered_collections = remaining_collections
         else:
             raise BufferedError(issues)
+
+    @classmethod
+    def buffer_backend(cls, buffer_size=None, force_write=None, *args, **kwargs):
+        """Enter context to buffer all operations for this backend."""
+        if force_write is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The force_write parameter is deprecated and will be removed in "
+                    "signac 2.0. This functionality is no longer supported."
+                )
+            )
+
+        if buffer_size is not None:
+            warnings.warn(
+                DeprecationWarning(
+                    "The buffer_size parameter is deprecated and will be removed in "
+                    "signac 2.0. The buffer size should be set using the "
+                    "set_buffer_capacity method of FileBufferedCollection or any of its "
+                    "subclasses."
+                )
+            )
+
+        return cls._buffer_context
