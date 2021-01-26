@@ -19,3 +19,7 @@ synchronization mechanism is completely transparent to the user; for example, a
 `JSONDict` initialized pointing to a particular file can be modified like a normal
 dict, and all changes will be automatically persisted to a JSON file.
 """
+
+from .data_types import SyncedAttrDict, SyncedCollection, SyncedList
+
+__all__ = ["SyncedCollection", "SyncedAttrDict", "SyncedList"]

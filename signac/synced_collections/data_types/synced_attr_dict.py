@@ -12,9 +12,9 @@ named by keys, including nested keys.
 from collections.abc import Mapping, MutableMapping
 from typing import Tuple
 
+from ..utils import AbstractTypeResolver
+from ..validators import no_dot_in_key
 from .synced_collection import SyncedCollection, _sc_resolver
-from .utils import AbstractTypeResolver
-from .validators import no_dot_in_key
 
 # Identifies mappings, which are the base type for this class.
 _mapping_resolver = AbstractTypeResolver(

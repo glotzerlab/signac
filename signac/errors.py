@@ -17,6 +17,7 @@ from .contrib.errors import (
 )
 from .core.errors import Error
 from .core.jsondict import BufferedFileError, BufferException
+from .synced_collections.errors import InvalidKeyError, KeyTypeError
 
 
 class SyncConflict(Error, RuntimeError):
@@ -58,14 +59,6 @@ class SchemaSyncConflict(SyncConflict):
         return "The synchronization failed, because of a schema conflict."
 
 
-class InvalidKeyError(ValueError):
-    """Raised when a user uses a non-conforming key."""
-
-
-class KeyTypeError(TypeError):
-    """Raised when a user uses a key of invalid type."""
-
-
 __all__ = [
     "AuthenticationError",
     "BufferException",
@@ -80,6 +73,7 @@ __all__ = [
     "IncompatibleSchemaVersion",
     "InvalidKeyError",
     "JobsCorruptedError",
+    "KeyTypeError",
     "SchemaSyncConflict",
     "StatepointParsingError",
     "SyncConflict",

@@ -40,9 +40,9 @@ import warnings
 from inspect import isabstract
 from typing import Any, List
 
-from .errors import BufferedError
-from .synced_collection import SyncedCollection
-from .utils import _CounterFuncContext
+from .. import SyncedCollection
+from ..errors import BufferedError
+from ..utils import _CounterFuncContext
 
 logger = logging.getLogger(__name__)
 

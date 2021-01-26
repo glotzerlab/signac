@@ -29,11 +29,11 @@ from .contrib import get_job, get_project, index, index_files, init_project
 from .contrib.job import get_buffer_load, get_buffer_size, set_buffer_size
 from .core.h5store import H5Store, H5StoreManager
 from .core.jsondict import flush_all as flush
-from .core.synced_collections.buffered_collection import buffer_all as buffered
-from .core.synced_collections.buffered_collection import is_buffered
-from .core.synced_collections.collection_json import JSONDict
 from .db import get_database
 from .diff import diff_jobs
+from .synced_collections.backends.collection_json import JSONDict
+from .synced_collections.buffers.buffered_collection import buffer_all as buffered
+from .synced_collections.buffers.buffered_collection import is_buffered
 from .version import __version__
 
 __all__ = [

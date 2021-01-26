@@ -13,9 +13,9 @@ from json import JSONDecodeError
 from deprecation import deprecated
 
 from ..core.h5store import H5StoreManager
-from ..core.synced_collections.collection_json import BufferedJSONDict, JSONDict
 from ..errors import KeyTypeError
 from ..sync import sync_jobs
+from ..synced_collections.backends.collection_json import BufferedJSONDict, JSONDict
 from ..version import __version__
 from .errors import DestinationExistsError, JobsCorruptedError
 from .hashing import calc_id

@@ -4,9 +4,7 @@
 """Implements a Zarr SyncedCollection backend."""
 from copy import deepcopy
 
-from .synced_attr_dict import SyncedAttrDict
-from .synced_collection import SyncedCollection
-from .synced_list import SyncedList
+from .. import SyncedAttrDict, SyncedCollection, SyncedList
 
 try:
     import numcodecs

@@ -9,7 +9,7 @@ from inspect import isabstract
 from threading import RLock
 from typing import Any, Callable, DefaultDict, List
 
-from .utils import AbstractTypeResolver, _CounterContext, _NullContext
+from ..utils import AbstractTypeResolver, _CounterContext, _NullContext
 
 try:
     import numpy

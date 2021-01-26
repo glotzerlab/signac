@@ -8,9 +8,9 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from signac.core.synced_collections.collection_json import JSONDict
-from signac.core.synced_collections.synced_list import SyncedList
-from signac.core.synced_collections.utils import (
+from signac.synced_collections import SyncedList
+from signac.synced_collections.backends.collection_json import JSONDict
+from signac.synced_collections.utils import (
     AbstractTypeResolver,
     SyncedCollectionJSONEncoder,
 )

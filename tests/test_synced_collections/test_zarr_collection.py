@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.core.synced_collections.collection_zarr import (
+from signac.synced_collections.backends.collection_zarr import (
     ZarrCollection,
     ZarrDict,
     ZarrList,

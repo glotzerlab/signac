@@ -12,7 +12,7 @@ such collection results in modifying all of them, thereby removing any need for
 more complicated synchronization protocols.
 """
 
-from .errors import MetadataError
+from ..errors import MetadataError
 from .file_buffered_collection import FileBufferedCollection
 
 
