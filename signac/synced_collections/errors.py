@@ -4,8 +4,8 @@
 """Errors raised by synced collections."""
 
 
-class BufferException(Exception):
-    """An exception occured in buffered mode."""
+class BufferException(RuntimeError):
+    """Raised when any exception related to buffering occurs."""
 
 
 class BufferedError(BufferException):

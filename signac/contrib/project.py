@@ -27,8 +27,6 @@ from ..common.config import Config, get_config, load_config
 from ..core import json
 from ..core.h5store import H5StoreManager
 from ..sync import sync_projects
-
-# from ..synced_collections.backends.collection_json import
 from ..synced_collections.backends.collection_json import BufferedJSONDict
 from ..version import SCHEMA_VERSION, __version__
 from .collection import Collection
