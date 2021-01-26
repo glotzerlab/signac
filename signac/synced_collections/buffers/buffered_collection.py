@@ -105,7 +105,7 @@ class BufferedCollection(SyncedCollection):
             cls._buffer_context = _CounterFuncContext(cls._flush_buffer)
 
     @classmethod
-    def buffer_backend(cls):
+    def buffer_backend(cls, *args, **kwargs):
         """Enter context to buffer all operations for this backend."""
         return cls._buffer_context
 

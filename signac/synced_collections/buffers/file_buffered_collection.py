@@ -18,8 +18,35 @@ from typing import Dict, Tuple, Union
 
 from ..data_types.synced_collection import _LoadAndSave
 from ..errors import BufferedError, MetadataError
-from ..utils import _NullContext
+from ..utils import _CounterFuncContext, _NullContext
 from .buffered_collection import BufferedCollection
+
+
+class _FileBufferedContext(_CounterFuncContext):
+    def __init__(self, cls):
+        super().__init__(cls._flush_buffer)
+        self._buffer_size = None
+        self._original_buffer_sizes = []
+        self._cls = cls
+
+    def __call__(self, buffer_size=None):
+        self._buffer_size = buffer_size
+        return self
+
+    def __enter__(self):
+        super().__enter__()
+        if self._buffer_size is not None:
+            self._original_buffer_sizes.append(self._cls.get_buffer_capacity())
+            self._cls.set_buffer_capacity(self._buffer_size)
+        else:
+            self._original_buffer_sizes.append(None)
+        self._buffer_size = None
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        original_buffer_size = self._original_buffer_sizes.pop()
+        if original_buffer_size is not None:
+            self._cls.set_buffer_capacity(original_buffer_size)
 
 
 class _BufferedLoadAndSave(_LoadAndSave):
@@ -103,6 +130,8 @@ class FileBufferedCollection(BufferedCollection):
         # we can perform per-instance flushes that account for their current
         # buffering state.
         cls._buffered_collections: Dict[int, BufferedCollection] = {}
+
+        cls._buffer_context = _FileBufferedContext(cls)
 
     @classmethod
     def enable_multithreading(cls):
@@ -320,15 +349,4 @@ class FileBufferedCollection(BufferedCollection):
                     "signac 2.0. This functionality is no longer supported."
                 )
             )
-
-        if buffer_size is not None:
-            warnings.warn(
-                DeprecationWarning(
-                    "The buffer_size parameter is deprecated and will be removed in "
-                    "signac 2.0. The buffer size should be set using the "
-                    "set_buffer_capacity method of FileBufferedCollection or any of its "
-                    "subclasses."
-                )
-            )
-
-        return cls._buffer_context
+        return cls._buffer_context(buffer_size)
