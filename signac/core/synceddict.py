@@ -8,6 +8,10 @@ from contextlib import contextmanager
 from copy import deepcopy
 from functools import wraps
 
+from deprecation import deprecated
+
+from ..version import __version__
+
 try:
     import numpy
 
@@ -18,7 +22,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+"""
+THIS MODULE IS DEPRECATED!
+"""
 
+
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 class _SyncedList(list):
     def __init__(self, iterable, parent):
         self._parent = parent
@@ -75,6 +88,11 @@ class _SyncedList(list):
             return outer
 
 
+@deprecated(
+    deprecated_in="1.7",
+    removed_in="2.0",
+    current_version=__version__,
+)
 class _SyncedDict(MutableMapping):
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
