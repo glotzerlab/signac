@@ -6,11 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.core.synced_collections.collection_zarr import (
-    ZarrCollection,
-    ZarrDict,
-    ZarrList,
-)
+from signac.synced_collections.collection_zarr import ZarrCollection, ZarrDict, ZarrList
 
 try:
     import numcodecs  # zarr depends on numcodecs

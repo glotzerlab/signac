@@ -11,8 +11,8 @@ from tempfile import TemporaryDirectory
 import pytest
 from test_json_collection import JSONCollectionTest, TestJSONDict, TestJSONList
 
-from signac.core.synced_collections.buffered_collection import buffer_all
-from signac.core.synced_collections.collection_json import (
+from signac.synced_collections.buffered_collection import buffer_all
+from signac.synced_collections.collection_json import (
     BufferedJSONCollection,
     BufferedJSONDict,
     BufferedJSONList,
@@ -20,7 +20,7 @@ from signac.core.synced_collections.collection_json import (
     MemoryBufferedJSONDict,
     MemoryBufferedJSONList,
 )
-from signac.core.synced_collections.errors import BufferedError, MetadataError
+from signac.synced_collections.errors import BufferedError, MetadataError
 
 
 class BufferedJSONCollectionTest(JSONCollectionTest):

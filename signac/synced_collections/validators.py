@@ -12,7 +12,7 @@ types as needed.
 
 from collections.abc import Mapping, Sequence
 
-from ...errors import InvalidKeyError, KeyTypeError
+from .errors import InvalidKeyError, KeyTypeError
 from .utils import AbstractTypeResolver
 
 try:

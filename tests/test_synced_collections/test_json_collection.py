@@ -8,11 +8,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from synced_collection_test import SyncedDictTest, SyncedListTest
 
-from signac.core.synced_collections.collection_json import (
-    JSONCollection,
-    JSONDict,
-    JSONList,
-)
+from signac.synced_collections.collection_json import JSONCollection, JSONDict, JSONList
 
 
 class JSONCollectionTest:

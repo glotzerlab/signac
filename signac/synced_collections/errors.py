@@ -4,10 +4,7 @@
 """Errors raised by synced collections."""
 
 
-from ..errors import Error
-
-
-class BufferException(Error):
+class BufferException(Exception):
     """An exception occured in buffered mode."""
 
 
@@ -42,3 +39,11 @@ class MetadataError(BufferException):
 
     def __str__(self):
         return f"{self.filename} appears to have been externally modified."
+
+
+class KeyTypeError(TypeError):
+    """Raised when a user uses a key of invalid type."""
+
+
+class InvalidKeyError(ValueError):
+    """Raised when a user uses a non-conforming key."""

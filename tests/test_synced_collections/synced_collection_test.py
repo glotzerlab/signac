@@ -7,8 +7,8 @@ from copy import deepcopy
 
 import pytest
 
-from signac.core.synced_collections.synced_collection import SyncedCollection
 from signac.errors import InvalidKeyError, KeyTypeError
+from signac.synced_collections.synced_collection import SyncedCollection
 
 try:
     import numpy
