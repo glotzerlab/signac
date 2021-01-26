@@ -16,7 +16,7 @@ from threading import RLock
 from typing import Dict, Tuple, Union
 
 from ..data_types.synced_collection import _LoadAndSave
-from ..errors import MetadataError
+from ..errors import BufferedError, MetadataError
 from ..utils import _NullContext
 from .buffered_collection import BufferedCollection
 
@@ -306,4 +306,5 @@ class FileBufferedCollection(BufferedCollection):
                 issues[collection._filename] = err
         if not issues:
             cls._buffered_collections = remaining_collections
-        return issues
+        else:
+            raise BufferedError(issues)

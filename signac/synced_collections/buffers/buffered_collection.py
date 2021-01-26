@@ -103,6 +103,17 @@ class BufferedCollection(SyncedCollection):
         super().__init_subclass__()
         if not isabstract(cls):
             BufferedCollection._BUFFERED_BACKENDS.append(cls)
+            cls._buffer_context = _CounterFuncContext(cls._flush_buffer)
+
+    @classmethod
+    def buffer_backend(cls):
+        """Enter context to buffer all operations for this backend."""
+        return cls._buffer_context
+
+    @classmethod
+    def backend_is_buffered(cls):
+        """Check if this backend is currently buffered."""
+        return bool(cls._buffer_context)
 
     @staticmethod
     def _flush_all_backends():
@@ -124,6 +135,8 @@ class BufferedCollection(SyncedCollection):
             except OSError as error:
                 logger.error(str(error))
                 issues[backend] = error
+            except BufferedError as error:
+                issues.update(error.files)
         if issues:
             raise BufferedError(issues)
 
@@ -188,7 +201,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self.buffered or _BUFFER_ALL_CONTEXT
+        return self.buffered or _BUFFER_ALL_CONTEXT or type(self)._buffer_context
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
