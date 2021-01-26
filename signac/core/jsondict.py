@@ -37,22 +37,12 @@ THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class BufferException(Error):
     """An exception occurred in buffered mode."""
 
     pass
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class BufferedFileError(BufferException):
     """Raised when an error occurred while flushing one or more buffered files.
 
@@ -250,11 +240,6 @@ def buffer_reads_writes(buffer_size=DEFAULT_BUFFER_SIZE, force_write=False):
                 _BUFFERED_MODE_FORCE_WRITE = None
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class JSONDict(SyncedAttrDict):
     """A dict-like mapping interface to a persistent JSON file.
 
@@ -300,6 +285,11 @@ class JSONDict(SyncedAttrDict):
         A parent instance of JSONDict or None.
     """
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __init__(self, filename=None, write_concern=False, parent=None):
         if (filename is None) == (parent is None):
             raise ValueError(
@@ -387,11 +377,6 @@ class JSONDict(SyncedAttrDict):
         buffered_dict.flush()
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class BufferedSyncedAttrDict(SyncedAttrDict):
     """Buffered :class:`~.SyncedAttrDict`.
 

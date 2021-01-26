@@ -27,12 +27,12 @@ THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class _SyncedList(list):
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __init__(self, iterable, parent):
         self._parent = parent
         super().__init__(iterable)
@@ -88,15 +88,15 @@ class _SyncedList(list):
             return outer
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class _SyncedDict(MutableMapping):
 
     VALID_KEY_TYPES = (str, int, bool, type(None))
 
+    @deprecated(
+        deprecated_in="1.7",
+        removed_in="2.0",
+        current_version=__version__,
+    )
     def __init__(self, initialdata=None, parent=None):
         self._suspend_sync_ = 1
         self._parent = parent

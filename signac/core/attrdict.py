@@ -3,9 +3,6 @@
 # This software is licensed under the BSD 3-Clause License.
 """Defines attribute dictionaries, where values can be accessed as attributes."""
 
-from deprecation import deprecated
-
-from ..version import __version__
 from .synceddict import _SyncedDict
 
 """
@@ -13,11 +10,6 @@ THIS MODULE IS DEPRECATED!
 """
 
 
-@deprecated(
-    deprecated_in="1.7",
-    removed_in="2.0",
-    current_version=__version__,
-)
 class SyncedAttrDict(_SyncedDict):
     """A synced dictionary where (nested) values can be accessed as attributes.
 
