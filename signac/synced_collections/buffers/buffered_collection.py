@@ -36,12 +36,9 @@ buffer flushes will occur when all such managers have been exited.
 """
 
 import logging
-import warnings
 from inspect import isabstract
-from typing import Any, List
 
 from .. import SyncedCollection
-from ..errors import BufferedError
 from ..utils import _CounterFuncContext
 
 logger = logging.getLogger(__name__)
@@ -82,8 +79,6 @@ class BufferedCollection(SyncedCollection):
 
     """
 
-    _BUFFERED_BACKENDS: List[Any] = []
-
     def __init__(self, *args, **kwargs):
         # The `_buffered` attribute _must_ be defined prior to calling the
         # superclass constructors in order to enable subclasses to override
@@ -102,30 +97,17 @@ class BufferedCollection(SyncedCollection):
         """
         super().__init_subclass__()
         if not isabstract(cls):
-            BufferedCollection._BUFFERED_BACKENDS.append(cls)
+            cls._buffer_context = _CounterFuncContext(cls._flush_buffer)
 
-    @staticmethod
-    def _flush_all_backends():
-        """Execute all deferred write operations.
+    @classmethod
+    def buffer_backend(cls, *args, **kwargs):
+        """Enter context to buffer all operations for this backend."""
+        return cls._buffer_context
 
-        Raises
-        ------
-        BufferedError
-            If there are any issues with flushing any backend.
-
-        """
-        logger.debug("Flushing buffer...")
-        issues = {}
-        for backend in BufferedCollection._BUFFERED_BACKENDS:
-            try:
-                # try to sync the data to backend
-                issue = backend._flush_buffer()
-                issues.update(issue)
-            except OSError as error:
-                logger.error(str(error))
-                issues[backend] = error
-        if issues:
-            raise BufferedError(issues)
+    @classmethod
+    def backend_is_buffered(cls):
+        """Check if this backend is currently buffered."""
+        return bool(cls._buffer_context)
 
     def _save(self):
         """Synchronize data with the backend but buffer if needed.
@@ -188,7 +170,7 @@ class BufferedCollection(SyncedCollection):
     @property
     def _is_buffered(self):
         """Check if we should write to the buffer or not."""
-        return self.buffered or _BUFFER_ALL_CONTEXT
+        return self.buffered or type(self)._buffer_context
 
     def _flush(self):
         """Flush data associated with this instance from the buffer."""
@@ -198,45 +180,3 @@ class BufferedCollection(SyncedCollection):
     def _flush_buffer(self):
         """Flush all data in this class's buffer."""
         pass
-
-
-# This module-scope variable is a context that can be accessed via the
-# buffer_all method for the purpose of buffering all subsequence read and write
-# operations.
-_BUFFER_ALL_CONTEXT = _CounterFuncContext(BufferedCollection._flush_all_backends)
-
-
-# This function provides a more familiar module-scope, function-based interface
-# for enabling buffering rather than calling the class's static method.
-def buffer_all(force_write=None, buffer_size=None):
-    """Return a global buffer context for all BufferedCollection instances.
-
-    All future operations use the buffer whenever possible. Write operations
-    are deferred until the context is exited, at which point all buffered
-    backends will flush their buffers. Individual backends may flush their
-    buffers within this context if the implementation requires it; this context
-    manager represents a promise to buffer whenever possible, but does not
-    guarantee that no writes will occur under all circumstances.
-    """
-    if force_write is not None:
-        warnings.warn(
-            DeprecationWarning(
-                "The force_write parameter is deprecated and will be removed in "
-                "signac 2.0. This functionality is no longer supported."
-            )
-        )
-    if buffer_size is not None:
-        warnings.warn(
-            DeprecationWarning(
-                "The buffer_size parameter is deprecated and will be removed in "
-                "signac 2.0. The buffer size should be set using the "
-                "set_buffer_capacity method of FileBufferedCollection or any of its "
-                "subclasses."
-            )
-        )
-    return _BUFFER_ALL_CONTEXT
-
-
-def is_buffered():
-    """Check the global buffered mode setting."""
-    return bool(_BUFFER_ALL_CONTEXT)

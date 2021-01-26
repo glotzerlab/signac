@@ -149,27 +149,22 @@ class TestBufferedMode(TestProjectBase):
         assert job.doc.a == x
 
     def test_buffered_mode_change_buffer_size(self):
-        original_buffer_size = signac.get_buffer_size()
-        try:
-            assert not signac.is_buffered()
-            signac.set_buffer_size(12)
+        assert not signac.is_buffered()
+        with signac.buffered(buffer_size=12):
+            assert signac.buffered()
+            assert signac.get_buffer_size() == 12
+
+        assert not signac.is_buffered()
+
+        assert not signac.is_buffered()
+        with signac.buffered(buffer_size=12):
+            assert signac.buffered()
+            assert signac.get_buffer_size() == 12
             with signac.buffered():
                 assert signac.buffered()
                 assert signac.get_buffer_size() == 12
 
-            assert not signac.is_buffered()
-
-            assert not signac.is_buffered()
-            with signac.buffered():
-                assert signac.buffered()
-                assert signac.get_buffer_size() == 12
-                with signac.buffered():
-                    assert signac.buffered()
-                    assert signac.get_buffer_size() == 12
-
-            assert not signac.is_buffered()
-        finally:
-            signac.set_buffer_size(original_buffer_size)
+        assert not signac.is_buffered()
 
     def test_integration(self):
         def routine():
