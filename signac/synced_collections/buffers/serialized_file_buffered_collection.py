@@ -121,7 +121,7 @@ class SerializedFileBufferedCollection(FileBufferedCollection):
                                 raise MetadataError(
                                     self._filename, cached_data["contents"]
                                 )
-                            self._data = self._decode(cached_data["contents"])
+                            self._update(self._decode(cached_data["contents"]))
                             self._save_to_resource()
                     finally:
                         # Whether or not an error was raised, the cache must be

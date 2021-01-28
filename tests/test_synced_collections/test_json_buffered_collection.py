@@ -521,6 +521,14 @@ class TestBufferedJSONDict(BufferedJSONCollectionTest, TestJSONDict):
 
         assert "bar" in sc
 
+    def test_data_type_with_buffered(self, synced_collection):
+        """Make sure that the _data attribute has the right types after buffering."""
+        with self._collection_type.buffer_backend():
+            synced_collection["foo"] = {"bar": "baz"}
+
+        # This will fail if synced_collection['foo'] is a raw dict.
+        synced_collection["foo"]()
+
 
 class TestBufferedJSONList(BufferedJSONCollectionTest, TestJSONList):
     """Tests of buffering JSONLists."""
